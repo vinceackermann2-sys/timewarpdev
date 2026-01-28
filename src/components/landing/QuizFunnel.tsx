@@ -101,8 +101,23 @@ export function QuizFunnel() {
           opacity: 0.3
         }}
       />
-      {/* Animated falling stars */}
+      {/* Animated nebula background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Animated purple nebula orbs */}
+        <div 
+          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px] animate-nebula"
+          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)' }}
+        />
+        <div 
+          className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-[100px] animate-nebula"
+          style={{ background: 'radial-gradient(circle, rgba(167, 139, 250, 0.25) 0%, transparent 70%)', animationDelay: '-7s' }}
+        />
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[150px] animate-pulse-glow"
+          style={{ background: 'radial-gradient(circle, rgba(76, 29, 149, 0.4) 0%, transparent 60%)' }}
+        />
+        
+        {/* Falling stars */}
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
@@ -116,9 +131,6 @@ export function QuizFunnel() {
             }}
           />
         ))}
-        {/* Purple glow orbs */}
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute -top-20 -left-20 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
       </div>
 
       {/* Header */}
@@ -148,11 +160,11 @@ export function QuizFunnel() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 relative z-10 container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-140px)]">
+      <main className="flex-1 relative z-10 container mx-auto px-4 flex flex-col items-center justify-center -mt-16">
         {/* Step 1: Choose Role */}
         {step === 1 && (
-          <div className="animate-fade-in text-center w-full">
-            <h1 className="text-3xl md:text-5xl font-normal mb-12 md:mb-16">
+          <div className="animate-fade-in text-center w-full -mt-8">
+            <h1 className="text-3xl md:text-5xl font-normal mb-10 md:mb-14">
               Put your <span className="italic underline underline-offset-8" style={{ color: '#A78BFA', textDecorationColor: 'rgba(167, 139, 250, 0.6)' }}>Chief to work</span>
             </h1>
 
