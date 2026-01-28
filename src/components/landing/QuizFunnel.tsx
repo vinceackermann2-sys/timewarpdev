@@ -232,10 +232,7 @@ export function QuizFunnel() {
                   />
                   
                   {/* Content */}
-                  <div className="relative h-full flex flex-col items-center justify-center px-6">
-                    <div className="text-white mb-6">
-                      {mode.icon}
-                    </div>
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 flex flex-col items-center justify-end pb-14 px-6">
                     <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-[0.25em] mb-3">{mode.title}</h3>
                     <p className="text-base text-muted-foreground italic">{mode.description}</p>
                     
