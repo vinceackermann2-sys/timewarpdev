@@ -7,7 +7,8 @@ import { useNavigate } from "react-router-dom";
 import ceoBg from "@/assets/ceo-bg.png";
 import cmoBg from "@/assets/cmo-bg.png";
 import cfoBg from "@/assets/cfo-bg.png";
-import cosmicCardBg from "@/assets/cosmic-card-bg.jpg";
+import researchBg from "@/assets/research-bg.png";
+import actionBg from "@/assets/action-bg.png";
 
 type Role = "ceo" | "cmo" | "cfo";
 type Mode = "research" | "action";
@@ -24,6 +25,7 @@ interface ModeOption {
   title: string;
   description: string;
   icon: React.ReactNode;
+  background: string;
 }
 
 const roles: RoleOption[] = [
@@ -37,13 +39,15 @@ const modes: ModeOption[] = [
     id: "research", 
     title: "RESEARCH", 
     description: "Find leaks in the company",
-    icon: <Telescope className="h-16 w-16" strokeWidth={1} />
+    icon: <Telescope className="h-20 w-20" strokeWidth={1.5} />,
+    background: researchBg
   },
   { 
     id: "action", 
     title: "ACTION", 
     description: "Cover your leaks",
-    icon: <Bot className="h-16 w-16" strokeWidth={1} />
+    icon: <Bot className="h-20 w-20" strokeWidth={1.5} />,
+    background: actionBg
   },
 ];
 
@@ -201,39 +205,42 @@ export function QuizFunnel() {
 
         {/* Step 2: Choose Mode (Research/Action) */}
         {step === 2 && selectedRole && (
-          <div className="animate-fade-in text-center">
+          <div className="animate-fade-in text-center w-full -mt-8">
             {/* Protocol badge */}
-            <div className="inline-block px-6 py-2 rounded-full border border-border/50 bg-card/30 backdrop-blur-sm mb-8">
+            <div className="inline-block px-6 py-2 rounded-full border border-white/20 bg-card/30 backdrop-blur-sm mb-6">
               <span className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
                 {getRoleLabel()} Protocol Activated
               </span>
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-medium mb-12">
-              Choose your <span className="text-primary font-semibold">Timewarp</span>
+            <h1 className="text-3xl md:text-5xl font-normal mb-10 md:mb-14">
+              Choose your <span className="italic underline underline-offset-8" style={{ color: '#A78BFA', textDecorationColor: 'rgba(167, 139, 250, 0.6)' }}>Timewarp</span>
             </h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-10">
               {modes.map((mode) => (
                 <button
                   key={mode.id}
                   onClick={() => handleModeSelect(mode.id)}
-                  className="group relative h-[280px] rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-primary portal-card"
+                  className="group relative w-[280px] h-[420px] md:w-[380px] md:h-[480px] rounded-[20px] overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-glow-lg focus:outline-none focus:ring-2 focus:ring-primary border-2 border-white/20 hover:border-white/40"
                 >
                   {/* Background image */}
                   <img 
-                    src={cosmicCardBg} 
+                    src={mode.background} 
                     alt="" 
-                    className="absolute inset-0 w-full h-full object-cover opacity-50"
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
                   
                   {/* Content */}
                   <div className="relative h-full flex flex-col items-center justify-center px-6">
-                    <div className="text-white/80 mb-4">
+                    <div className="text-white mb-6">
                       {mode.icon}
                     </div>
-                    <h3 className="text-2xl font-bold text-foreground tracking-wider mb-2">{mode.title}</h3>
-                    <p className="text-sm text-muted-foreground italic">{mode.description}</p>
+                    <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-[0.25em] mb-3">{mode.title}</h3>
+                    <p className="text-base text-muted-foreground italic">{mode.description}</p>
+                    
+                    {/* Underline */}
+                    <div className="mt-4 w-16 h-0.5 rounded-full" style={{ backgroundColor: '#A78BFA' }} />
                   </div>
                 </button>
               ))}
