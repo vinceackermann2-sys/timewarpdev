@@ -4,9 +4,9 @@ import { Loader2, Telescope, Bot } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // Import cosmic backgrounds
-import cosmicBg1 from "@/assets/cosmic-bg-1.jpg";
-import cosmicBg2 from "@/assets/cosmic-bg-2.jpg";
-import cosmicBg3 from "@/assets/cosmic-bg-3.jpg";
+import ceoBg from "@/assets/ceo-bg.png";
+import cmoBg from "@/assets/cmo-bg.png";
+import cfoBg from "@/assets/cfo-bg.png";
 import cosmicCardBg from "@/assets/cosmic-card-bg.jpg";
 
 type Role = "ceo" | "cmo" | "cfo";
@@ -15,7 +15,7 @@ type Mode = "research" | "action";
 interface RoleOption {
   id: Role;
   title: string;
-  emoji: string;
+  icon: string;
   background: string;
 }
 
@@ -27,9 +27,9 @@ interface ModeOption {
 }
 
 const roles: RoleOption[] = [
-  { id: "ceo", title: "CEO", emoji: "👑", background: cosmicBg1 },
-  { id: "cmo", title: "CMO", emoji: "📣", background: cosmicBg2 },
-  { id: "cfo", title: "CFO", emoji: "💵", background: cosmicBg3 },
+  { id: "ceo", title: "CEO", icon: "👑", background: ceoBg },
+  { id: "cmo", title: "CMO", icon: "📣", background: cmoBg },
+  { id: "cfo", title: "CFO", icon: "💵", background: cfoBg },
 ];
 
 const modes: ModeOption[] = [
@@ -135,16 +135,16 @@ export function QuizFunnel() {
         {/* Step 1: Choose Role */}
         {step === 1 && (
           <div className="animate-fade-in text-center">
-            <h1 className="text-2xl md:text-3xl font-medium mb-12">
-              Put your <span className="text-primary italic underline underline-offset-4 decoration-primary/50">Chief to work</span>
+            <h1 className="text-xl md:text-2xl font-normal mb-10 md:mb-14">
+              Put your <span className="text-primary italic underline underline-offset-4 decoration-primary/60">Chief to work</span>
             </h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-5 md:gap-6">
               {roles.map((role) => (
                 <button
                   key={role.id}
                   onClick={() => handleRoleSelect(role.id)}
-                  className="group relative h-[400px] md:h-[450px] rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-glow-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="group relative w-[200px] h-[380px] md:w-[220px] md:h-[420px] rounded-[2.5rem] overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-glow-lg focus:outline-none focus:ring-2 focus:ring-primary border border-border/30"
                 >
                   {/* Background image */}
                   <img 
@@ -153,14 +153,16 @@ export function QuizFunnel() {
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   
-                  {/* Overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
-                  
-                  {/* Content */}
-                  <div className="relative h-full flex flex-col items-center justify-center px-6">
-                    <span className="text-6xl mb-4 animate-float">{role.emoji}</span>
-                    <h3 className="text-3xl font-bold text-foreground tracking-wider">{role.title}</h3>
-                    <div className="mt-4 w-12 h-0.5 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                  {/* Bottom content area */}
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 flex flex-col items-center justify-end pb-10">
+                    {/* Floating icon */}
+                    <span className="text-5xl md:text-6xl mb-6 animate-float drop-shadow-lg">{role.icon}</span>
+                    
+                    {/* Title */}
+                    <h3 className="text-2xl md:text-3xl font-bold text-foreground tracking-[0.2em]">{role.title}</h3>
+                    
+                    {/* Underline */}
+                    <div className="mt-3 w-14 h-0.5 bg-primary rounded-full" />
                   </div>
                 </button>
               ))}
