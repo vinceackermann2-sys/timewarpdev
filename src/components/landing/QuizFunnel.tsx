@@ -101,13 +101,21 @@ export function QuizFunnel() {
           opacity: 0.3
         }}
       />
-      {/* Animated background stars */}
+      {/* Animated falling stars */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-1 h-1 bg-foreground rounded-full opacity-60 animate-pulse" />
-        <div className="absolute top-40 right-40 w-1.5 h-1.5 bg-foreground rounded-full opacity-40 animate-pulse" style={{ animationDelay: '0.5s' }} />
-        <div className="absolute top-60 left-1/3 w-1 h-1 bg-foreground rounded-full opacity-50 animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-40 right-1/4 w-1 h-1 bg-foreground rounded-full opacity-60 animate-pulse" style={{ animationDelay: '1.5s' }} />
-        <div className="absolute bottom-60 left-1/4 w-1.5 h-1.5 bg-foreground rounded-full opacity-40 animate-pulse" style={{ animationDelay: '2s' }} />
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-0.5 h-0.5 bg-white rounded-full animate-starfall"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `-${Math.random() * 20}%`,
+              animationDuration: `${3 + Math.random() * 4}s`,
+              animationDelay: `${Math.random() * 5}s`,
+              opacity: 0.3 + Math.random() * 0.5,
+            }}
+          />
+        ))}
         {/* Purple glow orbs */}
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
         <div className="absolute -top-20 -left-20 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
@@ -140,20 +148,20 @@ export function QuizFunnel() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 relative z-10 container mx-auto px-4 py-8 flex flex-col items-center justify-center">
+      <main className="flex-1 relative z-10 container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-140px)]">
         {/* Step 1: Choose Role */}
         {step === 1 && (
-          <div className="animate-fade-in text-center">
-            <h1 className="text-xl md:text-2xl font-normal mb-10 md:mb-14">
-              Put your <span className="italic underline underline-offset-4" style={{ color: '#A78BFA', textDecorationColor: 'rgba(167, 139, 250, 0.6)' }}>Chief to work</span>
+          <div className="animate-fade-in text-center w-full">
+            <h1 className="text-3xl md:text-5xl font-normal mb-12 md:mb-16">
+              Put your <span className="italic underline underline-offset-8" style={{ color: '#A78BFA', textDecorationColor: 'rgba(167, 139, 250, 0.6)' }}>Chief to work</span>
             </h1>
 
-            <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-10">
               {roles.map((role) => (
                 <button
                   key={role.id}
                   onClick={() => handleRoleSelect(role.id)}
-                  className="group relative w-[240px] h-[420px] md:w-[280px] md:h-[480px] rounded-[20px] overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-glow-lg focus:outline-none focus:ring-2 focus:ring-primary border-2 border-white/20 hover:border-white/40 bg-transparent"
+                  className="group relative w-[280px] h-[480px] md:w-[320px] md:h-[540px] rounded-[20px] overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-glow-lg focus:outline-none focus:ring-2 focus:ring-primary border-2 border-white/20 hover:border-white/40 bg-transparent"
                 >
                   {/* Background image */}
                   <img 
@@ -163,15 +171,15 @@ export function QuizFunnel() {
                   />
                   
                   {/* Bottom content area */}
-                  <div className="absolute inset-x-0 bottom-0 h-1/2 flex flex-col items-center justify-end pb-12">
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 flex flex-col items-center justify-end pb-14">
                     {/* Floating icon */}
-                    <span className="text-5xl md:text-6xl mb-6 animate-float drop-shadow-lg">{role.icon}</span>
+                    <span className="text-6xl md:text-7xl mb-6 animate-float drop-shadow-lg">{role.icon}</span>
                     
                     {/* Title */}
-                    <h3 className="text-2xl md:text-3xl font-bold text-foreground tracking-[0.2em]">{role.title}</h3>
+                    <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-[0.25em]">{role.title}</h3>
                     
                     {/* Underline */}
-                    <div className="mt-3 w-14 h-0.5 rounded-full" style={{ backgroundColor: '#A78BFA' }} />
+                    <div className="mt-4 w-16 h-0.5 rounded-full" style={{ backgroundColor: '#A78BFA' }} />
                   </div>
                 </button>
               ))}
