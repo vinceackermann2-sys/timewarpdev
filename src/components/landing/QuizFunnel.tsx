@@ -92,6 +92,15 @@ export function QuizFunnel() {
 
   return (
     <div className="min-h-screen portal-bg flex flex-col relative overflow-hidden">
+      {/* Stardust texture overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: 'url(/stardust.png)',
+          backgroundRepeat: 'repeat',
+          opacity: 0.3
+        }}
+      />
       {/* Animated background stars */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-20 w-1 h-1 bg-foreground rounded-full opacity-60 animate-pulse" />
@@ -136,15 +145,15 @@ export function QuizFunnel() {
         {step === 1 && (
           <div className="animate-fade-in text-center">
             <h1 className="text-xl md:text-2xl font-normal mb-10 md:mb-14">
-              Put your <span className="text-primary italic underline underline-offset-4 decoration-primary/60">Chief to work</span>
+              Put your <span className="italic underline underline-offset-4" style={{ color: '#A78BFA', textDecorationColor: 'rgba(167, 139, 250, 0.6)' }}>Chief to work</span>
             </h1>
 
-            <div className="flex flex-col md:flex-row items-center justify-center gap-5 md:gap-6">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
               {roles.map((role) => (
                 <button
                   key={role.id}
                   onClick={() => handleRoleSelect(role.id)}
-                  className="group relative w-[200px] h-[380px] md:w-[220px] md:h-[420px] rounded-[2.5rem] overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-glow-lg focus:outline-none focus:ring-2 focus:ring-primary border border-border/30"
+                  className="group relative w-[240px] h-[420px] md:w-[280px] md:h-[480px] rounded-[20px] overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-glow-lg focus:outline-none focus:ring-2 focus:ring-primary border-2 border-white/20 hover:border-white/40 bg-transparent"
                 >
                   {/* Background image */}
                   <img 
@@ -154,7 +163,7 @@ export function QuizFunnel() {
                   />
                   
                   {/* Bottom content area */}
-                  <div className="absolute inset-x-0 bottom-0 h-1/2 flex flex-col items-center justify-end pb-10">
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 flex flex-col items-center justify-end pb-12">
                     {/* Floating icon */}
                     <span className="text-5xl md:text-6xl mb-6 animate-float drop-shadow-lg">{role.icon}</span>
                     
@@ -162,7 +171,7 @@ export function QuizFunnel() {
                     <h3 className="text-2xl md:text-3xl font-bold text-foreground tracking-[0.2em]">{role.title}</h3>
                     
                     {/* Underline */}
-                    <div className="mt-3 w-14 h-0.5 bg-primary rounded-full" />
+                    <div className="mt-3 w-14 h-0.5 rounded-full" style={{ backgroundColor: '#A78BFA' }} />
                   </div>
                 </button>
               ))}
