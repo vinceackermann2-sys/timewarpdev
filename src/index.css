@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 @keyframes fade-in {
   from {
@@ -65,16 +65,16 @@
 @layer base {
   :root {
     /* Portal cosmic theme - always dark */
-    --background: 250 65% 5%;
+    --background: 226 71% 4%;
     --foreground: 0 0% 98%;
 
-    --card: 250 45% 10%;
+    --card: 248 39% 20%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 250 45% 10%;
+    --popover: 248 39% 20%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 270 70% 65%;
+    --primary: 250 89% 76%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 250 40% 15%;
@@ -96,15 +96,15 @@
     --radius: 1rem;
 
     /* Portal specific tokens */
-    --portal-accent: 270 70% 65%;
-    --portal-accent-bright: 280 80% 70%;
-    --portal-glow: 270 100% 80%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(250 65% 5%) 0%, hsl(280 60% 15%) 50%, hsl(260 50% 10%) 100%);
+    --portal-accent: 250 89% 76%;
+    --portal-accent-bright: 250 89% 80%;
+    --portal-glow: 250 89% 76%;
+    --portal-bg-gradient: linear-gradient(135deg, #020617 0%, #1E1B4B 50%, #4C1D95 100%);
     
-    --gradient-primary: linear-gradient(135deg, hsl(270 70% 50%), hsl(280 80% 60%));
-    --gradient-accent: linear-gradient(135deg, hsl(270 70% 65%), hsl(200 80% 60%));
-    --shadow-glow: 0 0 30px hsl(270 70% 50% / 0.3);
-    --shadow-glow-lg: 0 0 60px hsl(270 70% 50% / 0.4);
+    --gradient-primary: linear-gradient(135deg, #A78BFA, #8B5CF6);
+    --gradient-accent: linear-gradient(135deg, #A78BFA, #60A5FA);
+    --shadow-glow: 0 0 30px hsl(250 89% 76% / 0.3);
+    --shadow-glow-lg: 0 0 60px hsl(250 89% 76% / 0.4);
     
     --sidebar-background: 250 45% 8%;
     --sidebar-foreground: 0 0% 98%;
@@ -164,13 +164,13 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
   }
 }
 
