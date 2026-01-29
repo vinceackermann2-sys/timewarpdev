@@ -2,3 +2,9 @@ project_id = "ohvxqlxugqlzzbmfypiy"
 
 [functions.chat]
 verify_jwt = false
+
+[functions.research]
+verify_jwt = false
+
+[functions.workspace-fetch]
+verify_jwt = false
