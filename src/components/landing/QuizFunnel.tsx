@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { lovable } from "@/integrations/lovable";
 
 // Import cosmic backgrounds
 import ceoBg from "@/assets/ceo-bg.png";
@@ -78,27 +77,17 @@ export function QuizFunnel() {
   };
 
   const handleConnectGoogle = async () => {
+    if (!selectedRole || !selectedMode) return;
+
     setIsConnecting(true);
-    
-    // Store quiz data in sessionStorage so we can retrieve it after OAuth redirect
-    sessionStorage.setItem('quizData', JSON.stringify({
-      role: selectedRole,
-      mode: selectedMode
-    }));
-    
-    const { error, redirected } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/dashboard`
-    });
-    
-    if (error) {
-      console.error("OAuth error:", error);
-      setIsConnecting(false);
-    }
-    
-    // If not redirected (shouldn't happen with Google), navigate manually
-    if (!redirected && !error) {
-      navigate("/dashboard");
-    }
+
+    // Store quiz data so Dashboard can pick it up after OAuth redirect
+    const quizPayload = { role: selectedRole, mode: selectedMode };
+    sessionStorage.setItem("quizData", JSON.stringify(quizPayload));
+
+    // Route through /auth so we can request the required Google Workspace scopes.
+    // (The auth page will start the Google OAuth flow.)
+    navigate("/auth", { state: { quizData: quizPayload } });
   };
 
   const getRoleLabel = () => {
