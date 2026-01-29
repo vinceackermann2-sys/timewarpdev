@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,30 +134,9 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      // Read-only Workspace scopes needed by the live analysis
-      const scopes = [
-        'https://www.googleapis.com/auth/drive.readonly',
-        'https://www.googleapis.com/auth/spreadsheets.readonly',
-        'https://www.googleapis.com/auth/gmail.readonly',
-        'https://www.googleapis.com/auth/documents.readonly',
-        'https://www.googleapis.com/auth/calendar.readonly',
-      ].join(' ');
-
-      // Use the published URL for redirect since preview URLs are system-managed
-      // and may not be in the allow list. The session will work across both domains.
-      const publishedUrl = 'https://digital-guide-genie.lovable.app';
-      const redirectUrl = `${publishedUrl}/dashboard`;
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          scopes,
-          queryParams: {
-            prompt: 'consent',
-            access_type: 'offline',
-          },
-        },
+      // Use Lovable's managed Google OAuth
+      const { error } = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/dashboard`,
       });
 
       if (error) throw error;
