@@ -9,12 +9,11 @@ import {
 } from "@/components/ui/accordion";
 import { 
   Brain, Mail, FileText, Calendar, CheckCircle2, 
-  Loader2, AlertTriangle, Sparkles, ArrowRight,
-  Eye, Lightbulb, Target, Search, Zap
+  Loader2, AlertTriangle, Sparkles, Play,
+  Eye, Lightbulb, Target, Search, Zap, Shield, Lock
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
 interface AnalysisStep {
   type: "thought" | "action" | "observation" | "finding" | "complete";
   content: string;
@@ -250,20 +249,30 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
       {/* Main Content - Stacked Layout */}
       <main className="flex-1 relative z-10 container mx-auto px-4 pb-6 flex flex-col gap-4">
         
-        {/* Browser Window - Full Width, Larger */}
-        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl flex-1 min-h-[400px]">
-          {/* Browser Header */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-[#1a1a2e]/80 border-b border-white/10">
+        {/* Secure Private Browser Window */}
+        <div className="rounded-2xl overflow-hidden border border-accent/20 bg-[#050510]/95 backdrop-blur-xl flex-1 min-h-[400px] shadow-[0_0_60px_rgba(139,92,246,0.15)]">
+          {/* Secure Browser Header */}
+          <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-[#0f0f1a] to-[#1a1a2e] border-b border-accent/20">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
               <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
               <div className="w-3 h-3 rounded-full bg-[#28c840]" />
             </div>
-            <div className="flex-1">
-              <div className="px-3 py-1.5 rounded bg-white/5 border border-white/10 text-xs text-muted-foreground flex items-center gap-2">
-                <span>workspace://google/{currentItem?.type || 'connecting'}</span>
-                {isRunning && <Loader2 className="h-3 w-3 animate-spin ml-auto" />}
+            
+            {/* Secure URL Bar */}
+            <div className="flex-1 flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-xs flex-1">
+                <Lock className="h-3 w-3 text-green-400" />
+                <span className="text-green-400 font-medium">secure://</span>
+                <span className="text-muted-foreground">private-workspace/{currentItem?.type || 'initializing'}</span>
+                {isRunning && <Loader2 className="h-3 w-3 animate-spin ml-auto text-accent" />}
               </div>
+            </div>
+
+            {/* Security Badge */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-green-500/10 border border-green-500/30">
+              <Shield className="h-3 w-3 text-green-400" />
+              <span className="text-[10px] text-green-400 font-medium uppercase tracking-wider">Private</span>
             </div>
           </div>
 
@@ -465,51 +474,64 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
             </Accordion>
           )}
 
-          {/* Finding Card */}
+          {/* Solution Recommendation Card */}
           {finding && (
-            <div className="mt-4 p-4 rounded-xl bg-gradient-to-b from-amber-500/10 to-transparent border border-amber-500/20 animate-fade-in">
-              <div className="flex items-start gap-3 mb-3">
-                <Lightbulb className="h-6 w-6 text-amber-400 flex-shrink-0" />
+            <div className="mt-4 rounded-xl overflow-hidden border border-accent/30 bg-gradient-to-b from-accent/10 via-accent/5 to-transparent animate-fade-in">
+              {/* Recommendation Header */}
+              <div className="px-5 py-4 bg-accent/10 border-b border-accent/20 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-accent/20">
+                  <Lightbulb className="h-5 w-5 text-accent" />
+                </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">{finding.issue?.title || "Improvement Found"}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{finding.issue?.description}</p>
+                  <p className="text-xs text-accent uppercase tracking-wider font-medium">AI Recommendation</p>
+                  <h3 className="font-semibold text-foreground">{finding.issue?.title || "Improvement Opportunity"}</h3>
                 </div>
               </div>
+              
+              {/* Issue Description */}
+              <div className="px-5 py-4 border-b border-white/5">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {finding.issue?.description}
+                </p>
+              </div>
 
+              {/* Solution Section */}
               {finding.improvement && (
-                <div className="bg-green-500/10 rounded-lg p-3 mt-3 border border-green-500/20">
-                  <h4 className="font-medium text-green-300 flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4" />
-                    {finding.improvement.title}
-                  </h4>
-                  <p className="text-sm text-muted-foreground mt-1">{finding.improvement.description}</p>
-                  {finding.improvement.firstStep && (
-                    <p className="text-sm text-green-400 mt-2">
-                      ➡️ First step: {finding.improvement.firstStep}
-                    </p>
-                  )}
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <span className="text-sm font-medium text-green-400">Recommended Solution</span>
+                  </div>
+                  
+                  <div className="bg-green-500/10 rounded-xl p-4 border border-green-500/20 mb-4">
+                    <h4 className="font-medium text-foreground mb-2">{finding.improvement.title}</h4>
+                    <p className="text-sm text-muted-foreground">{finding.improvement.description}</p>
+                    {finding.improvement.firstStep && (
+                      <div className="mt-3 pt-3 border-t border-green-500/20">
+                        <p className="text-sm text-green-400 flex items-start gap-2">
+                          <Target className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <span><strong>First step:</strong> {finding.improvement.firstStep}</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Execute Action Button */}
+                  <Button
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-accent to-purple-500 hover:from-accent/90 hover:to-purple-500/90 shadow-[0_0_30px_rgba(139,92,246,0.3)] hover:shadow-[0_0_40px_rgba(139,92,246,0.5)] transition-all duration-300"
+                    onClick={() => {
+                      // Placeholder - action execution will be implemented later
+                      console.log("Execute action clicked", finding);
+                    }}
+                  >
+                    <Play className="h-5 w-5 mr-2" />
+                    Execute This Action
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    AI will preview the action before executing
+                  </p>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          {isComplete && (
-            <div className="mt-4 flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => startAnalysis()}
-                className="flex-1 border-white/20"
-              >
-                Run Again
-              </Button>
-              <Button
-                onClick={onComplete}
-                className="flex-1"
-              >
-                Continue
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
             </div>
           )}
         </div>
