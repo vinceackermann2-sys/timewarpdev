@@ -6,23 +6,130 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are AI CEO, an intelligent business assistant that helps entrepreneurs and business owners manage their digital life. You are professional, concise, and action-oriented.
+function buildSystemPrompt(research: any): string {
+  const basePrompt = `You are TimeWarp AI, an intelligent business assistant that helps entrepreneurs and business owners manage their digital life. You are professional, concise, and action-oriented.
 
 Your capabilities:
 - Analyzing business data and providing insights
-- Answering questions about emails, documents, and schedules
-- Drafting email responses and communications
-- Providing strategic business advice
+- Answering questions about emails, documents, schedules, and contacts
+- Providing strategic business advice based on real data
 - Helping with task prioritization and time management
 
 Guidelines:
 - Be concise but thorough in your responses
 - When suggesting actions, explain your reasoning
-- If you don't have access to specific data, acknowledge it and offer alternatives
+- Base your answers on the ACTUAL business data provided below
 - Maintain a professional yet approachable tone
-- Focus on actionable insights rather than generic advice
+- Focus on actionable insights rather than generic advice`;
 
-Note: You are currently in demo mode. Full email and document integration features are coming soon. For now, you can answer general business questions, provide advice, and demonstrate how you would help once connected to the user's data.`;
+  if (!research) {
+    return basePrompt + `
+
+Note: No business data has been researched yet. I can answer general business questions, but for personalized insights, please run the research analysis first by going through the quiz on the landing page.`;
+  }
+
+  // Build context from research data
+  const summary = research.research_summary || {};
+  const rawData = research.raw_data || {};
+  const findings = research.findings || [];
+
+  let context = `
+
+=== YOUR BUSINESS DATA (Last analyzed: ${summary.analyzedAt || 'Recently'}) ===
+
+OVERVIEW:
+- ${summary.emailsAnalyzed || 0} emails analyzed
+- ${summary.eventsAnalyzed || 0} calendar events
+- ${summary.documentsAnalyzed || 0} documents
+- ${summary.sheetsAnalyzed || 0} spreadsheets
+- ${summary.slidesAnalyzed || 0} presentations`;
+
+  // Add top contacts
+  if (rawData.topContacts?.length > 0) {
+    context += `
+
+TOP EMAIL CONTACTS:
+${rawData.topContacts.slice(0, 10).map((c: any) => `- ${c.email}: ${c.count} emails`).join('\n')}`;
+  }
+
+  // Add recent emails summary
+  if (rawData.emailSummaries?.length > 0) {
+    context += `
+
+RECENT EMAIL THREADS:
+${rawData.emailSummaries.slice(0, 15).map((e: any) => `- From: ${e.from} | Subject: "${e.subject}" | ${e.snippet?.slice(0, 100) || ''}`).join('\n')}`;
+  }
+
+  // Add calendar events
+  if (rawData.calendarEvents?.length > 0) {
+    context += `
+
+UPCOMING CALENDAR EVENTS:
+${rawData.calendarEvents.slice(0, 15).map((e: any) => {
+      const startDate = e.start?.dateTime || e.start?.date || 'TBD';
+      return `- ${e.summary || 'Untitled'} | ${startDate} | ${e.attendees || 0} attendees`;
+    }).join('\n')}`;
+  }
+
+  // Add documents
+  if (rawData.documents?.length > 0) {
+    context += `
+
+RECENT DOCUMENTS:
+${rawData.documents.slice(0, 10).map((d: any) => `- ${d.name} (modified: ${d.modifiedTime?.split('T')[0] || 'unknown'})`).join('\n')}`;
+  }
+
+  // Add spreadsheets with sample data
+  if (rawData.sheets?.length > 0) {
+    context += `
+
+SPREADSHEETS:
+${rawData.sheets.slice(0, 5).map((s: any) => {
+      let sheetInfo = `- ${s.name || s.title}`;
+      if (s.sampleData) {
+        for (const [tabName, tabData] of Object.entries(s.sampleData || {})) {
+          const data = tabData as any;
+          if (data?.headers) {
+            sheetInfo += `\n  Tab "${tabName}": Headers: ${data.headers.slice(0, 5).join(', ')} (${data.rowCount} rows)`;
+          }
+        }
+      }
+      return sheetInfo;
+    }).join('\n')}`;
+  }
+
+  // Add presentations
+  if (rawData.slides?.length > 0) {
+    context += `
+
+PRESENTATIONS:
+${rawData.slides.slice(0, 5).map((s: any) => `- ${s.name || s.title} (${s.slideCount} slides)`).join('\n')}`;
+  }
+
+  // Add analyzed images if any
+  if (rawData.analyzedImages?.length > 0) {
+    context += `
+
+ANALYZED IMAGES:
+${rawData.analyzedImages.slice(0, 5).map((i: any) => `- ${i.filename || i.name}: ${i.analysis?.slice(0, 80) || 'analyzed'}`).join('\n')}`;
+  }
+
+  // Add previous findings
+  if (findings.length > 0) {
+    context += `
+
+PREVIOUS ANALYSIS FINDINGS:
+${findings.map((f: any) => `- Issue: ${f.issue?.title || 'N/A'} | Recommendation: ${f.improvement?.title || 'N/A'}`).join('\n')}`;
+  }
+
+  context += `
+
+=== END OF BUSINESS DATA ===
+
+Use this real business data to answer questions. Reference specific emails, contacts, events, or documents when relevant. If asked about something not in the data, acknowledge the limitation.`;
+
+  return basePrompt + context;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -92,6 +199,27 @@ serve(async (req) => {
       );
     }
 
+    // Fetch stored research data for this user using service role
+    const supabaseServiceRole = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: research, error: researchError } = await supabaseServiceRole
+      .from('workspace_research')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (researchError) {
+      console.error("Failed to fetch research:", researchError);
+    }
+
+    console.log("Research data found:", !!research, research ? `(${research.emails_analyzed} emails)` : '(none)');
+
+    // Build system prompt with research context
+    const systemPrompt = buildSystemPrompt(research);
+
     console.log("Calling AI gateway with", messages.length, "messages for user:", userId);
 
     const response = await fetch(
@@ -105,7 +233,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             ...messages,
           ],
           stream: true,

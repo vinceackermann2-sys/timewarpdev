@@ -28,6 +28,39 @@ function streamStep(controller: ReadableStreamDefaultController, step: AnalysisS
   controller.enqueue(encoder.encode(`data: ${JSON.stringify(step)}\n\n`));
 }
 
+// Helper to get top email contacts
+function getTopContacts(emails: any[]): { email: string; count: number }[] {
+  const contactCounts: Record<string, number> = {};
+  for (const email of emails) {
+    const from = email.from?.match(/<(.+)>/)?.[1] || email.from?.trim();
+    if (from) {
+      contactCounts[from] = (contactCounts[from] || 0) + 1;
+    }
+  }
+  return Object.entries(contactCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([email, count]) => ({ email, count }));
+}
+
+// Helper to get sample sheet data
+function getSampleSheetData(allData: any): any {
+  if (!allData) return {};
+  const sample: any = {};
+  for (const [tabName, tabData] of Object.entries(allData)) {
+    const data = tabData as any;
+    if (data?.values) {
+      sample[tabName] = {
+        headers: data.values[0]?.slice(0, 8),
+        sampleRows: data.values.slice(1, 4).map((r: any[]) => r?.slice(0, 8)),
+        rowCount: data.rowCount,
+        columnCount: data.columnCount
+      };
+    }
+  }
+  return sample;
+}
+
 function getLastYearDate(): string {
   const date = new Date();
   date.setFullYear(date.getFullYear() - 1);
@@ -750,6 +783,100 @@ Respond with a JSON object:
             console.error("Failed to parse AI response:", e);
           }
 
+          // Build research summary to save
+          const researchSummary = {
+            emailsAnalyzed: emails.length,
+            emailAttachments: allEmailAttachments.length,
+            imageAttachmentsAnalyzed: analyzedEmailImages.length,
+            videoAttachments: videoAttachments.length,
+            documentsAnalyzed: documents.length,
+            sheetsAnalyzed: sheets.length,
+            slidesAnalyzed: slides.length,
+            formsAnalyzed: forms.length,
+            driveImagesAnalyzed: analyzedDriveImages.length,
+            driveVideos: driveVideos.length,
+            eventsAnalyzed: events.length,
+            analyzedAt: new Date().toISOString(),
+            timeRange: {
+              emails: `Last year (since ${lastYearDate})`,
+              files: `Last year (since ${lastYearDate})`,
+              calendar: `Upcoming year (until ${nextYearDate.split('T')[0]})`
+            }
+          };
+
+          // Build raw data for chat context (summarized versions)
+          const rawData = {
+            emailSummaries: emails.slice(0, 100).map(e => ({
+              from: e.from?.split('<')[0]?.trim() || 'Unknown',
+              subject: e.subject,
+              date: e.date,
+              snippet: e.snippet,
+              hasAttachments: e.attachmentCount > 0
+            })),
+            topContacts: getTopContacts(emails),
+            calendarEvents: events.slice(0, 50).map(e => ({
+              summary: e.summary,
+              start: e.start,
+              attendees: e.attendees?.length || 0,
+              location: e.location
+            })),
+            documents: documents.slice(0, 30).map(d => ({ name: d.name, modifiedTime: d.modifiedTime })),
+            sheets: sheets.slice(0, 10).map(s => ({
+              name: s.name,
+              title: s.title,
+              sheetNames: s.sheetNames,
+              sampleData: getSampleSheetData(s.allData)
+            })),
+            slides: slides.slice(0, 10).map(s => ({
+              name: s.name,
+              title: s.title,
+              slideCount: s.slideCount,
+              textSummary: s.textContent?.slice(0, 3)?.join(' | ')
+            })),
+            forms: forms.slice(0, 10).map(f => ({
+              name: f.name,
+              title: f.title,
+              questionCount: f.questions?.length
+            })),
+            analyzedImages: [
+              ...analyzedEmailImages,
+              ...analyzedDriveImages.slice(0, 5),
+              ...analyzedSlideImages.slice(0, 5)
+            ]
+          };
+
+          const findings = analysis?.issue && analysis?.improvement ? [analysis] : [];
+
+          // Save research to database using service role
+          const supabaseServiceRole = createClient(
+            supabaseUrl, 
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+          );
+
+          // Upsert the research data
+          const { error: upsertError } = await supabaseServiceRole
+            .from('workspace_research')
+            .upsert({
+              user_id: userId,
+              role: role || 'ceo',
+              research_summary: researchSummary,
+              findings: findings,
+              raw_data: rawData,
+              emails_analyzed: emails.length,
+              documents_analyzed: documents.length,
+              sheets_analyzed: sheets.length,
+              events_analyzed: events.length,
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id'
+            });
+
+          if (upsertError) {
+            console.error('Failed to save research:', upsertError);
+          } else {
+            console.log('Research saved successfully for user:', userId);
+          }
+
           if (analysis?.issue && analysis?.improvement) {
             streamStep(controller, {
               type: "finding",
@@ -763,27 +890,7 @@ Respond with a JSON object:
               type: "complete",
               content: "Comprehensive content analysis complete!",
               data: {
-                summary: {
-                  emailsAnalyzed: emails.length,
-                  emailAttachments: allEmailAttachments.length,
-                  imageAttachmentsAnalyzed: analyzedEmailImages.length,
-                  videoAttachments: videoAttachments.length,
-                  documentsAnalyzed: documents.length,
-                  sheetsAnalyzed: sheets.length,
-                  sheetsWithFullData: sheets.filter(s => Object.keys(s.allData || {}).length > 0).length,
-                  slidesAnalyzed: slides.length,
-                  slideImagesAnalyzed: analyzedSlideImages.length,
-                  formsAnalyzed: forms.length,
-                  driveImagesAnalyzed: analyzedDriveImages.length,
-                  driveVideos: driveVideos.length,
-                  eventsAnalyzed: events.length,
-                  contentDepth: "Full content + image vision analysis",
-                  timeRange: {
-                    emails: `Last year (since ${lastYearDate})`,
-                    files: `Last year (since ${lastYearDate})`,
-                    calendar: `Upcoming year (until ${nextYearDate.split('T')[0]})`
-                  }
-                },
+                summary: researchSummary,
                 ...analysis
               }
             });
@@ -792,15 +899,7 @@ Respond with a JSON object:
               type: "complete",
               content: "Analysis complete!",
               data: {
-                summary: {
-                  emailsAnalyzed: emails.length,
-                  sheetsAnalyzed: sheets.length,
-                  slidesAnalyzed: slides.length,
-                  formsAnalyzed: forms.length,
-                  imagesAnalyzed: analyzedEmailImages.length + analyzedDriveImages.length + analyzedSlideImages.length,
-                  videosFound: videoAttachments.length + driveVideos.length,
-                  eventsAnalyzed: events.length,
-                }
+                summary: researchSummary
               }
             });
           }
