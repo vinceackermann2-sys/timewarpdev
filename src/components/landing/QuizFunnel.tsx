@@ -143,12 +143,12 @@ export function QuizFunnel() {
         <div className="container mx-auto px-4 flex flex-col items-center">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-2">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-accent to-primary flex items-center justify-center shadow-glow">
-              <svg viewBox="0 0 24 24" className="h-6 w-6 text-primary-foreground" fill="currentColor">
-                <path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/>
-              </svg>
-            </div>
-            <span className="text-3xl font-bold text-foreground tracking-tight">Portals</span>
+            <img 
+              src="/favicon.png" 
+              alt="TimeWarp" 
+              className="h-12 w-12 rounded-xl object-cover shadow-glow"
+            />
+            <span className="text-3xl font-bold text-foreground tracking-tight">TimeWarp</span>
           </div>
           <span className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Your Own AI C-Suite</span>
           
