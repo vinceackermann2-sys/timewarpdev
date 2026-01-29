@@ -1,10 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { 
   Brain, Mail, FileText, Calendar, CheckCircle2, 
   Loader2, AlertTriangle, Sparkles, ArrowRight,
-  Eye, Lightbulb, Target
+  Eye, Lightbulb, Target, ChevronDown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +19,7 @@ interface AnalysisStep {
   type: "thought" | "action" | "observation" | "finding" | "complete";
   content: string;
   data?: any;
+  timestamp?: Date;
 }
 
 interface LiveAnalysisViewProps {
@@ -33,6 +40,8 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
   const [finding, setFinding] = useState<any>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [stats, setStats] = useState({ emails: 0, docs: 0, events: 0 });
+  const [progress, setProgress] = useState(0);
+  const [currentPhase, setCurrentPhase] = useState("Initializing...");
 
   const startAnalysis = useCallback(async () => {
     setIsRunning(true);
@@ -40,6 +49,8 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
     setCurrentItem(null);
     setFinding(null);
     setIsComplete(false);
+    setProgress(0);
+    setCurrentPhase("Connecting to Google Workspace...");
 
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -54,8 +65,6 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
         return;
       }
 
-      // Prefer the most reliable token source. provider_token is often only present
-      // immediately after OAuth, so we also persist and read it from sessionStorage.
       const accessToken =
         googleToken ||
         sessionStorage.getItem("googleProviderToken") ||
@@ -69,6 +78,9 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
         setIsRunning(false);
         return;
       }
+
+      setProgress(5);
+      setCurrentPhase("Starting analysis...");
 
       const response = await fetch(ANALYZE_URL, {
         method: "POST",
@@ -88,6 +100,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let stepCount = 0;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -109,22 +122,33 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
 
           try {
             const step: AnalysisStep = JSON.parse(jsonStr);
+            step.timestamp = new Date();
+            stepCount++;
             
             setSteps(prev => [...prev, step]);
 
-            // Update current item being viewed
+            // Update progress and phase based on step type
+            if (step.type === "action") {
+              setCurrentPhase(step.content);
+              // Estimate progress based on actions
+              const newProgress = Math.min(10 + stepCount * 5, 90);
+              setProgress(newProgress);
+            }
+
             if (step.data && step.type === "observation") {
               setCurrentItem(step.data);
             }
 
-            // Handle finding
             if (step.type === "finding" && step.data) {
               setFinding(step.data);
+              setProgress(95);
+              setCurrentPhase("Found improvement opportunity!");
             }
 
-            // Handle completion
             if (step.type === "complete") {
               setIsComplete(true);
+              setProgress(100);
+              setCurrentPhase("Analysis complete");
               if (step.data?.summary) {
                 setStats({
                   emails: step.data.summary.emailsAnalyzed || 0,
@@ -153,7 +177,6 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
     }
   }, [role, googleToken, toast, finding]);
 
-  // Start analysis on mount
   useEffect(() => {
     startAnalysis();
   }, []);
@@ -179,6 +202,16 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
   };
 
   const roleLabel = role?.toUpperCase() || "CEO";
+
+  // Group steps by phase for accordion
+  const groupedSteps = steps.reduce((acc, step, index) => {
+    if (step.type === "action" || index === 0) {
+      acc.push({ phase: step.content, steps: [step] });
+    } else if (acc.length > 0) {
+      acc[acc.length - 1].steps.push(step);
+    }
+    return acc;
+  }, [] as { phase: string; steps: AnalysisStep[] }[]);
 
   return (
     <div className="min-h-screen portal-bg flex flex-col relative overflow-hidden">
@@ -209,207 +242,236 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
         </div>
       </header>
 
-      {/* Main Content - Split View */}
-      <main className="flex-1 relative z-10 container mx-auto px-4 pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
-          
-          {/* Left Panel - "Browser" showing current data */}
-          <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl">
-            {/* Browser Header */}
-            <div className="flex items-center gap-3 px-4 py-3 bg-[#1a1a2e]/80 border-b border-white/10">
+      {/* Main Content - Stacked Layout */}
+      <main className="flex-1 relative z-10 container mx-auto px-4 pb-6 flex flex-col gap-4">
+        
+        {/* Browser Window - Full Width, Flat */}
+        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl">
+          {/* Browser Header */}
+          <div className="flex items-center gap-3 px-4 py-3 bg-[#1a1a2e]/80 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+              <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+              <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+            </div>
+            <div className="flex-1">
+              <div className="px-3 py-1 rounded bg-white/5 border border-white/10 text-xs text-muted-foreground">
+                workspace://google/{currentItem?.type || 'connecting'}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onTakeControl}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Take Control
+            </Button>
+          </div>
+
+          {/* Browser Content - Shorter height */}
+          <div className="p-6 h-[280px] flex items-center justify-center">
+            {!currentItem && isRunning && (
+              <div className="flex flex-col items-center justify-center text-center">
+                <Loader2 className="h-10 w-10 animate-spin text-accent mb-3" />
+                <p className="text-muted-foreground">Connecting to Google Workspace...</p>
+              </div>
+            )}
+
+            {currentItem && (
+              <div className="w-full max-w-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  {getItemIcon(currentItem.type)}
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Currently Viewing: {currentItem.type}
+                  </span>
+                </div>
+
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  {currentItem.type === "email" && (
+                    <>
+                      <h3 className="font-medium text-lg mb-2 text-foreground">{currentItem.subject}</h3>
+                      <p className="text-sm text-muted-foreground mb-3">From: {currentItem.from}</p>
+                      {currentItem.snippet && (
+                        <p className="text-sm text-muted-foreground/80 italic">
+                          "{currentItem.snippet?.slice(0, 150)}..."
+                        </p>
+                      )}
+                    </>
+                  )}
+
+                  {currentItem.type === "document" && (
+                    <>
+                      <h3 className="font-medium text-lg mb-2 text-foreground">{currentItem.name}</h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Type: {currentItem.mimeType?.split('.').pop() || 'File'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Last modified: {new Date(currentItem.modifiedTime).toLocaleDateString()}
+                      </p>
+                    </>
+                  )}
+
+                  {currentItem.type === "event" && (
+                    <>
+                      <h3 className="font-medium text-lg mb-2 text-foreground">{currentItem.summary}</h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Attendees: {currentItem.attendees || 0}
+                      </p>
+                      {currentItem.start && (
+                        <p className="text-sm text-muted-foreground">
+                          Starts: {new Date(currentItem.start.dateTime || currentItem.start.date).toLocaleString()}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Stats bar */}
+                {(isComplete || stats.emails > 0) && (
+                  <div className="mt-4 grid grid-cols-3 gap-3">
+                    <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
+                      <div className="text-lg font-bold text-red-400">{stats.emails}</div>
+                      <div className="text-xs text-muted-foreground">Emails</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
+                      <div className="text-lg font-bold text-blue-400">{stats.docs}</div>
+                      <div className="text-xs text-muted-foreground">Documents</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
+                      <div className="text-lg font-bold text-green-400">{stats.events}</div>
+                      <div className="text-xs text-muted-foreground">Events</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isComplete && !currentItem && (
+              <div className="flex flex-col items-center justify-center text-center">
+                <CheckCircle2 className="h-10 w-10 text-green-400 mb-3" />
+                <p className="text-foreground font-medium">Analysis Complete</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Progress Section */}
+        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl p-6">
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-                <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-                <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+                {isRunning ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                ) : isComplete ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-400" />
+                ) : (
+                  <Brain className="h-4 w-4 text-purple-400" />
+                )}
+                <span className="text-sm font-medium text-foreground">{currentPhase}</span>
               </div>
-              <div className="flex-1">
-                <div className="px-3 py-1 rounded bg-white/5 border border-white/10 text-xs text-muted-foreground">
-                  workspace://google/{currentItem?.type || 'connecting'}
-                </div>
-              </div>
+              <span className="text-sm text-muted-foreground">{progress}%</span>
             </div>
+            <Progress value={progress} className="h-2" />
+          </div>
 
-            {/* Browser Content */}
-            <div className="p-6 h-[400px] flex flex-col">
-              {!currentItem && isRunning && (
-                <div className="flex-1 flex flex-col items-center justify-center text-center">
-                  <Loader2 className="h-12 w-12 animate-spin text-accent mb-4" />
-                  <p className="text-muted-foreground">Connecting to Google Workspace...</p>
-                </div>
-              )}
-
-              {currentItem && (
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-4">
-                    {getItemIcon(currentItem.type)}
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Currently Viewing: {currentItem.type}
-                    </span>
+          {/* Steps Accordion */}
+          {groupedSteps.length > 0 && (
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="steps" className="border-white/10">
+                <AccordionTrigger className="text-sm text-muted-foreground hover:text-foreground hover:no-underline py-2">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    <span>View {steps.length} analysis steps</span>
                   </div>
-
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    {currentItem.type === "email" && (
-                      <>
-                        <h3 className="font-medium text-lg mb-2 text-foreground">{currentItem.subject}</h3>
-                        <p className="text-sm text-muted-foreground mb-3">From: {currentItem.from}</p>
-                        {currentItem.snippet && (
-                          <p className="text-sm text-muted-foreground/80 italic">
-                            "{currentItem.snippet?.slice(0, 150)}..."
-                          </p>
-                        )}
-                        <div className="flex gap-2 mt-4">
-                          {currentItem.labels?.map((label: string) => (
-                            <span key={label} className="text-xs px-2 py-1 rounded bg-white/10 text-muted-foreground">
-                              {label}
-                            </span>
-                          ))}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="max-h-[200px] overflow-y-auto space-y-2 pt-2">
+                    {steps.map((step, i) => (
+                      <div key={i} className="flex gap-3 py-1 animate-fade-in">
+                        <div className="flex-shrink-0 mt-0.5">
+                          {getStepIcon(step.type)}
                         </div>
-                      </>
-                    )}
-
-                    {currentItem.type === "document" && (
-                      <>
-                        <h3 className="font-medium text-lg mb-2 text-foreground">{currentItem.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Type: {currentItem.mimeType?.split('.').pop() || 'File'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Last modified: {new Date(currentItem.modifiedTime).toLocaleDateString()}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Shared: {currentItem.shared ? 'Yes' : 'No'}
-                        </p>
-                      </>
-                    )}
-
-                    {currentItem.type === "event" && (
-                      <>
-                        <h3 className="font-medium text-lg mb-2 text-foreground">{currentItem.summary}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Attendees: {currentItem.attendees || 0}
-                        </p>
-                        {currentItem.start && (
-                          <p className="text-sm text-muted-foreground">
-                            Starts: {new Date(currentItem.start.dateTime || currentItem.start.date).toLocaleString()}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm truncate ${
+                            step.type === "thought" ? "text-purple-300 italic" :
+                            step.type === "action" ? "text-blue-300" :
+                            step.type === "finding" ? "text-amber-300 font-medium" :
+                            step.type === "complete" ? "text-green-300 font-medium" :
+                            "text-muted-foreground"
+                          }`}>
+                            {step.content}
                           </p>
-                        )}
-                      </>
+                        </div>
+                        <span className="text-xs text-muted-foreground/50 flex-shrink-0">
+                          {step.timestamp?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                      </div>
+                    ))}
+                    
+                    {isRunning && (
+                      <div className="flex items-center gap-2 text-muted-foreground py-1">
+                        <div className="flex gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )}
 
-              {/* Stats bar */}
-              {(isComplete || stats.emails > 0) && (
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
-                    <div className="text-xl font-bold text-red-400">{stats.emails}</div>
-                    <div className="text-xs text-muted-foreground">Emails</div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
-                    <div className="text-xl font-bold text-blue-400">{stats.docs}</div>
-                    <div className="text-xs text-muted-foreground">Documents</div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
-                    <div className="text-xl font-bold text-green-400">{stats.events}</div>
-                    <div className="text-xs text-muted-foreground">Events</div>
-                  </div>
+          {/* Finding Card */}
+          {finding && (
+            <div className="mt-4 p-4 rounded-xl bg-gradient-to-b from-amber-500/10 to-transparent border border-amber-500/20">
+              <div className="flex items-start gap-3 mb-3">
+                <Lightbulb className="h-6 w-6 text-amber-400 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-foreground">{finding.issue?.title || "Improvement Found"}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{finding.issue?.description}</p>
+                </div>
+              </div>
+
+              {finding.improvement && (
+                <div className="bg-green-500/10 rounded-lg p-3 mt-3 border border-green-500/20">
+                  <h4 className="font-medium text-green-300 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {finding.improvement.title}
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-1">{finding.improvement.description}</p>
+                  {finding.improvement.firstStep && (
+                    <p className="text-sm text-green-400 mt-2">
+                      ➡️ First step: {finding.improvement.firstStep}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
-          </div>
+          )}
 
-          {/* Right Panel - AI Reasoning Stream */}
-          <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl flex flex-col">
-            {/* AI Header */}
-            <div className="flex items-center gap-3 px-4 py-3 bg-[#1a1a2e]/80 border-b border-white/10">
-              <Brain className="h-5 w-5 text-purple-400" />
-              <span className="text-sm font-medium">AI Reasoning</span>
-              {isRunning && <Loader2 className="h-4 w-4 animate-spin ml-auto text-accent" />}
+          {/* Action Buttons */}
+          {isComplete && (
+            <div className="mt-4 flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => startAnalysis()}
+                className="flex-1 border-white/20"
+              >
+                Run Again
+              </Button>
+              <Button
+                onClick={onComplete}
+                className="flex-1"
+              >
+                Continue
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
             </div>
-
-            {/* Reasoning Stream */}
-            <ScrollArea className="flex-1 p-4 h-[350px]">
-              <div className="space-y-3">
-                {steps.map((step, i) => (
-                  <div key={i} className="flex gap-3 animate-fade-in">
-                    <div className="flex-shrink-0 mt-1">
-                      {getStepIcon(step.type)}
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-sm ${
-                        step.type === "thought" ? "text-purple-300 italic" :
-                        step.type === "action" ? "text-blue-300" :
-                        step.type === "finding" ? "text-amber-300 font-medium" :
-                        step.type === "complete" ? "text-green-300 font-medium" :
-                        "text-muted-foreground"
-                      }`}>
-                        {step.content}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-
-                {isRunning && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-
-            {/* Finding Card */}
-            {finding && (
-              <div className="p-4 border-t border-white/10 bg-gradient-to-b from-amber-500/10 to-transparent">
-                <div className="flex items-start gap-3 mb-3">
-                  <Lightbulb className="h-6 w-6 text-amber-400 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-foreground">{finding.issue?.title || "Improvement Found"}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{finding.issue?.description}</p>
-                  </div>
-                </div>
-
-                {finding.improvement && (
-                  <div className="bg-green-500/10 rounded-lg p-3 mt-3 border border-green-500/20">
-                    <h4 className="font-medium text-green-300 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      {finding.improvement.title}
-                    </h4>
-                    <p className="text-sm text-muted-foreground mt-1">{finding.improvement.description}</p>
-                    {finding.improvement.firstStep && (
-                      <p className="text-sm text-green-400 mt-2">
-                        ➡️ First step: {finding.improvement.firstStep}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            {isComplete && (
-              <div className="p-4 border-t border-white/10 flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => startAnalysis()}
-                  className="flex-1 border-white/20"
-                >
-                  Run Again
-                </Button>
-                <Button
-                  onClick={onComplete}
-                  className="flex-1"
-                >
-                  Continue
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </main>
     </div>
