@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const getSystemPrompt = (role: string, mode: string) => {
@@ -35,7 +36,7 @@ const getSystemPrompt = (role: string, mode: string) => {
 
 ${modeInstructions}
 
-You are simulating an analysis of a company's Google Workspace data (emails, documents, spreadsheets, calendar).
+You are analyzing a company's Google Workspace data (emails, documents, spreadsheets, calendar).
 
 Generate a realistic, detailed business analysis with specific insights. Be creative but realistic.
 Include specific metrics, percentages, and actionable recommendations.
@@ -71,10 +72,47 @@ Format your response as JSON with this structure:
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    // Validate JWT authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Missing or invalid Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("JWT validation failed:", claimsError?.message);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log("Authenticated user:", userId);
+
     const { role, mode, workspaceData } = await req.json();
 
     if (!role || !mode) {
@@ -99,7 +137,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Starting research analysis for role: ${role}, mode: ${mode}`);
+    console.log(`Starting research analysis for user: ${userId}, role: ${role}, mode: ${mode}`);
     console.log(`Workspace data provided: ${workspaceData ? 'yes' : 'no'}`);
 
     // Build the user prompt based on whether we have real workspace data
@@ -191,7 +229,7 @@ Provide 4-6 key findings and 3-5 prioritized recommendations.`;
       );
     }
 
-    console.log("Streaming research response");
+    console.log("Streaming research response for user:", userId);
 
     return new Response(response.body, {
       headers: {
