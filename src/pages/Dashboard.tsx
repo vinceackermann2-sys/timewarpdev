@@ -6,10 +6,16 @@ import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { IntegrationHub } from "@/components/dashboard/IntegrationHub";
 import { ChatInterface } from "@/components/dashboard/ChatInterface";
+import { AIResearchView } from "@/components/dashboard/AIResearchView";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
 
-type View = "integrations" | "chat";
+type View = "integrations" | "chat" | "research";
+
+interface QuizData {
+  role: string;
+  mode: string;
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -17,6 +23,27 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>("chat");
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [showResearch, setShowResearch] = useState(false);
+
+  useEffect(() => {
+    // Check for quiz data from OAuth redirect
+    const storedQuizData = sessionStorage.getItem('quizData');
+    if (storedQuizData) {
+      try {
+        const parsed = JSON.parse(storedQuizData);
+        setQuizData(parsed);
+        // Show research view if mode is research
+        if (parsed.mode === 'research') {
+          setShowResearch(true);
+        }
+        // Clear after reading
+        sessionStorage.removeItem('quizData');
+      } catch (e) {
+        console.error('Failed to parse quiz data:', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -45,6 +72,16 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const handleResearchComplete = () => {
+    setShowResearch(false);
+    setCurrentView("chat");
+  };
+
+  const handleTakeControl = () => {
+    setShowResearch(false);
+    setCurrentView("chat");
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -55,6 +92,18 @@ const Dashboard = () => {
 
   if (!user) {
     return null;
+  }
+
+  // Show AI Research view if coming from quiz with research mode
+  if (showResearch && quizData) {
+    return (
+      <AIResearchView
+        role={quizData.role}
+        mode={quizData.mode}
+        onComplete={handleResearchComplete}
+        onTakeControl={handleTakeControl}
+      />
+    );
   }
 
   return (
