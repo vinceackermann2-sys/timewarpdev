@@ -381,67 +381,123 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
                   </div>
                 </div>
 
-                {/* Visual Evidence of Inefficiency */}
+                {/* Before/After Visual Comparison */}
                 <div className="grid grid-cols-2 gap-4 mb-5">
-                  {/* Before - Problem Visualization */}
+                  {/* Before - Inefficiency Image */}
                   <div className="rounded-xl overflow-hidden border border-red-500/30 bg-gradient-to-br from-red-950/30 to-transparent">
-                    <div className="px-3 py-2 bg-red-500/10 border-b border-red-500/20">
-                      <span className="text-xs font-medium text-red-400 uppercase tracking-wider">Current State</span>
+                    <div className="px-3 py-2 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2">
+                      <Eye className="h-3 w-3 text-red-400" />
+                      <span className="text-xs font-medium text-red-400 uppercase tracking-wider">Before</span>
                     </div>
-                    <div className="p-4">
-                      {/* Visual representation of the problem */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                          <div className="h-2 bg-red-500/20 rounded flex-1" />
+                    <div className="aspect-video relative overflow-hidden bg-red-950/20">
+                      {/* Visual mock of inefficiency - scattered, disorganized */}
+                      <div className="absolute inset-0 p-4 flex flex-col gap-2">
+                        <div className="flex gap-2 items-start">
+                          <Mail className="h-4 w-4 text-red-400/60 flex-shrink-0" />
+                          <div className="flex-1 space-y-1">
+                            <div className="h-2 bg-red-400/20 rounded w-full" />
+                            <div className="h-2 bg-red-400/10 rounded w-3/4" />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-red-500/30" />
-                          <div className="h-2 bg-red-500/15 rounded w-3/4" />
+                        <div className="flex gap-2 items-start opacity-70">
+                          <FileText className="h-4 w-4 text-red-400/40 flex-shrink-0" />
+                          <div className="flex-1 space-y-1">
+                            <div className="h-2 bg-red-400/15 rounded w-2/3" />
+                            <div className="h-2 bg-red-400/10 rounded w-1/2" />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-red-500/20" />
-                          <div className="h-2 bg-red-500/10 rounded w-1/2" />
+                        <div className="flex gap-2 items-start opacity-50">
+                          <Calendar className="h-4 w-4 text-red-400/30 flex-shrink-0" />
+                          <div className="flex-1 space-y-1">
+                            <div className="h-2 bg-red-400/10 rounded w-full" />
+                          </div>
                         </div>
+                        {/* Scattered dots representing chaos */}
+                        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500/40" />
+                        <div className="absolute top-8 right-6 w-1.5 h-1.5 rounded-full bg-red-500/30" />
+                        <div className="absolute bottom-4 right-3 w-2.5 h-2.5 rounded-full bg-red-500/25" />
                       </div>
-                      <p className="text-xs text-red-300/80 mt-3 line-clamp-2">{finding.issue?.title}</p>
+                      {/* Red overlay tint */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-red-950/60 to-transparent" />
+                    </div>
+                    <div className="p-3 border-t border-red-500/20">
+                      <p className="text-xs text-red-300/80 line-clamp-2">{finding.issue?.title || "Scattered data across multiple sources"}</p>
                     </div>
                   </div>
 
-                  {/* After - Solution Visualization */}
+                  {/* After - Solution Image */}
                   <div className="rounded-xl overflow-hidden border border-green-500/30 bg-gradient-to-br from-green-950/30 to-transparent">
-                    <div className="px-3 py-2 bg-green-500/10 border-b border-green-500/20">
-                      <span className="text-xs font-medium text-green-400 uppercase tracking-wider">Recommended</span>
+                    <div className="px-3 py-2 bg-green-500/10 border-b border-green-500/20 flex items-center gap-2">
+                      <Sparkles className="h-3 w-3 text-green-400" />
+                      <span className="text-xs font-medium text-green-400 uppercase tracking-wider">After</span>
                     </div>
-                    <div className="p-4">
-                      {/* Visual representation of the solution */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3 h-3 text-green-400" />
-                          <div className="h-2 bg-green-500/30 rounded flex-1" />
+                    <div className="aspect-video relative overflow-hidden bg-green-950/20">
+                      {/* Visual mock of organized solution */}
+                      <div className="absolute inset-0 p-4 flex flex-col gap-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <LayoutDashboard className="h-4 w-4 text-green-400" />
+                          <div className="h-2 bg-green-400/40 rounded flex-1" />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3 h-3 text-green-400" />
-                          <div className="h-2 bg-green-500/25 rounded w-5/6" />
+                        <div className="grid grid-cols-3 gap-2 flex-1">
+                          <div className="rounded bg-green-400/20 p-2 flex flex-col items-center justify-center">
+                            <BarChart3 className="h-3 w-3 text-green-400/80" />
+                          </div>
+                          <div className="rounded bg-green-400/15 p-2 flex flex-col items-center justify-center">
+                            <Users className="h-3 w-3 text-green-400/70" />
+                          </div>
+                          <div className="rounded bg-green-400/10 p-2 flex flex-col items-center justify-center">
+                            <Target className="h-3 w-3 text-green-400/60" />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3 h-3 text-green-400" />
-                          <div className="h-2 bg-green-500/20 rounded w-full" />
+                        <div className="flex gap-1">
+                          <div className="h-1.5 bg-green-400/30 rounded flex-1" />
+                          <div className="h-1.5 bg-green-400/25 rounded flex-1" />
+                          <div className="h-1.5 bg-green-400/20 rounded flex-1" />
                         </div>
                       </div>
-                      <p className="text-xs text-green-300/80 mt-3 line-clamp-2">{finding.improvement?.title}</p>
+                      {/* Green overlay tint */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-green-950/60 to-transparent" />
+                    </div>
+                    <div className="p-3 border-t border-green-500/20">
+                      <p className="text-xs text-green-300/80 line-clamp-2">{finding.improvement?.title || "Unified dashboard with clear metrics"}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Solution Summary */}
+                {/* Step-by-Step Action Plan */}
                 {finding.improvement && (
                   <div className="rounded-xl p-4 bg-accent/5 border border-accent/20 mb-5">
-                    <div className="flex items-start gap-3">
-                      <Lightbulb className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-foreground mb-1">{finding.improvement.title}</h4>
-                        <p className="text-sm text-muted-foreground">{finding.improvement.description}</p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Lightbulb className="h-4 w-4 text-accent" />
+                      <h4 className="font-medium text-foreground text-sm">Action Plan</h4>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-xs font-bold text-accent">1</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-foreground font-medium">Consolidate Data</p>
+                          <p className="text-xs text-muted-foreground">Gather scattered information into one central location</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-xs font-bold text-accent">2</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-foreground font-medium">Create Structure</p>
+                          <p className="text-xs text-muted-foreground">{finding.improvement.description || "Organize with clear categories and workflows"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-xs font-bold text-accent">3</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-foreground font-medium">Enable Tracking</p>
+                          <p className="text-xs text-muted-foreground">Set up metrics and dashboards for ongoing visibility</p>
+                        </div>
                       </div>
                     </div>
                   </div>
