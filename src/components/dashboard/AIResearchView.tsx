@@ -112,7 +112,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ accessToken }),
       });
@@ -150,11 +150,18 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
 
   const runResearch = useCallback(async () => {
     try {
+      // Get the current session for JWT authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session?.access_token) {
+        throw new Error("Please sign in to run research");
+      }
+
       const response = await fetch(RESEARCH_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ role, mode, workspaceData }),
       });

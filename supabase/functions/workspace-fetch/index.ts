@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface WorkspaceData {
@@ -29,15 +30,84 @@ async function fetchWithAuth(url: string, accessToken: string) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { accessToken } = await req.json();
-
-    if (!accessToken) {
+    // Validate JWT authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Missing or invalid Authorization header");
       return new Response(
-        JSON.stringify({ error: "Access token is required" }),
+        JSON.stringify({ error: "Unauthorized" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("JWT validation failed:", claimsError?.message);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log("Authenticated user:", userId);
+
+    // Get the user's session to extract the provider token securely
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      console.error("Failed to get user:", userError?.message);
+      return new Response(
+        JSON.stringify({ error: "Failed to get user session" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // The provider_token should be in the user's identities or we need to get it from session
+    // For Google OAuth, the access token is stored in the session
+    // We need the client to pass their session's access_token which we validate above
+    // Then we get the provider_token from the session
+    
+    // Get session to access provider_token
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    // Since we're in an edge function context, we need to use the admin approach
+    // or get the provider token passed from client after proper validation
+    // For now, we'll check if provider_token was passed in body (validated by the JWT check above)
+    
+    const body = await req.json().catch(() => ({}));
+    const { accessToken } = body;
+    
+    // If no access token is provided, explain how to get one
+    if (!accessToken) {
+      console.log("No access token provided for user:", userId);
+      return new Response(
+        JSON.stringify({ 
+          error: "Google access token required",
+          message: "Please re-authenticate with Google to access workspace data"
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -45,7 +115,23 @@ serve(async (req) => {
       );
     }
 
-    console.log("Fetching Google Workspace data...");
+    // Validate the token is for Google by making a simple call
+    // This also verifies the token is valid
+    const tokenInfoResponse = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
+    
+    if (!tokenInfoResponse.ok) {
+      console.error("Invalid Google access token for user:", userId);
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired Google access token" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const tokenInfo = await tokenInfoResponse.json();
+    console.log(`Fetching Google Workspace data for user: ${userId}, token issued to: ${tokenInfo.email}`);
 
     // Fetch data from all APIs in parallel
     const [emailsData, driveData, calendarData] = await Promise.all([
@@ -144,7 +230,7 @@ serve(async (req) => {
       calendarEvents,
     };
 
-    console.log(`Fetched: ${emails.length} emails, ${documents.length} docs, ${spreadsheets.length} sheets, ${calendarEvents.length} events`);
+    console.log(`Fetched for user ${userId}: ${emails.length} emails, ${documents.length} docs, ${spreadsheets.length} sheets, ${calendarEvents.length} events`);
 
     return new Response(JSON.stringify(workspaceData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
