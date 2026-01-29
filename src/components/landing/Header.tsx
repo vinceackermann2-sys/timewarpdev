@@ -11,10 +11,12 @@ export function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">AI</span>
-            </div>
-            <span className="font-semibold text-xl text-foreground">AI CEO</span>
+            <img 
+              src="/favicon.png" 
+              alt="TimeWarp" 
+              className="h-8 w-8 rounded-lg object-cover"
+            />
+            <span className="font-semibold text-xl text-foreground">TimeWarp</span>
           </Link>
 
           {/* Desktop Navigation */}
