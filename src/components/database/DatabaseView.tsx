@@ -8,9 +8,7 @@ import {
   DollarSign,
   Sparkles,
   ArrowUp,
-  Loader2,
-  ChevronDown,
-  RefreshCw
+  Loader2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -149,7 +147,6 @@ function generatePersonalizedQuestions(
       break;
   }
 
-  // If we don't have enough personalized questions, add fallbacks
   while (questions.length < 3) {
     const fallback = fallbackQuestions[moduleId]?.[questions.length];
     if (fallback) questions.push(fallback);
@@ -159,14 +156,14 @@ function generatePersonalizedQuestions(
   return questions.slice(0, 4);
 }
 
-// Database module definitions
+// Database module definitions - styled as file tabs
 const databaseModules = [
-  { id: "email", code: "EML-X1", title: "EMAIL INTELLIGENCE", icon: Mail, gradient: "from-primary to-accent" },
-  { id: "calendar", code: "CAL-Z2", title: "CALENDAR INSIGHTS", icon: Calendar, gradient: "from-accent to-primary" },
-  { id: "docs", code: "DOC-A3", title: "DOCUMENT HUB", icon: FileText, gradient: "from-primary to-accent" },
-  { id: "revenue", code: "REV-B4", title: "REVENUE TRACKER", icon: DollarSign, gradient: "from-accent to-primary" },
-  { id: "team", code: "TEM-C5", title: "TEAM ACTIVITY", icon: Users, gradient: "from-primary to-accent" },
-  { id: "trends", code: "TRN-D6", title: "BUSINESS TRENDS", icon: TrendingUp, gradient: "from-accent to-primary" }
+  { id: "email", code: "EML-X1", title: "EMAIL INTEL", icon: Mail, color: "from-blue-500 to-blue-600" },
+  { id: "calendar", code: "CAL-Z2", title: "CALENDAR", icon: Calendar, color: "from-purple-500 to-purple-600" },
+  { id: "docs", code: "DOC-A3", title: "DOCUMENTS", icon: FileText, color: "from-emerald-500 to-emerald-600" },
+  { id: "revenue", code: "REV-B4", title: "REVENUE", icon: DollarSign, color: "from-amber-500 to-amber-600" },
+  { id: "team", code: "TEM-C5", title: "TEAM", icon: Users, color: "from-pink-500 to-pink-600" },
+  { id: "trends", code: "TRN-D6", title: "TRENDS", icon: TrendingUp, color: "from-cyan-500 to-cyan-600" }
 ];
 
 export function DatabaseView() {
@@ -190,7 +187,6 @@ export function DatabaseView() {
           return;
         }
 
-        // Download business data from storage bucket
         const { data, error } = await supabase.storage
           .from('business-data')
           .download(`${session.user.id}/research.json`);
@@ -269,7 +265,6 @@ export function DatabaseView() {
         throw new Error(errorData.error || "Failed to get response");
       }
 
-      // Handle streaming response
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No response body");
 
@@ -361,7 +356,6 @@ export function DatabaseView() {
           style={{ background: 'radial-gradient(circle, hsl(270 70% 30% / 0.4) 0%, transparent 60%)' }}
         />
         
-        {/* Falling stars */}
         {[...Array(15)].map((_, i) => (
           <div
             key={i}
@@ -411,13 +405,13 @@ export function DatabaseView() {
           </div>
         )}
 
-        {/* Database cards grid - visible when not actively chatting */}
+        {/* File Storage Map - visible when not actively chatting */}
         {!showChat && (
-          <div className="w-full max-w-5xl">
+          <div className="w-full max-w-4xl">
             {/* Header */}
-            <div className="text-center mb-10">
+            <div className="text-center mb-12">
               <h1 className="text-2xl md:text-3xl font-normal mb-3">
-                Your <span className="italic text-primary">Business Intelligence</span> Hub
+                Your <span className="italic text-primary">Business</span> Storage
               </h1>
               {isLoadingData ? (
                 <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
@@ -426,18 +420,18 @@ export function DatabaseView() {
                 </div>
               ) : hasBusinessData ? (
                 <p className="text-muted-foreground text-sm">
-                  <span className="text-primary">●</span> Connected • {researchSummary?.emailsAnalyzed || 0} emails • {researchSummary?.eventsAnalyzed || 0} events analyzed
+                  <span className="text-primary">●</span> {researchSummary?.emailsAnalyzed || 0} emails • {researchSummary?.eventsAnalyzed || 0} events synced
                 </p>
               ) : (
                 <p className="text-muted-foreground text-sm">
-                  No business data yet. Complete the research flow to unlock personalized insights.
+                  Complete research to unlock personalized insights
                 </p>
               )}
             </div>
 
-            {/* Cards grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {databaseModules.map((module) => {
+            {/* File Tabs - Map Storage Style */}
+            <div className="flex items-end justify-center gap-1 h-[420px]">
+              {databaseModules.map((module, index) => {
                 const Icon = module.icon;
                 const isHovered = hoveredModule === module.id;
                 const questions = generatePersonalizedQuestions(module.id, businessData, researchSummary);
@@ -445,58 +439,81 @@ export function DatabaseView() {
                 return (
                   <div
                     key={module.id}
-                    className="relative"
+                    className="relative flex flex-col items-center"
                     onMouseEnter={() => setHoveredModule(module.id)}
                     onMouseLeave={() => setHoveredModule(null)}
                   >
-                    {/* Card */}
+                    {/* File Tab */}
                     <div
                       className={cn(
-                        "portal-card rounded-xl p-5 cursor-pointer transition-all duration-300",
-                        isHovered ? "shadow-glow scale-[1.02]" : "hover:border-primary/30"
+                        "relative w-20 cursor-pointer transition-all duration-500 ease-out origin-bottom",
+                        isHovered ? "h-[380px] -translate-y-8 z-20" : "h-[340px] z-10"
                       )}
+                      style={{
+                        transform: isHovered ? 'translateY(-40px) scale(1.05)' : 'translateY(0) scale(1)',
+                        zIndex: isHovered ? 50 : 10 - index
+                      }}
                     >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={cn(
-                          "p-2 rounded-lg bg-gradient-to-br",
-                          module.gradient
-                        )}>
-                          <Icon className="h-4 w-4 text-primary-foreground" />
+                      {/* Tab top - colored header */}
+                      <div className={cn(
+                        "h-20 rounded-t-xl bg-gradient-to-b transition-all duration-300",
+                        module.color,
+                        isHovered && "shadow-glow"
+                      )}>
+                        <div className="p-2 text-center">
+                          <span className="text-[9px] text-white/80 font-mono tracking-wider">{module.code}</span>
+                          <div className="mt-1.5 flex justify-center">
+                            <Icon className="h-5 w-5 text-white" />
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm text-foreground truncate">{module.title}</h3>
-                          <p className="text-[10px] text-muted-foreground font-mono">{module.code}</p>
-                        </div>
-                        <ChevronDown className={cn(
-                          "h-4 w-4 text-muted-foreground transition-transform duration-300",
-                          isHovered && "rotate-180 text-primary"
-                        )} />
                       </div>
 
-                      {/* Status indicator */}
-                      <div className="flex items-center gap-1.5">
-                        <span className={cn(
-                          "h-1.5 w-1.5 rounded-full animate-pulse",
-                          hasBusinessData ? "bg-primary" : "bg-muted-foreground"
-                        )} />
-                        <span className="text-[10px] text-muted-foreground">
-                          {hasBusinessData ? "Personalized" : "Default"}
-                        </span>
+                      {/* Tab body - dark with vertical text */}
+                      <div className="flex-1 bg-gradient-to-b from-card to-background/95 border-x border-b border-border/30 rounded-b-lg h-[260px] flex flex-col items-center py-4 backdrop-blur-sm">
+                        {/* Vertical text */}
+                        <div 
+                          className="flex-1 flex items-center justify-center"
+                          style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                        >
+                          <span className={cn(
+                            "text-xs font-medium tracking-[0.25em] rotate-180 transition-colors duration-300",
+                            isHovered ? "text-primary" : "text-muted-foreground"
+                          )}>
+                            {module.title}
+                          </span>
+                        </div>
+
+                        {/* Status dots */}
+                        <div className="flex flex-col gap-1 mt-2">
+                          <span className={cn(
+                            "h-1.5 w-1.5 rounded-full transition-colors duration-300",
+                            hasBusinessData ? "bg-primary" : "bg-muted-foreground/40"
+                          )} />
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
+                        </div>
                       </div>
                     </div>
 
-                    {/* Dropdown on hover */}
+                    {/* Pulled out panel with questions */}
                     <div
                       className={cn(
-                        "absolute left-0 right-0 top-full mt-1 z-50 transition-all duration-300 origin-top",
+                        "absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 transition-all duration-300 origin-bottom",
                         isHovered 
                           ? "opacity-100 scale-100 translate-y-0" 
-                          : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+                          : "opacity-0 scale-90 translate-y-4 pointer-events-none"
                       )}
+                      style={{ zIndex: 100 }}
                     >
-                      <div className="portal-card rounded-xl p-3 shadow-glow-lg border border-primary/20 backdrop-blur-xl">
-                        <p className="text-[10px] text-muted-foreground font-medium tracking-wider mb-2 px-1">
-                          {hasBusinessData ? "YOUR INSIGHTS" : "QUICK INSIGHTS"}
+                      <div className="portal-card rounded-xl p-4 shadow-glow-lg border border-primary/30 backdrop-blur-xl">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className={cn("p-1.5 rounded-lg bg-gradient-to-br", module.color)}>
+                            <Icon className="h-3.5 w-3.5 text-white" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">{module.title}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-medium tracking-wider mb-2">
+                          {hasBusinessData ? "YOUR INSIGHTS" : "QUICK QUERIES"}
                         </p>
                         <div className="space-y-1">
                           {questions.map((question, idx) => (
@@ -525,7 +542,7 @@ export function DatabaseView() {
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <ArrowUp className="h-4 w-4" />
-            <span className="text-xs tracking-[0.2em] uppercase">Back to Modules</span>
+            <span className="text-xs tracking-[0.2em] uppercase">Back to Storage</span>
           </button>
         )}
       </div>
