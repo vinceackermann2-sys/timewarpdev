@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [currentView, setCurrentView] = useState<View>("chat");
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [showResearch, setShowResearch] = useState(false);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for quiz data from OAuth redirect
@@ -43,6 +44,12 @@ const Dashboard = () => {
         console.error('Failed to parse quiz data:', e);
       }
     }
+
+    // Check for stored Google token
+    const storedGoogleToken = sessionStorage.getItem('googleProviderToken');
+    if (storedGoogleToken) {
+      setGoogleToken(storedGoogleToken);
+    }
   }, []);
 
   useEffect(() => {
@@ -51,6 +58,12 @@ const Dashboard = () => {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Capture provider_token when available (only on initial OAuth)
+        if (session?.provider_token) {
+          sessionStorage.setItem('googleProviderToken', session.provider_token);
+          setGoogleToken(session.provider_token);
+        }
         
         if (!session) {
           navigate("/auth");
@@ -63,6 +76,12 @@ const Dashboard = () => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+      
+      // Capture provider_token if available
+      if (session?.provider_token) {
+        sessionStorage.setItem('googleProviderToken', session.provider_token);
+        setGoogleToken(session.provider_token);
+      }
       
       if (!session) {
         navigate("/auth");
@@ -100,6 +119,7 @@ const Dashboard = () => {
       <LiveAnalysisView
         role={quizData.role}
         mode={quizData.mode}
+        googleToken={googleToken}
         onComplete={handleResearchComplete}
         onTakeControl={handleTakeControl}
       />
