@@ -6,7 +6,7 @@ import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { IntegrationHub } from "@/components/dashboard/IntegrationHub";
 import { ChatInterface } from "@/components/dashboard/ChatInterface";
-import { AIResearchView } from "@/components/dashboard/AIResearchView";
+import { LiveAnalysisView } from "@/components/dashboard/LiveAnalysisView";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
 
@@ -94,10 +94,10 @@ const Dashboard = () => {
     return null;
   }
 
-  // Show AI Research view if coming from quiz with research mode
+  // Show Live Analysis view if coming from quiz with research mode
   if (showResearch && quizData) {
     return (
-      <AIResearchView
+      <LiveAnalysisView
         role={quizData.role}
         mode={quizData.mode}
         onComplete={handleResearchComplete}
