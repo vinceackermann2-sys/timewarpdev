@@ -28,7 +28,6 @@ function streamStep(controller: ReadableStreamDefaultController, step: AnalysisS
   controller.enqueue(encoder.encode(`data: ${JSON.stringify(step)}\n\n`));
 }
 
-// Calculate date ranges
 function getLastYearDate(): string {
   const date = new Date();
   date.setFullYear(date.getFullYear() - 1);
@@ -41,7 +40,6 @@ function getNextYearDate(): string {
   return date.toISOString();
 }
 
-// Extract text content from email parts
 function extractEmailContent(payload: any): string {
   let content = "";
   
@@ -67,17 +65,52 @@ function extractEmailContent(payload: any): string {
     }
   }
   
-  // Truncate very long content
-  return content.slice(0, 2000);
+  return content.slice(0, 3000);
 }
 
-// Extract text from slide elements
-function extractSlideText(slides: any[]): string[] {
-  const texts: string[] = [];
+// Extract attachments from email
+function extractEmailAttachments(payload: any, messageId: string): any[] {
+  const attachments: any[] = [];
   
-  for (const slide of slides || []) {
+  function processPartForAttachments(part: any) {
+    if (part.filename && part.filename.length > 0 && part.body?.attachmentId) {
+      const mimeType = part.mimeType || '';
+      const isImage = mimeType.startsWith('image/');
+      const isVideo = mimeType.startsWith('video/');
+      
+      attachments.push({
+        filename: part.filename,
+        mimeType: part.mimeType,
+        size: part.body.size,
+        attachmentId: part.body.attachmentId,
+        messageId,
+        isImage,
+        isVideo,
+      });
+    }
+    
+    if (part.parts) {
+      for (const subPart of part.parts) {
+        processPartForAttachments(subPart);
+      }
+    }
+  }
+  
+  processPartForAttachments(payload);
+  return attachments;
+}
+
+// Extract text and images from slides
+function extractSlideContent(slides: any[]): { texts: string[], images: any[] } {
+  const texts: string[] = [];
+  const images: any[] = [];
+  
+  for (let i = 0; i < (slides || []).length; i++) {
+    const slide = slides[i];
     let slideText = "";
+    
     for (const element of slide.pageElements || []) {
+      // Extract text
       if (element.shape?.text?.textElements) {
         for (const te of element.shape.text.textElements) {
           if (te.textRun?.content) {
@@ -85,13 +118,62 @@ function extractSlideText(slides: any[]): string[] {
           }
         }
       }
+      
+      // Extract images
+      if (element.image?.contentUrl) {
+        images.push({
+          slideNumber: i + 1,
+          contentUrl: element.image.contentUrl,
+          sourceUrl: element.image.sourceUrl,
+        });
+      }
     }
+    
     if (slideText.trim()) {
-      texts.push(slideText.trim().slice(0, 500));
+      texts.push(`Slide ${i + 1}: ${slideText.trim().slice(0, 500)}`);
     }
   }
   
-  return texts;
+  return { texts, images };
+}
+
+// Analyze an image using AI vision
+async function analyzeImage(imageUrl: string, context: string, apiKey: string): Promise<string> {
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Briefly describe this image in a business context. Context: ${context}. Describe in 1-2 sentences what the image shows and any business relevance.`
+              },
+              {
+                type: "image_url",
+                image_url: { url: imageUrl }
+              }
+            ]
+          }
+        ],
+      }),
+    });
+    
+    if (!response.ok) return "Could not analyze image";
+    
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "Image analysis unavailable";
+  } catch (e) {
+    console.error("Image analysis error:", e);
+    return "Image analysis failed";
+  }
 }
 
 serve(async (req) => {
@@ -162,46 +244,43 @@ serve(async (req) => {
         try {
           streamStep(controller, {
             type: "thought",
-            content: `I'm going to deeply analyze your Google Workspace as a ${role?.toUpperCase() || 'CEO'} advisor. I'll read the actual content of up to 1000 emails, spreadsheet data, slide text, and form questions...`
+            content: `Deep analysis mode: I'll scan up to 1000 emails (with attachments), full spreadsheet data, slide images/text, form content, and video files as a ${role?.toUpperCase() || 'CEO'} advisor...`
           });
 
-          await new Promise(r => setTimeout(r, 800));
+          await new Promise(r => setTimeout(r, 500));
 
-          // ========== EMAILS (1000 with content) ==========
+          // ========== EMAILS WITH ATTACHMENTS ==========
           streamStep(controller, {
             type: "action",
-            content: `📧 Fetching up to 1000 emails from the last year with full content...`
+            content: `📧 Fetching up to 1000 emails with full content and attachments...`
           });
 
           const emailQuery = encodeURIComponent(`after:${lastYearDate}`);
           let allEmailIds: string[] = [];
           let nextPageToken: string | undefined;
           
-          // Fetch email IDs in batches (up to 1000)
           while (allEmailIds.length < 1000) {
             const pageUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500&q=${emailQuery}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
             const emailsData = await fetchGoogleAPI(pageUrl, accessToken);
             
             if (!emailsData?.messages) break;
-            
             allEmailIds = allEmailIds.concat(emailsData.messages.map((m: any) => m.id));
             nextPageToken = emailsData.nextPageToken;
-            
             if (!nextPageToken) break;
           }
 
           streamStep(controller, {
             type: "observation",
-            content: `Found ${allEmailIds.length} emails. Fetching content (this may take a moment)...`
+            content: `Found ${allEmailIds.length} emails. Fetching content and detecting attachments...`
           });
 
           const emails: any[] = [];
-          const emailBatchSize = 50; // Process in batches to avoid timeouts
+          const allEmailAttachments: any[] = [];
+          const emailBatchSize = 50;
           
           for (let batch = 0; batch < Math.ceil(Math.min(allEmailIds.length, 1000) / emailBatchSize); batch++) {
             const batchIds = allEmailIds.slice(batch * emailBatchSize, (batch + 1) * emailBatchSize);
             
-            // Parallel fetch for this batch
             const batchPromises = batchIds.map(async (msgId) => {
               const detail = await fetchGoogleAPI(
                 `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`,
@@ -211,15 +290,22 @@ serve(async (req) => {
               if (detail) {
                 const headers = detail.payload?.headers || [];
                 const content = extractEmailContent(detail.payload);
+                const attachments = extractEmailAttachments(detail.payload, msgId);
+                
+                allEmailAttachments.push(...attachments);
                 
                 return {
+                  id: msgId,
                   subject: headers.find((h: any) => h.name === "Subject")?.value || "(No subject)",
                   from: headers.find((h: any) => h.name === "From")?.value || "Unknown",
                   to: headers.find((h: any) => h.name === "To")?.value || "",
                   date: headers.find((h: any) => h.name === "Date")?.value,
-                  content: content.slice(0, 1000), // First 1000 chars of content
+                  content: content.slice(0, 1500),
                   snippet: detail.snippet,
                   labels: detail.labelIds || [],
+                  attachmentCount: attachments.length,
+                  hasImages: attachments.some((a: any) => a.isImage),
+                  hasVideos: attachments.some((a: any) => a.isVideo),
                 };
               }
               return null;
@@ -228,7 +314,7 @@ serve(async (req) => {
             const batchResults = await Promise.all(batchPromises);
             emails.push(...batchResults.filter(Boolean));
             
-            if (batch % 2 === 0) {
+            if (batch % 3 === 0) {
               streamStep(controller, {
                 type: "observation",
                 content: `Processed ${emails.length}/${Math.min(allEmailIds.length, 1000)} emails...`
@@ -236,22 +322,59 @@ serve(async (req) => {
             }
           }
 
+          const imageAttachments = allEmailAttachments.filter(a => a.isImage);
+          const videoAttachments = allEmailAttachments.filter(a => a.isVideo);
+
           streamStep(controller, {
             type: "observation",
-            content: `✅ Analyzed ${emails.length} emails with full content`
+            content: `✅ Analyzed ${emails.length} emails. Found ${imageAttachments.length} image attachments and ${videoAttachments.length} video attachments.`
           });
+
+          // Analyze a few email image attachments
+          const analyzedEmailImages: any[] = [];
+          if (imageAttachments.length > 0 && LOVABLE_API_KEY) {
+            streamStep(controller, {
+              type: "action",
+              content: `🖼️ Analyzing ${Math.min(imageAttachments.length, 5)} image attachments from emails...`
+            });
+
+            for (const attachment of imageAttachments.slice(0, 5)) {
+              // Fetch attachment data
+              const attachmentData = await fetchGoogleAPI(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${attachment.messageId}/attachments/${attachment.attachmentId}`,
+                accessToken
+              );
+              
+              if (attachmentData?.data) {
+                const base64Data = attachmentData.data.replace(/-/g, '+').replace(/_/g, '/');
+                const imageUrl = `data:${attachment.mimeType};base64,${base64Data}`;
+                
+                const analysis = await analyzeImage(imageUrl, `Email attachment: ${attachment.filename}`, LOVABLE_API_KEY);
+                analyzedEmailImages.push({
+                  filename: attachment.filename,
+                  analysis,
+                });
+                
+                streamStep(controller, {
+                  type: "observation",
+                  content: `Analyzed image "${attachment.filename}": ${analysis.slice(0, 100)}...`,
+                  data: { type: "email_image", filename: attachment.filename }
+                });
+              }
+            }
+          }
 
           await new Promise(r => setTimeout(r, 300));
 
-          // ========== DRIVE FILES ==========
+          // ========== DRIVE FILES (including images/videos) ==========
           streamStep(controller, {
             type: "action",
-            content: `📁 Scanning Google Drive for files from the last year...`
+            content: `📁 Scanning Google Drive for all file types including images and videos...`
           });
 
           const driveQuery = encodeURIComponent(`modifiedTime > '${lastYearDate}T00:00:00'`);
           const driveData = await fetchGoogleAPI(
-            `https://www.googleapis.com/drive/v3/files?pageSize=200&q=${driveQuery}&fields=files(id,name,mimeType,modifiedTime,shared,webViewLink,size)&orderBy=modifiedTime desc`,
+            `https://www.googleapis.com/drive/v3/files?pageSize=500&q=${driveQuery}&fields=files(id,name,mimeType,modifiedTime,shared,webViewLink,size,thumbnailLink,webContentLink)&orderBy=modifiedTime desc`,
             accessToken
           );
 
@@ -259,6 +382,8 @@ serve(async (req) => {
           const sheets: any[] = [];
           const slides: any[] = [];
           const forms: any[] = [];
+          const driveImages: any[] = [];
+          const driveVideos: any[] = [];
 
           if (driveData?.files) {
             for (const file of driveData.files) {
@@ -269,6 +394,8 @@ serve(async (req) => {
                 modifiedTime: file.modifiedTime,
                 shared: file.shared,
                 size: file.size,
+                thumbnailLink: file.thumbnailLink,
+                webContentLink: file.webContentLink,
               };
 
               if (file.mimeType === 'application/vnd.google-apps.spreadsheet') {
@@ -277,6 +404,10 @@ serve(async (req) => {
                 slides.push(fileInfo);
               } else if (file.mimeType === 'application/vnd.google-apps.form') {
                 forms.push(fileInfo);
+              } else if (file.mimeType?.startsWith('image/')) {
+                driveImages.push(fileInfo);
+              } else if (file.mimeType?.startsWith('video/')) {
+                driveVideos.push(fileInfo);
               } else {
                 documents.push(fileInfo);
               }
@@ -284,23 +415,47 @@ serve(async (req) => {
 
             streamStep(controller, {
               type: "observation",
-              content: `Found: ${documents.length} docs, ${sheets.length} sheets, ${slides.length} slides, ${forms.length} forms`
+              content: `Found: ${documents.length} docs, ${sheets.length} sheets, ${slides.length} slides, ${forms.length} forms, ${driveImages.length} images, ${driveVideos.length} videos`
             });
+          }
+
+          // Analyze Drive images
+          const analyzedDriveImages: any[] = [];
+          if (driveImages.length > 0 && LOVABLE_API_KEY) {
+            streamStep(controller, {
+              type: "action",
+              content: `🖼️ Analyzing ${Math.min(driveImages.length, 10)} images from Google Drive...`
+            });
+
+            for (const image of driveImages.slice(0, 10)) {
+              if (image.thumbnailLink) {
+                const analysis = await analyzeImage(image.thumbnailLink, `Drive file: ${image.name}`, LOVABLE_API_KEY);
+                analyzedDriveImages.push({
+                  name: image.name,
+                  analysis,
+                });
+                
+                streamStep(controller, {
+                  type: "observation",
+                  content: `Analyzed "${image.name}": ${analysis.slice(0, 80)}...`,
+                  data: { type: "drive_image", name: image.name }
+                });
+              }
+            }
           }
 
           await new Promise(r => setTimeout(r, 300));
 
-          // ========== SHEETS CONTENT ==========
+          // ========== FULL SPREADSHEET DATA ==========
           if (sheets.length > 0) {
             streamStep(controller, {
               type: "action",
-              content: `📊 Reading actual spreadsheet data from ${Math.min(sheets.length, 10)} sheets...`
+              content: `📊 Reading COMPLETE spreadsheet data from ${Math.min(sheets.length, 10)} sheets...`
             });
 
             for (let i = 0; i < Math.min(sheets.length, 10); i++) {
               const sheet = sheets[i];
               
-              // Get spreadsheet metadata
               const sheetMeta = await fetchGoogleAPI(
                 `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}?fields=properties.title,sheets.properties`,
                 accessToken
@@ -309,35 +464,30 @@ serve(async (req) => {
               if (sheetMeta) {
                 sheet.title = sheetMeta.properties?.title;
                 sheet.sheetNames = sheetMeta.sheets?.map((s: any) => s.properties?.title) || [];
+                sheet.allData = {};
                 
-                // Get actual data from first sheet (A1:Z50 - first 50 rows)
-                const firstSheetName = sheet.sheetNames[0];
-                if (firstSheetName) {
+                // Fetch ALL data from each sheet tab
+                for (const tabName of sheet.sheetNames.slice(0, 5)) { // First 5 tabs
                   const dataResponse = await fetchGoogleAPI(
-                    `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}/values/${encodeURIComponent(firstSheetName)}!A1:Z50`,
+                    `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}/values/${encodeURIComponent(tabName)}`,
                     accessToken
                   );
                   
                   if (dataResponse?.values) {
-                    sheet.data = dataResponse.values;
-                    sheet.rowCount = dataResponse.values.length;
-                    sheet.columnCount = Math.max(...dataResponse.values.map((r: any[]) => r.length));
-                    
-                    // Create a summary of the data
-                    const headers = dataResponse.values[0] || [];
-                    const sampleRows = dataResponse.values.slice(1, 6);
-                    sheet.dataSummary = {
-                      headers,
-                      sampleRows,
-                      totalRows: dataResponse.values.length,
+                    sheet.allData[tabName] = {
+                      values: dataResponse.values,
+                      rowCount: dataResponse.values.length,
+                      columnCount: Math.max(...dataResponse.values.map((r: any[]) => r?.length || 0)),
                     };
                   }
                 }
                 
+                const totalRows = Object.values(sheet.allData).reduce((sum: number, tab: any) => sum + (tab?.rowCount || 0), 0);
+                
                 streamStep(controller, {
                   type: "observation",
-                  content: `Read "${sheet.name}": ${sheet.rowCount || 0} rows, ${sheet.columnCount || 0} columns, tabs: ${sheet.sheetNames?.join(', ')}`,
-                  data: { type: "sheet", name: sheet.name, rows: sheet.rowCount }
+                  content: `Read "${sheet.name}": ${totalRows} total rows across ${Object.keys(sheet.allData).length} tabs`,
+                  data: { type: "sheet", name: sheet.name, totalRows }
                 });
               }
               
@@ -345,30 +495,46 @@ serve(async (req) => {
             }
           }
 
-          // ========== SLIDES CONTENT ==========
+          // ========== SLIDES WITH IMAGES ==========
+          const analyzedSlideImages: any[] = [];
           if (slides.length > 0) {
             streamStep(controller, {
               type: "action",
-              content: `📽️ Reading actual slide content from ${Math.min(slides.length, 10)} presentations...`
+              content: `📽️ Reading slide content and analyzing embedded images from ${Math.min(slides.length, 10)} presentations...`
             });
 
             for (let i = 0; i < Math.min(slides.length, 10); i++) {
               const slide = slides[i];
               
               const slideData = await fetchGoogleAPI(
-                `https://slides.googleapis.com/v1/presentations/${slide.id}?fields=title,slides(objectId,pageElements(shape(text(textElements(textRun(content))))))`,
+                `https://slides.googleapis.com/v1/presentations/${slide.id}`,
                 accessToken
               );
               
               if (slideData) {
                 slide.title = slideData.title;
                 slide.slideCount = slideData.slides?.length || 0;
-                slide.textContent = extractSlideText(slideData.slides);
+                
+                const { texts, images } = extractSlideContent(slideData.slides);
+                slide.textContent = texts;
+                slide.imageCount = images.length;
+                
+                // Analyze slide images
+                for (const img of images.slice(0, 3)) {
+                  if (img.contentUrl && LOVABLE_API_KEY) {
+                    const analysis = await analyzeImage(img.contentUrl, `Slide ${img.slideNumber} in "${slide.name}"`, LOVABLE_API_KEY);
+                    analyzedSlideImages.push({
+                      presentation: slide.name,
+                      slideNumber: img.slideNumber,
+                      analysis,
+                    });
+                  }
+                }
                 
                 streamStep(controller, {
                   type: "observation",
-                  content: `Read "${slide.name}": ${slide.slideCount} slides with text content`,
-                  data: { type: "slide", name: slide.name, slideCount: slide.slideCount, textPreview: slide.textContent?.slice(0, 3) }
+                  content: `Read "${slide.name}": ${slide.slideCount} slides, ${slide.imageCount} images analyzed`,
+                  data: { type: "slide", name: slide.name, slideCount: slide.slideCount, imageCount: slide.imageCount }
                 });
               }
               
@@ -380,7 +546,7 @@ serve(async (req) => {
           if (forms.length > 0) {
             streamStep(controller, {
               type: "action",
-              content: `📋 Reading actual form questions from ${Math.min(forms.length, 10)} forms...`
+              content: `📋 Reading full form content from ${Math.min(forms.length, 10)} forms...`
             });
 
             for (let i = 0; i < Math.min(forms.length, 10); i++) {
@@ -396,17 +562,21 @@ serve(async (req) => {
                 form.description = formData.info?.description;
                 form.questions = (formData.items || []).map((item: any) => ({
                   title: item.title,
+                  description: item.description,
                   type: item.questionItem?.question?.choiceQuestion ? 'multiple_choice' : 
                         item.questionItem?.question?.textQuestion ? 'text' :
-                        item.questionItem?.question?.scaleQuestion ? 'scale' : 'other',
+                        item.questionItem?.question?.scaleQuestion ? 'scale' :
+                        item.questionItem?.question?.dateQuestion ? 'date' :
+                        item.questionItem?.question?.timeQuestion ? 'time' : 'other',
                   required: item.questionItem?.question?.required || false,
                   options: item.questionItem?.question?.choiceQuestion?.options?.map((o: any) => o.value) || [],
+                  hasImage: !!item.questionItem?.image,
                 }));
                 
                 streamStep(controller, {
                   type: "observation",
                   content: `Read "${form.name}": ${form.questions?.length || 0} questions`,
-                  data: { type: "form", name: form.name, questions: form.questions?.slice(0, 3) }
+                  data: { type: "form", name: form.name, questionCount: form.questions?.length }
                 });
               }
               
@@ -423,7 +593,7 @@ serve(async (req) => {
           });
 
           const calendarData = await fetchGoogleAPI(
-            `https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=200&timeMin=${new Date().toISOString()}&timeMax=${nextYearDate}&orderBy=startTime&singleEvents=true`,
+            `https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=250&timeMin=${new Date().toISOString()}&timeMax=${nextYearDate}&orderBy=startTime&singleEvents=true`,
             accessToken
           );
 
@@ -432,12 +602,13 @@ serve(async (req) => {
             for (const event of calendarData.items) {
               events.push({
                 summary: event.summary,
-                description: event.description?.slice(0, 200),
+                description: event.description?.slice(0, 300),
                 start: event.start,
                 end: event.end,
                 attendees: event.attendees?.map((a: any) => a.email) || [],
                 location: event.location,
                 recurring: !!event.recurringEventId,
+                hasAttachments: (event.attachments?.length || 0) > 0,
               });
             }
             
@@ -449,76 +620,98 @@ serve(async (req) => {
 
           await new Promise(r => setTimeout(r, 500));
 
-          // ========== AI ANALYSIS ==========
+          // ========== COMPREHENSIVE AI ANALYSIS ==========
           streamStep(controller, {
             type: "thought",
-            content: "Processing all content data to identify the most impactful business improvement..."
+            content: "Processing all content including images and videos to find the most impactful improvement..."
           });
 
-          // Build comprehensive analysis prompt with actual content
-          const emailSummary = emails.slice(0, 50).map(e => 
-            `From: ${e.from.split('<')[0].trim()} | Subject: "${e.subject}" | Content preview: ${e.content?.slice(0, 200) || e.snippet || 'N/A'}`
+          // Build comprehensive analysis with all data
+          const emailSummary = emails.slice(0, 40).map(e => 
+            `From: ${e.from.split('<')[0].trim()} | Subject: "${e.subject}" | Attachments: ${e.attachmentCount} (${e.hasImages ? 'has images' : ''}${e.hasVideos ? ', has videos' : ''}) | Content: ${e.content?.slice(0, 300) || e.snippet || 'N/A'}`
           ).join('\n');
 
           const sheetsSummary = sheets.slice(0, 5).map(s => {
-            let summary = `Sheet: "${s.name}" (${s.rowCount || 0} rows)`;
-            if (s.dataSummary?.headers) {
-              summary += `\n  Headers: ${s.dataSummary.headers.join(', ')}`;
-              if (s.dataSummary.sampleRows?.length > 0) {
-                summary += `\n  Sample data: ${s.dataSummary.sampleRows.slice(0, 2).map((r: any[]) => r.join(' | ')).join(' // ')}`;
+            let summary = `Sheet: "${s.name}"`;
+            for (const [tabName, tabData] of Object.entries(s.allData || {})) {
+              const data = tabData as any;
+              if (data?.values) {
+                const headers = data.values[0] || [];
+                const sampleRows = data.values.slice(1, 4);
+                summary += `\n  Tab "${tabName}" (${data.rowCount} rows, ${data.columnCount} cols):`;
+                summary += `\n    Headers: ${headers.slice(0, 10).join(', ')}`;
+                summary += `\n    Sample: ${sampleRows.slice(0, 2).map((r: any[]) => r.slice(0, 5).join(' | ')).join(' // ')}`;
               }
             }
             return summary;
           }).join('\n\n');
 
           const slidesSummary = slides.slice(0, 5).map(s => 
-            `Presentation: "${s.name}" (${s.slideCount} slides)\n  Content: ${s.textContent?.slice(0, 3).join(' | ') || 'N/A'}`
+            `Presentation: "${s.name}" (${s.slideCount} slides, ${s.imageCount || 0} images)\n  Content: ${s.textContent?.slice(0, 3).join(' | ') || 'N/A'}`
           ).join('\n\n');
 
           const formsSummary = forms.slice(0, 5).map(f => 
-            `Form: "${f.name}"\n  Questions: ${f.questions?.map((q: any) => `"${q.title}" (${q.type})`).join(', ') || 'N/A'}`
+            `Form: "${f.name}" (${f.questions?.length || 0} questions)\n  Questions: ${f.questions?.map((q: any) => `"${q.title}" [${q.type}]${q.hasImage ? ' 🖼️' : ''}`).join(', ') || 'N/A'}`
           ).join('\n\n');
 
-          const calendarSummary = events.slice(0, 20).map(e => 
-            `Event: "${e.summary || 'Untitled'}" | Attendees: ${e.attendees?.length || 0} | ${e.description ? `Desc: ${e.description.slice(0, 100)}` : ''}`
+          const imageSummary = [
+            ...analyzedEmailImages.map(i => `Email attachment "${i.filename}": ${i.analysis}`),
+            ...analyzedDriveImages.map(i => `Drive file "${i.name}": ${i.analysis}`),
+            ...analyzedSlideImages.map(i => `${i.presentation} slide ${i.slideNumber}: ${i.analysis}`),
+          ].join('\n');
+
+          const videoSummary = [
+            ...videoAttachments.map(v => `Email video: ${v.filename} (${Math.round((v.size || 0) / 1024 / 1024)}MB)`),
+            ...driveVideos.map(v => `Drive video: ${v.name} (${Math.round((v.size || 0) / 1024 / 1024)}MB)`),
+          ].join('\n');
+
+          const calendarSummary = events.slice(0, 25).map(e => 
+            `Event: "${e.summary || 'Untitled'}" | Attendees: ${e.attendees?.length || 0} | Location: ${e.location || 'N/A'}`
           ).join('\n');
 
-          const analysisPrompt = `You are a ${role?.toUpperCase() || 'CEO'} business advisor. Analyze this REAL Google Workspace data with ACTUAL CONTENT and identify ONE specific, actionable improvement that would have the highest business impact.
+          const analysisPrompt = `You are a ${role?.toUpperCase() || 'CEO'} business advisor. Analyze this COMPREHENSIVE Google Workspace data including FULL content, images, and videos. Identify ONE specific, actionable improvement with the highest business impact.
 
-## EMAIL CONTENT ANALYSIS (${emails.length} emails from last year):
+## EMAIL ANALYSIS (${emails.length} emails, ${imageAttachments.length} image attachments, ${videoAttachments.length} videos):
 ${emailSummary || 'No emails found'}
 
-## SPREADSHEET DATA (${sheets.length} sheets with actual cell data):
+## IMAGE ANALYSIS (AI-analyzed images):
+${imageSummary || 'No images analyzed'}
+
+## VIDEO FILES DETECTED:
+${videoSummary || 'No videos found'}
+
+## FULL SPREADSHEET DATA (${sheets.length} spreadsheets with complete content):
 ${sheetsSummary || 'No sheets found'}
 
-## PRESENTATION CONTENT (${slides.length} presentations with slide text):
+## PRESENTATION CONTENT (${slides.length} presentations with text and images):
 ${slidesSummary || 'No presentations found'}
 
-## FORM QUESTIONS (${forms.length} forms with actual questions):
+## FORM QUESTIONS (${forms.length} forms):
 ${formsSummary || 'No forms found'}
 
-## CALENDAR EVENTS (${events.length} upcoming events):
+## CALENDAR (${events.length} upcoming events):
 ${calendarSummary || 'No events found'}
 
-Based on the ACTUAL CONTENT you can see, identify patterns, issues, or opportunities. Look for:
-- Email patterns suggesting missed follow-ups or communication issues
+Based on the ACTUAL CONTENT including images and videos, identify patterns, issues, or opportunities. Look for:
+- Email patterns and attachment trends
+- Image content that reveals business operations or issues
+- Video files that might need organization or action
 - Spreadsheet data showing trends or anomalies
-- Presentation content that may be outdated or inconsistent
-- Forms that could be improved
-- Calendar patterns suggesting scheduling issues
+- Presentation content quality and consistency
+- Form design improvements
 
 Respond with a JSON object:
 {
   "issue": {
     "title": "Brief issue title",
-    "category": "Email|Sheets|Slides|Forms|Calendar|Communication",
+    "category": "Email|Images|Videos|Sheets|Slides|Forms|Calendar",
     "severity": "high|medium|low",
-    "description": "Specific problem identified from the ACTUAL CONTENT you analyzed",
-    "evidence": "Quote or reference SPECIFIC data/content that shows this issue"
+    "description": "Specific problem identified from the ACTUAL CONTENT including visual analysis",
+    "evidence": "Quote or reference SPECIFIC data/content/images that shows this issue"
   },
   "improvement": {
     "title": "Action to take",
-    "description": "Detailed recommendation based on what you found",
+    "description": "Detailed recommendation based on all analyzed content",
     "expectedImpact": "What will improve",
     "effort": "low|medium|high",
     "firstStep": "Immediate action to take"
@@ -534,7 +727,7 @@ Respond with a JSON object:
             body: JSON.stringify({
               model: "google/gemini-3-flash-preview",
               messages: [
-                { role: "system", content: "You are a business analyst. Always respond with valid JSON only. Base your analysis on the ACTUAL CONTENT provided, not generic advice." },
+                { role: "system", content: "You are a business analyst. Always respond with valid JSON only. Base your analysis on the ACTUAL CONTENT including image descriptions and video information provided." },
                 { role: "user", content: analysisPrompt },
               ],
             }),
@@ -568,16 +761,23 @@ Respond with a JSON object:
 
             streamStep(controller, {
               type: "complete",
-              content: "Deep content analysis complete!",
+              content: "Comprehensive content analysis complete!",
               data: {
                 summary: {
                   emailsAnalyzed: emails.length,
+                  emailAttachments: allEmailAttachments.length,
+                  imageAttachmentsAnalyzed: analyzedEmailImages.length,
+                  videoAttachments: videoAttachments.length,
                   documentsAnalyzed: documents.length,
-                  sheetsAnalyzed: sheets.filter(s => s.data).length,
-                  slidesAnalyzed: slides.filter(s => s.textContent).length,
-                  formsAnalyzed: forms.filter(f => f.questions).length,
+                  sheetsAnalyzed: sheets.length,
+                  sheetsWithFullData: sheets.filter(s => Object.keys(s.allData || {}).length > 0).length,
+                  slidesAnalyzed: slides.length,
+                  slideImagesAnalyzed: analyzedSlideImages.length,
+                  formsAnalyzed: forms.length,
+                  driveImagesAnalyzed: analyzedDriveImages.length,
+                  driveVideos: driveVideos.length,
                   eventsAnalyzed: events.length,
-                  contentDepth: "Full content analysis",
+                  contentDepth: "Full content + image vision analysis",
                   timeRange: {
                     emails: `Last year (since ${lastYearDate})`,
                     files: `Last year (since ${lastYearDate})`,
@@ -594,10 +794,11 @@ Respond with a JSON object:
               data: {
                 summary: {
                   emailsAnalyzed: emails.length,
-                  documentsAnalyzed: documents.length,
                   sheetsAnalyzed: sheets.length,
                   slidesAnalyzed: slides.length,
                   formsAnalyzed: forms.length,
+                  imagesAnalyzed: analyzedEmailImages.length + analyzedDriveImages.length + analyzedSlideImages.length,
+                  videosFound: videoAttachments.length + driveVideos.length,
                   eventsAnalyzed: events.length,
                 }
               }
