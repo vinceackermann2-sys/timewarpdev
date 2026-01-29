@@ -9,99 +9,165 @@ import {
   Sparkles,
   ArrowUp,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  RefreshCw
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
-// Database modules with valuable Google Workspace questions
-const databaseModules = [
-  {
-    id: "email",
-    code: "EML-X1",
-    title: "EMAIL INTELLIGENCE",
-    icon: Mail,
-    gradient: "from-primary to-accent",
-    questions: [
-      "Who are my top 5 email contacts this month?",
-      "What unread emails require urgent attention?",
-      "Summarize email threads about project deadlines",
-      "Which clients haven't responded in over a week?"
-    ]
-  },
-  {
-    id: "calendar",
-    code: "CAL-Z2",
-    title: "CALENDAR INSIGHTS",
-    icon: Calendar,
-    gradient: "from-accent to-primary",
-    questions: [
-      "What meetings are scheduled for this week?",
-      "How much time am I spending in meetings vs deep work?",
-      "Which recurring meetings could be optimized?",
-      "What upcoming deadlines should I prepare for?"
-    ]
-  },
-  {
-    id: "docs",
-    code: "DOC-A3",
-    title: "DOCUMENT HUB",
-    icon: FileText,
-    gradient: "from-primary to-accent",
-    questions: [
-      "What documents were modified this week?",
-      "Which shared documents need my review?",
-      "Summarize the latest project proposal",
-      "What contracts are pending signature?"
-    ]
-  },
-  {
-    id: "revenue",
-    code: "REV-B4",
-    title: "REVENUE TRACKER",
-    icon: DollarSign,
-    gradient: "from-accent to-primary",
-    questions: [
-      "What invoices are mentioned in recent emails?",
-      "Identify payment-related conversations",
-      "Which deals are discussed most frequently?",
-      "Summarize financial updates from spreadsheets"
-    ]
-  },
-  {
-    id: "team",
-    code: "TEM-C5",
-    title: "TEAM ACTIVITY",
-    icon: Users,
-    gradient: "from-primary to-accent",
-    questions: [
-      "Who is most active in shared documents?",
-      "What are the key discussion topics this week?",
-      "Which team members need follow-ups?",
-      "Summarize team meeting action items"
-    ]
-  },
-  {
-    id: "trends",
-    code: "TRN-D6",
-    title: "BUSINESS TRENDS",
-    icon: TrendingUp,
-    gradient: "from-accent to-primary",
-    questions: [
-      "What topics are trending in my inbox?",
-      "Identify emerging opportunities from emails",
-      "What competitors are mentioned in communications?",
-      "Summarize market updates from documents"
-    ]
-  }
-];
+interface BusinessData {
+  topContacts?: { email: string; count: number }[];
+  emailSummaries?: { from: string; subject: string; snippet?: string }[];
+  calendarEvents?: { summary: string; start: any; attendees?: number }[];
+  documents?: { name: string }[];
+  sheets?: { name: string; title?: string }[];
+  slides?: { name: string; title?: string }[];
+}
+
+interface ResearchSummary {
+  emailsAnalyzed?: number;
+  eventsAnalyzed?: number;
+  documentsAnalyzed?: number;
+  sheetsAnalyzed?: number;
+  analyzedAt?: string;
+}
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
+
+// Generate personalized questions from business data
+function generatePersonalizedQuestions(
+  moduleId: string,
+  businessData: BusinessData | null,
+  summary: ResearchSummary | null
+): string[] {
+  const fallbackQuestions: Record<string, string[]> = {
+    email: [
+      "Who are my top email contacts?",
+      "What emails need my attention?",
+      "Summarize my recent email threads"
+    ],
+    calendar: [
+      "What meetings do I have this week?",
+      "How is my time distributed?",
+      "What deadlines are coming up?"
+    ],
+    docs: [
+      "What documents were recently modified?",
+      "Which documents need my review?",
+      "Summarize my recent document activity"
+    ],
+    revenue: [
+      "What financial topics appear in my data?",
+      "Identify payment-related conversations",
+      "Summarize financial activity"
+    ],
+    team: [
+      "Who am I collaborating with most?",
+      "What team discussions are happening?",
+      "Which team members need follow-ups?"
+    ],
+    trends: [
+      "What topics are trending in my business?",
+      "Identify emerging patterns",
+      "What should I focus on?"
+    ]
+  };
+
+  if (!businessData) {
+    return fallbackQuestions[moduleId] || [];
+  }
+
+  const questions: string[] = [];
+
+  switch (moduleId) {
+    case "email":
+      if (businessData.topContacts?.length) {
+        const topContact = businessData.topContacts[0];
+        const contactName = topContact.email.split('@')[0].replace(/[._]/g, ' ');
+        questions.push(`What does ${contactName} need from me?`);
+        questions.push(`Summarize my conversations with ${contactName}`);
+      }
+      if (businessData.emailSummaries?.length) {
+        questions.push(`What urgent emails should I respond to?`);
+        questions.push(`What topics are discussed most in my inbox?`);
+      }
+      break;
+
+    case "calendar":
+      if (businessData.calendarEvents?.length) {
+        const nextEvent = businessData.calendarEvents[0];
+        if (nextEvent.summary) {
+          questions.push(`How should I prepare for "${nextEvent.summary}"?`);
+        }
+        questions.push(`What meetings can I potentially reschedule?`);
+        questions.push(`Who am I meeting with most frequently?`);
+      }
+      break;
+
+    case "docs":
+      if (businessData.documents?.length) {
+        const recentDoc = businessData.documents[0];
+        questions.push(`Summarize "${recentDoc.name}"`);
+        questions.push(`What documents need updates?`);
+      }
+      if (businessData.sheets?.length) {
+        const recentSheet = businessData.sheets[0];
+        questions.push(`What trends do you see in "${recentSheet.name || recentSheet.title}"?`);
+      }
+      break;
+
+    case "revenue":
+      questions.push(`What payment discussions are in my emails?`);
+      questions.push(`Identify any budget concerns from my data`);
+      if (businessData.sheets?.length) {
+        questions.push(`Analyze financial data from my spreadsheets`);
+      }
+      break;
+
+    case "team":
+      if (businessData.topContacts?.length && businessData.topContacts.length > 1) {
+        const teamContacts = businessData.topContacts.slice(0, 3);
+        questions.push(`What's the status with ${teamContacts.map(c => c.email.split('@')[0]).join(', ')}?`);
+      }
+      if (businessData.calendarEvents?.length) {
+        questions.push(`What team meetings are scheduled?`);
+      }
+      questions.push(`Which collaborators need my attention?`);
+      break;
+
+    case "trends":
+      questions.push(`What patterns do you see in my business activity?`);
+      questions.push(`What should I prioritize this week?`);
+      if (summary?.emailsAnalyzed && summary.emailsAnalyzed > 50) {
+        questions.push(`What topics increased in frequency recently?`);
+      }
+      break;
+  }
+
+  // If we don't have enough personalized questions, add fallbacks
+  while (questions.length < 3) {
+    const fallback = fallbackQuestions[moduleId]?.[questions.length];
+    if (fallback) questions.push(fallback);
+    else break;
+  }
+
+  return questions.slice(0, 4);
+}
+
+// Database module definitions
+const databaseModules = [
+  { id: "email", code: "EML-X1", title: "EMAIL INTELLIGENCE", icon: Mail, gradient: "from-primary to-accent" },
+  { id: "calendar", code: "CAL-Z2", title: "CALENDAR INSIGHTS", icon: Calendar, gradient: "from-accent to-primary" },
+  { id: "docs", code: "DOC-A3", title: "DOCUMENT HUB", icon: FileText, gradient: "from-primary to-accent" },
+  { id: "revenue", code: "REV-B4", title: "REVENUE TRACKER", icon: DollarSign, gradient: "from-accent to-primary" },
+  { id: "team", code: "TEM-C5", title: "TEAM ACTIVITY", icon: Users, gradient: "from-primary to-accent" },
+  { id: "trends", code: "TRN-D6", title: "BUSINESS TRENDS", icon: TrendingUp, gradient: "from-accent to-primary" }
+];
 
 export function DatabaseView() {
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
@@ -109,7 +175,47 @@ export function DatabaseView() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [businessData, setBusinessData] = useState<BusinessData | null>(null);
+  const [researchSummary, setResearchSummary] = useState<ResearchSummary | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch business data from storage bucket
+  useEffect(() => {
+    const fetchBusinessData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          setIsLoadingData(false);
+          return;
+        }
+
+        // Download business data from storage bucket
+        const { data, error } = await supabase.storage
+          .from('business-data')
+          .download(`${session.user.id}/research.json`);
+
+        if (error) {
+          console.log('No business data found yet:', error.message);
+          setIsLoadingData(false);
+          return;
+        }
+
+        const text = await data.text();
+        const parsed = JSON.parse(text);
+        
+        setBusinessData(parsed.rawData || null);
+        setResearchSummary(parsed.summary || null);
+        console.log('Loaded business data:', parsed.summary);
+      } catch (error) {
+        console.error('Error fetching business data:', error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchBusinessData();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -226,6 +332,8 @@ export function DatabaseView() {
     }
   };
 
+  const hasBusinessData = businessData && Object.keys(businessData).length > 0;
+
   return (
     <div className="h-full flex flex-col portal-bg relative overflow-hidden">
       {/* Stardust texture overlay */}
@@ -303,7 +411,7 @@ export function DatabaseView() {
           </div>
         )}
 
-        {/* Database cards grid - visible when not actively chatting or as quick access */}
+        {/* Database cards grid - visible when not actively chatting */}
         {!showChat && (
           <div className="w-full max-w-5xl">
             {/* Header */}
@@ -311,9 +419,20 @@ export function DatabaseView() {
               <h1 className="text-2xl md:text-3xl font-normal mb-3">
                 Your <span className="italic text-primary">Business Intelligence</span> Hub
               </h1>
-              <p className="text-muted-foreground text-sm">
-                Hover over a module to explore insights from your connected Google Workspace
-              </p>
+              {isLoadingData ? (
+                <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading your business data...
+                </div>
+              ) : hasBusinessData ? (
+                <p className="text-muted-foreground text-sm">
+                  <span className="text-primary">●</span> Connected • {researchSummary?.emailsAnalyzed || 0} emails • {researchSummary?.eventsAnalyzed || 0} events analyzed
+                </p>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No business data yet. Complete the research flow to unlock personalized insights.
+                </p>
+              )}
             </div>
 
             {/* Cards grid */}
@@ -321,6 +440,7 @@ export function DatabaseView() {
               {databaseModules.map((module) => {
                 const Icon = module.icon;
                 const isHovered = hoveredModule === module.id;
+                const questions = generatePersonalizedQuestions(module.id, businessData, researchSummary);
 
                 return (
                   <div
@@ -353,10 +473,15 @@ export function DatabaseView() {
                         )} />
                       </div>
 
-                      {/* Synced indicator */}
+                      {/* Status indicator */}
                       <div className="flex items-center gap-1.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[10px] text-muted-foreground">Connected</span>
+                        <span className={cn(
+                          "h-1.5 w-1.5 rounded-full animate-pulse",
+                          hasBusinessData ? "bg-primary" : "bg-muted-foreground"
+                        )} />
+                        <span className="text-[10px] text-muted-foreground">
+                          {hasBusinessData ? "Personalized" : "Default"}
+                        </span>
                       </div>
                     </div>
 
@@ -371,10 +496,10 @@ export function DatabaseView() {
                     >
                       <div className="portal-card rounded-xl p-3 shadow-glow-lg border border-primary/20 backdrop-blur-xl">
                         <p className="text-[10px] text-muted-foreground font-medium tracking-wider mb-2 px-1">
-                          QUICK INSIGHTS
+                          {hasBusinessData ? "YOUR INSIGHTS" : "QUICK INSIGHTS"}
                         </p>
                         <div className="space-y-1">
-                          {module.questions.map((question, idx) => (
+                          {questions.map((question, idx) => (
                             <button
                               key={idx}
                               onClick={() => handleQuestionClick(question)}
@@ -414,7 +539,7 @@ export function DatabaseView() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about your business data..."
+              placeholder={hasBusinessData ? "Ask about your business data..." : "Ask a question..."}
               className="w-full pl-12 pr-14 py-6 rounded-full bg-card/80 backdrop-blur border-border/50 text-foreground placeholder:text-muted-foreground"
               disabled={isLoading}
             />

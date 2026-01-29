@@ -847,34 +847,37 @@ Respond with a JSON object:
 
           const findings = analysis?.issue && analysis?.improvement ? [analysis] : [];
 
-          // Save research to database using service role
+          // Save research to storage bucket using service role
           const supabaseServiceRole = createClient(
             supabaseUrl, 
             Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
           );
 
-          // Upsert the research data
-          const { error: upsertError } = await supabaseServiceRole
-            .from('workspace_research')
-            .upsert({
-              user_id: userId,
-              role: role || 'ceo',
-              research_summary: researchSummary,
-              findings: findings,
-              raw_data: rawData,
-              emails_analyzed: emails.length,
-              documents_analyzed: documents.length,
-              sheets_analyzed: sheets.length,
-              events_analyzed: events.length,
-              updated_at: new Date().toISOString()
-            }, {
-              onConflict: 'user_id'
-            });
+          // Create research JSON to save to bucket
+          const researchData = {
+            summary: researchSummary,
+            findings: findings,
+            rawData: rawData,
+            role: role || 'ceo',
+            createdAt: new Date().toISOString()
+          };
 
-          if (upsertError) {
-            console.error('Failed to save research:', upsertError);
+          // Upload to storage bucket
+          const { error: uploadError } = await supabaseServiceRole.storage
+            .from('business-data')
+            .upload(
+              `${userId}/research.json`,
+              JSON.stringify(researchData),
+              {
+                contentType: 'application/json',
+                upsert: true
+              }
+            );
+
+          if (uploadError) {
+            console.error('Failed to save research to bucket:', uploadError);
           } else {
-            console.log('Research saved successfully for user:', userId);
+            console.log('Research saved to bucket for user:', userId);
           }
 
           if (analysis?.issue && analysis?.improvement) {
