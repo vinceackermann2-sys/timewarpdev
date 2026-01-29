@@ -142,11 +142,15 @@ const Auth = () => {
         'https://www.googleapis.com/auth/calendar.readonly',
       ].join(' ');
 
+      // Use the published URL for redirect since preview URLs are system-managed
+      // and may not be in the allow list. The session will work across both domains.
+      const publishedUrl = 'https://digital-guide-genie.lovable.app';
+      const redirectUrl = `${publishedUrl}/dashboard`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Redirect back to /auth so we can capture provider_token before navigating to dashboard
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: redirectUrl,
           scopes,
           queryParams: {
             prompt: 'consent',
