@@ -23,14 +23,47 @@ const Auth = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Get quiz data from navigation state
-  const quizData = (location.state as any)?.quizData;
+  const quizDataFromNav = (location.state as any)?.quizData;
+  const quizData =
+    quizDataFromNav ??
+    (() => {
+      try {
+        const raw = sessionStorage.getItem("quizData");
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
 
   useEffect(() => {
+    // Persist quiz data in case the user refreshes during the OAuth redirect flow
+    if (quizData) {
+      sessionStorage.setItem("quizData", JSON.stringify(quizData));
+    }
+
     // Check if user is already logged in
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigateToDashboard();
+        // If we have a fresh Google token (or previously stored one), we can proceed.
+        if (session.provider_token) {
+          sessionStorage.setItem("googleProviderToken", session.provider_token);
+          navigateToDashboard();
+          return;
+        }
+
+        const storedGoogleToken = sessionStorage.getItem("googleProviderToken");
+
+        // Normal login (no quiz/connect flow): go straight in.
+        if (!quizData) {
+          navigateToDashboard();
+          return;
+        }
+
+        // Quiz/connect flow: only proceed when we actually have a Google token.
+        if (storedGoogleToken) {
+          navigateToDashboard();
+        }
       }
     };
     checkSession();
@@ -38,12 +71,19 @@ const Auth = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        navigateToDashboard();
+        if (session.provider_token) {
+          sessionStorage.setItem("googleProviderToken", session.provider_token);
+        }
+
+        // In quiz/connect flow, only continue once the Google token is present.
+        if (!quizData || sessionStorage.getItem("googleProviderToken")) {
+          navigateToDashboard();
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, quizData]);
 
   const navigateToDashboard = () => {
     navigate("/dashboard", { state: { quizData } });
@@ -93,11 +133,42 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      // Read-only Workspace scopes needed by the live analysis
+      const scopes = [
+        'https://www.googleapis.com/auth/drive.readonly',
+        'https://www.googleapis.com/auth/spreadsheets.readonly',
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/documents.readonly',
+        'https://www.googleapis.com/auth/calendar.readonly',
+      ].join(' ');
+
+      // We redirect back to /auth so we can capture provider_token and persist it
+      // before sending the user to the dashboard.
+      const options = {
+        redirectTo: `${window.location.origin}/auth`,
+        scopes,
+        queryParams: {
+          prompt: 'consent',
+          access_type: 'offline',
+        },
+      };
+
+      // If the user is already logged in (e.g., email/password), link Google to the account.
+      if (session) {
+        const { error } = await (supabase.auth as any).linkIdentity({
+          provider: 'google',
+          options,
+        });
+        if (error) throw error;
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-          scopes: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/documents.readonly',
+          ...options,
         },
       });
 

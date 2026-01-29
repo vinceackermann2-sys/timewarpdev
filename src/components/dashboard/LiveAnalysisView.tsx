@@ -54,8 +54,12 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
         return;
       }
 
-      // Use passed googleToken or session provider_token
-      const accessToken = googleToken || session.provider_token;
+      // Prefer the most reliable token source. provider_token is often only present
+      // immediately after OAuth, so we also persist and read it from sessionStorage.
+      const accessToken =
+        googleToken ||
+        sessionStorage.getItem("googleProviderToken") ||
+        session.provider_token;
       if (!accessToken) {
         toast({
           title: "Google Connection Required",
