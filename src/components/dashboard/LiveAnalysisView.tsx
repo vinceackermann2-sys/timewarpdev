@@ -1,16 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { 
   Brain, Mail, FileText, Calendar, CheckCircle2, 
-  Loader2, AlertTriangle, Sparkles, Play,
-  Eye, Lightbulb, Target, Search, Zap, Shield, Lock
+  Loader2, Sparkles, Rocket, Eye, AlertTriangle,
+  Lightbulb, Target, Search, Zap, Shield, Lock,
+  LayoutDashboard, BarChart3, Users
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -372,10 +367,97 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
               </div>
             )}
 
-            {/* Complete State */}
-            {isComplete && (
+            {/* Complete State - Show Recommendation in Browser */}
+            {isComplete && finding && (
+              <div className="w-full max-w-3xl animate-fade-in">
+                {/* Visual Representation of the Solution */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-accent/20 animate-pulse">
+                      <Lightbulb className="h-5 w-5 text-accent" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-accent uppercase tracking-wider font-medium">AI Recommendation</p>
+                      <h3 className="font-semibold text-lg text-foreground">{finding.issue?.title || "Improvement Opportunity"}</h3>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                    {finding.issue?.description}
+                  </p>
+
+                  {/* Visual Preview Card */}
+                  {finding.improvement && (
+                    <div className="relative rounded-xl overflow-hidden border border-accent/30 bg-gradient-to-br from-[#0f0f2a] via-[#1a1a3a] to-[#0f0f2a]">
+                      {/* Mock UI Preview */}
+                      <div className="p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="p-2 rounded-lg bg-green-500/20">
+                            <CheckCircle2 className="h-4 w-4 text-green-400" />
+                          </div>
+                          <span className="text-sm font-medium text-green-400">{finding.improvement.title}</span>
+                        </div>
+                        
+                        {/* Simulated Dashboard/System Preview */}
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                            <LayoutDashboard className="h-5 w-5 text-purple-400 mb-2" />
+                            <div className="h-2 bg-purple-400/30 rounded w-3/4 mb-1"></div>
+                            <div className="h-2 bg-purple-400/20 rounded w-1/2"></div>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                            <BarChart3 className="h-5 w-5 text-blue-400 mb-2" />
+                            <div className="h-2 bg-blue-400/30 rounded w-full mb-1"></div>
+                            <div className="h-2 bg-blue-400/20 rounded w-2/3"></div>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                            <Users className="h-5 w-5 text-cyan-400 mb-2" />
+                            <div className="h-2 bg-cyan-400/30 rounded w-5/6 mb-1"></div>
+                            <div className="h-2 bg-cyan-400/20 rounded w-1/3"></div>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground">{finding.improvement.description}</p>
+                        
+                        {finding.improvement.firstStep && (
+                          <div className="mt-4 pt-4 border-t border-white/10">
+                            <p className="text-sm text-accent flex items-start gap-2">
+                              <Target className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                              <span><strong>First step:</strong> {finding.improvement.firstStep}</span>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Animated glow border */}
+                      <div className="absolute inset-0 rounded-xl pointer-events-none border border-accent/50 animate-pulse" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Set Your CEO To Work Button */}
+                <div className="relative">
+                  <Button
+                    className="w-full h-14 text-lg font-bold bg-gradient-to-r from-accent via-purple-500 to-accent bg-[length:200%_100%] animate-shimmer hover:shadow-[0_0_50px_rgba(139,92,246,0.6)] transition-all duration-500 group"
+                    onClick={() => {
+                      console.log("Execute action clicked", finding);
+                    }}
+                  >
+                    <Rocket className="h-5 w-5 mr-2 group-hover:animate-bounce" />
+                    Set Your {roleLabel} To Work
+                    <Sparkles className="h-4 w-4 ml-2 animate-pulse" />
+                  </Button>
+                  
+                  {/* Pulsing glow effect behind button */}
+                  <div className="absolute inset-0 -z-10 rounded-md bg-accent/30 blur-xl animate-pulse-glow" />
+                </div>
+              </div>
+            )}
+
+            {/* Complete State - No finding */}
+            {isComplete && !finding && (
               <div className="w-full max-w-2xl animate-fade-in">
-                <div className="flex flex-col items-center justify-center text-center mb-8">
+                <div className="flex flex-col items-center justify-center text-center">
                   <div className="relative mb-4">
                     <CheckCircle2 className="h-16 w-16 text-green-400" />
                   </div>
@@ -383,157 +465,31 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
                   <p className="text-sm text-muted-foreground mt-1">
                     Scanned {stats.emails} emails, {stats.docs} documents, and {stats.events} events
                   </p>
-                </div>
-
-                {/* Stats bar */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
-                    <div className="text-3xl font-bold text-red-400">{stats.emails}</div>
-                    <div className="text-sm text-muted-foreground">Emails</div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
-                    <div className="text-3xl font-bold text-blue-400">{stats.docs}</div>
-                    <div className="text-sm text-muted-foreground">Documents</div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
-                    <div className="text-3xl font-bold text-green-400">{stats.events}</div>
-                    <div className="text-sm text-muted-foreground">Events</div>
-                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    No immediate improvements found. Your workspace looks well organized!
+                  </p>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Progress Section */}
-        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl p-6">
-          {/* Progress Bar */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                {isRunning ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                ) : isComplete ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-400" />
-                ) : (
-                  <Brain className="h-4 w-4 text-purple-400" />
-                )}
-                <span className="text-sm font-medium text-foreground">{currentPhase}</span>
-              </div>
-              <span className="text-sm text-muted-foreground">{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-
-          {/* Steps Accordion */}
-          {steps.length > 0 && (
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="steps" className="border-white/10">
-                <AccordionTrigger className="text-sm text-muted-foreground hover:text-foreground hover:no-underline py-2">
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-4 w-4" />
-                    <span>View {steps.length} analysis steps</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="max-h-[200px] overflow-y-auto space-y-2 pt-2">
-                    {steps.map((step, i) => (
-                      <div key={i} className="flex gap-3 py-1 animate-fade-in">
-                        <div className="flex-shrink-0 mt-0.5">
-                          {getStepIcon(step.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm truncate ${
-                            step.type === "thought" ? "text-purple-300 italic" :
-                            step.type === "action" ? "text-blue-300" :
-                            step.type === "finding" ? "text-amber-300 font-medium" :
-                            step.type === "complete" ? "text-green-300 font-medium" :
-                            "text-muted-foreground"
-                          }`}>
-                            {step.content}
-                          </p>
-                        </div>
-                        <span className="text-xs text-muted-foreground/50 flex-shrink-0">
-                          {step.timestamp?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </span>
-                      </div>
-                    ))}
-                    
-                    {isRunning && (
-                      <div className="flex items-center gap-2 text-muted-foreground py-1">
-                        <div className="flex gap-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
-
-          {/* Solution Recommendation Card */}
-          {finding && (
-            <div className="mt-4 rounded-xl overflow-hidden border border-accent/30 bg-gradient-to-b from-accent/10 via-accent/5 to-transparent animate-fade-in">
-              {/* Recommendation Header */}
-              <div className="px-5 py-4 bg-accent/10 border-b border-accent/20 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-accent/20">
-                  <Lightbulb className="h-5 w-5 text-accent" />
-                </div>
-                <div>
-                  <p className="text-xs text-accent uppercase tracking-wider font-medium">AI Recommendation</p>
-                  <h3 className="font-semibold text-foreground">{finding.issue?.title || "Improvement Opportunity"}</h3>
-                </div>
-              </div>
-              
-              {/* Issue Description */}
-              <div className="px-5 py-4 border-b border-white/5">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {finding.issue?.description}
-                </p>
-              </div>
-
-              {/* Solution Section */}
-              {finding.improvement && (
-                <div className="px-5 py-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle2 className="h-4 w-4 text-green-400" />
-                    <span className="text-sm font-medium text-green-400">Recommended Solution</span>
-                  </div>
-                  
-                  <div className="bg-green-500/10 rounded-xl p-4 border border-green-500/20 mb-4">
-                    <h4 className="font-medium text-foreground mb-2">{finding.improvement.title}</h4>
-                    <p className="text-sm text-muted-foreground">{finding.improvement.description}</p>
-                    {finding.improvement.firstStep && (
-                      <div className="mt-3 pt-3 border-t border-green-500/20">
-                        <p className="text-sm text-green-400 flex items-start gap-2">
-                          <Target className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          <span><strong>First step:</strong> {finding.improvement.firstStep}</span>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Execute Action Button */}
-                  <Button
-                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-accent to-purple-500 hover:from-accent/90 hover:to-purple-500/90 shadow-[0_0_30px_rgba(139,92,246,0.3)] hover:shadow-[0_0_40px_rgba(139,92,246,0.5)] transition-all duration-300"
-                    onClick={() => {
-                      // Placeholder - action execution will be implemented later
-                      console.log("Execute action clicked", finding);
-                    }}
-                  >
-                    <Play className="h-5 w-5 mr-2" />
-                    Execute This Action
-                  </Button>
-                  <p className="text-xs text-center text-muted-foreground mt-2">
-                    AI will preview the action before executing
-                  </p>
-                </div>
+        {/* Simplified Progress Section - Just the loading bar */}
+        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {isRunning ? (
+                <Loader2 className="h-4 w-4 animate-spin text-accent" />
+              ) : isComplete ? (
+                <CheckCircle2 className="h-4 w-4 text-green-400" />
+              ) : (
+                <Brain className="h-4 w-4 text-purple-400" />
               )}
+              <span className="text-sm font-medium text-foreground">{currentPhase}</span>
             </div>
-          )}
+            <span className="text-sm text-muted-foreground">{progress}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
         </div>
       </main>
     </div>
