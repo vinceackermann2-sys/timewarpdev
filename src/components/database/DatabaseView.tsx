@@ -1,231 +1,319 @@
 import { useState } from "react";
-import { Database, Sparkles, Mail, Calendar, FileText, TrendingUp, Users, DollarSign, X, MessageSquare } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { FloatingChat } from "./FloatingChat";
+import { 
+  DollarSign, 
+  TrendingUp, 
+  Users, 
+  ShieldAlert, 
+  Target, 
+  UserCheck,
+  Sparkles,
+  ArrowUp,
+  MoreVertical
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-// Template questions based on common business insights from Google Workspace
-const templateQuestions = [
+// Database modules based on Google Workspace business research
+const databaseModules = [
   {
-    id: 1,
-    icon: Mail,
-    category: "Email Analytics",
-    question: "What are the most common topics in my recent emails?",
-    description: "Analyze email patterns and key discussion themes",
-    details: "This analysis scans your Gmail inbox to identify recurring topics, key stakeholders, and communication patterns. Get insights into response times, thread lengths, and priority conversations.",
-    sampleData: ["47 emails about Q4 planning", "23 vendor negotiations", "15 team updates"]
-  },
-  {
-    id: 2,
-    icon: Calendar,
-    category: "Calendar Insights",
-    question: "How is my time distributed across meetings?",
-    description: "Break down meeting types and time allocation",
-    details: "Visualize your calendar data to understand how time is spent across different meeting types, attendees, and projects. Identify opportunities to optimize your schedule.",
-    sampleData: ["35% internal meetings", "28% client calls", "22% focus time"]
-  },
-  {
-    id: 3,
-    icon: TrendingUp,
-    category: "Business Trends",
-    question: "What trends are emerging in my business communications?",
-    description: "Identify patterns in client and team interactions",
-    details: "Track emerging topics and shifts in communication focus over time. Spot opportunities and potential issues before they become critical.",
-    sampleData: ["↑ 40% AI discussions", "↑ 25% budget reviews", "↓ 15% travel requests"]
-  },
-  {
-    id: 4,
-    icon: Users,
-    category: "Team Activity",
-    question: "Who are my most active collaborators?",
-    description: "See collaboration frequency with team members",
-    details: "Map your collaboration network to understand key relationships, communication frequency, and team dynamics across your organization.",
-    sampleData: ["Sarah Chen: 156 interactions", "Mike Ross: 98 interactions", "Team avg: 45 interactions"]
-  },
-  {
-    id: 5,
+    id: "fin",
+    code: "FIN-X1",
+    title: "FINANCIAL CORE",
     icon: DollarSign,
-    category: "Financial Mentions",
-    question: "What financial topics are being discussed?",
-    description: "Track mentions of budgets, revenue, and expenses",
-    details: "Extract financial references from your communications to stay on top of budget discussions, revenue mentions, and expense tracking across all channels.",
-    sampleData: ["$2.4M budget discussed", "12 invoice mentions", "Q4 forecast updates"]
+    gradient: "from-blue-500 to-blue-600",
+    questions: [
+      "Predict Q4 burn rate?",
+      "Identify expense leaks?",
+      "Summarize capital reserves"
+    ]
   },
   {
-    id: 6,
-    icon: FileText,
-    category: "Document Activity",
-    question: "What documents have been most active recently?",
-    description: "Track document edits and collaboration",
-    details: "Monitor activity across your Google Drive to see which documents are getting the most attention, who's editing them, and recent changes.",
-    sampleData: ["Strategy Doc: 24 edits", "Budget Sheet: 18 views", "Proposal: 12 comments"]
+    id: "mkt",
+    code: "MKT-Z2",
+    title: "MARKET INTEL",
+    icon: TrendingUp,
+    gradient: "from-purple-500 to-purple-600",
+    questions: [
+      "Analyze competitor mentions?",
+      "Track market sentiment?",
+      "Identify trending topics?"
+    ]
+  },
+  {
+    id: "cus",
+    code: "CUS-X1",
+    title: "CUSTOMER FLOW",
+    icon: Users,
+    gradient: "from-emerald-500 to-emerald-600",
+    questions: [
+      "Map customer journey?",
+      "Identify churn signals?",
+      "Track satisfaction trends?"
+    ]
+  },
+  {
+    id: "rsk",
+    code: "RSK-M0",
+    title: "RISK MATRIX",
+    icon: ShieldAlert,
+    gradient: "from-teal-400 to-orange-500",
+    questions: [
+      "Detect compliance gaps?",
+      "Assess vendor risks?",
+      "Flag security concerns?"
+    ]
+  },
+  {
+    id: "str",
+    code: "STR-P8",
+    title: "STRATEGIC PIVOTS",
+    icon: Target,
+    gradient: "from-orange-400 to-pink-500",
+    questions: [
+      "Identify pivot opportunities?",
+      "Analyze strategic alignment?",
+      "Track OKR progress?"
+    ]
+  },
+  {
+    id: "tlt",
+    code: "TLT-H7",
+    title: "TALENT REGISTRY",
+    icon: UserCheck,
+    gradient: "from-pink-400 to-purple-500",
+    questions: [
+      "Map skill gaps?",
+      "Track team sentiment?",
+      "Identify top performers?"
+    ]
   }
 ];
 
-interface ExpandedCardProps {
-  item: typeof templateQuestions[0];
-  onClose: () => void;
-  onAsk: (question: string) => void;
-}
-
-function ExpandedCard({ item, onClose, onAsk }: ExpandedCardProps) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
-      <Card className="w-full max-w-2xl bg-card border-primary/20 shadow-2xl shadow-primary/10">
-        <CardContent className="p-0">
-          {/* Header */}
-          <div className="flex items-start justify-between p-6 border-b border-border">
-            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-xl bg-primary/20 flex items-center justify-center">
-                <item.icon className="h-7 w-7 text-primary" />
-              </div>
-              <div>
-                <span className="text-xs text-primary font-medium uppercase tracking-wider">{item.category}</span>
-                <h3 className="text-xl font-semibold mt-1">{item.question}</h3>
-              </div>
-            </div>
-            <button 
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
-            >
-              <X className="h-5 w-5 text-muted-foreground" />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-6 space-y-6">
-            <p className="text-muted-foreground leading-relaxed">{item.details}</p>
-            
-            {/* Sample Data Preview */}
-            <div className="bg-muted/50 rounded-xl p-4 border border-border">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                Sample Insights
-              </h4>
-              <ul className="space-y-2">
-                {item.sampleData.map((data, index) => (
-                  <li key={index} className="flex items-center gap-2 text-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    {data}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Action Button */}
-            <button
-              onClick={() => onAsk(item.question)}
-              className="w-full py-3 px-4 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-            >
-              <MessageSquare className="h-4 w-4" />
-              Ask TimeWarp AI
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+type ViewState = "storage" | "chat";
 
 export function DatabaseView() {
-  const [expandedCard, setExpandedCard] = useState<typeof templateQuestions[0] | null>(null);
-  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [expandedModule, setExpandedModule] = useState<string | null>(null);
+  const [viewState, setViewState] = useState<ViewState>("storage");
+  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState("");
 
-  const handleAskQuestion = (question: string) => {
-    console.log("Asking AI:", question);
-    setExpandedCard(null);
-    // TODO: Send to floating chat
+  const handleModuleClick = (moduleId: string) => {
+    if (expandedModule === moduleId) {
+      setExpandedModule(null);
+    } else {
+      setExpandedModule(moduleId);
+    }
+  };
+
+  const handleQuestionClick = (question: string) => {
+    setSelectedQuestion(question);
+    setViewState("chat");
+    setExpandedModule(null);
+  };
+
+  const handleBackToStorage = () => {
+    setViewState("storage");
+    setSelectedQuestion(null);
+  };
+
+  const handleSendMessage = () => {
+    if (inputValue.trim() || selectedQuestion) {
+      console.log("Sending:", inputValue || selectedQuestion);
+      // TODO: Connect to AI chat
+      setInputValue("");
+    }
   };
 
   return (
-    <div className="h-full flex flex-col relative">
-      <ScrollArea className="flex-1">
-        <div className="min-h-full flex flex-col items-center justify-center p-8">
-          {/* Header */}
-          <div className="text-center mb-12 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm text-primary font-medium">Business Intelligence Hub</span>
-            </div>
-            <h1 className="text-3xl font-bold mb-4">
-              Your Business Data at a Glance
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Hover over a card to explore insights from your connected Google Workspace
-            </p>
-          </div>
+    <div className="h-full flex flex-col bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden">
+      {/* Stardust background texture */}
+      <div 
+        className="absolute inset-0 opacity-30 pointer-events-none"
+        style={{
+          backgroundImage: 'url(/stardust.png)',
+          backgroundSize: 'cover'
+        }}
+      />
 
-          {/* Cards Grid - Centered */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-5xl w-full">
-            {templateQuestions.map((item) => (
-              <Card 
-                key={item.id}
-                className={cn(
-                  "relative overflow-hidden cursor-pointer transition-all duration-300 border-border",
-                  "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
-                  "group"
-                )}
-                onMouseEnter={() => setHoveredCard(item.id)}
-                onMouseLeave={() => setHoveredCard(null)}
-                onClick={() => setExpandedCard(item)}
-              >
-                {/* Glow effect on hover */}
-                <div className={cn(
-                  "absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300",
-                  hoveredCard === item.id && "opacity-100"
-                )} />
-                
-                <CardContent className="p-5 relative">
-                  <div className="flex items-start gap-4">
-                    <div className={cn(
-                      "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
-                      "bg-primary/10 group-hover:bg-primary/20 group-hover:scale-110"
-                    )}>
-                      <item.icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-xs text-primary/80 font-medium uppercase tracking-wide">{item.category}</span>
-                      <p className="font-medium text-sm mt-1 leading-snug line-clamp-2">{item.question}</p>
-                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{item.description}</p>
+      {/* Main content area */}
+      <div className="flex-1 flex items-center justify-center relative z-10">
+        {viewState === "storage" ? (
+          /* Storage View - File Tabs */
+          <div className="flex items-center justify-center gap-2 p-8">
+            {/* Container with subtle border */}
+            <div className="flex items-stretch gap-1 p-4 rounded-2xl bg-card/30 backdrop-blur-sm border border-border/50">
+              {databaseModules.map((module) => {
+                const isExpanded = expandedModule === module.id;
+                const Icon = module.icon;
+
+                return (
+                  <div
+                    key={module.id}
+                    className={cn(
+                      "relative flex transition-all duration-500 ease-out cursor-pointer",
+                      isExpanded ? "w-80" : "w-20"
+                    )}
+                    onClick={() => !isExpanded && handleModuleClick(module.id)}
+                  >
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div 
+                        className="absolute inset-0 rounded-2xl overflow-hidden animate-fade-in"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* Gradient background */}
+                        <div className={cn(
+                          "absolute inset-0 bg-gradient-to-b opacity-90",
+                          module.gradient
+                        )} />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+
+                        {/* Content */}
+                        <div className="relative h-full p-6 flex flex-col">
+                          {/* Header */}
+                          <div className="flex items-start justify-between mb-8">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-white/10 backdrop-blur">
+                                <Icon className="h-6 w-6 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-white text-lg">{module.title}</h3>
+                                <p className="text-white/60 text-xs">ACCESSING MODULE {module.code}</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-white/40 bg-white/10 px-2 py-1 rounded">
+                              SYNCED
+                            </span>
+                          </div>
+
+                          {/* Questions */}
+                          <div className="flex-1">
+                            <p className="text-white/50 text-xs font-medium tracking-wider mb-4">
+                              PREDICTIVE INQUIRIES:
+                            </p>
+                            <div className="space-y-2">
+                              {module.questions.map((question, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => handleQuestionClick(question)}
+                                  className="w-full text-left px-4 py-3 rounded-lg bg-background/80 hover:bg-background text-sm text-foreground transition-colors"
+                                >
+                                  {question}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Close hint */}
+                          <button 
+                            onClick={() => setExpandedModule(null)}
+                            className="mt-4 text-white/40 text-xs hover:text-white/60 transition-colors"
+                          >
+                            Click outside to close
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Collapsed tab */}
+                    <div
+                      className={cn(
+                        "w-20 h-96 rounded-2xl overflow-hidden transition-opacity duration-300 flex-shrink-0",
+                        isExpanded ? "opacity-0 pointer-events-none" : "opacity-100"
+                      )}
+                    >
+                      {/* Gradient top */}
+                      <div className={cn(
+                        "h-24 bg-gradient-to-b",
+                        module.gradient
+                      )}>
+                        <div className="p-3 text-center">
+                          <span className="text-[10px] text-white/80 font-mono">{module.code}</span>
+                          <div className="mt-2 flex justify-center">
+                            <Icon className="h-5 w-5 text-white/90" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Dark body with vertical text */}
+                      <div className="flex-1 bg-gradient-to-b from-card to-background h-72 flex flex-col items-center justify-between py-4">
+                        {/* Vertical text */}
+                        <div 
+                          className="flex-1 flex items-center justify-center"
+                          style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                        >
+                          <span className="text-xs font-medium tracking-[0.3em] text-muted-foreground rotate-180">
+                            {module.title}
+                          </span>
+                        </div>
+
+                        {/* Dots */}
+                        <div className="flex flex-col gap-1">
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Expand hint on hover */}
-                  <div className={cn(
-                    "absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50 transform scale-x-0 transition-transform duration-300 origin-left",
-                    hoveredCard === item.id && "scale-x-100"
-                  )} />
-                </CardContent>
-              </Card>
-            ))}
+                );
+              })}
+            </div>
           </div>
+        ) : (
+          /* Chat View - Question Selected */
+          <div className="flex flex-col items-center justify-center h-full w-full p-8">
+            {/* Selected question bubble */}
+            {selectedQuestion && (
+              <div className="absolute top-8 right-8 animate-fade-in">
+                <div className="px-6 py-4 rounded-2xl bg-primary/20 border border-primary/30 text-foreground">
+                  {selectedQuestion}
+                </div>
+              </div>
+            )}
 
-          {/* Bottom Stats */}
-          <div className="mt-12 flex items-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-              <span>Live sync active</span>
+            {/* AI Response area - placeholder */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center text-muted-foreground">
+                <Sparkles className="h-8 w-8 mx-auto mb-4 text-primary animate-pulse" />
+                <p className="text-sm">TimeWarp AI is analyzing your business data...</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Database className="h-4 w-4" />
-              <span>6 data categories</span>
-            </div>
+
+            {/* Back to storage link */}
+            <button
+              onClick={handleBackToStorage}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
+            >
+              <ArrowUp className="h-4 w-4" />
+              <span className="text-xs tracking-[0.2em] uppercase">Back to Storage</span>
+              <ArrowUp className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom chat input - always visible */}
+      <div className="relative z-10 p-6 flex justify-center">
+        <div className="w-full max-w-xl">
+          <div className="relative flex items-center">
+            <Sparkles className="absolute left-4 h-5 w-5 text-primary" />
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder="Ask a question..."
+              className="w-full pl-12 pr-14 py-6 rounded-full bg-card/80 backdrop-blur border-border/50 text-foreground placeholder:text-muted-foreground"
+            />
+            <button
+              onClick={handleSendMessage}
+              className="absolute right-2 h-10 w-10 rounded-full bg-foreground flex items-center justify-center hover:bg-foreground/90 transition-colors"
+            >
+              <ArrowUp className="h-5 w-5 text-background" />
+            </button>
           </div>
         </div>
-      </ScrollArea>
-
-      {/* Expanded Card Modal */}
-      {expandedCard && (
-        <ExpandedCard 
-          item={expandedCard} 
-          onClose={() => setExpandedCard(null)}
-          onAsk={handleAskQuestion}
-        />
-      )}
-
-      {/* Floating Chat */}
-      <FloatingChat />
+      </div>
     </div>
   );
 }
