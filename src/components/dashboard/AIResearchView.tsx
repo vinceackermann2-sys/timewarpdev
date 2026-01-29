@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Crown, Circle, CheckCircle2, AlertTriangle, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Finding {
   category: string;
@@ -39,16 +40,26 @@ interface AIResearchViewProps {
 }
 
 const RESEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/research`;
+const WORKSPACE_FETCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-fetch`;
+
+interface WorkspaceData {
+  emails: any[];
+  documents: any[];
+  spreadsheets: any[];
+  calendarEvents: any[];
+}
 
 export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIResearchViewProps) {
   const { toast } = useToast();
-  const [phase, setPhase] = useState<"scanning" | "analyzing" | "complete">("scanning");
+  const [phase, setPhase] = useState<"fetching" | "scanning" | "analyzing" | "complete">("fetching");
   const [scanProgress, setScanProgress] = useState(0);
-  const [status, setStatus] = useState("INITIALIZING NEURAL BRIDGE...");
+  const [status, setStatus] = useState("CONNECTING TO GOOGLE WORKSPACE...");
   const [isManualControl, setIsManualControl] = useState(false);
   const [rawResponse, setRawResponse] = useState("");
   const [results, setResults] = useState<ResearchResults | null>(null);
   const [streamId] = useState(() => Math.floor(10000 + Math.random() * 90000).toString());
+  const [workspaceData, setWorkspaceData] = useState<WorkspaceData | null>(null);
+  const [dataStats, setDataStats] = useState({ emails: 0, docs: 0, sheets: 0, events: 0 });
   
   const scanItems = [
     "Gmail inbox threads...",
@@ -63,6 +74,80 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
   const [currentScanItem, setCurrentScanItem] = useState(0);
   const [scannedItems, setScannedItems] = useState<string[]>([]);
 
+  // Fetch workspace data from Google APIs
+  const fetchWorkspaceData = useCallback(async () => {
+    try {
+      setStatus("RETRIEVING ACCESS TOKEN...");
+      
+      // Get the current session to extract the provider token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error("No session found:", sessionError);
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in with Google to access your workspace data.",
+          variant: "destructive",
+        });
+        // Fall back to simulated mode
+        setPhase("scanning");
+        return;
+      }
+
+      const accessToken = session.provider_token;
+      
+      if (!accessToken) {
+        console.log("No provider token - falling back to simulation mode");
+        toast({
+          title: "Limited Access",
+          description: "Running in simulation mode. Re-authenticate with Google for real data.",
+        });
+        setPhase("scanning");
+        return;
+      }
+
+      setStatus("CONNECTING TO GOOGLE WORKSPACE...");
+      
+      const response = await fetch(WORKSPACE_FETCH_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ accessToken }),
+      });
+
+      if (!response.ok) {
+        console.error("Workspace fetch error:", response.status);
+        toast({
+          title: "Workspace Access Error", 
+          description: "Could not access Google Workspace. Running in simulation mode.",
+        });
+        setPhase("scanning");
+        return;
+      }
+
+      const data: WorkspaceData = await response.json();
+      setWorkspaceData(data);
+      setDataStats({
+        emails: data.emails?.length || 0,
+        docs: data.documents?.length || 0,
+        sheets: data.spreadsheets?.length || 0,
+        events: data.calendarEvents?.length || 0,
+      });
+      
+      console.log("Fetched real workspace data:", data);
+      setPhase("scanning");
+    } catch (error: any) {
+      console.error("Error fetching workspace data:", error);
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to Google Workspace. Running in simulation mode.",
+      });
+      setPhase("scanning");
+    }
+  }, [toast]);
+
   const runResearch = useCallback(async () => {
     try {
       const response = await fetch(RESEARCH_URL, {
@@ -71,7 +156,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ role, mode }),
+        body: JSON.stringify({ role, mode, workspaceData }),
       });
 
       if (!response.ok) {
@@ -169,7 +254,14 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
       });
       setPhase("complete");
     }
-  }, [role, mode, toast]);
+  }, [role, mode, workspaceData, toast]);
+
+  // Start by fetching workspace data
+  useEffect(() => {
+    if (phase === "fetching") {
+      fetchWorkspaceData();
+    }
+  }, [phase, fetchWorkspaceData]);
 
   // Scanning animation
   useEffect(() => {
@@ -299,29 +391,54 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
           {/* Browser Content */}
           <div className="flex-1 p-6 overflow-hidden">
             {phase !== "complete" ? (
-              /* Scanning / Analyzing View */
+              /* Fetching / Scanning / Analyzing View */
               <div className="flex gap-6 h-full">
-                {/* Left sidebar - Scanned items */}
+                {/* Left sidebar - Scanned items + Data stats */}
                 <div className="w-56 space-y-2">
-                  <div className="text-xs tracking-wider text-muted-foreground mb-3">SCANNING...</div>
-                  {scanItems.map((item, i) => (
-                    <div 
-                      key={i}
-                      className={`h-8 rounded-lg transition-all duration-500 flex items-center px-3 ${
-                        scannedItems.includes(item) 
-                          ? 'bg-white/10 border border-white/20' 
-                          : i === currentScanItem 
-                            ? 'bg-accent/20 border border-accent/40 animate-pulse'
-                            : 'bg-white/5'
-                      }`}
-                    >
-                      <span className="text-xs text-muted-foreground truncate">
-                        {scannedItems.includes(item) && <CheckCircle2 className="h-3 w-3 inline mr-2 text-green-400" />}
-                        {i === currentScanItem && !scannedItems.includes(item) && <Loader2 className="h-3 w-3 inline mr-2 animate-spin" />}
-                        {item}
-                      </span>
-                    </div>
-                  ))}
+                  {phase === "fetching" ? (
+                    <>
+                      <div className="text-xs tracking-wider text-muted-foreground mb-3">CONNECTING...</div>
+                      <div className="h-8 rounded-lg bg-accent/20 border border-accent/40 animate-pulse flex items-center px-3">
+                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                        <span className="text-xs text-muted-foreground">Google Workspace...</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-xs tracking-wider text-muted-foreground mb-3">
+                        {workspaceData ? "LIVE DATA" : "SCANNING..."}
+                      </div>
+                      {workspaceData && (
+                        <div className="mb-4 p-3 rounded-lg bg-green-400/10 border border-green-400/20">
+                          <div className="text-[10px] text-green-400 mb-2 uppercase tracking-wider">Real Data Loaded</div>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                            <div>{dataStats.emails} emails</div>
+                            <div>{dataStats.docs} docs</div>
+                            <div>{dataStats.sheets} sheets</div>
+                            <div>{dataStats.events} events</div>
+                          </div>
+                        </div>
+                      )}
+                      {scanItems.map((item, i) => (
+                        <div 
+                          key={i}
+                          className={`h-8 rounded-lg transition-all duration-500 flex items-center px-3 ${
+                            scannedItems.includes(item) 
+                              ? 'bg-white/10 border border-white/20' 
+                              : i === currentScanItem 
+                                ? 'bg-accent/20 border border-accent/40 animate-pulse'
+                                : 'bg-white/5'
+                          }`}
+                        >
+                          <span className="text-xs text-muted-foreground truncate">
+                            {scannedItems.includes(item) && <CheckCircle2 className="h-3 w-3 inline mr-2 text-green-400" />}
+                            {i === currentScanItem && !scannedItems.includes(item) && <Loader2 className="h-3 w-3 inline mr-2 animate-spin" />}
+                            {item}
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
 
                 {/* Center content */}
@@ -345,7 +462,9 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
                     <Circle className="h-2 w-2 fill-amber-400 text-amber-400 animate-pulse" />
                     <span className="tracking-[0.15em]">
-                      {phase === "analyzing" ? "GENERATING INSIGHTS..." : `STATUS: ${status}`}
+                      {phase === "fetching" ? "CONNECTING TO GOOGLE WORKSPACE..." : 
+                       phase === "analyzing" ? (workspaceData ? "ANALYZING REAL DATA..." : "GENERATING INSIGHTS...") : 
+                       `STATUS: ${status}`}
                     </span>
                   </div>
 
@@ -353,7 +472,9 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                     <div className="w-64 bg-white/5 rounded-lg p-4 border border-white/10">
                       <div className="flex items-center gap-2 mb-2">
                         <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                        <span className="text-sm">AI analyzing patterns...</span>
+                        <span className="text-sm">
+                          {workspaceData ? "AI analyzing your workspace..." : "AI analyzing patterns..."}
+                        </span>
                       </div>
                       <div className="text-xs text-muted-foreground text-left max-h-24 overflow-hidden">
                         {rawResponse.slice(-200)}

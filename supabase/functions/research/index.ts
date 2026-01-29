@@ -75,7 +75,7 @@ serve(async (req) => {
   }
 
   try {
-    const { role, mode } = await req.json();
+    const { role, mode, workspaceData } = await req.json();
 
     if (!role || !mode) {
       return new Response(
@@ -100,6 +100,44 @@ serve(async (req) => {
     }
 
     console.log(`Starting research analysis for role: ${role}, mode: ${mode}`);
+    console.log(`Workspace data provided: ${workspaceData ? 'yes' : 'no'}`);
+
+    // Build the user prompt based on whether we have real workspace data
+    let userPrompt: string;
+    if (workspaceData) {
+      const emailCount = workspaceData.emails?.length || 0;
+      const docCount = workspaceData.documents?.length || 0;
+      const sheetCount = workspaceData.spreadsheets?.length || 0;
+      const eventCount = workspaceData.calendarEvents?.length || 0;
+
+      userPrompt = `Analyze my company's Google Workspace data and provide insights for my role as ${role.toUpperCase()}. I'm in ${mode} mode.
+
+Here is the REAL data from my Google Workspace:
+
+## Emails (${emailCount} recent messages):
+${workspaceData.emails?.slice(0, 15).map((e: any) => `- Subject: "${e.subject}" | From: ${e.from} | Labels: ${e.labelIds?.join(', ') || 'none'}`).join('\n') || 'No emails found'}
+
+## Documents (${docCount} files):
+${workspaceData.documents?.slice(0, 15).map((d: any) => `- "${d.name}" | Modified: ${d.modifiedTime} | Shared: ${d.shared}`).join('\n') || 'No documents found'}
+
+## Spreadsheets (${sheetCount} files):
+${workspaceData.spreadsheets?.slice(0, 10).map((s: any) => `- "${s.name}" | Modified: ${s.modifiedTime}`).join('\n') || 'No spreadsheets found'}
+
+## Calendar Events (${eventCount} upcoming):
+${workspaceData.calendarEvents?.slice(0, 15).map((e: any) => `- "${e.summary}" | ${e.start} | Attendees: ${e.attendees} | Has video: ${e.hasConferencing}`).join('\n') || 'No events found'}
+
+Based on this real data, identify patterns and provide 4-6 key findings and 3-5 prioritized recommendations.`;
+    } else {
+      userPrompt = `Analyze my company's Google Workspace data and provide insights for my role as ${role.toUpperCase()}. I'm in ${mode} mode.
+
+Simulate finding patterns in:
+- Email communications (response times, important threads, overdue follow-ups)
+- Documents (outdated docs, collaboration patterns, knowledge gaps)
+- Spreadsheets (budget tracking, sales data, operational metrics)
+- Calendar (meeting efficiency, scheduling patterns, time allocation)
+
+Provide 4-6 key findings and 3-5 prioritized recommendations.`;
+    }
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -113,18 +151,7 @@ serve(async (req) => {
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: getSystemPrompt(role, mode) },
-            { 
-              role: "user", 
-              content: `Analyze my company's Google Workspace data and provide insights for my role as ${role.toUpperCase()}. I'm in ${mode} mode.
-
-Simulate finding patterns in:
-- Email communications (response times, important threads, overdue follow-ups)
-- Documents (outdated docs, collaboration patterns, knowledge gaps)
-- Spreadsheets (budget tracking, sales data, operational metrics)
-- Calendar (meeting efficiency, scheduling patterns, time allocation)
-
-Provide 4-6 key findings and 3-5 prioritized recommendations.` 
-            },
+            { role: "user", content: userPrompt },
           ],
           stream: true,
         }),
