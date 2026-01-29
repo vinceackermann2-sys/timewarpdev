@@ -18,13 +18,14 @@ interface AnalysisStep {
 interface LiveAnalysisViewProps {
   role: string;
   mode: string;
+  googleToken: string | null;
   onComplete: () => void;
   onTakeControl: () => void;
 }
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-workspace`;
 
-export function LiveAnalysisView({ role, mode, onComplete, onTakeControl }: LiveAnalysisViewProps) {
+export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeControl }: LiveAnalysisViewProps) {
   const { toast } = useToast();
   const [isRunning, setIsRunning] = useState(false);
   const [steps, setSteps] = useState<AnalysisStep[]>([]);
@@ -53,11 +54,12 @@ export function LiveAnalysisView({ role, mode, onComplete, onTakeControl }: Live
         return;
       }
 
-      const accessToken = session.provider_token;
+      // Use passed googleToken or session provider_token
+      const accessToken = googleToken || session.provider_token;
       if (!accessToken) {
         toast({
           title: "Google Connection Required",
-          description: "Please reconnect with Google to access your workspace data.",
+          description: "Please sign out and reconnect with Google to access your workspace data.",
           variant: "destructive",
         });
         setIsRunning(false);
@@ -145,7 +147,7 @@ export function LiveAnalysisView({ role, mode, onComplete, onTakeControl }: Live
     } finally {
       setIsRunning(false);
     }
-  }, [role, toast, finding]);
+  }, [role, googleToken, toast, finding]);
 
   // Start analysis on mount
   useEffect(() => {
