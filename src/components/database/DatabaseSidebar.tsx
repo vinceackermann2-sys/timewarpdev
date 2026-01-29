@@ -50,10 +50,12 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <Link to="/database" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-            <Bot className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-semibold text-lg">AI CEO</span>
+          <img 
+            src="/favicon.png" 
+            alt="TimeWarp" 
+            className="h-8 w-8 rounded-lg object-cover"
+          />
+          <span className="font-semibold text-lg">TimeWarp</span>
         </Link>
       </SidebarHeader>
 
