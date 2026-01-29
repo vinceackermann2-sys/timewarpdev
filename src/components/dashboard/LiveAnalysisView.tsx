@@ -370,70 +370,82 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
             {/* Complete State - Show Recommendation in Browser */}
             {isComplete && finding && (
               <div className="w-full max-w-3xl animate-fade-in">
-                {/* Visual Representation of the Solution */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-accent/20 animate-pulse">
-                      <Lightbulb className="h-5 w-5 text-accent" />
+                {/* Header - CEO Analysis */}
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2 rounded-lg bg-red-500/20">
+                    <AlertTriangle className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-accent uppercase tracking-wider font-medium">{roleLabel} Analysis</p>
+                    <h3 className="font-semibold text-lg text-foreground">Inefficiency Detected</h3>
+                  </div>
+                </div>
+
+                {/* Visual Evidence of Inefficiency */}
+                <div className="grid grid-cols-2 gap-4 mb-5">
+                  {/* Before - Problem Visualization */}
+                  <div className="rounded-xl overflow-hidden border border-red-500/30 bg-gradient-to-br from-red-950/30 to-transparent">
+                    <div className="px-3 py-2 bg-red-500/10 border-b border-red-500/20">
+                      <span className="text-xs font-medium text-red-400 uppercase tracking-wider">Current State</span>
                     </div>
-                    <div>
-                      <p className="text-xs text-accent uppercase tracking-wider font-medium">AI Recommendation</p>
-                      <h3 className="font-semibold text-lg text-foreground">{finding.issue?.title || "Improvement Opportunity"}</h3>
+                    <div className="p-4">
+                      {/* Visual representation of the problem */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                          <div className="h-2 bg-red-500/20 rounded flex-1" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-500/30" />
+                          <div className="h-2 bg-red-500/15 rounded w-3/4" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-500/20" />
+                          <div className="h-2 bg-red-500/10 rounded w-1/2" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-red-300/80 mt-3 line-clamp-2">{finding.issue?.title}</p>
                     </div>
                   </div>
-                  
-                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                    {finding.issue?.description}
-                  </p>
 
-                  {/* Visual Preview Card */}
-                  {finding.improvement && (
-                    <div className="relative rounded-xl overflow-hidden border border-accent/30 bg-gradient-to-br from-[#0f0f2a] via-[#1a1a3a] to-[#0f0f2a]">
-                      {/* Mock UI Preview */}
-                      <div className="p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="p-2 rounded-lg bg-green-500/20">
-                            <CheckCircle2 className="h-4 w-4 text-green-400" />
-                          </div>
-                          <span className="text-sm font-medium text-green-400">{finding.improvement.title}</span>
-                        </div>
-                        
-                        {/* Simulated Dashboard/System Preview */}
-                        <div className="grid grid-cols-3 gap-3 mb-4">
-                          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                            <LayoutDashboard className="h-5 w-5 text-purple-400 mb-2" />
-                            <div className="h-2 bg-purple-400/30 rounded w-3/4 mb-1"></div>
-                            <div className="h-2 bg-purple-400/20 rounded w-1/2"></div>
-                          </div>
-                          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                            <BarChart3 className="h-5 w-5 text-blue-400 mb-2" />
-                            <div className="h-2 bg-blue-400/30 rounded w-full mb-1"></div>
-                            <div className="h-2 bg-blue-400/20 rounded w-2/3"></div>
-                          </div>
-                          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                            <Users className="h-5 w-5 text-cyan-400 mb-2" />
-                            <div className="h-2 bg-cyan-400/30 rounded w-5/6 mb-1"></div>
-                            <div className="h-2 bg-cyan-400/20 rounded w-1/3"></div>
-                          </div>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground">{finding.improvement.description}</p>
-                        
-                        {finding.improvement.firstStep && (
-                          <div className="mt-4 pt-4 border-t border-white/10">
-                            <p className="text-sm text-accent flex items-start gap-2">
-                              <Target className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                              <span><strong>First step:</strong> {finding.improvement.firstStep}</span>
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Animated glow border */}
-                      <div className="absolute inset-0 rounded-xl pointer-events-none border border-accent/50 animate-pulse" />
+                  {/* After - Solution Visualization */}
+                  <div className="rounded-xl overflow-hidden border border-green-500/30 bg-gradient-to-br from-green-950/30 to-transparent">
+                    <div className="px-3 py-2 bg-green-500/10 border-b border-green-500/20">
+                      <span className="text-xs font-medium text-green-400 uppercase tracking-wider">Recommended</span>
                     </div>
-                  )}
+                    <div className="p-4">
+                      {/* Visual representation of the solution */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3 h-3 text-green-400" />
+                          <div className="h-2 bg-green-500/30 rounded flex-1" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3 h-3 text-green-400" />
+                          <div className="h-2 bg-green-500/25 rounded w-5/6" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3 h-3 text-green-400" />
+                          <div className="h-2 bg-green-500/20 rounded w-full" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-green-300/80 mt-3 line-clamp-2">{finding.improvement?.title}</p>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Solution Summary */}
+                {finding.improvement && (
+                  <div className="rounded-xl p-4 bg-accent/5 border border-accent/20 mb-5">
+                    <div className="flex items-start gap-3">
+                      <Lightbulb className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-foreground mb-1">{finding.improvement.title}</h4>
+                        <p className="text-sm text-muted-foreground">{finding.improvement.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Set Your CEO To Work Button */}
                 <div className="relative">
