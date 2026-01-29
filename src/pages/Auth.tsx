@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,9 +133,30 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      // Use Lovable's managed Google OAuth
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/dashboard`,
+      const redirectTo = `${window.location.origin}/dashboard`;
+
+      // When coming from the quiz/research flow, we must request Google Workspace read scopes
+      // so we receive a usable Google access token in `session.provider_token`.
+      const workspaceScopes = [
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/drive.metadata.readonly",
+        "https://www.googleapis.com/auth/calendar.readonly",
+      ].join(" ");
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          ...(quizData
+            ? {
+                scopes: workspaceScopes,
+                queryParams: {
+                  access_type: "offline",
+                  prompt: "consent",
+                },
+              }
+            : {}),
+        },
       });
 
       if (error) throw error;
