@@ -28,6 +28,19 @@ function streamStep(controller: ReadableStreamDefaultController, step: AnalysisS
   controller.enqueue(encoder.encode(`data: ${JSON.stringify(step)}\n\n`));
 }
 
+// Calculate date ranges
+function getLastYearDate(): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 1);
+  return date.toISOString().split('T')[0]; // YYYY-MM-DD format for Gmail
+}
+
+function getNextYearDate(): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 1);
+  return date.toISOString();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -90,6 +103,9 @@ serve(async (req) => {
       );
     }
 
+    const lastYearDate = getLastYearDate();
+    const nextYearDate = getNextYearDate();
+
     // Create streaming response
     const stream = new ReadableStream({
       async start(controller) {
@@ -97,19 +113,21 @@ serve(async (req) => {
           // STEP 1: Thinking about approach
           streamStep(controller, {
             type: "thought",
-            content: `I'm going to analyze your Google Workspace as a ${role?.toUpperCase() || 'CEO'} advisor. Let me start by examining your emails for communication patterns and potential issues...`
+            content: `I'm going to analyze your Google Workspace as a ${role?.toUpperCase() || 'CEO'} advisor. I'll scan your last year's emails, files (including Sheets, Slides, and Forms), and upcoming year's calendar...`
           });
 
           await new Promise(r => setTimeout(r, 1000));
 
-          // STEP 2: Fetch and analyze emails
+          // STEP 2: Fetch and analyze emails (last year)
           streamStep(controller, {
             type: "action",
-            content: "📧 Fetching recent emails from Gmail..."
+            content: `📧 Fetching emails from the last year (since ${lastYearDate})...`
           });
 
+          // Gmail query for last year's emails
+          const emailQuery = encodeURIComponent(`after:${lastYearDate}`);
           const emailsData = await fetchGoogleAPI(
-            "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30",
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${emailQuery}`,
             accessToken
           );
 
@@ -117,11 +135,11 @@ serve(async (req) => {
           if (emailsData?.messages) {
             streamStep(controller, {
               type: "observation",
-              content: `Found ${emailsData.messages.length} recent emails. Analyzing content...`
+              content: `Found ${emailsData.messages.length} emails from the last year. Analyzing patterns...`
             });
 
-            // Fetch email details
-            for (let i = 0; i < Math.min(emailsData.messages.length, 15); i++) {
+            // Fetch email details (limit to 25 for performance)
+            for (let i = 0; i < Math.min(emailsData.messages.length, 25); i++) {
               const msg = emailsData.messages[i];
               const detail = await fetchGoogleAPI(
                 `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
@@ -139,14 +157,14 @@ serve(async (req) => {
                 };
                 emails.push(email);
 
-                // Stream current email being analyzed
+                // Stream a few emails being analyzed
                 if (i < 5) {
                   streamStep(controller, {
                     type: "observation",
                     content: `Reviewing: "${email.subject}" from ${email.from.split('<')[0].trim()}`,
                     data: { type: "email", ...email }
                   });
-                  await new Promise(r => setTimeout(r, 300));
+                  await new Promise(r => setTimeout(r, 200));
                 }
               }
             }
@@ -154,51 +172,155 @@ serve(async (req) => {
 
           await new Promise(r => setTimeout(r, 500));
 
-          // STEP 3: Analyze emails with AI
-          streamStep(controller, {
-            type: "thought",
-            content: "Analyzing email patterns for communication issues, missed follow-ups, and urgent items..."
-          });
-
-          // STEP 4: Fetch Drive files
+          // STEP 3: Fetch Drive files (last year) with specific MIME types
           streamStep(controller, {
             type: "action",
-            content: "📁 Scanning Google Drive for documents..."
+            content: `📁 Scanning Google Drive for files modified in the last year...`
           });
 
+          const driveQuery = encodeURIComponent(`modifiedTime > '${lastYearDate}T00:00:00'`);
           const driveData = await fetchGoogleAPI(
-            "https://www.googleapis.com/drive/v3/files?pageSize=30&fields=files(id,name,mimeType,modifiedTime,shared)&orderBy=modifiedTime desc",
+            `https://www.googleapis.com/drive/v3/files?pageSize=100&q=${driveQuery}&fields=files(id,name,mimeType,modifiedTime,shared,webViewLink)&orderBy=modifiedTime desc`,
             accessToken
           );
 
           const documents: any[] = [];
+          const sheets: any[] = [];
+          const slides: any[] = [];
+          const forms: any[] = [];
+
           if (driveData?.files) {
             streamStep(controller, {
               type: "observation",
-              content: `Found ${driveData.files.length} files. Checking for outdated or misorganized content...`
+              content: `Found ${driveData.files.length} files modified in the last year. Categorizing...`
             });
 
-            for (const file of driveData.files.slice(0, 10)) {
-              documents.push(file);
-              streamStep(controller, {
-                type: "observation",
-                content: `Checking: "${file.name}" (${file.mimeType?.split('.').pop() || 'file'})`,
-                data: { type: "document", ...file }
-              });
-              await new Promise(r => setTimeout(r, 200));
+            for (const file of driveData.files) {
+              const fileInfo = {
+                id: file.id,
+                name: file.name,
+                mimeType: file.mimeType,
+                modifiedTime: file.modifiedTime,
+                shared: file.shared,
+                webViewLink: file.webViewLink,
+              };
+
+              // Categorize by MIME type
+              if (file.mimeType === 'application/vnd.google-apps.spreadsheet') {
+                sheets.push(fileInfo);
+              } else if (file.mimeType === 'application/vnd.google-apps.presentation') {
+                slides.push(fileInfo);
+              } else if (file.mimeType === 'application/vnd.google-apps.form') {
+                forms.push(fileInfo);
+              } else {
+                documents.push(fileInfo);
+              }
+            }
+
+            streamStep(controller, {
+              type: "observation",
+              content: `Categorized: ${documents.length} docs, ${sheets.length} sheets, ${slides.length} slides, ${forms.length} forms`,
+              data: { documents: documents.length, sheets: sheets.length, slides: slides.length, forms: forms.length }
+            });
+          }
+
+          await new Promise(r => setTimeout(r, 500));
+
+          // STEP 4: Fetch Sheets content (first 5 sheets)
+          if (sheets.length > 0) {
+            streamStep(controller, {
+              type: "action",
+              content: `📊 Analyzing Google Sheets content...`
+            });
+
+            for (let i = 0; i < Math.min(sheets.length, 5); i++) {
+              const sheet = sheets[i];
+              const sheetData = await fetchGoogleAPI(
+                `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}?includeGridData=false`,
+                accessToken
+              );
+              
+              if (sheetData) {
+                sheet.sheetNames = sheetData.sheets?.map((s: any) => s.properties?.title) || [];
+                sheet.title = sheetData.properties?.title;
+                
+                streamStep(controller, {
+                  type: "observation",
+                  content: `Analyzed sheet: "${sheet.name}" with ${sheet.sheetNames.length} tabs`,
+                  data: { type: "sheet", ...sheet }
+                });
+                await new Promise(r => setTimeout(r, 200));
+              }
+            }
+          }
+
+          // STEP 5: Fetch Slides content (first 5 presentations)
+          if (slides.length > 0) {
+            streamStep(controller, {
+              type: "action",
+              content: `📽️ Analyzing Google Slides content...`
+            });
+
+            for (let i = 0; i < Math.min(slides.length, 5); i++) {
+              const slide = slides[i];
+              const slideData = await fetchGoogleAPI(
+                `https://slides.googleapis.com/v1/presentations/${slide.id}?fields=title,slides.objectId`,
+                accessToken
+              );
+              
+              if (slideData) {
+                slide.title = slideData.title;
+                slide.slideCount = slideData.slides?.length || 0;
+                
+                streamStep(controller, {
+                  type: "observation",
+                  content: `Analyzed presentation: "${slide.name}" with ${slide.slideCount} slides`,
+                  data: { type: "slide", ...slide }
+                });
+                await new Promise(r => setTimeout(r, 200));
+              }
+            }
+          }
+
+          // STEP 6: Fetch Forms content (first 5 forms)
+          if (forms.length > 0) {
+            streamStep(controller, {
+              type: "action",
+              content: `📋 Analyzing Google Forms...`
+            });
+
+            for (let i = 0; i < Math.min(forms.length, 5); i++) {
+              const form = forms[i];
+              const formData = await fetchGoogleAPI(
+                `https://forms.googleapis.com/v1/forms/${form.id}`,
+                accessToken
+              );
+              
+              if (formData) {
+                form.title = formData.info?.title;
+                form.questionCount = formData.items?.length || 0;
+                form.description = formData.info?.description;
+                
+                streamStep(controller, {
+                  type: "observation",
+                  content: `Analyzed form: "${form.name}" with ${form.questionCount} questions`,
+                  data: { type: "form", ...form }
+                });
+                await new Promise(r => setTimeout(r, 200));
+              }
             }
           }
 
           await new Promise(r => setTimeout(r, 500));
 
-          // STEP 5: Fetch Calendar
+          // STEP 7: Fetch Calendar (upcoming year)
           streamStep(controller, {
             type: "action",
-            content: "📅 Analyzing calendar for meeting patterns..."
+            content: `📅 Analyzing calendar events for the upcoming year...`
           });
 
           const calendarData = await fetchGoogleAPI(
-            `https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=20&timeMin=${new Date().toISOString()}&orderBy=startTime&singleEvents=true`,
+            `https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=100&timeMin=${new Date().toISOString()}&timeMax=${nextYearDate}&orderBy=startTime&singleEvents=true`,
             accessToken
           );
 
@@ -206,45 +328,63 @@ serve(async (req) => {
           if (calendarData?.items) {
             streamStep(controller, {
               type: "observation",
-              content: `Found ${calendarData.items.length} upcoming events. Checking for scheduling issues...`
+              content: `Found ${calendarData.items.length} upcoming events in the next year.`
             });
 
-            for (const event of calendarData.items.slice(0, 8)) {
-              events.push(event);
-              streamStep(controller, {
-                type: "observation",
-                content: `Reviewing: "${event.summary || 'Untitled'}" - ${event.attendees?.length || 0} attendees`,
-                data: { type: "event", summary: event.summary, attendees: event.attendees?.length || 0, start: event.start }
+            for (const event of calendarData.items.slice(0, 15)) {
+              events.push({
+                summary: event.summary,
+                start: event.start,
+                end: event.end,
+                attendees: event.attendees?.length || 0,
+                recurring: !!event.recurringEventId,
               });
-              await new Promise(r => setTimeout(r, 200));
+              
+              if (events.length <= 5) {
+                streamStep(controller, {
+                  type: "observation",
+                  content: `Reviewing: "${event.summary || 'Untitled'}" - ${event.attendees?.length || 0} attendees`,
+                  data: { type: "event", summary: event.summary, attendees: event.attendees?.length || 0, start: event.start }
+                });
+                await new Promise(r => setTimeout(r, 150));
+              }
             }
           }
 
           await new Promise(r => setTimeout(r, 800));
 
-          // STEP 6: AI Analysis to find the biggest issue
+          // STEP 8: AI Analysis to find the biggest issue
           streamStep(controller, {
             type: "thought",
             content: "Processing all data to identify the most impactful business improvement..."
           });
 
-          // Call AI to analyze and find the top issue
-          const analysisPrompt = `You are a ${role?.toUpperCase() || 'CEO'} business advisor. Analyze this real Google Workspace data and identify ONE specific, actionable improvement that would have the highest business impact.
+          // Build comprehensive analysis prompt
+          const analysisPrompt = `You are a ${role?.toUpperCase() || 'CEO'} business advisor. Analyze this real Google Workspace data from the LAST YEAR and identify ONE specific, actionable improvement that would have the highest business impact.
 
-## Recent Emails (${emails.length}):
-${emails.slice(0, 10).map(e => `- "${e.subject}" from ${e.from.split('<')[0]} | ${e.labels.includes('UNREAD') ? 'UNREAD' : 'read'}`).join('\n')}
+## Email Summary (Last Year - ${emails.length} analyzed):
+${emails.slice(0, 15).map(e => `- "${e.subject}" from ${e.from.split('<')[0]} | ${e.labels.includes('UNREAD') ? 'UNREAD' : 'read'} | Date: ${e.date}`).join('\n')}
 
-## Documents (${documents.length}):
-${documents.slice(0, 10).map(d => `- "${d.name}" | Last modified: ${d.modifiedTime} | Shared: ${d.shared}`).join('\n')}
+## Documents (Last Year - ${documents.length} files):
+${documents.slice(0, 10).map(d => `- "${d.name}" | Modified: ${d.modifiedTime} | Shared: ${d.shared}`).join('\n')}
 
-## Upcoming Calendar (${events.length}):
-${events.slice(0, 8).map(e => `- "${e.summary || 'Untitled'}" | Attendees: ${e.attendees?.length || 0}`).join('\n')}
+## Google Sheets (${sheets.length} spreadsheets):
+${sheets.slice(0, 5).map(s => `- "${s.name}" | Tabs: ${s.sheetNames?.join(', ') || 'N/A'} | Modified: ${s.modifiedTime}`).join('\n')}
+
+## Google Slides (${slides.length} presentations):
+${slides.slice(0, 5).map(s => `- "${s.name}" | Slides: ${s.slideCount || 'N/A'} | Modified: ${s.modifiedTime}`).join('\n')}
+
+## Google Forms (${forms.length} forms):
+${forms.slice(0, 5).map(f => `- "${f.name}" | Questions: ${f.questionCount || 'N/A'} | Modified: ${f.modifiedTime}`).join('\n')}
+
+## Calendar (Upcoming Year - ${events.length} events):
+${events.slice(0, 10).map(e => `- "${e.summary || 'Untitled'}" | Attendees: ${e.attendees} | Recurring: ${e.recurring}`).join('\n')}
 
 Respond with a JSON object:
 {
   "issue": {
     "title": "Brief issue title",
-    "category": "Email|Documents|Calendar|Communication",
+    "category": "Email|Documents|Sheets|Slides|Forms|Calendar|Communication",
     "severity": "high|medium|low",
     "description": "Specific problem identified from the data",
     "evidence": "Quote or reference specific data that shows this issue"
@@ -307,7 +447,15 @@ Respond with a JSON object:
                 summary: {
                   emailsAnalyzed: emails.length,
                   documentsAnalyzed: documents.length,
+                  sheetsAnalyzed: sheets.length,
+                  slidesAnalyzed: slides.length,
+                  formsAnalyzed: forms.length,
                   eventsAnalyzed: events.length,
+                  timeRange: {
+                    emails: `Last year (since ${lastYearDate})`,
+                    files: `Last year (since ${lastYearDate})`,
+                    calendar: `Upcoming year (until ${nextYearDate.split('T')[0]})`
+                  }
                 },
                 ...analysis
               }
@@ -316,21 +464,21 @@ Respond with a JSON object:
             // Fallback finding
             streamStep(controller, {
               type: "finding",
-              content: "🔍 Analysis identified potential communication gaps",
+              content: "🔍 Analysis identified potential workflow gaps",
               data: {
                 issue: {
-                  title: "Email Response Backlog",
-                  category: "Email",
+                  title: "Data Organization Opportunity",
+                  category: "Documents",
                   severity: "medium",
-                  description: "Several emails appear to require follow-up based on their age and unread status.",
-                  evidence: `Found ${emails.filter(e => e.labels.includes('UNREAD')).length} unread emails in your inbox.`
+                  description: "Your workspace data suggests opportunities for better organization and workflow optimization.",
+                  evidence: `Analyzed ${emails.length} emails, ${documents.length} docs, ${sheets.length} sheets, ${slides.length} slides, ${forms.length} forms, and ${events.length} calendar events.`
                 },
                 improvement: {
-                  title: "Implement Email Triage System",
-                  description: "Set up a 2-minute rule: if an email takes less than 2 minutes to respond, do it immediately. Otherwise, schedule specific times for longer responses.",
-                  expectedImpact: "Reduce email response time by 40% and clear backlog",
-                  effort: "low",
-                  firstStep: "Schedule 3 dedicated 15-minute email blocks today"
+                  title: "Implement Workspace Audit",
+                  description: "Review and organize your Google Workspace files by project or department. Archive old files and create a consistent naming convention.",
+                  expectedImpact: "Improved team productivity and easier file discovery",
+                  effort: "medium",
+                  firstStep: "Create a master spreadsheet cataloging all active projects and their related files"
                 }
               }
             });
@@ -344,6 +492,9 @@ Respond with a JSON object:
                 summary: {
                   emailsAnalyzed: emails.length,
                   documentsAnalyzed: documents.length,
+                  sheetsAnalyzed: sheets.length,
+                  slidesAnalyzed: slides.length,
+                  formsAnalyzed: forms.length,
                   eventsAnalyzed: events.length,
                 }
               }
