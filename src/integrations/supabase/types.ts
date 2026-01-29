@@ -74,6 +74,51 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_research: {
+        Row: {
+          created_at: string
+          documents_analyzed: number | null
+          emails_analyzed: number | null
+          events_analyzed: number | null
+          findings: Json
+          id: string
+          raw_data: Json
+          research_summary: Json
+          role: string | null
+          sheets_analyzed: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          documents_analyzed?: number | null
+          emails_analyzed?: number | null
+          events_analyzed?: number | null
+          findings?: Json
+          id?: string
+          raw_data?: Json
+          research_summary?: Json
+          role?: string | null
+          sheets_analyzed?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          documents_analyzed?: number | null
+          emails_analyzed?: number | null
+          events_analyzed?: number | null
+          findings?: Json
+          id?: string
+          raw_data?: Json
+          research_summary?: Json
+          role?: string | null
+          sheets_analyzed?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
