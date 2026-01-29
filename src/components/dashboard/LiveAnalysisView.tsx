@@ -10,7 +10,7 @@ import {
 import { 
   Brain, Mail, FileText, Calendar, CheckCircle2, 
   Loader2, AlertTriangle, Sparkles, ArrowRight,
-  Eye, Lightbulb, Target, ChevronDown
+  Eye, Lightbulb, Target, Search, Zap
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +32,7 @@ interface LiveAnalysisViewProps {
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-workspace`;
 
-export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeControl }: LiveAnalysisViewProps) {
+export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAnalysisViewProps) {
   const { toast } = useToast();
   const [isRunning, setIsRunning] = useState(false);
   const [steps, setSteps] = useState<AnalysisStep[]>([]);
@@ -42,6 +42,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
   const [stats, setStats] = useState({ emails: 0, docs: 0, events: 0 });
   const [progress, setProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState("Initializing...");
+  const [currentAction, setCurrentAction] = useState<string | null>(null);
 
   const startAnalysis = useCallback(async () => {
     setIsRunning(true);
@@ -51,6 +52,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
     setIsComplete(false);
     setProgress(0);
     setCurrentPhase("Connecting to Google Workspace...");
+    setCurrentAction("Establishing secure connection...");
 
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -81,6 +83,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
 
       setProgress(5);
       setCurrentPhase("Starting analysis...");
+      setCurrentAction("Initializing AI agent...");
 
       const response = await fetch(ANALYZE_URL, {
         method: "POST",
@@ -88,7 +91,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ accessToken, role }),
+        body: JSON.stringify({ accessToken, role, mode }),
       });
 
       if (!response.ok) {
@@ -130,25 +133,32 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
             // Update progress and phase based on step type
             if (step.type === "action") {
               setCurrentPhase(step.content);
-              // Estimate progress based on actions
+              setCurrentAction(step.content);
               const newProgress = Math.min(10 + stepCount * 5, 90);
               setProgress(newProgress);
             }
 
+            if (step.type === "thought") {
+              setCurrentAction(step.content);
+            }
+
             if (step.data && step.type === "observation") {
               setCurrentItem(step.data);
+              setCurrentAction(`Analyzing ${step.data.type || 'data'}...`);
             }
 
             if (step.type === "finding" && step.data) {
               setFinding(step.data);
               setProgress(95);
               setCurrentPhase("Found improvement opportunity!");
+              setCurrentAction("Preparing recommendations...");
             }
 
             if (step.type === "complete") {
               setIsComplete(true);
               setProgress(100);
               setCurrentPhase("Analysis complete");
+              setCurrentAction(null);
               if (step.data?.summary) {
                 setStats({
                   emails: step.data.summary.emailsAnalyzed || 0,
@@ -175,7 +185,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
     } finally {
       setIsRunning(false);
     }
-  }, [role, googleToken, toast, finding]);
+  }, [role, mode, googleToken, toast, finding]);
 
   useEffect(() => {
     startAnalysis();
@@ -194,24 +204,16 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
 
   const getItemIcon = (type: string) => {
     switch (type) {
-      case "email": return <Mail className="h-5 w-5 text-red-400" />;
-      case "document": return <FileText className="h-5 w-5 text-blue-400" />;
-      case "event": return <Calendar className="h-5 w-5 text-green-400" />;
-      default: return <FileText className="h-5 w-5" />;
+      case "email": return <Mail className="h-6 w-6 text-red-400" />;
+      case "document": return <FileText className="h-6 w-6 text-blue-400" />;
+      case "event": return <Calendar className="h-6 w-6 text-green-400" />;
+      default: return <FileText className="h-6 w-6" />;
     }
   };
 
   const roleLabel = role?.toUpperCase() || "CEO";
-
-  // Group steps by phase for accordion
-  const groupedSteps = steps.reduce((acc, step, index) => {
-    if (step.type === "action" || index === 0) {
-      acc.push({ phase: step.content, steps: [step] });
-    } else if (acc.length > 0) {
-      acc[acc.length - 1].steps.push(step);
-    }
-    return acc;
-  }, [] as { phase: string; steps: AnalysisStep[] }[]);
+  const modeLabel = mode === "action" ? "Action" : "Research";
+  const ModeIcon = mode === "action" ? Zap : Search;
 
   return (
     <div className="min-h-screen portal-bg flex flex-col relative overflow-hidden">
@@ -230,9 +232,12 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
       {/* Header */}
       <header className="relative z-10 pt-6 pb-4">
         <div className="container mx-auto px-4 flex flex-col items-center">
-          <span className="text-xs tracking-[0.3em] text-muted-foreground uppercase mb-2">
-            {roleLabel} Intelligence Core
-          </span>
+          <div className="flex items-center gap-2 mb-2">
+            <ModeIcon className="h-4 w-4 text-accent" />
+            <span className="text-xs tracking-[0.3em] text-muted-foreground uppercase">
+              {roleLabel} {modeLabel} Mode
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             <div className={`h-2 w-2 rounded-full ${isRunning ? 'bg-green-400 animate-pulse' : isComplete ? 'bg-green-400' : 'bg-muted'}`} />
             <span className="text-sm text-muted-foreground">
@@ -245,8 +250,8 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
       {/* Main Content - Stacked Layout */}
       <main className="flex-1 relative z-10 container mx-auto px-4 pb-6 flex flex-col gap-4">
         
-        {/* Browser Window - Full Width, Flat */}
-        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl">
+        {/* Browser Window - Full Width, Larger */}
+        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl flex-1 min-h-[400px]">
           {/* Browser Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-[#1a1a2e]/80 border-b border-white/10">
             <div className="flex items-center gap-2">
@@ -255,46 +260,61 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
               <div className="w-3 h-3 rounded-full bg-[#28c840]" />
             </div>
             <div className="flex-1">
-              <div className="px-3 py-1 rounded bg-white/5 border border-white/10 text-xs text-muted-foreground">
-                workspace://google/{currentItem?.type || 'connecting'}
+              <div className="px-3 py-1.5 rounded bg-white/5 border border-white/10 text-xs text-muted-foreground flex items-center gap-2">
+                <span>workspace://google/{currentItem?.type || 'connecting'}</span>
+                {isRunning && <Loader2 className="h-3 w-3 animate-spin ml-auto" />}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onTakeControl}
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              Take Control
-            </Button>
           </div>
 
-          {/* Browser Content - Shorter height */}
-          <div className="p-6 h-[280px] flex items-center justify-center">
-            {!currentItem && isRunning && (
-              <div className="flex flex-col items-center justify-center text-center">
-                <Loader2 className="h-10 w-10 animate-spin text-accent mb-3" />
-                <p className="text-muted-foreground">Connecting to Google Workspace...</p>
+          {/* Browser Content */}
+          <div className="p-8 h-full flex flex-col items-center justify-center">
+            {/* Loading State with Animation */}
+            {isRunning && !currentItem && (
+              <div className="flex flex-col items-center justify-center text-center animate-fade-in">
+                <div className="relative mb-6">
+                  <div className="w-20 h-20 rounded-full border-2 border-accent/30 flex items-center justify-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-accent" />
+                  </div>
+                  <div className="absolute inset-0 rounded-full border-2 border-accent/20 animate-ping" />
+                </div>
+                <p className="text-foreground font-medium mb-2">{currentPhase}</p>
+                {currentAction && (
+                  <p className="text-sm text-muted-foreground animate-pulse">{currentAction}</p>
+                )}
               </div>
             )}
 
-            {currentItem && (
-              <div className="w-full max-w-2xl">
+            {/* Active Analysis with Current Action */}
+            {isRunning && currentItem && (
+              <div className="w-full max-w-2xl animate-fade-in">
+                {/* Current Action Banner */}
+                <div className="mb-6 flex items-center gap-3 p-3 rounded-xl bg-accent/10 border border-accent/20">
+                  <div className="relative">
+                    <Brain className="h-5 w-5 text-accent" />
+                    <div className="absolute inset-0 animate-ping">
+                      <Brain className="h-5 w-5 text-accent/50" />
+                    </div>
+                  </div>
+                  <span className="text-sm text-accent font-medium flex-1">{currentAction}</span>
+                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                </div>
+
                 <div className="flex items-center gap-3 mb-4">
                   {getItemIcon(currentItem.type)}
-                  <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                    Currently Viewing: {currentItem.type}
+                  <span className="text-sm uppercase tracking-wider text-muted-foreground">
+                    Analyzing: {currentItem.type}
                   </span>
                 </div>
 
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <div className="bg-white/5 rounded-xl p-6 border border-white/10 animate-scale-in">
                   {currentItem.type === "email" && (
                     <>
-                      <h3 className="font-medium text-lg mb-2 text-foreground">{currentItem.subject}</h3>
-                      <p className="text-sm text-muted-foreground mb-3">From: {currentItem.from}</p>
+                      <h3 className="font-medium text-xl mb-3 text-foreground">{currentItem.subject}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">From: {currentItem.from}</p>
                       {currentItem.snippet && (
-                        <p className="text-sm text-muted-foreground/80 italic">
-                          "{currentItem.snippet?.slice(0, 150)}..."
+                        <p className="text-sm text-muted-foreground/80 italic border-l-2 border-accent/30 pl-4">
+                          "{currentItem.snippet?.slice(0, 200)}..."
                         </p>
                       )}
                     </>
@@ -302,44 +322,40 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
 
                   {currentItem.type === "document" && (
                     <>
-                      <h3 className="font-medium text-lg mb-2 text-foreground">{currentItem.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Type: {currentItem.mimeType?.split('.').pop() || 'File'}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Last modified: {new Date(currentItem.modifiedTime).toLocaleDateString()}
-                      </p>
+                      <h3 className="font-medium text-xl mb-3 text-foreground">{currentItem.name}</h3>
+                      <div className="flex gap-4 text-sm text-muted-foreground">
+                        <span>Type: {currentItem.mimeType?.split('.').pop() || 'File'}</span>
+                        <span>Modified: {new Date(currentItem.modifiedTime).toLocaleDateString()}</span>
+                      </div>
                     </>
                   )}
 
                   {currentItem.type === "event" && (
                     <>
-                      <h3 className="font-medium text-lg mb-2 text-foreground">{currentItem.summary}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Attendees: {currentItem.attendees || 0}
-                      </p>
-                      {currentItem.start && (
-                        <p className="text-sm text-muted-foreground">
-                          Starts: {new Date(currentItem.start.dateTime || currentItem.start.date).toLocaleString()}
-                        </p>
-                      )}
+                      <h3 className="font-medium text-xl mb-3 text-foreground">{currentItem.summary}</h3>
+                      <div className="flex gap-4 text-sm text-muted-foreground">
+                        <span>Attendees: {currentItem.attendees || 0}</span>
+                        {currentItem.start && (
+                          <span>Starts: {new Date(currentItem.start.dateTime || currentItem.start.date).toLocaleString()}</span>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
 
                 {/* Stats bar */}
-                {(isComplete || stats.emails > 0) && (
-                  <div className="mt-4 grid grid-cols-3 gap-3">
-                    <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
-                      <div className="text-lg font-bold text-red-400">{stats.emails}</div>
+                {stats.emails > 0 && (
+                  <div className="mt-6 grid grid-cols-3 gap-4">
+                    <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
+                      <div className="text-2xl font-bold text-red-400">{stats.emails}</div>
                       <div className="text-xs text-muted-foreground">Emails</div>
                     </div>
-                    <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
-                      <div className="text-lg font-bold text-blue-400">{stats.docs}</div>
+                    <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
+                      <div className="text-2xl font-bold text-blue-400">{stats.docs}</div>
                       <div className="text-xs text-muted-foreground">Documents</div>
                     </div>
-                    <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
-                      <div className="text-lg font-bold text-green-400">{stats.events}</div>
+                    <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
+                      <div className="text-2xl font-bold text-green-400">{stats.events}</div>
                       <div className="text-xs text-muted-foreground">Events</div>
                     </div>
                   </div>
@@ -347,10 +363,34 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
               </div>
             )}
 
-            {isComplete && !currentItem && (
-              <div className="flex flex-col items-center justify-center text-center">
-                <CheckCircle2 className="h-10 w-10 text-green-400 mb-3" />
-                <p className="text-foreground font-medium">Analysis Complete</p>
+            {/* Complete State */}
+            {isComplete && (
+              <div className="w-full max-w-2xl animate-fade-in">
+                <div className="flex flex-col items-center justify-center text-center mb-8">
+                  <div className="relative mb-4">
+                    <CheckCircle2 className="h-16 w-16 text-green-400" />
+                  </div>
+                  <p className="text-xl font-medium text-foreground">Analysis Complete</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Scanned {stats.emails} emails, {stats.docs} documents, and {stats.events} events
+                  </p>
+                </div>
+
+                {/* Stats bar */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
+                    <div className="text-3xl font-bold text-red-400">{stats.emails}</div>
+                    <div className="text-sm text-muted-foreground">Emails</div>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
+                    <div className="text-3xl font-bold text-blue-400">{stats.docs}</div>
+                    <div className="text-sm text-muted-foreground">Documents</div>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
+                    <div className="text-3xl font-bold text-green-400">{stats.events}</div>
+                    <div className="text-sm text-muted-foreground">Events</div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -377,7 +417,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
           </div>
 
           {/* Steps Accordion */}
-          {groupedSteps.length > 0 && (
+          {steps.length > 0 && (
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="steps" className="border-white/10">
                 <AccordionTrigger className="text-sm text-muted-foreground hover:text-foreground hover:no-underline py-2">
@@ -427,7 +467,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete, onTakeCo
 
           {/* Finding Card */}
           {finding && (
-            <div className="mt-4 p-4 rounded-xl bg-gradient-to-b from-amber-500/10 to-transparent border border-amber-500/20">
+            <div className="mt-4 p-4 rounded-xl bg-gradient-to-b from-amber-500/10 to-transparent border border-amber-500/20 animate-fade-in">
               <div className="flex items-start gap-3 mb-3">
                 <Lightbulb className="h-6 w-6 text-amber-400 flex-shrink-0" />
                 <div>
