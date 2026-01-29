@@ -133,8 +133,6 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
       // Read-only Workspace scopes needed by the live analysis
       const scopes = [
         'https://www.googleapis.com/auth/drive.readonly',
@@ -144,31 +142,16 @@ const Auth = () => {
         'https://www.googleapis.com/auth/calendar.readonly',
       ].join(' ');
 
-      // We redirect back to /auth so we can capture provider_token and persist it
-      // before sending the user to the dashboard.
-      const options = {
-        redirectTo: `${window.location.origin}/auth`,
-        scopes,
-        queryParams: {
-          prompt: 'consent',
-          access_type: 'offline',
-        },
-      };
-
-      // If the user is already logged in (e.g., email/password), link Google to the account.
-      if (session) {
-        const { error } = await (supabase.auth as any).linkIdentity({
-          provider: 'google',
-          options,
-        });
-        if (error) throw error;
-        return;
-      }
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          ...options,
+          // Redirect back to /auth so we can capture provider_token before navigating to dashboard
+          redirectTo: `${window.location.origin}/auth`,
+          scopes,
+          queryParams: {
+            prompt: 'consent',
+            access_type: 'offline',
+          },
         },
       });
 
