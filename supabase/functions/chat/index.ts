@@ -29,8 +29,8 @@ Note: No business data has been researched yet. I can answer general business qu
   }
 
   // Build context from research data
-  const summary = research.research_summary || {};
-  const rawData = research.raw_data || {};
+  const summary = research.summary || {};
+  const rawData = research.rawData || {};
   const findings = research.findings || [];
 
   let context = `
@@ -49,7 +49,7 @@ OVERVIEW:
     context += `
 
 TOP EMAIL CONTACTS:
-${rawData.topContacts.slice(0, 10).map((c: any) => `- ${c.email}: ${c.count} emails`).join('\n')}`;
+${rawData.topContacts.slice(0, 15).map((c: any) => `- ${c.email}: ${c.count} emails`).join('\n')}`;
   }
 
   // Add recent emails summary
@@ -57,7 +57,7 @@ ${rawData.topContacts.slice(0, 10).map((c: any) => `- ${c.email}: ${c.count} ema
     context += `
 
 RECENT EMAIL THREADS:
-${rawData.emailSummaries.slice(0, 15).map((e: any) => `- From: ${e.from} | Subject: "${e.subject}" | ${e.snippet?.slice(0, 100) || ''}`).join('\n')}`;
+${rawData.emailSummaries.slice(0, 25).map((e: any) => `- From: ${e.from} | Subject: "${e.subject}" | ${e.snippet?.slice(0, 100) || ''}`).join('\n')}`;
   }
 
   // Add calendar events
@@ -65,7 +65,7 @@ ${rawData.emailSummaries.slice(0, 15).map((e: any) => `- From: ${e.from} | Subje
     context += `
 
 UPCOMING CALENDAR EVENTS:
-${rawData.calendarEvents.slice(0, 15).map((e: any) => {
+${rawData.calendarEvents.slice(0, 20).map((e: any) => {
       const startDate = e.start?.dateTime || e.start?.date || 'TBD';
       return `- ${e.summary || 'Untitled'} | ${startDate} | ${e.attendees || 0} attendees`;
     }).join('\n')}`;
@@ -76,7 +76,7 @@ ${rawData.calendarEvents.slice(0, 15).map((e: any) => {
     context += `
 
 RECENT DOCUMENTS:
-${rawData.documents.slice(0, 10).map((d: any) => `- ${d.name} (modified: ${d.modifiedTime?.split('T')[0] || 'unknown'})`).join('\n')}`;
+${rawData.documents.slice(0, 15).map((d: any) => `- ${d.name} (modified: ${d.modifiedTime?.split('T')[0] || 'unknown'})`).join('\n')}`;
   }
 
   // Add spreadsheets with sample data
@@ -152,6 +152,7 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -199,23 +200,25 @@ serve(async (req) => {
       );
     }
 
-    // Fetch stored research data for this user using service role
-    const supabaseServiceRole = createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { data: research, error: researchError } = await supabaseServiceRole
-      .from('workspace_research')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (researchError) {
-      console.error("Failed to fetch research:", researchError);
+    // Fetch stored research data from storage bucket using service role
+    const supabaseServiceRole = createClient(supabaseUrl, supabaseServiceRoleKey);
+    
+    let research = null;
+    try {
+      const { data, error } = await supabaseServiceRole.storage
+        .from('business-data')
+        .download(`${userId}/research.json`);
+      
+      if (!error && data) {
+        const text = await data.text();
+        research = JSON.parse(text);
+        console.log("Loaded research from bucket:", research?.summary?.emailsAnalyzed || 0, "emails");
+      } else {
+        console.log("No research data in bucket:", error?.message);
+      }
+    } catch (e) {
+      console.log("Error fetching research from bucket:", e);
     }
-
-    console.log("Research data found:", !!research, research ? `(${research.emails_analyzed} emails)` : '(none)');
 
     // Build system prompt with research context
     const systemPrompt = buildSystemPrompt(research);
