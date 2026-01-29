@@ -272,96 +272,73 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
           </div>
 
           {/* Browser Content */}
-          <div className="p-8 h-full flex flex-col items-center justify-center">
-            {/* Loading State with Animation */}
-            {isRunning && !currentItem && (
-              <div className="flex flex-col items-center justify-center text-center animate-fade-in">
-                <div className="relative mb-6">
-                  <div className="w-20 h-20 rounded-full border-2 border-accent/30 flex items-center justify-center">
-                    <Loader2 className="h-10 w-10 animate-spin text-accent" />
-                  </div>
-                  <div className="absolute inset-0 rounded-full border-2 border-accent/20 animate-ping" />
-                </div>
-                <p className="text-foreground font-medium mb-2">{currentPhase}</p>
-                {currentAction && (
-                  <p className="text-sm text-muted-foreground animate-pulse">{currentAction}</p>
-                )}
-              </div>
-            )}
-
-            {/* Active Analysis with Current Action */}
-            {isRunning && currentItem && (
-              <div className="w-full max-w-2xl animate-fade-in">
-                {/* Current Action Banner */}
-                <div className="mb-6 flex items-center gap-3 p-3 rounded-xl bg-accent/10 border border-accent/20">
-                  <div className="relative">
-                    <Brain className="h-5 w-5 text-accent" />
-                    <div className="absolute inset-0 animate-ping">
-                      <Brain className="h-5 w-5 text-accent/50" />
-                    </div>
-                  </div>
-                  <span className="text-sm text-accent font-medium flex-1">{currentAction}</span>
-                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                </div>
-
-                <div className="flex items-center gap-3 mb-4">
-                  {getItemIcon(currentItem.type)}
-                  <span className="text-sm uppercase tracking-wider text-muted-foreground">
-                    Analyzing: {currentItem.type}
-                  </span>
-                </div>
-
-                <div className="bg-white/5 rounded-xl p-6 border border-white/10 animate-scale-in">
-                  {currentItem.type === "email" && (
-                    <>
-                      <h3 className="font-medium text-xl mb-3 text-foreground">{currentItem.subject}</h3>
-                      <p className="text-sm text-muted-foreground mb-4">From: {currentItem.from}</p>
-                      {currentItem.snippet && (
-                        <p className="text-sm text-muted-foreground/80 italic border-l-2 border-accent/30 pl-4">
-                          "{currentItem.snippet?.slice(0, 200)}..."
-                        </p>
-                      )}
-                    </>
-                  )}
-
-                  {currentItem.type === "document" && (
-                    <>
-                      <h3 className="font-medium text-xl mb-3 text-foreground">{currentItem.name}</h3>
-                      <div className="flex gap-4 text-sm text-muted-foreground">
-                        <span>Type: {currentItem.mimeType?.split('.').pop() || 'File'}</span>
-                        <span>Modified: {new Date(currentItem.modifiedTime).toLocaleDateString()}</span>
+          <div className="p-6 h-full flex flex-col">
+            {/* Analysis State - Activity Log */}
+            {isRunning && (
+              <div className="w-full h-full flex flex-col animate-fade-in">
+                {/* Live Activity Log Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Brain className="h-4 w-4 text-accent" />
+                      <div className="absolute inset-0 animate-ping">
+                        <Brain className="h-4 w-4 text-accent/50" />
                       </div>
-                    </>
-                  )}
-
-                  {currentItem.type === "event" && (
-                    <>
-                      <h3 className="font-medium text-xl mb-3 text-foreground">{currentItem.summary}</h3>
-                      <div className="flex gap-4 text-sm text-muted-foreground">
-                        <span>Attendees: {currentItem.attendees || 0}</span>
-                        {currentItem.start && (
-                          <span>Starts: {new Date(currentItem.start.dateTime || currentItem.start.date).toLocaleString()}</span>
-                        )}
-                      </div>
-                    </>
-                  )}
+                    </div>
+                    <span className="text-sm font-medium text-accent">Live Activity Log</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-red-400" />{stats.emails}</span>
+                    <span className="flex items-center gap-1"><FileText className="h-3 w-3 text-blue-400" />{stats.docs}</span>
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3 text-green-400" />{stats.events}</span>
+                  </div>
                 </div>
 
-                {/* Stats bar */}
-                {stats.emails > 0 && (
-                  <div className="mt-6 grid grid-cols-3 gap-4">
-                    <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
-                      <div className="text-2xl font-bold text-red-400">{stats.emails}</div>
-                      <div className="text-xs text-muted-foreground">Emails</div>
+                {/* Scrollable Activity Log */}
+                <div className="flex-1 overflow-y-auto rounded-xl bg-[#030308] border border-white/5 p-3 font-mono text-xs space-y-1.5">
+                  {steps.slice(-15).map((step, index) => (
+                    <div key={index} className="flex items-start gap-2 animate-fade-in">
+                      <span className="text-muted-foreground/50 w-16 flex-shrink-0">
+                        {step.timestamp?.toLocaleTimeString('en-US', { hour12: false })}
+                      </span>
+                      <span className="flex-shrink-0">{getStepIcon(step.type)}</span>
+                      <span className={`flex-1 ${
+                        step.type === 'thought' ? 'text-purple-300/80' :
+                        step.type === 'action' ? 'text-blue-300/80' :
+                        step.type === 'observation' ? 'text-cyan-300/80' :
+                        step.type === 'finding' ? 'text-amber-300' :
+                        'text-muted-foreground'
+                      }`}>
+                        {step.type === 'action' && <span className="text-blue-400">[SCAN] </span>}
+                        {step.type === 'observation' && <span className="text-cyan-400">[DATA] </span>}
+                        {step.type === 'thought' && <span className="text-purple-400">[THINK] </span>}
+                        {step.type === 'finding' && <span className="text-amber-400">[FOUND] </span>}
+                        {step.content.length > 80 ? step.content.slice(0, 80) + '...' : step.content}
+                      </span>
                     </div>
-                    <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
-                      <div className="text-2xl font-bold text-blue-400">{stats.docs}</div>
-                      <div className="text-xs text-muted-foreground">Documents</div>
+                  ))}
+                  {steps.length === 0 && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Initializing secure connection...</span>
                     </div>
-                    <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
-                      <div className="text-2xl font-bold text-green-400">{stats.events}</div>
-                      <div className="text-xs text-muted-foreground">Events</div>
+                  )}
+                  {/* Auto-scroll anchor */}
+                  <div className="h-1" />
+                </div>
+
+                {/* Current Item Preview */}
+                {currentItem && (
+                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-2 mb-2">
+                      {getItemIcon(currentItem.type)}
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                        Currently Analyzing
+                      </span>
                     </div>
+                    <p className="text-sm text-foreground font-medium truncate">
+                      {currentItem.subject || currentItem.name || currentItem.summary || 'Processing...'}
+                    </p>
                   </div>
                 )}
               </div>
@@ -383,125 +360,154 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
 
                 {/* Before/After Visual Comparison */}
                 <div className="grid grid-cols-2 gap-4 mb-5">
-                  {/* Before - Inefficiency Image */}
-                  <div className="rounded-xl overflow-hidden border border-red-500/30 bg-gradient-to-br from-red-950/30 to-transparent">
+                  {/* Before - Problem Visualization */}
+                  <div className="rounded-xl overflow-hidden border border-red-500/30 bg-gradient-to-br from-red-950/40 to-red-900/10">
                     <div className="px-3 py-2 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2">
-                      <Eye className="h-3 w-3 text-red-400" />
-                      <span className="text-xs font-medium text-red-400 uppercase tracking-wider">Before</span>
+                      <AlertTriangle className="h-3 w-3 text-red-400" />
+                      <span className="text-xs font-medium text-red-400 uppercase tracking-wider">Current State</span>
                     </div>
-                    <div className="aspect-video relative overflow-hidden bg-red-950/20">
-                      {/* Visual mock of inefficiency - scattered, disorganized */}
-                      <div className="absolute inset-0 p-4 flex flex-col gap-2">
-                        <div className="flex gap-2 items-start">
-                          <Mail className="h-4 w-4 text-red-400/60 flex-shrink-0" />
-                          <div className="flex-1 space-y-1">
-                            <div className="h-2 bg-red-400/20 rounded w-full" />
-                            <div className="h-2 bg-red-400/10 rounded w-3/4" />
+                    <div className="aspect-video relative overflow-hidden p-4">
+                      {/* Visual: Scattered emails, docs, calendar chaos */}
+                      <div className="absolute inset-0 flex flex-col justify-center items-center gap-1">
+                        {/* Overlapping, rotated, chaotic items */}
+                        <div className="relative w-full h-full">
+                          <div className="absolute top-2 left-3 rotate-[-8deg] bg-red-400/10 border border-red-400/20 rounded-lg p-2 w-24">
+                            <Mail className="h-3 w-3 text-red-400/60 mb-1" />
+                            <div className="h-1.5 bg-red-400/20 rounded w-full" />
+                            <div className="h-1.5 bg-red-400/10 rounded w-2/3 mt-1" />
                           </div>
-                        </div>
-                        <div className="flex gap-2 items-start opacity-70">
-                          <FileText className="h-4 w-4 text-red-400/40 flex-shrink-0" />
-                          <div className="flex-1 space-y-1">
-                            <div className="h-2 bg-red-400/15 rounded w-2/3" />
-                            <div className="h-2 bg-red-400/10 rounded w-1/2" />
+                          <div className="absolute top-6 right-4 rotate-[12deg] bg-red-400/10 border border-red-400/20 rounded-lg p-2 w-20">
+                            <FileText className="h-3 w-3 text-red-400/50 mb-1" />
+                            <div className="h-1 bg-red-400/15 rounded w-full" />
+                            <div className="h-1 bg-red-400/10 rounded w-1/2 mt-1" />
                           </div>
-                        </div>
-                        <div className="flex gap-2 items-start opacity-50">
-                          <Calendar className="h-4 w-4 text-red-400/30 flex-shrink-0" />
-                          <div className="flex-1 space-y-1">
-                            <div className="h-2 bg-red-400/10 rounded w-full" />
+                          <div className="absolute bottom-4 left-8 rotate-[5deg] bg-red-400/10 border border-red-400/20 rounded-lg p-2 w-22">
+                            <Calendar className="h-3 w-3 text-red-400/40 mb-1" />
+                            <div className="h-1 bg-red-400/10 rounded w-full" />
                           </div>
+                          <div className="absolute bottom-2 right-6 rotate-[-15deg] bg-red-400/10 border border-red-400/20 rounded-lg p-2 w-16">
+                            <Mail className="h-3 w-3 text-red-400/30 mb-1" />
+                            <div className="h-1 bg-red-400/10 rounded w-full" />
+                          </div>
+                          {/* Question marks indicating confusion */}
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl text-red-400/40">?</div>
+                          <div className="absolute top-3 right-12 text-sm text-red-400/30">?</div>
+                          <div className="absolute bottom-8 left-4 text-sm text-red-400/25">?</div>
                         </div>
-                        {/* Scattered dots representing chaos */}
-                        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500/40" />
-                        <div className="absolute top-8 right-6 w-1.5 h-1.5 rounded-full bg-red-500/30" />
-                        <div className="absolute bottom-4 right-3 w-2.5 h-2.5 rounded-full bg-red-500/25" />
                       </div>
-                      {/* Red overlay tint */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-red-950/60 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-red-950/80 via-transparent to-transparent" />
                     </div>
-                    <div className="p-3 border-t border-red-500/20">
-                      <p className="text-xs text-red-300/80 line-clamp-2">{finding.issue?.title || "Scattered data across multiple sources"}</p>
+                    <div className="p-3 border-t border-red-500/20 bg-red-950/20">
+                      <p className="text-xs text-red-300 font-medium mb-1">{finding.issue?.title || "Scattered Data"}</p>
+                      <p className="text-[10px] text-red-300/60 line-clamp-2">{finding.issue?.description || "Information spread across emails, docs, and calendars with no central view"}</p>
                     </div>
                   </div>
 
-                  {/* After - Solution Image */}
-                  <div className="rounded-xl overflow-hidden border border-green-500/30 bg-gradient-to-br from-green-950/30 to-transparent">
+                  {/* After - Solution Visualization */}
+                  <div className="rounded-xl overflow-hidden border border-green-500/30 bg-gradient-to-br from-green-950/40 to-green-900/10">
                     <div className="px-3 py-2 bg-green-500/10 border-b border-green-500/20 flex items-center gap-2">
-                      <Sparkles className="h-3 w-3 text-green-400" />
-                      <span className="text-xs font-medium text-green-400 uppercase tracking-wider">After</span>
+                      <CheckCircle2 className="h-3 w-3 text-green-400" />
+                      <span className="text-xs font-medium text-green-400 uppercase tracking-wider">Recommended</span>
                     </div>
-                    <div className="aspect-video relative overflow-hidden bg-green-950/20">
-                      {/* Visual mock of organized solution */}
-                      <div className="absolute inset-0 p-4 flex flex-col gap-2">
+                    <div className="aspect-video relative overflow-hidden p-4">
+                      {/* Visual: Organized dashboard with clear structure */}
+                      <div className="absolute inset-0 flex flex-col p-3 gap-2">
+                        {/* Dashboard header */}
                         <div className="flex items-center gap-2 mb-1">
                           <LayoutDashboard className="h-4 w-4 text-green-400" />
                           <div className="h-2 bg-green-400/40 rounded flex-1" />
+                          <div className="h-2 bg-green-400/20 rounded w-12" />
                         </div>
+                        {/* Dashboard widgets */}
                         <div className="grid grid-cols-3 gap-2 flex-1">
-                          <div className="rounded bg-green-400/20 p-2 flex flex-col items-center justify-center">
-                            <BarChart3 className="h-3 w-3 text-green-400/80" />
+                          <div className="rounded-lg bg-green-400/15 border border-green-400/20 p-2 flex flex-col items-center justify-center">
+                            <BarChart3 className="h-4 w-4 text-green-400/80 mb-1" />
+                            <div className="h-1 bg-green-400/30 rounded w-8" />
                           </div>
-                          <div className="rounded bg-green-400/15 p-2 flex flex-col items-center justify-center">
-                            <Users className="h-3 w-3 text-green-400/70" />
+                          <div className="rounded-lg bg-green-400/12 border border-green-400/15 p-2 flex flex-col items-center justify-center">
+                            <Users className="h-4 w-4 text-green-400/70 mb-1" />
+                            <div className="h-1 bg-green-400/25 rounded w-6" />
                           </div>
-                          <div className="rounded bg-green-400/10 p-2 flex flex-col items-center justify-center">
-                            <Target className="h-3 w-3 text-green-400/60" />
+                          <div className="rounded-lg bg-green-400/10 border border-green-400/10 p-2 flex flex-col items-center justify-center">
+                            <Target className="h-4 w-4 text-green-400/60 mb-1" />
+                            <div className="h-1 bg-green-400/20 rounded w-7" />
                           </div>
                         </div>
-                        <div className="flex gap-1">
-                          <div className="h-1.5 bg-green-400/30 rounded flex-1" />
-                          <div className="h-1.5 bg-green-400/25 rounded flex-1" />
-                          <div className="h-1.5 bg-green-400/20 rounded flex-1" />
+                        {/* Status bars */}
+                        <div className="flex gap-2">
+                          <div className="flex-1 h-2 bg-green-400/20 rounded-full overflow-hidden">
+                            <div className="h-full w-3/4 bg-green-400/50 rounded-full" />
+                          </div>
+                          <CheckCircle2 className="h-3 w-3 text-green-400/60" />
                         </div>
                       </div>
-                      {/* Green overlay tint */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-green-950/60 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-green-950/80 via-transparent to-transparent" />
                     </div>
-                    <div className="p-3 border-t border-green-500/20">
-                      <p className="text-xs text-green-300/80 line-clamp-2">{finding.improvement?.title || "Unified dashboard with clear metrics"}</p>
+                    <div className="p-3 border-t border-green-500/20 bg-green-950/20">
+                      <p className="text-xs text-green-300 font-medium mb-1">{finding.improvement?.title || "Unified Dashboard"}</p>
+                      <p className="text-[10px] text-green-300/60 line-clamp-2">{finding.improvement?.description || "Centralized view with real-time metrics and organized workflows"}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Step-by-Step Action Plan */}
-                {finding.improvement && (
-                  <div className="rounded-xl p-4 bg-accent/5 border border-accent/20 mb-5">
-                    <div className="flex items-center gap-2 mb-3">
+                {/* Step-by-Step Action Plan with Business Benefits */}
+                <div className="rounded-xl p-4 bg-gradient-to-br from-accent/10 to-purple-900/10 border border-accent/20 mb-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-1.5 rounded-lg bg-accent/20">
                       <Lightbulb className="h-4 w-4 text-accent" />
-                      <h4 className="font-medium text-foreground text-sm">Action Plan</h4>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-xs font-bold text-accent">1</span>
-                        </div>
-                        <div>
-                          <p className="text-sm text-foreground font-medium">Consolidate Data</p>
-                          <p className="text-xs text-muted-foreground">Gather scattered information into one central location</p>
+                    <div>
+                      <h4 className="font-medium text-foreground text-sm">What Your AI {roleLabel} Will Do</h4>
+                      <p className="text-[10px] text-muted-foreground">3-step implementation plan</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {/* Step 1 */}
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-white">1</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-foreground font-medium mb-1">Consolidate Data Sources</p>
+                        <p className="text-xs text-muted-foreground mb-2">Pull together all scattered information from emails, documents, and calendar events into a single unified view.</p>
+                        <div className="flex items-center gap-1.5 text-[10px] text-green-400">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Saves 5+ hours/week searching for information</span>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-xs font-bold text-accent">2</span>
-                        </div>
-                        <div>
-                          <p className="text-sm text-foreground font-medium">Create Structure</p>
-                          <p className="text-xs text-muted-foreground">{finding.improvement.description || "Organize with clear categories and workflows"}</p>
+                    </div>
+                    
+                    {/* Step 2 */}
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-white">2</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-foreground font-medium mb-1">Create Organized Structure</p>
+                        <p className="text-xs text-muted-foreground mb-2">{finding?.improvement?.description || "Build clear categories, workflows, and processes that make sense for your business operations."}</p>
+                        <div className="flex items-center gap-1.5 text-[10px] text-green-400">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Reduces confusion and duplicate work</span>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-xs font-bold text-accent">3</span>
-                        </div>
-                        <div>
-                          <p className="text-sm text-foreground font-medium">Enable Tracking</p>
-                          <p className="text-xs text-muted-foreground">Set up metrics and dashboards for ongoing visibility</p>
+                    </div>
+                    
+                    {/* Step 3 */}
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-white">3</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-foreground font-medium mb-1">Enable Real-Time Tracking</p>
+                        <p className="text-xs text-muted-foreground mb-2">Set up automated dashboards and metrics so you always know the current status without asking anyone.</p>
+                        <div className="flex items-center gap-1.5 text-[10px] text-green-400">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Make faster, data-driven decisions</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* Set Your CEO To Work Button */}
                 <div className="relative">
