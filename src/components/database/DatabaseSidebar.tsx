@@ -76,27 +76,43 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
     <>
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b border-sidebar-border p-4">
-          <div className="flex items-center justify-between">
-            <Link to="/database" className="flex items-center gap-2">
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+            <Link to="/database" className={`flex items-center gap-2 ${isCollapsed ? 'hidden' : ''}`}>
               <img 
                 src="/favicon.png" 
                 alt="TimeWarp" 
                 className="h-8 w-8 rounded-lg object-cover flex-shrink-0"
               />
-              {!isCollapsed && <span className="font-semibold text-lg">TimeWarp</span>}
+              <span className="font-semibold text-lg">TimeWarp</span>
             </Link>
+            {isCollapsed && (
+              <Link to="/database">
+                <img 
+                  src="/favicon.png" 
+                  alt="TimeWarp" 
+                  className="h-8 w-8 rounded-lg object-cover"
+                />
+              </Link>
+            )}
+            {!isCollapsed && (
+              <button
+                onClick={toggleSidebar}
+                className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors flex-shrink-0"
+                title="Collapse sidebar"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {isCollapsed && (
             <button
               onClick={toggleSidebar}
-              className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors flex-shrink-0"
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors mt-2 w-full flex justify-center"
+              title="Expand sidebar"
             >
-              {isCollapsed ? (
-                <PanelLeft className="h-4 w-4" />
-              ) : (
-                <PanelLeftClose className="h-4 w-4" />
-              )}
+              <PanelLeft className="h-4 w-4" />
             </button>
-          </div>
+          )}
         </SidebarHeader>
 
         <SidebarContent>
