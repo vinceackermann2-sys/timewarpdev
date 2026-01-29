@@ -23,7 +23,7 @@ import {
   Bot
 } from "lucide-react";
 
-type View = "integrations" | "chat" | "research";
+type View = "integrations" | "chat";
 
 interface DashboardSidebarProps {
   currentView: View;

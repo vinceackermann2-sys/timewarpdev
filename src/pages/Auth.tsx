@@ -86,7 +86,7 @@ const Auth = () => {
   }, [navigate, quizData]);
 
   const navigateToDashboard = () => {
-    navigate("/dashboard", { state: { quizData } });
+    navigate("/", { state: { quizData } });
   };
 
   const validateForm = () => {
@@ -133,7 +133,7 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/dashboard`;
+      const redirectTo = `${window.location.origin}/`;
 
       // When coming from the quiz/research flow, we must request Google Workspace read scopes
       // so we receive a usable Google access token in `session.provider_token`.
@@ -186,7 +186,7 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        const redirectUrl = `${window.location.origin}/dashboard`;
+        const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -208,7 +208,7 @@ const Auth = () => {
         } else {
           toast({
             title: "Account created!",
-            description: "You're now signed in. Welcome to AI CEO!",
+            description: "You're now signed in. Welcome to TimeWarp!",
           });
         }
       } else {
@@ -255,19 +255,21 @@ const Auth = () => {
         <Card className="w-full max-w-md border-border/50 shadow-lg">
           <CardHeader className="text-center">
             <Link to="/" className="flex items-center justify-center gap-2 mb-4">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img 
+                src="/favicon.png" 
+                alt="TimeWarp" 
+                className="h-10 w-10 rounded-xl object-cover"
+              />
             </Link>
             <CardTitle className="text-2xl">
               {quizData ? "Connect your Google account" : isSignUp ? "Create your account" : "Welcome back"}
             </CardTitle>
             <CardDescription>
               {quizData 
-                ? "Sign in with Google to let AI CEO access your Docs, Sheets, and Gmail"
+                ? "Sign in with Google to let TimeWarp access your Docs, Sheets, and Gmail"
                 : isSignUp 
-                  ? "Start your 14-day free trial of AI CEO" 
-                  : "Log in to your AI CEO account"
+                  ? "Start your 14-day free trial of TimeWarp" 
+                  : "Log in to your TimeWarp account"
               }
             </CardDescription>
           </CardHeader>
@@ -389,7 +391,7 @@ const Auth = () => {
 
             {quizData && (
               <p className="text-center text-sm text-muted-foreground">
-                By connecting, you allow AI CEO to read your Google Workspace data to provide insights and generate content.
+                By connecting, you allow TimeWarp to read your Google Workspace data to provide insights and generate content.
               </p>
             )}
           </CardContent>

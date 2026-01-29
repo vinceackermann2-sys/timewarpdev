@@ -1,88 +1,37 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Session } from "@supabase/supabase-js";
+import { User } from "@supabase/supabase-js";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { IntegrationHub } from "@/components/dashboard/IntegrationHub";
 import { ChatInterface } from "@/components/dashboard/ChatInterface";
-import { LiveAnalysisView } from "@/components/dashboard/LiveAnalysisView";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
 
-type View = "integrations" | "chat" | "research";
-
-interface QuizData {
-  role: string;
-  mode: string;
-}
+type View = "integrations" | "chat";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>("chat");
-  const [quizData, setQuizData] = useState<QuizData | null>(null);
-  const [showResearch, setShowResearch] = useState(false);
-  const [googleToken, setGoogleToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for quiz data from OAuth redirect
-    const storedQuizData = sessionStorage.getItem('quizData');
-    if (storedQuizData) {
-      try {
-        const parsed = JSON.parse(storedQuizData);
-        setQuizData(parsed);
-        // Show research view if mode is research
-        if (parsed.mode === 'research') {
-          setShowResearch(true);
-        }
-        // Clear after reading
-        sessionStorage.removeItem('quizData');
-      } catch (e) {
-        console.error('Failed to parse quiz data:', e);
-      }
-    }
-
-    // Check for stored Google token
-    const storedGoogleToken = sessionStorage.getItem('googleProviderToken');
-    if (storedGoogleToken) {
-      setGoogleToken(storedGoogleToken);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Set up auth state listener FIRST
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session);
         setUser(session?.user ?? null);
-        
-        // Capture provider_token when available (only on initial OAuth)
-        if (session?.provider_token) {
-          sessionStorage.setItem('googleProviderToken', session.provider_token);
-          setGoogleToken(session.provider_token);
-        }
-        
         if (!session) {
           navigate("/auth");
         }
       }
     );
 
-    // THEN check for existing session
+    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
-      
-      // Capture provider_token if available
-      if (session?.provider_token) {
-        sessionStorage.setItem('googleProviderToken', session.provider_token);
-        setGoogleToken(session.provider_token);
-      }
-      
       if (!session) {
         navigate("/auth");
       }
@@ -90,16 +39,6 @@ const Dashboard = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
-
-  const handleResearchComplete = () => {
-    setShowResearch(false);
-    setCurrentView("chat");
-  };
-
-  const handleTakeControl = () => {
-    setShowResearch(false);
-    setCurrentView("chat");
-  };
 
   if (isLoading) {
     return (
@@ -111,19 +50,6 @@ const Dashboard = () => {
 
   if (!user) {
     return null;
-  }
-
-  // Show Live Analysis view if coming from quiz with research mode
-  if (showResearch && quizData) {
-    return (
-      <LiveAnalysisView
-        role={quizData.role}
-        mode={quizData.mode}
-        googleToken={googleToken}
-        onComplete={handleResearchComplete}
-        onTakeControl={handleTakeControl}
-      />
-    );
   }
 
   return (
