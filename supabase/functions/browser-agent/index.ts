@@ -89,6 +89,7 @@ serve(async (req) => {
         let sessionId: string | null = null;
         let messageId = 1;
         const pendingMessages: Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }> = new Map();
+        const eventWaiters: Map<string, Array<(payload: any) => void>> = new Map();
 
         const sendCDP = (method: string, params: any = {}): Promise<any> => {
           return new Promise((resolve, reject) => {
@@ -114,6 +115,24 @@ serve(async (req) => {
           });
         };
 
+        const waitForEvent = (method: string, timeoutMs = 120000): Promise<any> => {
+          return new Promise((resolve, reject) => {
+            const arr = eventWaiters.get(method) ?? [];
+            arr.push(resolve);
+            eventWaiters.set(method, arr);
+
+            setTimeout(() => {
+              // remove this waiter if still present
+              const current = eventWaiters.get(method);
+              if (!current) return;
+              const next = current.filter((fn) => fn !== resolve);
+              if (next.length) eventWaiters.set(method, next);
+              else eventWaiters.delete(method);
+              reject(new Error(`Timed out waiting for event: ${method}`));
+            }, timeoutMs);
+          });
+        };
+
         try {
           streamEvent(controller, { 
             type: "status", 
@@ -122,8 +141,9 @@ serve(async (req) => {
             message: `${roleContext.emoji} ${roleContext.label} Agent initializing...` 
           });
 
-          // Use the production Browserless endpoint
-          const wsUrl = `wss://production-sfo.browserless.io/chromium?token=${BROWSERLESS_API_KEY}`;
+          // Use the production Browserless endpoint.
+          // NOTE: Browserless examples use the root endpoint (no /chromium) for CDP + LiveURL flows.
+          const wsUrl = `wss://production-sfo.browserless.io?token=${BROWSERLESS_API_KEY}&headless=true&timeout=180000`;
           console.log("Connecting to Browserless...");
           
           ws = new WebSocket(wsUrl);
@@ -139,6 +159,16 @@ serve(async (req) => {
                   reject(new Error(data.error.message));
                 } else {
                   resolve(data.result);
+                }
+                return;
+              }
+
+              // CDP events (no id)
+              if (data.method) {
+                const waiters = eventWaiters.get(data.method);
+                if (waiters && waiters.length) {
+                  eventWaiters.delete(data.method);
+                  for (const fn of waiters) fn(data.params);
                 }
               }
             } catch { /* ignore parse errors */ }
@@ -165,17 +195,9 @@ serve(async (req) => {
             message: "Setting up interactive session..." 
           });
 
-          // Get targets and attach to page
-          const targets = await sendCDP("Target.getTargets");
-          let pageTargetId: string | null = null;
-          
-          const pageTarget = targets.targetInfos?.find((t: any) => t.type === "page");
-          if (!pageTarget) {
-            const newTarget = await sendCDP("Target.createTarget", { url: "about:blank" });
-            pageTargetId = newTarget.targetId;
-          } else {
-            pageTargetId = pageTarget.targetId;
-          }
+          // Always create a fresh page target for a clean, predictable session
+          const newTarget = await sendCDP("Target.createTarget", { url: "about:blank" });
+          const pageTargetId: string = newTarget.targetId;
 
           // Attach to target
           const attachResult = await sendCDP("Target.attachToTarget", {
@@ -198,24 +220,43 @@ serve(async (req) => {
             mobile: false,
           });
 
-          // Try to get live URL for interactive viewing (Enterprise feature)
+          // Warm up the page before requesting a LiveURL.
+          // Requesting LiveURL too early can yield { liveURL: null }.
+          await sendCDP("Page.navigate", { url: "https://example.com" });
+          await new Promise((r) => setTimeout(r, 2500));
+
+          // Try to get live URL for interactive viewing.
+          // Some plans return { liveURL: null } (no live viewer enabled) instead of throwing.
           let liveURL: string | null = null;
-          try {
-            const liveResult = await sendCDP("Browserless.liveURL", { 
-              quality: 70,
-              type: "jpeg"
-            });
-            liveURL = liveResult.liveURL;
-            console.log("Live URL obtained:", liveURL);
-            streamEvent(controller, { type: "liveUrl", url: liveURL });
-          } catch (e) {
-            console.warn("liveURL not available (requires Enterprise plan):", e);
-            streamEvent(controller, { 
-              type: "status", 
-              icon: "📸", 
+          for (let attempt = 1; attempt <= 3 && !liveURL; attempt++) {
+            try {
+              const liveResult = await sendCDP("Browserless.liveURL", {
+                timeout: 300000,
+                resizable: false,
+                quality: 70,
+                type: "jpeg",
+                showBrowserInterface: false,
+              });
+              liveURL = liveResult?.liveURL ?? null;
+              if (!liveURL) {
+                console.warn(`LiveURL attempt ${attempt} returned null`);
+                await new Promise((r) => setTimeout(r, 800));
+              }
+            } catch (e) {
+              console.warn(`liveURL attempt ${attempt} failed:`, e);
+              await new Promise((r) => setTimeout(r, 800));
+            }
+          }
+
+          if (!liveURL) {
+            streamEvent(controller, {
+              type: "status",
+              icon: "📸",
               title: "Screenshot Mode",
-              message: "Live view not available - using screenshots instead" 
+              message: "Live interactive view isn't available for this browser key — using screenshots instead."
             });
+          } else {
+            streamEvent(controller, { type: "liveUrl", url: liveURL });
           }
 
           streamEvent(controller, { type: "session", id: sessionId, liveUrl: liveURL });
@@ -236,16 +277,18 @@ TIME BUDGET: ${timeEstimate}
 
 Create a detailed step-by-step plan. For each step, provide:
 {
-  "action": "navigate" | "click" | "type" | "wait" | "scroll",
+  "action": "navigate" | "click" | "type" | "wait" | "scroll" | "handoff",
   "url": "full URL for navigate action",
   "selector": "CSS selector for click/type actions (be very specific)",
   "text": "text to type for type action",
   "ms": milliseconds for wait action,
+  "maxWaitMs": milliseconds for handoff action,
   "reason": "brief human-readable explanation of this step"
 }
 
 CRITICAL RULES:
 1. If a site requires login and offers "Sign in with Google" - USE THAT OPTION. The user has a connected Google account.
+   - If login/2FA/captcha requires user intervention, add a "handoff" step with a clear reason.
 2. Use specific CSS selectors: data-testid, aria-label, button text, or detailed paths
 3. Start with navigating to the relevant website
 4. After form submissions, add a wait step (2000-3000ms)
@@ -337,8 +380,8 @@ Return ONLY a valid JSON array, no other text:
                   });
                   
                   await sendCDP("Page.navigate", { url: step.url });
-                  // Wait for page to load
-                  await new Promise(r => setTimeout(r, 4000));
+                  // Wait for page to load (best-effort)
+                  await new Promise(r => setTimeout(r, 4500));
                   break;
                 }
 
@@ -350,45 +393,57 @@ Return ONLY a valid JSON array, no other text:
                     message: step.reason || `Clicking element`,
                     details: step.selector
                   });
-                  
-                  // Try multiple click strategies
-                  const clickScript = `
+
+                  // Prefer real CDP mouse events (more reliable than element.click() for complex UIs)
+                  const pointScript = `
                     (function() {
-                      // Try direct selector
-                      let el = document.querySelector('${step.selector.replace(/'/g, "\\'")}');
-                      
-                      // If not found, try finding by text content
-                      if (!el) {
-                        const buttons = [...document.querySelectorAll('button, a, [role="button"]')];
-                        const textMatch = buttons.find(b => 
-                          b.textContent?.toLowerCase().includes('${(step.reason || '').toLowerCase().replace(/'/g, "\\'")}')
-                        );
-                        if (textMatch) el = textMatch;
-                      }
-                      
-                      if (el) {
-                        el.scrollIntoView({ block: 'center' });
-                        el.click();
-                        return { success: true, found: el.tagName };
-                      }
-                      return { success: false };
+                      const sel = '${step.selector.replace(/'/g, "\\'")}';
+                      let el = document.querySelector(sel);
+                      if (!el) return null;
+                      el.scrollIntoView({ block: 'center', inline: 'center' });
+                      const r = el.getBoundingClientRect();
+                      if (!r || !r.width || !r.height) return null;
+                      return { x: Math.floor(r.left + r.width / 2), y: Math.floor(r.top + r.height / 2) };
                     })()
                   `;
-                  
-                  const clickResult = await sendCDP("Runtime.evaluate", { 
-                    expression: clickScript, 
-                    returnByValue: true 
+
+                  const pointResult = await sendCDP("Runtime.evaluate", {
+                    expression: pointScript,
+                    returnByValue: true,
                   });
-                  
-                  if (!clickResult.result?.value?.success) {
-                    streamEvent(controller, { 
-                      type: "warning", 
-                      icon: "⚠️", 
+
+                  const point = pointResult?.result?.value as { x: number; y: number } | null;
+                  if (!point) {
+                    streamEvent(controller, {
+                      type: "warning",
+                      icon: "⚠️",
                       title: "Element Not Found",
-                      message: `Could not find: ${step.selector}`
+                      message: `Could not find: ${step.selector}`,
+                    });
+                  } else {
+                    await sendCDP("Input.dispatchMouseEvent", {
+                      type: "mouseMoved",
+                      x: point.x,
+                      y: point.y,
+                      button: "none",
+                    });
+                    await sendCDP("Input.dispatchMouseEvent", {
+                      type: "mousePressed",
+                      x: point.x,
+                      y: point.y,
+                      button: "left",
+                      clickCount: 1,
+                    });
+                    await sendCDP("Input.dispatchMouseEvent", {
+                      type: "mouseReleased",
+                      x: point.x,
+                      y: point.y,
+                      button: "left",
+                      clickCount: 1,
                     });
                   }
-                  await new Promise(r => setTimeout(r, 1500));
+
+                  await new Promise(r => setTimeout(r, 1800));
                   break;
                 }
 
@@ -401,22 +456,31 @@ Return ONLY a valid JSON array, no other text:
                     details: step.text?.slice(0, 30) + (step.text?.length > 30 ? '...' : '')
                   });
                   
-                  // Focus the element first
+                  // Focus + clear the element first
                   const focusScript = `
                     (function() {
                       const el = document.querySelector('${step.selector.replace(/'/g, "\\'")}');
-                      if (el) {
-                        el.focus();
-                        el.value = '';
-                        return true;
-                      }
-                      return false;
+                      if (!el) return false;
+                      el.scrollIntoView({ block: 'center', inline: 'center' });
+                      el.focus();
+                      // Clear common inputs/textareas
+                      if ('value' in el) { el.value = ''; }
+                      // Fire input event to notify React-like frameworks
+                      el.dispatchEvent(new Event('input', { bubbles: true }));
+                      return true;
                     })()
                   `;
-                  await sendCDP("Runtime.evaluate", { expression: focusScript });
-                  
-                  // Type text
-                  await sendCDP("Input.insertText", { text: step.text || "" });
+                  const focused = await sendCDP("Runtime.evaluate", { expression: focusScript, returnByValue: true });
+                  if (!focused?.result?.value) {
+                    streamEvent(controller, {
+                      type: "warning",
+                      icon: "⚠️",
+                      title: "Input Not Found",
+                      message: `Could not focus: ${step.selector}`,
+                    });
+                  } else {
+                    await sendCDP("Input.insertText", { text: step.text || "" });
+                  }
                   await new Promise(r => setTimeout(r, 500));
                   break;
                 }
@@ -445,6 +509,40 @@ Return ONLY a valid JSON array, no other text:
                     message: step.reason || `Pausing for ${waitMs}ms`
                   });
                   await new Promise(r => setTimeout(r, waitMs));
+                  break;
+                }
+
+                case "handoff": {
+                  const maxWaitMs = Math.min(Math.max(step.maxWaitMs || 180000, 30000), 600000);
+                  streamEvent(controller, {
+                    type: "status",
+                    icon: "🔐",
+                    title: `${stepNum} Needs You`,
+                    message: step.reason || "Please complete the login in the Live View (Sign in with Google). Close the live tab when you're done.",
+                    details: liveURL ? "Waiting for you to close the Live View tab to continue…" : "Live View not available — continuing after a short delay."
+                  });
+
+                  if (liveURL) {
+                    try {
+                      await waitForEvent("Browserless.liveComplete", maxWaitMs);
+                      streamEvent(controller, {
+                        type: "status",
+                        icon: "✅",
+                        title: "Back to Automation",
+                        message: "Thanks — continuing automatically."
+                      });
+                    } catch {
+                      streamEvent(controller, {
+                        type: "warning",
+                        icon: "⚠️",
+                        title: "Handoff Timed Out",
+                        message: "Didn't detect the Live View closing — continuing anyway."
+                      });
+                    }
+                  } else {
+                    await new Promise((r) => setTimeout(r, Math.min(maxWaitMs, 15000)));
+                  }
+
                   break;
                 }
               }
