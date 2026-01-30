@@ -6,7 +6,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
 import { DatabaseView } from "@/components/database/DatabaseView";
 import { DataConversionView } from "@/components/database/DataConversionView";
-import { AICEOView } from "@/components/database/AICEOView";
+import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { Loader2 } from "lucide-react";
 
 type View = "database" | "dataconversion" | "aiceo";
@@ -62,7 +62,7 @@ const Database = () => {
           <main className="flex-1 overflow-hidden">
             {currentView === "database" && <DatabaseView />}
             {currentView === "dataconversion" && <DataConversionView />}
-            {currentView === "aiceo" && <AICEOView />}
+            {currentView === "aiceo" && <TimeWarpAIView />}
           </main>
         </SidebarInset>
       </div>

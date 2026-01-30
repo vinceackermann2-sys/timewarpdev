@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.analyze-workspace]
 verify_jwt = false
+
+[functions.browser-agent]
+verify_jwt = false
+
+[functions.parse-file]
+verify_jwt = false
