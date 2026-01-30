@@ -244,7 +244,7 @@ serve(async (req) => {
     console.log("Authenticated user for analysis:", userId);
 
     const body = await req.json().catch(() => ({}));
-    const { accessToken, role } = body;
+    const { accessToken, role, includeUploadedFiles } = body;
     
     if (!accessToken) {
       return new Response(
@@ -275,9 +275,42 @@ serve(async (req) => {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // ========== UPLOADED FILES (if any) ==========
+          let uploadedFilesData: any[] = [];
+          
+          if (includeUploadedFiles) {
+            streamStep(controller, {
+              type: "action",
+              content: `📄 Loading uploaded documents from your business data...`
+            });
+            
+            const supabaseServiceRole = createClient(
+              supabaseUrl, 
+              Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+            );
+            
+            const { data: filesData } = await supabaseServiceRole.storage
+              .from('business-data')
+              .download(`${userId}/uploaded-files.json`);
+            
+            if (filesData) {
+              try {
+                const text = await filesData.text();
+                uploadedFilesData = JSON.parse(text);
+                
+                streamStep(controller, {
+                  type: "observation",
+                  content: `Found ${uploadedFilesData.length} uploaded file(s) to include in analysis.`
+                });
+              } catch {
+                uploadedFilesData = [];
+              }
+            }
+          }
+
           streamStep(controller, {
             type: "thought",
-            content: `Deep analysis mode: I'll scan up to 1000 emails (with attachments), full spreadsheet data, slide images/text, form content, and video files as a ${role?.toUpperCase() || 'CEO'} advisor...`
+            content: `Deep analysis mode: I'll scan up to 1000 emails (with attachments), full spreadsheet data, slide images/text, form content, video files${uploadedFilesData.length > 0 ? `, plus ${uploadedFilesData.length} uploaded document(s)` : ''} as a ${role?.toUpperCase() || 'CEO'} advisor...`
           });
 
           await new Promise(r => setTimeout(r, 500));
@@ -702,7 +735,14 @@ serve(async (req) => {
             `Event: "${e.summary || 'Untitled'}" | Attendees: ${e.attendees?.length || 0} | Location: ${e.location || 'N/A'}`
           ).join('\n');
 
-          const analysisPrompt = `You are a ${role?.toUpperCase() || 'CEO'} business advisor. Analyze this COMPREHENSIVE Google Workspace data including FULL content, images, and videos. Identify ONE specific, actionable improvement with the highest business impact.
+          // Build uploaded files summary
+          const uploadedFilesSummary = uploadedFilesData.length > 0 
+            ? uploadedFilesData.map(f => 
+                `File: "${f.fileName}" (${f.mimeType})\nSummary: ${f.summary || 'N/A'}\nContent: ${f.extractedText?.slice(0, 1000) || 'N/A'}`
+              ).join('\n\n')
+            : '';
+
+          const analysisPrompt = `You are a ${role?.toUpperCase() || 'CEO'} business advisor. Analyze this COMPREHENSIVE Google Workspace data including FULL content, images, videos, AND manually uploaded documents. Identify ONE specific, actionable improvement with the highest business impact.
 
 ## EMAIL ANALYSIS (${emails.length} emails, ${imageAttachments.length} image attachments, ${videoAttachments.length} videos):
 ${emailSummary || 'No emails found'}
@@ -725,19 +765,23 @@ ${formsSummary || 'No forms found'}
 ## CALENDAR (${events.length} upcoming events):
 ${calendarSummary || 'No events found'}
 
-Based on the ACTUAL CONTENT including images and videos, identify patterns, issues, or opportunities. Look for:
+${uploadedFilesData.length > 0 ? `## UPLOADED BUSINESS DOCUMENTS (${uploadedFilesData.length} files):
+${uploadedFilesSummary}
+` : ''}
+Based on the ACTUAL CONTENT including images, videos, and uploaded documents, identify patterns, issues, or opportunities. Look for:
 - Email patterns and attachment trends
 - Image content that reveals business operations or issues
 - Video files that might need organization or action
 - Spreadsheet data showing trends or anomalies
 - Presentation content quality and consistency
 - Form design improvements
+${uploadedFilesData.length > 0 ? '- Uploaded documents containing important business data, contracts, or reports' : ''}
 
 Respond with a JSON object:
 {
   "issue": {
     "title": "Brief issue title",
-    "category": "Email|Images|Videos|Sheets|Slides|Forms|Calendar",
+    "category": "Email|Images|Videos|Sheets|Slides|Forms|Calendar${uploadedFilesData.length > 0 ? '|Documents' : ''}",
     "severity": "high|medium|low",
     "description": "Specific problem identified from the ACTUAL CONTENT including visual analysis",
     "evidence": "Quote or reference SPECIFIC data/content/images that shows this issue"
@@ -783,7 +827,6 @@ Respond with a JSON object:
             console.error("Failed to parse AI response:", e);
           }
 
-          // Build research summary to save
           const researchSummary = {
             emailsAnalyzed: emails.length,
             emailAttachments: allEmailAttachments.length,
@@ -796,6 +839,7 @@ Respond with a JSON object:
             driveImagesAnalyzed: analyzedDriveImages.length,
             driveVideos: driveVideos.length,
             eventsAnalyzed: events.length,
+            uploadedFilesAnalyzed: uploadedFilesData.length,
             analyzedAt: new Date().toISOString(),
             timeRange: {
               emails: `Last year (since ${lastYearDate})`,
@@ -842,7 +886,13 @@ Respond with a JSON object:
               ...analyzedEmailImages,
               ...analyzedDriveImages.slice(0, 5),
               ...analyzedSlideImages.slice(0, 5)
-            ]
+            ],
+            uploadedFiles: uploadedFilesData.map(f => ({
+              fileName: f.fileName,
+              mimeType: f.mimeType,
+              summary: f.summary,
+              extractedText: f.extractedText?.slice(0, 2000)
+            }))
           };
 
           const findings = analysis?.issue && analysis?.improvement ? [analysis] : [];
