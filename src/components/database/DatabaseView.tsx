@@ -8,13 +8,15 @@ import {
   DollarSign,
   Loader2,
   Sparkles,
-  ArrowUp
+  ArrowUp,
+  Upload
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
+import { FileUploadZone } from "./FileUploadZone";
 
 interface BusinessData {
   topContacts?: { email: string; count: number }[];
@@ -74,6 +76,11 @@ function generatePersonalizedQuestions(
       "What topics are trending in my business?",
       "Identify emerging patterns",
       "What should I focus on?"
+    ],
+    uploads: [
+      "What's in my uploaded files?",
+      "Summarize my documents",
+      "Find key data in my uploads"
     ]
   };
 
@@ -132,6 +139,11 @@ function generatePersonalizedQuestions(
       questions.push(`What patterns in my business?`);
       questions.push(`What should I prioritize?`);
       break;
+
+    case "uploads":
+      questions.push(`Analyze my uploaded files`);
+      questions.push(`What key data is in my documents?`);
+      break;
   }
 
   while (questions.length < 3) {
@@ -148,6 +160,7 @@ const databaseModules = [
   { id: "email", code: "EML", title: "EMAILS", icon: Mail, color: "from-blue-500 to-blue-600" },
   { id: "calendar", code: "CAL", title: "CALENDAR", icon: Calendar, color: "from-purple-500 to-purple-600" },
   { id: "docs", code: "DOC", title: "DOCUMENTS", icon: FileText, color: "from-emerald-500 to-emerald-600" },
+  { id: "uploads", code: "UPL", title: "UPLOADS", icon: Upload, color: "from-rose-500 to-rose-600" },
   { id: "revenue", code: "REV", title: "REVENUE", icon: DollarSign, color: "from-amber-500 to-amber-600" },
   { id: "team", code: "TEAM", title: "TEAM", icon: Users, color: "from-pink-500 to-pink-600" },
   { id: "trends", code: "TRD", title: "TRENDS", icon: TrendingUp, color: "from-cyan-500 to-cyan-600" }
@@ -187,6 +200,8 @@ export function DatabaseView() {
   const [businessData, setBusinessData] = useState<BusinessData | null>(null);
   const [researchSummary, setResearchSummary] = useState<ResearchSummary | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [showUploadPanel, setShowUploadPanel] = useState(false);
+  const [uploadedFilesCount, setUploadedFilesCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch business data from storage bucket
@@ -446,6 +461,7 @@ export function DatabaseView() {
                     className="relative"
                     onMouseEnter={() => setHoveredModule(module.id)}
                     onMouseLeave={() => setHoveredModule(null)}
+                    onClick={() => module.id === "uploads" && setShowUploadPanel(true)}
                     style={{ zIndex: isHovered ? 50 : 10 - index }}
                   >
                     {/* File folder container */}
@@ -588,6 +604,60 @@ export function DatabaseView() {
             </div>
           </div>
         </div>
+
+        {/* Upload Panel - slides up when uploads folder is clicked */}
+        {showUploadPanel && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+            <div className="relative w-full max-w-lg mx-4 bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden">
+              {/* Panel header */}
+              <div className="flex items-center justify-between p-4 border-b border-border/30">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-rose-500 to-rose-600">
+                    <Upload className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">Upload Files</h3>
+                    <p className="text-xs text-muted-foreground">PDFs, images, and documents for AI analysis</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowUploadPanel(false)}
+                  className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Upload zone */}
+              <div className="p-6">
+                <FileUploadZone 
+                  onFileUploaded={() => {
+                    setUploadedFilesCount(prev => prev + 1);
+                  }}
+                />
+              </div>
+              
+              {/* Panel footer */}
+              <div className="flex items-center justify-between p-4 border-t border-border/30 bg-muted/20">
+                <p className="text-xs text-muted-foreground">
+                  {uploadedFilesCount > 0 
+                    ? `${uploadedFilesCount} file${uploadedFilesCount > 1 ? 's' : ''} analyzed` 
+                    : "Uploaded files become part of your AI context"
+                  }
+                </p>
+                <button
+                  onClick={() => setShowUploadPanel(false)}
+                  className="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Floating chat input - always at bottom */}

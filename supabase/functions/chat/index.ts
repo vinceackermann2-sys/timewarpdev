@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function buildSystemPrompt(research: any): string {
+function buildSystemPrompt(research: any, uploadedFiles: any[]): string {
   const basePrompt = `You are TimeWarp AI, an intelligent business assistant that helps entrepreneurs and business owners manage their digital life. You are professional, concise, and action-oriented.
 
 Your capabilities:
@@ -124,9 +124,25 @@ ${findings.map((f: any) => `- Issue: ${f.issue?.title || 'N/A'} | Recommendation
 
   context += `
 
-=== END OF BUSINESS DATA ===
+=== END OF BUSINESS DATA ===`;
 
-Use this real business data to answer questions. Reference specific emails, contacts, events, or documents when relevant. If asked about something not in the data, acknowledge the limitation.`;
+  // Add uploaded files context
+  if (uploadedFiles && uploadedFiles.length > 0) {
+    context += `
+
+=== UPLOADED FILES ===
+${uploadedFiles.slice(0, 10).map((f: any) => `
+FILE: ${f.fileName}
+Summary: ${f.summary || 'No summary'}
+Content: ${f.extractedText?.slice(0, 2000) || 'No content extracted'}
+`).join('\n---\n')}
+
+=== END OF UPLOADED FILES ===`;
+  }
+
+  context += `
+
+Use this real business data to answer questions. Reference specific emails, contacts, events, documents, or uploaded files when relevant. If asked about something not in the data, acknowledge the limitation.`;
 
   return basePrompt + context;
 }
@@ -204,24 +220,34 @@ serve(async (req) => {
     const supabaseServiceRole = createClient(supabaseUrl, supabaseServiceRoleKey);
     
     let research = null;
+    let uploadedFiles: any[] = [];
+    
+    // Fetch research and uploaded files in parallel
     try {
-      const { data, error } = await supabaseServiceRole.storage
-        .from('business-data')
-        .download(`${userId}/research.json`);
+      const [researchResult, uploadedFilesResult] = await Promise.all([
+        supabaseServiceRole.storage.from('business-data').download(`${userId}/research.json`),
+        supabaseServiceRole.storage.from('business-data').download(`${userId}/uploaded-files.json`)
+      ]);
       
-      if (!error && data) {
-        const text = await data.text();
+      if (!researchResult.error && researchResult.data) {
+        const text = await researchResult.data.text();
         research = JSON.parse(text);
         console.log("Loaded research from bucket:", research?.summary?.emailsAnalyzed || 0, "emails");
       } else {
-        console.log("No research data in bucket:", error?.message);
+        console.log("No research data in bucket:", researchResult.error?.message);
+      }
+      
+      if (!uploadedFilesResult.error && uploadedFilesResult.data) {
+        const text = await uploadedFilesResult.data.text();
+        uploadedFiles = JSON.parse(text);
+        console.log("Loaded uploaded files from bucket:", uploadedFiles.length, "files");
       }
     } catch (e) {
-      console.log("Error fetching research from bucket:", e);
+      console.log("Error fetching data from bucket:", e);
     }
 
-    // Build system prompt with research context
-    const systemPrompt = buildSystemPrompt(research);
+    // Build system prompt with research context and uploaded files
+    const systemPrompt = buildSystemPrompt(research, uploadedFiles);
 
     console.log("Calling AI gateway with", messages.length, "messages for user:", userId);
 
