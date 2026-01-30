@@ -1,30 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
   Brain, Mail, FileText, Calendar, CheckCircle2, 
   Loader2, Sparkles, Rocket, Eye, AlertTriangle,
   Lightbulb, Target, Search, Zap, Shield, Lock,
-  LayoutDashboard, BarChart3, Users, Upload, X, File, Image
+  LayoutDashboard, BarChart3, Users, FileIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
 
 interface AnalysisStep {
   type: "thought" | "action" | "observation" | "finding" | "complete";
   content: string;
   data?: any;
   timestamp?: Date;
-}
-
-interface UploadedFile {
-  id: string;
-  fileName: string;
-  mimeType: string;
-  summary: string;
-  status: "uploading" | "processing" | "done" | "error";
-  error?: string;
 }
 
 interface LiveAnalysisViewProps {
@@ -36,132 +26,21 @@ interface LiveAnalysisViewProps {
 }
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-workspace`;
-const PARSE_FILE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-file`;
-
-const SUPPORTED_TYPES = [
-  "application/pdf",
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "text/plain",
-  "text/csv",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
 
 export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAnalysisViewProps) {
   const { toast } = useToast();
-  const [phase, setPhase] = useState<"upload" | "analyzing">("upload");
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isRunning, setIsRunning] = useState(false);
   const [steps, setSteps] = useState<AnalysisStep[]>([]);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [finding, setFinding] = useState<any>(null);
   const [isComplete, setIsComplete] = useState(false);
-  const [stats, setStats] = useState({ emails: 0, docs: 0, events: 0, files: 0 });
+  const [stats, setStats] = useState({ emails: 0, docs: 0, events: 0, pdfs: 0 });
   const [progress, setProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState("Initializing...");
   const [currentAction, setCurrentAction] = useState<string | null>(null);
 
-  // File upload handlers
-  const processFile = async (file: File) => {
-    if (!SUPPORTED_TYPES.includes(file.type)) {
-      toast({
-        title: "Unsupported file type",
-        description: `${file.name} is not supported. Please upload PDFs, images, or documents.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Maximum file size is 10MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const fileId = crypto.randomUUID();
-    const newFile: UploadedFile = {
-      id: fileId,
-      fileName: file.name,
-      mimeType: file.type,
-      summary: "",
-      status: "uploading",
-    };
-    
-    setUploadedFiles(prev => [...prev, newFile]);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Please log in");
-
-      // Convert to base64
-      const buffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const base64Data = btoa(binary);
-
-      setUploadedFiles(prev => prev.map(f => 
-        f.id === fileId ? { ...f, status: "processing" } : f
-      ));
-
-      const response = await fetch(PARSE_FILE_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          fileData: base64Data,
-          fileName: file.name,
-          mimeType: file.type,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Failed to process file");
-
-      const result = await response.json();
-      
-      setUploadedFiles(prev => prev.map(f => 
-        f.id === fileId ? { ...f, status: "done", summary: result.file?.summary || "Analyzed" } : f
-      ));
-    } catch (error) {
-      setUploadedFiles(prev => prev.map(f => 
-        f.id === fileId ? { ...f, status: "error", error: (error as Error).message } : f
-      ));
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    files.forEach(processFile);
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    files.forEach(processFile);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const removeFile = (id: string) => {
-    setUploadedFiles(prev => prev.filter(f => f.id !== id));
-  };
-
   const startAnalysis = useCallback(async () => {
-    setPhase("analyzing");
     setIsRunning(true);
     setSteps([]);
     setCurrentItem(null);
@@ -198,18 +77,6 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
         return;
       }
 
-      // Count uploaded files
-      const uploadedCount = uploadedFiles.filter(f => f.status === "done").length;
-      setStats(prev => ({ ...prev, files: uploadedCount }));
-      
-      if (uploadedCount > 0) {
-        setSteps([{
-          type: "observation",
-          content: `Including ${uploadedCount} uploaded file(s) in analysis...`,
-          timestamp: new Date()
-        }]);
-      }
-
       setProgress(5);
       setCurrentPhase("Starting analysis...");
       setCurrentAction("Initializing AI agent...");
@@ -220,7 +87,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ accessToken, role, mode, includeUploadedFiles: uploadedCount > 0 }),
+        body: JSON.stringify({ accessToken, role, mode }),
       });
 
       if (!response.ok) {
@@ -317,8 +184,9 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
     }
   }, [role, mode, googleToken, toast, finding]);
 
-  // Don't auto-start - wait for user to click start
-  // useEffect(() => { startAnalysis(); }, []);
+  useEffect(() => {
+    startAnalysis();
+  }, []);
 
   const getStepIcon = (type: string) => {
     switch (type) {
@@ -379,147 +247,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
       {/* Main Content - Stacked Layout */}
       <main className="flex-1 relative z-10 container mx-auto px-4 pb-6 flex flex-col gap-4">
         
-        {/* Upload Phase - Show file upload UI first */}
-        {phase === "upload" && (
-          <div className="rounded-2xl overflow-hidden border border-accent/20 bg-[#050510]/95 backdrop-blur-xl flex-1 min-h-[400px] shadow-[0_0_60px_rgba(139,92,246,0.15)] p-8">
-            <div className="max-w-2xl mx-auto">
-              {/* Header */}
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 mb-4">
-                  <Upload className="h-4 w-4 text-accent" />
-                  <span className="text-sm text-accent font-medium">Optional: Add Files for Analysis</span>
-                </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">
-                  Upload Business Documents
-                </h2>
-                <p className="text-muted-foreground">
-                  Add PDFs, images, spreadsheets, or documents for your AI {roleLabel} to analyze alongside your Google Workspace data.
-                </p>
-              </div>
-
-              {/* Drop Zone */}
-              <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={cn(
-                  "relative border-2 border-dashed rounded-2xl p-8 transition-all duration-300 cursor-pointer mb-6",
-                  "flex flex-col items-center justify-center gap-4 min-h-[200px]",
-                  isDragging
-                    ? "border-accent bg-accent/10 scale-[1.02]"
-                    : "border-white/20 hover:border-accent/50 hover:bg-white/5"
-                )}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept={SUPPORTED_TYPES.join(",")}
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                
-                <div className={cn(
-                  "p-4 rounded-2xl bg-gradient-to-br from-accent/20 to-purple-500/20",
-                  "border border-accent/30 transition-transform",
-                  isDragging && "scale-110"
-                )}>
-                  <Upload className="h-8 w-8 text-accent" />
-                </div>
-                <div className="text-center">
-                  <p className="text-lg font-medium text-foreground mb-1">
-                    {isDragging ? "Drop files here" : "Drag & drop files here"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    or click to browse • PDF, Images, Excel, Word, CSV • Max 10MB
-                  </p>
-                </div>
-              </div>
-
-              {/* Uploaded Files List */}
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-3 mb-6">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Files to Analyze ({uploadedFiles.length})
-                  </p>
-                  {uploadedFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 group"
-                    >
-                      <div className={cn(
-                        "p-2 rounded-lg shrink-0",
-                        file.status === "done" ? "bg-green-500/20" : 
-                        file.status === "error" ? "bg-red-500/20" : "bg-accent/20"
-                      )}>
-                        {file.mimeType.startsWith("image/") ? (
-                          <Image className="h-4 w-4 text-accent" />
-                        ) : (
-                          <File className="h-4 w-4 text-accent" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {file.fileName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {file.status === "uploading" && "Uploading..."}
-                          {file.status === "processing" && "AI is analyzing..."}
-                          {file.status === "done" && (file.summary || "Ready")}
-                          {file.status === "error" && (file.error || "Failed")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {file.status === "uploading" || file.status === "processing" ? (
-                          <Loader2 className="h-4 w-4 text-accent animate-spin" />
-                        ) : file.status === "done" ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
-                        )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); removeFile(file.id); }}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
-                        >
-                          <X className="h-3 w-3 text-red-400" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Start Analysis Button */}
-              <div className="flex flex-col items-center gap-4">
-                <Button
-                  onClick={startAnalysis}
-                  disabled={uploadedFiles.some(f => f.status === "uploading" || f.status === "processing")}
-                  className="w-full max-w-md h-14 text-lg font-bold bg-gradient-to-r from-accent via-purple-500 to-accent bg-[length:200%_100%] animate-shimmer hover:shadow-[0_0_50px_rgba(139,92,246,0.6)] transition-all duration-500 group"
-                >
-                  <Brain className="h-5 w-5 mr-2" />
-                  {uploadedFiles.length > 0 
-                    ? `Start Analysis with ${uploadedFiles.filter(f => f.status === "done").length} File${uploadedFiles.filter(f => f.status === "done").length !== 1 ? 's' : ''}`
-                    : "Start Google Workspace Analysis"
-                  }
-                  <Sparkles className="h-4 w-4 ml-2 animate-pulse" />
-                </Button>
-                
-                {uploadedFiles.length === 0 && (
-                  <button
-                    onClick={startAnalysis}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    Skip file upload →
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Analysis Phase - Show browser window */}
-        {phase === "analyzing" && (
+        {/* Secure Private Browser Window */}
         <div className="rounded-2xl overflow-hidden border border-accent/20 bg-[#050510]/95 backdrop-blur-xl flex-1 min-h-[400px] shadow-[0_0_60px_rgba(139,92,246,0.15)]">
           {/* Secure Browser Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-[#0f0f1a] to-[#1a1a2e] border-b border-accent/20">
@@ -566,8 +294,8 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
                     <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-red-400" />{stats.emails}</span>
                     <span className="flex items-center gap-1"><FileText className="h-3 w-3 text-blue-400" />{stats.docs}</span>
                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3 text-green-400" />{stats.events}</span>
-                    {stats.files > 0 && (
-                      <span className="flex items-center gap-1"><Upload className="h-3 w-3 text-purple-400" />{stats.files}</span>
+                    {stats.pdfs > 0 && (
+                      <span className="flex items-center gap-1"><FileIcon className="h-3 w-3 text-purple-400" />{stats.pdfs}</span>
                     )}
                   </div>
                 </div>
@@ -825,10 +553,8 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
             )}
           </div>
         </div>
-        )}
 
         {/* Simplified Progress Section - Just the loading bar */}
-        {phase === "analyzing" && (
         <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -845,7 +571,6 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
           </div>
           <Progress value={progress} className="h-2" />
         </div>
-        )}
       </main>
     </div>
   );
