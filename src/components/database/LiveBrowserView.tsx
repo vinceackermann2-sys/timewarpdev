@@ -66,11 +66,17 @@ export function LiveBrowserView({
       try {
         addStep("think", "Initializing browser session...");
         
-        // Get user's session for auth
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          throw new Error("Not authenticated");
+        // Get user's session for auth - refresh to ensure token is valid
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          throw new Error(`Session error: ${sessionError.message}`);
         }
+        if (!session) {
+          throw new Error("Not authenticated - please log in first");
+        }
+        
+        console.log("Session found, access token exists:", !!session.access_token);
 
         // Get Google token if available
         const googleToken = sessionStorage.getItem('googleProviderToken');

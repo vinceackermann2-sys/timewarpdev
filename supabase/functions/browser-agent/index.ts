@@ -35,11 +35,17 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid session" }), {
+      console.error("Auth error:", authError?.message || "No user found");
+      return new Response(JSON.stringify({ 
+        error: "Invalid session",
+        details: authError?.message || "User not found"
+      }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    
+    console.log("User authenticated:", user.id);
 
     const { role, task, timeEstimate, googleToken } = await req.json();
     
