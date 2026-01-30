@@ -6,9 +6,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Your self-hosted browser server
+const BROWSER_WS_URL = "ws://46.225.19.131:3000";
+
 function streamEvent(controller: ReadableStreamDefaultController, data: any) {
   const encoder = new TextEncoder();
-  // If the client disconnects, enqueue can throw — never crash the worker.
   try {
     controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
   } catch (e) {
@@ -69,14 +71,6 @@ serve(async (req) => {
 
     const { role, task, timeEstimate } = await req.json();
 
-    const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
-    if (!BROWSERLESS_API_KEY) {
-      return new Response(JSON.stringify({ error: "Browser service not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
@@ -92,7 +86,6 @@ serve(async (req) => {
       async start(controller) {
         let ws: WebSocket | null = null;
         let sessionId: string | null = null;
-        let browserQLUrl: string | null = null;
         let messageId = 1;
         const pendingMessages: Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }> = new Map();
         const eventWaiters: Map<string, Array<(payload: any) => void>> = new Map();
@@ -100,8 +93,7 @@ serve(async (req) => {
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
         const escapeForSingleQuote = (s: string) => s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
-        // Helpers injected into the page context to support non-standard selectors
-        // that the planner sometimes emits (e.g. Playwright's :has-text()).
+        // Helpers injected into the page context to support selectors
         const selectorHelpers = `
           (function() {
             function firstVisible(elements) {
@@ -142,7 +134,7 @@ serve(async (req) => {
               if (sel.startsWith('xpath=')) return byXPath(sel.slice('xpath='.length));
               if (sel.startsWith('text=')) return byText(sel.slice('text='.length));
 
-              const hasTextMatch = sel.match(/:has-text\\((['\\\"])(.*?)\\1\\)/);
+              const hasTextMatch = sel.match(/:has-text\\((['"])(.*?)\\1\\)/);
               if (hasTextMatch) {
                 const text = hasTextMatch[2];
                 const baseSel = sel.replace(hasTextMatch[0], '').trim() || '*';
@@ -213,34 +205,6 @@ serve(async (req) => {
           return false;
         };
 
-        const createLiveUrlViaBQL = async (): Promise<string | null> => {
-          if (!browserQLUrl) return null;
-          try {
-            const query = `
-              mutation CreateLiveURL {
-                goto(url: "https://example.com", waitUntil: networkIdle) { status }
-                liveURL(resizable: false, interactable: true, showBrowserInterface: false, type: jpeg, quality: 70, timeout: 300000) {
-                  liveURL
-                }
-              }
-            `;
-
-            const res = await fetch(browserQLUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ query }),
-            });
-
-            const json = await res.json().catch(() => null);
-            const live = json?.data?.liveURL?.liveURL ?? null;
-            if (!live) console.warn("BrowserQL liveURL not returned", json?.errors || json);
-            return live;
-          } catch (e) {
-            console.warn("BrowserQL liveURL request failed", e);
-            return null;
-          }
-        };
-
         const sendCDP = (method: string, params: any = {}): Promise<any> => {
           return new Promise((resolve, reject) => {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -272,7 +236,6 @@ serve(async (req) => {
             eventWaiters.set(method, arr);
 
             setTimeout(() => {
-              // remove this waiter if still present
               const current = eventWaiters.get(method);
               if (!current) return;
               const next = current.filter((fn) => fn !== resolve);
@@ -291,52 +254,12 @@ serve(async (req) => {
             message: `${roleContext.emoji} ${roleContext.label} Agent initializing...` 
           });
 
-          // Step 1: Create a session via REST API (more reliable than direct WebSocket)
-          // This returns a connectUrl we can use for WebSocket
-          console.log("Creating Browserless session via REST API...");
+          // Connect directly to self-hosted browser server
+          console.log("Connecting to self-hosted browser server:", BROWSER_WS_URL);
           
-          const sessionResponse = await fetch(
-            `https://production-sfo.browserless.io/session?token=${BROWSERLESS_API_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                ttl: 300000, // 5 minutes
-                headless: true,
-                stealth: true,
-              }),
-            }
-          );
+          ws = new WebSocket(BROWSER_WS_URL);
 
-          if (!sessionResponse.ok) {
-            const errorText = await sessionResponse.text();
-            console.error("Session creation failed:", sessionResponse.status, errorText);
-            throw new Error(`Failed to create browser session: ${sessionResponse.status}`);
-          }
-
-          const sessionData = await sessionResponse.json();
-          console.log("Session API response keys:", Object.keys(sessionData));
-          
-          // The /session API returns { connect, stop, liveURL, ... }
-          const connectUrl = sessionData.connect || sessionData.browserWSEndpoint || sessionData.webSocketDebuggerUrl;
-          const browserlessLiveUrl = sessionData.liveURL;
-          const stopUrl = sessionData.stop;
-          browserQLUrl = sessionData.browserQL || null;
-          
-          console.log("Session created, connectUrl:", connectUrl ? "obtained" : "missing");
-          console.log("LiveURL from session:", browserlessLiveUrl || "not provided");
-          console.log("Stop URL:", stopUrl ? "obtained" : "missing");
-          console.log("BrowserQL URL:", browserQLUrl ? "obtained" : "not provided");
-
-          if (!connectUrl) {
-            console.error("Full session response:", JSON.stringify(sessionData));
-            throw new Error("No WebSocket endpoint returned from session");
-          }
-
-          // Step 2: Connect via WebSocket using the session's connectUrl
-          ws = new WebSocket(connectUrl);
-
-          // Set up message handler before waiting for connection
+          // Set up message handler
           ws.onmessage = (event) => {
             try {
               const data = JSON.parse(event.data);
@@ -366,13 +289,13 @@ serve(async (req) => {
             const timeout = setTimeout(() => reject(new Error("WebSocket connection timeout")), 20000);
             ws!.onopen = () => { 
               clearTimeout(timeout); 
-              console.log("WebSocket connected to session");
+              console.log("WebSocket connected to self-hosted browser");
               resolve(); 
             };
             ws!.onerror = (e) => { 
               clearTimeout(timeout); 
               console.error("WebSocket error:", e);
-              reject(new Error("Could not connect to browser session")); 
+              reject(new Error("Could not connect to browser server")); 
             };
           });
 
@@ -380,10 +303,10 @@ serve(async (req) => {
             type: "status", 
             icon: "🌐", 
             title: "Browser Connected",
-            message: "Setting up interactive session..." 
+            message: "Connected to self-hosted browser server" 
           });
 
-          // Prefer attaching to an existing page target (helps align with live-view streaming)
+          // Get available targets or create a new page
           const targets = await sendCDP("Target.getTargets");
           const existingPageTargetId: string | undefined = targets?.targetInfos?.find((t: any) => t?.type === "page")?.targetId;
           const pageTargetId: string = existingPageTargetId || (await sendCDP("Target.createTarget", { url: "about:blank" }))?.targetId;
@@ -409,54 +332,24 @@ serve(async (req) => {
             mobile: false,
           });
 
-          // Navigate to a real page first (some CDP commands need a loaded page)
+          // Navigate to a test page first
           await sendCDP("Page.navigate", { url: "https://example.com" });
-          await new Promise((r) => setTimeout(r, 2500));
+          await sleep(2500);
 
-          // Try to get live URL for interactive viewing.
-          // First check if the session API already gave us a liveURL
-          let liveURL: string | null = browserlessLiveUrl || null;
-          
-          if (!liveURL) {
-            // Prefer BrowserQL liveURL for stealth sessions
-            liveURL = await createLiveUrlViaBQL();
-
-            // Fallback: legacy CDP command (some setups support it)
-            for (let attempt = 1; attempt <= 2 && !liveURL; attempt++) {
-              try {
-                const liveResult = await sendCDP("Browserless.liveURL", {
-                  timeout: 300000,
-                  resizable: false,
-                  quality: 70,
-                  type: "jpeg",
-                  showBrowserInterface: false,
-                });
-                liveURL = liveResult?.liveURL ?? null;
-                if (!liveURL) {
-                  console.warn(`LiveURL attempt ${attempt} returned null`);
-                  await sleep(500);
-                }
-              } catch (e) {
-                console.warn(`liveURL attempt ${attempt} failed:`, e);
-                await sleep(500);
-              }
+          // Take initial screenshot to confirm browser is working
+          let screenshotBase64: string | null = null;
+          try {
+            const screenshot = await sendCDP("Page.captureScreenshot", { format: "jpeg", quality: 70 });
+            screenshotBase64 = screenshot?.data || null;
+            if (screenshotBase64) {
+              console.log("Initial screenshot captured successfully");
+              streamEvent(controller, { type: "screenshot", image: screenshotBase64 });
             }
+          } catch (e) {
+            console.warn("Initial screenshot failed:", e);
           }
 
-          if (liveURL) {
-            console.log("Live URL obtained:", liveURL);
-            streamEvent(controller, { type: "liveUrl", url: liveURL });
-          } else {
-            console.log("No live URL available, using screenshot mode");
-            streamEvent(controller, {
-              type: "status",
-              icon: "📸",
-              title: "Screenshot Mode",
-              message: "Live interactive view isn't available — using screenshots instead."
-            });
-          }
-
-          streamEvent(controller, { type: "session", id: sessionId, liveUrl: liveURL });
+          streamEvent(controller, { type: "session", id: sessionId, liveUrl: null });
 
           // Generate plan with AI
           streamEvent(controller, { 
@@ -474,32 +367,24 @@ TIME BUDGET: ${timeEstimate}
 
 Create a detailed step-by-step plan. For each step, provide:
 {
-  "action": "navigate" | "click" | "type" | "wait" | "scroll" | "handoff",
+  "action": "navigate" | "click" | "type" | "wait" | "scroll",
   "url": "full URL for navigate action",
   "selector": "CSS selector for click/type actions (be very specific)",
   "text": "text to type for type action",
   "ms": milliseconds for wait action,
-  "maxWaitMs": milliseconds for handoff action,
   "reason": "brief human-readable explanation of this step"
 }
 
 CRITICAL RULES:
-1. If a site requires login and offers "Sign in with Google" - USE THAT OPTION. The user has a connected Google account.
-   - If login/2FA/captcha requires user intervention, add a "handoff" step with a clear reason.
-2. Use ONLY standard CSS selectors (querySelector-compatible). Do NOT use Playwright-only selectors like :has-text(), text=, xpath=.
+1. Use ONLY standard CSS selectors (querySelector-compatible). Do NOT use Playwright-only selectors like :has-text(), text=, xpath=.
    Prefer [data-testid], [aria-label], input[name], button[type], and stable attributes.
-3. Start with navigating to the relevant website
-4. After form submissions, add a wait step (2000-3000ms)
-5. If creating content (like ads), actually fill in creative content
-
-For Canva specifically:
-- Navigate to canva.com
-- Look for "Sign in with Google" or similar auth option
-- Once signed in, create a new design
-- Use their templates or create from scratch
+2. Start with navigating to the relevant website
+3. After form submissions, add a wait step (2000-3000ms)
+4. If creating content (like ads), actually fill in creative content
+5. Be very specific with selectors - use multiple attributes if needed
 
 Return ONLY a valid JSON array, no other text:
-[{"action": "navigate", "url": "https://...", "reason": "Go to Canva homepage"}]`;
+[{"action": "navigate", "url": "https://...", "reason": "Go to website"}]`;
 
           const planResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -578,8 +463,7 @@ Return ONLY a valid JSON array, no other text:
                   });
                   
                   await sendCDP("Page.navigate", { url: step.url });
-                  // Wait for page to load (best-effort)
-                  await new Promise(r => setTimeout(r, 4500));
+                  await sleep(4500);
                   break;
                 }
 
@@ -623,7 +507,7 @@ Return ONLY a valid JSON array, no other text:
                     });
                   }
 
-                  await new Promise(r => setTimeout(r, 1800));
+                  await sleep(1800);
                   break;
                 }
 
@@ -647,7 +531,7 @@ Return ONLY a valid JSON array, no other text:
                   } else {
                     await sendCDP("Input.insertText", { text: step.text || "" });
                   }
-                  await new Promise(r => setTimeout(r, 500));
+                  await sleep(500);
                   break;
                 }
 
@@ -662,7 +546,7 @@ Return ONLY a valid JSON array, no other text:
                   await sendCDP("Runtime.evaluate", { 
                     expression: "window.scrollBy(0, 400)" 
                   });
-                  await new Promise(r => setTimeout(r, 500));
+                  await sleep(500);
                   break;
                 }
 
@@ -674,58 +558,22 @@ Return ONLY a valid JSON array, no other text:
                     title: `${stepNum} Waiting`,
                     message: step.reason || `Pausing for ${waitMs}ms`
                   });
-                  await new Promise(r => setTimeout(r, waitMs));
-                  break;
-                }
-
-                case "handoff": {
-                  const maxWaitMs = Math.min(Math.max(step.maxWaitMs || 180000, 30000), 600000);
-                  streamEvent(controller, {
-                    type: "status",
-                    icon: "🔐",
-                    title: `${stepNum} Needs You`,
-                    message: step.reason || "Please complete the login in the Live View (Sign in with Google). Close the live tab when you're done.",
-                    details: liveURL ? "Waiting for you to close the Live View tab to continue…" : "Live View not available — continuing after a short delay."
-                  });
-
-                  if (liveURL) {
-                    try {
-                      await waitForEvent("Browserless.liveComplete", maxWaitMs);
-                      streamEvent(controller, {
-                        type: "status",
-                        icon: "✅",
-                        title: "Back to Automation",
-                        message: "Thanks — continuing automatically."
-                      });
-                    } catch {
-                      streamEvent(controller, {
-                        type: "warning",
-                        icon: "⚠️",
-                        title: "Handoff Timed Out",
-                        message: "Didn't detect the Live View closing — continuing anyway."
-                      });
-                    }
-                  } else {
-                    await new Promise((r) => setTimeout(r, Math.min(maxWaitMs, 15000)));
-                  }
-
+                  await sleep(waitMs);
                   break;
                 }
               }
 
-              // Take screenshot after each action if no live URL
-              if (!liveURL) {
-                try {
-                  const screenshot = await sendCDP("Page.captureScreenshot", { 
-                    format: "jpeg", 
-                    quality: 70 
-                  });
-                  if (screenshot.data) {
-                    streamEvent(controller, { type: "screenshot", image: screenshot.data });
-                  }
-                } catch (e) {
-                  console.warn("Screenshot failed:", e);
+              // Take screenshot after each action
+              try {
+                const screenshot = await sendCDP("Page.captureScreenshot", { 
+                  format: "jpeg", 
+                  quality: 70 
+                });
+                if (screenshot.data) {
+                  streamEvent(controller, { type: "screenshot", image: screenshot.data });
                 }
+              } catch (e) {
+                console.warn("Screenshot failed:", e);
               }
 
             } catch (stepError) {
@@ -790,7 +638,7 @@ Write a brief 2-3 sentence summary of what was accomplished. Be specific about a
               icon: "✅",
               title: "Task Complete",
               summary,
-              liveUrl: liveURL 
+              liveUrl: null 
             });
           } catch {
             streamEvent(controller, { 
@@ -798,12 +646,12 @@ Write a brief 2-3 sentence summary of what was accomplished. Be specific about a
               icon: "✅",
               title: "Task Complete",
               summary: "Task execution finished.",
-              liveUrl: liveURL 
+              liveUrl: null 
             });
           }
 
           // Keep connection open briefly for final screenshots
-          await new Promise(r => setTimeout(r, 5000));
+          await sleep(3000);
 
           ws?.close();
           const encoder = new TextEncoder();
@@ -843,3 +691,4 @@ Write a brief 2-3 sentence summary of what was accomplished. Be specific about a
     );
   }
 });
+
