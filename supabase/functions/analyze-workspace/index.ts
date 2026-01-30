@@ -474,14 +474,136 @@ serve(async (req) => {
                 driveImages.push(fileInfo);
               } else if (file.mimeType?.startsWith('video/')) {
                 driveVideos.push(fileInfo);
-              } else {
+              } else if (
+                file.mimeType === 'application/pdf' ||
+                file.mimeType === 'application/vnd.google-apps.document' ||
+                file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                file.mimeType === 'application/msword' ||
+                file.mimeType === 'text/plain'
+              ) {
                 documents.push(fileInfo);
+              } else {
+                // Other file types - skip
               }
             }
 
             streamStep(controller, {
               type: "observation",
-              content: `Found: ${documents.length} docs, ${sheets.length} sheets, ${slides.length} slides, ${forms.length} forms, ${driveImages.length} images, ${driveVideos.length} videos`
+              content: `Found: ${documents.length} docs/PDFs, ${sheets.length} sheets, ${slides.length} slides, ${forms.length} forms, ${driveImages.length} images, ${driveVideos.length} videos`
+            });
+          }
+
+          // ========== ANALYZE DOCUMENTS (PDFs, Docs) ==========
+          const analyzedDocuments: any[] = [];
+          if (documents.length > 0 && LOVABLE_API_KEY) {
+            streamStep(controller, {
+              type: "action",
+              content: `📄 Analyzing content from ${Math.min(documents.length, 15)} documents and PDFs...`
+            });
+
+            for (const doc of documents.slice(0, 15)) {
+              try {
+                let content = "";
+                let analysisResult = "";
+
+                // For Google Docs, export as plain text
+                if (doc.mimeType === 'application/vnd.google-apps.document') {
+                  const textData = await fetchGoogleAPI(
+                    `https://www.googleapis.com/drive/v3/files/${doc.id}/export?mimeType=text/plain`,
+                    accessToken
+                  );
+                  if (textData) {
+                    content = typeof textData === 'string' ? textData : JSON.stringify(textData);
+                    content = content.slice(0, 5000);
+                  }
+                } 
+                // For PDFs, download and use AI vision
+                else if (doc.mimeType === 'application/pdf') {
+                  // Get the file content
+                  const fileResponse = await fetch(
+                    `https://www.googleapis.com/drive/v3/files/${doc.id}?alt=media`,
+                    { headers: { Authorization: `Bearer ${accessToken}` } }
+                  );
+                  
+                  if (fileResponse.ok) {
+                    const arrayBuffer = await fileResponse.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    
+                    // Only process PDFs under 5MB
+                    if (bytes.length < 5 * 1024 * 1024) {
+                      let binary = "";
+                      for (let i = 0; i < bytes.length; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                      }
+                      const base64Data = btoa(binary);
+                      
+                      // Use AI to extract PDF content
+                      const pdfResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                        method: "POST",
+                        headers: {
+                          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          model: "google/gemini-2.5-flash",
+                          messages: [{
+                            role: "user",
+                            content: [
+                              {
+                                type: "text",
+                                text: `Extract and summarize the key business information from this PDF document "${doc.name}". Focus on: key data points, names, dates, amounts, decisions, action items. Be concise but thorough.`
+                              },
+                              {
+                                type: "image_url",
+                                image_url: { url: `data:application/pdf;base64,${base64Data}` }
+                              }
+                            ]
+                          }],
+                        }),
+                      });
+                      
+                      if (pdfResponse.ok) {
+                        const pdfData = await pdfResponse.json();
+                        analysisResult = pdfData.choices?.[0]?.message?.content || "";
+                      }
+                    }
+                  }
+                }
+                // For other text-based documents
+                else if (doc.mimeType === 'text/plain') {
+                  const textResponse = await fetch(
+                    `https://www.googleapis.com/drive/v3/files/${doc.id}?alt=media`,
+                    { headers: { Authorization: `Bearer ${accessToken}` } }
+                  );
+                  if (textResponse.ok) {
+                    content = await textResponse.text();
+                    content = content.slice(0, 5000);
+                  }
+                }
+
+                if (content || analysisResult) {
+                  analyzedDocuments.push({
+                    name: doc.name,
+                    mimeType: doc.mimeType,
+                    content: content.slice(0, 2000),
+                    analysis: analysisResult.slice(0, 1500),
+                    modifiedTime: doc.modifiedTime,
+                  });
+
+                  streamStep(controller, {
+                    type: "observation",
+                    content: `Analyzed "${doc.name}": ${(analysisResult || content).slice(0, 80)}...`,
+                    data: { type: "document", name: doc.name }
+                  });
+                }
+              } catch (e) {
+                console.error(`Failed to analyze document ${doc.name}:`, e);
+              }
+            }
+            
+            streamStep(controller, {
+              type: "observation",
+              content: `✅ Extracted content from ${analyzedDocuments.length} documents/PDFs`
             });
           }
 
@@ -735,6 +857,13 @@ serve(async (req) => {
             `Event: "${e.summary || 'Untitled'}" | Attendees: ${e.attendees?.length || 0} | Location: ${e.location || 'N/A'}`
           ).join('\n');
 
+          // Build analyzed documents summary (from Google Drive)
+          const documentsSummary = analyzedDocuments.length > 0
+            ? analyzedDocuments.map(d => 
+                `Document: "${d.name}"\n${d.analysis ? `Analysis: ${d.analysis.slice(0, 800)}` : `Content: ${d.content?.slice(0, 800) || 'N/A'}`}`
+              ).join('\n\n')
+            : '';
+
           // Build uploaded files summary
           const uploadedFilesSummary = uploadedFilesData.length > 0 
             ? uploadedFilesData.map(f => 
@@ -742,10 +871,13 @@ serve(async (req) => {
               ).join('\n\n')
             : '';
 
-          const analysisPrompt = `You are a ${role?.toUpperCase() || 'CEO'} business advisor. Analyze this COMPREHENSIVE Google Workspace data including FULL content, images, videos, AND manually uploaded documents. Identify ONE specific, actionable improvement with the highest business impact.
+          const analysisPrompt = `You are a ${role?.toUpperCase() || 'CEO'} business advisor. Analyze this COMPREHENSIVE Google Workspace data including FULL content from emails, documents, PDFs, spreadsheets, images, and videos. Identify ONE specific, actionable improvement with the highest business impact.
 
 ## EMAIL ANALYSIS (${emails.length} emails, ${imageAttachments.length} image attachments, ${videoAttachments.length} videos):
 ${emailSummary || 'No emails found'}
+
+## DOCUMENTS & PDFs ANALYZED (${analyzedDocuments.length} files with extracted content):
+${documentsSummary || 'No documents analyzed'}
 
 ## IMAGE ANALYSIS (AI-analyzed images):
 ${imageSummary || 'No images analyzed'}
@@ -765,17 +897,16 @@ ${formsSummary || 'No forms found'}
 ## CALENDAR (${events.length} upcoming events):
 ${calendarSummary || 'No events found'}
 
-${uploadedFilesData.length > 0 ? `## UPLOADED BUSINESS DOCUMENTS (${uploadedFilesData.length} files):
+${uploadedFilesData.length > 0 ? `## MANUALLY UPLOADED FILES (${uploadedFilesData.length} files):
 ${uploadedFilesSummary}
 ` : ''}
-Based on the ACTUAL CONTENT including images, videos, and uploaded documents, identify patterns, issues, or opportunities. Look for:
+Based on the ACTUAL CONTENT from PDFs, documents, images, videos, and all other files, identify patterns, issues, or opportunities. Look for:
+- Document content revealing contracts, agreements, or important business data
+- PDF reports containing metrics, financials, or operational data
 - Email patterns and attachment trends
 - Image content that reveals business operations or issues
-- Video files that might need organization or action
 - Spreadsheet data showing trends or anomalies
 - Presentation content quality and consistency
-- Form design improvements
-${uploadedFilesData.length > 0 ? '- Uploaded documents containing important business data, contracts, or reports' : ''}
 
 Respond with a JSON object:
 {
@@ -827,12 +958,14 @@ Respond with a JSON object:
             console.error("Failed to parse AI response:", e);
           }
 
+          // Build research summary to save
           const researchSummary = {
             emailsAnalyzed: emails.length,
             emailAttachments: allEmailAttachments.length,
             imageAttachmentsAnalyzed: analyzedEmailImages.length,
             videoAttachments: videoAttachments.length,
             documentsAnalyzed: documents.length,
+            documentContentExtracted: analyzedDocuments.length,
             sheetsAnalyzed: sheets.length,
             slidesAnalyzed: slides.length,
             formsAnalyzed: forms.length,
@@ -865,6 +998,12 @@ Respond with a JSON object:
               location: e.location
             })),
             documents: documents.slice(0, 30).map(d => ({ name: d.name, modifiedTime: d.modifiedTime })),
+            analyzedDocuments: analyzedDocuments.slice(0, 15).map(d => ({
+              name: d.name,
+              mimeType: d.mimeType,
+              content: d.content?.slice(0, 1500) || d.analysis?.slice(0, 1500),
+              modifiedTime: d.modifiedTime
+            })),
             sheets: sheets.slice(0, 10).map(s => ({
               name: s.name,
               title: s.title,
