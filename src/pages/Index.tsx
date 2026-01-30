@@ -62,12 +62,13 @@ const Index = () => {
         setGoogleToken(session.provider_token);
       }
 
-      // If authenticated and has quiz data with research mode, show research
+      // If authenticated and has quiz data, show the analysis view (both research and action modes)
       const storedQuizData = sessionStorage.getItem('quizData');
       if (session && storedQuizData) {
         try {
           const parsed = JSON.parse(storedQuizData);
-          if (parsed.mode === 'research') {
+          // Both research and action modes go through the same analysis flow
+          if (parsed.mode === 'research' || parsed.mode === 'action') {
             setQuizData(parsed);
             setShowResearch(true);
           }
