@@ -44,115 +44,151 @@ interface Message {
 function generatePersonalizedQuestions(
   moduleId: string,
   businessData: BusinessData | null,
-  summary: ResearchSummary | null
+  summary: ResearchSummary | null,
+  researchFindings?: any
 ): string[] {
-  const fallbackQuestions: Record<string, string[]> = {
-    email: [
-      "Who are my top email contacts?",
-      "What emails need my attention?",
-      "Summarize my recent email threads"
-    ],
-    calendar: [
-      "What meetings do I have this week?",
-      "How is my time distributed?",
-      "What deadlines are coming up?"
-    ],
-    docs: [
-      "What documents were recently modified?",
-      "Which documents need my review?",
-      "Summarize my recent document activity"
-    ],
-    revenue: [
-      "What financial topics appear in my data?",
-      "Identify payment-related conversations",
-      "Summarize financial activity"
-    ],
-    team: [
-      "Who am I collaborating with most?",
-      "What team discussions are happening?",
-      "Which team members need follow-ups?"
-    ],
-    trends: [
-      "What topics are trending in my business?",
-      "Identify emerging patterns",
-      "What should I focus on?"
-    ],
-    uploads: [
-      "What's in my uploaded files?",
-      "Summarize my documents",
-      "Find key data in my uploads"
-    ]
-  };
-
-  if (!businessData) {
-    return fallbackQuestions[moduleId] || [];
-  }
-
   const questions: string[] = [];
+
+  // Extract findings from research if available
+  const findings = researchFindings?.findings || researchFindings?.insights || [];
+  const keyTopics = researchFindings?.keyTopics || [];
+  const recommendations = researchFindings?.recommendations || [];
 
   switch (moduleId) {
     case "email":
-      if (businessData.topContacts?.length) {
+      if (businessData?.topContacts?.length) {
         const topContact = businessData.topContacts[0];
         const contactName = topContact.email.split('@')[0].replace(/[._]/g, ' ');
         questions.push(`What does ${contactName} need from me?`);
-        questions.push(`Summarize my conversations with ${contactName}`);
+        if (businessData.topContacts.length > 1) {
+          const secondContact = businessData.topContacts[1].email.split('@')[0].replace(/[._]/g, ' ');
+          questions.push(`Compare conversations with ${contactName} and ${secondContact}`);
+        }
       }
-      if (businessData.emailSummaries?.length) {
-        questions.push(`What urgent emails should I respond to?`);
+      if (businessData?.emailSummaries?.length) {
+        const recentSubject = businessData.emailSummaries[0]?.subject;
+        if (recentSubject) {
+          questions.push(`Follow up needed for "${recentSubject.slice(0, 30)}..."?`);
+        }
+      }
+      // Add from findings
+      const emailFinding = findings.find((f: any) => f?.category?.toLowerCase?.().includes('email') || f?.area?.toLowerCase?.().includes('communication'));
+      if (emailFinding?.title || emailFinding?.issue) {
+        questions.push(`How can I address: ${(emailFinding.title || emailFinding.issue).slice(0, 40)}?`);
       }
       break;
 
     case "calendar":
-      if (businessData.calendarEvents?.length) {
+      if (businessData?.calendarEvents?.length) {
         const nextEvent = businessData.calendarEvents[0];
         if (nextEvent.summary) {
-          questions.push(`How should I prepare for "${nextEvent.summary}"?`);
+          questions.push(`How should I prepare for "${nextEvent.summary.slice(0, 25)}"?`);
         }
-        questions.push(`What meetings can I reschedule?`);
+        const bigMeeting = businessData.calendarEvents.find(e => (e.attendees || 0) > 3);
+        if (bigMeeting?.summary) {
+          questions.push(`What's the agenda for "${bigMeeting.summary.slice(0, 25)}"?`);
+        }
+      }
+      questions.push(`Which meetings can I reschedule this week?`);
+      // From research findings
+      const timeFinding = findings.find((f: any) => f?.category?.toLowerCase?.().includes('time') || f?.area?.toLowerCase?.().includes('schedule'));
+      if (timeFinding) {
+        questions.push(`How do I optimize my calendar based on findings?`);
       }
       break;
 
     case "docs":
-      if (businessData.documents?.length) {
+      if (businessData?.documents?.length) {
         const recentDoc = businessData.documents[0];
-        questions.push(`Summarize "${recentDoc.name}"`);
+        questions.push(`Summarize "${recentDoc.name.slice(0, 30)}"`);
+        if (businessData.documents.length > 2) {
+          questions.push(`Compare my ${businessData.documents.length} documents for trends`);
+        }
       }
-      if (businessData.sheets?.length) {
-        questions.push(`What trends in my spreadsheets?`);
+      if (businessData?.sheets?.length) {
+        const sheet = businessData.sheets[0];
+        questions.push(`What key numbers in "${(sheet.title || sheet.name).slice(0, 25)}"?`);
+      }
+      if (businessData?.slides?.length) {
+        questions.push(`Review my presentation content`);
       }
       break;
 
     case "revenue":
+      // Pull from financial findings
+      const revenueFinding = findings.find((f: any) => 
+        f?.category?.toLowerCase?.().includes('financ') || 
+        f?.category?.toLowerCase?.().includes('revenue') ||
+        f?.area?.toLowerCase?.().includes('money')
+      );
+      if (revenueFinding?.title || revenueFinding?.issue) {
+        questions.push(`Explain: ${(revenueFinding.title || revenueFinding.issue).slice(0, 40)}`);
+      }
       questions.push(`What payment discussions are in my emails?`);
-      questions.push(`Identify budget concerns`);
+      questions.push(`Identify budget concerns from my data`);
+      // From recommendations
+      const revenueRec = recommendations.find((r: any) => r?.toLowerCase?.().includes('cost') || r?.toLowerCase?.().includes('revenue'));
+      if (revenueRec) {
+        questions.push(`How do I implement: ${revenueRec.slice(0, 35)}?`);
+      }
       break;
 
     case "team":
-      if (businessData.topContacts?.length && businessData.topContacts.length > 1) {
-        questions.push(`What's the status with my team?`);
+      if (businessData?.topContacts?.length && businessData.topContacts.length > 2) {
+        questions.push(`Who are my top ${Math.min(5, businessData.topContacts.length)} collaborators?`);
       }
-      questions.push(`Who needs my attention?`);
+      const teamFinding = findings.find((f: any) => 
+        f?.category?.toLowerCase?.().includes('team') || 
+        f?.area?.toLowerCase?.().includes('collaborat')
+      );
+      if (teamFinding?.title) {
+        questions.push(`Address team issue: ${teamFinding.title.slice(0, 35)}`);
+      }
+      questions.push(`Who needs follow-up this week?`);
+      questions.push(`What team discussions are happening?`);
       break;
 
     case "trends":
-      questions.push(`What patterns in my business?`);
-      questions.push(`What should I prioritize?`);
+      // Pull key topics from research
+      if (keyTopics.length > 0) {
+        questions.push(`Deep dive into: ${keyTopics[0]}`);
+      }
+      const trendFinding = findings[0];
+      if (trendFinding?.title || trendFinding?.issue) {
+        questions.push(`What's the impact of: ${(trendFinding.title || trendFinding.issue).slice(0, 30)}?`);
+      }
+      if (recommendations.length > 0) {
+        questions.push(`Priority action: ${recommendations[0].slice(0, 35)}?`);
+      }
+      questions.push(`What patterns are emerging in my business?`);
       break;
 
     case "uploads":
       questions.push(`Analyze my uploaded files`);
       questions.push(`What key data is in my documents?`);
+      questions.push(`Compare uploaded documents`);
       break;
   }
 
+  // Fallback questions if we don't have enough
+  const fallbackQuestions: Record<string, string[]> = {
+    email: ["Who are my top contacts?", "Summarize urgent emails", "What needs my response?"],
+    calendar: ["What's my week look like?", "Upcoming deadlines?", "Meeting time analysis"],
+    docs: ["Recent document activity?", "Key document insights", "What needs my review?"],
+    revenue: ["Financial overview", "Payment trends", "Budget analysis"],
+    team: ["Team collaboration status", "Who's most active?", "Pending team items"],
+    trends: ["Business patterns", "What should I focus on?", "Key opportunities"],
+    uploads: ["File analysis", "Document summary", "Key extracted data"]
+  };
+
   while (questions.length < 3) {
     const fallback = fallbackQuestions[moduleId]?.[questions.length];
-    if (fallback) questions.push(fallback);
-    else break;
+    if (fallback && !questions.includes(fallback)) {
+      questions.push(fallback);
+    } else break;
   }
 
-  return questions.slice(0, 3);
+  return questions.slice(0, 4);
 }
 
 // Database module definitions - styled as file folders
@@ -202,6 +238,7 @@ export function DatabaseView() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const [uploadedFilesCount, setUploadedFilesCount] = useState(0);
+  const [researchFindings, setResearchFindings] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch business data from storage bucket
@@ -229,6 +266,7 @@ export function DatabaseView() {
         
         setBusinessData(parsed.rawData || null);
         setResearchSummary(parsed.summary || null);
+        setResearchFindings(parsed.findings || parsed.analysis || null);
       } catch (error) {
         console.error('Error fetching business data:', error);
       } finally {
@@ -453,71 +491,61 @@ export function DatabaseView() {
               {databaseModules.map((module, index) => {
                 const Icon = module.icon;
                 const isHovered = hoveredModule === module.id;
-                const questions = generatePersonalizedQuestions(module.id, businessData, researchSummary);
+                const questions = generatePersonalizedQuestions(module.id, businessData, researchSummary, researchFindings);
 
                 return (
                   <div
                     key={module.id}
-                    className="relative"
+                    className="relative group"
                     onMouseEnter={() => setHoveredModule(module.id)}
                     onMouseLeave={() => setHoveredModule(null)}
                     onClick={() => module.id === "uploads" && setShowUploadPanel(true)}
                     style={{ zIndex: isHovered ? 50 : 10 - index }}
                   >
-                    {/* File folder container */}
+                    {/* Tab-style card that expands on hover */}
                     <div
                       className={cn(
-                        "relative cursor-pointer transition-all duration-500 ease-out",
-                        "w-28 origin-bottom"
+                        "relative cursor-pointer transition-all duration-400 ease-out origin-bottom",
+                        isHovered ? "w-72" : "w-28"
                       )}
-                      style={{
-                        transform: isHovered 
-                          ? 'translateY(-20px) rotateX(-5deg) scale(1.05)' 
-                          : 'translateY(0) rotateX(0deg) scale(1)',
-                        transformStyle: 'preserve-3d',
-                        perspective: '1000px'
-                      }}
                     >
-                      {/* Folder tab - sticks up */}
+                      {/* Folder tab */}
                       <div className={cn(
-                        "absolute -top-6 left-2 right-8 h-7 rounded-t-lg transition-all duration-300",
+                        "absolute -top-6 left-2 h-7 rounded-t-lg transition-all duration-300",
                         "bg-gradient-to-b",
                         module.color,
-                        isHovered && "shadow-glow"
+                        isHovered ? "right-4 shadow-glow" : "right-8"
                       )}>
                         <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90 tracking-wider">
                           {module.code}
                         </span>
                       </div>
 
-                      {/* Main folder body */}
+                      {/* Main card body */}
                       <div className={cn(
-                        "relative h-36 rounded-lg transition-all duration-300",
+                        "relative rounded-lg transition-all duration-400 overflow-hidden",
                         "bg-gradient-to-b from-card to-card/80",
                         "border border-border/50",
-                        isHovered && "border-primary/50 shadow-glow"
+                        isHovered ? "h-auto min-h-[160px] border-primary/50 shadow-glow" : "h-36"
                       )}>
-                        {/* Folder content */}
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
+                        {/* Collapsed view - icon and title */}
+                        <div className={cn(
+                          "absolute inset-0 flex flex-col items-center justify-center p-3 transition-all duration-300",
+                          isHovered ? "opacity-0 pointer-events-none" : "opacity-100"
+                        )}>
                           <div className={cn(
                             "p-2.5 rounded-xl mb-2 transition-all duration-300",
                             "bg-gradient-to-br",
-                            module.color,
-                            isHovered && "scale-110 shadow-lg"
+                            module.color
                           )}>
                             <Icon className="h-5 w-5 text-white" />
                           </div>
-                          <span className={cn(
-                            "text-[10px] font-semibold tracking-wider text-center transition-colors",
-                            isHovered ? "text-primary" : "text-muted-foreground"
-                          )}>
+                          <span className="text-[10px] font-semibold tracking-wider text-center text-muted-foreground">
                             {module.title}
                           </span>
-                          
-                          {/* Data indicator dots */}
                           <div className="flex gap-1 mt-2">
                             <span className={cn(
-                              "h-1 w-1 rounded-full transition-colors",
+                              "h-1 w-1 rounded-full",
                               hasBusinessData ? "bg-primary" : "bg-muted-foreground/30"
                             )} />
                             <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
@@ -525,73 +553,42 @@ export function DatabaseView() {
                           </div>
                         </div>
 
-                        {/* Paper sheets inside folder - visible on hover */}
+                        {/* Expanded view - questions panel */}
                         <div className={cn(
-                          "absolute inset-x-1 top-1 h-full transition-all duration-500",
+                          "p-4 transition-all duration-400",
                           isHovered ? "opacity-100" : "opacity-0"
                         )}>
-                          {[0, 1, 2].map((i) => (
-                            <div
-                              key={i}
-                              className="absolute inset-x-0 h-full bg-gradient-to-b from-foreground/5 to-transparent rounded-t-lg border-t border-x border-foreground/10"
-                              style={{
-                                transform: `translateY(${-4 - i * 3}px) scale(${1 - i * 0.02})`,
-                                opacity: 1 - i * 0.3
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Opened file content - questions panel */}
-                    <div
-                      className={cn(
-                        "absolute left-full top-0 ml-3 w-64 transition-all duration-400 origin-left",
-                        isHovered 
-                          ? "opacity-100 scale-100 translate-x-0" 
-                          : "opacity-0 scale-95 -translate-x-4 pointer-events-none"
-                      )}
-                      style={{ 
-                        zIndex: 100,
-                      }}
-                    >
-                      {/* Paper document appearance */}
-                      <div className="relative">
-                        {/* Paper shadow layers */}
-                        <div className="absolute inset-0 bg-card/50 rounded-lg transform translate-x-1 translate-y-1" />
-                        <div className="absolute inset-0 bg-card/70 rounded-lg transform translate-x-0.5 translate-y-0.5" />
-                        
-                        {/* Main paper */}
-                        <div className="relative bg-card rounded-lg p-4 border border-border/50 shadow-xl">
-                          {/* Paper header line */}
+                          {/* Header */}
                           <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/30">
-                            <div className={cn("p-1.5 rounded-lg bg-gradient-to-br", module.color)}>
+                            <div className={cn("p-1.5 rounded-lg bg-gradient-to-br shrink-0", module.color)}>
                               <Icon className="h-3.5 w-3.5 text-white" />
                             </div>
-                            <div>
-                              <p className="text-xs font-semibold text-foreground">{module.title}</p>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-foreground truncate">{module.title}</p>
                               <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
                                 {hasBusinessData ? "Your Insights" : "Quick Access"}
                               </p>
                             </div>
                           </div>
 
-                          {/* Questions as paper content */}
-                          <div className="space-y-2">
+                          {/* Questions */}
+                          <div className="space-y-1.5">
                             {questions.map((question, idx) => (
                               <button
                                 key={idx}
-                                onClick={() => handleQuestionClick(question)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQuestionClick(question);
+                                }}
                                 className={cn(
-                                  "w-full text-left px-3 py-2.5 rounded-lg text-xs transition-all duration-200",
+                                  "w-full text-left px-2.5 py-2 rounded-lg text-[11px] transition-all duration-200",
                                   "bg-muted/40 hover:bg-primary/20 hover:text-primary",
                                   "border border-transparent hover:border-primary/30",
-                                  "flex items-center gap-2 group"
+                                  "flex items-center gap-2 group/q"
                                 )}
                               >
-                                <Sparkles className="h-3 w-3 text-primary/50 group-hover:text-primary shrink-0" />
-                                <span className="line-clamp-2">{question}</span>
+                                <Sparkles className="h-3 w-3 text-primary/50 group-hover/q:text-primary shrink-0" />
+                                <span className="line-clamp-2 leading-tight">{question}</span>
                               </button>
                             ))}
                           </div>
