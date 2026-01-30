@@ -165,13 +165,19 @@ serve(async (req) => {
           }
 
           const sessionData = await sessionResponse.json();
-          const connectUrl = sessionData.browserWSEndpoint || sessionData.webSocketDebuggerUrl;
+          console.log("Session API response keys:", Object.keys(sessionData));
+          
+          // The /session API returns { connect, stop, liveURL, ... }
+          const connectUrl = sessionData.connect || sessionData.browserWSEndpoint || sessionData.webSocketDebuggerUrl;
           const browserlessLiveUrl = sessionData.liveURL;
+          const stopUrl = sessionData.stop;
           
           console.log("Session created, connectUrl:", connectUrl ? "obtained" : "missing");
           console.log("LiveURL from session:", browserlessLiveUrl || "not provided");
+          console.log("Stop URL:", stopUrl ? "obtained" : "missing");
 
           if (!connectUrl) {
+            console.error("Full session response:", JSON.stringify(sessionData));
             throw new Error("No WebSocket endpoint returned from session");
           }
 
