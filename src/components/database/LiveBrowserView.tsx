@@ -11,7 +11,8 @@ import {
   RefreshCw,
   Maximize2,
   Minimize2,
-  AlertTriangle
+  AlertTriangle,
+  ExternalLink
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,7 +25,7 @@ interface LiveBrowserViewProps {
 }
 
 interface AgentStep {
-  type: "navigate" | "click" | "type" | "screenshot" | "think" | "complete" | "error";
+  type: "navigate" | "click" | "type" | "screenshot" | "think" | "complete" | "error" | "warning" | "step";
   content: string;
   timestamp: Date;
   screenshot?: string;
@@ -49,8 +50,9 @@ export function LiveBrowserView({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [liveUrl, setLiveUrl] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<{ index: number; total: number } | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll log
@@ -66,49 +68,28 @@ export function LiveBrowserView({
       try {
         addStep("think", "Initializing browser session...");
         
-        // Refresh session to ensure we have a valid token
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) {
-          console.error("Refresh error:", refreshError);
-        }
+        // Refresh session
+        await supabase.auth.refreshSession();
         
-        // Get fresh session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          throw new Error(`Session error: ${sessionError.message}`);
-        }
-        if (!session?.access_token) {
+        if (sessionError || !session?.access_token) {
           throw new Error("Not authenticated - please log in first");
         }
-        
-        console.log("Session ready, token length:", session.access_token.length);
 
-        // Get Google token if available
-        const googleToken = sessionStorage.getItem('googleProviderToken');
-
-        // Start browser automation via edge function
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/browser-agent`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-               // Required by the backend gateway for some environments even when using a user JWT.
-               'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
               'Authorization': `Bearer ${session.access_token}`
             },
-            body: JSON.stringify({
-              role,
-              task,
-              timeEstimate,
-              googleToken
-            })
+            body: JSON.stringify({ role, task, timeEstimate })
           }
         );
 
         if (!response.ok) {
-          // Provide richer error context to help debug auth/session issues.
           let message = 'Failed to start browser session';
           try {
             const errorData = await response.json();
@@ -119,14 +100,11 @@ export function LiveBrowserView({
             try {
               const text = await response.text();
               if (text) message = text;
-            } catch {
-              // ignore
-            }
+            } catch { /* ignore */ }
           }
           throw new Error(message);
         }
 
-        // Stream the response
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
 
@@ -143,7 +121,6 @@ export function LiveBrowserView({
 
           buffer += decoder.decode(value, { stream: true });
           
-          // Process complete lines
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
@@ -152,16 +129,13 @@ export function LiveBrowserView({
               const jsonStr = line.slice(6).trim();
               if (jsonStr === '[DONE]') {
                 setIsComplete(true);
-                addStep("complete", "Task completed successfully!");
                 break;
               }
               
               try {
                 const data = JSON.parse(jsonStr);
                 handleAgentEvent(data);
-              } catch {
-                // Ignore parse errors for incomplete JSON
-              }
+              } catch { /* ignore parse errors */ }
             }
           }
         }
@@ -195,27 +169,42 @@ export function LiveBrowserView({
         addStep("click", `Clicking: ${data.element || data.description}`);
         break;
       case 'type':
-        addStep("type", `Typing: ${data.text ? data.text.slice(0, 50) + '...' : 'text'}`);
+        addStep("type", `Typing: ${data.text || 'text'}`);
         break;
       case 'screenshot':
         if (data.image) {
           setScreenshot(`data:image/png;base64,${data.image}`);
-          addStep("screenshot", "Screenshot captured", `data:image/png;base64,${data.image}`);
+          addStep("screenshot", "Screenshot captured");
         }
         break;
       case 'think':
         addStep("think", data.content || data.thought);
+        break;
+      case 'warning':
+        addStep("warning", data.message);
         break;
       case 'error':
         addStep("error", data.message || 'An error occurred');
         setError(data.message);
         break;
       case 'session':
-        setSessionId(data.id);
-        addStep("think", `Session started: ${data.id?.slice(0, 8)}...`);
+        if (data.liveUrl) {
+          setLiveUrl(data.liveUrl);
+        }
+        addStep("think", `Session started`);
+        break;
+      case 'liveUrl':
+        setLiveUrl(data.url);
+        addStep("think", "Live browser view ready");
+        break;
+      case 'step':
+        setCurrentStep({ index: data.index, total: data.total });
         break;
       case 'complete':
         setIsComplete(true);
+        if (data.liveUrl && !liveUrl) {
+          setLiveUrl(data.liveUrl);
+        }
         addStep("complete", data.summary || "Task completed!");
         break;
     }
@@ -228,6 +217,8 @@ export function LiveBrowserView({
       case "type": return <span className="text-xs text-green-400">⌨</span>;
       case "screenshot": return <span className="text-xs text-purple-400">📸</span>;
       case "think": return <Loader2 className="h-3 w-3 text-primary animate-spin" />;
+      case "step": return <span className="text-xs text-blue-400">→</span>;
+      case "warning": return <AlertTriangle className="h-3 w-3 text-amber-500" />;
       case "complete": return <CheckCircle className="h-3 w-3 text-green-500" />;
       case "error": return <XCircle className="h-3 w-3 text-red-500" />;
     }
@@ -240,8 +231,16 @@ export function LiveBrowserView({
       case "type": return "text-green-400";
       case "screenshot": return "text-purple-400";
       case "think": return "text-muted-foreground";
+      case "step": return "text-blue-400";
+      case "warning": return "text-amber-500";
       case "complete": return "text-green-500";
       case "error": return "text-red-500";
+    }
+  };
+
+  const openLiveUrlInNewTab = () => {
+    if (liveUrl) {
+      window.open(liveUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -254,11 +253,27 @@ export function LiveBrowserView({
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             <span className="text-sm font-medium text-primary">{roleLabels[role]} Active</span>
           </div>
-          <div className="text-sm text-muted-foreground">
-            Task: <span className="text-foreground">{task.slice(0, 50)}{task.length > 50 ? '...' : ''}</span>
+          {currentStep && (
+            <div className="text-sm text-muted-foreground">
+              Step {currentStep.index} of {currentStep.total}
+            </div>
+          )}
+          <div className="text-sm text-muted-foreground truncate max-w-xs">
+            Task: <span className="text-foreground">{task.slice(0, 40)}{task.length > 40 ? '...' : ''}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {liveUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openLiveUrlInNewTab}
+              className="gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open in New Tab
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -316,7 +331,7 @@ export function LiveBrowserView({
                 <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
                 <p className="text-muted-foreground">Starting browser session...</p>
               </div>
-            ) : error && !screenshot ? (
+            ) : error && !screenshot && !liveUrl ? (
               <Card className="p-8 max-w-md text-center space-y-4">
                 <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
                 <div>
@@ -327,6 +342,18 @@ export function LiveBrowserView({
                   Return to Task Setup
                 </Button>
               </Card>
+            ) : liveUrl ? (
+              <div className="w-full h-full flex flex-col">
+                <iframe 
+                  src={liveUrl} 
+                  className="w-full h-full rounded-lg border border-border/50"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  title="Live Browser View"
+                />
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  Interactive live browser - you can click and type directly
+                </p>
+              </div>
             ) : screenshot ? (
               <img 
                 src={screenshot} 
@@ -353,7 +380,7 @@ export function LiveBrowserView({
           >
             {steps.map((step, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="mt-0.5">{getStepIcon(step.type)}</span>
+                <span className="mt-0.5 flex-shrink-0">{getStepIcon(step.type)}</span>
                 <div className="flex-1 min-w-0">
                   <span className={getStepColor(step.type)}>{step.content}</span>
                   <span className="text-muted-foreground/50 ml-2">
