@@ -275,7 +275,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
           </div>
 
           {/* Browser Content */}
-          <div className="p-6 h-full flex flex-col">
+          <div className="p-6 h-full flex flex-col items-center justify-center">
             {/* Analysis State - Activity Log */}
             {isRunning && (
               <div className="w-full h-full flex flex-col animate-fade-in">
@@ -352,7 +352,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
 
             {/* Complete State - Show Recommendation in Browser */}
             {isComplete && finding && (
-              <div className="w-full max-w-3xl animate-fade-in">
+              <div className="w-full max-w-3xl mx-auto animate-fade-in">
                 {/* Header - CEO Analysis */}
                 <div className="flex items-center gap-3 mb-5">
                   <div className="p-2 rounded-lg bg-red-500/20">
@@ -536,7 +536,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
 
             {/* Complete State - No finding */}
             {isComplete && !finding && (
-              <div className="w-full max-w-2xl animate-fade-in">
+              <div className="w-full max-w-2xl mx-auto animate-fade-in">
                 <div className="flex flex-col items-center justify-center text-center">
                   <div className="relative mb-4">
                     <CheckCircle2 className="h-16 w-16 text-green-400" />
