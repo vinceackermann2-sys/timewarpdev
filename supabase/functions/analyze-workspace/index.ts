@@ -244,7 +244,10 @@ serve(async (req) => {
     console.log("Authenticated user for analysis:", userId);
 
     const body = await req.json().catch(() => ({}));
-    const { accessToken, role, includeUploadedFiles } = body;
+    const { accessToken, role = 'ceo', mode = 'research', includeUploadedFiles } = body;
+    
+    const isResearchMode = mode === 'research';
+    const roleLabel = role?.toUpperCase() || 'CEO';
     
     if (!accessToken) {
       return new Response(
@@ -308,9 +311,13 @@ serve(async (req) => {
             }
           }
 
+          const modeDescription = isResearchMode 
+            ? "identify inefficiencies, problems, and improvement opportunities" 
+            : "find immediate actionable tasks I can execute right now";
+          
           streamStep(controller, {
             type: "thought",
-            content: `Deep analysis mode: I'll scan up to 1000 emails (with attachments), full spreadsheet data, slide images/text, form content, video files${uploadedFilesData.length > 0 ? `, plus ${uploadedFilesData.length} uploaded document(s)` : ''} as a ${role?.toUpperCase() || 'CEO'} advisor...`
+            content: `${roleLabel} ${isResearchMode ? 'Research' : 'Action'} mode: I'll scan up to 1000 emails (with attachments), full spreadsheet data, slide images/text, form content, video files${uploadedFilesData.length > 0 ? `, plus ${uploadedFilesData.length} uploaded document(s)` : ''} to ${modeDescription}...`
           });
 
           await new Promise(r => setTimeout(r, 500));
@@ -935,7 +942,7 @@ Respond with a JSON object:
             body: JSON.stringify({
               model: "google/gemini-3-flash-preview",
               messages: [
-                { role: "system", content: "You are a business analyst. Always respond with valid JSON only. Base your analysis on the ACTUAL CONTENT including image descriptions and video information provided." },
+                { role: "system", content: `You are a ${roleLabel} ${isResearchMode ? 'business analyst' : 'executive assistant'}. Always respond with valid JSON only. Base your analysis on the ACTUAL CONTENT including image descriptions and video information provided.` },
                 { role: "user", content: analysisPrompt },
               ],
             }),
@@ -973,6 +980,7 @@ Respond with a JSON object:
             driveVideos: driveVideos.length,
             eventsAnalyzed: events.length,
             uploadedFilesAnalyzed: uploadedFilesData.length,
+            analysisMode: mode,
             analyzedAt: new Date().toISOString(),
             timeRange: {
               emails: `Last year (since ${lastYearDate})`,
