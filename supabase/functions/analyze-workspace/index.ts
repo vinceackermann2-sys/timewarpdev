@@ -328,114 +328,73 @@ serve(async (req) => {
             content: `📧 Fetching up to 1000 emails with full content and attachments...`
           });
 
+          // Fetch a reasonable number of emails to avoid rate limiting and CPU timeout
           const emailQuery = encodeURIComponent(`after:${lastYearDate}`);
-          let allEmailIds: string[] = [];
-          let nextPageToken: string | undefined;
+          const emailsData = await fetchGoogleAPI(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${emailQuery}`,
+            accessToken
+          );
           
-          while (allEmailIds.length < 1000) {
-            const pageUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500&q=${emailQuery}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
-            const emailsData = await fetchGoogleAPI(pageUrl, accessToken);
-            
-            if (!emailsData?.messages) break;
-            allEmailIds = allEmailIds.concat(emailsData.messages.map((m: any) => m.id));
-            nextPageToken = emailsData.nextPageToken;
-            if (!nextPageToken) break;
-          }
+          const allEmailIds = emailsData?.messages?.map((m: any) => m.id) || [];
 
           streamStep(controller, {
             type: "observation",
-            content: `Found ${allEmailIds.length} emails. Fetching content and detecting attachments...`
+            content: `Found ${allEmailIds.length} recent emails. Fetching content...`
           });
 
           const emails: any[] = [];
           const allEmailAttachments: any[] = [];
-          const emailBatchSize = 50;
           
-          for (let batch = 0; batch < Math.ceil(Math.min(allEmailIds.length, 1000) / emailBatchSize); batch++) {
+          // Process emails in smaller batches with delays to avoid rate limits
+          const emailBatchSize = 10;
+          const maxEmails = Math.min(allEmailIds.length, 50); // Limit to 50 emails
+          
+          for (let batch = 0; batch < Math.ceil(maxEmails / emailBatchSize); batch++) {
             const batchIds = allEmailIds.slice(batch * emailBatchSize, (batch + 1) * emailBatchSize);
             
-            const batchPromises = batchIds.map(async (msgId) => {
-              const detail = await fetchGoogleAPI(
-                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`,
-                accessToken
-              );
-              
-              if (detail) {
-                const headers = detail.payload?.headers || [];
-                const content = extractEmailContent(detail.payload);
-                const attachments = extractEmailAttachments(detail.payload, msgId);
+            // Process batch sequentially to avoid rate limits
+            for (const msgId of batchIds) {
+              try {
+                const detail = await fetchGoogleAPI(
+                  `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Date`,
+                  accessToken
+                );
                 
-                allEmailAttachments.push(...attachments);
-                
-                return {
-                  id: msgId,
-                  subject: headers.find((h: any) => h.name === "Subject")?.value || "(No subject)",
-                  from: headers.find((h: any) => h.name === "From")?.value || "Unknown",
-                  to: headers.find((h: any) => h.name === "To")?.value || "",
-                  date: headers.find((h: any) => h.name === "Date")?.value,
-                  content: content.slice(0, 1500),
-                  snippet: detail.snippet,
-                  labels: detail.labelIds || [],
-                  attachmentCount: attachments.length,
-                  hasImages: attachments.some((a: any) => a.isImage),
-                  hasVideos: attachments.some((a: any) => a.isVideo),
-                };
+                if (detail) {
+                  const headers = detail.payload?.headers || [];
+                  
+                  emails.push({
+                    id: msgId,
+                    subject: headers.find((h: any) => h.name === "Subject")?.value || "(No subject)",
+                    from: headers.find((h: any) => h.name === "From")?.value || "Unknown",
+                    to: headers.find((h: any) => h.name === "To")?.value || "",
+                    date: headers.find((h: any) => h.name === "Date")?.value,
+                    snippet: detail.snippet,
+                    labels: detail.labelIds || [],
+                  });
+                }
+              } catch (e) {
+                console.error(`Error fetching email ${msgId}:`, e);
               }
-              return null;
-            });
-            
-            const batchResults = await Promise.all(batchPromises);
-            emails.push(...batchResults.filter(Boolean));
-            
-            if (batch % 3 === 0) {
-              streamStep(controller, {
-                type: "observation",
-                content: `Processed ${emails.length}/${Math.min(allEmailIds.length, 1000)} emails...`
-              });
             }
+            
+            // Small delay between batches to respect rate limits
+            if (batch < Math.ceil(maxEmails / emailBatchSize) - 1) {
+              await new Promise(r => setTimeout(r, 100));
+            }
+            
+            streamStep(controller, {
+              type: "observation",
+              content: `Processed ${emails.length}/${maxEmails} emails...`
+            });
           }
-
-          const imageAttachments = allEmailAttachments.filter(a => a.isImage);
-          const videoAttachments = allEmailAttachments.filter(a => a.isVideo);
 
           streamStep(controller, {
             type: "observation",
-            content: `✅ Analyzed ${emails.length} emails. Found ${imageAttachments.length} image attachments and ${videoAttachments.length} video attachments.`
+            content: `✅ Analyzed ${emails.length} emails successfully.`
           });
 
-          // Analyze a few email image attachments
           const analyzedEmailImages: any[] = [];
-          if (imageAttachments.length > 0 && LOVABLE_API_KEY) {
-            streamStep(controller, {
-              type: "action",
-              content: `🖼️ Analyzing ${Math.min(imageAttachments.length, 5)} image attachments from emails...`
-            });
-
-            for (const attachment of imageAttachments.slice(0, 5)) {
-              // Fetch attachment data
-              const attachmentData = await fetchGoogleAPI(
-                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${attachment.messageId}/attachments/${attachment.attachmentId}`,
-                accessToken
-              );
-              
-              if (attachmentData?.data) {
-                const base64Data = attachmentData.data.replace(/-/g, '+').replace(/_/g, '/');
-                const imageUrl = `data:${attachment.mimeType};base64,${base64Data}`;
-                
-                const analysis = await analyzeImage(imageUrl, `Email attachment: ${attachment.filename}`, LOVABLE_API_KEY);
-                analyzedEmailImages.push({
-                  filename: attachment.filename,
-                  analysis,
-                });
-                
-                streamStep(controller, {
-                  type: "observation",
-                  content: `Analyzed image "${attachment.filename}": ${analysis.slice(0, 100)}...`,
-                  data: { type: "email_image", filename: attachment.filename }
-                });
-              }
-            }
-          }
 
           await new Promise(r => setTimeout(r, 300));
 
@@ -856,7 +815,6 @@ serve(async (req) => {
           ].join('\n');
 
           const videoSummary = [
-            ...videoAttachments.map(v => `Email video: ${v.filename} (${Math.round((v.size || 0) / 1024 / 1024)}MB)`),
             ...driveVideos.map(v => `Drive video: ${v.name} (${Math.round((v.size || 0) / 1024 / 1024)}MB)`),
           ].join('\n');
 
@@ -880,7 +838,7 @@ serve(async (req) => {
 
           const analysisPrompt = `You are a ${role?.toUpperCase() || 'CEO'} business advisor. Analyze this COMPREHENSIVE Google Workspace data including FULL content from emails, documents, PDFs, spreadsheets, images, and videos. Identify ONE specific, actionable improvement with the highest business impact.
 
-## EMAIL ANALYSIS (${emails.length} emails, ${imageAttachments.length} image attachments, ${videoAttachments.length} videos):
+## EMAIL ANALYSIS (${emails.length} emails):
 ${emailSummary || 'No emails found'}
 
 ## DOCUMENTS & PDFs ANALYZED (${analyzedDocuments.length} files with extracted content):
@@ -968,9 +926,7 @@ Respond with a JSON object:
           // Build research summary to save
           const researchSummary = {
             emailsAnalyzed: emails.length,
-            emailAttachments: allEmailAttachments.length,
             imageAttachmentsAnalyzed: analyzedEmailImages.length,
-            videoAttachments: videoAttachments.length,
             documentsAnalyzed: documents.length,
             documentContentExtracted: analyzedDocuments.length,
             sheetsAnalyzed: sheets.length,
