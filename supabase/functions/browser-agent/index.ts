@@ -27,6 +27,16 @@ serve(async (req) => {
       });
     }
 
+    // IMPORTANT: In Edge Functions, don't rely on implicit session state.
+    // Extract the JWT and pass it explicitly to auth methods.
+    const token = authHeader.slice('Bearer '.length).trim();
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized", details: "Missing bearer token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -36,7 +46,8 @@ serve(async (req) => {
       }
     );
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // Pass token explicitly; otherwise Supabase JS in Deno may report: "Auth session missing!"
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
       console.error("Auth error:", authError?.message || "No user found");
       return new Response(JSON.stringify({ 

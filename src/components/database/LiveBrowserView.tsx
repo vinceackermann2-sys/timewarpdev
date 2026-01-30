@@ -94,6 +94,8 @@ export function LiveBrowserView({
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+               // Required by the backend gateway for some environments even when using a user JWT.
+               'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
               'Authorization': `Bearer ${session.access_token}`
             },
             body: JSON.stringify({
@@ -106,8 +108,22 @@ export function LiveBrowserView({
         );
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to start browser session');
+          // Provide richer error context to help debug auth/session issues.
+          let message = 'Failed to start browser session';
+          try {
+            const errorData = await response.json();
+            message = errorData?.details
+              ? `${errorData.error || message}: ${errorData.details}`
+              : (errorData?.error || message);
+          } catch {
+            try {
+              const text = await response.text();
+              if (text) message = text;
+            } catch {
+              // ignore
+            }
+          }
+          throw new Error(message);
         }
 
         // Stream the response
