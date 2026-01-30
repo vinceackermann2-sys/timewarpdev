@@ -253,11 +253,11 @@ export function LiveBrowserView({
 
   const getStepColor = (type: AgentStep["type"]) => {
     switch (type) {
-      case "status": return "text-blue-400";
-      case "action": return "text-primary";
-      case "warning": return "text-amber-400";
-      case "error": return "text-red-400";
-      case "complete": return "text-green-400";
+      case "status": return "text-muted-foreground";
+      case "action": return "text-foreground";
+      case "warning": return "text-foreground";
+      case "error": return "text-destructive";
+      case "complete": return "text-primary";
     }
   };
 
@@ -338,15 +338,15 @@ export function LiveBrowserView({
           {/* Browser toolbar */}
           <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-card/30">
             <div className="flex items-center gap-1 px-2">
-              <div className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
-              <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/80" />
-              <div className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
+              <div className="h-2.5 w-2.5 rounded-full bg-destructive/80" />
+              <div className="h-2.5 w-2.5 rounded-full bg-accent/80" />
+              <div className="h-2.5 w-2.5 rounded-full bg-primary/80" />
             </div>
             <Button variant="ghost" size="icon" className="h-7 w-7" disabled>
               <RefreshCw className="h-3.5 w-3.5" />
             </Button>
             <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/50 border border-border/50">
-              <Lock className="h-3 w-3 text-green-500" />
+              <Lock className="h-3 w-3 text-primary" />
               <span className="text-xs text-muted-foreground truncate font-mono">
                 {currentUrl}
               </span>
@@ -362,7 +362,7 @@ export function LiveBrowserView({
               </div>
             ) : error && !screenshot && !liveUrl ? (
               <Card className="p-8 max-w-md text-center space-y-4">
-                <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
+                <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
                 <div>
                   <h3 className="font-semibold text-lg">Connection Issue</h3>
                   <p className="text-sm text-muted-foreground mt-2">{error}</p>
@@ -417,9 +417,9 @@ export function LiveBrowserView({
               <div 
                 key={i} 
                 className={`rounded-lg p-3 border ${
-                  step.type === 'error' ? 'bg-red-500/10 border-red-500/20' :
-                  step.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20' :
-                  step.type === 'complete' ? 'bg-green-500/10 border-green-500/20' :
+                  step.type === 'error' ? 'bg-destructive/10 border-destructive/20' :
+                  step.type === 'warning' ? 'bg-accent/10 border-accent/20' :
+                  step.type === 'complete' ? 'bg-primary/10 border-primary/20' :
                   'bg-card/50 border-border/50'
                 }`}
               >
@@ -454,8 +454,8 @@ export function LiveBrowserView({
           
           {/* Summary section */}
           {isComplete && summary && (
-            <div className="p-4 border-t border-border/50 bg-green-500/5">
-              <h4 className="font-medium text-sm text-green-400 mb-2">✅ Summary</h4>
+            <div className="p-4 border-t border-border/50 bg-primary/5">
+              <h4 className="font-medium text-sm text-primary mb-2">✅ Summary</h4>
               <p className="text-sm text-muted-foreground">{summary}</p>
             </div>
           )}
