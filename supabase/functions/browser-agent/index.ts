@@ -8,7 +8,12 @@ const corsHeaders = {
 
 function streamEvent(controller: ReadableStreamDefaultController, data: any) {
   const encoder = new TextEncoder();
-  controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+  // If the client disconnects, enqueue can throw — never crash the worker.
+  try {
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+  } catch (e) {
+    console.warn("SSE enqueue failed (client likely disconnected)", e);
+  }
 }
 
 function getRoleContext(role: string): { label: string; focus: string; emoji: string } {
@@ -87,9 +92,154 @@ serve(async (req) => {
       async start(controller) {
         let ws: WebSocket | null = null;
         let sessionId: string | null = null;
+        let browserQLUrl: string | null = null;
         let messageId = 1;
         const pendingMessages: Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }> = new Map();
         const eventWaiters: Map<string, Array<(payload: any) => void>> = new Map();
+
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+        const escapeForSingleQuote = (s: string) => s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+
+        // Helpers injected into the page context to support non-standard selectors
+        // that the planner sometimes emits (e.g. Playwright's :has-text()).
+        const selectorHelpers = `
+          (function() {
+            function firstVisible(elements) {
+              for (const el of elements) {
+                if (!(el instanceof Element)) continue;
+                const style = window.getComputedStyle(el);
+                if (style.visibility === 'hidden' || style.display === 'none') continue;
+                const r = el.getBoundingClientRect();
+                if (r && r.width > 0 && r.height > 0) return el;
+              }
+              return null;
+            }
+
+            function byXPath(xpath) {
+              try {
+                const res = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                return res.singleNodeValue instanceof Element ? res.singleNodeValue : null;
+              } catch {
+                return null;
+              }
+            }
+
+            function byText(text) {
+              const t = (text || '').trim();
+              if (!t) return null;
+              const candidates = Array.from(document.querySelectorAll('button,a,[role="button"],input,textarea,select'));
+              const hit = candidates.find((el) => (el.textContent || '').trim().includes(t) || (el.getAttribute('aria-label') || '').includes(t));
+              if (hit) return hit;
+              const all = Array.from(document.querySelectorAll('*'));
+              return all.find((el) => (el.textContent || '').trim().includes(t)) || null;
+            }
+
+            function findElement(selector) {
+              if (!selector || typeof selector !== 'string') return null;
+              const sel = selector.trim();
+              if (!sel) return null;
+
+              if (sel.startsWith('xpath=')) return byXPath(sel.slice('xpath='.length));
+              if (sel.startsWith('text=')) return byText(sel.slice('text='.length));
+
+              const hasTextMatch = sel.match(/:has-text\\((['\\\"])(.*?)\\1\\)/);
+              if (hasTextMatch) {
+                const text = hasTextMatch[2];
+                const baseSel = sel.replace(hasTextMatch[0], '').trim() || '*';
+                const candidates = Array.from(document.querySelectorAll(baseSel));
+                const filtered = candidates.filter((el) => (el.textContent || '').includes(text) || (el.getAttribute('aria-label') || '').includes(text));
+                return firstVisible(filtered) || firstVisible(candidates);
+              }
+
+              try {
+                const el = document.querySelector(sel);
+                return el instanceof Element ? el : null;
+              } catch {
+                return null;
+              }
+            }
+
+            return { findElement };
+          })()
+        `;
+
+        const findClickablePoint = async (selector: string, timeoutMs = 8000): Promise<{ x: number; y: number } | null> => {
+          const deadline = Date.now() + timeoutMs;
+          const safeSelector = escapeForSingleQuote(selector || "");
+          while (Date.now() < deadline) {
+            const pointScript = `
+              (function() {
+                const helpers = ${selectorHelpers};
+                const el = helpers.findElement('${safeSelector}');
+                if (!el) return null;
+                el.scrollIntoView({ block: 'center', inline: 'center' });
+                const r = el.getBoundingClientRect();
+                if (!r || !r.width || !r.height) return null;
+                return { x: Math.floor(r.left + r.width / 2), y: Math.floor(r.top + r.height / 2) };
+              })()
+            `;
+            const pointResult = await sendCDP("Runtime.evaluate", { expression: pointScript, returnByValue: true });
+            const point = pointResult?.result?.value as { x: number; y: number } | null;
+            if (point) return point;
+            await sleep(500);
+          }
+          return null;
+        };
+
+        const focusAndClear = async (selector: string, timeoutMs = 8000): Promise<boolean> => {
+          const deadline = Date.now() + timeoutMs;
+          const safeSelector = escapeForSingleQuote(selector || "");
+          while (Date.now() < deadline) {
+            const focusScript = `
+              (function() {
+                const helpers = ${selectorHelpers};
+                const el = helpers.findElement('${safeSelector}');
+                if (!el) return false;
+                el.scrollIntoView({ block: 'center', inline: 'center' });
+                try { el.focus(); } catch {}
+                try {
+                  if ('value' in el) { el.value = ''; }
+                  if (el.isContentEditable) { el.textContent = ''; }
+                } catch {}
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                return true;
+              })()
+            `;
+            const focused = await sendCDP("Runtime.evaluate", { expression: focusScript, returnByValue: true });
+            if (focused?.result?.value) return true;
+            await sleep(500);
+          }
+          return false;
+        };
+
+        const createLiveUrlViaBQL = async (): Promise<string | null> => {
+          if (!browserQLUrl) return null;
+          try {
+            const query = `
+              mutation CreateLiveURL {
+                goto(url: "https://example.com", waitUntil: networkIdle) { status }
+                liveURL(resizable: false, interactable: true, showBrowserInterface: false, type: jpeg, quality: 70, timeout: 300000) {
+                  liveURL
+                }
+              }
+            `;
+
+            const res = await fetch(browserQLUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query }),
+            });
+
+            const json = await res.json().catch(() => null);
+            const live = json?.data?.liveURL?.liveURL ?? null;
+            if (!live) console.warn("BrowserQL liveURL not returned", json?.errors || json);
+            return live;
+          } catch (e) {
+            console.warn("BrowserQL liveURL request failed", e);
+            return null;
+          }
+        };
 
         const sendCDP = (method: string, params: any = {}): Promise<any> => {
           return new Promise((resolve, reject) => {
@@ -171,10 +321,12 @@ serve(async (req) => {
           const connectUrl = sessionData.connect || sessionData.browserWSEndpoint || sessionData.webSocketDebuggerUrl;
           const browserlessLiveUrl = sessionData.liveURL;
           const stopUrl = sessionData.stop;
+          browserQLUrl = sessionData.browserQL || null;
           
           console.log("Session created, connectUrl:", connectUrl ? "obtained" : "missing");
           console.log("LiveURL from session:", browserlessLiveUrl || "not provided");
           console.log("Stop URL:", stopUrl ? "obtained" : "missing");
+          console.log("BrowserQL URL:", browserQLUrl ? "obtained" : "not provided");
 
           if (!connectUrl) {
             console.error("Full session response:", JSON.stringify(sessionData));
@@ -231,9 +383,10 @@ serve(async (req) => {
             message: "Setting up interactive session..." 
           });
 
-          // Create a fresh page target
-          const newTarget = await sendCDP("Target.createTarget", { url: "about:blank" });
-          const pageTargetId: string = newTarget.targetId;
+          // Prefer attaching to an existing page target (helps align with live-view streaming)
+          const targets = await sendCDP("Target.getTargets");
+          const existingPageTargetId: string | undefined = targets?.targetInfos?.find((t: any) => t?.type === "page")?.targetId;
+          const pageTargetId: string = existingPageTargetId || (await sendCDP("Target.createTarget", { url: "about:blank" }))?.targetId;
 
           // Attach to target
           const attachResult = await sendCDP("Target.attachToTarget", {
@@ -265,7 +418,10 @@ serve(async (req) => {
           let liveURL: string | null = browserlessLiveUrl || null;
           
           if (!liveURL) {
-            // Try CDP command to get liveURL
+            // Prefer BrowserQL liveURL for stealth sessions
+            liveURL = await createLiveUrlViaBQL();
+
+            // Fallback: legacy CDP command (some setups support it)
             for (let attempt = 1; attempt <= 2 && !liveURL; attempt++) {
               try {
                 const liveResult = await sendCDP("Browserless.liveURL", {
@@ -278,11 +434,11 @@ serve(async (req) => {
                 liveURL = liveResult?.liveURL ?? null;
                 if (!liveURL) {
                   console.warn(`LiveURL attempt ${attempt} returned null`);
-                  await new Promise((r) => setTimeout(r, 500));
+                  await sleep(500);
                 }
               } catch (e) {
                 console.warn(`liveURL attempt ${attempt} failed:`, e);
-                await new Promise((r) => setTimeout(r, 500));
+                await sleep(500);
               }
             }
           }
@@ -330,7 +486,8 @@ Create a detailed step-by-step plan. For each step, provide:
 CRITICAL RULES:
 1. If a site requires login and offers "Sign in with Google" - USE THAT OPTION. The user has a connected Google account.
    - If login/2FA/captcha requires user intervention, add a "handoff" step with a clear reason.
-2. Use specific CSS selectors: data-testid, aria-label, button text, or detailed paths
+2. Use ONLY standard CSS selectors (querySelector-compatible). Do NOT use Playwright-only selectors like :has-text(), text=, xpath=.
+   Prefer [data-testid], [aria-label], input[name], button[type], and stable attributes.
 3. Start with navigating to the relevant website
 4. After form submissions, add a wait step (2000-3000ms)
 5. If creating content (like ads), actually fill in creative content
@@ -435,25 +592,7 @@ Return ONLY a valid JSON array, no other text:
                     details: step.selector
                   });
 
-                  // Prefer real CDP mouse events (more reliable than element.click() for complex UIs)
-                  const pointScript = `
-                    (function() {
-                      const sel = '${step.selector.replace(/'/g, "\\'")}';
-                      let el = document.querySelector(sel);
-                      if (!el) return null;
-                      el.scrollIntoView({ block: 'center', inline: 'center' });
-                      const r = el.getBoundingClientRect();
-                      if (!r || !r.width || !r.height) return null;
-                      return { x: Math.floor(r.left + r.width / 2), y: Math.floor(r.top + r.height / 2) };
-                    })()
-                  `;
-
-                  const pointResult = await sendCDP("Runtime.evaluate", {
-                    expression: pointScript,
-                    returnByValue: true,
-                  });
-
-                  const point = pointResult?.result?.value as { x: number; y: number } | null;
+                  const point = await findClickablePoint(step.selector);
                   if (!point) {
                     streamEvent(controller, {
                       type: "warning",
@@ -497,22 +636,8 @@ Return ONLY a valid JSON array, no other text:
                     details: step.text?.slice(0, 30) + (step.text?.length > 30 ? '...' : '')
                   });
                   
-                  // Focus + clear the element first
-                  const focusScript = `
-                    (function() {
-                      const el = document.querySelector('${step.selector.replace(/'/g, "\\'")}');
-                      if (!el) return false;
-                      el.scrollIntoView({ block: 'center', inline: 'center' });
-                      el.focus();
-                      // Clear common inputs/textareas
-                      if ('value' in el) { el.value = ''; }
-                      // Fire input event to notify React-like frameworks
-                      el.dispatchEvent(new Event('input', { bubbles: true }));
-                      return true;
-                    })()
-                  `;
-                  const focused = await sendCDP("Runtime.evaluate", { expression: focusScript, returnByValue: true });
-                  if (!focused?.result?.value) {
+                  const focused = await focusAndClear(step.selector);
+                  if (!focused) {
                     streamEvent(controller, {
                       type: "warning",
                       icon: "⚠️",
