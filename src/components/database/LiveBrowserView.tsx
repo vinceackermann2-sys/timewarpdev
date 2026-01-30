@@ -25,16 +25,18 @@ interface LiveBrowserViewProps {
 }
 
 interface AgentStep {
-  type: "navigate" | "click" | "type" | "screenshot" | "think" | "complete" | "error" | "warning" | "step";
-  content: string;
+  icon: string;
+  title: string;
+  message: string;
+  details?: string;
   timestamp: Date;
-  screenshot?: string;
+  type: "status" | "action" | "warning" | "error" | "complete";
 }
 
-const roleLabels: Record<string, string> = {
-  ceo: "CEO Agent",
-  cmo: "CMO Agent", 
-  cfo: "CFO Agent"
+const roleLabels: Record<string, { label: string; emoji: string }> = {
+  ceo: { label: "CEO Agent", emoji: "👑" },
+  cmo: { label: "CMO Agent", emoji: "📣" }, 
+  cfo: { label: "CFO Agent", emoji: "💵" }
 };
 
 export function LiveBrowserView({ 
@@ -53,7 +55,10 @@ export function LiveBrowserView({
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [currentStep, setCurrentStep] = useState<{ index: number; total: number } | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
+
+  const roleInfo = roleLabels[role] || roleLabels.ceo;
 
   // Auto-scroll log
   useEffect(() => {
@@ -66,7 +71,12 @@ export function LiveBrowserView({
   useEffect(() => {
     const startSession = async () => {
       try {
-        addStep("think", "Initializing browser session...");
+        addStep({
+          icon: "🚀",
+          title: "Starting",
+          message: "Initializing browser session...",
+          type: "status"
+        });
         
         // Refresh session
         await supabase.auth.refreshSession();
@@ -143,98 +153,111 @@ export function LiveBrowserView({
         console.error('Browser session error:', err);
         setError(err instanceof Error ? err.message : 'Failed to start browser session');
         setIsLoading(false);
-        addStep("error", err instanceof Error ? err.message : 'Unknown error');
+        addStep({
+          icon: "❌",
+          title: "Error",
+          message: err instanceof Error ? err.message : 'Unknown error',
+          type: "error"
+        });
       }
     };
 
     startSession();
   }, [role, task, timeEstimate]);
 
-  const addStep = (type: AgentStep["type"], content: string, screenshotData?: string) => {
-    setSteps(prev => [...prev, {
-      type,
-      content,
-      timestamp: new Date(),
-      screenshot: screenshotData
-    }]);
+  const addStep = (step: Omit<AgentStep, "timestamp">) => {
+    setSteps(prev => [...prev, { ...step, timestamp: new Date() }]);
   };
 
   const handleAgentEvent = (data: any) => {
     switch (data.type) {
-      case 'navigate':
-        setCurrentUrl(data.url || 'unknown');
-        addStep("navigate", `Navigating to ${data.url}`);
-        break;
-      case 'click':
-        addStep("click", `Clicking: ${data.element || data.description}`);
-        break;
-      case 'type':
-        addStep("type", `Typing: ${data.text || 'text'}`);
-        break;
-      case 'screenshot':
-        if (data.image) {
-          setScreenshot(`data:image/png;base64,${data.image}`);
-          addStep("screenshot", "Screenshot captured");
+      case 'status':
+      case 'action':
+        addStep({
+          icon: data.icon || "•",
+          title: data.title || data.type,
+          message: data.message,
+          details: data.details,
+          type: data.type as "status" | "action"
+        });
+        // Update URL if action is navigate
+        if (data.details?.startsWith('http')) {
+          setCurrentUrl(data.details);
         }
         break;
-      case 'think':
-        addStep("think", data.content || data.thought);
+        
+      case 'navigate':
+        setCurrentUrl(data.url || 'unknown');
         break;
+        
+      case 'step':
+        setCurrentStep({ index: data.index, total: data.total });
+        break;
+        
+      case 'screenshot':
+        if (data.image) {
+          setScreenshot(`data:image/jpeg;base64,${data.image}`);
+        }
+        break;
+        
       case 'warning':
-        addStep("warning", data.message);
+        addStep({
+          icon: data.icon || "⚠️",
+          title: data.title || "Warning",
+          message: data.message,
+          type: "warning"
+        });
         break;
+        
       case 'error':
-        addStep("error", data.message || 'An error occurred');
+        addStep({
+          icon: data.icon || "❌",
+          title: data.title || "Error",
+          message: data.message,
+          type: "error"
+        });
         setError(data.message);
         break;
+        
       case 'session':
         if (data.liveUrl) {
           setLiveUrl(data.liveUrl);
         }
-        addStep("think", `Session started`);
         break;
+        
       case 'liveUrl':
         setLiveUrl(data.url);
-        addStep("think", "Live browser view ready");
+        addStep({
+          icon: "🎥",
+          title: "Live View Ready",
+          message: "Interactive browser session available",
+          type: "status"
+        });
         break;
-      case 'step':
-        setCurrentStep({ index: data.index, total: data.total });
-        break;
+        
       case 'complete':
         setIsComplete(true);
+        setSummary(data.summary);
         if (data.liveUrl && !liveUrl) {
           setLiveUrl(data.liveUrl);
         }
-        addStep("complete", data.summary || "Task completed!");
+        addStep({
+          icon: data.icon || "✅",
+          title: data.title || "Complete",
+          message: data.summary || "Task completed!",
+          type: "complete"
+        });
         break;
-    }
-  };
-
-  const getStepIcon = (type: AgentStep["type"]) => {
-    switch (type) {
-      case "navigate": return <Globe className="h-3 w-3 text-blue-400" />;
-      case "click": return <Hand className="h-3 w-3 text-amber-400" />;
-      case "type": return <span className="text-xs text-green-400">⌨</span>;
-      case "screenshot": return <span className="text-xs text-purple-400">📸</span>;
-      case "think": return <Loader2 className="h-3 w-3 text-primary animate-spin" />;
-      case "step": return <span className="text-xs text-blue-400">→</span>;
-      case "warning": return <AlertTriangle className="h-3 w-3 text-amber-500" />;
-      case "complete": return <CheckCircle className="h-3 w-3 text-green-500" />;
-      case "error": return <XCircle className="h-3 w-3 text-red-500" />;
     }
   };
 
   const getStepColor = (type: AgentStep["type"]) => {
     switch (type) {
-      case "navigate": return "text-blue-400";
-      case "click": return "text-amber-400";
-      case "type": return "text-green-400";
-      case "screenshot": return "text-purple-400";
-      case "think": return "text-muted-foreground";
-      case "step": return "text-blue-400";
-      case "warning": return "text-amber-500";
-      case "complete": return "text-green-500";
-      case "error": return "text-red-500";
+      case "status": return "text-blue-400";
+      case "action": return "text-primary";
+      case "warning": return "text-amber-400";
+      case "error": return "text-red-400";
+      case "complete": return "text-green-400";
     }
   };
 
@@ -250,17 +273,23 @@ export function LiveBrowserView({
       <div className="flex items-center justify-between p-4 border-b border-border/50 bg-card/50">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+            <span className="text-lg">{roleInfo.emoji}</span>
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-sm font-medium text-primary">{roleLabels[role]} Active</span>
+            <span className="text-sm font-medium text-primary">{roleInfo.label}</span>
           </div>
           {currentStep && (
-            <div className="text-sm text-muted-foreground">
-              Step {currentStep.index} of {currentStep.total}
+            <div className="flex items-center gap-2 text-sm">
+              <div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-500"
+                  style={{ width: `${(currentStep.index / currentStep.total) * 100}%` }}
+                />
+              </div>
+              <span className="text-muted-foreground">
+                Step {currentStep.index}/{currentStep.total}
+              </span>
             </div>
           )}
-          <div className="text-sm text-muted-foreground truncate max-w-xs">
-            Task: <span className="text-foreground">{task.slice(0, 40)}{task.length > 40 ? '...' : ''}</span>
-          </div>
         </div>
         <div className="flex items-center gap-2">
           {liveUrl && (
@@ -271,7 +300,7 @@ export function LiveBrowserView({
               className="gap-2"
             >
               <ExternalLink className="h-4 w-4" />
-              Open in New Tab
+              Open Live View
             </Button>
           )}
           <Button
@@ -287,7 +316,7 @@ export function LiveBrowserView({
             onClick={onTakeControl}
           >
             <Hand className="h-4 w-4 mr-2" />
-            Take Control
+            Stop
           </Button>
           {isComplete && (
             <Button
@@ -351,15 +380,20 @@ export function LiveBrowserView({
                   title="Live Browser View"
                 />
                 <p className="text-xs text-center text-muted-foreground mt-2">
-                  Interactive live browser - you can click and type directly
+                  🎥 Live interactive session — click and type directly
                 </p>
               </div>
             ) : screenshot ? (
-              <img 
-                src={screenshot} 
-                alt="Browser view" 
-                className="max-w-full max-h-full object-contain rounded-lg shadow-lg border border-border/50"
-              />
+              <div className="w-full h-full flex flex-col items-center justify-center">
+                <img 
+                  src={screenshot} 
+                  alt="Browser view" 
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg border border-border/50"
+                />
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  📸 Screenshot view — updates after each action
+                </p>
+              </div>
             ) : (
               <div className="text-center text-muted-foreground">
                 <Globe className="h-16 w-16 mx-auto mb-4 opacity-20" />
@@ -370,31 +404,61 @@ export function LiveBrowserView({
         </div>
 
         {/* Activity log */}
-        <div className="w-80 border-l border-border/50 flex flex-col bg-card/30">
-          <div className="p-3 border-b border-border/50">
+        <div className="w-96 border-l border-border/50 flex flex-col bg-card/30">
+          <div className="p-3 border-b border-border/50 flex items-center justify-between">
             <h3 className="font-medium text-sm">Activity Log</h3>
+            <span className="text-xs text-muted-foreground">{steps.length} events</span>
           </div>
           <div 
             ref={logRef}
-            className="flex-1 overflow-y-auto p-3 space-y-2 font-mono text-xs"
+            className="flex-1 overflow-y-auto p-3 space-y-3"
           >
             {steps.map((step, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className="mt-0.5 flex-shrink-0">{getStepIcon(step.type)}</span>
-                <div className="flex-1 min-w-0">
-                  <span className={getStepColor(step.type)}>{step.content}</span>
-                  <span className="text-muted-foreground/50 ml-2">
-                    {step.timestamp.toLocaleTimeString()}
-                  </span>
+              <div 
+                key={i} 
+                className={`rounded-lg p-3 border ${
+                  step.type === 'error' ? 'bg-red-500/10 border-red-500/20' :
+                  step.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20' :
+                  step.type === 'complete' ? 'bg-green-500/10 border-green-500/20' :
+                  'bg-card/50 border-border/50'
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <span className="text-lg flex-shrink-0">{step.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`font-medium text-sm ${getStepColor(step.type)}`}>
+                        {step.title}
+                      </span>
+                      <span className="text-xs text-muted-foreground/50 flex-shrink-0">
+                        {step.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-0.5">{step.message}</p>
+                    {step.details && (
+                      <p className="text-xs text-muted-foreground/70 mt-1 font-mono truncate">
+                        {step.details}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
             {steps.length === 0 && (
-              <p className="text-muted-foreground text-center py-8">
-                Starting agent...
-              </p>
+              <div className="text-center py-12 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                <p className="text-sm">Starting agent...</p>
+              </div>
             )}
           </div>
+          
+          {/* Summary section */}
+          {isComplete && summary && (
+            <div className="p-4 border-t border-border/50 bg-green-500/5">
+              <h4 className="font-medium text-sm text-green-400 mb-2">✅ Summary</h4>
+              <p className="text-sm text-muted-foreground">{summary}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
