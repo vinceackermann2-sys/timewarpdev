@@ -141,12 +141,42 @@ serve(async (req) => {
             message: `${roleContext.emoji} ${roleContext.label} Agent initializing...` 
           });
 
-          // Use the production Browserless endpoint.
-          // NOTE: Browserless examples use the root endpoint (no /chromium) for CDP + LiveURL flows.
-          const wsUrl = `wss://production-sfo.browserless.io?token=${BROWSERLESS_API_KEY}&headless=true&timeout=180000`;
-          console.log("Connecting to Browserless...");
+          // Step 1: Create a session via REST API (more reliable than direct WebSocket)
+          // This returns a connectUrl we can use for WebSocket
+          console.log("Creating Browserless session via REST API...");
           
-          ws = new WebSocket(wsUrl);
+          const sessionResponse = await fetch(
+            `https://production-sfo.browserless.io/session?token=${BROWSERLESS_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ttl: 300000, // 5 minutes
+                headless: true,
+                stealth: true,
+              }),
+            }
+          );
+
+          if (!sessionResponse.ok) {
+            const errorText = await sessionResponse.text();
+            console.error("Session creation failed:", sessionResponse.status, errorText);
+            throw new Error(`Failed to create browser session: ${sessionResponse.status}`);
+          }
+
+          const sessionData = await sessionResponse.json();
+          const connectUrl = sessionData.browserWSEndpoint || sessionData.webSocketDebuggerUrl;
+          const browserlessLiveUrl = sessionData.liveURL;
+          
+          console.log("Session created, connectUrl:", connectUrl ? "obtained" : "missing");
+          console.log("LiveURL from session:", browserlessLiveUrl || "not provided");
+
+          if (!connectUrl) {
+            throw new Error("No WebSocket endpoint returned from session");
+          }
+
+          // Step 2: Connect via WebSocket using the session's connectUrl
+          ws = new WebSocket(connectUrl);
 
           // Set up message handler before waiting for connection
           ws.onmessage = (event) => {
@@ -175,16 +205,16 @@ serve(async (req) => {
           };
 
           await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error("Connection timeout - check your Browserless API key")), 20000);
+            const timeout = setTimeout(() => reject(new Error("WebSocket connection timeout")), 20000);
             ws!.onopen = () => { 
               clearTimeout(timeout); 
-              console.log("WebSocket connected");
+              console.log("WebSocket connected to session");
               resolve(); 
             };
             ws!.onerror = (e) => { 
               clearTimeout(timeout); 
               console.error("WebSocket error:", e);
-              reject(new Error("Could not connect to browser service")); 
+              reject(new Error("Could not connect to browser session")); 
             };
           });
 
@@ -195,7 +225,7 @@ serve(async (req) => {
             message: "Setting up interactive session..." 
           });
 
-          // Always create a fresh page target for a clean, predictable session
+          // Create a fresh page target
           const newTarget = await sendCDP("Target.createTarget", { url: "about:blank" });
           const pageTargetId: string = newTarget.targetId;
 
@@ -220,43 +250,48 @@ serve(async (req) => {
             mobile: false,
           });
 
-          // Warm up the page before requesting a LiveURL.
-          // Requesting LiveURL too early can yield { liveURL: null }.
+          // Navigate to a real page first (some CDP commands need a loaded page)
           await sendCDP("Page.navigate", { url: "https://example.com" });
           await new Promise((r) => setTimeout(r, 2500));
 
           // Try to get live URL for interactive viewing.
-          // Some plans return { liveURL: null } (no live viewer enabled) instead of throwing.
-          let liveURL: string | null = null;
-          for (let attempt = 1; attempt <= 3 && !liveURL; attempt++) {
-            try {
-              const liveResult = await sendCDP("Browserless.liveURL", {
-                timeout: 300000,
-                resizable: false,
-                quality: 70,
-                type: "jpeg",
-                showBrowserInterface: false,
-              });
-              liveURL = liveResult?.liveURL ?? null;
-              if (!liveURL) {
-                console.warn(`LiveURL attempt ${attempt} returned null`);
-                await new Promise((r) => setTimeout(r, 800));
+          // First check if the session API already gave us a liveURL
+          let liveURL: string | null = browserlessLiveUrl || null;
+          
+          if (!liveURL) {
+            // Try CDP command to get liveURL
+            for (let attempt = 1; attempt <= 2 && !liveURL; attempt++) {
+              try {
+                const liveResult = await sendCDP("Browserless.liveURL", {
+                  timeout: 300000,
+                  resizable: false,
+                  quality: 70,
+                  type: "jpeg",
+                  showBrowserInterface: false,
+                });
+                liveURL = liveResult?.liveURL ?? null;
+                if (!liveURL) {
+                  console.warn(`LiveURL attempt ${attempt} returned null`);
+                  await new Promise((r) => setTimeout(r, 500));
+                }
+              } catch (e) {
+                console.warn(`liveURL attempt ${attempt} failed:`, e);
+                await new Promise((r) => setTimeout(r, 500));
               }
-            } catch (e) {
-              console.warn(`liveURL attempt ${attempt} failed:`, e);
-              await new Promise((r) => setTimeout(r, 800));
             }
           }
 
-          if (!liveURL) {
+          if (liveURL) {
+            console.log("Live URL obtained:", liveURL);
+            streamEvent(controller, { type: "liveUrl", url: liveURL });
+          } else {
+            console.log("No live URL available, using screenshot mode");
             streamEvent(controller, {
               type: "status",
               icon: "📸",
               title: "Screenshot Mode",
-              message: "Live interactive view isn't available for this browser key — using screenshots instead."
+              message: "Live interactive view isn't available — using screenshots instead."
             });
-          } else {
-            streamEvent(controller, { type: "liveUrl", url: liveURL });
           }
 
           streamEvent(controller, { type: "session", id: sessionId, liveUrl: liveURL });
