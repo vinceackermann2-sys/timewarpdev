@@ -66,17 +66,23 @@ export function LiveBrowserView({
       try {
         addStep("think", "Initializing browser session...");
         
-        // Get user's session for auth - refresh to ensure token is valid
+        // Refresh session to ensure we have a valid token
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error("Refresh error:", refreshError);
+        }
+        
+        // Get fresh session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
           console.error("Session error:", sessionError);
           throw new Error(`Session error: ${sessionError.message}`);
         }
-        if (!session) {
+        if (!session?.access_token) {
           throw new Error("Not authenticated - please log in first");
         }
         
-        console.log("Session found, access token exists:", !!session.access_token);
+        console.log("Session ready, token length:", session.access_token.length);
 
         // Get Google token if available
         const googleToken = sessionStorage.getItem('googleProviderToken');
