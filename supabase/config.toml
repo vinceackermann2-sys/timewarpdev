@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.parse-file]
 verify_jwt = false
+
+[functions.run-agent]
+verify_jwt = false
