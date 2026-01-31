@@ -1,15 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, 
   Hand, 
   CheckCircle, 
-  Globe,
   Lock,
   RefreshCw,
   Maximize2,
   Minimize2,
-  AlertTriangle
+  Play,
+  Pause
 } from "lucide-react";
 import { RemoteBrowser } from "./RemoteBrowser";
 
@@ -30,6 +30,15 @@ interface AgentStep {
   type: "status" | "action" | "warning" | "error" | "complete";
 }
 
+interface AgentAction {
+  type: 'navigate' | 'click' | 'type' | 'scroll' | 'wait' | 'complete' | 'error';
+  target?: string;
+  value?: string;
+  x?: number;
+  y?: number;
+  reasoning: string;
+}
+
 const roleLabels: Record<string, { label: string; emoji: string }> = {
   ceo: { label: "CEO Agent", emoji: "👑" },
   cmo: { label: "CMO Agent", emoji: "📣" }, 
@@ -47,12 +56,16 @@ export function LiveBrowserView({
   const [currentUrl, setCurrentUrl] = useState("about:blank");
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [currentStep, setCurrentStep] = useState<{ index: number; total: number } | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isAgentRunning, setIsAgentRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const agentLoopRef = useRef<boolean>(false);
 
   const roleInfo = roleLabels[role] || roleLabels.ceo;
 
@@ -63,18 +76,21 @@ export function LiveBrowserView({
     }
   }, [steps]);
 
-  // Start the browser automation session
+  const addStep = useCallback((step: Omit<AgentStep, "timestamp">) => {
+    setSteps(prev => [...prev, { ...step, timestamp: new Date() }]);
+  }, []);
+
+  // Create browser session on mount
   useEffect(() => {
-    const startSession = async () => {
+    const createSession = async () => {
       try {
         addStep({
           icon: "🚀",
           title: "Starting",
-          message: "Initializing Browserbase session...",
+          message: "Initializing browser session...",
           type: "status"
         });
         
-        // Call the run-agent edge function to create Browserbase session
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-agent`,
           {
@@ -83,7 +99,12 @@ export function LiveBrowserView({
               'Content-Type': 'application/json',
               'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
-            body: JSON.stringify({ role, task, timeEstimate })
+            body: JSON.stringify({ 
+              task, 
+              role, 
+              timeEstimate,
+              action: 'create'
+            })
           }
         );
 
@@ -96,7 +117,8 @@ export function LiveBrowserView({
         console.log('Browserbase session created:', data);
         
         setLiveViewUrl(data.liveViewUrl);
-        setCurrentUrl(data.liveViewUrl);
+        setSessionId(data.sessionId);
+        setCurrentUrl(data.liveViewUrl || 'Browser ready');
         setIsLoading(false);
         
         addStep({
@@ -107,17 +129,15 @@ export function LiveBrowserView({
           type: "status"
         });
 
-        // Now start the actual browser agent task
         addStep({
-          icon: "🤖",
-          title: "Agent Starting",
-          message: `${roleInfo.label} is beginning the task...`,
-          type: "action"
+          icon: "💡",
+          title: "Ready to Start",
+          message: "Click 'Start Agent' to begin automation",
+          type: "status"
         });
 
       } catch (err) {
         console.error('Browser session error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to start browser session');
         setIsLoading(false);
         addStep({
           icon: "❌",
@@ -128,11 +148,94 @@ export function LiveBrowserView({
       }
     };
 
-    startSession();
-  }, [role, task, timeEstimate]);
+    createSession();
+  }, [role, task, timeEstimate, addStep]);
 
-  const addStep = (step: Omit<AgentStep, "timestamp">) => {
-    setSteps(prev => [...prev, { ...step, timestamp: new Date() }]);
+  // Agent execution loop
+  const runAgentLoop = useCallback(async () => {
+    if (!sessionId || agentLoopRef.current) return;
+    
+    agentLoopRef.current = true;
+    setIsAgentRunning(true);
+    let stepCount = 0;
+    const maxSteps = 20;
+
+    addStep({
+      icon: "🤖",
+      title: "Agent Started",
+      message: `${roleInfo.label} is beginning the task...`,
+      details: task,
+      type: "action"
+    });
+
+    // Note: Full CDP automation requires WebSocket connection to Browserbase
+    // For now, we'll show a simplified demo flow
+    addStep({
+      icon: "🔍",
+      title: "Analyzing",
+      message: "Agent is analyzing the current page...",
+      type: "status"
+    });
+
+    // Simulate agent thinking
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    addStep({
+      icon: "🌐",
+      title: "Navigation",
+      message: "The browser is ready for interaction",
+      details: "You can interact with the browser directly in the live view above",
+      type: "action"
+    });
+
+    addStep({
+      icon: "ℹ️",
+      title: "Manual Mode",
+      message: "Full automation requires CDP WebSocket connection. Use the live view to complete your task manually.",
+      type: "status"
+    });
+
+    setCurrentStep({ index: 1, total: 1 });
+    
+    // Mark as complete after showing the info
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setSummary("Browser session is active. You can interact with the live view directly to complete your task.");
+    setIsComplete(true);
+    setIsAgentRunning(false);
+    agentLoopRef.current = false;
+
+    addStep({
+      icon: "✅",
+      title: "Ready",
+      message: "Browser is ready for your interaction",
+      type: "complete"
+    });
+  }, [sessionId, task, roleInfo.label, addStep]);
+
+  const handleStartAgent = () => {
+    if (!isAgentRunning && !isPaused) {
+      runAgentLoop();
+    } else if (isPaused) {
+      setIsPaused(false);
+    }
+  };
+
+  const handlePauseAgent = () => {
+    setIsPaused(true);
+    addStep({
+      icon: "⏸️",
+      title: "Paused",
+      message: "Agent paused by user",
+      type: "status"
+    });
+  };
+
+  const handleStop = () => {
+    agentLoopRef.current = false;
+    setIsAgentRunning(false);
+    setIsPaused(false);
+    onTakeControl();
   };
 
   const getStepColor = (type: AgentStep["type"]) => {
@@ -152,7 +255,7 @@ export function LiveBrowserView({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
             <span className="text-lg">{roleInfo.emoji}</span>
-            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            {isAgentRunning && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
             <span className="text-sm font-medium text-primary">{roleInfo.label}</span>
           </div>
           {currentStep && (
@@ -177,14 +280,38 @@ export function LiveBrowserView({
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
+          
+          {!isAgentRunning && !isComplete && sessionId && (
+            <Button
+              size="sm"
+              onClick={handleStartAgent}
+              className="gradient-primary"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Start Agent
+            </Button>
+          )}
+          
+          {isAgentRunning && !isPaused && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePauseAgent}
+            >
+              <Pause className="h-4 w-4 mr-2" />
+              Pause
+            </Button>
+          )}
+          
           <Button
             variant="outline"
             size="sm"
-            onClick={onTakeControl}
+            onClick={handleStop}
           >
             <Hand className="h-4 w-4 mr-2" />
             Stop
           </Button>
+          
           {isComplete && (
             <Button
               size="sm"
@@ -215,26 +342,35 @@ export function LiveBrowserView({
             <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/50 border border-border/50">
               <Lock className="h-3 w-3 text-primary" />
               <span className="text-xs text-muted-foreground truncate font-mono">
-                {currentUrl}
+                {isLoading ? 'Initializing...' : 'Browserbase Live View'}
               </span>
             </div>
           </div>
 
-          {/* Browser content - using RemoteBrowser */}
+          {/* Browser content */}
           <div className="flex-1 overflow-hidden">
-            <RemoteBrowser 
-              liveViewUrl={liveViewUrl}
-              onConnectionChange={(connected) => {
-                if (connected) {
-                  addStep({
-                    icon: "🎥",
-                    title: "Connected",
-                    message: "Live browser view connected",
-                    type: "status"
-                  });
-                }
-              }}
-            />
+            {isLoading ? (
+              <div className="w-full h-full flex items-center justify-center bg-muted/20">
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary" />
+                  <p className="text-muted-foreground">Starting browser session...</p>
+                </div>
+              </div>
+            ) : (
+              <RemoteBrowser 
+                liveViewUrl={liveViewUrl}
+                onConnectionChange={(connected) => {
+                  if (connected) {
+                    addStep({
+                      icon: "🎥",
+                      title: "Connected",
+                      message: "Live browser view connected",
+                      type: "status"
+                    });
+                  }
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -282,7 +418,7 @@ export function LiveBrowserView({
             {steps.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                <p className="text-sm">Starting agent...</p>
+                <p className="text-sm">Initializing...</p>
               </div>
             )}
           </div>
