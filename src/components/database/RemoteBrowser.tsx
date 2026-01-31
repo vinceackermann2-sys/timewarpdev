@@ -14,7 +14,7 @@ export function RemoteBrowser({ userId, onConnectionChange }: RemoteBrowserProps
   const [frameCount, setFrameCount] = useState(0);
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://46.225.19.131:4000/?userId=${userId}`);
+    const ws = new WebSocket(`wss://browser.timewarpdev.com/?userId=${userId}`);
     ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {
@@ -61,7 +61,7 @@ export function RemoteBrowser({ userId, onConnectionChange }: RemoteBrowserProps
 
   const sendAction = async (type: string, payload: Record<string, unknown>) => {
     try {
-      await fetch("http://46.225.19.131:4000/action", {
+      await fetch("https://browser.timewarpdev.com/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, type, payload })
