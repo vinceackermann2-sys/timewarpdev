@@ -44,8 +44,12 @@ serve(async (req) => {
     const session = await sessionResponse.json();
     console.log("Session created:", session.id);
 
-    // Generate the live view URL for the inspector
-    const liveViewUrl = `https://www.browserbase.com/devtools/inspector.html?wss=connect.browserbase.com/debug/${session.id}`;
+    // Get the connect URL for live viewing - Browserbase returns this in the session
+    // The live view URL should be the one designed for iframe embedding
+    const connectUrl = session.connectUrl || `wss://connect.browserbase.com?sessionId=${session.id}`;
+    
+    // Use Browserbase's iframe-friendly live view URL
+    const liveViewUrl = `https://www.browserbase.com/sessions/${session.id}/live-view`;
     
     // Return the session info and live view URL
     return new Response(
