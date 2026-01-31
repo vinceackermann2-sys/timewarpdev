@@ -44,12 +44,25 @@ serve(async (req) => {
     const session = await sessionResponse.json();
     console.log("Session created:", session.id);
 
-    // Get the connect URL for live viewing - Browserbase returns this in the session
-    // The live view URL should be the one designed for iframe embedding
-    const connectUrl = session.connectUrl || `wss://connect.browserbase.com?sessionId=${session.id}`;
+    // Get the debug URLs which include the embeddable live view URL
+    const debugResponse = await fetch(`https://www.browserbase.com/v1/sessions/${session.id}/debug`, {
+      method: "GET",
+      headers: {
+        "x-bb-api-key": BROWSERBASE_API_KEY,
+      },
+    });
+
+    if (!debugResponse.ok) {
+      const errorText = await debugResponse.text();
+      console.error("Failed to get debug URLs:", errorText);
+      throw new Error(`Failed to get debug URLs: ${errorText}`);
+    }
+
+    const debugInfo = await debugResponse.json();
+    console.log("Debug info received:", JSON.stringify(debugInfo));
     
-    // Use Browserbase's iframe-friendly live view URL
-    const liveViewUrl = `https://www.browserbase.com/sessions/${session.id}/live-view`;
+    // Use the debuggerFullscreenUrl which is designed for iframe embedding
+    const liveViewUrl = debugInfo.debuggerFullscreenUrl;
     
     // Return the session info and live view URL
     return new Response(
