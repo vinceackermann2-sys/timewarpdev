@@ -5,16 +5,15 @@ import {
   Loader2, 
   Hand, 
   CheckCircle, 
-  XCircle, 
   Globe,
   Lock,
   RefreshCw,
   Maximize2,
   Minimize2,
-  AlertTriangle,
-  ExternalLink
+  AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { RemoteBrowser } from "./RemoteBrowser";
 
 interface LiveBrowserViewProps {
   role: string;
@@ -51,8 +50,6 @@ export function LiveBrowserView({
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [screenshot, setScreenshot] = useState<string | null>(null);
-  const [liveUrl, setLiveUrl] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [currentStep, setCurrentStep] = useState<{ index: number; total: number } | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
@@ -195,9 +192,7 @@ export function LiveBrowserView({
         break;
         
       case 'screenshot':
-        if (data.image) {
-          setScreenshot(`data:image/jpeg;base64,${data.image}`);
-        }
+        // Screenshots now handled by RemoteBrowser component
         break;
         
       case 'warning':
@@ -220,13 +215,7 @@ export function LiveBrowserView({
         break;
         
       case 'session':
-        if (data.liveUrl) {
-          setLiveUrl(data.liveUrl);
-        }
-        break;
-        
       case 'liveUrl':
-        setLiveUrl(data.url);
         addStep({
           icon: "🎥",
           title: "Live View Ready",
@@ -238,9 +227,6 @@ export function LiveBrowserView({
       case 'complete':
         setIsComplete(true);
         setSummary(data.summary);
-        if (data.liveUrl && !liveUrl) {
-          setLiveUrl(data.liveUrl);
-        }
         addStep({
           icon: data.icon || "✅",
           title: data.title || "Complete",
@@ -258,12 +244,6 @@ export function LiveBrowserView({
       case "warning": return "text-foreground";
       case "error": return "text-destructive";
       case "complete": return "text-primary";
-    }
-  };
-
-  const openLiveUrlInNewTab = () => {
-    if (liveUrl) {
-      window.open(liveUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -292,17 +272,6 @@ export function LiveBrowserView({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {liveUrl && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openLiveUrlInNewTab}
-              className="gap-2"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Open Live View
-            </Button>
-          )}
           <Button
             variant="outline"
             size="sm"
@@ -353,53 +322,22 @@ export function LiveBrowserView({
             </div>
           </div>
 
-          {/* Browser content */}
-          <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-            {isLoading ? (
-              <div className="text-center space-y-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-                <p className="text-muted-foreground">Starting browser session...</p>
-              </div>
-            ) : error && !screenshot && !liveUrl ? (
-              <Card className="p-8 max-w-md text-center space-y-4">
-                <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
-                <div>
-                  <h3 className="font-semibold text-lg">Connection Issue</h3>
-                  <p className="text-sm text-muted-foreground mt-2">{error}</p>
-                </div>
-                <Button variant="outline" onClick={onTakeControl}>
-                  Return to Task Setup
-                </Button>
-              </Card>
-            ) : liveUrl ? (
-              <div className="w-full h-full flex flex-col">
-                <iframe 
-                  src={liveUrl} 
-                  className="w-full h-full rounded-lg border border-border/50"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                  title="Live Browser View"
-                />
-                <p className="text-xs text-center text-muted-foreground mt-2">
-                  🎥 Live interactive session — click and type directly
-                </p>
-              </div>
-            ) : screenshot ? (
-              <div className="w-full h-full flex flex-col items-center justify-center">
-                <img 
-                  src={screenshot} 
-                  alt="Browser view" 
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg border border-border/50"
-                />
-                <p className="text-xs text-center text-muted-foreground mt-2">
-                  📸 Screenshot view — updates after each action
-                </p>
-              </div>
-            ) : (
-              <div className="text-center text-muted-foreground">
-                <Globe className="h-16 w-16 mx-auto mb-4 opacity-20" />
-                <p>Waiting for browser view...</p>
-              </div>
-            )}
+          {/* Browser content - using RemoteBrowser */}
+          <div className="flex-1 overflow-hidden">
+            <RemoteBrowser 
+              userId={`${role}-${Date.now()}`}
+              onConnectionChange={(connected) => {
+                if (connected) {
+                  setIsLoading(false);
+                  addStep({
+                    icon: "🎥",
+                    title: "Connected",
+                    message: "Live browser stream connected",
+                    type: "status"
+                  });
+                }
+              }}
+            />
           </div>
         </div>
 
