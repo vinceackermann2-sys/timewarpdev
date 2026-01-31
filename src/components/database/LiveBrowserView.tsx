@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { 
   Loader2, 
   Hand, 
@@ -12,7 +11,6 @@ import {
   Minimize2,
   AlertTriangle
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { RemoteBrowser } from "./RemoteBrowser";
 
 interface LiveBrowserViewProps {
@@ -53,6 +51,7 @@ export function LiveBrowserView({
   const [isComplete, setIsComplete] = useState(false);
   const [currentStep, setCurrentStep] = useState<{ index: number; total: number } | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
+  const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   const roleInfo = roleLabels[role] || roleLabels.ceo;
@@ -71,81 +70,51 @@ export function LiveBrowserView({
         addStep({
           icon: "🚀",
           title: "Starting",
-          message: "Initializing browser session...",
+          message: "Initializing Browserbase session...",
           type: "status"
         });
         
-        // Refresh session
-        await supabase.auth.refreshSession();
-        
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session?.access_token) {
-          throw new Error("Not authenticated - please log in first");
-        }
-
+        // Call the run-agent edge function to create Browserbase session
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/browser-agent`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-agent`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              'Authorization': `Bearer ${session.access_token}`
             },
             body: JSON.stringify({ role, task, timeEstimate })
           }
         );
 
         if (!response.ok) {
-          let message = 'Failed to start browser session';
-          try {
-            const errorData = await response.json();
-            message = errorData?.details
-              ? `${errorData.error || message}: ${errorData.details}`
-              : (errorData?.error || message);
-          } catch {
-            try {
-              const text = await response.text();
-              if (text) message = text;
-            } catch { /* ignore */ }
-          }
-          throw new Error(message);
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create browser session');
         }
 
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-
-        if (!reader) {
-          throw new Error('No response stream');
-        }
-
+        const data = await response.json();
+        console.log('Browserbase session created:', data);
+        
+        setLiveViewUrl(data.liveViewUrl);
+        setCurrentUrl(data.liveViewUrl);
         setIsLoading(false);
+        
+        addStep({
+          icon: "🎥",
+          title: "Session Ready",
+          message: "Browser session initialized",
+          details: `Session ID: ${data.sessionId}`,
+          type: "status"
+        });
 
-        let buffer = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        // Now start the actual browser agent task
+        addStep({
+          icon: "🤖",
+          title: "Agent Starting",
+          message: `${roleInfo.label} is beginning the task...`,
+          type: "action"
+        });
 
-          buffer += decoder.decode(value, { stream: true });
-          
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const jsonStr = line.slice(6).trim();
-              if (jsonStr === '[DONE]') {
-                setIsComplete(true);
-                break;
-              }
-              
-              try {
-                const data = JSON.parse(jsonStr);
-                handleAgentEvent(data);
-              } catch { /* ignore parse errors */ }
-            }
-          }
-        }
       } catch (err) {
         console.error('Browser session error:', err);
         setError(err instanceof Error ? err.message : 'Failed to start browser session');
@@ -164,77 +133,6 @@ export function LiveBrowserView({
 
   const addStep = (step: Omit<AgentStep, "timestamp">) => {
     setSteps(prev => [...prev, { ...step, timestamp: new Date() }]);
-  };
-
-  const handleAgentEvent = (data: any) => {
-    switch (data.type) {
-      case 'status':
-      case 'action':
-        addStep({
-          icon: data.icon || "•",
-          title: data.title || data.type,
-          message: data.message,
-          details: data.details,
-          type: data.type as "status" | "action"
-        });
-        // Update URL if action is navigate
-        if (data.details?.startsWith('http')) {
-          setCurrentUrl(data.details);
-        }
-        break;
-        
-      case 'navigate':
-        setCurrentUrl(data.url || 'unknown');
-        break;
-        
-      case 'step':
-        setCurrentStep({ index: data.index, total: data.total });
-        break;
-        
-      case 'screenshot':
-        // Screenshots now handled by RemoteBrowser component
-        break;
-        
-      case 'warning':
-        addStep({
-          icon: data.icon || "⚠️",
-          title: data.title || "Warning",
-          message: data.message,
-          type: "warning"
-        });
-        break;
-        
-      case 'error':
-        addStep({
-          icon: data.icon || "❌",
-          title: data.title || "Error",
-          message: data.message,
-          type: "error"
-        });
-        setError(data.message);
-        break;
-        
-      case 'session':
-      case 'liveUrl':
-        addStep({
-          icon: "🎥",
-          title: "Live View Ready",
-          message: "Interactive browser session available",
-          type: "status"
-        });
-        break;
-        
-      case 'complete':
-        setIsComplete(true);
-        setSummary(data.summary);
-        addStep({
-          icon: data.icon || "✅",
-          title: data.title || "Complete",
-          message: data.summary || "Task completed!",
-          type: "complete"
-        });
-        break;
-    }
   };
 
   const getStepColor = (type: AgentStep["type"]) => {
@@ -325,14 +223,13 @@ export function LiveBrowserView({
           {/* Browser content - using RemoteBrowser */}
           <div className="flex-1 overflow-hidden">
             <RemoteBrowser 
-              userId={`${role}-${Date.now()}`}
+              liveViewUrl={liveViewUrl}
               onConnectionChange={(connected) => {
                 if (connected) {
-                  setIsLoading(false);
                   addStep({
                     icon: "🎥",
                     title: "Connected",
-                    message: "Live browser stream connected",
+                    message: "Live browser view connected",
                     type: "status"
                   });
                 }
