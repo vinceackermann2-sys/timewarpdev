@@ -134,16 +134,10 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   <SidebarMenuButton 
                     isActive={currentView === "dataconversion"}
                     onClick={() => onViewChange("dataconversion")}
-                    className="opacity-60"
-                    tooltip="Dataconversion (Coming Soon)"
+                    tooltip="Data Conversion"
                   >
                     <RefreshCw className="h-4 w-4" />
-                    {!isCollapsed && (
-                      <>
-                        <span>Dataconversion</span>
-                        <Lock className="h-3 w-3 ml-auto text-muted-foreground" />
-                      </>
-                    )}
+                    {!isCollapsed && <span>Data Conversion</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
