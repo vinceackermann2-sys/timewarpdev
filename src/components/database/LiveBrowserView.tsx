@@ -12,6 +12,7 @@ import {
   Pause
 } from "lucide-react";
 import { RemoteBrowser } from "./RemoteBrowser";
+import { AgentActivityLog, AgentStep } from "./AgentActivityLog";
 
 interface LiveBrowserViewProps {
   role: string;
@@ -19,24 +20,6 @@ interface LiveBrowserViewProps {
   timeEstimate: string;
   onComplete: () => void;
   onTakeControl: () => void;
-}
-
-interface AgentStep {
-  icon: string;
-  title: string;
-  message: string;
-  details?: string;
-  timestamp: Date;
-  type: "status" | "action" | "warning" | "error" | "complete";
-}
-
-interface AgentAction {
-  type: 'navigate' | 'click' | 'type' | 'scroll' | 'wait' | 'complete' | 'error';
-  target?: string;
-  value?: string;
-  x?: number;
-  y?: number;
-  reasoning: string;
 }
 
 const roleLabels: Record<string, { label: string; emoji: string }> = {
@@ -53,7 +36,6 @@ export function LiveBrowserView({
   onTakeControl 
 }: LiveBrowserViewProps) {
   const [steps, setSteps] = useState<AgentStep[]>([]);
-  const [currentUrl, setCurrentUrl] = useState("about:blank");
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -61,20 +43,13 @@ export function LiveBrowserView({
   const [summary, setSummary] = useState<string | null>(null);
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [connectUrl, setConnectUrl] = useState<string | null>(null);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const logRef = useRef<HTMLDivElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const agentLoopRef = useRef<boolean>(false);
+  const stepNumberRef = useRef<number>(0);
 
   const roleInfo = roleLabels[role] || roleLabels.ceo;
-
-  // Auto-scroll log
-  useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight;
-    }
-  }, [steps]);
 
   const addStep = useCallback((step: Omit<AgentStep, "timestamp">) => {
     setSteps(prev => [...prev, { ...step, timestamp: new Date() }]);
@@ -118,14 +93,14 @@ export function LiveBrowserView({
         
         setLiveViewUrl(data.liveViewUrl);
         setSessionId(data.sessionId);
-        setCurrentUrl(data.liveViewUrl || 'Browser ready');
+        setConnectUrl(data.connectUrl);
         setIsLoading(false);
         
         addStep({
           icon: "🎥",
           title: "Session Ready",
           message: "Browser session initialized",
-          details: `Session ID: ${data.sessionId}`,
+          details: `Session ID: ${data.sessionId?.substring(0, 8)}...`,
           type: "status"
         });
 
@@ -151,14 +126,87 @@ export function LiveBrowserView({
     createSession();
   }, [role, task, timeEstimate, addStep]);
 
+  // Execute single agent step
+  const executeStep = useCallback(async (): Promise<boolean> => {
+    if (!sessionId || !connectUrl) return false;
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-agent`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            action: 'execute',
+            sessionId,
+            connectUrl,
+            task,
+            role,
+            stepNumber: stepNumberRef.current
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Step execution failed');
+      }
+
+      const data = await response.json();
+      console.log('Step result:', data);
+
+      stepNumberRef.current += 1;
+      setCurrentStep({ index: stepNumberRef.current, total: 20 });
+
+      // Add step to activity log
+      const actionIcons: Record<string, string> = {
+        navigate: "🌐",
+        click: "👆",
+        type: "⌨️",
+        scroll: "📜",
+        wait: "⏳",
+        complete: "✅",
+        error: "❌"
+      };
+
+      addStep({
+        icon: actionIcons[data.action?.action] || "🔄",
+        title: data.action?.action?.charAt(0).toUpperCase() + data.action?.action?.slice(1) || "Action",
+        message: data.result?.message || data.action?.reasoning || "Executing...",
+        details: data.action?.value || data.action?.target ? `Target: ${data.action?.target || data.action?.value}` : undefined,
+        type: data.action?.action === 'error' ? 'error' : 
+              data.action?.action === 'complete' ? 'complete' : 'action'
+      });
+
+      if (data.isComplete) {
+        setSummary(data.action?.reasoning || "Task completed");
+        setIsComplete(true);
+        return false; // Stop the loop
+      }
+
+      return true; // Continue the loop
+    } catch (err) {
+      console.error('Step error:', err);
+      addStep({
+        icon: "❌",
+        title: "Error",
+        message: err instanceof Error ? err.message : 'Unknown error',
+        type: "error"
+      });
+      return false;
+    }
+  }, [sessionId, connectUrl, task, role, addStep]);
+
   // Agent execution loop
   const runAgentLoop = useCallback(async () => {
-    if (!sessionId || agentLoopRef.current) return;
+    if (!sessionId || !connectUrl || agentLoopRef.current) return;
     
     agentLoopRef.current = true;
     setIsAgentRunning(true);
-    let stepCount = 0;
-    const maxSteps = 20;
+    stepNumberRef.current = 0;
 
     addStep({
       icon: "🤖",
@@ -168,61 +216,43 @@ export function LiveBrowserView({
       type: "action"
     });
 
-    // Note: Full CDP automation requires WebSocket connection to Browserbase
-    // For now, we'll show a simplified demo flow
-    addStep({
-      icon: "🔍",
-      title: "Analyzing",
-      message: "Agent is analyzing the current page...",
-      type: "status"
-    });
+    const maxSteps = 20;
+    let shouldContinue = true;
 
-    // Simulate agent thinking
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    while (shouldContinue && stepNumberRef.current < maxSteps && agentLoopRef.current && !isPaused) {
+      shouldContinue = await executeStep();
+      
+      // Small delay between steps to avoid overwhelming
+      if (shouldContinue) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
 
-    addStep({
-      icon: "🌐",
-      title: "Navigation",
-      message: "The browser is ready for interaction",
-      details: "You can interact with the browser directly in the live view above",
-      type: "action"
-    });
+    if (stepNumberRef.current >= maxSteps && !isComplete) {
+      addStep({
+        icon: "⚠️",
+        title: "Max Steps Reached",
+        message: "Agent reached maximum step limit",
+        type: "warning"
+      });
+    }
 
-    addStep({
-      icon: "ℹ️",
-      title: "Manual Mode",
-      message: "Full automation requires CDP WebSocket connection. Use the live view to complete your task manually.",
-      type: "status"
-    });
-
-    setCurrentStep({ index: 1, total: 1 });
-    
-    // Mark as complete after showing the info
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setSummary("Browser session is active. You can interact with the live view directly to complete your task.");
-    setIsComplete(true);
     setIsAgentRunning(false);
     agentLoopRef.current = false;
-
-    addStep({
-      icon: "✅",
-      title: "Ready",
-      message: "Browser is ready for your interaction",
-      type: "complete"
-    });
-  }, [sessionId, task, roleInfo.label, addStep]);
+  }, [sessionId, connectUrl, task, roleInfo.label, addStep, executeStep, isPaused, isComplete]);
 
   const handleStartAgent = () => {
     if (!isAgentRunning && !isPaused) {
       runAgentLoop();
     } else if (isPaused) {
       setIsPaused(false);
+      runAgentLoop();
     }
   };
 
   const handlePauseAgent = () => {
     setIsPaused(true);
+    agentLoopRef.current = false;
     addStep({
       icon: "⏸️",
       title: "Paused",
@@ -236,16 +266,6 @@ export function LiveBrowserView({
     setIsAgentRunning(false);
     setIsPaused(false);
     onTakeControl();
-  };
-
-  const getStepColor = (type: AgentStep["type"]) => {
-    switch (type) {
-      case "status": return "text-muted-foreground";
-      case "action": return "text-foreground";
-      case "warning": return "text-foreground";
-      case "error": return "text-destructive";
-      case "complete": return "text-primary";
-    }
   };
 
   return (
@@ -263,7 +283,7 @@ export function LiveBrowserView({
               <div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${(currentStep.index / currentStep.total) * 100}%` }}
+                  style={{ width: `${Math.min((currentStep.index / currentStep.total) * 100, 100)}%` }}
                 />
               </div>
               <span className="text-muted-foreground">
@@ -375,62 +395,11 @@ export function LiveBrowserView({
         </div>
 
         {/* Activity log */}
-        <div className="w-96 border-l border-border/50 flex flex-col bg-card/30">
-          <div className="p-3 border-b border-border/50 flex items-center justify-between">
-            <h3 className="font-medium text-sm">Activity Log</h3>
-            <span className="text-xs text-muted-foreground">{steps.length} events</span>
-          </div>
-          <div 
-            ref={logRef}
-            className="flex-1 overflow-y-auto p-3 space-y-3"
-          >
-            {steps.map((step, i) => (
-              <div 
-                key={i} 
-                className={`rounded-lg p-3 border ${
-                  step.type === 'error' ? 'bg-destructive/10 border-destructive/20' :
-                  step.type === 'warning' ? 'bg-accent/10 border-accent/20' :
-                  step.type === 'complete' ? 'bg-primary/10 border-primary/20' :
-                  'bg-card/50 border-border/50'
-                }`}
-              >
-                <div className="flex items-start gap-2">
-                  <span className="text-lg flex-shrink-0">{step.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`font-medium text-sm ${getStepColor(step.type)}`}>
-                        {step.title}
-                      </span>
-                      <span className="text-xs text-muted-foreground/50 flex-shrink-0">
-                        {step.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">{step.message}</p>
-                    {step.details && (
-                      <p className="text-xs text-muted-foreground/70 mt-1 font-mono truncate">
-                        {step.details}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-            {steps.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                <p className="text-sm">Initializing...</p>
-              </div>
-            )}
-          </div>
-          
-          {/* Summary section */}
-          {isComplete && summary && (
-            <div className="p-4 border-t border-border/50 bg-primary/5">
-              <h4 className="font-medium text-sm text-primary mb-2">✅ Summary</h4>
-              <p className="text-sm text-muted-foreground">{summary}</p>
-            </div>
-          )}
-        </div>
+        <AgentActivityLog 
+          steps={steps} 
+          isComplete={isComplete} 
+          summary={summary} 
+        />
       </div>
     </div>
   );
