@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -54,8 +54,15 @@ interface DatabaseSidebarProps {
 export function DatabaseSidebar({ currentView, onViewChange, userEmail }: DatabaseSidebarProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, setOpen } = useSidebar();
   const isCollapsed = state === "collapsed";
+
+  // Auto-collapse sidebar when in dataconversion view
+  useEffect(() => {
+    if (currentView === "dataconversion") {
+      setOpen(false);
+    }
+  }, [currentView, setOpen]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 

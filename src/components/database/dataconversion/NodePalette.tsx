@@ -18,7 +18,8 @@ import {
   Send,
   Edit,
   BarChart3,
-  Target
+  Target,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,107 +32,152 @@ interface NodeItem {
   templates?: string[];
 }
 
-interface NodeCategory {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  items: NodeItem[];
-}
-
 const quickAccessNodes: NodeItem[] = [
-  { id: "business-db", label: "Business Database", icon: Database, description: "Connect to your synced business data" },
-  { id: "text", label: "Text", icon: Type, description: "Add text input or content" },
-  { id: "document", label: "Document", icon: FileText, description: "Upload or reference documents" },
-  { id: "image", label: "Image", icon: FileImage, description: "Add images or visual assets" },
-  { id: "website", label: "Website", icon: Globe, description: "Fetch data from websites" },
+  { id: "business-db", label: "Business Database", icon: Database, description: "Synced business data" },
+  { id: "text", label: "Text", icon: Type, description: "Text input" },
+  { id: "document", label: "Document", icon: FileText, description: "Documents" },
+  { id: "image", label: "Image", icon: FileImage, description: "Visual assets" },
+  { id: "website", label: "Website", icon: Globe, description: "Web data" },
 ];
 
+// Research nodes with templates relevant to business DATA
 const researchNodes: NodeItem[] = [
   { 
     id: "email-research", 
     label: "Email Analysis", 
     icon: Mail, 
-    description: "Analyze email patterns and communications",
-    templates: ["Summarize unread emails", "Find action items in threads", "Identify key contacts"]
+    description: "Analyze emails",
+    templates: [
+      "Find unanswered client emails",
+      "Extract action items from inbox",
+      "Identify high-priority messages",
+      "Summarize email threads by topic"
+    ]
   },
   { 
     id: "calendar-research", 
     label: "Calendar Insights", 
     icon: Calendar, 
-    description: "Research scheduling and meeting patterns",
-    templates: ["Meeting time analysis", "Find scheduling conflicts", "Optimize calendar"]
+    description: "Scheduling patterns",
+    templates: [
+      "Find meeting conflicts",
+      "Analyze time allocation",
+      "Identify scheduling gaps",
+      "Track meeting frequency by contact"
+    ]
   },
   { 
     id: "market-research", 
     label: "Market Research", 
     icon: TrendingUp, 
-    description: "Analyze market trends and data",
-    templates: ["Competitor analysis", "Industry trends", "Market opportunities"]
+    description: "Market trends",
+    templates: [
+      "Analyze competitor mentions",
+      "Track industry keywords",
+      "Monitor market sentiment",
+      "Identify emerging trends"
+    ]
   },
   { 
     id: "contact-research", 
     label: "Contact Analysis", 
     icon: Users, 
-    description: "Research contacts and relationships",
-    templates: ["Network mapping", "Relationship strength", "Follow-up priorities"]
+    description: "Relationships",
+    templates: [
+      "Map relationship strength",
+      "Find dormant contacts",
+      "Identify key stakeholders",
+      "Analyze communication patterns"
+    ]
   },
   { 
     id: "data-research", 
     label: "Data Analysis", 
     icon: FileSpreadsheet, 
-    description: "Analyze spreadsheets and data files",
-    templates: ["Data summarization", "Trend identification", "Anomaly detection"]
+    description: "Spreadsheets",
+    templates: [
+      "Detect data anomalies",
+      "Generate trend reports",
+      "Cross-reference datasets",
+      "Calculate KPI summaries"
+    ]
   },
   { 
     id: "custom-research", 
     label: "Custom Research", 
     icon: Plus, 
-    description: "Create a custom research node",
+    description: "Custom node",
     templates: []
   },
 ];
 
+// Action nodes with templates relevant to business RESEARCH insights
 const actionNodes: NodeItem[] = [
   { 
     id: "ai-agent", 
     label: "AI Agent", 
     icon: Bot, 
-    description: "Execute autonomous browser tasks",
-    templates: ["Fill out forms", "Schedule meetings", "Send follow-ups"]
+    description: "Browser tasks",
+    templates: [
+      "Execute research follow-ups",
+      "Automate data entry from findings",
+      "Schedule meetings based on analysis",
+      "Update CRM with insights"
+    ]
   },
   { 
     id: "send-email", 
     label: "Send Email", 
     icon: Send, 
-    description: "Compose and send emails",
-    templates: ["Reply to thread", "Send newsletter", "Cold outreach"]
+    description: "Compose emails",
+    templates: [
+      "Send research summary to team",
+      "Follow up on identified priorities",
+      "Share analysis with stakeholders",
+      "Notify contacts from research"
+    ]
   },
   { 
     id: "create-doc", 
     label: "Create Document", 
     icon: Edit, 
-    description: "Generate documents and reports",
-    templates: ["Meeting notes", "Project proposal", "Status report"]
+    description: "Generate docs",
+    templates: [
+      "Document research findings",
+      "Create analysis report",
+      "Generate meeting brief from data",
+      "Build proposal from insights"
+    ]
   },
   { 
     id: "generate-report", 
     label: "Generate Report", 
     icon: BarChart3, 
-    description: "Create visual reports and charts",
-    templates: ["Weekly summary", "KPI dashboard", "Performance review"]
+    description: "Visual reports",
+    templates: [
+      "Visualize research trends",
+      "Create KPI dashboard from data",
+      "Build performance report",
+      "Generate executive summary"
+    ]
   },
   { 
     id: "set-goal", 
     label: "Set Goal", 
     icon: Target, 
-    description: "Define and track objectives",
-    templates: ["OKR creation", "Milestone tracking", "Progress update"]
+    description: "Track objectives",
+    templates: [
+      "Set goals from research insights",
+      "Create OKRs based on analysis",
+      "Track milestones from findings",
+      "Define targets from data trends"
+    ]
   },
   { 
     id: "custom-action", 
     label: "Custom Action", 
     icon: Plus, 
-    description: "Create a custom action node",
+    description: "Custom node",
     templates: []
   },
 ];
@@ -139,94 +185,139 @@ const actionNodes: NodeItem[] = [
 interface NodeItemCardProps {
   item: NodeItem;
   onDragStart?: (item: NodeItem) => void;
+  compact?: boolean;
 }
 
-function NodeItemCard({ item, onDragStart }: NodeItemCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
+function NodeItemCard({ item, onDragStart, compact }: NodeItemCardProps) {
   const Icon = item.icon;
-  const hasTemplates = item.templates && item.templates.length > 0;
 
   return (
     <div
-      className="relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div
-        draggable
-        onDragStart={() => onDragStart?.(item)}
-        className={cn(
-          "flex items-center gap-3 p-3 rounded-lg cursor-grab active:cursor-grabbing",
-          "bg-card/50 border border-border/50 hover:border-primary/50 hover:bg-card",
-          "transition-all duration-200"
-        )}
-      >
-        <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{item.label}</p>
-          <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-        </div>
-      </div>
-
-      {/* Template suggestions on hover */}
-      {hasTemplates && isHovered && (
-        <div className="absolute left-full top-0 ml-2 z-50 w-48 animate-fade-in">
-          <div className="bg-popover border border-border rounded-lg shadow-lg p-2">
-            <p className="text-xs font-medium text-muted-foreground px-2 py-1">Templates</p>
-            {item.templates?.map((template, idx) => (
-              <button
-                key={idx}
-                className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent transition-colors flex items-center gap-2"
-              >
-                <Sparkles className="h-3 w-3 text-primary" />
-                {template}
-              </button>
-            ))}
-          </div>
-        </div>
+      draggable
+      onDragStart={() => onDragStart?.(item)}
+      className={cn(
+        "flex flex-col items-center gap-1.5 p-3 rounded-lg cursor-grab active:cursor-grabbing",
+        "bg-card/50 border border-border/50 hover:border-primary/50 hover:bg-card",
+        "transition-all duration-200",
+        compact ? "p-2" : "p-3"
       )}
+    >
+      <div className={cn(
+        "rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0",
+        compact ? "h-8 w-8" : "h-10 w-10"
+      )}>
+        <Icon className={cn("text-primary", compact ? "h-4 w-4" : "h-5 w-5")} />
+      </div>
+      <p className={cn("font-medium text-center leading-tight", compact ? "text-xs" : "text-sm")}>{item.label}</p>
     </div>
   );
 }
 
-interface NodeSectionProps {
-  title: string;
-  icon: React.ElementType;
-  items: NodeItem[];
-  defaultOpen?: boolean;
+interface ResearchActionSectionProps {
   onNodeDragStart?: (item: NodeItem) => void;
 }
 
-function NodeSection({ title, icon: SectionIcon, items, defaultOpen = true, onNodeDragStart }: NodeSectionProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+function ResearchActionSection({ onNodeDragStart }: ResearchActionSectionProps) {
+  const [hoveredSection, setHoveredSection] = useState<"research" | "action" | null>(null);
 
   return (
-    <div className="border-b border-border/50 last:border-b-0">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 p-3 hover:bg-accent/50 transition-colors"
-      >
-        <SectionIcon className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium flex-1 text-left">{title}</span>
-        <span className={cn(
-          "text-xs text-muted-foreground transition-transform",
-          isOpen ? "rotate-0" : "-rotate-90"
-        )}>▼</span>
-      </button>
-      
-      {isOpen && (
-        <div className="px-3 pb-3 space-y-2 animate-fade-in">
-          {items.map((item) => (
-            <NodeItemCard 
-              key={item.id} 
-              item={item} 
-              onDragStart={onNodeDragStart}
-            />
-          ))}
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex gap-2 flex-1 min-h-0">
+        {/* Research Column */}
+        <div 
+          className="flex-1 flex flex-col min-h-0 relative"
+          onMouseEnter={() => setHoveredSection("research")}
+          onMouseLeave={() => setHoveredSection(null)}
+        >
+          <div className="flex items-center gap-1.5 px-2 py-2 border-b border-border/50">
+            <Search className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium">Research</span>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-2 grid grid-cols-2 gap-2">
+              {researchNodes.map((item) => (
+                <NodeItemCard 
+                  key={item.id} 
+                  item={item} 
+                  onDragStart={onNodeDragStart}
+                  compact
+                />
+              ))}
+            </div>
+          </ScrollArea>
+
+          {/* Research Templates Dropdown */}
+          {hoveredSection === "research" && (
+            <div className="absolute top-full left-0 right-0 z-50 mt-1 animate-fade-in">
+              <div className="bg-popover border border-border rounded-lg shadow-xl p-3 mx-2">
+                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Sparkles className="h-3 w-3 text-primary" />
+                  Business Data Templates
+                </p>
+                <div className="space-y-1">
+                  {["Analyze email patterns", "Map contact relationships", "Extract meeting insights", "Identify data trends"].map((template, idx) => (
+                    <button
+                      key={idx}
+                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent transition-colors"
+                    >
+                      {template}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Divider */}
+        <div className="w-px bg-border/50" />
+
+        {/* Action Column */}
+        <div 
+          className="flex-1 flex flex-col min-h-0 relative"
+          onMouseEnter={() => setHoveredSection("action")}
+          onMouseLeave={() => setHoveredSection(null)}
+        >
+          <div className="flex items-center gap-1.5 px-2 py-2 border-b border-border/50">
+            <Zap className="h-3.5 w-3.5 text-accent-foreground" />
+            <span className="text-xs font-medium">Action</span>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-2 grid grid-cols-2 gap-2">
+              {actionNodes.map((item) => (
+                <NodeItemCard 
+                  key={item.id} 
+                  item={item} 
+                  onDragStart={onNodeDragStart}
+                  compact
+                />
+              ))}
+            </div>
+          </ScrollArea>
+
+          {/* Action Templates Dropdown */}
+          {hoveredSection === "action" && (
+            <div className="absolute top-full left-0 right-0 z-50 mt-1 animate-fade-in">
+              <div className="bg-popover border border-border rounded-lg shadow-xl p-3 mx-2">
+                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Sparkles className="h-3 w-3 text-accent-foreground" />
+                  Research-Based Actions
+                </p>
+                <div className="space-y-1">
+                  {["Execute follow-ups from analysis", "Generate report from findings", "Send summary to stakeholders", "Create goals from insights"].map((template, idx) => (
+                    <button
+                      key={idx}
+                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent transition-colors"
+                    >
+                      {template}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -236,33 +327,45 @@ interface NodePaletteProps {
 }
 
 export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
+  const [quickAccessOpen, setQuickAccessOpen] = useState(true);
+
   return (
-    <div className="w-72 border-r border-border bg-card/30 flex flex-col h-full">
-      <div className="p-4 border-b border-border">
+    <div className="w-80 border-r border-border bg-card/30 flex flex-col h-full">
+      <div className="p-3 border-b border-border">
         <h2 className="font-semibold text-sm">Node Library</h2>
-        <p className="text-xs text-muted-foreground mt-1">Drag nodes onto the canvas</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Drag nodes onto the canvas</p>
       </div>
       
-      <ScrollArea className="flex-1">
-        <NodeSection 
-          title="Quick Access" 
-          icon={Zap} 
-          items={quickAccessNodes}
-          onNodeDragStart={onNodeDragStart}
-        />
-        <NodeSection 
-          title="Research Nodes" 
-          icon={Search} 
-          items={researchNodes}
-          onNodeDragStart={onNodeDragStart}
-        />
-        <NodeSection 
-          title="Action Nodes" 
-          icon={Bot} 
-          items={actionNodes}
-          onNodeDragStart={onNodeDragStart}
-        />
-      </ScrollArea>
+      {/* Quick Access Section */}
+      <div className="border-b border-border/50">
+        <button
+          onClick={() => setQuickAccessOpen(!quickAccessOpen)}
+          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent/50 transition-colors"
+        >
+          <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium flex-1 text-left">Quick Access</span>
+          <ChevronDown className={cn(
+            "h-3 w-3 text-muted-foreground transition-transform",
+            !quickAccessOpen && "-rotate-90"
+          )} />
+        </button>
+        
+        {quickAccessOpen && (
+          <div className="px-3 pb-3 grid grid-cols-2 gap-2 animate-fade-in">
+            {quickAccessNodes.map((item) => (
+              <NodeItemCard 
+                key={item.id} 
+                item={item} 
+                onDragStart={onNodeDragStart}
+                compact
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Research & Action Side by Side */}
+      <ResearchActionSection onNodeDragStart={onNodeDragStart} />
     </div>
   );
 }
