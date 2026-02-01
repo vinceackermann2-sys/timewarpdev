@@ -45,11 +45,9 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
 
   // Mouse wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -10 : 10;
-      setZoom(prev => Math.max(25, Math.min(200, prev + delta)));
-    }
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -10 : 10;
+    setZoom(prev => Math.max(25, Math.min(200, prev + delta)));
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
