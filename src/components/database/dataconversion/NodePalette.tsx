@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { 
-  Search,
   Zap,
-  Sparkles,
   ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,29 +18,13 @@ const quickAccessNodes: NodeItem[] = [
 const researchNode: NodeItem = {
   id: "research",
   label: "Research",
-  description: "Analyze business data",
-  templates: [
-    "Analyze email patterns",
-    "Map contact relationships", 
-    "Extract meeting insights",
-    "Identify data trends",
-    "Find unanswered messages",
-    "Track market sentiment"
-  ]
+  description: "AI chat for data analysis",
 };
 
 const actionNode: NodeItem = {
   id: "action",
   label: "Action",
   description: "Execute from research",
-  templates: [
-    "Execute follow-ups from analysis",
-    "Generate report from findings",
-    "Send summary to stakeholders",
-    "Create goals from insights",
-    "Automate data entry",
-    "Schedule based on analysis"
-  ]
 };
 
 interface NodeItemCardProps {
@@ -83,39 +65,11 @@ interface MainNodeCardProps {
 }
 
 function MainNodeCard({ item, onDragStart, variant = "research" }: MainNodeCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const Icon = nodeIconMap[item.id];
   const isAction = variant === "action";
 
   return (
-    <div 
-      className="relative flex-1"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Templates popup - positioned ABOVE */}
-      {isHovered && item.templates && item.templates.length > 0 && (
-        <div className="absolute bottom-full left-0 right-0 mb-2 z-50 animate-fade-in">
-          <div className="bg-popover border border-border rounded-lg shadow-xl p-3 mx-1">
-            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-              <Sparkles className={cn("h-3 w-3", isAction ? "text-accent-foreground" : "text-primary")} />
-              {isAction ? "Research-Based Actions" : "Business Data Templates"}
-            </p>
-            <div className="space-y-1 max-h-40 overflow-y-auto">
-              {item.templates.map((template, idx) => (
-                <button
-                  key={idx}
-                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent transition-colors"
-                >
-                  {template}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main node card */}
+    <div className="relative flex-1">
       <div
         draggable
         onDragStart={(e) => onDragStart?.(e, item)}

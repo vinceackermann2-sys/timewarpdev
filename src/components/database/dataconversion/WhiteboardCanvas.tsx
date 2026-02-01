@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { nodeIconMap, type NodeItem, type CanvasNode, type Connection, type PendingConnection } from "./types";
+import { ResearchChatNode } from "./ResearchChatNode";
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 60;
@@ -424,6 +425,26 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
           {nodes.map((node) => {
             const Icon = nodeIconMap[node.type];
             const isSelected = selectedNodeIds.has(node.id);
+            
+            // Render Research nodes as chat interfaces
+            if (node.type === "research") {
+              return (
+                <ResearchChatNode
+                  key={node.id}
+                  node={node}
+                  connections={connections}
+                  connectedNodes={nodes}
+                  isSelected={isSelected}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                  onInputPortMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  onClose={() => {
+                    setNodes(prev => prev.filter(n => n.id !== node.id));
+                    setConnections(prev => prev.filter(c => c.fromNodeId !== node.id && c.toNodeId !== node.id));
+                  }}
+                />
+              );
+            }
+            
             return (
               <div
                 key={node.id}
