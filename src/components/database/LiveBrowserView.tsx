@@ -65,7 +65,7 @@ export function LiveBrowserView({
     setSteps(prev => [...prev, { ...step, timestamp: new Date() }]);
   }, []);
 
-  // Start Stagehand session via Replit
+  // Start Stagehand session via Replit directly
   useEffect(() => {
     const startStagehandSession = async () => {
       try {
@@ -77,12 +77,11 @@ export function LiveBrowserView({
         });
         
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-agent`,
+          "https://time-warp-ai--vinceackermann2.replit.app/run",
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
             body: JSON.stringify({ 
               task, 
@@ -93,14 +92,14 @@ export function LiveBrowserView({
         );
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to start Stagehand session');
+          const errorText = await response.text();
+          throw new Error(errorText || 'Failed to start Stagehand session');
         }
 
         const data = await response.json();
         console.log('Stagehand session started:', data);
         
-        setLiveViewUrl(data.liveViewUrl);
+        setLiveViewUrl(data.liveUrl || data.liveViewUrl);
         setSessionId(data.sessionId);
         setIsLoading(false);
         setIsAgentRunning(true);
