@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Search, Send, X, Database, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,16 @@ import type { CanvasNode, Connection } from "./types";
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+}
+
+interface ResearchData {
+  research_summary: any;
+  findings: any[];
+  raw_data: any;
+  emails_analyzed: number;
+  documents_analyzed: number;
+  events_analyzed: number;
+  sheets_analyzed: number;
 }
 
 interface ResearchChatNodeProps {
@@ -34,12 +44,36 @@ export function ResearchChatNode({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [researchData, setResearchData] = useState<ResearchData | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Get connected data sources
   const inputConnections = connections.filter(c => c.toNodeId === node.id);
   const connectedDataSources = inputConnections
     .map(c => connectedNodes.find(n => n.id === c.fromNodeId))
     .filter(Boolean);
+
+  // Check if business-db is connected
+  const hasBusinessDb = connectedDataSources.some(n => n?.type === "business-db");
+
+  // Fetch research data when business-db is connected
+  useEffect(() => {
+    if (hasBusinessDb && !researchData) {
+      setIsLoadingData(true);
+      supabase
+        .from("workspace_research")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single()
+        .then(({ data, error }) => {
+          if (data && !error) {
+            setResearchData(data as ResearchData);
+          }
+          setIsLoadingData(false);
+        });
+    }
+  }, [hasBusinessDb, researchData]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isLoading) return;
@@ -55,18 +89,22 @@ export function ResearchChatNode({
         .map(n => `- ${n?.label} (${n?.type})`)
         .join("\n");
 
+      // Get auth token for authenticated request
+      const { data: { session } } = await supabase.auth.getSession();
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/research-chat`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
             messages: [...messages, { role: "user", content: userMessage }],
             dataSources: connectedDataSources.map(n => n?.type),
             dataContext,
+            researchData: hasBusinessDb ? researchData : null,
           }),
         }
       );
@@ -122,7 +160,7 @@ export function ResearchChatNode({
     } finally {
       setIsLoading(false);
     }
-  }, [input, messages, connectedDataSources, isLoading]);
+  }, [input, messages, connectedDataSources, isLoading, hasBusinessDb, researchData]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -198,12 +236,19 @@ export function ResearchChatNode({
 
       {/* Chat messages */}
       <ScrollArea className="flex-1 p-3">
-        {messages.length === 0 ? (
+        {isLoadingData ? (
+          <div className="text-center text-muted-foreground py-8">
+            <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin opacity-50" />
+            <p className="text-sm">Loading business data...</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">
               {connectedDataSources.length > 0
-                ? "Ask a question about your connected data"
+                ? hasBusinessDb && researchData
+                  ? `Ask about ${researchData.emails_analyzed || 0} emails, ${researchData.documents_analyzed || 0} docs analyzed`
+                  : "Ask a question about your connected data"
                 : "Connect a data source, then ask questions"}
             </p>
           </div>
