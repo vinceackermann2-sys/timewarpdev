@@ -207,19 +207,74 @@ serve(async (req) => {
       console.log("CDP WebSocket connected");
 
       try {
-        // Enable required CDP domains
-        await sendCDP(ws, 'Page.enable');
-        await sendCDP(ws, 'DOM.enable');
-        await sendCDP(ws, 'Accessibility.enable');
-        await sendCDP(ws, 'Runtime.enable');
+        // First, get available targets (browser-level command)
+        const targetsResult = await sendCDP(ws, 'Target.getTargets') as { targetInfos: Array<{ targetId: string; type: string; url: string }> };
+        console.log("Available targets:", targetsResult?.targetInfos?.length);
+
+        // Find a page target
+        const pageTarget = targetsResult?.targetInfos?.find(t => t.type === 'page');
+        if (!pageTarget) {
+          throw new Error("No page target found in browser");
+        }
+        console.log("Found page target:", pageTarget.targetId, "URL:", pageTarget.url);
+
+        // Attach to the page target to get a session
+        const attachResult = await sendCDP(ws, 'Target.attachToTarget', { 
+          targetId: pageTarget.targetId,
+          flatten: true 
+        }) as { sessionId: string };
+        const cdpSessionId = attachResult?.sessionId;
+        console.log("Attached to target, session:", cdpSessionId);
+
+        // Helper to send commands to the page session
+        const sendPageCDP = async (method: string, params: Record<string, unknown> = {}): Promise<unknown> => {
+          const id = Math.floor(Math.random() * 1000000);
+          
+          return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error(`CDP timeout for ${method}`));
+            }, 10000);
+
+            const handler = (event: MessageEvent) => {
+              try {
+                const data = JSON.parse(event.data);
+                if (data.id === id) {
+                  clearTimeout(timeout);
+                  ws.removeEventListener('message', handler);
+                  if (data.error) {
+                    reject(new Error(data.error.message));
+                  } else {
+                    resolve(data.result);
+                  }
+                }
+              } catch (e) {
+                // Ignore parse errors
+              }
+            };
+
+            ws.addEventListener('message', handler);
+            ws.send(JSON.stringify({ 
+              id, 
+              method, 
+              params,
+              sessionId: cdpSessionId 
+            }));
+          });
+        };
+
+        // Enable required CDP domains on the page session
+        await sendPageCDP('Page.enable');
+        await sendPageCDP('DOM.enable');
+        await sendPageCDP('Accessibility.enable');
+        await sendPageCDP('Runtime.enable');
+        console.log("CDP domains enabled");
 
         // Get current URL
-        const frameTree = await sendCDP(ws, 'Page.getFrameTree') as { frameTree: { frame: { url: string } } };
-        const currentUrl = frameTree?.frameTree?.frame?.url || 'about:blank';
+        const currentUrl = pageTarget.url || 'about:blank';
         console.log("Current URL:", currentUrl);
 
         // Get accessibility tree
-        const axTree = await sendCDP(ws, 'Accessibility.getFullAXTree') as { nodes: AXNode[] };
+        const axTree = await sendPageCDP('Accessibility.getFullAXTree') as { nodes: AXNode[] };
         const formattedTree = formatAXTree(axTree?.nodes || []);
         console.log("Accessibility tree extracted, length:", formattedTree.length);
 
@@ -291,10 +346,27 @@ IMPORTANT:
         // Execute the action
         let actionResult = { success: true, message: '' };
 
+        // Helper to get element center coordinates
+        const getElementCenterFromPage = async (backendNodeId: number): Promise<{ x: number; y: number } | null> => {
+          try {
+            const boxModel = await sendPageCDP('DOM.getBoxModel', { backendNodeId }) as { model: { content: number[] } };
+            if (boxModel?.model?.content) {
+              const [x1, y1, x2, y2, x3, y3, x4, y4] = boxModel.model.content;
+              return {
+                x: (x1 + x2 + x3 + x4) / 4,
+                y: (y1 + y2 + y3 + y4) / 4
+              };
+            }
+          } catch (e) {
+            console.error('Failed to get element box:', e);
+          }
+          return null;
+        };
+
         switch (agentAction.action) {
           case 'navigate':
             if (agentAction.value) {
-              await sendCDP(ws, 'Page.navigate', { url: agentAction.value });
+              await sendPageCDP('Page.navigate', { url: agentAction.value });
               // Wait for page load
               await new Promise(resolve => setTimeout(resolve, 2000));
               actionResult.message = `Navigated to ${agentAction.value}`;
@@ -304,16 +376,16 @@ IMPORTANT:
           case 'click':
             if (agentAction.target) {
               const backendNodeId = parseInt(agentAction.target);
-              const coords = await getElementCenter(ws, backendNodeId);
+              const coords = await getElementCenterFromPage(backendNodeId);
               if (coords) {
-                await sendCDP(ws, 'Input.dispatchMouseEvent', {
+                await sendPageCDP('Input.dispatchMouseEvent', {
                   type: 'mousePressed',
                   x: coords.x,
                   y: coords.y,
                   button: 'left',
                   clickCount: 1
                 });
-                await sendCDP(ws, 'Input.dispatchMouseEvent', {
+                await sendPageCDP('Input.dispatchMouseEvent', {
                   type: 'mouseReleased',
                   x: coords.x,
                   y: coords.y,
@@ -323,7 +395,7 @@ IMPORTANT:
                 actionResult.message = `Clicked element ${agentAction.target}`;
               } else {
                 // Try focus instead
-                await sendCDP(ws, 'DOM.focus', { backendNodeId });
+                await sendPageCDP('DOM.focus', { backendNodeId });
                 actionResult.message = `Focused element ${agentAction.target}`;
               }
             }
@@ -331,14 +403,13 @@ IMPORTANT:
 
           case 'type':
             if (agentAction.value) {
-              // Type character by character using insertText
-              await sendCDP(ws, 'Input.insertText', { text: agentAction.value });
+              await sendPageCDP('Input.insertText', { text: agentAction.value });
               actionResult.message = `Typed: "${agentAction.value}"`;
             }
             break;
 
           case 'scroll':
-            await sendCDP(ws, 'Runtime.evaluate', {
+            await sendPageCDP('Runtime.evaluate', {
               expression: 'window.scrollBy(0, 500)'
             });
             actionResult.message = 'Scrolled down';
