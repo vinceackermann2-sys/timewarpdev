@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { 
   MousePointer2, 
@@ -15,6 +15,13 @@ import { nodeIconMap, type NodeItem, type CanvasNode, type Connection, type Pend
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 60;
 
+interface SelectionBox {
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+}
+
 interface WhiteboardCanvasProps {
   onDrop?: (item: NodeItem, x: number, y: number) => void;
 }
@@ -28,11 +35,22 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   const [zoom, setZoom] = useState(100);
   const [tool, setTool] = useState<"select" | "pan">("select");
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+
+  // Mouse wheel zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -10 : 10;
+      setZoom(prev => Math.max(25, Math.min(200, prev + delta)));
+    }
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -77,7 +95,25 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
     if (tool !== "select") return;
     e.stopPropagation();
     
-    setSelectedNodeId(nodeId);
+    // Handle multi-select with shift key
+    if (e.shiftKey) {
+      setSelectedNodeIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(nodeId)) {
+          newSet.delete(nodeId);
+        } else {
+          newSet.add(nodeId);
+        }
+        return newSet;
+      });
+      return;
+    }
+    
+    // Select single node if not already selected
+    if (!selectedNodeIds.has(nodeId)) {
+      setSelectedNodeIds(new Set([nodeId]));
+    }
+    
     const node = nodes.find(n => n.id === nodeId);
     if (node && canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
@@ -87,57 +123,118 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
         y: e.clientY - rect.top - panOffset.y - node.y * (zoom / 100)
       });
     }
-  }, [nodes, tool, zoom, panOffset]);
+  }, [nodes, tool, zoom, panOffset, selectedNodeIds]);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    
     if (tool === "pan") {
       setIsPanning(true);
       setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-    } else {
-      setSelectedNodeId(null);
+    } else if (tool === "select") {
+      // Start selection box
+      const canvasX = (e.clientX - rect.left - panOffset.x) / (zoom / 100);
+      const canvasY = (e.clientY - rect.top - panOffset.y) / (zoom / 100);
+      setSelectionBox({
+        startX: canvasX,
+        startY: canvasY,
+        endX: canvasX,
+        endY: canvasY
+      });
+      setIsSelecting(true);
+      if (!e.shiftKey) {
+        setSelectedNodeIds(new Set());
+      }
     }
-  }, [tool, panOffset]);
+  }, [tool, panOffset, zoom]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect();
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    // Handle pending connection line
+    if (pendingConnection) {
+      setPendingConnection(prev => prev ? {
+        ...prev,
+        mouseX: (e.clientX - rect.left - panOffset.x) / (zoom / 100),
+        mouseY: (e.clientY - rect.top - panOffset.y) / (zoom / 100)
+      } : null);
+    }
+    
+    // Handle node dragging (move all selected nodes)
+    if (draggingNodeId && selectedNodeIds.size > 0) {
+      const deltaX = (e.clientX - rect.left - panOffset.x - dragOffset.x) / (zoom / 100);
+      const deltaY = (e.clientY - rect.top - panOffset.y - dragOffset.y) / (zoom / 100);
       
-      // Handle pending connection line
-      if (pendingConnection) {
-        setPendingConnection(prev => prev ? {
-          ...prev,
-          mouseX: (e.clientX - rect.left - panOffset.x) / (zoom / 100),
-          mouseY: (e.clientY - rect.top - panOffset.y) / (zoom / 100)
-        } : null);
-      }
-      
-      // Handle node dragging
-      if (draggingNodeId) {
-        const newX = (e.clientX - rect.left - panOffset.x - dragOffset.x) / (zoom / 100);
-        const newY = (e.clientY - rect.top - panOffset.y - dragOffset.y) / (zoom / 100);
+      const draggedNode = nodes.find(n => n.id === draggingNodeId);
+      if (draggedNode) {
+        const offsetX = deltaX - draggedNode.x;
+        const offsetY = deltaY - draggedNode.y;
         
         setNodes(prev => prev.map(node => 
-          node.id === draggingNodeId 
-            ? { ...node, x: Math.max(0, newX), y: Math.max(0, newY) }
+          selectedNodeIds.has(node.id)
+            ? { ...node, x: Math.max(0, node.x + offsetX), y: Math.max(0, node.y + offsetY) }
             : node
         ));
-      }
-      
-      // Handle panning
-      if (isPanning) {
-        setPanOffset({
-          x: e.clientX - panStart.x,
-          y: e.clientY - panStart.y
+        
+        // Update drag offset for next frame
+        setDragOffset({
+          x: e.clientX - rect.left - panOffset.x - deltaX * (zoom / 100),
+          y: e.clientY - rect.top - panOffset.y - deltaY * (zoom / 100)
         });
       }
     }
-  }, [draggingNodeId, dragOffset, zoom, panOffset, isPanning, panStart, pendingConnection]);
+    
+    // Handle panning
+    if (isPanning) {
+      setPanOffset({
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y
+      });
+    }
+    
+    // Handle selection box
+    if (isSelecting && selectionBox) {
+      const canvasX = (e.clientX - rect.left - panOffset.x) / (zoom / 100);
+      const canvasY = (e.clientY - rect.top - panOffset.y) / (zoom / 100);
+      setSelectionBox(prev => prev ? {
+        ...prev,
+        endX: canvasX,
+        endY: canvasY
+      } : null);
+    }
+  }, [draggingNodeId, dragOffset, zoom, panOffset, isPanning, panStart, pendingConnection, isSelecting, selectionBox, selectedNodeIds, nodes]);
 
   const handleMouseUp = useCallback(() => {
+    // Finalize selection box - select nodes within it
+    if (isSelecting && selectionBox) {
+      const minX = Math.min(selectionBox.startX, selectionBox.endX);
+      const maxX = Math.max(selectionBox.startX, selectionBox.endX);
+      const minY = Math.min(selectionBox.startY, selectionBox.endY);
+      const maxY = Math.max(selectionBox.startY, selectionBox.endY);
+      
+      const nodesInBox = nodes.filter(node => {
+        const nodeRight = node.x + (node.width || NODE_WIDTH);
+        const nodeBottom = node.y + (node.height || NODE_HEIGHT);
+        return node.x < maxX && nodeRight > minX && node.y < maxY && nodeBottom > minY;
+      });
+      
+      if (nodesInBox.length > 0) {
+        setSelectedNodeIds(prev => {
+          const newSet = new Set(prev);
+          nodesInBox.forEach(n => newSet.add(n.id));
+          return newSet;
+        });
+      }
+    }
+    
     setDraggingNodeId(null);
     setIsPanning(false);
     setPendingConnection(null);
-  }, []);
+    setSelectionBox(null);
+    setIsSelecting(false);
+  }, [isSelecting, selectionBox, nodes]);
 
   const handleOutputPortMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
@@ -155,7 +252,6 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   const handleInputPortMouseUp = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
     if (pendingConnection && pendingConnection.fromNodeId !== nodeId) {
-      // Check if connection already exists
       const exists = connections.some(
         c => c.fromNodeId === pendingConnection.fromNodeId && c.toNodeId === nodeId
       );
@@ -174,17 +270,16 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   }, [pendingConnection, connections]);
 
   const handleDeleteSelected = useCallback(() => {
-    if (selectedNodeId) {
-      setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
-      setConnections(prev => prev.filter(c => c.fromNodeId !== selectedNodeId && c.toNodeId !== selectedNodeId));
-      setSelectedNodeId(null);
+    if (selectedNodeIds.size > 0) {
+      setNodes(prev => prev.filter(n => !selectedNodeIds.has(n.id)));
+      setConnections(prev => prev.filter(c => !selectedNodeIds.has(c.fromNodeId) && !selectedNodeIds.has(c.toNodeId)));
+      setSelectedNodeIds(new Set());
     }
-  }, [selectedNodeId]);
+  }, [selectedNodeIds]);
 
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 25, 200));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 25, 25));
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 10, 200));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, 25));
 
-  // Get port positions for a node
   const getPortPosition = (node: CanvasNode, port: "input" | "output") => {
     const width = node.width || NODE_WIDTH;
     const height = node.height || NODE_HEIGHT;
@@ -194,12 +289,19 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
     };
   };
 
-  // Generate bezier path for connection
   const getConnectionPath = (from: { x: number; y: number }, to: { x: number; y: number }) => {
     const dx = Math.abs(to.x - from.x);
     const controlOffset = Math.min(dx * 0.5, 100);
     return `M ${from.x} ${from.y} C ${from.x + controlOffset} ${from.y}, ${to.x - controlOffset} ${to.y}, ${to.x} ${to.y}`;
   };
+
+  // Calculate selection box rect
+  const selectionRect = selectionBox ? {
+    x: Math.min(selectionBox.startX, selectionBox.endX),
+    y: Math.min(selectionBox.startY, selectionBox.endY),
+    width: Math.abs(selectionBox.endX - selectionBox.startX),
+    height: Math.abs(selectionBox.endY - selectionBox.startY)
+  } : null;
 
   return (
     <div className="flex-1 relative overflow-hidden flex flex-col">
@@ -209,7 +311,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
         className={cn(
           "flex-1 relative overflow-hidden transition-colors duration-200",
           isDragOver ? "bg-primary/5" : "bg-muted/20",
-          tool === "pan" ? "cursor-grab" : "cursor-default",
+          tool === "pan" ? "cursor-grab" : "cursor-crosshair",
           isPanning && "cursor-grabbing"
         )}
         onDragOver={handleDragOver}
@@ -219,6 +321,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
       >
         {/* Transformed container */}
         <div 
@@ -240,7 +343,6 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
 
           {/* Connection lines SVG layer */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: "visible" }}>
-            {/* Existing connections */}
             {connections.map(conn => {
               const fromNode = nodes.find(n => n.id === conn.fromNodeId);
               const toNode = nodes.find(n => n.id === conn.toNodeId);
@@ -271,7 +373,6 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
               );
             })}
             
-            {/* Pending connection line */}
             {pendingConnection && (() => {
               const fromNode = nodes.find(n => n.id === pendingConnection.fromNodeId);
               if (!fromNode) return null;
@@ -287,6 +388,20 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
                 />
               );
             })()}
+
+            {/* Selection box */}
+            {selectionRect && selectionRect.width > 5 && selectionRect.height > 5 && (
+              <rect
+                x={selectionRect.x}
+                y={selectionRect.y}
+                width={selectionRect.width}
+                height={selectionRect.height}
+                fill="hsl(var(--primary) / 0.1)"
+                stroke="hsl(var(--primary))"
+                strokeWidth="1"
+                strokeDasharray="4,4"
+              />
+            )}
           </svg>
 
           {/* Drop indicator */}
@@ -311,7 +426,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
           {/* Rendered nodes */}
           {nodes.map((node) => {
             const Icon = nodeIconMap[node.type];
-            const isSelected = selectedNodeId === node.id;
+            const isSelected = selectedNodeIds.has(node.id);
             return (
               <div
                 key={node.id}
@@ -363,7 +478,6 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
       {/* Floating Bottom Toolbar */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
         <div className="flex items-center gap-1 bg-card/95 backdrop-blur border border-border rounded-lg shadow-lg px-2 py-1.5">
-          {/* Undo/Redo */}
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Undo">
             <Undo2 className="h-4 w-4" />
           </Button>
@@ -373,12 +487,11 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
 
           <div className="w-px h-5 bg-border mx-1" />
 
-          {/* Tools */}
           <Button 
             variant={tool === "select" ? "secondary" : "ghost"} 
             size="icon" 
             className="h-8 w-8" 
-            title="Select"
+            title="Select (drag to multi-select)"
             onClick={() => setTool("select")}
           >
             <MousePointer2 className="h-4 w-4" />
@@ -387,7 +500,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
             variant={tool === "pan" ? "secondary" : "ghost"} 
             size="icon" 
             className="h-8 w-8" 
-            title="Pan"
+            title="Pan (drag to move canvas)"
             onClick={() => setTool("pan")}
           >
             <Hand className="h-4 w-4" />
@@ -395,35 +508,36 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
 
           <div className="w-px h-5 bg-border mx-1" />
 
-          {/* Delete selected */}
           <Button 
             variant="ghost" 
             size="icon" 
             className="h-8 w-8" 
             title="Delete selected"
             onClick={handleDeleteSelected}
-            disabled={!selectedNodeId}
+            disabled={selectedNodeIds.size === 0}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
 
           <div className="w-px h-5 bg-border mx-1" />
 
-          {/* Zoom Controls */}
           <Button 
             variant="ghost" 
             size="icon" 
             className="h-8 w-8" 
             title="Zoom Out"
             onClick={handleZoomOut}
-            disabled={zoom <= 25}
           >
             <Minus className="h-4 w-4" />
           </Button>
           
-          <span className="text-xs font-medium w-12 text-center tabular-nums">
+          <button 
+            className="text-xs font-medium w-14 text-center tabular-nums hover:bg-accent rounded px-1 py-0.5"
+            onClick={() => setZoom(100)}
+            title="Reset to 100%"
+          >
             {zoom}%
-          </span>
+          </button>
           
           <Button 
             variant="ghost" 
@@ -431,7 +545,6 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
             className="h-8 w-8" 
             title="Zoom In"
             onClick={handleZoomIn}
-            disabled={zoom >= 200}
           >
             <Plus className="h-4 w-4" />
           </Button>
