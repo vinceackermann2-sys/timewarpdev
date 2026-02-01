@@ -291,15 +291,34 @@ ACCESSIBILITY TREE:
 ${formattedTree.substring(0, 15000)}
 
 Based on the current page state and task, decide the next action. Return a JSON object with:
-- "action": one of "navigate", "click", "type", "scroll", "wait", "complete", "error"
+- "action": one of "navigate", "click", "type", "scroll", "wait", "login_required", "complete", "error"
 - "target": the element ID [number] to interact with (for click/type)
 - "value": the URL (for navigate) or text (for type)
 - "reasoning": brief explanation of why this action
+- "instructions": (only for login_required) step-by-step instructions for the user to complete login
+
+CRITICAL - LOGIN DETECTION:
+If you detect a login page, signup page, authentication wall, CAPTCHA, 2FA prompt, or any page that requires user credentials:
+- Use action "login_required"
+- In "reasoning", explain what login is needed (e.g., "This page requires logging into Canva")
+- In "instructions", provide clear step-by-step instructions for the user, like:
+  1. Click "Sign in with Google" or enter your email/password
+  2. Complete any 2FA if prompted
+  3. Click "Continue" in the agent panel when done
+
+Signs of login/auth pages:
+- Forms with email/password fields
+- "Sign in", "Log in", "Sign up", "Create account" buttons
+- OAuth buttons like "Sign in with Google/Apple/Facebook"
+- CAPTCHAs or "I'm not a robot" checkboxes
+- 2FA/verification code inputs
+- "Access denied" or "Please log in to continue" messages
 
 If the task appears complete, use action "complete" with a summary in "reasoning".
 If stuck or unable to proceed, use action "error" with explanation.
 
 IMPORTANT: 
+- ALWAYS detect login pages and use "login_required" - never try to automate login forms
 - For Google searches, navigate to google.com first, then click the search box and type
 - Always click input fields before typing
 - Return ONLY valid JSON, no markdown.`;
@@ -420,6 +439,10 @@ IMPORTANT:
             actionResult.message = 'Waited 1 second';
             break;
 
+          case 'login_required':
+            actionResult.message = agentAction.reasoning || 'Login required';
+            break;
+
           case 'complete':
             actionResult.message = agentAction.reasoning || 'Task completed';
             break;
@@ -442,6 +465,8 @@ IMPORTANT:
             action: agentAction,
             result: actionResult,
             isComplete: agentAction.action === 'complete' || agentAction.action === 'error',
+            loginRequired: agentAction.action === 'login_required',
+            loginInstructions: agentAction.instructions || null,
             currentUrl
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }

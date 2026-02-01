@@ -9,7 +9,8 @@ import {
   Maximize2,
   Minimize2,
   Play,
-  Pause
+  Pause,
+  LogIn
 } from "lucide-react";
 import { RemoteBrowser } from "./RemoteBrowser";
 import { AgentActivityLog, AgentStep } from "./AgentActivityLog";
@@ -46,6 +47,8 @@ export function LiveBrowserView({
   const [connectUrl, setConnectUrl] = useState<string | null>(null);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [loginRequired, setLoginRequired] = useState(false);
+  const [loginInstructions, setLoginInstructions] = useState<string | null>(null);
   const agentLoopRef = useRef<boolean>(false);
   const stepNumberRef = useRef<number>(0);
 
@@ -168,18 +171,28 @@ export function LiveBrowserView({
         type: "⌨️",
         scroll: "📜",
         wait: "⏳",
+        login_required: "🔐",
         complete: "✅",
         error: "❌"
       };
 
       addStep({
         icon: actionIcons[data.action?.action] || "🔄",
-        title: data.action?.action?.charAt(0).toUpperCase() + data.action?.action?.slice(1) || "Action",
+        title: data.action?.action === 'login_required' ? 'Login Required' : 
+               data.action?.action?.charAt(0).toUpperCase() + data.action?.action?.slice(1) || "Action",
         message: data.result?.message || data.action?.reasoning || "Executing...",
         details: data.action?.value || data.action?.target ? `Target: ${data.action?.target || data.action?.value}` : undefined,
         type: data.action?.action === 'error' ? 'error' : 
-              data.action?.action === 'complete' ? 'complete' : 'action'
+              data.action?.action === 'complete' ? 'complete' :
+              data.action?.action === 'login_required' ? 'warning' : 'action'
       });
+
+      // Handle login required
+      if (data.loginRequired) {
+        setLoginRequired(true);
+        setLoginInstructions(data.loginInstructions || data.action?.reasoning);
+        return false; // Pause the loop
+      }
 
       if (data.isComplete) {
         setSummary(data.action?.reasoning || "Task completed");
@@ -206,15 +219,25 @@ export function LiveBrowserView({
     
     agentLoopRef.current = true;
     setIsAgentRunning(true);
-    stepNumberRef.current = 0;
+    setLoginRequired(false);
+    setLoginInstructions(null);
 
-    addStep({
-      icon: "🤖",
-      title: "Agent Started",
-      message: `${roleInfo.label} is beginning the task...`,
-      details: task,
-      type: "action"
-    });
+    if (stepNumberRef.current === 0) {
+      addStep({
+        icon: "🤖",
+        title: "Agent Started",
+        message: `${roleInfo.label} is beginning the task...`,
+        details: task,
+        type: "action"
+      });
+    } else {
+      addStep({
+        icon: "▶️",
+        title: "Resumed",
+        message: "Agent resuming after login...",
+        type: "status"
+      });
+    }
 
     const maxSteps = 20;
     let shouldContinue = true;
@@ -250,6 +273,12 @@ export function LiveBrowserView({
     }
   };
 
+  const handleContinueAfterLogin = () => {
+    setLoginRequired(false);
+    setLoginInstructions(null);
+    runAgentLoop();
+  };
+
   const handlePauseAgent = () => {
     setIsPaused(true);
     agentLoopRef.current = false;
@@ -265,6 +294,7 @@ export function LiveBrowserView({
     agentLoopRef.current = false;
     setIsAgentRunning(false);
     setIsPaused(false);
+    setLoginRequired(false);
     onTakeControl();
   };
 
@@ -276,6 +306,7 @@ export function LiveBrowserView({
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
             <span className="text-lg">{roleInfo.emoji}</span>
             {isAgentRunning && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+            {loginRequired && <span className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />}
             <span className="text-sm font-medium text-primary">{roleInfo.label}</span>
           </div>
           {currentStep && (
@@ -301,7 +332,7 @@ export function LiveBrowserView({
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
           
-          {!isAgentRunning && !isComplete && sessionId && (
+          {!isAgentRunning && !isComplete && !loginRequired && sessionId && (
             <Button
               size="sm"
               onClick={handleStartAgent}
@@ -309,6 +340,17 @@ export function LiveBrowserView({
             >
               <Play className="h-4 w-4 mr-2" />
               Start Agent
+            </Button>
+          )}
+
+          {loginRequired && (
+            <Button
+              size="sm"
+              onClick={handleContinueAfterLogin}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black"
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              Continue After Login
             </Button>
           )}
           
@@ -345,6 +387,27 @@ export function LiveBrowserView({
         </div>
       </div>
 
+      {/* Login Required Banner */}
+      {loginRequired && (
+        <div className="bg-yellow-500/10 border-b border-yellow-500/30 p-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-full bg-yellow-500/20">
+              <LogIn className="h-5 w-5 text-yellow-500" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium text-yellow-500 mb-1">Login Required</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                {loginInstructions || "Please log in to the website in the browser view below, then click 'Continue After Login'."}
+              </p>
+              <div className="text-xs text-muted-foreground/70 space-y-1">
+                <p>💡 <strong>Tip:</strong> Look for "Sign in with Google" for the fastest login</p>
+                <p>🔒 Your credentials are entered directly in the secure browser - we never see them</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Browser view */}
@@ -362,7 +425,7 @@ export function LiveBrowserView({
             <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/50 border border-border/50">
               <Lock className="h-3 w-3 text-primary" />
               <span className="text-xs text-muted-foreground truncate font-mono">
-                {isLoading ? 'Initializing...' : 'Browserbase Live View'}
+                {isLoading ? 'Initializing...' : loginRequired ? '🔐 Waiting for login...' : 'Browserbase Live View'}
               </span>
             </div>
           </div>
