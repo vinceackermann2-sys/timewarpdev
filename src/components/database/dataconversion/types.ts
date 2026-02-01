@@ -33,4 +33,21 @@ export interface CanvasNode {
   label: string;
   x: number;
   y: number;
+  width?: number;
+  height?: number;
+}
+
+export interface Connection {
+  id: string;
+  fromNodeId: string;
+  fromPort: "output";
+  toNodeId: string;
+  toPort: "input";
+}
+
+export interface PendingConnection {
+  fromNodeId: string;
+  fromPort: "output";
+  mouseX: number;
+  mouseY: number;
 }
