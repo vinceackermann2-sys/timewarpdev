@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TransitionOverlay } from "@/components/database/TransitionOverlay";
 
 interface AnalysisStep {
   type: "thought" | "action" | "observation" | "finding" | "complete";
@@ -29,6 +31,7 @@ const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-w
 
 export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAnalysisViewProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [isRunning, setIsRunning] = useState(false);
   const [steps, setSteps] = useState<AnalysisStep[]>([]);
@@ -39,6 +42,8 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
   const [progress, setProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState("Initializing...");
   const [currentAction, setCurrentAction] = useState<string | null>(null);
+  const [showTransition, setShowTransition] = useState(false);
+  const [pendingTask, setPendingTask] = useState<string>("");
 
   const startAnalysis = useCallback(async () => {
     setIsRunning(true);
@@ -214,6 +219,25 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
 
   return (
     <div className="min-h-screen portal-bg flex flex-col relative overflow-hidden">
+      {/* Transition Overlay */}
+      <TransitionOverlay
+        isVisible={showTransition}
+        role={role}
+        task={pendingTask}
+        onComplete={() => {
+          // Store task data for the database page
+          sessionStorage.setItem('pendingAgentTask', JSON.stringify({
+            role: role,
+            task: pendingTask,
+            timeEstimate: '15min'
+          }));
+          // Clear quiz data
+          sessionStorage.removeItem('quizData');
+          // Navigate to database with aiceo view
+          navigate('/database?view=aiceo&autostart=true');
+        }}
+      />
+
       {/* Background effects */}
       <div 
         className="absolute inset-0 pointer-events-none z-0"
@@ -520,7 +544,13 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
                   <Button
                     className="w-full h-14 text-lg font-bold bg-gradient-to-r from-accent via-purple-500 to-accent bg-[length:200%_100%] animate-shimmer hover:shadow-[0_0_50px_rgba(139,92,246,0.6)] transition-all duration-500 group"
                     onClick={() => {
-                      console.log("Execute action clicked", finding);
+                      // Build the task description from the finding
+                      const taskDescription = finding?.improvement?.description 
+                        || finding?.issue?.solution 
+                        || `Implement the recommended improvements for ${roleLabel} workflow optimization`;
+                      
+                      setPendingTask(taskDescription);
+                      setShowTransition(true);
                     }}
                   >
                     <Rocket className="h-5 w-5 mr-2 group-hover:animate-bounce" />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,15 @@ interface TaskConfig {
   role: Role;
   task: string;
   timeEstimate: TimeEstimate;
+}
+
+interface TimeWarpAIViewProps {
+  initialTask?: {
+    role: string;
+    task: string;
+    timeEstimate: string;
+  } | null;
+  onTaskConsumed?: () => void;
 }
 
 const roleConfig = {
@@ -44,12 +53,35 @@ const timeOptions = [
   { value: "1hour", label: "~1 hour", description: "In-depth work" }
 ];
 
-export function TimeWarpAIView() {
+export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewProps) {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [taskDescription, setTaskDescription] = useState("");
   const [timeEstimate, setTimeEstimate] = useState<TimeEstimate>("15min");
   const [isRunning, setIsRunning] = useState(false);
   const [taskConfig, setTaskConfig] = useState<TaskConfig | null>(null);
+
+  // Auto-start if initialTask is provided
+  useEffect(() => {
+    if (initialTask && !isRunning && !taskConfig) {
+      const role = (initialTask.role?.toLowerCase() || 'ceo') as Role;
+      const time = (initialTask.timeEstimate || '15min') as TimeEstimate;
+      
+      setSelectedRole(role);
+      setTaskDescription(initialTask.task);
+      setTimeEstimate(time);
+      
+      // Auto-start the task
+      setTaskConfig({
+        role: role,
+        task: initialTask.task,
+        timeEstimate: time
+      });
+      setIsRunning(true);
+      
+      // Notify parent that task was consumed
+      onTaskConsumed?.();
+    }
+  }, [initialTask, isRunning, taskConfig, onTaskConsumed]);
 
   const handleStartTask = () => {
     if (!selectedRole || !taskDescription.trim()) return;
