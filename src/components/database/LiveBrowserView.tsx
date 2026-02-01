@@ -7,9 +7,7 @@ import {
   Lock,
   RefreshCw,
   Maximize2,
-  Minimize2,
-  Play,
-  Pause
+  Minimize2
 } from "lucide-react";
 import { RemoteBrowser } from "./RemoteBrowser";
 
@@ -30,15 +28,6 @@ interface AgentStep {
   type: "status" | "action" | "warning" | "error" | "complete";
 }
 
-interface AgentAction {
-  type: 'navigate' | 'click' | 'type' | 'scroll' | 'wait' | 'complete' | 'error';
-  target?: string;
-  value?: string;
-  x?: number;
-  y?: number;
-  reasoning: string;
-}
-
 const roleLabels: Record<string, { label: string; emoji: string }> = {
   ceo: { label: "CEO Agent", emoji: "👑" },
   cmo: { label: "CMO Agent", emoji: "📣" }, 
@@ -57,15 +46,11 @@ export function LiveBrowserView({
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
-  const [currentStep, setCurrentStep] = useState<{ index: number; total: number } | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const agentLoopRef = useRef<boolean>(false);
 
   const roleInfo = roleLabels[role] || roleLabels.ceo;
 
@@ -80,14 +65,14 @@ export function LiveBrowserView({
     setSteps(prev => [...prev, { ...step, timestamp: new Date() }]);
   }, []);
 
-  // Create browser session on mount
+  // Start Stagehand session via Replit
   useEffect(() => {
-    const createSession = async () => {
+    const startStagehandSession = async () => {
       try {
         addStep({
           icon: "🚀",
           title: "Starting",
-          message: "Initializing browser session...",
+          message: "Connecting to Stagehand server...",
           type: "status"
         });
         
@@ -102,139 +87,70 @@ export function LiveBrowserView({
             body: JSON.stringify({ 
               task, 
               role, 
-              timeEstimate,
-              action: 'create'
+              timeEstimate
             })
           }
         );
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create browser session');
+          throw new Error(errorData.error || 'Failed to start Stagehand session');
         }
 
         const data = await response.json();
-        console.log('Browserbase session created:', data);
+        console.log('Stagehand session started:', data);
         
         setLiveViewUrl(data.liveViewUrl);
         setSessionId(data.sessionId);
-        setCurrentUrl(data.liveViewUrl || 'Browser ready');
         setIsLoading(false);
+        setIsAgentRunning(true);
         
         addStep({
           icon: "🎥",
-          title: "Session Ready",
-          message: "Browser session initialized",
-          details: `Session ID: ${data.sessionId}`,
+          title: "Browser Connected",
+          message: "Live browser session active",
+          details: `Session: ${data.sessionId?.slice(0, 8)}...`,
           type: "status"
         });
 
         addStep({
-          icon: "💡",
-          title: "Ready to Start",
-          message: "Click 'Start Agent' to begin automation",
-          type: "status"
+          icon: "🤖",
+          title: "AI Working",
+          message: "Stagehand is executing your task...",
+          details: task,
+          type: "action"
         });
 
       } catch (err) {
-        console.error('Browser session error:', err);
+        console.error('Stagehand session error:', err);
         setIsLoading(false);
         addStep({
           icon: "❌",
-          title: "Error",
+          title: "Connection Error",
           message: err instanceof Error ? err.message : 'Unknown error',
           type: "error"
         });
       }
     };
 
-    createSession();
+    startStagehandSession();
   }, [role, task, timeEstimate, addStep]);
 
-  // Agent execution loop
-  const runAgentLoop = useCallback(async () => {
-    if (!sessionId || agentLoopRef.current) return;
-    
-    agentLoopRef.current = true;
-    setIsAgentRunning(true);
-    let stepCount = 0;
-    const maxSteps = 20;
-
-    addStep({
-      icon: "🤖",
-      title: "Agent Started",
-      message: `${roleInfo.label} is beginning the task...`,
-      details: task,
-      type: "action"
-    });
-
-    // Note: Full CDP automation requires WebSocket connection to Browserbase
-    // For now, we'll show a simplified demo flow
-    addStep({
-      icon: "🔍",
-      title: "Analyzing",
-      message: "Agent is analyzing the current page...",
-      type: "status"
-    });
-
-    // Simulate agent thinking
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    addStep({
-      icon: "🌐",
-      title: "Navigation",
-      message: "The browser is ready for interaction",
-      details: "You can interact with the browser directly in the live view above",
-      type: "action"
-    });
-
-    addStep({
-      icon: "ℹ️",
-      title: "Manual Mode",
-      message: "Full automation requires CDP WebSocket connection. Use the live view to complete your task manually.",
-      type: "status"
-    });
-
-    setCurrentStep({ index: 1, total: 1 });
-    
-    // Mark as complete after showing the info
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setSummary("Browser session is active. You can interact with the live view directly to complete your task.");
+  // Stagehand handles execution - just mark complete when user clicks Done
+  const handleMarkComplete = () => {
+    setSummary("Task execution completed by Stagehand AI agent.");
     setIsComplete(true);
     setIsAgentRunning(false);
-    agentLoopRef.current = false;
-
     addStep({
       icon: "✅",
-      title: "Ready",
-      message: "Browser is ready for your interaction",
+      title: "Complete",
+      message: "Task finished",
       type: "complete"
-    });
-  }, [sessionId, task, roleInfo.label, addStep]);
-
-  const handleStartAgent = () => {
-    if (!isAgentRunning && !isPaused) {
-      runAgentLoop();
-    } else if (isPaused) {
-      setIsPaused(false);
-    }
-  };
-
-  const handlePauseAgent = () => {
-    setIsPaused(true);
-    addStep({
-      icon: "⏸️",
-      title: "Paused",
-      message: "Agent paused by user",
-      type: "status"
     });
   };
 
   const handleStop = () => {
-    agentLoopRef.current = false;
     setIsAgentRunning(false);
-    setIsPaused(false);
     onTakeControl();
   };
 
@@ -258,18 +174,10 @@ export function LiveBrowserView({
             {isAgentRunning && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
             <span className="text-sm font-medium text-primary">{roleInfo.label}</span>
           </div>
-          {currentStep && (
-            <div className="flex items-center gap-2 text-sm">
-              <div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${(currentStep.index / currentStep.total) * 100}%` }}
-                />
-              </div>
-              <span className="text-muted-foreground">
-                Step {currentStep.index}/{currentStep.total}
-              </span>
-            </div>
+          {isAgentRunning && (
+            <span className="text-sm text-muted-foreground animate-pulse">
+              AI is working...
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -281,28 +189,6 @@ export function LiveBrowserView({
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
           
-          {!isAgentRunning && !isComplete && sessionId && (
-            <Button
-              size="sm"
-              onClick={handleStartAgent}
-              className="gradient-primary"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Start Agent
-            </Button>
-          )}
-          
-          {isAgentRunning && !isPaused && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePauseAgent}
-            >
-              <Pause className="h-4 w-4 mr-2" />
-              Pause
-            </Button>
-          )}
-          
           <Button
             variant="outline"
             size="sm"
@@ -312,6 +198,17 @@ export function LiveBrowserView({
             Stop
           </Button>
           
+          {isAgentRunning && !isComplete && (
+            <Button
+              size="sm"
+              onClick={handleMarkComplete}
+              className="gradient-primary"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Mark Done
+            </Button>
+          )}
+          
           {isComplete && (
             <Button
               size="sm"
@@ -319,7 +216,7 @@ export function LiveBrowserView({
               className="gradient-primary"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
-              Done
+              Finish
             </Button>
           )}
         </div>
