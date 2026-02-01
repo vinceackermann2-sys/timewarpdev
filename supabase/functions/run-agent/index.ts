@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const REPLIT_STAGEHAND_URL = "https://eb7c2cda-9d2c-462a-86b3-87ac0064e21a-00-7mw7g6ukya5z.spock.replit.dev";
+const REPLIT_STAGEHAND_URL = "https://time-warp-ai--vinceackermann2.replit.app";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
