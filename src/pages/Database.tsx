@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -11,11 +11,44 @@ import { Loader2 } from "lucide-react";
 
 type View = "database" | "dataconversion" | "aiceo";
 
+interface PendingTask {
+  role: string;
+  task: string;
+  timeEstimate: string;
+}
+
 const Database = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>("database");
+  const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
+
+  // Check for view parameter and pending task on mount
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    const autostart = searchParams.get('autostart');
+    
+    if (viewParam === 'aiceo') {
+      setCurrentView('aiceo');
+    }
+    
+    // Check for pending task from research flow
+    if (autostart === 'true') {
+      const storedTask = sessionStorage.getItem('pendingAgentTask');
+      if (storedTask) {
+        try {
+          const task = JSON.parse(storedTask);
+          setPendingTask(task);
+          // Clear after reading
+          sessionStorage.removeItem('pendingAgentTask');
+        } catch (e) {
+          console.error('Failed to parse pending task:', e);
+        }
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -62,7 +95,12 @@ const Database = () => {
           <main className="flex-1 overflow-hidden">
             {currentView === "database" && <DatabaseView />}
             {currentView === "dataconversion" && <DataConversionView />}
-            {currentView === "aiceo" && <TimeWarpAIView />}
+            {currentView === "aiceo" && (
+              <TimeWarpAIView 
+                initialTask={pendingTask}
+                onTaskConsumed={() => setPendingTask(null)}
+              />
+            )}
           </main>
         </SidebarInset>
       </div>
