@@ -33,7 +33,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [zoom, setZoom] = useState(100);
-  const [tool, setTool] = useState<"select" | "pan">("select");
+  const [tool, setTool] = useState<"select" | "pan">("pan");
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -90,11 +90,10 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   }, [onDrop, zoom, panOffset]);
 
   const handleNodeMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
-    if (tool !== "select") return;
     e.stopPropagation();
     
-    // Handle multi-select with shift key
-    if (e.shiftKey) {
+    // Handle multi-select with shift key (only in select mode)
+    if (tool === "select" && e.shiftKey) {
       setSelectedNodeIds(prev => {
         const newSet = new Set(prev);
         if (newSet.has(nodeId)) {
@@ -107,7 +106,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
       return;
     }
     
-    // Select single node if not already selected
+    // Select single node for dragging
     if (!selectedNodeIds.has(nodeId)) {
       setSelectedNodeIds(new Set([nodeId]));
     }
