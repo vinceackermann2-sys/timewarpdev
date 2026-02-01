@@ -1,32 +1,60 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { NodePalette, type NodeItem } from "./dataconversion/NodePalette";
+import { WhiteboardCanvas } from "./dataconversion/WhiteboardCanvas";
+import { Play, Save, Undo, Redo, ZoomIn, ZoomOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function DataConversionView() {
+  const [draggedNode, setDraggedNode] = useState<NodeItem | null>(null);
+
+  const handleNodeDragStart = useCallback((item: NodeItem) => {
+    setDraggedNode(item);
+  }, []);
+
+  const handleCanvasDrop = useCallback((item: NodeItem, x: number, y: number) => {
+    console.log("Dropped node:", draggedNode, "at", x, y);
+    setDraggedNode(null);
+  }, [draggedNode]);
+
   return (
     <div className="h-full w-full flex flex-col bg-background">
       {/* Toolbar */}
       <div className="h-12 border-b border-border flex items-center px-4 gap-2 bg-card/50">
-        <span className="text-sm font-medium">Data Conversion Whiteboard</span>
-        <span className="text-xs text-muted-foreground ml-2">• Interactive node canvas</span>
+        <span className="text-sm font-medium">Data Conversion</span>
+        <span className="text-xs text-muted-foreground ml-2">• Workflow Builder</span>
+        
+        <div className="flex-1" />
+        
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Undo className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Redo className="h-4 w-4" />
+          </Button>
+          <div className="w-px h-4 bg-border mx-1" />
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <div className="w-px h-4 bg-border mx-1" />
+          <Button variant="ghost" size="sm" className="h-8">
+            <Save className="h-4 w-4 mr-1" />
+            Save
+          </Button>
+          <Button size="sm" className="h-8">
+            <Play className="h-4 w-4 mr-1" />
+            Run
+          </Button>
+        </div>
       </div>
       
-      {/* Canvas Area - Placeholder for whiteboard */}
-      <div className="flex-1 relative overflow-hidden bg-muted/20">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-muted-foreground">
-            <p className="text-lg font-medium">Whiteboard Canvas</p>
-            <p className="text-sm">Share your vision for the node-based interface</p>
-          </div>
-        </div>
-        
-        {/* Grid pattern background */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30">
-          <defs>
-            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden">
+        <NodePalette onNodeDragStart={handleNodeDragStart} />
+        <WhiteboardCanvas onDrop={handleCanvasDrop} />
       </div>
     </div>
   );
