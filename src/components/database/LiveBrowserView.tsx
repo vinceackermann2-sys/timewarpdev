@@ -10,6 +10,7 @@ import {
   Minimize2
 } from "lucide-react";
 import { RemoteBrowser } from "./RemoteBrowser";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LiveBrowserViewProps {
   role: string;
@@ -65,7 +66,7 @@ export function LiveBrowserView({
     setSteps(prev => [...prev, { ...step, timestamp: new Date() }]);
   }, []);
 
-  // Start Stagehand session via Replit directly
+  // Start Stagehand session via Edge Function bridge to Replit
   useEffect(() => {
     const startStagehandSession = async () => {
       try {
@@ -76,27 +77,14 @@ export function LiveBrowserView({
           type: "status"
         });
         
-        const response = await fetch(
-          "https://time-warp-ai--vinceackermann2.replit.app/run",
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-              task, 
-              role, 
-              timeEstimate
-            })
-          }
-        );
+        const { data, error } = await supabase.functions.invoke('run-agent', {
+          body: { task, role, timeEstimate }
+        });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || 'Failed to start Stagehand session');
+        if (error) {
+          throw new Error(error.message || 'Failed to start Stagehand session');
         }
 
-        const data = await response.json();
         console.log('Stagehand session started:', data);
         
         setLiveViewUrl(data.liveUrl || data.liveViewUrl);
