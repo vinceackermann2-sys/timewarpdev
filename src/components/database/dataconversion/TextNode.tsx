@@ -153,6 +153,8 @@ export function TextNode({
         <Textarea
           value={text}
           onChange={handleTextChange}
+          onMouseDown={(e) => e.stopPropagation()}
+          onFocus={(e) => e.stopPropagation()}
           placeholder="Enter text to analyze..."
           className="flex-1 resize-none text-sm min-h-0"
         />
