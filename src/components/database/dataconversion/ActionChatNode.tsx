@@ -182,8 +182,8 @@ export function ActionChatNode({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Get Google access token from session provider_token
-      const googleAccessToken = session?.provider_token;
+      // Get Google access token from session provider_token OR sessionStorage
+      const googleAccessToken = session?.provider_token || sessionStorage.getItem("googleProviderToken");
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/action-chat`,
