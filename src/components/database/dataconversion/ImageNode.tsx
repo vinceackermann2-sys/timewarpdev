@@ -29,39 +29,69 @@ export function ImageNode({
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [isAnalyzed, setIsAnalyzed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Simulate analysis when image is uploaded
-  useEffect(() => {
-    if (node.imageUrl && !isAnalyzed && !isAnalyzing) {
-      setIsAnalyzing(true);
-      setAnalysisProgress(0);
+  const analyzeImage = useCallback(async (file: File, imageUrl: string) => {
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+
+    // Progress animation
+    const interval = setInterval(() => {
+      setAnalysisProgress(prev => Math.min(prev + Math.random() * 8 + 3, 90));
+    }, 400);
+
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(",")[1];
+          resolve(base64);
+        };
+      });
+      reader.readAsDataURL(file);
+      const imageBase64 = await base64Promise;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            type: "image",
+            content: {
+              imageBase64,
+              imageMimeType: file.type
+            }
+          }),
+        }
+      );
+
+      const data = await response.json();
       
-      const interval = setInterval(() => {
-        setAnalysisProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setIsAnalyzing(false);
-            setIsAnalyzed(true);
-            return 100;
-          }
-          return prev + Math.random() * 15 + 5;
+      if (data.success && data.analysis) {
+        onUpdate(node.id, { 
+          imageUrl,
+          analyzedContent: data.analysis,
+          isAnalyzed: true
         });
-      }, 200);
-
-      return () => clearInterval(interval);
+      } else {
+        onUpdate(node.id, { imageUrl, isAnalyzed: false });
+      }
+    } catch (error) {
+      console.error("Failed to analyze image:", error);
+      onUpdate(node.id, { imageUrl, isAnalyzed: false });
+    } finally {
+      clearInterval(interval);
+      setAnalysisProgress(100);
+      setTimeout(() => {
+        setIsAnalyzing(false);
+      }, 300);
     }
-  }, [node.imageUrl, isAnalyzed, isAnalyzing]);
-
-  // Reset analysis state when image is cleared
-  useEffect(() => {
-    if (!node.imageUrl) {
-      setIsAnalyzed(false);
-      setIsAnalyzing(false);
-      setAnalysisProgress(0);
-    }
-  }, [node.imageUrl]);
+  }, [node.id, onUpdate]);
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!SUPPORTED_TYPES.includes(file.type)) {
@@ -70,14 +100,15 @@ export function ImageNode({
     }
 
     setIsUploading(true);
-    setIsAnalyzed(false);
     try {
       const url = URL.createObjectURL(file);
-      onUpdate(node.id, { imageUrl: url });
+      onUpdate(node.id, { imageUrl: url, isAnalyzed: false, analyzedContent: undefined });
+      // Analyze after upload
+      await analyzeImage(file, url);
     } finally {
       setIsUploading(false);
     }
-  }, [node.id, onUpdate]);
+  }, [node.id, onUpdate, analyzeImage]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -108,7 +139,7 @@ export function ImageNode({
 
   const clearImage = useCallback(() => {
     if (node.imageUrl) URL.revokeObjectURL(node.imageUrl);
-    onUpdate(node.id, { imageUrl: undefined });
+    onUpdate(node.id, { imageUrl: undefined, analyzedContent: undefined, isAnalyzed: false });
   }, [node.id, node.imageUrl, onUpdate]);
 
   return (
@@ -155,7 +186,7 @@ export function ImageNode({
               <Loader2 className="h-3 w-3 animate-spin" />
             </span>
           )}
-          {isAnalyzed && !isAnalyzing && (
+          {node.isAnalyzed && !isAnalyzing && (
             <span className="text-xs text-green-500 flex items-center gap-1">
               Ready
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -187,10 +218,10 @@ export function ImageNode({
               className="w-full h-full object-cover"
             />
             {isAnalyzing && (
-              <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
                 <div className="text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground">Processing image...</p>
+                  <p className="text-xs text-muted-foreground">Analyzing image with AI...</p>
                 </div>
               </div>
             )}
