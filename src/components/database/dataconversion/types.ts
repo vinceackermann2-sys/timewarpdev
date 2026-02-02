@@ -35,6 +35,13 @@ export interface CanvasNode {
   y: number;
   width?: number;
   height?: number;
+  // Node-specific data
+  textContent?: string;
+  imageUrl?: string;
+  documentUrl?: string;
+  documentName?: string;
+  websiteUrl?: string;
+  websiteTitle?: string;
 }
 
 export interface Connection {
