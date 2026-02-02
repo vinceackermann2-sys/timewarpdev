@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Globe, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -26,38 +26,54 @@ export function WebsiteNode({
   const [url, setUrl] = useState(node.websiteUrl || "");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [isAnalyzed, setIsAnalyzed] = useState(false);
 
-  // Simulate analysis when URL changes
-  useEffect(() => {
-    if (node.websiteUrl && !isAnalyzed && !isAnalyzing) {
-      setIsAnalyzing(true);
-      setAnalysisProgress(0);
+  const analyzeWebsite = useCallback(async (websiteUrl: string) => {
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+
+    // Progress animation
+    const interval = setInterval(() => {
+      setAnalysisProgress(prev => Math.min(prev + Math.random() * 8 + 3, 90));
+    }, 500);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            type: "website",
+            content: { websiteUrl }
+          }),
+        }
+      );
+
+      const data = await response.json();
       
-      const interval = setInterval(() => {
-        setAnalysisProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setIsAnalyzing(false);
-            setIsAnalyzed(true);
-            return 100;
-          }
-          return prev + Math.random() * 15 + 8;
+      if (data.success && data.analysis) {
+        onUpdate(node.id, { 
+          websiteUrl,
+          analyzedContent: data.analysis,
+          isAnalyzed: true
         });
-      }, 200);
-
-      return () => clearInterval(interval);
+      } else {
+        onUpdate(node.id, { websiteUrl, isAnalyzed: false });
+      }
+    } catch (error) {
+      console.error("Failed to analyze website:", error);
+      onUpdate(node.id, { websiteUrl, isAnalyzed: false });
+    } finally {
+      clearInterval(interval);
+      setAnalysisProgress(100);
+      setTimeout(() => {
+        setIsAnalyzing(false);
+      }, 300);
     }
-  }, [node.websiteUrl]);
-
-  // Reset analysis state when URL is cleared
-  useEffect(() => {
-    if (!node.websiteUrl) {
-      setIsAnalyzed(false);
-      setIsAnalyzing(false);
-      setAnalysisProgress(0);
-    }
-  }, [node.websiteUrl]);
+  }, [node.id, onUpdate]);
 
   const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newUrl = e.target.value;
@@ -71,11 +87,15 @@ export function WebsiteNode({
         normalizedUrl = `https://${normalizedUrl}`;
       }
       setUrl(normalizedUrl);
-      setIsAnalyzed(false);
-      setIsAnalyzing(false);
-      onUpdate(node.id, { websiteUrl: normalizedUrl });
+      onUpdate(node.id, { 
+        websiteUrl: normalizedUrl, 
+        isAnalyzed: false, 
+        analyzedContent: undefined 
+      });
+      // Trigger analysis
+      analyzeWebsite(normalizedUrl);
     }
-  }, [url, node.id, node.websiteUrl, onUpdate]);
+  }, [url, node.id, node.websiteUrl, onUpdate, analyzeWebsite]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -141,7 +161,7 @@ export function WebsiteNode({
               <Loader2 className="h-3 w-3 animate-spin" />
             </span>
           )}
-          {isAnalyzed && !isAnalyzing && (
+          {node.isAnalyzed && !isAnalyzing && (
             <span className="text-xs text-green-500 flex items-center gap-1">
               Ready
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -164,10 +184,10 @@ export function WebsiteNode({
         {node.websiteUrl ? (
           <div className="h-[calc(100%-44px)] rounded-lg bg-muted/30 flex items-center justify-center p-4 relative">
             {isAnalyzing && (
-              <div className="absolute inset-0 bg-background/50 rounded-lg flex items-center justify-center">
+              <div className="absolute inset-0 bg-background/70 rounded-lg flex items-center justify-center">
                 <div className="text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground">Fetching website...</p>
+                  <p className="text-xs text-muted-foreground">Fetching & analyzing...</p>
                 </div>
               </div>
             )}
@@ -182,8 +202,8 @@ export function WebsiteNode({
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{getDomain(node.websiteUrl)}</p>
-                {isAnalyzed && (
-                  <p className="text-xs text-muted-foreground">Content fetched</p>
+                {node.isAnalyzed && (
+                  <p className="text-xs text-muted-foreground">Content analyzed</p>
                 )}
               </div>
               <a

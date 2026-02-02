@@ -40,8 +40,12 @@ export interface CanvasNode {
   imageUrl?: string;
   documentUrl?: string;
   documentName?: string;
+  documentContent?: string;
   websiteUrl?: string;
   websiteTitle?: string;
+  // AI analysis results
+  analyzedContent?: string;
+  isAnalyzed?: boolean;
 }
 
 export interface Connection {

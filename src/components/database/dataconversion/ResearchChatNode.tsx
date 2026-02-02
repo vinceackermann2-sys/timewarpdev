@@ -49,7 +49,7 @@ export function ResearchChatNode({
     .map(c => connectedNodes.find(n => n.id === c.fromNodeId))
     .filter(Boolean);
 
-  // Build context from all connected nodes
+  // Build context from all connected nodes - use analyzed content when available
   useEffect(() => {
     const buildContexts = async () => {
       if (connectedDataSources.length === 0) {
@@ -97,19 +97,23 @@ export function ResearchChatNode({
                 contexts.push({
                   type: "text",
                   label: source.label,
-                  content: { text: source.textContent }
+                  content: { 
+                    text: source.textContent,
+                    analysis: source.analyzedContent // Include AI analysis
+                  }
                 });
               }
               break;
             }
             case "document": {
-              if (source.documentName || source.documentUrl) {
+              if (source.documentName) {
                 contexts.push({
                   type: "document",
                   label: source.label,
                   content: { 
                     name: source.documentName,
-                    url: source.documentUrl
+                    extractedText: source.documentContent, // Include extracted text
+                    analysis: source.analyzedContent // Include AI analysis
                   }
                 });
               }
@@ -120,7 +124,10 @@ export function ResearchChatNode({
                 contexts.push({
                   type: "image",
                   label: source.label,
-                  content: { url: source.imageUrl }
+                  content: { 
+                    url: source.imageUrl,
+                    analysis: source.analyzedContent // Include AI analysis of the image
+                  }
                 });
               }
               break;
@@ -132,7 +139,8 @@ export function ResearchChatNode({
                   label: source.label,
                   content: { 
                     url: source.websiteUrl,
-                    title: source.websiteTitle
+                    title: source.websiteTitle,
+                    analysis: source.analyzedContent // Include AI analysis of the website
                   }
                 });
               }
@@ -149,7 +157,7 @@ export function ResearchChatNode({
     };
 
     buildContexts();
-  }, [connectedDataSources.map(n => `${n?.id}-${n?.textContent}-${n?.documentUrl}-${n?.imageUrl}-${n?.websiteUrl}`).join(",")]);
+  }, [connectedDataSources.map(n => `${n?.id}-${n?.textContent}-${n?.documentUrl}-${n?.imageUrl}-${n?.websiteUrl}-${n?.analyzedContent}-${n?.isAnalyzed}`).join(",")]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isLoading) return;

@@ -82,7 +82,11 @@ ${(summary.recommendations || []).slice(0, 5).map((r: any, i: number) =>
           fullContext += `
 ## Text Content: ${ctx.label}
 
+### Original Text
 ${ctx.content.text}
+
+${ctx.content.analysis ? `### AI Analysis
+${ctx.content.analysis}` : ''}
 
 `;
           break;
@@ -93,9 +97,12 @@ ${ctx.content.text}
 ## Document: ${ctx.label}
 
 Document Name: ${ctx.content.name || "Unknown"}
-${ctx.content.url ? `URL: ${ctx.content.url}` : ""}
 
-(Analyze this document based on its name and any available metadata. The user may ask questions about its contents.)
+${ctx.content.extractedText ? `### Extracted Content
+${ctx.content.extractedText.slice(0, 8000)}` : ''}
+
+${ctx.content.analysis ? `### AI Analysis
+${ctx.content.analysis}` : ''}
 
 `;
           break;
@@ -105,9 +112,10 @@ ${ctx.content.url ? `URL: ${ctx.content.url}` : ""}
           fullContext += `
 ## Image: ${ctx.label}
 
-Image URL: ${ctx.content.url}
+Image has been analyzed by AI vision.
 
-(The user has connected an image. Analyze any visible content or answer questions about what might be in this image based on context.)
+${ctx.content.analysis ? `### AI Vision Analysis
+${ctx.content.analysis}` : 'No analysis available - please ensure the image was analyzed before connecting.'}
 
 `;
           break;
@@ -120,7 +128,8 @@ Image URL: ${ctx.content.url}
 URL: ${ctx.content.url}
 ${ctx.content.title ? `Title: ${ctx.content.title}` : ""}
 
-(Research and analyze this website. Answer questions about the website's content, purpose, or any relevant information.)
+${ctx.content.analysis ? `### AI Analysis of Website Content
+${ctx.content.analysis}` : 'No analysis available - please ensure the website was analyzed before connecting.'}
 
 `;
           break;

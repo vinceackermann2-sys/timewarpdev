@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from "react";
-import { FileText, Upload, X, File, Loader2, CheckCircle2 } from "lucide-react";
+import { useState, useCallback, useRef } from "react";
+import { FileText, Upload, X, Loader2, CheckCircle2, FileSpreadsheet, FileType, File } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { CanvasNode, PendingConnection } from "./types";
@@ -17,20 +17,12 @@ interface DocumentNodeProps {
 const SUPPORTED_TYPES = [
   "application/pdf",
   "text/csv",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "text/plain",
 ];
 
-const FILE_EXTENSIONS: Record<string, string> = {
-  "application/pdf": "PDF",
-  "text/csv": "CSV",
-  "application/vnd.ms-excel": "XLS",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
-  "text/plain": "TXT",
-};
+const FILE_EXTENSIONS = ".pdf,.csv,.docx,.xlsx,.txt";
 
 export function DocumentNode({
   node,
@@ -45,60 +37,135 @@ export function DocumentNode({
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [isAnalyzed, setIsAnalyzed] = useState(false);
-  const [fileType, setFileType] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Simulate analysis when document is uploaded
-  useEffect(() => {
-    if (node.documentUrl && !isAnalyzed && !isAnalyzing) {
-      setIsAnalyzing(true);
-      setAnalysisProgress(0);
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    switch (ext) {
+      case "pdf":
+        return <FileText className="h-10 w-10 text-red-500" />;
+      case "csv":
+      case "xlsx":
+        return <FileSpreadsheet className="h-10 w-10 text-green-500" />;
+      case "docx":
+        return <FileType className="h-10 w-10 text-blue-500" />;
+      case "txt":
+        return <File className="h-10 w-10 text-muted-foreground" />;
+      default:
+        return <FileText className="h-10 w-10 text-muted-foreground" />;
+    }
+  };
+
+  const analyzeDocument = useCallback(async (file: File, documentUrl: string) => {
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+
+    // Progress animation
+    const interval = setInterval(() => {
+      setAnalysisProgress(prev => Math.min(prev + Math.random() * 8 + 3, 90));
+    }, 400);
+
+    try {
+      // First, parse the document using parse-file edge function
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const parseResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-file`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
+
+      const parseData = await parseResponse.json();
       
-      const interval = setInterval(() => {
-        setAnalysisProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setIsAnalyzing(false);
-            setIsAnalyzed(true);
-            return 100;
-          }
-          return prev + Math.random() * 12 + 4;
+      if (!parseData.success || !parseData.content) {
+        console.error("Failed to parse document:", parseData.error);
+        onUpdate(node.id, { 
+          documentUrl, 
+          documentName: file.name,
+          documentContent: "",
+          isAnalyzed: false 
         });
-      }, 250);
+        return;
+      }
 
-      return () => clearInterval(interval);
-    }
-  }, [node.documentUrl, isAnalyzed, isAnalyzing]);
+      const documentText = parseData.content;
 
-  // Reset analysis state when document is cleared
-  useEffect(() => {
-    if (!node.documentUrl) {
-      setIsAnalyzed(false);
-      setIsAnalyzing(false);
-      setAnalysisProgress(0);
+      // Now analyze the parsed content
+      const analyzeResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            type: "document",
+            content: {
+              documentText,
+              documentName: file.name
+            }
+          }),
+        }
+      );
+
+      const analyzeData = await analyzeResponse.json();
+      
+      if (analyzeData.success && analyzeData.analysis) {
+        onUpdate(node.id, { 
+          documentUrl, 
+          documentName: file.name,
+          documentContent: documentText,
+          analyzedContent: analyzeData.analysis,
+          isAnalyzed: true
+        });
+      } else {
+        onUpdate(node.id, { 
+          documentUrl, 
+          documentName: file.name,
+          documentContent: documentText,
+          isAnalyzed: false 
+        });
+      }
+    } catch (error) {
+      console.error("Failed to analyze document:", error);
+      onUpdate(node.id, { 
+        documentUrl, 
+        documentName: file.name,
+        isAnalyzed: false 
+      });
+    } finally {
+      clearInterval(interval);
+      setAnalysisProgress(100);
+      setTimeout(() => {
+        setIsAnalyzing(false);
+      }, 300);
     }
-  }, [node.documentUrl]);
+  }, [node.id, onUpdate]);
 
   const handleFileSelect = useCallback(async (file: File) => {
-    if (!SUPPORTED_TYPES.includes(file.type)) {
-      console.error("Unsupported file type:", file.type);
-      return;
-    }
-
     setIsUploading(true);
-    setIsAnalyzed(false);
-    setFileType(FILE_EXTENSIONS[file.type] || "DOC");
     try {
       const url = URL.createObjectURL(file);
-      onUpdate(node.id, {
-        documentUrl: url,
+      onUpdate(node.id, { 
+        documentUrl: url, 
         documentName: file.name,
+        isAnalyzed: false,
+        analyzedContent: undefined,
+        documentContent: undefined
       });
+      // Analyze after upload
+      await analyzeDocument(file, url);
     } finally {
       setIsUploading(false);
     }
-  }, [node.id, onUpdate]);
+  }, [node.id, onUpdate, analyzeDocument]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -129,13 +196,19 @@ export function DocumentNode({
 
   const clearDocument = useCallback(() => {
     if (node.documentUrl) URL.revokeObjectURL(node.documentUrl);
-    onUpdate(node.id, { documentUrl: undefined, documentName: undefined });
+    onUpdate(node.id, { 
+      documentUrl: undefined, 
+      documentName: undefined,
+      documentContent: undefined,
+      analyzedContent: undefined,
+      isAnalyzed: false
+    });
   }, [node.id, node.documentUrl, onUpdate]);
 
   return (
     <div
       className={cn(
-        "absolute bg-card border rounded-xl shadow-lg",
+        "absolute bg-card border rounded-xl shadow-lg overflow-hidden",
         isSelected ? "border-primary ring-2 ring-primary/30 shadow-xl" : "border-border hover:border-primary/50"
       )}
       style={{
@@ -149,7 +222,7 @@ export function DocumentNode({
       <input
         ref={fileInputRef}
         type="file"
-        accept={SUPPORTED_TYPES.join(",")}
+        accept={FILE_EXTENSIONS}
         onChange={handleInputChange}
         className="hidden"
       />
@@ -157,14 +230,14 @@ export function DocumentNode({
       {/* Input port */}
       <div
         className={cn(
-          "absolute -left-2 top-10 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
+          "absolute -left-2 top-10 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all z-10",
           pendingConnection ? "border-primary scale-125 bg-primary/20" : "border-muted-foreground/50 hover:border-primary hover:scale-110"
         )}
         onMouseUp={onInputPortMouseUp}
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-card relative z-10">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Document</span>
@@ -176,7 +249,7 @@ export function DocumentNode({
               <Loader2 className="h-3 w-3 animate-spin" />
             </span>
           )}
-          {isAnalyzed && !isAnalyzing && (
+          {node.isAnalyzed && !isAnalyzing && (
             <span className="text-xs text-green-500 flex items-center gap-1">
               Ready
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -200,30 +273,25 @@ export function DocumentNode({
 
       {/* Content */}
       <div className="p-3 h-[calc(100%-44px)]">
-        {node.documentUrl ? (
-          <div className="h-full rounded-lg bg-muted/30 flex flex-col items-center justify-center p-4 relative">
+        {node.documentName ? (
+          <div className="h-full rounded-lg bg-muted/30 flex items-center justify-center p-4 relative">
             {isAnalyzing && (
-              <div className="absolute inset-0 bg-background/50 rounded-lg flex items-center justify-center">
+              <div className="absolute inset-0 bg-background/70 rounded-lg flex items-center justify-center z-10">
                 <div className="text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground">Extracting content...</p>
+                  <p className="text-xs text-muted-foreground">Parsing & analyzing...</p>
                 </div>
               </div>
             )}
-            <div className="relative">
-              <File className="h-12 w-12 text-primary/60" />
-              {fileType && (
-                <span className="absolute -bottom-1 -right-1 text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
-                  {fileType}
-                </span>
-              )}
+            <div className="flex items-center gap-3">
+              {getFileIcon(node.documentName)}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{node.documentName}</p>
+                {node.isAnalyzed && (
+                  <p className="text-xs text-muted-foreground">Content extracted</p>
+                )}
+              </div>
             </div>
-            <p className="text-sm font-medium truncate w-full text-center mt-3">
-              {node.documentName}
-            </p>
-            {isAnalyzed && (
-              <p className="text-xs text-muted-foreground mt-1">Content extracted</p>
-            )}
           </div>
         ) : (
           <div
@@ -246,7 +314,7 @@ export function DocumentNode({
               <>
                 <Upload className="h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">Drop document here</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">PDF, CSV, DOCX, TXT</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">PDF, CSV, DOCX, XLSX, TXT</p>
               </>
             )}
           </div>
@@ -256,7 +324,7 @@ export function DocumentNode({
       {/* Output port */}
       <div
         className={cn(
-          "absolute -right-2 top-10 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
+          "absolute -right-2 top-10 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all z-10",
           "border-primary bg-primary/20 hover:scale-110"
         )}
         onMouseDown={onOutputPortMouseDown}

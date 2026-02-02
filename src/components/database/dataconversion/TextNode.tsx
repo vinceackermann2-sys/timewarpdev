@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Type, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,56 +26,88 @@ export function TextNode({
   const [text, setText] = useState(node.textContent || "");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [isAnalyzed, setIsAnalyzed] = useState(false);
-  const [analyzeTimeout, setAnalyzeTimeout] = useState<NodeJS.Timeout | null>(null);
+  const analyzeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const analyzeText = useCallback(async (textToAnalyze: string) => {
+    if (!textToAnalyze.trim() || textToAnalyze.length < 10) return;
+
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+
+    // Progress animation
+    const interval = setInterval(() => {
+      setAnalysisProgress(prev => Math.min(prev + Math.random() * 10 + 5, 90));
+    }, 300);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            type: "text",
+            content: { text: textToAnalyze }
+          }),
+        }
+      );
+
+      const data = await response.json();
+      
+      if (data.success && data.analysis) {
+        onUpdate(node.id, { 
+          textContent: textToAnalyze,
+          analyzedContent: data.analysis,
+          isAnalyzed: true
+        });
+      }
+    } catch (error) {
+      console.error("Failed to analyze text:", error);
+    } finally {
+      clearInterval(interval);
+      setAnalysisProgress(100);
+      setTimeout(() => {
+        setIsAnalyzing(false);
+      }, 300);
+    }
+  }, [node.id, onUpdate]);
 
   // Debounced analysis when text changes
   useEffect(() => {
-    if (text.length > 10) {
-      // Clear previous timeout
-      if (analyzeTimeout) clearTimeout(analyzeTimeout);
-      
-      // Set new timeout to start analysis after typing stops
-      const timeout = setTimeout(() => {
-        setIsAnalyzing(true);
-        setAnalysisProgress(0);
-        setIsAnalyzed(false);
-        
-        const interval = setInterval(() => {
-          setAnalysisProgress(prev => {
-            if (prev >= 100) {
-              clearInterval(interval);
-              setIsAnalyzing(false);
-              setIsAnalyzed(true);
-              return 100;
-            }
-            return prev + Math.random() * 20 + 10;
-          });
-        }, 150);
-      }, 500);
-      
-      setAnalyzeTimeout(timeout);
-    } else {
-      setIsAnalyzed(false);
-      setIsAnalyzing(false);
+    if (analyzeTimeoutRef.current) {
+      clearTimeout(analyzeTimeoutRef.current);
+    }
+
+    if (text.trim() && text.length >= 10 && text !== node.textContent) {
+      analyzeTimeoutRef.current = setTimeout(() => {
+        analyzeText(text);
+      }, 1500); // Wait 1.5s after typing stops
     }
 
     return () => {
-      if (analyzeTimeout) clearTimeout(analyzeTimeout);
+      if (analyzeTimeoutRef.current) {
+        clearTimeout(analyzeTimeoutRef.current);
+      }
     };
-  }, [text]);
+  }, [text, node.textContent, analyzeText]);
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setText(newText);
-    onUpdate(node.id, { textContent: newText });
-  }, [node.id, onUpdate]);
+    // Mark as not analyzed when text changes
+    if (node.isAnalyzed && newText !== node.textContent) {
+      onUpdate(node.id, { isAnalyzed: false, analyzedContent: undefined });
+    }
+  }, [node.id, node.isAnalyzed, node.textContent, onUpdate]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.stopPropagation();
   }, []);
 
-  const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const charCount = text.length;
 
   return (
@@ -88,7 +120,7 @@ export function TextNode({
         left: node.x,
         top: node.y,
         width: 280,
-        height: 200,
+        height: 220,
       }}
       onMouseDown={onMouseDown}
       onWheel={handleWheel}
@@ -115,7 +147,7 @@ export function TextNode({
               <Loader2 className="h-3 w-3 animate-spin" />
             </span>
           )}
-          {isAnalyzed && !isAnalyzing && (
+          {node.isAnalyzed && !isAnalyzing && (
             <span className="text-xs text-green-500 flex items-center gap-1">
               Ready
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -124,22 +156,18 @@ export function TextNode({
         </div>
       </div>
 
-      {/* Text area */}
-      <div className="p-3 h-[calc(100%-70px)]">
+      {/* Content */}
+      <div className="p-3 h-[calc(100%-44px)] flex flex-col">
         <Textarea
           value={text}
           onChange={handleTextChange}
-          placeholder="Enter text content to analyze..."
-          className="h-full text-sm resize-none border-0 bg-muted/30 focus-visible:ring-1"
+          placeholder="Enter text to analyze..."
+          className="flex-1 resize-none text-sm min-h-0"
         />
-      </div>
-
-      {/* Footer with stats */}
-      <div className="px-3 pb-2 flex items-center justify-between text-xs text-muted-foreground">
-        <span>{wordCount} words • {charCount} chars</span>
-        {text.length > 0 && text.length <= 10 && (
-          <span className="text-amber-500">Need more text</span>
-        )}
+        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+          <span>{wordCount} words</span>
+          <span>{charCount} chars</span>
+        </div>
       </div>
 
       {/* Output port */}
