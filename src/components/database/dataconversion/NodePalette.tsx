@@ -30,10 +30,9 @@ const actionNode: NodeItem = {
 interface NodeItemCardProps {
   item: NodeItem;
   onDragStart?: (e: React.DragEvent, item: NodeItem) => void;
-  compact?: boolean;
 }
 
-function NodeItemCard({ item, onDragStart, compact }: NodeItemCardProps) {
+function NodeItemCard({ item, onDragStart }: NodeItemCardProps) {
   const Icon = nodeIconMap[item.id];
 
   return (
@@ -41,19 +40,16 @@ function NodeItemCard({ item, onDragStart, compact }: NodeItemCardProps) {
       draggable
       onDragStart={(e) => onDragStart?.(e, item)}
       className={cn(
-        "flex flex-col items-center gap-1.5 rounded-lg cursor-grab active:cursor-grabbing",
+        "flex flex-col items-center justify-center gap-2 rounded-lg cursor-grab active:cursor-grabbing",
         "bg-transparent border border-border hover:border-primary hover:bg-card/30",
         "transition-all duration-200",
-        compact ? "p-2" : "p-3"
+        "w-[106px] h-[106px]"
       )}
     >
-      <div className={cn(
-        "flex items-center justify-center flex-shrink-0",
-        compact ? "h-8 w-8" : "h-10 w-10"
-      )}>
-        {Icon && <Icon className={cn("text-primary", compact ? "h-4 w-4" : "h-5 w-5")} />}
+      <div className="flex items-center justify-center h-10 w-10">
+        {Icon && <Icon className="text-primary h-5 w-5" />}
       </div>
-      <p className={cn("font-medium text-center leading-tight", compact ? "text-xs" : "text-sm")}>{item.label}</p>
+      <p className="text-xs font-medium text-center leading-tight px-1">{item.label}</p>
     </div>
   );
 }
@@ -99,7 +95,7 @@ export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
   const [quickAccessOpen, setQuickAccessOpen] = useState(true);
 
   return (
-    <div className="w-72 border-r border-border bg-card/30 flex flex-col h-full">
+    <div className="w-[260px] border-r border-border bg-card/30 flex flex-col h-full">
       <div className="p-3 border-b border-border">
         <h2 className="font-semibold text-sm">Node Library</h2>
         <p className="text-xs text-muted-foreground mt-0.5">Drag nodes onto the canvas</p>
@@ -127,7 +123,6 @@ export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
                   key={item.id} 
                   item={item} 
                   onDragStart={onNodeDragStart}
-                  compact
                 />
               ))}
             </div>
