@@ -125,10 +125,10 @@ export function TextNode({
       onMouseDown={onMouseDown}
       onWheel={handleWheel}
     >
-      {/* Input port */}
+      {/* Input port (centered) */}
       <div
         className={cn(
-          "absolute -left-2 top-10 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
+          "absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
           pendingConnection ? "border-primary scale-125 bg-primary/20" : "border-muted-foreground/50 hover:border-primary hover:scale-110"
         )}
         onMouseUp={onInputPortMouseUp}
@@ -170,10 +170,10 @@ export function TextNode({
         </div>
       </div>
 
-      {/* Output port */}
+      {/* Output port (centered) */}
       <div
         className={cn(
-          "absolute -right-2 top-10 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
+          "absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
           "border-primary bg-primary/20 hover:scale-110"
         )}
         onMouseDown={onOutputPortMouseDown}

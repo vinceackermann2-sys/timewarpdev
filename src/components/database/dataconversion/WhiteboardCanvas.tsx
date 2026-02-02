@@ -289,8 +289,25 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   }, []);
 
   const getPortPosition = (node: CanvasNode, port: "input" | "output") => {
-    const width = node.width || NODE_WIDTH;
-    const height = node.height || NODE_HEIGHT;
+    // Get actual dimensions based on node type
+    const nodeHeights: Record<string, number> = {
+      "research": 400,
+      "business-db": 180,
+      "text": 220,
+      "document": 200,
+      "image": 220,
+      "website": 200,
+    };
+    const nodeWidths: Record<string, number> = {
+      "research": 360,
+      "business-db": 280,
+      "text": 280,
+      "document": 260,
+      "image": 260,
+      "website": 280,
+    };
+    const width = nodeWidths[node.type] || node.width || NODE_WIDTH;
+    const height = nodeHeights[node.type] || node.height || NODE_HEIGHT;
     return {
       x: port === "input" ? node.x : node.x + width,
       y: node.y + height / 2
