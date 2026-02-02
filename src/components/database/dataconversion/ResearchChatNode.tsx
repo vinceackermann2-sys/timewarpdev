@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Search, Send, X, Database, Loader2 } from "lucide-react";
+import { Search, Send, X, Database, FileText, Type, Image, Globe, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,17 +12,10 @@ interface ChatMessage {
   content: string;
 }
 
-interface ResearchData {
-  research_summary?: any;
-  findings?: any[];
-  raw_data?: any;
-  rawData?: any;
-  summary?: any;
-  analysis?: any;
-  emails_analyzed?: number;
-  documents_analyzed?: number;
-  events_analyzed?: number;
-  sheets_analyzed?: number;
+interface ConnectedContext {
+  type: string;
+  label: string;
+  content: any;
 }
 
 interface ResearchChatNodeProps {
@@ -47,7 +40,7 @@ export function ResearchChatNode({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [researchData, setResearchData] = useState<ResearchData | null>(null);
+  const [connectedContexts, setConnectedContexts] = useState<ConnectedContext[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Get connected data sources
@@ -56,67 +49,107 @@ export function ResearchChatNode({
     .map(c => connectedNodes.find(n => n.id === c.fromNodeId))
     .filter(Boolean);
 
-  // Check if business-db is connected
-  const hasBusinessDb = connectedDataSources.some(n => n?.type === "business-db");
-
-  // Fetch research data from storage bucket when business-db is connected
+  // Build context from all connected nodes
   useEffect(() => {
-    const fetchResearchData = async () => {
-      if (!hasBusinessDb) return;
-      
-      setIsLoadingData(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session?.user) {
-          console.log("No authenticated session for research data fetch");
-          setIsLoadingData(false);
-          return;
-        }
-
-        // Fetch from storage bucket (same source as DatabaseView)
-        const { data, error } = await supabase.storage
-          .from('business-data')
-          .download(`${session.user.id}/research.json`);
-
-        if (error) {
-          console.log("No business data found yet:", error.message);
-          setIsLoadingData(false);
-          return;
-        }
-
-        const text = await data.text();
-        const parsed = JSON.parse(text);
-        
-        console.log("Research data loaded from storage:", {
-          hasRawData: !!parsed.rawData,
-          hasSummary: !!parsed.summary,
-          hasFindings: !!parsed.findings,
-          hasAnalysis: !!parsed.analysis
-        });
-        
-        // Store the full parsed data to pass to edge function
-        // Map to the format expected by the edge function
-        setResearchData({
-          research_summary: parsed.summary || {},
-          findings: parsed.findings || parsed.analysis || [],
-          raw_data: parsed.rawData || {},
-          rawData: parsed.rawData,
-          summary: parsed.summary,
-          emails_analyzed: parsed.summary?.emailsAnalyzed || 0,
-          documents_analyzed: parsed.summary?.documentsAnalyzed || 0,
-          events_analyzed: parsed.summary?.eventsAnalyzed || 0,
-          sheets_analyzed: parsed.summary?.sheetsAnalyzed || 0,
-        });
-      } catch (err) {
-        console.error("Failed to fetch research data:", err);
-      } finally {
-        setIsLoadingData(false);
+    const buildContexts = async () => {
+      if (connectedDataSources.length === 0) {
+        setConnectedContexts([]);
+        return;
       }
+
+      setIsLoadingData(true);
+      const contexts: ConnectedContext[] = [];
+
+      for (const source of connectedDataSources) {
+        if (!source) continue;
+
+        try {
+          switch (source.type) {
+            case "business-db": {
+              // Fetch business data from storage
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session?.user) {
+                const { data, error } = await supabase.storage
+                  .from('business-data')
+                  .download(`${session.user.id}/research.json`);
+                
+                if (!error && data) {
+                  const text = await data.text();
+                  const parsed = JSON.parse(text);
+                  contexts.push({
+                    type: "business-db",
+                    label: source.label,
+                    content: {
+                      research_summary: parsed.summary || {},
+                      findings: parsed.findings || parsed.analysis || [],
+                      raw_data: parsed.rawData || {},
+                      emails_analyzed: parsed.summary?.emailsAnalyzed || 0,
+                      documents_analyzed: parsed.summary?.documentsAnalyzed || 0,
+                      events_analyzed: parsed.summary?.eventsAnalyzed || 0,
+                    }
+                  });
+                }
+              }
+              break;
+            }
+            case "text": {
+              if (source.textContent) {
+                contexts.push({
+                  type: "text",
+                  label: source.label,
+                  content: { text: source.textContent }
+                });
+              }
+              break;
+            }
+            case "document": {
+              if (source.documentName || source.documentUrl) {
+                contexts.push({
+                  type: "document",
+                  label: source.label,
+                  content: { 
+                    name: source.documentName,
+                    url: source.documentUrl
+                  }
+                });
+              }
+              break;
+            }
+            case "image": {
+              if (source.imageUrl) {
+                contexts.push({
+                  type: "image",
+                  label: source.label,
+                  content: { url: source.imageUrl }
+                });
+              }
+              break;
+            }
+            case "website": {
+              if (source.websiteUrl) {
+                contexts.push({
+                  type: "website",
+                  label: source.label,
+                  content: { 
+                    url: source.websiteUrl,
+                    title: source.websiteTitle
+                  }
+                });
+              }
+              break;
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to build context for ${source.type}:`, err);
+        }
+      }
+
+      setConnectedContexts(contexts);
+      setIsLoadingData(false);
     };
 
-    fetchResearchData();
-  }, [hasBusinessDb]);
+    buildContexts();
+  }, [connectedDataSources.map(n => `${n?.id}-${n?.textContent}-${n?.documentUrl}-${n?.imageUrl}-${n?.websiteUrl}`).join(",")]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isLoading) return;
@@ -127,12 +160,6 @@ export function ResearchChatNode({
     setIsLoading(true);
 
     try {
-      // Build context from connected nodes
-      const dataContext = connectedDataSources
-        .map(n => `- ${n?.label} (${n?.type})`)
-        .join("\n");
-
-      // Get auth token for authenticated request
       const { data: { session } } = await supabase.auth.getSession();
 
       const response = await fetch(
@@ -145,9 +172,7 @@ export function ResearchChatNode({
           },
           body: JSON.stringify({
             messages: [...messages, { role: "user", content: userMessage }],
-            dataSources: connectedDataSources.map(n => n?.type),
-            dataContext,
-            researchData: hasBusinessDb ? researchData : null,
+            connectedContexts,
           }),
         }
       );
@@ -203,7 +228,7 @@ export function ResearchChatNode({
     } finally {
       setIsLoading(false);
     }
-  }, [input, messages, connectedDataSources, isLoading, hasBusinessDb, researchData]);
+  }, [input, messages, connectedContexts, isLoading]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -266,19 +291,29 @@ export function ResearchChatNode({
       </div>
 
       {/* Connected data sources */}
-      {connectedDataSources.length > 0 && (
+      {connectedContexts.length > 0 && (
         <div className="px-3 py-2 border-b border-border bg-muted/20">
-          <p className="text-xs text-muted-foreground mb-1.5">Data Sources:</p>
+          <p className="text-xs text-muted-foreground mb-1.5">Context Sources:</p>
           <div className="flex flex-wrap gap-1.5">
-            {connectedDataSources.map((source, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded text-xs"
-              >
-                <Database className="h-3 w-3 text-primary" />
-                <span>{source?.label}</span>
-              </div>
-            ))}
+            {connectedContexts.map((ctx, idx) => {
+              const IconMap: Record<string, any> = {
+                "business-db": Database,
+                "text": Type,
+                "document": FileText,
+                "image": Image,
+                "website": Globe,
+              };
+              const Icon = IconMap[ctx.type] || Database;
+              return (
+                <div
+                  key={idx}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded text-xs"
+                >
+                  <Icon className="h-3 w-3 text-primary" />
+                  <span>{ctx.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -288,16 +323,14 @@ export function ResearchChatNode({
         {isLoadingData ? (
           <div className="text-center text-muted-foreground py-8">
             <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin opacity-50" />
-            <p className="text-sm">Loading business data...</p>
+            <p className="text-sm">Loading context...</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">
-              {connectedDataSources.length > 0
-                ? hasBusinessDb && researchData
-                  ? `Ask about ${researchData.emails_analyzed || 0} emails, ${researchData.documents_analyzed || 0} docs analyzed`
-                  : "Ask a question about your connected data"
+              {connectedContexts.length > 0
+                ? `Ask about ${connectedContexts.map(c => c.label).join(", ")}`
                 : "Connect a data source, then ask questions"}
             </p>
           </div>
@@ -331,12 +364,12 @@ export function ResearchChatNode({
             onKeyDown={handleKeyDown}
             placeholder="Ask about your data..."
             className="min-h-[60px] resize-none text-sm"
-            disabled={isLoading || connectedDataSources.length === 0}
+            disabled={isLoading || connectedContexts.length === 0}
           />
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={!input.trim() || isLoading || connectedDataSources.length === 0}
+            disabled={!input.trim() || isLoading || connectedContexts.length === 0}
             className="h-[60px] w-10"
           >
             {isLoading ? (
