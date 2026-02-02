@@ -1,17 +1,19 @@
-import { useState, useCallback, useEffect } from "react";
-import { Zap, Send, X, Database, FileText, Type, Image, Globe, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { Zap, Send, X, Database, FileText, Type, Image, Globe, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { ActionChatMessage, ActionStep, DocumentLink } from "./ActionChatMessage";
 import type { CanvasNode, Connection } from "./types";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  actionStatus?: "pending" | "success" | "error";
-  actionType?: string;
+  steps?: ActionStep[];
+  documentLinks?: DocumentLink[];
+  isStreaming?: boolean;
 }
 
 interface ConnectedContext {
@@ -31,6 +33,46 @@ interface ActionChatNodeProps {
   onClose: () => void;
 }
 
+// Parse streaming response for steps, content, and document links
+function parseActionResponse(text: string): {
+  steps: ActionStep[];
+  content: string;
+  documentLinks: DocumentLink[];
+} {
+  const steps: ActionStep[] = [];
+  const documentLinks: DocumentLink[] = [];
+  let content = text;
+
+  // Parse step markers: [STEP:icon:label:status]
+  const stepRegex = /\[STEP:([^:]+):([^:]+):([^\]]+)\]/g;
+  let match;
+  while ((match = stepRegex.exec(text)) !== null) {
+    steps.push({
+      icon: match[1],
+      label: match[2],
+      status: match[3] as ActionStep["status"],
+    });
+  }
+  content = content.replace(stepRegex, "");
+
+  // Parse document links: [DOC:type:title:url:preview?]
+  const docRegex = /\[DOC:([^:]+):([^:]+):([^:\]]+)(?::([^\]]*))?\]/g;
+  while ((match = docRegex.exec(text)) !== null) {
+    documentLinks.push({
+      type: match[1] as DocumentLink["type"],
+      title: match[2],
+      url: match[3],
+      previewText: match[4] || undefined,
+    });
+  }
+  content = content.replace(docRegex, "");
+
+  // Clean up extra whitespace
+  content = content.trim().replace(/\n{3,}/g, "\n\n");
+
+  return { steps, content, documentLinks };
+}
+
 export function ActionChatNode({
   node,
   connections,
@@ -46,6 +88,17 @@ export function ActionChatNode({
   const [isLoading, setIsLoading] = useState(false);
   const [connectedContexts, setConnectedContexts] = useState<ConnectedContext[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (scrollRef.current) {
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
+    }
+  }, [messages]);
 
   // Get connected data sources
   const inputConnections = connections.filter(c => c.toNodeId === node.id);
@@ -208,12 +261,17 @@ export function ActionChatNode({
       // Handle streaming response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let assistantMessage = "";
-      let actionType = "";
-      let actionStatus: "pending" | "success" | "error" = "pending";
+      let fullResponse = "";
 
       if (reader) {
-        setMessages(prev => [...prev, { role: "assistant", content: "", actionStatus: "pending" }]);
+        // Add initial streaming message
+        setMessages(prev => [...prev, { 
+          role: "assistant", 
+          content: "", 
+          steps: [],
+          documentLinks: [],
+          isStreaming: true 
+        }]);
 
         while (true) {
           const { done, value } = await reader.read();
@@ -228,28 +286,17 @@ export function ActionChatNode({
                 const json = JSON.parse(line.slice(6));
                 const content = json.choices?.[0]?.delta?.content;
                 if (content) {
-                  assistantMessage += content;
-                  
-                  // Detect action type from response
-                  if (assistantMessage.toLowerCase().includes("email")) actionType = "email";
-                  else if (assistantMessage.toLowerCase().includes("calendar")) actionType = "calendar";
-                  else if (assistantMessage.toLowerCase().includes("document")) actionType = "document";
-                  else if (assistantMessage.toLowerCase().includes("strategy")) actionType = "strategy";
-                  
-                  // Detect success/error status
-                  if (assistantMessage.toLowerCase().includes("✅") || assistantMessage.toLowerCase().includes("successfully")) {
-                    actionStatus = "success";
-                  } else if (assistantMessage.toLowerCase().includes("❌") || assistantMessage.toLowerCase().includes("error")) {
-                    actionStatus = "error";
-                  }
+                  fullResponse += content;
+                  const parsed = parseActionResponse(fullResponse);
                   
                   setMessages(prev => {
                     const newMessages = [...prev];
                     newMessages[newMessages.length - 1] = {
                       role: "assistant",
-                      content: assistantMessage,
-                      actionType,
-                      actionStatus,
+                      content: parsed.content,
+                      steps: parsed.steps,
+                      documentLinks: parsed.documentLinks,
+                      isStreaming: true,
                     };
                     return newMessages;
                   });
@@ -260,12 +307,26 @@ export function ActionChatNode({
             }
           }
         }
+
+        // Final parse and mark as complete
+        const finalParsed = parseActionResponse(fullResponse);
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = {
+            role: "assistant",
+            content: finalParsed.content,
+            steps: finalParsed.steps,
+            documentLinks: finalParsed.documentLinks,
+            isStreaming: false,
+          };
+          return newMessages;
+        });
       }
     } catch (error) {
       console.error("Action chat error:", error);
       setMessages(prev => [
         ...prev,
-        { role: "assistant", content: "Sorry, I encountered an error. Please try again.", actionStatus: "error" },
+        { role: "assistant", content: "**Error:** Sorry, I encountered an error. Please try again." },
       ]);
     } finally {
       setIsLoading(false);
@@ -283,17 +344,6 @@ export function ActionChatNode({
     e.stopPropagation();
   }, []);
 
-  const getStatusIcon = (status?: "pending" | "success" | "error") => {
-    switch (status) {
-      case "success":
-        return <CheckCircle2 className="h-4 w-4 text-primary" />;
-      case "error":
-        return <AlertCircle className="h-4 w-4 text-destructive" />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div
       className={cn(
@@ -303,8 +353,8 @@ export function ActionChatNode({
       style={{
         left: node.x,
         top: node.y,
-        width: 460,
-        height: 336,
+        width: 480,
+        height: 400,
       }}
       onMouseDown={onMouseDown}
       onWheel={handleWheel}
@@ -387,7 +437,7 @@ export function ActionChatNode({
       )}
 
       {/* Chat messages */}
-      <ScrollArea className="flex-1 p-3">
+      <ScrollArea className="flex-1 p-3" ref={scrollRef}>
         {isLoadingData ? (
           <div className="text-center text-muted-foreground py-8">
             <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin opacity-50" />
@@ -407,24 +457,14 @@ export function ActionChatNode({
         ) : (
           <div className="space-y-3">
             {messages.map((msg, idx) => (
-              <div
+              <ActionChatMessage
                 key={idx}
-                className={cn(
-                  "text-sm rounded-lg px-3 py-2",
-                  msg.role === "user"
-                    ? "bg-accent text-accent-foreground ml-8"
-                    : "bg-muted mr-8"
-                )}
-              >
-                <div className="flex items-start gap-2">
-                  <div className="flex-1">
-                    {msg.content || (isLoading && idx === messages.length - 1 && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ))}
-                  </div>
-                  {msg.role === "assistant" && getStatusIcon(msg.actionStatus)}
-                </div>
-              </div>
+                role={msg.role}
+                content={msg.content}
+                steps={msg.steps}
+                documentLinks={msg.documentLinks}
+                isStreaming={msg.isStreaming}
+              />
             ))}
           </div>
         )}
