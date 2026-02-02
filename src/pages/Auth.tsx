@@ -179,16 +179,23 @@ const Auth = () => {
       // When coming from the quiz/research flow, we must request Google Workspace read scopes
       // so we receive a usable Google access token in `session.provider_token`.
       const workspaceScopes = [
-        // Gmail - full read access for last year's emails
+        // Gmail - read access
         "https://www.googleapis.com/auth/gmail.readonly",
-        // Drive - full read access for files and content
+        // Gmail - send and compose for Action Chat
+        "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/gmail.compose",
+        // Drive - read access for files and content
         "https://www.googleapis.com/auth/drive.readonly",
-        // Calendar - read access for upcoming year's events
+        // Calendar - read access
         "https://www.googleapis.com/auth/calendar.readonly",
+        // Calendar - create events for Action Chat
+        "https://www.googleapis.com/auth/calendar.events",
         // Sheets - read spreadsheet content
         "https://www.googleapis.com/auth/spreadsheets.readonly",
         // Forms - read form structure and responses
         "https://www.googleapis.com/auth/forms.body.readonly",
+        // Docs - create/edit documents for Action Chat
+        "https://www.googleapis.com/auth/documents",
       ].join(" ");
 
       const { error } = await supabase.auth.signInWithOAuth({
