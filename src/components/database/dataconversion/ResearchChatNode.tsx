@@ -12,25 +12,17 @@ interface ChatMessage {
   content: string;
 }
 
-interface BusinessData {
-  topContacts?: { email: string; count: number }[];
-  emailSummaries?: { from: string; subject: string; snippet?: string }[];
-  calendarEvents?: { summary: string; start: any; attendees?: number }[];
-  documents?: { name: string }[];
-  sheets?: { name: string; title?: string }[];
-  slides?: { name: string; title?: string }[];
-}
-
 interface ResearchData {
-  rawData: BusinessData | null;
-  summary: {
-    emailsAnalyzed?: number;
-    eventsAnalyzed?: number;
-    documentsAnalyzed?: number;
-    sheetsAnalyzed?: number;
-    analyzedAt?: string;
-  } | null;
-  findings: any;
+  research_summary?: any;
+  findings?: any[];
+  raw_data?: any;
+  rawData?: any;
+  summary?: any;
+  analysis?: any;
+  emails_analyzed?: number;
+  documents_analyzed?: number;
+  events_analyzed?: number;
+  sheets_analyzed?: number;
 }
 
 interface ResearchChatNodeProps {
@@ -97,15 +89,24 @@ export function ResearchChatNode({
         const parsed = JSON.parse(text);
         
         console.log("Research data loaded from storage:", {
-          emails: parsed.summary?.emailsAnalyzed,
-          docs: parsed.summary?.documentsAnalyzed,
-          hasRawData: !!parsed.rawData
+          hasRawData: !!parsed.rawData,
+          hasSummary: !!parsed.summary,
+          hasFindings: !!parsed.findings,
+          hasAnalysis: !!parsed.analysis
         });
         
+        // Store the full parsed data to pass to edge function
+        // Map to the format expected by the edge function
         setResearchData({
-          rawData: parsed.rawData || null,
-          summary: parsed.summary || null,
-          findings: parsed.findings || parsed.analysis || null
+          research_summary: parsed.summary || {},
+          findings: parsed.findings || parsed.analysis || [],
+          raw_data: parsed.rawData || {},
+          rawData: parsed.rawData,
+          summary: parsed.summary,
+          emails_analyzed: parsed.summary?.emailsAnalyzed || 0,
+          documents_analyzed: parsed.summary?.documentsAnalyzed || 0,
+          events_analyzed: parsed.summary?.eventsAnalyzed || 0,
+          sheets_analyzed: parsed.summary?.sheetsAnalyzed || 0,
         });
       } catch (err) {
         console.error("Failed to fetch research data:", err);
@@ -295,7 +296,7 @@ export function ResearchChatNode({
             <p className="text-sm">
               {connectedDataSources.length > 0
                 ? hasBusinessDb && researchData
-                  ? `Ask about ${researchData.summary?.emailsAnalyzed || 0} emails, ${researchData.summary?.documentsAnalyzed || 0} docs analyzed`
+                  ? `Ask about ${researchData.emails_analyzed || 0} emails, ${researchData.documents_analyzed || 0} docs analyzed`
                   : "Ask a question about your connected data"
                 : "Connect a data source, then ask questions"}
             </p>

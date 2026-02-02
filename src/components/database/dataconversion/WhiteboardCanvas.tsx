@@ -7,11 +7,17 @@ import {
   Redo2, 
   Minus,
   Plus,
-  Trash2
+  Trash2,
+  Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { nodeIconMap, type NodeItem, type CanvasNode, type Connection, type PendingConnection } from "./types";
 import { ResearchChatNode } from "./ResearchChatNode";
+import { BusinessDatabaseNode } from "./BusinessDatabaseNode";
+import { TextNode } from "./TextNode";
+import { DocumentNode } from "./DocumentNode";
+import { ImageNode } from "./ImageNode";
+import { WebsiteNode } from "./WebsiteNode";
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 60;
@@ -278,6 +284,10 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 10, 200));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, 25));
 
+  const handleNodeUpdate = useCallback((nodeId: string, updates: Partial<CanvasNode>) => {
+    setNodes(prev => prev.map(n => n.id === nodeId ? { ...n, ...updates } : n));
+  }, []);
+
   const getPortPosition = (node: CanvasNode, port: "input" | "output") => {
     const width = node.width || NODE_WIDTH;
     const height = node.height || NODE_HEIGHT;
@@ -445,6 +455,131 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
               );
             }
             
+            // Business Database node with live data
+            if (node.type === "business-db") {
+              return (
+                <BusinessDatabaseNode
+                  key={node.id}
+                  node={node}
+                  isSelected={isSelected}
+                  pendingConnection={pendingConnection}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                  onInputPortMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  onOutputPortMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
+                />
+              );
+            }
+
+            // Text node with editable content
+            if (node.type === "text") {
+              return (
+                <TextNode
+                  key={node.id}
+                  node={node}
+                  isSelected={isSelected}
+                  pendingConnection={pendingConnection}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                  onInputPortMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  onOutputPortMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
+                  onUpdate={handleNodeUpdate}
+                />
+              );
+            }
+
+            // Document node with upload
+            if (node.type === "document") {
+              return (
+                <DocumentNode
+                  key={node.id}
+                  node={node}
+                  isSelected={isSelected}
+                  pendingConnection={pendingConnection}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                  onInputPortMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  onOutputPortMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
+                  onUpdate={handleNodeUpdate}
+                />
+              );
+            }
+
+            // Image node with upload
+            if (node.type === "image") {
+              return (
+                <ImageNode
+                  key={node.id}
+                  node={node}
+                  isSelected={isSelected}
+                  pendingConnection={pendingConnection}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                  onInputPortMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  onOutputPortMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
+                  onUpdate={handleNodeUpdate}
+                />
+              );
+            }
+
+            // Website node with URL input
+            if (node.type === "website") {
+              return (
+                <WebsiteNode
+                  key={node.id}
+                  node={node}
+                  isSelected={isSelected}
+                  pendingConnection={pendingConnection}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                  onInputPortMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  onOutputPortMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
+                  onUpdate={handleNodeUpdate}
+                />
+              );
+            }
+
+            // Action node (styled differently)
+            if (node.type === "action") {
+              return (
+                <div
+                  key={node.id}
+                  className={cn(
+                    "absolute bg-card border rounded-lg shadow-lg",
+                    tool === "select" ? "cursor-move" : "cursor-default",
+                    isSelected ? "border-accent ring-2 ring-accent/30 shadow-xl" : "border-border hover:border-accent/50",
+                    draggingNodeId === node.id && "shadow-2xl"
+                  )}
+                  style={{ 
+                    left: node.x, 
+                    top: node.y,
+                    width: NODE_WIDTH,
+                    height: NODE_HEIGHT,
+                  }}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                >
+                  {/* Input port */}
+                  <div
+                    className={cn(
+                      "absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
+                      pendingConnection ? "border-accent scale-125 bg-accent/20" : "border-muted-foreground/50 hover:border-accent hover:scale-110"
+                    )}
+                    onMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  />
+                  <div className="flex items-center gap-2 p-3 h-full">
+                    <div className="h-9 w-9 rounded-md bg-accent/20 flex items-center justify-center flex-shrink-0">
+                      <Zap className="h-5 w-5 text-accent-foreground" />
+                    </div>
+                    <span className="text-sm font-medium truncate">{node.label}</span>
+                  </div>
+                  {/* Output port */}
+                  <div
+                    className={cn(
+                      "absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
+                      "border-muted-foreground/50 hover:border-accent hover:scale-110"
+                    )}
+                    onMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
+                  />
+                </div>
+              );
+            }
+            
+            // Default node rendering
             return (
               <div
                 key={node.id}
@@ -470,15 +605,12 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
                   )}
                   onMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
                 />
-
-                {/* Node content */}
                 <div className="flex items-center gap-2 p-3 h-full">
                   <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                     {Icon && <Icon className="h-5 w-5 text-primary" />}
                   </div>
                   <span className="text-sm font-medium truncate">{node.label}</span>
                 </div>
-
                 {/* Output port (right side) */}
                 <div
                   className={cn(
