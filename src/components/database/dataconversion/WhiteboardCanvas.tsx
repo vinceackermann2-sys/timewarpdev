@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { nodeIconMap, type NodeItem, type CanvasNode, type Connection, type PendingConnection } from "./types";
 import { ResearchChatNode } from "./ResearchChatNode";
+import { ActionChatNode } from "./ActionChatNode";
 import { BusinessDatabaseNode } from "./BusinessDatabaseNode";
 import { TextNode } from "./TextNode";
 import { DocumentNode } from "./DocumentNode";
@@ -293,6 +294,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
     // Get actual dimensions based on node type
     const nodeHeights: Record<string, number> = {
       "research": 336,
+      "action": 336,
       "business-db": 180,
       "text": 220,
       "document": 200,
@@ -301,6 +303,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
     };
     const nodeWidths: Record<string, number> = {
       "research": 460,
+      "action": 460,
       "business-db": 280,
       "text": 280,
       "document": 260,
@@ -554,48 +557,23 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
               );
             }
 
-            // Action node (styled differently)
+            // Action node as chat interface
             if (node.type === "action") {
               return (
-                <div
+                <ActionChatNode
                   key={node.id}
-                  className={cn(
-                    "absolute bg-card border rounded-lg shadow-lg",
-                    tool === "select" ? "cursor-move" : "cursor-default",
-                    isSelected ? "border-accent ring-2 ring-accent/30 shadow-xl" : "border-border hover:border-accent/50",
-                    draggingNodeId === node.id && "shadow-2xl"
-                  )}
-                  style={{ 
-                    left: node.x, 
-                    top: node.y,
-                    width: NODE_WIDTH,
-                    height: NODE_HEIGHT,
-                  }}
+                  node={node}
+                  connections={connections}
+                  connectedNodes={nodes}
+                  isSelected={isSelected}
                   onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-                >
-                  {/* Input port */}
-                  <div
-                    className={cn(
-                      "absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
-                      pendingConnection ? "border-accent scale-125 bg-accent/20" : "border-muted-foreground/50 hover:border-accent hover:scale-110"
-                    )}
-                    onMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
-                  />
-                  <div className="flex items-center gap-2 p-3 h-full">
-                    <div className="h-9 w-9 rounded-md bg-accent/20 flex items-center justify-center flex-shrink-0">
-                      <Zap className="h-5 w-5 text-accent-foreground" />
-                    </div>
-                    <span className="text-sm font-medium truncate">{node.label}</span>
-                  </div>
-                  {/* Output port */}
-                  <div
-                    className={cn(
-                      "absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
-                      "border-muted-foreground/50 hover:border-accent hover:scale-110"
-                    )}
-                    onMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
-                  />
-                </div>
+                  onInputPortMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  onOutputPortMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
+                  onClose={() => {
+                    setNodes(prev => prev.filter(n => n.id !== node.id));
+                    setConnections(prev => prev.filter(c => c.fromNodeId !== node.id && c.toNodeId !== node.id));
+                  }}
+                />
               );
             }
             
