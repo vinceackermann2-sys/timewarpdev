@@ -96,7 +96,14 @@ export function BusinessDatabaseNode({
       }}
       onMouseDown={onMouseDown}
     >
-      {/* Quick access nodes only have output port */}
+      {/* Input port */}
+      <div
+        className={cn(
+          "absolute -left-2 top-10 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
+          pendingConnection ? "border-primary scale-125 bg-primary/20" : "border-muted-foreground/50 hover:border-primary hover:scale-110"
+        )}
+        onMouseUp={onInputPortMouseUp}
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
