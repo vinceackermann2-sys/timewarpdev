@@ -192,6 +192,8 @@ const Auth = () => {
         "https://www.googleapis.com/auth/calendar.events",
         // Sheets - read spreadsheet content
         "https://www.googleapis.com/auth/spreadsheets.readonly",
+        // Sheets - create/edit spreadsheets for Action Chat
+        "https://www.googleapis.com/auth/spreadsheets",
         // Forms - read form structure and responses
         "https://www.googleapis.com/auth/forms.body.readonly",
         // Docs - create/edit documents for Action Chat

@@ -1,4 +1,4 @@
-import { ExternalLink, FileText, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, Sparkles, ArrowRight } from "lucide-react";
+import { ExternalLink, FileText, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, Sparkles, ArrowRight, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ActionStep {
@@ -8,7 +8,7 @@ export interface ActionStep {
 }
 
 export interface DocumentLink {
-  type: "doc" | "email" | "calendar";
+  type: "doc" | "email" | "calendar" | "sheet";
   title: string;
   url: string;
   previewText?: string;
@@ -55,6 +55,16 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       case "doc": return <FileText className="h-4 w-4 text-primary" />;
       case "email": return <Mail className="h-4 w-4 text-primary" />;
       case "calendar": return <Calendar className="h-4 w-4 text-primary" />;
+      case "sheet": return <Table2 className="h-4 w-4 text-primary" />;
+    }
+  };
+
+  const getDocLabel = (type: DocumentLink["type"]) => {
+    switch (type) {
+      case "doc": return "Docs";
+      case "email": return "Gmail";
+      case "calendar": return "Calendar";
+      case "sheet": return "Sheets";
     }
   };
 
@@ -136,7 +146,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
                   </p>
                 )}
                 <div className="flex items-center gap-1 mt-1.5 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span>Open in Google {doc.type === "doc" ? "Docs" : doc.type === "email" ? "Gmail" : "Calendar"}</span>
+                  <span>Open in Google {getDocLabel(doc.type)}</span>
                   <ArrowRight className="h-3 w-3" />
                 </div>
               </div>
