@@ -181,6 +181,9 @@ export function ActionChatNode({
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Get Google access token from session provider_token
+      const googleAccessToken = session?.provider_token;
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/action-chat`,
@@ -193,6 +196,7 @@ export function ActionChatNode({
           body: JSON.stringify({
             messages: [...messages, { role: "user", content: userMessage }],
             connectedContexts,
+            googleAccessToken,
           }),
         }
       );
