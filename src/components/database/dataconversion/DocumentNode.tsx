@@ -276,12 +276,12 @@ export function DocumentNode({
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full">
               {getFileIcon(node.documentName)}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{node.documentName}</p>
-                {node.isAnalyzed && (
-                  <p className="text-xs text-muted-foreground">Content extracted</p>
+                {node.isAnalyzed && !isAnalyzing && (
+                  <p className="text-xs text-green-500">Content extracted</p>
                 )}
               </div>
             </div>
