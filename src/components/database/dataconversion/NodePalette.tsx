@@ -65,23 +65,22 @@ function MainNodeCard({ item, onDragStart, variant = "research" }: MainNodeCardP
   const isAction = variant === "action";
 
   return (
-    <div className="relative flex-1">
-      <div
-        draggable
-        onDragStart={(e) => onDragStart?.(e, item)}
-        className={cn(
-          "flex flex-col items-center gap-2 p-4 rounded-lg cursor-grab active:cursor-grabbing",
-          "bg-transparent border border-border hover:border-primary hover:bg-card/30",
-          "transition-all duration-200 h-full"
-        )}
-      >
-        <div className="h-12 w-12 flex items-center justify-center">
-          {Icon && <Icon className={cn("h-6 w-6", isAction ? "text-accent-foreground" : "text-primary")} />}
-        </div>
-        <div className="text-center">
-          <p className="text-sm font-medium">{item.label}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-        </div>
+    <div
+      draggable
+      onDragStart={(e) => onDragStart?.(e, item)}
+      className={cn(
+        "flex flex-col items-center justify-center gap-2 rounded-lg cursor-grab active:cursor-grabbing",
+        "bg-transparent border border-border hover:border-primary hover:bg-card/30",
+        "transition-all duration-200",
+        "w-[106px] h-[106px]"
+      )}
+    >
+      <div className="h-10 w-10 flex items-center justify-center">
+        {Icon && <Icon className={cn("h-5 w-5", isAction ? "text-accent-foreground" : "text-primary")} />}
+      </div>
+      <div className="text-center px-1">
+        <p className="text-xs font-medium">{item.label}</p>
+        <p className="text-[10px] text-muted-foreground leading-tight">{item.description}</p>
       </div>
     </div>
   );

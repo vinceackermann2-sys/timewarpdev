@@ -259,8 +259,8 @@ export function ResearchChatNode({
       style={{
         left: node.x,
         top: node.y,
-        width: 360,
-        height: 400,
+        width: 460,
+        height: 336,
       }}
       onMouseDown={onMouseDown}
       onWheel={handleWheel}

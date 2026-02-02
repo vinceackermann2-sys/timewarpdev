@@ -292,7 +292,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   const getPortPosition = (node: CanvasNode, port: "input" | "output") => {
     // Get actual dimensions based on node type
     const nodeHeights: Record<string, number> = {
-      "research": 400,
+      "research": 336,
       "business-db": 180,
       "text": 220,
       "document": 200,
@@ -300,7 +300,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
       "website": 200,
     };
     const nodeWidths: Record<string, number> = {
-      "research": 360,
+      "research": 460,
       "business-db": 280,
       "text": 280,
       "document": 260,
