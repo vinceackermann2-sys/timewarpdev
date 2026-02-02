@@ -22,14 +22,20 @@ interface ActionResult {
 
 async function createGoogleDoc(accessToken: string, title: string, content: string): Promise<ActionResult> {
   try {
+    console.log("Creating Google Doc with title:", title);
+    console.log("Access token length:", accessToken?.length || 0);
+    
     const createResponse = await fetch("https://docs.googleapis.com/v1/documents", {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
     });
 
+    console.log("Google Docs API response status:", createResponse.status);
+    
     if (!createResponse.ok) {
       const error = await createResponse.text();
+      console.error("Google Docs API error:", error);
       return { success: false, type: "document", error: `Failed to create document: ${error}` };
     }
 
