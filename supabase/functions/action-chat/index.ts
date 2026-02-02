@@ -113,6 +113,19 @@ async function createCalendarEvent(accessToken: string, summary: string, descrip
 
 // Generate document content using AI (hidden from user)
 async function generateDocumentContent(apiKey: string, docType: string, topic: string, context: string): Promise<string> {
+  const docTypeInstructions: Record<string, string> = {
+    "SOP": "Purpose, Scope, Responsibilities, Step-by-Step Procedure, Quality Checks, References",
+    "Strategy Document": "Executive Summary, Objectives, Market Analysis, Strategic Initiatives, Action Plan, KPIs, Timeline",
+    "Report": "Executive Summary, Key Findings, Data Analysis, Conclusions, Recommendations",
+    "Proposal": "Executive Summary, Problem Statement, Proposed Solution, Benefits, Timeline, Budget, Next Steps",
+    "Business Plan": "Executive Summary, Company Overview, Market Analysis, Products/Services, Marketing Strategy, Financial Projections",
+    "Guide": "Introduction, Prerequisites, Step-by-Step Instructions, Tips & Best Practices, Troubleshooting, FAQ",
+    "Email": "Subject line context, greeting, main message, call to action, professional closing",
+    "Meeting Agenda": "Meeting objective, attendees, agenda items with time allocations, action items, next steps",
+  };
+
+  const sections = docTypeInstructions[docType] || docTypeInstructions["Report"];
+
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -129,12 +142,8 @@ Requirements:
 - Write the FULL document content (not a summary or outline)
 - Use proper formatting with headers, sections, bullet points
 - Be specific and actionable
-- Include all necessary sections for a ${docType}
+- Include these sections: ${sections}
 - Make it ready to use immediately
-
-For an SOP, include: Purpose, Scope, Responsibilities, Procedure Steps, References
-For a Strategy, include: Executive Summary, Goals, Analysis, Action Plan, Metrics
-For a Report, include: Summary, Findings, Analysis, Recommendations
 
 Output ONLY the document content, no explanations.`
       }],
@@ -203,7 +212,27 @@ serve(async (req) => {
     console.log("Action chat - user:", userEmail, "canExecute:", canExecute, "hasToken:", !!accessToken);
 
     // Detect action type from user message
-    const isDocRequest = /\b(sop|document|strategy|report|proposal|plan|guide|manual|procedure)\b/i.test(userMessageLower);
+    // Detect specific document types from user message
+    const docTypePatterns: Array<{ pattern: RegExp; type: string }> = [
+      { pattern: /\bsop\b/i, type: "SOP" },
+      { pattern: /\bstrategy\b/i, type: "Strategy Document" },
+      { pattern: /\breport\b/i, type: "Report" },
+      { pattern: /\bproposal\b/i, type: "Proposal" },
+      { pattern: /\b(business\s*plan|plan)\b/i, type: "Business Plan" },
+      { pattern: /\b(guide|manual|handbook)\b/i, type: "Guide" },
+      { pattern: /\bagenda\b/i, type: "Meeting Agenda" },
+      { pattern: /\b(document|doc)\b/i, type: "Document" }, // Generic fallback
+    ];
+
+    let detectedDocType: string | null = null;
+    for (const { pattern, type } of docTypePatterns) {
+      if (pattern.test(userMessageLower)) {
+        detectedDocType = type;
+        break;
+      }
+    }
+
+    const isDocRequest = detectedDocType !== null;
     const isEmailRequest = /\b(email|reply|send|draft|message)\b/i.test(userMessageLower);
     const isCalendarRequest = /\b(schedule|meeting|calendar|event|appointment)\b/i.test(userMessageLower);
 
@@ -221,45 +250,36 @@ serve(async (req) => {
           emit(`• **Send emails** via Gmail\n`);
           emit(`• **Schedule events** in Google Calendar\n\n`);
           emit(`Go to **Integration Hub** to connect.`);
-        } else if (isDocRequest) {
-          // Extract document type and topic
-          let docType = "SOP";
-          if (/strategy/i.test(userMessageLower)) docType = "Strategy Document";
-          else if (/report/i.test(userMessageLower)) docType = "Report";
-          else if (/proposal/i.test(userMessageLower)) docType = "Proposal";
-          else if (/plan/i.test(userMessageLower)) docType = "Business Plan";
-          else if (/guide|manual/i.test(userMessageLower)) docType = "Guide";
-
-          const topic = userMessage.replace(/create|make|write|generate|an?|the|for|me|please/gi, "").trim() || docType;
-          const title = `${docType}: ${topic.slice(0, 50)}`;
+        } else if (isDocRequest && detectedDocType) {
+          const docType = detectedDocType === "Document" ? "Document" : detectedDocType;
+          const topic = userMessage
+            .replace(/create|make|write|generate|an?|the|for|me|please|sop|strategy|report|proposal|plan|guide|manual|document|agenda/gi, "")
+            .trim() || docType;
+          const title = docType === "Document" ? topic.slice(0, 60) : `${docType}: ${topic.slice(0, 50)}`;
 
           try {
-            // Step 1: Analyzing
-            emit(`[STEP:🔍:Analyzing your request:complete]\n`);
-            emit(`[STEP:✨:Generating ${docType.toLowerCase()} content:running]\n`);
+            emit(`[STEP:🔍:Analyzing request:complete]\n`);
+            emit(`[STEP:✨:Generating ${docType.toLowerCase()}:running]\n`);
 
-            // Generate content
             const content = await generateDocumentContent(LOVABLE_API_KEY, docType, topic, contextStr);
             
-            emit(`[STEP:✨:Generating ${docType.toLowerCase()} content:complete]\n`);
-            emit(`[STEP:📄:Creating document in Google Docs:running]\n`);
+            emit(`[STEP:✨:Generating ${docType.toLowerCase()}:complete]\n`);
+            emit(`[STEP:📄:Creating in Google Docs:running]\n`);
 
-            // Create the document
             const result = await createGoogleDoc(accessToken, title, content);
 
             if (result.success) {
-              emit(`[STEP:📄:Creating document in Google Docs:complete]\n`);
-              emit(`[STEP:✅:${docType} ready:complete]\n\n`);
-              emit(`**${docType} Created Successfully!**\n\n`);
-              emit(`Your document has been created and is ready to use.\n\n`);
-              emit(`[DOC:doc:${result.title}:${result.link}:${content.slice(0, 100).replace(/\n/g, " ")}...]`);
+              emit(`[STEP:📄:Creating in Google Docs:complete]\n`);
+              emit(`[STEP:✅:Ready:complete]\n\n`);
+              emit(`**${docType} Created!**\n\n`);
+              emit(`[DOC:doc|${result.title}|${result.link}|${content.slice(0, 100).replace(/\n/g, " ")}...]`);
             } else {
-              emit(`[STEP:📄:Creating document in Google Docs:error]\n\n`);
+              emit(`[STEP:📄:Creating in Google Docs:error]\n\n`);
               emit(`**Error:** ${result.error}\n\n`);
-              emit(`Please check your Google Workspace connection and try again.`);
+              emit(`Check your Google Workspace connection.`);
             }
           } catch (error) {
-            emit(`[STEP:❌:Error occurred:error]\n\n`);
+            emit(`[STEP:❌:Error:error]\n\n`);
             emit(`**Error:** ${error instanceof Error ? error.message : "Unknown error"}`);
           }
         } else if (isEmailRequest) {
@@ -297,7 +317,7 @@ serve(async (req) => {
                 emit(`**Email Sent Successfully!**\n\n`);
                 emit(`**To:** ${emailData.to}\n`);
                 emit(`**Subject:** ${emailData.subject}\n\n`);
-                emit(`[DOC:email:${result.title}:${result.link}:${emailData.body.slice(0, 80)}...]`);
+                emit(`[DOC:email|${result.title}|${result.link}|${emailData.body.slice(0, 80)}...]`);
               } else {
                 emit(`[STEP:📧:Sending via Gmail:error]\n\n`);
                 emit(`**Error:** ${result.error}`);
