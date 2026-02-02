@@ -20,21 +20,16 @@ interface ActionResult {
   error?: string;
 }
 
-// Helper to create a Google Doc
 async function createGoogleDoc(accessToken: string, title: string, content: string): Promise<ActionResult> {
   try {
     const createResponse = await fetch("https://docs.googleapis.com/v1/documents", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
     });
 
     if (!createResponse.ok) {
       const error = await createResponse.text();
-      console.error("Failed to create doc:", error);
       return { success: false, type: "document", error: `Failed to create document: ${error}` };
     }
 
@@ -43,28 +38,16 @@ async function createGoogleDoc(accessToken: string, title: string, content: stri
 
     await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        requests: [{ insertText: { location: { index: 1 }, text: content } }],
-      }),
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ requests: [{ insertText: { location: { index: 1 }, text: content } }] }),
     });
 
-    return {
-      success: true,
-      type: "document",
-      title,
-      link: `https://docs.google.com/document/d/${documentId}/edit`,
-    };
+    return { success: true, type: "document", title, link: `https://docs.google.com/document/d/${documentId}/edit` };
   } catch (error) {
-    console.error("Create doc error:", error);
     return { success: false, type: "document", error: String(error) };
   }
 }
 
-// Helper to send an email
 async function sendEmail(accessToken: string, to: string, subject: string, body: string): Promise<ActionResult> {
   try {
     const email = [`To: ${to}`, `Subject: ${subject}`, "Content-Type: text/plain; charset=utf-8", "", body].join("\r\n");
@@ -76,11 +59,7 @@ async function sendEmail(accessToken: string, to: string, subject: string, body:
       body: JSON.stringify({ raw: encodedEmail }),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      return { success: false, type: "email", error: `Failed to send email: ${error}` };
-    }
-
+    if (!response.ok) return { success: false, type: "email", error: await response.text() };
     const result = await response.json();
     return { success: true, type: "email", title: subject, link: `https://mail.google.com/mail/u/0/#sent/${result.id}` };
   } catch (error) {
@@ -88,7 +67,6 @@ async function sendEmail(accessToken: string, to: string, subject: string, body:
   }
 }
 
-// Helper to create a draft
 async function createDraft(accessToken: string, to: string, subject: string, body: string): Promise<ActionResult> {
   try {
     const email = [`To: ${to}`, `Subject: ${subject}`, "Content-Type: text/plain; charset=utf-8", "", body].join("\r\n");
@@ -100,11 +78,7 @@ async function createDraft(accessToken: string, to: string, subject: string, bod
       body: JSON.stringify({ message: { raw: encodedEmail } }),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      return { success: false, type: "draft", error: `Failed to create draft: ${error}` };
-    }
-
+    if (!response.ok) return { success: false, type: "draft", error: await response.text() };
     const result = await response.json();
     return { success: true, type: "draft", title: subject, link: `https://mail.google.com/mail/u/0/#drafts/${result.id}` };
   } catch (error) {
@@ -112,15 +86,9 @@ async function createDraft(accessToken: string, to: string, subject: string, bod
   }
 }
 
-// Helper to create a calendar event
 async function createCalendarEvent(accessToken: string, summary: string, description: string, startTime: string, endTime: string, attendees?: string[]): Promise<ActionResult> {
   try {
-    const event: any = {
-      summary,
-      description,
-      start: { dateTime: startTime, timeZone: "UTC" },
-      end: { dateTime: endTime, timeZone: "UTC" },
-    };
+    const event: any = { summary, description, start: { dateTime: startTime, timeZone: "UTC" }, end: { dateTime: endTime, timeZone: "UTC" } };
     if (attendees?.length) event.attendees = attendees.map((email) => ({ email }));
 
     const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all", {
@@ -129,16 +97,48 @@ async function createCalendarEvent(accessToken: string, summary: string, descrip
       body: JSON.stringify(event),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      return { success: false, type: "calendar", error: `Failed to create event: ${error}` };
-    }
-
+    if (!response.ok) return { success: false, type: "calendar", error: await response.text() };
     const result = await response.json();
     return { success: true, type: "calendar", title: summary, link: result.htmlLink };
   } catch (error) {
     return { success: false, type: "calendar", error: String(error) };
   }
+}
+
+// Generate document content using AI (hidden from user)
+async function generateDocumentContent(apiKey: string, docType: string, topic: string, context: string): Promise<string> {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [{
+        role: "user",
+        content: `Generate a complete, professional ${docType} about: ${topic}
+
+Context from user's business data:
+${context}
+
+Requirements:
+- Write the FULL document content (not a summary or outline)
+- Use proper formatting with headers, sections, bullet points
+- Be specific and actionable
+- Include all necessary sections for a ${docType}
+- Make it ready to use immediately
+
+For an SOP, include: Purpose, Scope, Responsibilities, Procedure Steps, References
+For a Strategy, include: Executive Summary, Goals, Analysis, Action Plan, Metrics
+For a Report, include: Summary, Findings, Analysis, Recommendations
+
+Output ONLY the document content, no explanations.`
+      }],
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) throw new Error("Failed to generate content");
+  const result = await response.json();
+  return result.choices?.[0]?.message?.content || "";
 }
 
 serve(async (req) => {
@@ -148,6 +148,7 @@ serve(async (req) => {
 
   try {
     const { messages, connectedContexts, googleAccessToken } = await req.json();
+    const userMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -181,150 +182,134 @@ serve(async (req) => {
       }
     }
 
-    // Build context
-    let fullContext = "";
-    const contextSources: string[] = [];
+    // Build context string
+    let contextStr = "";
     for (const ctx of (connectedContexts || []) as ConnectedContext[]) {
-      contextSources.push(`${ctx.label} (${ctx.type})`);
       if (ctx.type === "business-db") {
         const rawData = ctx.content.raw_data || {};
-        fullContext += `\n## Business Database\n### Emails\n${rawData.emailSummaries?.slice(0, 15).map((e: any) => `- From: ${e.from}, Subject: "${e.subject}"`).join('\n') || 'No emails'}\n### Contacts\n${rawData.topContacts?.slice(0, 10).map((c: any) => `- ${c.email}`).join('\n') || 'No contacts'}\n`;
-      } else if (ctx.type === "text" && ctx.content.text) {
-        fullContext += `\n## Text: ${ctx.label}\n${ctx.content.text}\n`;
-      } else if (ctx.type === "document" && ctx.content.extractedText) {
-        fullContext += `\n## Document: ${ctx.content.name}\n${ctx.content.extractedText.slice(0, 3000)}\n`;
+        contextStr += `Emails: ${rawData.emailSummaries?.slice(0, 10).map((e: any) => e.subject).join(", ") || "none"}\n`;
+        contextStr += `Contacts: ${rawData.topContacts?.slice(0, 5).map((c: any) => c.email).join(", ") || "none"}\n`;
+      } else if (ctx.type === "text") {
+        contextStr += `Text: ${ctx.content.text?.slice(0, 500) || ""}\n`;
+      } else if (ctx.type === "document") {
+        contextStr += `Document "${ctx.content.name}": ${ctx.content.extractedText?.slice(0, 500) || ""}\n`;
       }
     }
 
     const canExecute = hasWorkspaceAccess && accessToken;
+    console.log("Action chat - user:", userEmail, "canExecute:", canExecute);
 
-    // Different prompts based on whether we can execute
-    const systemPrompt = canExecute ? `You are an AI executive assistant that EXECUTES real actions in Google Workspace.
+    // Detect action type from user message
+    const isDocRequest = /\b(sop|document|strategy|report|proposal|plan|guide|manual|procedure)\b/i.test(userMessage);
+    const isEmailRequest = /\b(email|reply|send|draft|message)\b/i.test(userMessage);
+    const isCalendarRequest = /\b(schedule|meeting|calendar|event|appointment)\b/i.test(userMessage);
 
-## EXECUTION MODE - Actions will be created in Google Workspace
+    let responseContent = "";
 
-When the user asks for an action, respond with this EXACT format:
+    if (!canExecute) {
+      // Not connected - show message
+      responseContent = `⚠️ **Google Workspace Not Connected**
 
----
-📋 **Action: Create Document**
-⏳ Generating content...
-⏳ Creating in Google Docs...
+To execute actions like creating documents, sending emails, or scheduling events, please connect your Google Workspace in the **Integration Hub**.
 
-[ACTION:CREATE_DOC]
-title: Document Title Here
-content:
-Full document content with proper formatting.
-Include all sections and details.
-[/ACTION]
----
+Once connected, I'll be able to:
+• 📄 Create documents directly in Google Docs
+• 📧 Send and draft emails in Gmail
+• 📅 Schedule events in Google Calendar
 
-For emails use [ACTION:SEND_EMAIL] with to:, subject:, body:
-For drafts use [ACTION:CREATE_DRAFT] with to:, subject:, body:
-For calendar use [ACTION:CREATE_EVENT] with summary:, description:, start:, end:, attendees:
+**What you asked for:** ${userMessage}
 
-User: ${userEmail}
-Context: ${fullContext || 'No context connected'}
+Connect your workspace and try again!`;
+    } else if (isDocRequest) {
+      // Extract document type and topic
+      let docType = "SOP";
+      if (/strategy/i.test(userMessage)) docType = "Strategy Document";
+      else if (/report/i.test(userMessage)) docType = "Report";
+      else if (/proposal/i.test(userMessage)) docType = "Proposal";
+      else if (/plan/i.test(userMessage)) docType = "Plan";
+      else if (/guide|manual/i.test(userMessage)) docType = "Guide";
 
-Generate complete, professional content. The ACTION blocks will be parsed and executed.` 
+      const topic = userMessage.replace(/create|make|write|generate|an?|the|for|me|please/gi, "").trim() || docType;
+      const title = `${docType}: ${topic.slice(0, 50)}`;
 
-: `You are an AI executive assistant. Google Workspace is NOT connected, so actions will be PREVIEWED only.
+      responseContent = `📋 **Creating ${docType}**\n\n⏳ Analyzing your request...\n⏳ Generating content...\n`;
 
-## PREVIEW MODE - Show what would be created
-
-When the user asks for an action (SOP, email, document, etc.), respond with:
-
----
-📋 **Action Preview: Create Document**
-
-**Title:** [Document Title]
-
-**Content Preview:**
-[Show the full document content that would be created]
-
----
-⚠️ **To execute this action:** Connect your Google Workspace in the Integration Hub to create this document automatically.
-
----
-
-User: ${userEmail}
-Context: ${fullContext || 'No context connected'}
-
-Generate complete, professional content as a preview. Show exactly what would be created.`;
-
-    console.log("Action chat - user:", userEmail, "canExecute:", canExecute, "contexts:", contextSources.length);
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
-        stream: false,
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      console.error("AI error:", aiResponse.status, await aiResponse.text());
-      return new Response(JSON.stringify({ error: "Failed to get AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const aiResult = await aiResponse.json();
-    let responseContent = aiResult.choices?.[0]?.message?.content || "";
-
-    // Execute actions if we have access
-    if (canExecute) {
-      // Parse and execute CREATE_DOC
-      const docMatches = [...responseContent.matchAll(/\[ACTION:CREATE_DOC\]\s*\ntitle:\s*(.+?)\s*\ncontent:\s*([\s\S]*?)\s*\[\/ACTION\]/g)];
-      for (const match of docMatches) {
-        const title = match[1].trim();
-        const content = match[2].trim();
-        console.log("Executing: Create doc -", title);
-        const result = await createGoogleDoc(accessToken, title, content);
+      try {
+        // Generate content (hidden from chat)
+        const content = await generateDocumentContent(LOVABLE_API_KEY, docType, topic, contextStr);
         
+        responseContent += `⏳ Creating document in Google Docs...\n`;
+
+        // Create the document
+        const result = await createGoogleDoc(accessToken, title, content);
+
         if (result.success) {
-          responseContent = responseContent.replace(match[0], 
-            `✅ **Document Created Successfully!**\n\n📄 **${result.title}**\n\n🔗 **Open in Google Docs:** ${result.link}\n\nClick the link above to view and edit your document.`
-          );
+          responseContent = `📋 **${docType} Created Successfully!**\n\n✅ **${result.title}**\n\n🔗 **Open Document:** [Click here to view](${result.link})\n\n${result.link}\n\nYour document has been created in Google Docs and is ready to use.`;
         } else {
-          responseContent = responseContent.replace(match[0], `❌ **Failed:** ${result.error}`);
+          responseContent = `❌ **Failed to create document**\n\nError: ${result.error}\n\nPlease try again or check your Google Workspace connection.`;
         }
+      } catch (error) {
+        responseContent = `❌ **Error:** ${error instanceof Error ? error.message : "Unknown error"}`;
       }
+    } else if (isEmailRequest) {
+      // For emails, we need more info - use AI to determine
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [{
+            role: "system",
+            content: `You help draft emails. Based on the user's request, output ONLY a JSON object with: {"to": "email", "subject": "subject", "body": "email body"}. Use context to find recipient email if mentioned by name. Context: ${contextStr}`
+          }, ...messages],
+          stream: false,
+        }),
+      });
 
-      // Parse and execute SEND_EMAIL
-      const emailMatches = [...responseContent.matchAll(/\[ACTION:SEND_EMAIL\]\s*\nto:\s*(.+?)\s*\nsubject:\s*(.+?)\s*\nbody:\s*([\s\S]*?)\s*\[\/ACTION\]/g)];
-      for (const match of emailMatches) {
-        const result = await sendEmail(accessToken, match[1].trim(), match[2].trim(), match[3].trim());
-        responseContent = responseContent.replace(match[0], 
-          result.success ? `✅ **Email Sent!**\n\n📧 To: ${match[1]}\n📝 Subject: ${result.title}\n\n🔗 View: ${result.link}` : `❌ **Failed:** ${result.error}`
-        );
-      }
+      const aiResult = await aiResponse.json();
+      const emailContent = aiResult.choices?.[0]?.message?.content || "";
 
-      // Parse and execute CREATE_DRAFT
-      const draftMatches = [...responseContent.matchAll(/\[ACTION:CREATE_DRAFT\]\s*\nto:\s*(.+?)\s*\nsubject:\s*(.+?)\s*\nbody:\s*([\s\S]*?)\s*\[\/ACTION\]/g)];
-      for (const match of draftMatches) {
-        const result = await createDraft(accessToken, match[1].trim(), match[2].trim(), match[3].trim());
-        responseContent = responseContent.replace(match[0], 
-          result.success ? `✅ **Draft Created!**\n\n📝 Subject: ${result.title}\n\n🔗 Review & Send: ${result.link}` : `❌ **Failed:** ${result.error}`
-        );
-      }
+      try {
+        const emailData = JSON.parse(emailContent.replace(/```json?|```/g, "").trim());
+        
+        responseContent = `📧 **Sending Email**\n\n⏳ Composing email...\n⏳ Sending via Gmail...\n`;
 
-      // Parse and execute CREATE_EVENT
-      const eventMatches = [...responseContent.matchAll(/\[ACTION:CREATE_EVENT\]\s*\nsummary:\s*(.+?)\s*\ndescription:\s*([\s\S]*?)\s*\nstart:\s*(.+?)\s*\nend:\s*(.+?)\s*\n(?:attendees:\s*(.+?)\s*)?\[\/ACTION\]/g)];
-      for (const match of eventMatches) {
-        const attendees = match[5]?.split(",").map((e: string) => e.trim()).filter(Boolean) || [];
-        const result = await createCalendarEvent(accessToken, match[1].trim(), match[2].trim(), match[3].trim(), match[4].trim(), attendees);
-        responseContent = responseContent.replace(match[0], 
-          result.success ? `✅ **Event Scheduled!**\n\n📅 ${result.title}\n\n🔗 View: ${result.link}` : `❌ **Failed:** ${result.error}`
-        );
+        const result = await sendEmail(accessToken, emailData.to, emailData.subject, emailData.body);
+
+        if (result.success) {
+          responseContent = `📧 **Email Sent Successfully!**\n\n✅ **To:** ${emailData.to}\n📝 **Subject:** ${result.title}\n\n🔗 **View in Gmail:** [Click here](${result.link})\n\n${result.link}`;
+        } else {
+          responseContent = `❌ **Failed to send email**\n\nError: ${result.error}`;
+        }
+      } catch {
+        responseContent = `I need more details to send an email. Please specify:\n• **To:** Who should I send this to?\n• **Subject:** What's the email about?\n• **Content:** What should the email say?`;
       }
+    } else if (isCalendarRequest) {
+      responseContent = `📅 **Calendar Event**\n\nTo schedule an event, please provide:\n• **Title:** What's the meeting about?\n• **Date/Time:** When should it be scheduled?\n• **Attendees:** Who should be invited? (optional)\n\nExample: "Schedule a team standup tomorrow at 10am with john@company.com"`;
+    } else {
+      // General question - use AI
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [{
+            role: "system",
+            content: `You are an action assistant. Help users with Google Workspace tasks. Keep responses brief. You can: create documents/SOPs, send emails, schedule events. Context: ${contextStr}`
+          }, ...messages],
+          stream: false,
+        }),
+      });
+
+      const aiResult = await aiResponse.json();
+      responseContent = aiResult.choices?.[0]?.message?.content || "How can I help you with your Google Workspace?";
     }
 
     // Stream the response
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        const data = JSON.stringify({ choices: [{ delta: { content: responseContent } }] });
-        controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: responseContent } }] })}\n\n`));
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       },
