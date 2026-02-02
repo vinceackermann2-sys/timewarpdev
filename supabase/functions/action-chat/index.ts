@@ -23,7 +23,6 @@ interface ActionResult {
 // Helper to create a Google Doc
 async function createGoogleDoc(accessToken: string, title: string, content: string): Promise<ActionResult> {
   try {
-    // Create the document
     const createResponse = await fetch("https://docs.googleapis.com/v1/documents", {
       method: "POST",
       headers: {
@@ -42,28 +41,16 @@ async function createGoogleDoc(accessToken: string, title: string, content: stri
     const doc = await createResponse.json();
     const documentId = doc.documentId;
 
-    // Insert content into the document
-    const updateResponse = await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
+    await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        requests: [
-          {
-            insertText: {
-              location: { index: 1 },
-              text: content,
-            },
-          },
-        ],
+        requests: [{ insertText: { location: { index: 1 }, text: content } }],
       }),
     });
-
-    if (!updateResponse.ok) {
-      console.error("Failed to update doc content:", await updateResponse.text());
-    }
 
     return {
       success: true,
@@ -80,102 +67,53 @@ async function createGoogleDoc(accessToken: string, title: string, content: stri
 // Helper to send an email
 async function sendEmail(accessToken: string, to: string, subject: string, body: string): Promise<ActionResult> {
   try {
-    // Create the email in RFC 2822 format
-    const email = [
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      "Content-Type: text/plain; charset=utf-8",
-      "",
-      body,
-    ].join("\r\n");
-
-    // Base64url encode the email
-    const encodedEmail = btoa(unescape(encodeURIComponent(email)))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
+    const email = [`To: ${to}`, `Subject: ${subject}`, "Content-Type: text/plain; charset=utf-8", "", body].join("\r\n");
+    const encodedEmail = btoa(unescape(encodeURIComponent(email))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ raw: encodedEmail }),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("Failed to send email:", error);
       return { success: false, type: "email", error: `Failed to send email: ${error}` };
     }
 
     const result = await response.json();
-    return {
-      success: true,
-      type: "email",
-      title: subject,
-      link: `https://mail.google.com/mail/u/0/#sent/${result.id}`,
-    };
+    return { success: true, type: "email", title: subject, link: `https://mail.google.com/mail/u/0/#sent/${result.id}` };
   } catch (error) {
-    console.error("Send email error:", error);
     return { success: false, type: "email", error: String(error) };
   }
 }
 
-// Helper to create a draft email
+// Helper to create a draft
 async function createDraft(accessToken: string, to: string, subject: string, body: string): Promise<ActionResult> {
   try {
-    const email = [
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      "Content-Type: text/plain; charset=utf-8",
-      "",
-      body,
-    ].join("\r\n");
-
-    const encodedEmail = btoa(unescape(encodeURIComponent(email)))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
+    const email = [`To: ${to}`, `Subject: ${subject}`, "Content-Type: text/plain; charset=utf-8", "", body].join("\r\n");
+    const encodedEmail = btoa(unescape(encodeURIComponent(email))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ message: { raw: encodedEmail } }),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("Failed to create draft:", error);
       return { success: false, type: "draft", error: `Failed to create draft: ${error}` };
     }
 
     const result = await response.json();
-    return {
-      success: true,
-      type: "draft",
-      title: subject,
-      link: `https://mail.google.com/mail/u/0/#drafts/${result.id}`,
-    };
+    return { success: true, type: "draft", title: subject, link: `https://mail.google.com/mail/u/0/#drafts/${result.id}` };
   } catch (error) {
-    console.error("Create draft error:", error);
     return { success: false, type: "draft", error: String(error) };
   }
 }
 
 // Helper to create a calendar event
-async function createCalendarEvent(
-  accessToken: string,
-  summary: string,
-  description: string,
-  startTime: string,
-  endTime: string,
-  attendees?: string[]
-): Promise<ActionResult> {
+async function createCalendarEvent(accessToken: string, summary: string, description: string, startTime: string, endTime: string, attendees?: string[]): Promise<ActionResult> {
   try {
     const event: any = {
       summary,
@@ -183,38 +121,22 @@ async function createCalendarEvent(
       start: { dateTime: startTime, timeZone: "UTC" },
       end: { dateTime: endTime, timeZone: "UTC" },
     };
+    if (attendees?.length) event.attendees = attendees.map((email) => ({ email }));
 
-    if (attendees && attendees.length > 0) {
-      event.attendees = attendees.map((email) => ({ email }));
-    }
-
-    const response = await fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(event),
-      }
-    );
+    const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+    });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("Failed to create event:", error);
       return { success: false, type: "calendar", error: `Failed to create event: ${error}` };
     }
 
     const result = await response.json();
-    return {
-      success: true,
-      type: "calendar",
-      title: summary,
-      link: result.htmlLink,
-    };
+    return { success: true, type: "calendar", title: summary, link: result.htmlLink };
   } catch (error) {
-    console.error("Create event error:", error);
     return { success: false, type: "calendar", error: String(error) };
   }
 }
@@ -229,13 +151,9 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "AI service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "AI service not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Get user session for workspace access
     const authHeader = req.headers.get("Authorization");
     let userEmail = "user";
     let hasWorkspaceAccess = false;
@@ -251,367 +169,161 @@ serve(async (req) => {
 
       if (user?.email) {
         userEmail = user.email;
-
-        // Check if user has Google Workspace connected
-        const { data: connection } = await supabase
-          .from("google_workspace_connections")
-          .select("connected")
-          .eq("user_id", user.id)
-          .single();
-
+        const { data: connection } = await supabase.from("google_workspace_connections").select("connected").eq("user_id", user.id).single();
         hasWorkspaceAccess = connection?.connected || false;
 
-        // If no token provided, try to get from stored tokens
         if (!accessToken) {
-          const { data: tokens } = await supabase
-            .from("google_workspace_tokens")
-            .select("access_token, expires_at, refresh_token")
-            .eq("user_id", user.id)
-            .single();
-
-          if (tokens?.access_token) {
-            // Check if token is expired and refresh if needed
-            const expiresAt = new Date(tokens.expires_at);
-            if (expiresAt > new Date()) {
-              accessToken = tokens.access_token;
-            }
-            // TODO: Implement token refresh if expired
+          const { data: tokens } = await supabase.from("google_workspace_tokens").select("access_token, expires_at").eq("user_id", user.id).single();
+          if (tokens?.access_token && new Date(tokens.expires_at) > new Date()) {
+            accessToken = tokens.access_token;
           }
         }
       }
     }
 
-    // Build context from connected nodes
+    // Build context
     let fullContext = "";
     const contextSources: string[] = [];
-
     for (const ctx of (connectedContexts || []) as ConnectedContext[]) {
       contextSources.push(`${ctx.label} (${ctx.type})`);
-
-      switch (ctx.type) {
-        case "business-db": {
-          const data = ctx.content;
-          const rawData = data.raw_data || {};
-
-          fullContext += `
-## Business Database: ${ctx.label}
-
-### Recent Emails (for replying/drafting)
-${rawData.emailSummaries?.slice(0, 20).map((e: any) =>
-            `- ID: ${e.id || 'N/A'}, From: ${e.from}, Subject: "${e.subject}", Snippet: ${e.snippet?.slice(0, 200) || 'No preview'}`
-          ).join('\n') || rawData.emails?.slice(0, 20).map((e: any) =>
-            `- From: ${e.from}, Subject: "${e.subject}"`
-          ).join('\n') || 'No email data'}
-
-### Upcoming Events (for scheduling reference)
-${rawData.calendarEvents?.slice(0, 15).map((e: any) =>
-            `- ${e.summary} at ${e.start?.dateTime || e.start}`
-          ).join('\n') || 'No calendar data'}
-
-### Documents (for reference)
-${rawData.documents?.slice(0, 15).map((d: any) =>
-            `- ${d.name || d.title}`
-          ).join('\n') || 'No document data'}
-
-### Top Contacts
-${rawData.topContacts?.slice(0, 10).map((c: any) =>
-            `- ${c.email} (${c.count} interactions)`
-          ).join('\n') || 'No contact data'}
-
-`;
-          break;
-        }
-
-        case "text": {
-          fullContext += `
-## Text Content: ${ctx.label}
-${ctx.content.text}
-${ctx.content.analysis ? `\nAnalysis: ${ctx.content.analysis}` : ''}
-`;
-          break;
-        }
-
-        case "document": {
-          fullContext += `
-## Document: ${ctx.label}
-Name: ${ctx.content.name || "Unknown"}
-${ctx.content.extractedText ? `Content:\n${ctx.content.extractedText.slice(0, 5000)}` : ''}
-${ctx.content.analysis ? `\nAnalysis: ${ctx.content.analysis}` : ''}
-`;
-          break;
-        }
-
-        case "website": {
-          fullContext += `
-## Website: ${ctx.label}
-URL: ${ctx.content.url}
-${ctx.content.title ? `Title: ${ctx.content.title}` : ""}
-${ctx.content.analysis ? `\nContent Analysis: ${ctx.content.analysis}` : ''}
-`;
-          break;
-        }
-
-        case "research": {
-          fullContext += `
-## Research Node Connected
-Research insights from connected analysis are available for reference.
-`;
-          break;
-        }
+      if (ctx.type === "business-db") {
+        const rawData = ctx.content.raw_data || {};
+        fullContext += `\n## Business Database\n### Emails\n${rawData.emailSummaries?.slice(0, 15).map((e: any) => `- From: ${e.from}, Subject: "${e.subject}"`).join('\n') || 'No emails'}\n### Contacts\n${rawData.topContacts?.slice(0, 10).map((c: any) => `- ${c.email}`).join('\n') || 'No contacts'}\n`;
+      } else if (ctx.type === "text" && ctx.content.text) {
+        fullContext += `\n## Text: ${ctx.label}\n${ctx.content.text}\n`;
+      } else if (ctx.type === "document" && ctx.content.extractedText) {
+        fullContext += `\n## Document: ${ctx.content.name}\n${ctx.content.extractedText.slice(0, 3000)}\n`;
       }
     }
 
-    // Build action-focused system prompt with execution capabilities
-    const systemPrompt = `You are an AI executive assistant that EXECUTES real actions in Google Workspace. You have FULL access to create documents, send emails, and schedule events.
+    const canExecute = hasWorkspaceAccess && accessToken;
 
-## Your Capabilities (REAL ACTIONS - NOT SIMULATIONS)
-1. **CREATE DOCUMENTS**: Generate Google Docs with full content
-2. **SEND EMAILS**: Compose and send emails via Gmail
-3. **CREATE DRAFTS**: Save email drafts for review
-4. **SCHEDULE EVENTS**: Create calendar events with attendees
+    // Different prompts based on whether we can execute
+    const systemPrompt = canExecute ? `You are an AI executive assistant that EXECUTES real actions in Google Workspace.
 
-## User Info
-- User: ${userEmail}
-- Workspace Connected: ${hasWorkspaceAccess ? "YES - FULL ACCESS" : "No - actions will be simulated"}
-- Access Token Available: ${accessToken ? "YES" : "NO"}
+## EXECUTION MODE - Actions will be created in Google Workspace
 
-## Connected Data Sources
-${contextSources.length > 0 ? contextSources.map(s => `- ${s}`).join('\n') : 'No data sources connected'}
+When the user asks for an action, respond with this EXACT format:
 
-${fullContext}
-
-## CRITICAL: Action Response Format
-When the user requests an action, you MUST respond with a structured format that includes ACTION BLOCKS.
-Use this EXACT format to trigger real actions:
-
-### For Creating Documents (SOPs, Strategies, Reports):
-\`\`\`
-📋 **Creating Document...**
+---
+📋 **Action: Create Document**
+⏳ Generating content...
+⏳ Creating in Google Docs...
 
 [ACTION:CREATE_DOC]
-title: Your Document Title Here
+title: Document Title Here
 content:
-Full document content goes here.
-Include all sections, headers, and details.
-Use proper formatting with headings.
+Full document content with proper formatting.
+Include all sections and details.
 [/ACTION]
-\`\`\`
+---
 
-### For Sending Emails:
-\`\`\`
-📧 **Sending Email...**
+For emails use [ACTION:SEND_EMAIL] with to:, subject:, body:
+For drafts use [ACTION:CREATE_DRAFT] with to:, subject:, body:
+For calendar use [ACTION:CREATE_EVENT] with summary:, description:, start:, end:, attendees:
 
-[ACTION:SEND_EMAIL]
-to: recipient@email.com
-subject: Email Subject Here
-body:
-Full email body content.
-Professional and clear.
-[/ACTION]
-\`\`\`
+User: ${userEmail}
+Context: ${fullContext || 'No context connected'}
 
-### For Creating Email Drafts:
-\`\`\`
-📝 **Creating Draft...**
+Generate complete, professional content. The ACTION blocks will be parsed and executed.` 
 
-[ACTION:CREATE_DRAFT]
-to: recipient@email.com
-subject: Draft Subject Here
-body:
-Draft email content.
-User can review before sending.
-[/ACTION]
-\`\`\`
+: `You are an AI executive assistant. Google Workspace is NOT connected, so actions will be PREVIEWED only.
 
-### For Scheduling Calendar Events:
-\`\`\`
-📅 **Scheduling Event...**
+## PREVIEW MODE - Show what would be created
 
-[ACTION:CREATE_EVENT]
-summary: Meeting Title
-description: Meeting description and agenda
-start: 2024-01-15T14:00:00Z
-end: 2024-01-15T15:00:00Z
-attendees: person1@email.com, person2@email.com
-[/ACTION]
-\`\`\`
+When the user asks for an action (SOP, email, document, etc.), respond with:
 
-## Guidelines
-- ALWAYS use ACTION blocks for executable requests
-- Generate COMPLETE, professional content (not placeholders)
-- Reference specific emails/contacts from the context when relevant
-- For SOPs, include: Purpose, Scope, Responsibilities, Procedures, References
-- For emails, be professional and context-aware
-- After the action block, add a brief confirmation message
+---
+📋 **Action Preview: Create Document**
 
-## Example Response for SOP Request:
-📋 **Creating SOP Document...**
+**Title:** [Document Title]
 
-[ACTION:CREATE_DOC]
-title: Customer Onboarding SOP
-content:
-# Customer Onboarding Standard Operating Procedure
+**Content Preview:**
+[Show the full document content that would be created]
 
-## 1. Purpose
-This document outlines the standard process for onboarding new customers...
+---
+⚠️ **To execute this action:** Connect your Google Workspace in the Integration Hub to create this document automatically.
 
-## 2. Scope
-This procedure applies to all new customer accounts...
+---
 
-## 3. Responsibilities
-- Sales Team: Initial handoff...
-- Customer Success: Onboarding execution...
+User: ${userEmail}
+Context: ${fullContext || 'No context connected'}
 
-## 4. Procedure
-### Step 1: Welcome Email
-Send welcome email within 24 hours...
+Generate complete, professional content as a preview. Show exactly what would be created.`;
 
-### Step 2: Kickoff Call
-Schedule onboarding call within 48 hours...
+    console.log("Action chat - user:", userEmail, "canExecute:", canExecute, "contexts:", contextSources.length);
 
-## 5. References
-- Company Handbook Section 4.2
-- CRM System Guide
-[/ACTION]
-
-✅ Your SOP has been created! Click the link below to view and edit it.`;
-
-    console.log("Action chat - user:", userEmail, "workspace:", hasWorkspaceAccess, "hasToken:", !!accessToken);
-
-    // First, get the AI response to determine what action to take
-    const aiResponse = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-          stream: false, // Get full response to parse actions
-        }),
-      }
-    );
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        stream: false,
+      }),
+    });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "Failed to get AI response" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("AI error:", aiResponse.status, await aiResponse.text());
+      return new Response(JSON.stringify({ error: "Failed to get AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiResult = await aiResponse.json();
     let responseContent = aiResult.choices?.[0]?.message?.content || "";
 
-    // Parse and execute actions from the response
-    const actionResults: ActionResult[] = [];
-
-    if (accessToken && hasWorkspaceAccess) {
-      // Parse CREATE_DOC actions
-      const docMatches = responseContent.matchAll(/\[ACTION:CREATE_DOC\]\s*\ntitle:\s*(.+?)\s*\ncontent:\s*([\s\S]*?)\s*\[\/ACTION\]/g);
+    // Execute actions if we have access
+    if (canExecute) {
+      // Parse and execute CREATE_DOC
+      const docMatches = [...responseContent.matchAll(/\[ACTION:CREATE_DOC\]\s*\ntitle:\s*(.+?)\s*\ncontent:\s*([\s\S]*?)\s*\[\/ACTION\]/g)];
       for (const match of docMatches) {
         const title = match[1].trim();
         const content = match[2].trim();
-        console.log("Creating doc:", title);
+        console.log("Executing: Create doc -", title);
         const result = await createGoogleDoc(accessToken, title, content);
-        actionResults.push(result);
         
-        if (result.success && result.link) {
+        if (result.success) {
           responseContent = responseContent.replace(match[0], 
-            `✅ **Document Created:** [${result.title}](${result.link})\n\n📄 Click here to open: ${result.link}`
+            `✅ **Document Created Successfully!**\n\n📄 **${result.title}**\n\n🔗 **Open in Google Docs:** ${result.link}\n\nClick the link above to view and edit your document.`
           );
         } else {
-          responseContent = responseContent.replace(match[0], 
-            `❌ **Failed to create document:** ${result.error}`
-          );
+          responseContent = responseContent.replace(match[0], `❌ **Failed:** ${result.error}`);
         }
       }
 
-      // Parse SEND_EMAIL actions
-      const emailMatches = responseContent.matchAll(/\[ACTION:SEND_EMAIL\]\s*\nto:\s*(.+?)\s*\nsubject:\s*(.+?)\s*\nbody:\s*([\s\S]*?)\s*\[\/ACTION\]/g);
+      // Parse and execute SEND_EMAIL
+      const emailMatches = [...responseContent.matchAll(/\[ACTION:SEND_EMAIL\]\s*\nto:\s*(.+?)\s*\nsubject:\s*(.+?)\s*\nbody:\s*([\s\S]*?)\s*\[\/ACTION\]/g)];
       for (const match of emailMatches) {
-        const to = match[1].trim();
-        const subject = match[2].trim();
-        const body = match[3].trim();
-        console.log("Sending email to:", to);
-        const result = await sendEmail(accessToken, to, subject, body);
-        actionResults.push(result);
-        
-        if (result.success && result.link) {
-          responseContent = responseContent.replace(match[0], 
-            `✅ **Email Sent:** "${result.title}" to ${to}\n\n📧 View in Gmail: ${result.link}`
-          );
-        } else {
-          responseContent = responseContent.replace(match[0], 
-            `❌ **Failed to send email:** ${result.error}`
-          );
-        }
+        const result = await sendEmail(accessToken, match[1].trim(), match[2].trim(), match[3].trim());
+        responseContent = responseContent.replace(match[0], 
+          result.success ? `✅ **Email Sent!**\n\n📧 To: ${match[1]}\n📝 Subject: ${result.title}\n\n🔗 View: ${result.link}` : `❌ **Failed:** ${result.error}`
+        );
       }
 
-      // Parse CREATE_DRAFT actions
-      const draftMatches = responseContent.matchAll(/\[ACTION:CREATE_DRAFT\]\s*\nto:\s*(.+?)\s*\nsubject:\s*(.+?)\s*\nbody:\s*([\s\S]*?)\s*\[\/ACTION\]/g);
+      // Parse and execute CREATE_DRAFT
+      const draftMatches = [...responseContent.matchAll(/\[ACTION:CREATE_DRAFT\]\s*\nto:\s*(.+?)\s*\nsubject:\s*(.+?)\s*\nbody:\s*([\s\S]*?)\s*\[\/ACTION\]/g)];
       for (const match of draftMatches) {
-        const to = match[1].trim();
-        const subject = match[2].trim();
-        const body = match[3].trim();
-        console.log("Creating draft for:", to);
-        const result = await createDraft(accessToken, to, subject, body);
-        actionResults.push(result);
-        
-        if (result.success && result.link) {
-          responseContent = responseContent.replace(match[0], 
-            `✅ **Draft Created:** "${result.title}"\n\n📝 Review and send: ${result.link}`
-          );
-        } else {
-          responseContent = responseContent.replace(match[0], 
-            `❌ **Failed to create draft:** ${result.error}`
-          );
-        }
+        const result = await createDraft(accessToken, match[1].trim(), match[2].trim(), match[3].trim());
+        responseContent = responseContent.replace(match[0], 
+          result.success ? `✅ **Draft Created!**\n\n📝 Subject: ${result.title}\n\n🔗 Review & Send: ${result.link}` : `❌ **Failed:** ${result.error}`
+        );
       }
 
-      // Parse CREATE_EVENT actions
-      const eventMatches = responseContent.matchAll(/\[ACTION:CREATE_EVENT\]\s*\nsummary:\s*(.+?)\s*\ndescription:\s*([\s\S]*?)\s*\nstart:\s*(.+?)\s*\nend:\s*(.+?)\s*\n(?:attendees:\s*(.+?)\s*)?\[\/ACTION\]/g);
+      // Parse and execute CREATE_EVENT
+      const eventMatches = [...responseContent.matchAll(/\[ACTION:CREATE_EVENT\]\s*\nsummary:\s*(.+?)\s*\ndescription:\s*([\s\S]*?)\s*\nstart:\s*(.+?)\s*\nend:\s*(.+?)\s*\n(?:attendees:\s*(.+?)\s*)?\[\/ACTION\]/g)];
       for (const match of eventMatches) {
-        const summary = match[1].trim();
-        const description = match[2].trim();
-        const start = match[3].trim();
-        const end = match[4].trim();
         const attendees = match[5]?.split(",").map((e: string) => e.trim()).filter(Boolean) || [];
-        console.log("Creating event:", summary);
-        const result = await createCalendarEvent(accessToken, summary, description, start, end, attendees);
-        actionResults.push(result);
-        
-        if (result.success && result.link) {
-          responseContent = responseContent.replace(match[0], 
-            `✅ **Event Scheduled:** "${result.title}"\n\n📅 View in Calendar: ${result.link}`
-          );
-        } else {
-          responseContent = responseContent.replace(match[0], 
-            `❌ **Failed to schedule event:** ${result.error}`
-          );
-        }
+        const result = await createCalendarEvent(accessToken, match[1].trim(), match[2].trim(), match[3].trim(), match[4].trim(), attendees);
+        responseContent = responseContent.replace(match[0], 
+          result.success ? `✅ **Event Scheduled!**\n\n📅 ${result.title}\n\n🔗 View: ${result.link}` : `❌ **Failed:** ${result.error}`
+        );
       }
     }
 
-    console.log("Action results:", actionResults.length, "actions executed");
-
-    // Stream the final response with action results
+    // Stream the response
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        // Send the response as a single chunk (already processed)
-        const data = JSON.stringify({
-          choices: [{
-            delta: { content: responseContent },
-          }],
-        });
+        const data = JSON.stringify({ choices: [{ delta: { content: responseContent } }] });
         controller.enqueue(encoder.encode(`data: ${data}\n\n`));
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
@@ -619,18 +331,10 @@ Schedule onboarding call within 48 hours...
     });
 
     return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
     });
   } catch (error) {
     console.error("Action chat error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
