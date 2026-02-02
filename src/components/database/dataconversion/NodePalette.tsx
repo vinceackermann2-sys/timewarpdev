@@ -42,13 +42,13 @@ function NodeItemCard({ item, onDragStart, compact }: NodeItemCardProps) {
       onDragStart={(e) => onDragStart?.(e, item)}
       className={cn(
         "flex flex-col items-center gap-1.5 rounded-lg cursor-grab active:cursor-grabbing",
-        "bg-card/50 border border-border/50 hover:border-primary/50 hover:bg-card",
+        "bg-transparent border border-border hover:border-primary hover:bg-card/30",
         "transition-all duration-200",
         compact ? "p-2" : "p-3"
       )}
     >
       <div className={cn(
-        "rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0",
+        "flex items-center justify-center flex-shrink-0",
         compact ? "h-8 w-8" : "h-10 w-10"
       )}>
         {Icon && <Icon className={cn("text-primary", compact ? "h-4 w-4" : "h-5 w-5")} />}
@@ -75,14 +75,11 @@ function MainNodeCard({ item, onDragStart, variant = "research" }: MainNodeCardP
         onDragStart={(e) => onDragStart?.(e, item)}
         className={cn(
           "flex flex-col items-center gap-2 p-4 rounded-lg cursor-grab active:cursor-grabbing",
-          "bg-card/50 border border-border/50 hover:border-primary/50 hover:bg-card",
+          "bg-transparent border border-border hover:border-primary hover:bg-card/30",
           "transition-all duration-200 h-full"
         )}
       >
-        <div className={cn(
-          "h-12 w-12 rounded-lg flex items-center justify-center",
-          isAction ? "bg-accent/20" : "bg-primary/10"
-        )}>
+        <div className="h-12 w-12 flex items-center justify-center">
           {Icon && <Icon className={cn("h-6 w-6", isAction ? "text-accent-foreground" : "text-primary")} />}
         </div>
         <div className="text-center">
