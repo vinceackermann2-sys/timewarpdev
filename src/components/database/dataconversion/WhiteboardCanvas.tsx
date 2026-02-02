@@ -98,6 +98,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
 
   const handleNodeMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
+    e.preventDefault(); // Prevent text selection
     
     // Handle multi-select with shift key (only in select mode)
     if (tool === "select" && e.shiftKey) {
@@ -113,7 +114,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
       return;
     }
     
-    // Select single node for dragging
+    // Select single node for dragging - works in both pan and select modes
     if (!selectedNodeIds.has(nodeId)) {
       setSelectedNodeIds(new Set([nodeId]));
     }
@@ -308,9 +309,10 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
     };
     const width = nodeWidths[node.type] || node.width || NODE_WIDTH;
     const height = nodeHeights[node.type] || node.height || NODE_HEIGHT;
-    // Ports are now at the edge of the card (left-0 and right-0 with translate)
+    // Ports are now inside the card at right-2 (8px from edge)
+    const portOffset = 8;
     return {
-      x: port === "input" ? node.x : node.x + width,
+      x: port === "input" ? node.x + portOffset : node.x + width - portOffset,
       y: node.y + height / 2
     };
   };

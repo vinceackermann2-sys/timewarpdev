@@ -127,7 +127,7 @@ export function WebsiteNode({
   return (
     <div
       className={cn(
-        "absolute bg-card border rounded-xl shadow-lg",
+        "absolute bg-card border rounded-xl shadow-lg select-none overflow-visible",
         isSelected ? "border-primary ring-2 ring-primary/30 shadow-xl" : "border-border hover:border-primary/50"
       )}
       style={{
@@ -220,7 +220,7 @@ export function WebsiteNode({
       {/* Output port (on card edge) */}
       <div
         className={cn(
-          "absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all z-20",
+          "absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 bg-background cursor-crosshair transition-all z-20",
           "border-primary bg-primary/20 hover:scale-110"
         )}
         onMouseDown={(e) => {
