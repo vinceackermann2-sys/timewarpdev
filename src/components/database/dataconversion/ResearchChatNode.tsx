@@ -265,10 +265,13 @@ export function ResearchChatNode({
       onMouseDown={onMouseDown}
       onWheel={handleWheel}
     >
-      {/* Input port (left side - centered) */}
+      {/* Input port (on card edge) */}
       <div 
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center gap-1 z-20"
-        onMouseDown={(e) => e.stopPropagation()}
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20"
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
       >
         <div
           className={cn(
@@ -277,15 +280,18 @@ export function ResearchChatNode({
           )}
           onMouseUp={onInputPortMouseUp}
         />
-        <span className="text-[10px] text-primary font-medium whitespace-nowrap">Input</span>
+        <span className="text-[10px] text-primary font-medium whitespace-nowrap ml-1">Input</span>
       </div>
 
-      {/* Output port (right side - centered) */}
+      {/* Output port (on card edge) */}
       <div 
-        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 flex items-center gap-1 z-20"
-        onMouseDown={(e) => e.stopPropagation()}
+        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 flex items-center gap-1.5 z-20"
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
       >
-        <span className="text-[10px] text-primary font-medium whitespace-nowrap">Output</span>
+        <span className="text-[10px] text-primary font-medium whitespace-nowrap mr-1">Output</span>
         <div
           className={cn(
             "w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
