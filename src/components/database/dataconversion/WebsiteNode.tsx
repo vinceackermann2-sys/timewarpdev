@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { Globe, ExternalLink, Loader2 } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Globe, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import type { CanvasNode, PendingConnection } from "./types";
@@ -24,13 +24,44 @@ export function WebsiteNode({
   onUpdate,
 }: WebsiteNodeProps) {
   const [url, setUrl] = useState(node.websiteUrl || "");
-  const [isLoading, setIsLoading] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [isAnalyzed, setIsAnalyzed] = useState(false);
+
+  // Simulate analysis when URL changes
+  useEffect(() => {
+    if (node.websiteUrl && !isAnalyzed && !isAnalyzing) {
+      setIsAnalyzing(true);
+      setAnalysisProgress(0);
+      
+      const interval = setInterval(() => {
+        setAnalysisProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            setIsAnalyzing(false);
+            setIsAnalyzed(true);
+            return 100;
+          }
+          return prev + Math.random() * 15 + 8;
+        });
+      }, 200);
+
+      return () => clearInterval(interval);
+    }
+  }, [node.websiteUrl]);
+
+  // Reset analysis state when URL is cleared
+  useEffect(() => {
+    if (!node.websiteUrl) {
+      setIsAnalyzed(false);
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+    }
+  }, [node.websiteUrl]);
 
   const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newUrl = e.target.value;
     setUrl(newUrl);
-    setPreviewError(false);
   }, []);
 
   const handleUrlBlur = useCallback(() => {
@@ -40,10 +71,9 @@ export function WebsiteNode({
         normalizedUrl = `https://${normalizedUrl}`;
       }
       setUrl(normalizedUrl);
-      setIsLoading(true);
+      setIsAnalyzed(false);
+      setIsAnalyzing(false);
       onUpdate(node.id, { websiteUrl: normalizedUrl });
-      // Simulate loading time for favicon/preview
-      setTimeout(() => setIsLoading(false), 500);
     }
   }, [url, node.id, node.websiteUrl, onUpdate]);
 
@@ -60,7 +90,7 @@ export function WebsiteNode({
   const getFaviconUrl = (websiteUrl: string) => {
     try {
       const urlObj = new URL(websiteUrl);
-      return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=64`;
+      return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=128`;
     } catch {
       return null;
     }
@@ -77,14 +107,14 @@ export function WebsiteNode({
   return (
     <div
       className={cn(
-        "absolute bg-card border rounded-lg shadow-lg",
+        "absolute bg-card border rounded-xl shadow-lg",
         isSelected ? "border-primary ring-2 ring-primary/30 shadow-xl" : "border-border hover:border-primary/50"
       )}
       style={{
         left: node.x,
         top: node.y,
-        width: 220,
-        height: 140,
+        width: 280,
+        height: 200,
       }}
       onMouseDown={onMouseDown}
       onWheel={handleWheel}
@@ -92,62 +122,84 @@ export function WebsiteNode({
       {/* Input port */}
       <div
         className={cn(
-          "absolute -left-2 top-8 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
+          "absolute -left-2 top-10 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
           pendingConnection ? "border-primary scale-125 bg-primary/20" : "border-muted-foreground/50 hover:border-primary hover:scale-110"
         )}
         onMouseUp={onInputPortMouseUp}
       />
 
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-        <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center">
-          <Globe className="h-3.5 w-3.5 text-primary" />
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Website</span>
         </div>
-        <span className="text-xs font-medium">Website</span>
+        <div className="flex items-center gap-2">
+          {isAnalyzing && (
+            <span className="text-xs text-primary flex items-center gap-1">
+              Analyzing... ({Math.min(Math.round(analysisProgress), 100)}%)
+              <Loader2 className="h-3 w-3 animate-spin" />
+            </span>
+          )}
+          {isAnalyzed && !isAnalyzing && (
+            <span className="text-xs text-green-500 flex items-center gap-1">
+              Ready
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}
-      <div className="p-2 space-y-2">
+      <div className="p-3 space-y-3 h-[calc(100%-44px)]">
         <Input
           value={url}
           onChange={handleUrlChange}
           onBlur={handleUrlBlur}
           onKeyDown={handleKeyDown}
           placeholder="Enter URL..."
-          className="h-7 text-xs"
+          className="h-8 text-sm"
         />
 
-        {node.websiteUrl && (
-          <div className="rounded-md bg-muted/50 p-2 flex items-center gap-2">
-            {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            ) : (
-              <>
-                <img
-                  src={getFaviconUrl(node.websiteUrl) || ""}
-                  alt=""
-                  className="h-5 w-5 rounded"
-                  onError={() => setPreviewError(true)}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{getDomain(node.websiteUrl)}</p>
+        {node.websiteUrl ? (
+          <div className="h-[calc(100%-44px)] rounded-lg bg-muted/30 flex items-center justify-center p-4 relative">
+            {isAnalyzing && (
+              <div className="absolute inset-0 bg-background/50 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Fetching website...</p>
                 </div>
-                <a
-                  href={node.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              </>
+              </div>
             )}
+            <div className="flex items-center gap-3 w-full">
+              <img
+                src={getFaviconUrl(node.websiteUrl) || ""}
+                alt=""
+                className="h-10 w-10 rounded-lg bg-muted"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{getDomain(node.websiteUrl)}</p>
+                {isAnalyzed && (
+                  <p className="text-xs text-muted-foreground">Content fetched</p>
+                )}
+              </div>
+              <a
+                href={node.websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-muted-foreground hover:text-primary p-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </div>
           </div>
-        )}
-
-        {!node.websiteUrl && (
-          <div className="rounded-md bg-muted/30 p-3 text-center">
+        ) : (
+          <div className="h-[calc(100%-44px)] rounded-lg bg-muted/20 flex flex-col items-center justify-center p-4">
+            <Globe className="h-8 w-8 text-muted-foreground/40 mb-2" />
             <p className="text-xs text-muted-foreground">Enter a URL above</p>
           </div>
         )}
@@ -156,8 +208,8 @@ export function WebsiteNode({
       {/* Output port */}
       <div
         className={cn(
-          "absolute -right-2 top-8 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
-          "border-muted-foreground/50 hover:border-primary hover:scale-110"
+          "absolute -right-2 top-10 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
+          "border-primary bg-primary/20 hover:scale-110"
         )}
         onMouseDown={onOutputPortMouseDown}
       />
