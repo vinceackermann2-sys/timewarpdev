@@ -253,7 +253,7 @@ export function ResearchChatNode({
   return (
     <div
       className={cn(
-        "absolute bg-card border rounded-xl shadow-xl flex flex-col",
+        "absolute bg-card border rounded-xl shadow-xl flex flex-col select-none",
         isSelected ? "border-primary ring-2 ring-primary/30" : "border-border"
       )}
       style={{
@@ -265,40 +265,30 @@ export function ResearchChatNode({
       onMouseDown={onMouseDown}
       onWheel={handleWheel}
     >
-      {/* Input port (on card edge) */}
-      <div 
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20"
+      {/* Input port (centered on left edge of card) */}
+      <div
+        className={cn(
+          "absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 bg-background cursor-crosshair transition-all z-20",
+          "border-primary bg-primary/20 hover:scale-125"
+        )}
         onMouseDown={(e) => {
           e.stopPropagation();
           e.preventDefault();
         }}
-      >
-        <div
-          className={cn(
-            "w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
-            "border-primary bg-primary/20 hover:scale-125"
-          )}
-          onMouseUp={onInputPortMouseUp}
-        />
-        <span className="text-[10px] text-primary font-medium whitespace-nowrap ml-1">Input</span>
-      </div>
+        onMouseUp={onInputPortMouseUp}
+      />
 
-      {/* Output port (on card edge) */}
-      <div 
-        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 flex items-center gap-1.5 z-20"
+      {/* Output port (centered on right edge of card) */}
+      <div
+        className={cn(
+          "absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 bg-background cursor-crosshair transition-all z-20",
+          "border-primary bg-primary/20 hover:scale-110"
+        )}
         onMouseDown={(e) => {
           e.stopPropagation();
           e.preventDefault();
         }}
-      >
-        <span className="text-[10px] text-primary font-medium whitespace-nowrap mr-1">Output</span>
-        <div
-          className={cn(
-            "w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
-            "border-primary bg-primary/20 hover:scale-110"
-          )}
-        />
-      </div>
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30 rounded-t-xl">
