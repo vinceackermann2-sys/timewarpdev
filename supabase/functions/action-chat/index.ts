@@ -54,6 +54,45 @@ async function createGoogleDoc(accessToken: string, title: string, content: stri
   }
 }
 
+async function createGoogleSheet(accessToken: string, title: string, data: string[][]): Promise<ActionResult> {
+  try {
+    console.log("Creating Google Sheet with title:", title);
+    
+    const createResponse = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        properties: { title },
+        sheets: [{
+          properties: { title: "Sheet1" },
+          data: [{
+            startRow: 0,
+            startColumn: 0,
+            rowData: data.map(row => ({
+              values: row.map(cell => ({ userEnteredValue: { stringValue: cell } }))
+            }))
+          }]
+        }]
+      }),
+    });
+
+    console.log("Google Sheets API response status:", createResponse.status);
+    
+    if (!createResponse.ok) {
+      const error = await createResponse.text();
+      console.error("Google Sheets API error:", error);
+      return { success: false, type: "sheet", error: `Failed to create spreadsheet: ${error}` };
+    }
+
+    const sheet = await createResponse.json();
+    const spreadsheetId = sheet.spreadsheetId;
+
+    return { success: true, type: "sheet", title, link: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` };
+  } catch (error) {
+    return { success: false, type: "sheet", error: String(error) };
+  }
+}
+
 async function sendEmail(accessToken: string, to: string, subject: string, body: string): Promise<ActionResult> {
   try {
     const email = [`To: ${to}`, `Subject: ${subject}`, "Content-Type: text/plain; charset=utf-8", "", body].join("\r\n");
@@ -156,6 +195,47 @@ Output ONLY the document content, no explanations.`
   return result.choices?.[0]?.message?.content || "";
 }
 
+// Generate spreadsheet data using AI
+async function generateSpreadsheetData(apiKey: string, topic: string, context: string): Promise<string[][]> {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [{
+        role: "user",
+        content: `Generate spreadsheet data for: ${topic}
+
+Context from user's business data:
+${context}
+
+Requirements:
+- Output ONLY a JSON 2D array of strings representing rows and columns
+- First row should be headers
+- Include realistic, useful data (10-20 rows)
+- Make columns appropriate for the topic
+
+Example output format:
+[["Name","Date","Amount","Status"],["Item 1","2024-01-15","$100","Complete"],["Item 2","2024-01-16","$250","Pending"]]
+
+Output ONLY the JSON array, no explanations or markdown.`
+      }],
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) throw new Error("Failed to generate spreadsheet data");
+  const result = await response.json();
+  const content = result.choices?.[0]?.message?.content || "[]";
+  
+  try {
+    return JSON.parse(content.replace(/```json?|```/g, "").trim());
+  } catch {
+    // Fallback to simple data if parsing fails
+    return [["Column A", "Column B"], ["Data 1", "Data 2"]];
+  }
+}
+
 // Helper to stream SSE messages
 function streamChunk(content: string): string {
   return `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`;
@@ -212,6 +292,9 @@ serve(async (req) => {
     console.log("Action chat - user:", userEmail, "canExecute:", canExecute, "hasToken:", !!accessToken);
 
     // Detect action type from user message
+    // Check for spreadsheet/sheet request FIRST (before doc detection)
+    const isSheetRequest = /\b(spreadsheet|sheet|excel|table|tracker|budget|inventory|list)\b/i.test(userMessageLower);
+    
     // Detect specific document types from user message
     const docTypePatterns: Array<{ pattern: RegExp; type: string }> = [
       { pattern: /\bsop\b/i, type: "SOP" },
@@ -225,10 +308,13 @@ serve(async (req) => {
     ];
 
     let detectedDocType: string | null = null;
-    for (const { pattern, type } of docTypePatterns) {
-      if (pattern.test(userMessageLower)) {
-        detectedDocType = type;
-        break;
+    // Only detect doc type if it's not a sheet request
+    if (!isSheetRequest) {
+      for (const { pattern, type } of docTypePatterns) {
+        if (pattern.test(userMessageLower)) {
+          detectedDocType = type;
+          break;
+        }
       }
     }
 
@@ -247,9 +333,42 @@ serve(async (req) => {
           emit(`**Connect your Google Workspace** to execute actions.\n\n`);
           emit(`Once connected, I can:\n`);
           emit(`• **Create documents** in Google Docs\n`);
+          emit(`• **Create spreadsheets** in Google Sheets\n`);
           emit(`• **Send emails** via Gmail\n`);
           emit(`• **Schedule events** in Google Calendar\n\n`);
           emit(`Go to **Integration Hub** to connect.`);
+        } else if (isSheetRequest) {
+          const topic = userMessage
+            .replace(/create|make|write|generate|an?|the|for|me|please|spreadsheet|sheet|excel|table|tracker|budget|inventory|list/gi, "")
+            .trim() || "Spreadsheet";
+          const title = topic.slice(0, 60);
+
+          try {
+            emit(`[STEP:🔍:Analyzing request:complete]\n`);
+            emit(`[STEP:✨:Generating spreadsheet data:running]\n`);
+
+            const data = await generateSpreadsheetData(LOVABLE_API_KEY, topic, contextStr);
+            
+            emit(`[STEP:✨:Generating spreadsheet data:complete]\n`);
+            emit(`[STEP:📊:Creating in Google Sheets:running]\n`);
+
+            const result = await createGoogleSheet(accessToken, title, data);
+
+            if (result.success) {
+              emit(`[STEP:📊:Creating in Google Sheets:complete]\n`);
+              emit(`[STEP:✅:Ready:complete]\n\n`);
+              emit(`**Spreadsheet Created!**\n\n`);
+              const previewText = data.slice(0, 2).map(row => row.join(", ")).join(" | ");
+              emit(`[DOC:sheet|${result.title}|${result.link}|${previewText}...]`);
+            } else {
+              emit(`[STEP:📊:Creating in Google Sheets:error]\n\n`);
+              emit(`**Error:** ${result.error}\n\n`);
+              emit(`Check your Google Workspace connection.`);
+            }
+          } catch (error) {
+            emit(`[STEP:❌:Error:error]\n\n`);
+            emit(`**Error:** ${error instanceof Error ? error.message : "Unknown error"}`);
+          }
         } else if (isDocRequest && detectedDocType) {
           const docType = detectedDocType === "Document" ? "Document" : detectedDocType;
           const topic = userMessage
@@ -354,6 +473,7 @@ serve(async (req) => {
                 
 Available actions:
 - **Create documents/SOPs/strategies** in Google Docs
+- **Create spreadsheets/trackers/budgets** in Google Sheets
 - **Send emails** via Gmail  
 - **Schedule events** in Google Calendar
 
