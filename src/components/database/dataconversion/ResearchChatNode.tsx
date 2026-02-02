@@ -268,8 +268,7 @@ export function ResearchChatNode({
       {/* Input port (centered on left edge of card) */}
       <div
         className={cn(
-          "absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 bg-background cursor-crosshair transition-all z-20",
-          "border-primary bg-primary/20 hover:scale-125"
+          "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
         )}
         onMouseDown={(e) => {
           e.stopPropagation();
@@ -281,8 +280,7 @@ export function ResearchChatNode({
       {/* Output port (centered on right edge of card) */}
       <div
         className={cn(
-          "absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 bg-background cursor-crosshair transition-all z-20",
-          "border-primary bg-primary/20 hover:scale-110"
+          "absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
         )}
         onMouseDown={(e) => {
           e.stopPropagation();

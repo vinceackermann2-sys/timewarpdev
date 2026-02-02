@@ -309,10 +309,9 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
     };
     const width = nodeWidths[node.type] || node.width || NODE_WIDTH;
     const height = nodeHeights[node.type] || node.height || NODE_HEIGHT;
-    // Ports are now inside the card at right-2 (8px from edge)
-    const portOffset = 8;
+    // Ports are centered on the card edge (translate-x-1/2 / -translate-x-1/2)
     return {
-      x: port === "input" ? node.x + portOffset : node.x + width - portOffset,
+      x: port === "input" ? node.x : node.x + width,
       y: node.y + height / 2
     };
   };
