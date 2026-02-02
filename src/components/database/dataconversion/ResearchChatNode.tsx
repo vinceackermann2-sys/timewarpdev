@@ -169,6 +169,11 @@ export function ResearchChatNode({
     }
   };
 
+  // Prevent wheel events from propagating to canvas (stops zoom when scrolling chat)
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.stopPropagation();
+  }, []);
+
   return (
     <div
       className={cn(
@@ -182,6 +187,7 @@ export function ResearchChatNode({
         height: 400,
       }}
       onMouseDown={onMouseDown}
+      onWheel={handleWheel}
     >
       {/* Input port (left side) */}
       <div
