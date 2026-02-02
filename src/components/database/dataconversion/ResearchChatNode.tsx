@@ -266,20 +266,26 @@ export function ResearchChatNode({
       onWheel={handleWheel}
     >
       {/* Input port (left side - centered) */}
-      <div className="absolute -left-2 top-1/2 -translate-y-1/2 flex flex-col items-center">
-        <span className="text-[10px] text-primary font-medium mb-1 whitespace-nowrap -ml-12">Input / Context</span>
+      <div 
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center gap-1 z-20"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div
           className={cn(
             "w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",
-            "border-primary scale-110 bg-primary/20 hover:scale-125"
+            "border-primary bg-primary/20 hover:scale-125"
           )}
           onMouseUp={onInputPortMouseUp}
         />
+        <span className="text-[10px] text-primary font-medium whitespace-nowrap">Input</span>
       </div>
 
       {/* Output port (right side - centered) */}
-      <div className="absolute -right-2 top-1/2 -translate-y-1/2 flex flex-col items-center">
-        <span className="text-[10px] text-primary font-medium mb-1 whitespace-nowrap -mr-12">Output / Result</span>
+      <div 
+        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 flex items-center gap-1 z-20"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <span className="text-[10px] text-primary font-medium whitespace-nowrap">Output</span>
         <div
           className={cn(
             "w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all",

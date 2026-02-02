@@ -308,6 +308,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
     };
     const width = nodeWidths[node.type] || node.width || NODE_WIDTH;
     const height = nodeHeights[node.type] || node.height || NODE_HEIGHT;
+    // Ports are now at the edge of the card (left-0 and right-0 with translate)
     return {
       x: port === "input" ? node.x : node.x + width,
       y: node.y + height / 2
