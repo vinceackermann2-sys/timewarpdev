@@ -24,37 +24,53 @@ serve(async (req) => {
     // Build rich context from actual research data
     let businessContext = "";
     if (researchData) {
-      const summary = researchData.research_summary || {};
+      // Handle both old format (research_summary, raw_data) and new format (summary, rawData)
+      const summary = researchData.summary || researchData.research_summary || {};
       const findings = researchData.findings || [];
-      const rawData = researchData.raw_data || {};
+      const rawData = researchData.rawData || researchData.raw_data || {};
+
+      // Extract counts from summary object
+      const emailsAnalyzed = summary.emailsAnalyzed || researchData.emails_analyzed || 0;
+      const documentsAnalyzed = summary.documentsAnalyzed || researchData.documents_analyzed || 0;
+      const eventsAnalyzed = summary.eventsAnalyzed || researchData.events_analyzed || 0;
+      const sheetsAnalyzed = summary.sheetsAnalyzed || researchData.sheets_analyzed || 0;
 
       businessContext = `
 ## User's Business Research Data
 
 ### Analysis Summary
-${summary.summary || "No summary available"}
+${summary.summary || summary.overallHealth || "No summary available"}
 
 ### Key Findings (${findings.length} total)
 ${findings.slice(0, 10).map((f: any, i: number) => 
-  `${i + 1}. [${f.impact?.toUpperCase() || 'INFO'}] ${f.category}: ${f.finding}`
-).join('\n')}
+  `${i + 1}. [${f.impact?.toUpperCase() || f.priority?.toUpperCase() || 'INFO'}] ${f.category || f.issue?.category || 'General'}: ${f.finding || f.issue?.title || JSON.stringify(f)}`
+).join('\n') || 'No findings yet'}
 
 ### Data Analyzed
-- Emails: ${researchData.emails_analyzed || 0}
-- Documents: ${researchData.documents_analyzed || 0}
-- Calendar Events: ${researchData.events_analyzed || 0}
-- Spreadsheets: ${researchData.sheets_analyzed || 0}
+- Emails: ${emailsAnalyzed}
+- Documents: ${documentsAnalyzed}
+- Calendar Events: ${eventsAnalyzed}
+- Spreadsheets: ${sheetsAnalyzed}
+
+### Top Contacts
+${rawData.topContacts?.slice(0, 5).map((c: any) => `- ${c.email} (${c.count} interactions)`).join('\n') || 'No contact data'}
+
+### Recent Emails
+${rawData.emailSummaries?.slice(0, 10).map((e: any) => `- "${e.subject}" from ${e.from}${e.snippet ? ': ' + e.snippet.slice(0, 100) : ''}`).join('\n') || rawData.emails?.slice(0, 10).map((e: any) => `- "${e.subject}" from ${e.from}`).join('\n') || 'No email data'}
+
+### Upcoming Calendar Events
+${rawData.calendarEvents?.slice(0, 10).map((e: any) => `- ${e.summary} (${e.start?.dateTime || e.start})`).join('\n') || 'No calendar data'}
+
+### Documents
+${rawData.documents?.slice(0, 10).map((d: any) => `- ${d.name || d.title}`).join('\n') || 'No document data'}
+
+### Spreadsheets
+${rawData.sheets?.slice(0, 5).map((s: any) => `- ${s.name || s.title}`).join('\n') || 'No spreadsheet data'}
 
 ### Recommendations
 ${(summary.recommendations || []).slice(0, 5).map((r: any, i: number) => 
-  `${i + 1}. [${r.priority?.toUpperCase()}] ${r.title}: ${r.description}`
-).join('\n')}
-
-### Raw Email Insights
-${rawData.emails?.slice(0, 5).map((e: any) => `- "${e.subject}" from ${e.from}`).join('\n') || 'No email data'}
-
-### Calendar Context
-${rawData.calendarEvents?.slice(0, 5).map((e: any) => `- ${e.summary} (${e.start})`).join('\n') || 'No calendar data'}
+  `${i + 1}. [${r.priority?.toUpperCase() || 'MEDIUM'}] ${r.title}: ${r.description}`
+).join('\n') || 'No recommendations yet'}
 `;
     }
 
