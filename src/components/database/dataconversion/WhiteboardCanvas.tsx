@@ -466,6 +466,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
                   isSelected={isSelected}
                   onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
                   onInputPortMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  onOutputPortMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
                   onClose={() => {
                     setNodes(prev => prev.filter(n => n.id !== node.id));
                     setConnections(prev => prev.filter(c => c.fromNodeId !== node.id && c.toNodeId !== node.id));

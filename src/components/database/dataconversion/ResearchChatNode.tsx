@@ -25,6 +25,7 @@ interface ResearchChatNodeProps {
   isSelected: boolean;
   onMouseDown: (e: React.MouseEvent) => void;
   onInputPortMouseUp: (e: React.MouseEvent) => void;
+  onOutputPortMouseDown: (e: React.MouseEvent) => void;
   onClose: () => void;
 }
 
@@ -35,6 +36,7 @@ export function ResearchChatNode({
   isSelected,
   onMouseDown,
   onInputPortMouseUp,
+  onOutputPortMouseDown,
   onClose,
 }: ResearchChatNodeProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -285,6 +287,7 @@ export function ResearchChatNode({
         onMouseDown={(e) => {
           e.stopPropagation();
           e.preventDefault();
+          onOutputPortMouseDown(e);
         }}
       />
 
@@ -384,9 +387,11 @@ export function ResearchChatNode({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onMouseDown={(e) => e.stopPropagation()}
+            onFocus={(e) => e.stopPropagation()}
             placeholder="Ask about your data..."
             className="min-h-[60px] resize-none text-sm"
-            disabled={isLoading || connectedContexts.length === 0}
+            disabled={isLoading}
           />
           <Button
             size="icon"
