@@ -58,22 +58,48 @@ export function ResearchChatNode({
 
   // Fetch research data when business-db is connected
   useEffect(() => {
-    if (hasBusinessDb && !researchData) {
+    const fetchResearchData = async () => {
+      if (!hasBusinessDb) return;
+      
       setIsLoadingData(true);
-      supabase
-        .from("workspace_research")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single()
-        .then(({ data, error }) => {
-          if (data && !error) {
-            setResearchData(data as ResearchData);
-          }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.user) {
+          console.log("No authenticated session for research data fetch");
           setIsLoadingData(false);
-        });
-    }
-  }, [hasBusinessDb, researchData]);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("workspace_research")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching research data:", error);
+        } else if (data) {
+          console.log("Research data loaded:", {
+            emails: data.emails_analyzed,
+            docs: data.documents_analyzed,
+            findings: (data.findings as any[])?.length || 0
+          });
+          setResearchData(data as ResearchData);
+        } else {
+          console.log("No research data found - run research mode first");
+        }
+      } catch (err) {
+        console.error("Failed to fetch research data:", err);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchResearchData();
+  }, [hasBusinessDb]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isLoading) return;
