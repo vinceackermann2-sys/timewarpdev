@@ -12,14 +12,25 @@ interface ChatMessage {
   content: string;
 }
 
+interface BusinessData {
+  topContacts?: { email: string; count: number }[];
+  emailSummaries?: { from: string; subject: string; snippet?: string }[];
+  calendarEvents?: { summary: string; start: any; attendees?: number }[];
+  documents?: { name: string }[];
+  sheets?: { name: string; title?: string }[];
+  slides?: { name: string; title?: string }[];
+}
+
 interface ResearchData {
-  research_summary: any;
-  findings: any[];
-  raw_data: any;
-  emails_analyzed: number;
-  documents_analyzed: number;
-  events_analyzed: number;
-  sheets_analyzed: number;
+  rawData: BusinessData | null;
+  summary: {
+    emailsAnalyzed?: number;
+    eventsAnalyzed?: number;
+    documentsAnalyzed?: number;
+    sheetsAnalyzed?: number;
+    analyzedAt?: string;
+  } | null;
+  findings: any;
 }
 
 interface ResearchChatNodeProps {
@@ -56,7 +67,7 @@ export function ResearchChatNode({
   // Check if business-db is connected
   const hasBusinessDb = connectedDataSources.some(n => n?.type === "business-db");
 
-  // Fetch research data when business-db is connected
+  // Fetch research data from storage bucket when business-db is connected
   useEffect(() => {
     const fetchResearchData = async () => {
       if (!hasBusinessDb) return;
@@ -71,26 +82,31 @@ export function ResearchChatNode({
           return;
         }
 
-        const { data, error } = await supabase
-          .from("workspace_research")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // Fetch from storage bucket (same source as DatabaseView)
+        const { data, error } = await supabase.storage
+          .from('business-data')
+          .download(`${session.user.id}/research.json`);
 
         if (error) {
-          console.error("Error fetching research data:", error);
-        } else if (data) {
-          console.log("Research data loaded:", {
-            emails: data.emails_analyzed,
-            docs: data.documents_analyzed,
-            findings: (data.findings as any[])?.length || 0
-          });
-          setResearchData(data as ResearchData);
-        } else {
-          console.log("No research data found - run research mode first");
+          console.log("No business data found yet:", error.message);
+          setIsLoadingData(false);
+          return;
         }
+
+        const text = await data.text();
+        const parsed = JSON.parse(text);
+        
+        console.log("Research data loaded from storage:", {
+          emails: parsed.summary?.emailsAnalyzed,
+          docs: parsed.summary?.documentsAnalyzed,
+          hasRawData: !!parsed.rawData
+        });
+        
+        setResearchData({
+          rawData: parsed.rawData || null,
+          summary: parsed.summary || null,
+          findings: parsed.findings || parsed.analysis || null
+        });
       } catch (err) {
         console.error("Failed to fetch research data:", err);
       } finally {
@@ -279,7 +295,7 @@ export function ResearchChatNode({
             <p className="text-sm">
               {connectedDataSources.length > 0
                 ? hasBusinessDb && researchData
-                  ? `Ask about ${researchData.emails_analyzed || 0} emails, ${researchData.documents_analyzed || 0} docs analyzed`
+                  ? `Ask about ${researchData.summary?.emailsAnalyzed || 0} emails, ${researchData.summary?.documentsAnalyzed || 0} docs analyzed`
                   : "Ask a question about your connected data"
                 : "Connect a data source, then ask questions"}
             </p>
