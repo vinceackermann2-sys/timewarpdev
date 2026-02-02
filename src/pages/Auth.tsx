@@ -48,6 +48,26 @@ const Auth = () => {
         // If we have a fresh Google token (or previously stored one), we can proceed.
         if (session.provider_token) {
           sessionStorage.setItem("googleProviderToken", session.provider_token);
+          
+          // Store refresh token if available
+          if (session.provider_refresh_token) {
+            sessionStorage.setItem("googleProviderRefreshToken", session.provider_refresh_token);
+            
+            const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+            await supabase.from("google_workspace_tokens").upsert({
+              user_id: session.user.id,
+              access_token: session.provider_token,
+              refresh_token: session.provider_refresh_token,
+              expires_at: expiresAt,
+            }, { onConflict: "user_id" });
+            
+            await supabase.from("google_workspace_connections").upsert({
+              user_id: session.user.id,
+              connected: true,
+              last_connected_at: new Date().toISOString(),
+            }, { onConflict: "user_id" });
+          }
+          
           navigateToDashboard();
           return;
         }
@@ -69,10 +89,31 @@ const Auth = () => {
     checkSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         if (session.provider_token) {
           sessionStorage.setItem("googleProviderToken", session.provider_token);
+          
+          // Store refresh token in database for later use
+          if (session.provider_refresh_token) {
+            sessionStorage.setItem("googleProviderRefreshToken", session.provider_refresh_token);
+            
+            // Also save to database for persistence
+            const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString(); // 1 hour from now
+            await supabase.from("google_workspace_tokens").upsert({
+              user_id: session.user.id,
+              access_token: session.provider_token,
+              refresh_token: session.provider_refresh_token,
+              expires_at: expiresAt,
+            }, { onConflict: "user_id" });
+            
+            // Also mark connection as active
+            await supabase.from("google_workspace_connections").upsert({
+              user_id: session.user.id,
+              connected: true,
+              last_connected_at: new Date().toISOString(),
+            }, { onConflict: "user_id" });
+          }
         }
 
         // In quiz/connect flow, only continue once the Google token is present.
