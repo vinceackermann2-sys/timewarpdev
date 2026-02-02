@@ -44,19 +44,24 @@ function parseActionResponse(text: string): {
   let content = text;
 
   // Parse step markers: [STEP:icon:label:status]
+  // Deduplicate steps - keep only the latest status for each label
+  const stepMap = new Map<string, ActionStep>();
   const stepRegex = /\[STEP:([^:]+):([^:]+):([^\]]+)\]/g;
   let match;
   while ((match = stepRegex.exec(text)) !== null) {
-    steps.push({
+    const label = match[2];
+    stepMap.set(label, {
       icon: match[1],
-      label: match[2],
+      label: label,
       status: match[3] as ActionStep["status"],
     });
   }
+  steps.push(...stepMap.values());
   content = content.replace(stepRegex, "");
 
-  // Parse document links: [DOC:type:title:url:preview?]
-  const docRegex = /\[DOC:([^:]+):([^:]+):([^:\]]+)(?::([^\]]*))?\]/g;
+  // Parse document links: [DOC:type|title|url|preview?]
+  // Using pipe delimiter to avoid URL colon conflicts
+  const docRegex = /\[DOC:([^|]+)\|([^|]+)\|([^|\]]+)(?:\|([^\]]*))?\]/g;
   while ((match = docRegex.exec(text)) !== null) {
     documentLinks.push({
       type: match[1] as DocumentLink["type"],
