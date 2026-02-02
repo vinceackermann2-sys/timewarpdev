@@ -139,15 +139,6 @@ export function WebsiteNode({
       onMouseDown={onMouseDown}
       onWheel={handleWheel}
     >
-      {/* Input port (centered) */}
-      <div
-        className={cn(
-          "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all z-20",
-          pendingConnection ? "border-primary scale-125 bg-primary/20" : "border-muted-foreground/50 hover:border-primary hover:scale-110"
-        )}
-        onMouseDown={(e) => e.stopPropagation()}
-        onMouseUp={onInputPortMouseUp}
-      />
 
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
@@ -226,7 +217,7 @@ export function WebsiteNode({
         )}
       </div>
 
-      {/* Output port (centered) */}
+      {/* Output port (on card edge) */}
       <div
         className={cn(
           "absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full border-2 bg-background cursor-crosshair transition-all z-20",
@@ -234,6 +225,7 @@ export function WebsiteNode({
         )}
         onMouseDown={(e) => {
           e.stopPropagation();
+          e.preventDefault();
           onOutputPortMouseDown(e);
         }}
       />
