@@ -157,7 +157,6 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     let userEmail = "user";
-    let hasWorkspaceAccess = false;
     let accessToken = googleAccessToken;
 
     if (authHeader) {
@@ -170,15 +169,6 @@ serve(async (req) => {
 
       if (user?.email) {
         userEmail = user.email;
-        const { data: connection } = await supabase.from("google_workspace_connections").select("connected").eq("user_id", user.id).single();
-        hasWorkspaceAccess = connection?.connected || false;
-
-        if (!accessToken) {
-          const { data: tokens } = await supabase.from("google_workspace_tokens").select("access_token, expires_at").eq("user_id", user.id).single();
-          if (tokens?.access_token && new Date(tokens.expires_at) > new Date()) {
-            accessToken = tokens.access_token;
-          }
-        }
       }
     }
 
@@ -196,8 +186,9 @@ serve(async (req) => {
       }
     }
 
-    const canExecute = hasWorkspaceAccess && accessToken;
-    console.log("Action chat - user:", userEmail, "canExecute:", canExecute);
+    // Check if we have a valid Google access token passed from client
+    const canExecute = !!accessToken;
+    console.log("Action chat - user:", userEmail, "canExecute:", canExecute, "hasToken:", !!accessToken);
 
     // Detect action type from user message
     const isDocRequest = /\b(sop|document|strategy|report|proposal|plan|guide|manual|procedure)\b/i.test(userMessage);
