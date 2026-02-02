@@ -169,6 +169,8 @@ export function WebsiteNode({
           onChange={handleUrlChange}
           onBlur={handleUrlBlur}
           onKeyDown={handleKeyDown}
+          onMouseDown={(e) => e.stopPropagation()}
+          onFocus={(e) => e.stopPropagation()}
           placeholder="Enter URL..."
           className="h-8 text-sm"
         />
