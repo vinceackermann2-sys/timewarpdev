@@ -15,8 +15,14 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import ReactMarkdown from "react-markdown";
 import { FileUploadZone } from "./FileUploadZone";
+import { 
+  DatabaseChatMessage, 
+  parseInsightCards, 
+  parseSuggestions,
+  type InsightCard 
+} from "./DatabaseChatMessage";
+import { SuggestedActions } from "./dataconversion/SuggestedActions";
 
 interface BusinessData {
   topContacts?: { email: string; count: number }[];
@@ -38,6 +44,7 @@ interface ResearchSummary {
 interface Message {
   role: "user" | "assistant";
   content: string;
+  insights?: InsightCard[];
 }
 
 // Generate personalized questions from business data
@@ -202,30 +209,11 @@ const databaseModules = [
   { id: "trends", code: "TRD", title: "TRENDS", icon: TrendingUp, color: "from-cyan-500 to-cyan-600" }
 ];
 
-// AI Message renderer with visual styling
-function AIMessageContent({ content }: { content: string }) {
-  return (
-    <div className="prose prose-sm prose-invert max-w-none">
-      <ReactMarkdown
-        components={{
-          p: ({ children }) => <p className="text-sm text-foreground/90 leading-relaxed mb-2 last:mb-0">{children}</p>,
-          strong: ({ children }) => <strong className="text-primary font-semibold">{children}</strong>,
-          ul: ({ children }) => <ul className="space-y-1 my-2">{children}</ul>,
-          li: ({ children }) => (
-            <li className="flex items-start gap-2 text-sm">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary mt-2 shrink-0" />
-              <span>{children}</span>
-            </li>
-          ),
-          h1: ({ children }) => <h1 className="text-lg font-bold text-foreground mb-2">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-base font-semibold text-foreground mb-2">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-sm font-semibold text-primary mb-1">{children}</h3>,
-        }}
-      >
-        {content}
-      </ReactMarkdown>
-    </div>
-  );
+// Helper to process message content
+function processMessageContent(content: string): { displayContent: string; insights: InsightCard[]; suggestions: string[] } {
+  const { content: withoutInsights, insights } = parseInsightCards(content);
+  const { content: displayContent, suggestions } = parseSuggestions(withoutInsights);
+  return { displayContent, insights, suggestions };
 }
 
 export function DatabaseView() {
@@ -239,6 +227,7 @@ export function DatabaseView() {
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const [uploadedFilesCount, setUploadedFilesCount] = useState(0);
   const [researchFindings, setResearchFindings] = useState<any>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch business data from storage bucket
@@ -294,6 +283,7 @@ export function DatabaseView() {
     setMessages(prev => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
+    setSuggestions([]);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -350,14 +340,20 @@ export function DatabaseView() {
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) {
               assistantContent += delta;
+              // Parse and update with insights
+              const { displayContent, insights, suggestions: newSuggestions } = processMessageContent(assistantContent);
               setMessages(prev => {
                 const newMessages = [...prev];
                 newMessages[newMessages.length - 1] = {
                   role: "assistant",
-                  content: assistantContent
+                  content: displayContent,
+                  insights: insights.length > 0 ? insights : undefined
                 };
                 return newMessages;
               });
+              if (newSuggestions.length > 0) {
+                setSuggestions(newSuggestions);
+              }
             }
           } catch {
             // Skip malformed JSON
@@ -429,26 +425,24 @@ export function DatabaseView() {
                       message.role === "user" ? "justify-end" : "justify-start"
                     )}
                   >
-                    <div
-                      className={cn(
-                        "max-w-[80%] rounded-2xl",
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground px-5 py-3 rounded-br-md"
-                          : "bg-card/80 backdrop-blur border border-border/50 p-4 rounded-bl-md"
-                      )}
-                    >
-                      {message.role === "assistant" ? (
-                        message.content ? (
-                          <AIMessageContent content={message.content} />
-                        ) : (
-                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        )
-                      ) : (
-                        <p className="text-sm">{message.content}</p>
-                      )}
-                    </div>
+                    <DatabaseChatMessage
+                      role={message.role}
+                      content={message.content}
+                      insightCards={message.insights}
+                      isStreaming={isLoading && index === messages.length - 1 && message.role === "assistant"}
+                    />
                   </div>
                 ))}
+                {/* Suggested actions after last message */}
+                {!isLoading && suggestions.length > 0 && (
+                  <div className="pt-2">
+                    <SuggestedActions
+                      suggestions={suggestions}
+                      onSelect={(suggestion) => sendMessage(suggestion)}
+                      isLoading={isLoading}
+                    />
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </div>
