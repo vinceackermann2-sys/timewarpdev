@@ -6,12 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { SuggestedActions } from "./SuggestedActions";
+import { ResearchChatMessage, parseInsightCards, InsightCard } from "./ResearchChatMessage";
 import type { CanvasNode, Connection } from "./types";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   suggestions?: string[];
+  insightCards?: InsightCard[];
   isStreaming?: boolean;
 }
 
@@ -32,11 +34,12 @@ interface ResearchChatNodeProps {
   onClose: () => void;
 }
 
-// Parse suggestions from response: [SUGGEST:suggestion1|suggestion2|suggestion3]
-function parseSuggestions(text: string): { content: string; suggestions: string[] } {
+// Parse suggestions and insights from response
+function parseResponse(text: string): { content: string; suggestions: string[]; insights: InsightCard[] } {
   const suggestions: string[] = [];
   let content = text;
   
+  // Parse suggestions
   const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
   let match;
   while ((match = suggestRegex.exec(text)) !== null) {
@@ -45,7 +48,10 @@ function parseSuggestions(text: string): { content: string; suggestions: string[
   }
   content = content.replace(suggestRegex, "").trim();
   
-  return { content, suggestions: suggestions.slice(0, 3) };
+  // Parse insight cards
+  const { content: cleanContent, insights } = parseInsightCards(content);
+  
+  return { content: cleanContent, suggestions: suggestions.slice(0, 3), insights };
 }
 
 export function ResearchChatNode({
@@ -243,13 +249,14 @@ export function ResearchChatNode({
                 const content = json.choices?.[0]?.delta?.content;
                 if (content) {
                   assistantMessage += content;
-                  const parsed = parseSuggestions(assistantMessage);
+                  const parsed = parseResponse(assistantMessage);
                   setMessages(prev => {
                     const newMessages = [...prev];
                     newMessages[newMessages.length - 1] = {
                       role: "assistant",
                       content: parsed.content,
                       suggestions: parsed.suggestions,
+                      insightCards: parsed.insights,
                       isStreaming: true,
                     };
                     return newMessages;
@@ -263,13 +270,14 @@ export function ResearchChatNode({
         }
 
         // Final parse
-        const finalParsed = parseSuggestions(assistantMessage);
+        const finalParsed = parseResponse(assistantMessage);
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = {
             role: "assistant",
             content: finalParsed.content,
             suggestions: finalParsed.suggestions,
+            insightCards: finalParsed.insights,
             isStreaming: false,
           };
           return newMessages;
@@ -412,21 +420,12 @@ export function ResearchChatNode({
           <div className="space-y-3">
             {messages.map((msg, idx) => (
               <div key={idx}>
-                <div
-                  className={cn(
-                    "text-sm rounded-lg px-3 py-2",
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground ml-8"
-                      : "bg-muted mr-4"
-                  )}
-                >
-                  {msg.content || (msg.isStreaming && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ))}
-                  {msg.isStreaming && msg.content && (
-                    <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5" />
-                  )}
-                </div>
+                <ResearchChatMessage
+                  role={msg.role}
+                  content={msg.content}
+                  insightCards={msg.insightCards}
+                  isStreaming={msg.isStreaming}
+                />
                 {/* Show suggestions for the last assistant message when not streaming */}
                 {msg.role === "assistant" && 
                  !msg.isStreaming && 
