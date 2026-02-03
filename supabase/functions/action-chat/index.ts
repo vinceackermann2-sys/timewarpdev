@@ -449,7 +449,8 @@ serve(async (req) => {
               emit(`**I need more details to send an email:**\n\n`);
               emit(`• **To:** Who should I send this to?\n`);
               emit(`• **Subject:** What's the email about?\n`);
-              emit(`• **Content:** What should the email say?`);
+              emit(`• **Content:** What should the email say?\n\n`);
+              emit(`[SUGGEST:Draft an email to my team about project status|Send a follow-up email to a client|Create an email template]`);
             }
           } catch (error) {
             emit(`[STEP:❌:Error occurred:error]\n\n`);
@@ -462,7 +463,8 @@ serve(async (req) => {
           emit(`• **Title:** What's the meeting about?\n`);
           emit(`• **Date/Time:** When should it be?\n`);
           emit(`• **Attendees:** Who should be invited? (optional)\n\n`);
-          emit(`*Example: "Schedule a team standup tomorrow at 10am with john@company.com"*`);
+          emit(`*Example: "Schedule a team standup tomorrow at 10am with john@company.com"*\n\n`);
+          emit(`[SUGGEST:Schedule a team meeting for tomorrow|Create a weekly standup|Set up a project kickoff]`);
         } else {
           // General question - use AI with rich formatting
           const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -473,7 +475,10 @@ serve(async (req) => {
               messages: [{
                 role: "system",
                 content: `You are an action assistant for Google Workspace. Help users with tasks.
-                
+
+CRITICAL: You MUST end EVERY response with this exact format on its own line:
+[SUGGEST:suggestion one|suggestion two|suggestion three]
+
 Available actions:
 - **Create documents/SOPs/strategies** in Google Docs
 - **Create spreadsheets/trackers/budgets** in Google Sheets
@@ -484,20 +489,19 @@ Always use **bold** for important terms and action items.
 Keep responses concise and actionable.
 Context from user's data: ${contextStr}
 
-IMPORTANT: At the END of your response, ALWAYS include exactly 3 suggested next actions for the user.
-Format them as: [SUGGEST:First action suggestion|Second action suggestion|Third action suggestion]
-Make suggestions actionable and relevant to what they're trying to accomplish.
-Examples of good suggestions:
-- "Create a weekly status report template"
-- "Set up a budget tracker spreadsheet"
-- "Draft an email to update stakeholders"`
+REMINDER: Your response MUST end with [SUGGEST:action1|action2|action3] - this is required!`
               }, ...messages],
               stream: false,
             }),
           });
 
           const aiResult = await aiResponse.json();
-          const response = aiResult.choices?.[0]?.message?.content || "How can I help you with your Google Workspace?\n\n[SUGGEST:Create a new document|Set up a spreadsheet tracker|Draft an email]";
+          let response = aiResult.choices?.[0]?.message?.content || "How can I help you with your Google Workspace?";
+          
+          // Ensure suggestions are present - add default if AI didn't include them
+          if (!response.includes("[SUGGEST:")) {
+            response += "\n\n[SUGGEST:Create a document or report|Set up a spreadsheet tracker|Draft an email to your team]";
+          }
           emit(response);
         }
 
