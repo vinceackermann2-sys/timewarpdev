@@ -149,9 +149,17 @@ ${fullContext}
 - Reference specific data, emails, events, documents, or findings when answering
 - Provide clear, concise answers grounded in the actual connected data
 - If asked about data you don't have access to, explain what sources are connected
-- Suggest relevant follow-up questions to help users explore their data
 - For images and websites, describe what you can infer from the URL/metadata
-- Use bullet points and structured formatting for clarity`;
+- Use bullet points and structured formatting for clarity
+
+## IMPORTANT: Suggested Next Steps
+At the END of EVERY response, you MUST include exactly 3 recommended next steps for the user's business based on the context and conversation.
+Format them as: [SUGGEST:First suggestion here|Second suggestion here|Third suggestion here]
+Make each suggestion actionable, specific to their business data, and valuable. Examples:
+- "Analyze my top performing email campaigns"
+- "Identify overdue follow-ups with key clients"
+- "Summarize upcoming calendar commitments"
+Always include this suggestion block - it helps users explore their data further.`;
 
     console.log("Research chat context sources:", contextSources);
 

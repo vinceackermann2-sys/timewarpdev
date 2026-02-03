@@ -1,15 +1,18 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Search, Send, X, Database, FileText, Type, Image, Globe, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { SuggestedActions } from "./SuggestedActions";
 import type { CanvasNode, Connection } from "./types";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  suggestions?: string[];
+  isStreaming?: boolean;
 }
 
 interface ConnectedContext {
@@ -29,6 +32,22 @@ interface ResearchChatNodeProps {
   onClose: () => void;
 }
 
+// Parse suggestions from response: [SUGGEST:suggestion1|suggestion2|suggestion3]
+function parseSuggestions(text: string): { content: string; suggestions: string[] } {
+  const suggestions: string[] = [];
+  let content = text;
+  
+  const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
+  let match;
+  while ((match = suggestRegex.exec(text)) !== null) {
+    const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
+    suggestions.push(...items);
+  }
+  content = content.replace(suggestRegex, "").trim();
+  
+  return { content, suggestions: suggestions.slice(0, 3) };
+}
+
 export function ResearchChatNode({
   node,
   connections,
@@ -44,6 +63,17 @@ export function ResearchChatNode({
   const [isLoading, setIsLoading] = useState(false);
   const [connectedContexts, setConnectedContexts] = useState<ConnectedContext[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (scrollRef.current) {
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
+    }
+  }, [messages]);
 
   // Get connected data sources
   const inputConnections = connections.filter(c => c.toNodeId === node.id);
@@ -161,12 +191,12 @@ export function ResearchChatNode({
     buildContexts();
   }, [connectedDataSources.map(n => `${n?.id}-${n?.textContent}-${n?.documentUrl}-${n?.imageUrl}-${n?.websiteUrl}-${n?.analyzedContent}-${n?.isAnalyzed}`).join(",")]);
 
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = useCallback(async (messageOverride?: string) => {
+    const messageToSend = messageOverride || input.trim();
+    if (!messageToSend || isLoading) return;
 
-    const userMessage = input.trim();
     setInput("");
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setMessages(prev => [...prev, { role: "user", content: messageToSend }]);
     setIsLoading(true);
 
     try {
@@ -181,7 +211,7 @@ export function ResearchChatNode({
             Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
-            messages: [...messages, { role: "user", content: userMessage }],
+            messages: [...messages, { role: "user", content: messageToSend }],
             connectedContexts,
           }),
         }
@@ -197,7 +227,7 @@ export function ResearchChatNode({
       let assistantMessage = "";
 
       if (reader) {
-        setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+        setMessages(prev => [...prev, { role: "assistant", content: "", isStreaming: true }]);
 
         while (true) {
           const { done, value } = await reader.read();
@@ -213,11 +243,14 @@ export function ResearchChatNode({
                 const content = json.choices?.[0]?.delta?.content;
                 if (content) {
                   assistantMessage += content;
+                  const parsed = parseSuggestions(assistantMessage);
                   setMessages(prev => {
                     const newMessages = [...prev];
                     newMessages[newMessages.length - 1] = {
                       role: "assistant",
-                      content: assistantMessage,
+                      content: parsed.content,
+                      suggestions: parsed.suggestions,
+                      isStreaming: true,
                     };
                     return newMessages;
                   });
@@ -228,6 +261,19 @@ export function ResearchChatNode({
             }
           }
         }
+
+        // Final parse
+        const finalParsed = parseSuggestions(assistantMessage);
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = {
+            role: "assistant",
+            content: finalParsed.content,
+            suggestions: finalParsed.suggestions,
+            isStreaming: false,
+          };
+          return newMessages;
+        });
       }
     } catch (error) {
       console.error("Chat error:", error);
@@ -252,6 +298,9 @@ export function ResearchChatNode({
     e.stopPropagation();
   }, []);
 
+  // Get the last assistant message for suggestions
+  const lastAssistantMessage = messages.filter(m => m.role === "assistant").slice(-1)[0];
+
   return (
     <div
       className={cn(
@@ -261,8 +310,8 @@ export function ResearchChatNode({
       style={{
         left: node.x,
         top: node.y,
-        width: 460,
-        height: 336,
+        width: 540,
+        height: 480,
       }}
       onMouseDown={onMouseDown}
       onWheel={handleWheel}
@@ -344,7 +393,7 @@ export function ResearchChatNode({
       )}
 
       {/* Chat messages */}
-      <ScrollArea className="flex-1 p-3">
+      <ScrollArea className="flex-1 p-3" ref={scrollRef}>
         {isLoadingData ? (
           <div className="text-center text-muted-foreground py-8">
             <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin opacity-50" />
@@ -362,18 +411,35 @@ export function ResearchChatNode({
         ) : (
           <div className="space-y-3">
             {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={cn(
-                  "text-sm rounded-lg px-3 py-2",
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground ml-8"
-                    : "bg-muted mr-8"
+              <div key={idx}>
+                <div
+                  className={cn(
+                    "text-sm rounded-lg px-3 py-2",
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground ml-8"
+                      : "bg-muted mr-4"
+                  )}
+                >
+                  {msg.content || (msg.isStreaming && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ))}
+                  {msg.isStreaming && msg.content && (
+                    <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5" />
+                  )}
+                </div>
+                {/* Show suggestions for the last assistant message when not streaming */}
+                {msg.role === "assistant" && 
+                 !msg.isStreaming && 
+                 idx === messages.length - 1 && 
+                 msg.suggestions && 
+                 msg.suggestions.length > 0 && (
+                  <div className="mt-2 mr-4">
+                    <SuggestedActions
+                      suggestions={msg.suggestions}
+                      onSelect={(suggestion) => handleSend(suggestion)}
+                    />
+                  </div>
                 )}
-              >
-                {msg.content || (isLoading && idx === messages.length - 1 && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ))}
               </div>
             ))}
           </div>
@@ -395,7 +461,7 @@ export function ResearchChatNode({
           />
           <Button
             size="icon"
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || isLoading || connectedContexts.length === 0}
             className="h-[60px] w-10"
           >
