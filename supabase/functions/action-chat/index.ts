@@ -359,7 +359,8 @@ serve(async (req) => {
               emit(`[STEP:✅:Ready:complete]\n\n`);
               emit(`**Spreadsheet Created!**\n\n`);
               const previewText = data.slice(0, 2).map(row => row.join(", ")).join(" | ");
-              emit(`[DOC:sheet|${result.title}|${result.link}|${previewText}...]`);
+              emit(`[DOC:sheet|${result.title}|${result.link}|${previewText}...]\n\n`);
+              emit(`[SUGGEST:Create a summary document for this data|Add formulas to calculate totals|Export this data to a report]`);
             } else {
               emit(`[STEP:📊:Creating in Google Sheets:error]\n\n`);
               emit(`**Error:** ${result.error}\n\n`);
@@ -391,7 +392,8 @@ serve(async (req) => {
               emit(`[STEP:📄:Creating in Google Docs:complete]\n`);
               emit(`[STEP:✅:Ready:complete]\n\n`);
               emit(`**${docType} Created!**\n\n`);
-              emit(`[DOC:doc|${result.title}|${result.link}|${content.slice(0, 100).replace(/\n/g, " ")}...]`);
+              emit(`[DOC:doc|${result.title}|${result.link}|${content.slice(0, 100).replace(/\n/g, " ")}...]\n\n`);
+              emit(`[SUGGEST:Create a follow-up action plan|Share this with my team|Create a tracker spreadsheet for this]`);
             } else {
               emit(`[STEP:📄:Creating in Google Docs:error]\n\n`);
               emit(`**Error:** ${result.error}\n\n`);
@@ -436,7 +438,8 @@ serve(async (req) => {
                 emit(`**Email Sent Successfully!**\n\n`);
                 emit(`**To:** ${emailData.to}\n`);
                 emit(`**Subject:** ${emailData.subject}\n\n`);
-                emit(`[DOC:email|${result.title}|${result.link}|${emailData.body.slice(0, 80)}...]`);
+                emit(`[DOC:email|${result.title}|${result.link}|${emailData.body.slice(0, 80)}...]\n\n`);
+                emit(`[SUGGEST:Schedule a follow-up meeting|Create a task tracker for this|Draft another email to the team]`);
               } else {
                 emit(`[STEP:📧:Sending via Gmail:error]\n\n`);
                 emit(`**Error:** ${result.error}`);
@@ -479,14 +482,22 @@ Available actions:
 
 Always use **bold** for important terms and action items.
 Keep responses concise and actionable.
-Context from user's data: ${contextStr}`
+Context from user's data: ${contextStr}
+
+IMPORTANT: At the END of your response, ALWAYS include exactly 3 suggested next actions for the user.
+Format them as: [SUGGEST:First action suggestion|Second action suggestion|Third action suggestion]
+Make suggestions actionable and relevant to what they're trying to accomplish.
+Examples of good suggestions:
+- "Create a weekly status report template"
+- "Set up a budget tracker spreadsheet"
+- "Draft an email to update stakeholders"`
               }, ...messages],
               stream: false,
             }),
           });
 
           const aiResult = await aiResponse.json();
-          const response = aiResult.choices?.[0]?.message?.content || "How can I help you with your Google Workspace?";
+          const response = aiResult.choices?.[0]?.message?.content || "How can I help you with your Google Workspace?\n\n[SUGGEST:Create a new document|Set up a spreadsheet tracker|Draft an email]";
           emit(response);
         }
 

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { ActionChatMessage, ActionStep, DocumentLink } from "./ActionChatMessage";
+import { SuggestedActions } from "./SuggestedActions";
 import type { CanvasNode, Connection } from "./types";
 
 interface ChatMessage {
@@ -13,6 +14,7 @@ interface ChatMessage {
   content: string;
   steps?: ActionStep[];
   documentLinks?: DocumentLink[];
+  suggestions?: string[];
   isStreaming?: boolean;
 }
 
@@ -33,14 +35,16 @@ interface ActionChatNodeProps {
   onClose: () => void;
 }
 
-// Parse streaming response for steps, content, and document links
+// Parse streaming response for steps, content, document links, and suggestions
 function parseActionResponse(text: string): {
   steps: ActionStep[];
   content: string;
   documentLinks: DocumentLink[];
+  suggestions: string[];
 } {
   const steps: ActionStep[] = [];
   const documentLinks: DocumentLink[] = [];
+  const suggestions: string[] = [];
   let content = text;
 
   // Parse step markers: [STEP:icon:label:status]
@@ -72,10 +76,18 @@ function parseActionResponse(text: string): {
   }
   content = content.replace(docRegex, "");
 
+  // Parse suggestions: [SUGGEST:suggestion1|suggestion2|suggestion3]
+  const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
+  while ((match = suggestRegex.exec(text)) !== null) {
+    const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
+    suggestions.push(...items);
+  }
+  content = content.replace(suggestRegex, "");
+
   // Clean up extra whitespace
   content = content.trim().replace(/\n{3,}/g, "\n\n");
 
-  return { steps, content, documentLinks };
+  return { steps, content, documentLinks, suggestions: suggestions.slice(0, 3) };
 }
 
 export function ActionChatNode({
@@ -229,12 +241,12 @@ export function ActionChatNode({
     buildContexts();
   }, [connectedDataSources.map(n => `${n?.id}-${n?.textContent}-${n?.documentUrl}-${n?.imageUrl}-${n?.websiteUrl}-${n?.analyzedContent}-${n?.isAnalyzed}`).join(",")]);
 
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = useCallback(async (messageOverride?: string) => {
+    const messageToSend = messageOverride || input.trim();
+    if (!messageToSend || isLoading) return;
 
-    const userMessage = input.trim();
     setInput("");
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setMessages(prev => [...prev, { role: "user", content: messageToSend }]);
     setIsLoading(true);
 
     try {
@@ -252,7 +264,7 @@ export function ActionChatNode({
             Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
-            messages: [...messages, { role: "user", content: userMessage }],
+            messages: [...messages, { role: "user", content: messageToSend }],
             connectedContexts,
             googleAccessToken,
           }),
@@ -275,6 +287,7 @@ export function ActionChatNode({
           content: "", 
           steps: [],
           documentLinks: [],
+          suggestions: [],
           isStreaming: true 
         }]);
 
@@ -301,6 +314,7 @@ export function ActionChatNode({
                       content: parsed.content,
                       steps: parsed.steps,
                       documentLinks: parsed.documentLinks,
+                      suggestions: parsed.suggestions,
                       isStreaming: true,
                     };
                     return newMessages;
@@ -322,6 +336,7 @@ export function ActionChatNode({
             content: finalParsed.content,
             steps: finalParsed.steps,
             documentLinks: finalParsed.documentLinks,
+            suggestions: finalParsed.suggestions,
             isStreaming: false,
           };
           return newMessages;
@@ -349,6 +364,9 @@ export function ActionChatNode({
     e.stopPropagation();
   }, []);
 
+  // Get the last assistant message for suggestions
+  const lastAssistantMessage = messages.filter(m => m.role === "assistant").slice(-1)[0];
+
   return (
     <div
       className={cn(
@@ -358,8 +376,8 @@ export function ActionChatNode({
       style={{
         left: node.x,
         top: node.y,
-        width: 480,
-        height: 400,
+        width: 540,
+        height: 480,
       }}
       onMouseDown={onMouseDown}
       onWheel={handleWheel}
@@ -462,14 +480,28 @@ export function ActionChatNode({
         ) : (
           <div className="space-y-3">
             {messages.map((msg, idx) => (
-              <ActionChatMessage
-                key={idx}
-                role={msg.role}
-                content={msg.content}
-                steps={msg.steps}
-                documentLinks={msg.documentLinks}
-                isStreaming={msg.isStreaming}
-              />
+              <div key={idx}>
+                <ActionChatMessage
+                  role={msg.role}
+                  content={msg.content}
+                  steps={msg.steps}
+                  documentLinks={msg.documentLinks}
+                  isStreaming={msg.isStreaming}
+                />
+                {/* Show suggestions for the last assistant message when not streaming */}
+                {msg.role === "assistant" && 
+                 !msg.isStreaming && 
+                 idx === messages.length - 1 && 
+                 msg.suggestions && 
+                 msg.suggestions.length > 0 && (
+                  <div className="mt-2 mr-4">
+                    <SuggestedActions
+                      suggestions={msg.suggestions}
+                      onSelect={(suggestion) => handleSend(suggestion)}
+                    />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -490,7 +522,7 @@ export function ActionChatNode({
           />
           <Button
             size="icon"
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
             className="h-[60px] w-10 bg-accent hover:bg-accent/80"
           >
