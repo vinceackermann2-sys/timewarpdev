@@ -311,28 +311,29 @@ export function ResearchChatNode({
   const lastAssistantMessage = messages.filter(m => m.role === "assistant").slice(-1)[0];
 
   return (
-    <div
-      className={cn(
-        "bg-card border rounded-xl shadow-xl flex flex-col select-none transition-all duration-200",
-        isSelected && !isFullscreen ? "border-primary ring-2 ring-primary/30" : "border-border",
-        isFullscreen ? "fixed inset-4 z-50" : "absolute"
-      )}
-      style={isFullscreen ? undefined : {
-        left: node.x,
-        top: node.y,
-        width: 540,
-        height: 480,
-      }}
-      onMouseDown={isFullscreen ? undefined : onMouseDown}
-      onWheel={handleWheel}
-    >
+    <>
       {/* Fullscreen backdrop */}
       {isFullscreen && (
         <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm -z-10" 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40" 
           onClick={() => setIsFullscreen(false)}
         />
       )}
+      <div
+        className={cn(
+          "bg-card border rounded-xl shadow-xl flex flex-col select-none transition-all duration-200",
+          isSelected && !isFullscreen ? "border-primary ring-2 ring-primary/30" : "border-border",
+          isFullscreen ? "fixed inset-8 z-50 max-w-4xl mx-auto" : "absolute"
+        )}
+        style={isFullscreen ? { height: 'calc(100vh - 64px)' } : {
+          left: node.x,
+          top: node.y,
+          width: 540,
+          height: 480,
+        }}
+        onMouseDown={isFullscreen ? undefined : onMouseDown}
+        onWheel={handleWheel}
+      >
       {/* Input port (centered on left edge of card) - hidden in fullscreen */}
       {!isFullscreen && (
         <div
@@ -501,5 +502,6 @@ export function ResearchChatNode({
         </div>
       </div>
     </div>
+    </>
   );
 }
