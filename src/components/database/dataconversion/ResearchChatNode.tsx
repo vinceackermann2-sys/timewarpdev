@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Search, Send, X, Database, FileText, Type, Image, Globe, Loader2 } from "lucide-react";
+import { Search, Send, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,6 +69,7 @@ export function ResearchChatNode({
   const [isLoading, setIsLoading] = useState(false);
   const [connectedContexts, setConnectedContexts] = useState<ConnectedContext[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
@@ -312,41 +313,53 @@ export function ResearchChatNode({
   return (
     <div
       className={cn(
-        "absolute bg-card border rounded-xl shadow-xl flex flex-col select-none",
-        isSelected ? "border-primary ring-2 ring-primary/30" : "border-border"
+        "bg-card border rounded-xl shadow-xl flex flex-col select-none transition-all duration-200",
+        isSelected && !isFullscreen ? "border-primary ring-2 ring-primary/30" : "border-border",
+        isFullscreen ? "fixed inset-4 z-50" : "absolute"
       )}
-      style={{
+      style={isFullscreen ? undefined : {
         left: node.x,
         top: node.y,
         width: 540,
         height: 480,
       }}
-      onMouseDown={onMouseDown}
+      onMouseDown={isFullscreen ? undefined : onMouseDown}
       onWheel={handleWheel}
     >
-      {/* Input port (centered on left edge of card) */}
-      <div
-        className={cn(
-          "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
-        )}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        }}
-        onMouseUp={onInputPortMouseUp}
-      />
+      {/* Fullscreen backdrop */}
+      {isFullscreen && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm -z-10" 
+          onClick={() => setIsFullscreen(false)}
+        />
+      )}
+      {/* Input port (centered on left edge of card) - hidden in fullscreen */}
+      {!isFullscreen && (
+        <div
+          className={cn(
+            "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
+          )}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          onMouseUp={onInputPortMouseUp}
+        />
+      )}
 
-      {/* Output port (centered on right edge of card) */}
-      <div
-        className={cn(
-          "absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
-        )}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          onOutputPortMouseDown(e);
-        }}
-      />
+      {/* Output port (centered on right edge of card) - hidden in fullscreen */}
+      {!isFullscreen && (
+        <div
+          className={cn(
+            "absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
+          )}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onOutputPortMouseDown(e);
+          }}
+        />
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30 rounded-t-xl">
@@ -359,17 +372,32 @@ export function ResearchChatNode({
             <p className="text-xs text-muted-foreground">Ask about your data</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFullscreen(!isFullscreen);
+            }}
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          {!isFullscreen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Connected data sources */}
