@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Search, Send, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
+import { Search, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -315,7 +315,7 @@ export function ResearchChatNode({
       {/* Fullscreen backdrop */}
       {isFullscreen && (
         <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40" 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100]" 
           onClick={() => setIsFullscreen(false)}
         />
       )}
@@ -323,9 +323,9 @@ export function ResearchChatNode({
         className={cn(
           "bg-card border rounded-xl shadow-xl flex flex-col select-none transition-all duration-200",
           isSelected && !isFullscreen ? "border-primary ring-2 ring-primary/30" : "border-border",
-          isFullscreen ? "fixed inset-8 z-50 max-w-4xl mx-auto" : "absolute"
+          isFullscreen ? "fixed inset-4 z-[101] max-w-4xl mx-auto" : "absolute"
         )}
-        style={isFullscreen ? { height: 'calc(100vh - 64px)' } : {
+        style={isFullscreen ? { height: 'calc(100vh - 32px)' } : {
           left: node.x,
           top: node.y,
           width: 540,
@@ -491,12 +491,12 @@ export function ResearchChatNode({
             size="icon"
             onClick={() => handleSend()}
             disabled={!input.trim() || isLoading || connectedContexts.length === 0}
-            className="h-[60px] w-10"
+            className="h-10 w-10 rounded-full self-end shrink-0"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-4 w-4" />
+              <ArrowUp className="h-4 w-4" />
             )}
           </Button>
         </div>
