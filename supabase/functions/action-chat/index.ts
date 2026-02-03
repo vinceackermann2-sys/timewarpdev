@@ -273,19 +273,31 @@ serve(async (req) => {
       }
     }
 
-    // Build context string
+    // Build context string from ALL connected sources
     let contextStr = "";
+    const contextSources: string[] = [];
     for (const ctx of (connectedContexts || []) as ConnectedContext[]) {
       if (ctx.type === "business-db") {
         const rawData = ctx.content.raw_data || {};
-        contextStr += `Emails: ${rawData.emailSummaries?.slice(0, 10).map((e: any) => e.subject).join(", ") || "none"}\n`;
-        contextStr += `Contacts: ${rawData.topContacts?.slice(0, 5).map((c: any) => c.email).join(", ") || "none"}\n`;
+        contextStr += `[Business Database]\nEmails: ${rawData.emailSummaries?.slice(0, 10).map((e: any) => e.subject).join(", ") || "none"}\nContacts: ${rawData.topContacts?.slice(0, 5).map((c: any) => c.email).join(", ") || "none"}\n\n`;
+        contextSources.push("business database");
       } else if (ctx.type === "text") {
-        contextStr += `Text: ${ctx.content.text?.slice(0, 500) || ""}\n`;
+        contextStr += `[Text Node: ${ctx.label}]\n${ctx.content.text?.slice(0, 1000) || ""}\n${ctx.content.analysis ? `Analysis: ${ctx.content.analysis.slice(0, 500)}` : ""}\n\n`;
+        contextSources.push(`text: ${ctx.label}`);
       } else if (ctx.type === "document") {
-        contextStr += `Document "${ctx.content.name}": ${ctx.content.extractedText?.slice(0, 500) || ""}\n`;
+        contextStr += `[Document: ${ctx.content.name}]\n${ctx.content.extractedText?.slice(0, 1000) || ""}\n${ctx.content.analysis ? `Analysis: ${ctx.content.analysis.slice(0, 500)}` : ""}\n\n`;
+        contextSources.push(`document: ${ctx.content.name}`);
+      } else if (ctx.type === "website") {
+        contextStr += `[Website: ${ctx.content.title || ctx.content.url}]\nURL: ${ctx.content.url}\n${ctx.content.analysis ? `Analysis: ${ctx.content.analysis.slice(0, 1500)}` : ""}\n\n`;
+        contextSources.push(`website: ${ctx.content.title || ctx.content.url}`);
+      } else if (ctx.type === "image") {
+        contextStr += `[Image]\n${ctx.content.analysis ? `Analysis: ${ctx.content.analysis.slice(0, 1000)}` : "No analysis available"}\n\n`;
+        contextSources.push("image");
       }
     }
+    
+    console.log("Context sources:", contextSources.join(", "));
+    console.log("Context string length:", contextStr.length);
 
     // Check if we have a valid Google access token
     const canExecute = !!accessToken;
@@ -317,9 +329,19 @@ serve(async (req) => {
         }
       }
     }
+    
+    // Also detect creation intent even without explicit doc type keywords
+    // "create based on", "write about", "make from", "summarize as", etc.
+    const hasCreationIntent = /\b(create|write|make|generate|build|draft|prepare|compile|summarize)\b.*\b(based\s+on|about|from|for|using|with)\b/i.test(userMessageLower);
+    const hasContextAndCreationRequest = contextStr.length > 100 && hasCreationIntent && !detectedDocType;
+    
+    // If user has context and wants to create something, default to Document
+    if (hasContextAndCreationRequest && !isSheetRequest) {
+      detectedDocType = "Document";
+    }
 
     const isDocRequest = detectedDocType !== null;
-    const isEmailRequest = /\b(email|reply|send|draft|message)\b/i.test(userMessageLower);
+    const isEmailRequest = /\b(email|reply|send|draft\s+email|message)\b/i.test(userMessageLower) && !isDocRequest;
     const isCalendarRequest = /\b(schedule|meeting|calendar|event|appointment)\b/i.test(userMessageLower);
 
     // Create streaming response
