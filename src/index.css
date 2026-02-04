@@ -101,20 +101,18 @@
   }
 }
 
-@keyframes star-float {
+@keyframes star-loading {
   0% {
     opacity: 0;
-    transform: translateY(20px) scale(0.5) rotate(0deg);
+    transform: scale(0) rotate(0deg);
   }
-  20% {
+  50% {
     opacity: 1;
-  }
-  80% {
-    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
   }
   100% {
     opacity: 0;
-    transform: translateY(-40px) scale(1.2) rotate(180deg);
+    transform: scale(0) rotate(360deg);
   }
 }
 
@@ -148,8 +146,8 @@
   animation: pulse-glow 4s ease-in-out infinite;
 }
 
-.animate-star-float {
-  animation: star-float 3s ease-in-out infinite;
+.animate-star-loading {
+  animation: star-loading 1.5s ease-out forwards;
 }
 
 /* Portals Design System - Cosmic Purple Theme */

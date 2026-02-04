@@ -210,16 +210,15 @@ export function QuizFunnel() {
                   
                   {/* Star loading animation overlay */}
                   <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    {[...Array(12)].map((_, i) => (
+                    {[...Array(8)].map((_, i) => (
                       <div
                         key={i}
-                        className="absolute text-white/60 animate-star-float"
+                        className="absolute text-white/80 animate-star-loading"
                         style={{
-                          left: `${10 + Math.random() * 80}%`,
-                          top: `${10 + Math.random() * 80}%`,
-                          fontSize: `${8 + Math.random() * 12}px`,
-                          animationDelay: `${i * 0.3}s`,
-                          animationDuration: `${2 + Math.random() * 2}s`,
+                          left: `${15 + (i % 4) * 20}%`,
+                          top: `${20 + Math.floor(i / 4) * 40}%`,
+                          fontSize: `${10 + (i % 3) * 4}px`,
+                          animationDelay: `${i * 0.15}s`,
                         }}
                       >
                         ✦
@@ -274,16 +273,15 @@ export function QuizFunnel() {
                   
                   {/* Star loading animation overlay */}
                   <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    {[...Array(12)].map((_, i) => (
+                    {[...Array(8)].map((_, i) => (
                       <div
                         key={i}
-                        className="absolute text-white/60 animate-star-float"
+                        className="absolute text-white/80 animate-star-loading"
                         style={{
-                          left: `${10 + Math.random() * 80}%`,
-                          top: `${10 + Math.random() * 80}%`,
-                          fontSize: `${8 + Math.random() * 12}px`,
-                          animationDelay: `${i * 0.3}s`,
-                          animationDuration: `${2 + Math.random() * 2}s`,
+                          left: `${15 + (i % 4) * 20}%`,
+                          top: `${20 + Math.floor(i / 4) * 40}%`,
+                          fontSize: `${10 + (i % 3) * 4}px`,
+                          animationDelay: `${i * 0.15}s`,
                         }}
                       >
                         ✦
