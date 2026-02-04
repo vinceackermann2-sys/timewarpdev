@@ -4,6 +4,8 @@
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans&display=swap");
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -114,25 +116,25 @@
 @layer base {
   :root {
     /* Portal cosmic theme - always dark */
-    --background: 226 71% 4%;
-    --foreground: 0 0% 98%;
+    --background: 210 17% 98%;
+    --foreground: 0 0% 0%;
 
-    --card: 248 39% 20%;
-    --card-foreground: 0 0% 98%;
+    --card: 220 26% 82%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 248 39% 20%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 250 89% 76%;
+    --primary: 216 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 250 40% 15%;
+    --secondary: 210 73% 15%;
     --secondary-foreground: 0 0% 98%;
 
     --muted: 250 30% 20%;
     --muted-foreground: 250 20% 60%;
 
-    --accent: 270 70% 65%;
+    --accent: 216 100% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -149,12 +151,12 @@
     --portal-accent-bright: 250 89% 80%;
     --portal-glow: 250 89% 76%;
     --portal-bg-gradient: linear-gradient(135deg, #020617 0%, #1E1B4B 50%, #4C1D95 100%);
-    
+
     --gradient-primary: linear-gradient(135deg, #A78BFA, #8B5CF6);
     --gradient-accent: linear-gradient(135deg, #A78BFA, #60A5FA);
     --shadow-glow: 0 0 30px hsl(250 89% 76% / 0.3);
     --shadow-glow-lg: 0 0 60px hsl(250 89% 76% / 0.4);
-    
+
     --sidebar-background: 250 45% 8%;
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 270 70% 65%;
@@ -163,6 +165,7 @@
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 270 30% 25%;
     --sidebar-ring: 270 70% 65%;
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
   }
 
   .dark {
@@ -203,6 +206,8 @@
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 270 30% 25%;
     --sidebar-ring: 270 70% 65%;
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --radius: 1rem;
   }
 }
 
