@@ -116,60 +116,6 @@
 @layer base {
   :root {
     /* Light theme */
-    --background: 216 45% 98%;
-    --foreground: 217 20% 13%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 217 20% 13%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 217 20% 13%;
-
-    --primary: 250 89% 65%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 221 46% 91%;
-    --secondary-foreground: 217 20% 13%;
-
-    --muted: 218 31% 93%;
-    --muted-foreground: 218 13% 46%;
-
-    --accent: 250 89% 65%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 358 75% 59%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 219 23% 85%;
-    --input: 0 0% 100%;
-    --ring: 250 89% 65%;
-
-    --radius: 1rem;
-
-    /* Portal specific tokens - light */
-    --portal-accent: 250 89% 65%;
-    --portal-accent-bright: 250 89% 70%;
-    --portal-glow: 250 89% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(216 45% 98%) 0%, hsl(250 40% 95%) 50%, hsl(250 50% 90%) 100%);
-
-    --gradient-primary: linear-gradient(135deg, hsl(250 89% 65%), hsl(250 89% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(250 89% 65%), hsl(220 90% 60%));
-    --shadow-glow: 0 0 30px hsl(250 89% 65% / 0.2);
-    --shadow-glow-lg: 0 0 60px hsl(250 89% 65% / 0.3);
-
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 217 20% 13%;
-    --sidebar-primary: 250 89% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 40% 95%;
-    --sidebar-accent-foreground: 217 20% 13%;
-    --sidebar-border: 219 23% 85%;
-    --sidebar-ring: 250 89% 65%;
-    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-  }
-
-  .dark {
-    /* Dark cosmic theme */
     --background: 218 25% 6%;
     --foreground: 216 33% 97%;
 
@@ -179,7 +125,7 @@
     --popover: 219 25% 14%;
     --popover-foreground: 216 25% 92%;
 
-    --primary: 250 89% 76%;
+    --primary: 219 100% 65%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 219 29% 25%;
@@ -188,15 +134,69 @@
     --muted: 218 21% 15%;
     --muted-foreground: 215 16% 73%;
 
-    --accent: 250 89% 76%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 174 100% 47%;
+    --accent-foreground: 218 25% 6%;
 
     --destructive: 358 100% 68%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 221 21% 21%;
     --input: 219 24% 11%;
-    --ring: 250 89% 76%;
+    --ring: 218 10% 48%;
+
+    --radius: 1rem;
+
+    /* Portal specific tokens - light */
+    --portal-accent: 250 89% 76%;
+    --portal-accent-bright: 250 89% 80%;
+    --portal-glow: 250 89% 76%;
+    --portal-bg-gradient: linear-gradient(135deg, #020617 0%, #1E1B4B 50%, #4C1D95 100%);
+
+    --gradient-primary: linear-gradient(135deg, #A78BFA, #8B5CF6);
+    --gradient-accent: linear-gradient(135deg, #A78BFA, #60A5FA);
+    --shadow-glow: 0 0 30px hsl(250 89% 76% / 0.3);
+    --shadow-glow-lg: 0 0 60px hsl(250 89% 76% / 0.4);
+
+    --sidebar-background: 250 45% 8%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 270 70% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 250 40% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 270 30% 25%;
+    --sidebar-ring: 270 70% 65%;
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+  }
+
+  .dark {
+    /* Dark cosmic theme */
+    --background: 216 45% 98%;
+    --foreground: 217 20% 13%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 217 20% 13%;
+
+    --popover: 218 36% 96%;
+    --popover-foreground: 217 20% 13%;
+
+    --primary: 223 100% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 221 46% 91%;
+    --secondary-foreground: 217 20% 13%;
+
+    --muted: 218 31% 93%;
+    --muted-foreground: 218 13% 33%;
+
+    --accent: 173 100% 39%;
+    --accent-foreground: 220 24% 7%;
+
+    --destructive: 358 75% 59%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 219 23% 85%;
+    --input: 0 0% 100%;
+    --ring: 219 11% 59%;
 
     /* Portal specific tokens - dark */
     --portal-accent: 250 89% 76%;
