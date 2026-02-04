@@ -102,26 +102,38 @@ export function QuizFunnel() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse 120% 80% at 50% 100%, 
-              rgba(255, 180, 140, 0.4) 0%, 
-              rgba(200, 120, 180, 0.3) 15%,
-              rgba(140, 100, 200, 0.25) 30%,
-              transparent 50%
-            ),
-            radial-gradient(ellipse 100% 60% at 50% 90%, 
-              rgba(100, 180, 255, 0.5) 0%, 
-              rgba(60, 140, 220, 0.4) 25%,
-              transparent 60%
-            ),
-            radial-gradient(ellipse 80% 50% at 50% 70%, 
-              rgba(80, 160, 255, 0.3) 0%, 
+            radial-gradient(ellipse 60% 35% at 50% 100%, 
+              rgba(255, 160, 120, 0.6) 0%, 
+              rgba(240, 130, 160, 0.4) 30%,
               transparent 70%
             ),
+            radial-gradient(ellipse 80% 45% at 20% 95%, 
+              rgba(180, 120, 220, 0.5) 0%, 
+              rgba(140, 100, 200, 0.3) 40%,
+              transparent 70%
+            ),
+            radial-gradient(ellipse 80% 45% at 80% 95%, 
+              rgba(100, 140, 240, 0.5) 0%, 
+              rgba(80, 120, 220, 0.3) 40%,
+              transparent 70%
+            ),
+            radial-gradient(ellipse 140% 70% at 50% 95%, 
+              rgba(120, 200, 255, 0.7) 0%, 
+              rgba(80, 160, 255, 0.5) 30%,
+              rgba(60, 120, 220, 0.3) 50%,
+              transparent 70%
+            ),
+            radial-gradient(ellipse 120% 50% at 50% 75%, 
+              rgba(60, 140, 255, 0.4) 0%, 
+              rgba(40, 80, 180, 0.2) 50%,
+              transparent 80%
+            ),
             linear-gradient(to bottom, 
-              hsl(220 30% 5%) 0%, 
-              hsl(220 40% 12%) 30%,
-              hsl(215 50% 25%) 60%,
-              hsl(210 60% 40%) 100%
+              hsl(225 35% 4%) 0%, 
+              hsl(225 40% 8%) 25%,
+              hsl(220 45% 15%) 50%,
+              hsl(215 50% 25%) 75%,
+              hsl(210 55% 35%) 100%
             )
           `
         }}
