@@ -9,6 +9,7 @@ import cmoBg from "@/assets/cmo-bg.png";
 import cfoBg from "@/assets/cfo-bg.png";
 import researchBg from "@/assets/research-bg.png";
 import actionBg from "@/assets/action-bg.png";
+import quizBg from "@/assets/quiz-bg.png";
 
 type Role = "ceo" | "cmo" | "cfo";
 type Mode = "research" | "action";
@@ -97,46 +98,11 @@ export function QuizFunnel() {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Aurora cosmic gradient background */}
-      <div 
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(ellipse 60% 35% at 50% 100%, 
-              rgba(255, 160, 120, 0.6) 0%, 
-              rgba(240, 130, 160, 0.4) 30%,
-              transparent 70%
-            ),
-            radial-gradient(ellipse 80% 45% at 20% 95%, 
-              rgba(180, 120, 220, 0.5) 0%, 
-              rgba(140, 100, 200, 0.3) 40%,
-              transparent 70%
-            ),
-            radial-gradient(ellipse 80% 45% at 80% 95%, 
-              rgba(100, 140, 240, 0.5) 0%, 
-              rgba(80, 120, 220, 0.3) 40%,
-              transparent 70%
-            ),
-            radial-gradient(ellipse 140% 70% at 50% 95%, 
-              rgba(120, 200, 255, 0.7) 0%, 
-              rgba(80, 160, 255, 0.5) 30%,
-              rgba(60, 120, 220, 0.3) 50%,
-              transparent 70%
-            ),
-            radial-gradient(ellipse 120% 50% at 50% 75%, 
-              rgba(60, 140, 255, 0.4) 0%, 
-              rgba(40, 80, 180, 0.2) 50%,
-              transparent 80%
-            ),
-            linear-gradient(to bottom, 
-              hsl(225 35% 4%) 0%, 
-              hsl(225 40% 8%) 25%,
-              hsl(220 45% 15%) 50%,
-              hsl(215 50% 25%) 75%,
-              hsl(210 55% 35%) 100%
-            )
-          `
-        }}
+      {/* Aurora cosmic background image */}
+      <img 
+        src={quizBg}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
       />
       
       {/* Subtle star particles */}
