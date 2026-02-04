@@ -208,6 +208,25 @@ export function QuizFunnel() {
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   
+                  {/* Star loading animation overlay */}
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {[...Array(12)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute text-white/60 animate-star-float"
+                        style={{
+                          left: `${10 + Math.random() * 80}%`,
+                          top: `${10 + Math.random() * 80}%`,
+                          fontSize: `${8 + Math.random() * 12}px`,
+                          animationDelay: `${i * 0.3}s`,
+                          animationDuration: `${2 + Math.random() * 2}s`,
+                        }}
+                      >
+                        ✦
+                      </div>
+                    ))}
+                  </div>
+                  
                   {/* Bottom content area */}
                   <div className="absolute inset-x-0 bottom-0 h-1/2 flex flex-col items-center justify-end pb-14">
                     {/* Floating icon */}
@@ -252,6 +271,25 @@ export function QuizFunnel() {
                     alt="" 
                     className="absolute inset-0 w-full h-full object-cover"
                   />
+                  
+                  {/* Star loading animation overlay */}
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {[...Array(12)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute text-white/60 animate-star-float"
+                        style={{
+                          left: `${10 + Math.random() * 80}%`,
+                          top: `${10 + Math.random() * 80}%`,
+                          fontSize: `${8 + Math.random() * 12}px`,
+                          animationDelay: `${i * 0.3}s`,
+                          animationDuration: `${2 + Math.random() * 2}s`,
+                        }}
+                      >
+                        ✦
+                      </div>
+                    ))}
+                  </div>
                   
                   {/* Content */}
                   <div className="absolute inset-x-0 bottom-0 h-1/2 flex flex-col items-center justify-end pb-14 px-6">
