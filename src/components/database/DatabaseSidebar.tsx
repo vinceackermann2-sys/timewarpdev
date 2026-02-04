@@ -82,9 +82,9 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
   return (
     <>
       <Sidebar collapsible="icon">
-        <SidebarHeader className="border-b border-sidebar-border p-4">
-          <div className="flex items-center justify-between">
-            <Link to="/database" className="flex items-center gap-2">
+        <SidebarHeader className="border-b border-sidebar-border p-2">
+          <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'justify-between'}`}>
+            <Link to="/database" className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : ''}`}>
               <img 
                 src="/favicon.png" 
                 alt="TimeWarp" 
@@ -92,25 +92,14 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               />
               {!isCollapsed && <span className="font-semibold text-lg">TimeWarp</span>}
             </Link>
-            {!isCollapsed && (
-              <button
-                onClick={toggleSidebar}
-                className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors flex-shrink-0"
-                title="Collapse sidebar"
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          {isCollapsed && (
             <button
               onClick={toggleSidebar}
-              className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors mt-2 w-full flex justify-center"
-              title="Expand sidebar"
+              className={`p-1.5 rounded-md hover:bg-sidebar-accent transition-colors flex-shrink-0 ${isCollapsed ? 'w-full flex justify-center' : ''}`}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <PanelLeft className="h-4 w-4" />
+              {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </button>
-          )}
+          </div>
         </SidebarHeader>
 
         <SidebarContent>
