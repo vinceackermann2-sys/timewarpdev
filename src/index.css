@@ -135,34 +135,34 @@
 
 @layer base {
   :root {
-    /* Light theme */
-    --background: 240 4% 95%;
-    --foreground: 240 5% 10%;
+    /* Light theme - Blue Corp Pastel */
+    --background: 210 40% 98%;
+    --foreground: 215 25% 15%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 240 5% 10%;
+    --card: 210 40% 99%;
+    --card-foreground: 215 25% 15%;
 
-    --popover: 240 5% 90%;
-    --popover-foreground: 240 5% 10%;
+    --popover: 210 30% 96%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 218 100% 65%;
+    --primary: 210 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 33%;
+    --secondary: 215 20% 40%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 4% 83%;
-    --muted-foreground: 240 5% 10%;
+    --muted: 210 20% 88%;
+    --muted-foreground: 215 15% 35%;
 
-    --accent: 269 100% 98%;
-    --accent-foreground: 218 100% 65%;
+    --accent: 210 100% 95%;
+    --accent-foreground: 210 100% 40%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 240 4% 83%;
-    --input: 240 4% 83%;
-    --ring: 218 100% 65%;
+    --border: 210 20% 85%;
+    --input: 210 20% 85%;
+    --ring: 210 100% 50%;
 
     --radius: 0.875rem;
 
@@ -173,35 +173,35 @@
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 217 91% 60%;
+    --status-info: 210 100% 55%;
     --status-info-foreground: 0 0% 100%;
 
     /* Portal specific tokens - light */
-    --portal-accent: 250 89% 66%;
-    --portal-accent-bright: 250 89% 70%;
-    --portal-glow: 250 89% 66%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(220 14% 96%) 0%, hsl(250 89% 96%) 100%);
+    --portal-accent: 210 100% 55%;
+    --portal-accent-bright: 210 100% 60%;
+    --portal-glow: 210 100% 55%;
+    --portal-bg-gradient: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 80% 95%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(250 89% 76%), hsl(250 89% 66%));
-    --gradient-accent: linear-gradient(135deg, hsl(250 89% 76%), hsl(217 91% 70%));
-    --shadow-glow: 0 0 30px hsl(250 89% 66% / 0.2);
-    --shadow-glow-lg: 0 0 60px hsl(250 89% 66% / 0.3);
+    --gradient-primary: linear-gradient(135deg, hsl(210 100% 65%), hsl(210 100% 50%));
+    --gradient-accent: linear-gradient(135deg, hsl(210 100% 65%), hsl(200 100% 55%));
+    --shadow-glow: 0 0 30px hsl(210 100% 55% / 0.2);
+    --shadow-glow-lg: 0 0 60px hsl(210 100% 55% / 0.3);
 
     /* Browser chrome colors - light */
-    --browser-bg: 220 14% 96%;
-    --browser-header: 220 14% 92%;
+    --browser-bg: 210 30% 97%;
+    --browser-header: 210 25% 94%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
     --browser-dot-green: 142 76% 36%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 5% 10%;
-    --sidebar-primary: 258 89% 66%;
-    --sidebar-primary-foreground: 250 100% 97%;
-    --sidebar-accent: 240 5% 33%;
+    --sidebar-foreground: 215 25% 15%;
+    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 40%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 4% 83%;
-    --sidebar-ring: 258 89% 66%;
+    --sidebar-border: 210 20% 85%;
+    --sidebar-ring: 210 100% 50%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --chart-1: 218 100% 93%;
     --chart-2: 218 100% 87%;
@@ -224,34 +224,34 @@
   }
 
   .dark {
-    /* Dark cosmic theme */
-    --background: 240 5% 10%;
+    /* Dark theme - Blue Corp Pastel */
+    --background: 215 25% 8%;
     --foreground: 0 0% 98%;
 
-    --card: 240 3% 15%;
+    --card: 215 20% 12%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 5% 26%;
+    --popover: 215 20% 16%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 218 100% 65%;
+    --primary: 210 100% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 3% 46%;
+    --secondary: 215 15% 35%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 3% 46%;
-    --muted-foreground: 0 0% 98%;
+    --muted: 215 15% 30%;
+    --muted-foreground: 210 20% 70%;
 
-    --accent: 273 86% 20%;
-    --accent-foreground: 218 100% 65%;
+    --accent: 215 50% 20%;
+    --accent-foreground: 210 100% 70%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 240 5% 33%;
-    --input: 240 5% 33%;
-    --ring: 218 100% 65%;
+    --border: 215 20% 25%;
+    --input: 215 20% 25%;
+    --ring: 210 100% 60%;
 
     /* Status colors - dark */
     --status-success: 142 70% 45%;
@@ -260,35 +260,35 @@
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 217 91% 60%;
+    --status-info: 210 100% 60%;
     --status-info-foreground: 0 0% 100%;
 
     /* Portal specific tokens - dark */
-    --portal-accent: 250 89% 76%;
-    --portal-accent-bright: 250 89% 80%;
-    --portal-glow: 250 89% 76%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(218 25% 6%) 0%, hsl(250 40% 15%) 50%, hsl(270 40% 20%) 100%);
+    --portal-accent: 210 100% 65%;
+    --portal-accent-bright: 210 100% 70%;
+    --portal-glow: 210 100% 65%;
+    --portal-bg-gradient: linear-gradient(135deg, hsl(215 25% 6%) 0%, hsl(210 40% 12%) 50%, hsl(215 50% 15%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(250 89% 76%), hsl(250 89% 66%));
-    --gradient-accent: linear-gradient(135deg, hsl(250 89% 76%), hsl(217 91% 70%));
-    --shadow-glow: 0 0 30px hsl(250 89% 76% / 0.3);
-    --shadow-glow-lg: 0 0 60px hsl(250 89% 76% / 0.4);
+    --gradient-primary: linear-gradient(135deg, hsl(210 100% 65%), hsl(210 100% 50%));
+    --gradient-accent: linear-gradient(135deg, hsl(210 100% 65%), hsl(200 100% 55%));
+    --shadow-glow: 0 0 30px hsl(210 100% 60% / 0.3);
+    --shadow-glow-lg: 0 0 60px hsl(210 100% 60% / 0.4);
 
     /* Browser chrome colors - dark */
-    --browser-bg: 220 20% 8%;
-    --browser-header: 220 20% 12%;
+    --browser-bg: 215 25% 8%;
+    --browser-header: 215 22% 12%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
     --browser-dot-green: 142 70% 45%;
 
-    --sidebar-background: 220 20% 8%;
+    --sidebar-background: 215 25% 8%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 255 91% 76%;
-    --sidebar-primary-foreground: 261 72% 22%;
-    --sidebar-accent: 270 95% 75%;
-    --sidebar-accent-foreground: 273 86% 20%;
-    --sidebar-border: 240 5% 33%;
-    --sidebar-ring: 255 91% 76%;
+    --sidebar-primary: 210 100% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 80% 60%;
+    --sidebar-accent-foreground: 215 50% 20%;
+    --sidebar-border: 215 20% 25%;
+    --sidebar-ring: 210 100% 65%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --radius: 0.75rem;
     --chart-1: 218 100% 93%;
@@ -364,7 +364,7 @@
   }
 
   .portal-card {
-    background: linear-gradient(145deg, hsl(250 45% 12% / 0.8), hsl(250 45% 8% / 0.9));
+    background: linear-gradient(145deg, hsl(215 30% 12% / 0.8), hsl(215 30% 8% / 0.9));
     border: 1px solid hsl(var(--border) / 0.4);
     box-shadow: 0 8px 32px hsl(0 0% 0% / 0.3);
   }
