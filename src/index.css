@@ -136,33 +136,33 @@
 @layer base {
   :root {
     /* Light theme */
-    --background: 216 45% 98%;
-    --foreground: 222 47% 11%;
+    --background: 240 4% 95%;
+    --foreground: 240 5% 10%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 0 0% 98%;
+    --card-foreground: 240 5% 10%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 240 5% 90%;
+    --popover-foreground: 240 5% 10%;
 
-    --primary: 250 89% 66%;
+    --primary: 218 100% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 240 5% 33%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 240 4% 83%;
+    --muted-foreground: 240 5% 10%;
 
-    --accent: 250 89% 96%;
-    --accent-foreground: 250 89% 50%;
+    --accent: 269 100% 98%;
+    --accent-foreground: 218 100% 65%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 85% 97%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 250 89% 66%;
+    --border: 240 4% 83%;
+    --input: 240 4% 83%;
+    --ring: 218 100% 65%;
 
     --radius: 0.875rem;
 
@@ -195,63 +195,63 @@
     --browser-dot-green: 142 76% 36%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 250 89% 66%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 89% 96%;
-    --sidebar-accent-foreground: 250 89% 50%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 250 89% 66%;
+    --sidebar-foreground: 240 5% 10%;
+    --sidebar-primary: 258 89% 66%;
+    --sidebar-primary-foreground: 250 100% 97%;
+    --sidebar-accent: 240 5% 33%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 4% 83%;
+    --sidebar-ring: 258 89% 66%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-    --chart-1: 250 89% 76%;
-    --chart-2: 217 91% 70%;
-    --chart-3: 142 76% 50%;
-    --chart-4: 38 92% 60%;
-    --chart-5: 0 84% 60%;
-    --sidebar: 0 0% 100%;
+    --chart-1: 218 100% 93%;
+    --chart-2: 218 100% 87%;
+    --chart-3: 210 57% 78%;
+    --chart-4: 216 38% 47%;
+    --chart-5: 240 3% 46%;
+    --sidebar: 0 0% 98%;
     --font-serif: Merriweather, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
     --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
-    --shadow-2xs: 0 1px 2px 0 hsl(0 0% 0% / 0.03);
-    --shadow-xs: 0 1px 3px 0 hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 2px 4px 0 hsl(0 0% 0% / 0.05);
-    --shadow: 0 4px 6px -1px hsl(0 0% 0% / 0.07);
-    --shadow-md: 0 6px 10px -2px hsl(0 0% 0% / 0.08);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.25);
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0px 1px 3.75px 0px hsl(0, 0%, 0%);
+    --shadow: 0px 1px 7.5px 0px hsl(0, 0%, 0%);
+    --shadow-md: 0px 1px 11.25px 0px hsl(0, 0%, 0%);
+    --shadow-lg: 0px 1px 18.75px 0px hsl(0, 0%, 0%);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
 
   .dark {
     /* Dark cosmic theme */
-    --background: 218 25% 6%;
-    --foreground: 210 40% 98%;
+    --background: 240 5% 10%;
+    --foreground: 0 0% 98%;
 
-    --card: 220 20% 10%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 3% 15%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 220 20% 12%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 5% 26%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 250 89% 76%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 218 100% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 16%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 3% 46%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 220 20% 18%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 240 3% 46%;
+    --muted-foreground: 0 0% 98%;
 
-    --accent: 250 40% 20%;
-    --accent-foreground: 250 89% 76%;
+    --accent: 273 86% 20%;
+    --accent-foreground: 218 100% 65%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 0 85% 97%;
 
-    --border: 220 20% 18%;
-    --input: 220 20% 18%;
-    --ring: 250 89% 76%;
+    --border: 240 5% 33%;
+    --input: 240 5% 33%;
+    --ring: 218 100% 65%;
 
     /* Status colors - dark */
     --status-success: 142 70% 45%;
@@ -282,29 +282,29 @@
     --browser-dot-green: 142 70% 45%;
 
     --sidebar-background: 220 20% 8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 250 89% 76%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 250 40% 20%;
-    --sidebar-accent-foreground: 250 89% 76%;
-    --sidebar-border: 220 20% 18%;
-    --sidebar-ring: 250 89% 76%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 255 91% 76%;
+    --sidebar-primary-foreground: 261 72% 22%;
+    --sidebar-accent: 270 95% 75%;
+    --sidebar-accent-foreground: 273 86% 20%;
+    --sidebar-border: 240 5% 33%;
+    --sidebar-ring: 255 91% 76%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --radius: 0.75rem;
-    --chart-1: 250 89% 76%;
-    --chart-2: 217 91% 70%;
-    --chart-3: 142 70% 45%;
-    --chart-4: 38 92% 60%;
-    --chart-5: 0 84% 60%;
-    --sidebar: 220 20% 10%;
-    --shadow-2xs: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
-    --shadow-xs: 0 1px 3px 0 hsl(0 0% 0% / 0.25);
-    --shadow-sm: 0 2px 4px 0 hsl(0 0% 0% / 0.3);
-    --shadow: 0 4px 6px -1px hsl(0 0% 0% / 0.35);
-    --shadow-md: 0 6px 10px -2px hsl(0 0% 0% / 0.4);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.45);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.5);
-    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.6);
+    --chart-1: 218 100% 93%;
+    --chart-2: 218 100% 87%;
+    --chart-3: 210 57% 78%;
+    --chart-4: 216 38% 47%;
+    --chart-5: 240 3% 46%;
+    --sidebar: 240 3% 15%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0px 1px 3.75px 0px hsl(210, 40%, 98%);
+    --shadow: 0px 1px 7.5px 0px hsl(210, 40%, 98%);
+    --shadow-md: 0px 1px 11.25px 0px hsl(210, 40%, 98%);
+    --shadow-lg: 0px 1px 18.75px 0px hsl(210, 40%, 98%);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   }
 }
 
