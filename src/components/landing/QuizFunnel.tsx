@@ -9,7 +9,6 @@ import cmoBg from "@/assets/cmo-bg.png";
 import cfoBg from "@/assets/cfo-bg.png";
 import researchBg from "@/assets/research-bg.png";
 import actionBg from "@/assets/action-bg.png";
-import quizBg from "@/assets/quiz-bg.png";
 
 type Role = "ceo" | "cmo" | "cfo";
 type Mode = "research" | "action";
@@ -98,27 +97,63 @@ export function QuizFunnel() {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Aurora cosmic background image */}
-      <img 
-        src={quizBg}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+      {/* Aurora cosmic gradient background - matching reference exactly */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 50% 25% at 50% 100%, 
+              rgba(255, 150, 120, 0.7) 0%, 
+              rgba(220, 120, 150, 0.5) 40%,
+              transparent 70%
+            ),
+            radial-gradient(ellipse 70% 40% at 30% 95%, 
+              rgba(200, 100, 180, 0.6) 0%, 
+              rgba(160, 80, 200, 0.4) 40%,
+              transparent 70%
+            ),
+            radial-gradient(ellipse 70% 40% at 70% 95%, 
+              rgba(80, 140, 220, 0.5) 0%, 
+              rgba(60, 120, 200, 0.3) 40%,
+              transparent 70%
+            ),
+            radial-gradient(ellipse 100% 50% at 50% 85%, 
+              rgba(100, 160, 255, 0.8) 0%, 
+              rgba(80, 140, 240, 0.6) 30%,
+              rgba(60, 100, 200, 0.3) 60%,
+              transparent 80%
+            ),
+            radial-gradient(ellipse 120% 60% at 50% 70%, 
+              rgba(60, 100, 200, 0.4) 0%, 
+              rgba(40, 60, 140, 0.3) 50%,
+              transparent 80%
+            ),
+            linear-gradient(to bottom, 
+              hsl(230 30% 3%) 0%, 
+              hsl(225 35% 6%) 20%,
+              hsl(220 40% 12%) 40%,
+              hsl(215 45% 22%) 60%,
+              hsl(210 50% 32%) 80%,
+              hsl(205 55% 42%) 100%
+            )
+          `
+        }}
       />
       
-      {/* Subtle star particles */}
+      {/* Fine dust star particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(40)].map((_, i) => (
+        {[...Array(80)].map((_, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-white"
             style={{
               left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${1 + Math.random() * 2}px`,
-              height: `${1 + Math.random() * 2}px`,
-              opacity: 0.2 + Math.random() * 0.4,
-              animation: `pulse ${2 + Math.random() * 3}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 2}s`,
+              top: `${Math.random() * 70}%`,
+              width: `${0.5 + Math.random() * 1.5}px`,
+              height: `${0.5 + Math.random() * 1.5}px`,
+              opacity: 0.15 + Math.random() * 0.35,
+              animation: `pulse ${3 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 3}s`,
             }}
           />
         ))}
