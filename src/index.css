@@ -116,33 +116,33 @@
 @layer base {
   :root {
     /* Portal cosmic theme - always dark */
-    --background: 226 71% 4%;
+    --background: 220 24% 7%;
     --foreground: 0 0% 98%;
 
-    --card: 248 39% 20%;
+    --card: 215 21% 11%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 248 39% 20%;
+    --popover: 214 22% 15%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 216 100% 50%;
+    --primary: 220 100% 61%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 250 40% 15%;
+    --secondary: 220 35% 19%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 250 30% 20%;
-    --muted-foreground: 250 20% 60%;
+    --muted: 219 17% 20%;
+    --muted-foreground: 0 0% 100%;
 
-    --accent: 216 100% 50%;
+    --accent: 169 100% 44%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 359 100% 65%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 270 30% 25%;
-    --input: 270 30% 25%;
-    --ring: 216 100% 50%;
+    --border: 218 19% 22%;
+    --input: 217 20% 13%;
+    --ring: 220 100% 61%;
 
     --radius: 1rem;
 
