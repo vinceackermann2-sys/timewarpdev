@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
-import { DatabaseHeader } from "@/components/database/DatabaseHeader";
 import { DatabaseView } from "@/components/database/DatabaseView";
 import { DataConversionView } from "@/components/database/DataConversionView";
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
@@ -93,7 +92,6 @@ const Database = () => {
           userEmail={user.email || ""}
         />
         <SidebarInset className="flex flex-col flex-1">
-          <DatabaseHeader />
           <main className="flex-1 overflow-hidden">
             {currentView === "database" && <DatabaseView />}
             {currentView === "dataconversion" && <DataConversionView />}
