@@ -195,20 +195,20 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
 
   const getStepIcon = (type: string) => {
     switch (type) {
-      case "thought": return <Brain className="h-4 w-4 text-purple-400" />;
-      case "action": return <Target className="h-4 w-4 text-blue-400" />;
-      case "observation": return <Eye className="h-4 w-4 text-cyan-400" />;
-      case "finding": return <AlertTriangle className="h-4 w-4 text-amber-400" />;
-      case "complete": return <CheckCircle2 className="h-4 w-4 text-green-400" />;
+      case "thought": return <Brain className="h-4 w-4 text-primary" />;
+      case "action": return <Target className="h-4 w-4 text-status-info" />;
+      case "observation": return <Eye className="h-4 w-4 text-accent-foreground" />;
+      case "finding": return <AlertTriangle className="h-4 w-4 text-status-warning" />;
+      case "complete": return <CheckCircle2 className="h-4 w-4 text-status-success" />;
       default: return <Sparkles className="h-4 w-4" />;
     }
   };
 
   const getItemIcon = (type: string) => {
     switch (type) {
-      case "email": return <Mail className="h-6 w-6 text-red-400" />;
-      case "document": return <FileText className="h-6 w-6 text-blue-400" />;
-      case "event": return <Calendar className="h-6 w-6 text-green-400" />;
+      case "email": return <Mail className="h-6 w-6 text-status-error" />;
+      case "document": return <FileText className="h-6 w-6 text-status-info" />;
+      case "event": return <Calendar className="h-6 w-6 text-status-success" />;
       default: return <FileText className="h-6 w-6" />;
     }
   };
@@ -272,29 +272,29 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
       <main className="flex-1 relative z-10 container mx-auto px-4 pb-6 flex flex-col gap-4">
         
         {/* Secure Private Browser Window */}
-        <div className="rounded-2xl overflow-hidden border border-accent/20 bg-[#050510]/95 backdrop-blur-xl flex-1 min-h-[400px] shadow-[0_0_60px_rgba(139,92,246,0.15)]">
+        <div className="rounded-2xl overflow-hidden border border-border bg-browser-bg/95 backdrop-blur-xl flex-1 min-h-[400px] shadow-glow-lg">
           {/* Secure Browser Header */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-[#0f0f1a] to-[#1a1a2e] border-b border-accent/20">
+          <div className="flex items-center gap-3 px-4 py-3 bg-browser-header border-b border-border">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-              <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-              <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+              <div className="w-3 h-3 rounded-full bg-browser-dot-red" />
+              <div className="w-3 h-3 rounded-full bg-browser-dot-yellow" />
+              <div className="w-3 h-3 rounded-full bg-browser-dot-green" />
             </div>
             
             {/* Secure URL Bar */}
             <div className="flex-1 flex items-center gap-2">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-xs flex-1">
-                <Lock className="h-3 w-3 text-green-400" />
-                <span className="text-green-400 font-medium">secure://</span>
+                <Lock className="h-3 w-3 text-status-success" />
+                <span className="text-status-success font-medium">secure://</span>
                 <span className="text-muted-foreground">private-workspace/{currentItem?.type || 'initializing'}</span>
-                {isRunning && <Loader2 className="h-3 w-3 animate-spin ml-auto text-accent" />}
+                {isRunning && <Loader2 className="h-3 w-3 animate-spin ml-auto text-accent-foreground" />}
               </div>
             </div>
 
             {/* Security Badge */}
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-green-500/10 border border-green-500/30">
-              <Shield className="h-3 w-3 text-green-400" />
-              <span className="text-[10px] text-green-400 font-medium uppercase tracking-wider">Private</span>
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-status-success/10 border border-status-success/30">
+              <Shield className="h-3 w-3 text-status-success" />
+              <span className="text-[10px] text-status-success font-medium uppercase tracking-wider">Private</span>
             </div>
           </div>
 
@@ -315,17 +315,17 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
                     <span className="text-sm font-medium text-accent">Live Activity Log</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-red-400" />{stats.emails}</span>
-                    <span className="flex items-center gap-1"><FileText className="h-3 w-3 text-blue-400" />{stats.docs}</span>
-                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3 text-green-400" />{stats.events}</span>
+                    <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-status-error" />{stats.emails}</span>
+                    <span className="flex items-center gap-1"><FileText className="h-3 w-3 text-status-info" />{stats.docs}</span>
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3 text-status-success" />{stats.events}</span>
                     {stats.pdfs > 0 && (
-                      <span className="flex items-center gap-1"><FileIcon className="h-3 w-3 text-purple-400" />{stats.pdfs}</span>
+                      <span className="flex items-center gap-1"><FileIcon className="h-3 w-3 text-primary" />{stats.pdfs}</span>
                     )}
                   </div>
                 </div>
 
                 {/* Scrollable Activity Log */}
-                <div className="flex-1 overflow-y-auto rounded-xl bg-[#030308] border border-white/5 p-3 font-mono text-xs space-y-1.5">
+                <div className="flex-1 overflow-y-auto rounded-xl bg-background border border-border p-3 font-mono text-xs space-y-1.5">
                   {steps.slice(-15).map((step, index) => (
                     <div key={index} className="flex items-start gap-2 animate-fade-in">
                       <span className="text-muted-foreground/50 w-16 flex-shrink-0">
@@ -333,16 +333,16 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
                       </span>
                       <span className="flex-shrink-0">{getStepIcon(step.type)}</span>
                       <span className={`flex-1 ${
-                        step.type === 'thought' ? 'text-purple-300/80' :
-                        step.type === 'action' ? 'text-blue-300/80' :
-                        step.type === 'observation' ? 'text-cyan-300/80' :
-                        step.type === 'finding' ? 'text-amber-300' :
+                        step.type === 'thought' ? 'text-primary/80' :
+                        step.type === 'action' ? 'text-status-info/80' :
+                        step.type === 'observation' ? 'text-accent-foreground/80' :
+                        step.type === 'finding' ? 'text-status-warning' :
                         'text-muted-foreground'
                       }`}>
-                        {step.type === 'action' && <span className="text-blue-400">[SCAN] </span>}
-                        {step.type === 'observation' && <span className="text-cyan-400">[DATA] </span>}
-                        {step.type === 'thought' && <span className="text-purple-400">[THINK] </span>}
-                        {step.type === 'finding' && <span className="text-amber-400">[FOUND] </span>}
+                        {step.type === 'action' && <span className="text-status-info">[SCAN] </span>}
+                        {step.type === 'observation' && <span className="text-accent-foreground">[DATA] </span>}
+                        {step.type === 'thought' && <span className="text-primary">[THINK] </span>}
+                        {step.type === 'finding' && <span className="text-status-warning">[FOUND] </span>}
                         {step.content.length > 80 ? step.content.slice(0, 80) + '...' : step.content}
                       </span>
                     </div>

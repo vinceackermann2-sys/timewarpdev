@@ -26,9 +26,9 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const feedbackTypes = [
-    { id: "bug" as FeedbackType, label: "Bug Report", icon: Bug, color: "text-red-400" },
-    { id: "feature" as FeedbackType, label: "Feature Request", icon: Lightbulb, color: "text-amber-400" },
-    { id: "question" as FeedbackType, label: "Question", icon: HelpCircle, color: "text-blue-400" },
+    { id: "bug" as FeedbackType, label: "Bug Report", icon: Bug, color: "text-status-error" },
+    { id: "feature" as FeedbackType, label: "Feature Request", icon: Lightbulb, color: "text-status-warning" },
+    { id: "question" as FeedbackType, label: "Question", icon: HelpCircle, color: "text-status-info" },
   ];
 
   const handleSubmit = async () => {
