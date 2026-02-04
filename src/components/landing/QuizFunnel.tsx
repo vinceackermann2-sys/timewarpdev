@@ -108,18 +108,18 @@ export function QuizFunnel() {
       />
       {/* Animated nebula background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Animated purple nebula orbs */}
+        {/* Animated blue corporate nebula orbs */}
         <div 
           className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px] animate-nebula"
-          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)' }}
+          style={{ background: 'radial-gradient(circle, hsl(210 100% 60% / 0.3) 0%, transparent 70%)' }}
         />
         <div 
           className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-[100px] animate-nebula"
-          style={{ background: 'radial-gradient(circle, rgba(167, 139, 250, 0.25) 0%, transparent 70%)', animationDelay: '-7s' }}
+          style={{ background: 'radial-gradient(circle, hsl(210 80% 70% / 0.25) 0%, transparent 70%)', animationDelay: '-7s' }}
         />
         <div 
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[150px] animate-pulse-glow"
-          style={{ background: 'radial-gradient(circle, rgba(76, 29, 149, 0.4) 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, hsl(215 80% 25% / 0.4) 0%, transparent 60%)' }}
         />
         
         {/* Falling stars */}
@@ -169,8 +169,8 @@ export function QuizFunnel() {
         {/* Step 1: Choose Role */}
         {step === 1 && (
           <div className="animate-fade-in text-center w-full -mt-8">
-            <h1 className="text-3xl md:text-5xl font-normal mb-10 md:mb-14">
-              Put your <span className="italic underline underline-offset-8" style={{ color: '#A78BFA', textDecorationColor: 'rgba(167, 139, 250, 0.6)' }}>Chief to work</span>
+          <h1 className="text-3xl md:text-5xl font-normal mb-10 md:mb-14">
+              Put your <span className="italic underline underline-offset-8 text-primary" style={{ textDecorationColor: 'hsl(210 100% 55% / 0.6)' }}>Chief to work</span>
             </h1>
 
             <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-10">
@@ -196,7 +196,7 @@ export function QuizFunnel() {
                     <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-[0.25em]">{role.title}</h3>
                     
                     {/* Underline */}
-                    <div className="mt-4 w-16 h-0.5 rounded-full" style={{ backgroundColor: '#A78BFA' }} />
+                    <div className="mt-4 w-16 h-0.5 rounded-full bg-primary" />
                   </div>
                 </button>
               ))}
@@ -215,7 +215,7 @@ export function QuizFunnel() {
             </div>
 
             <h1 className="text-3xl md:text-5xl font-normal mb-10 md:mb-14">
-              Choose your <span className="italic underline underline-offset-8" style={{ color: '#A78BFA', textDecorationColor: 'rgba(167, 139, 250, 0.6)' }}>Timewarp</span>
+              Choose your <span className="italic underline underline-offset-8 text-primary" style={{ textDecorationColor: 'hsl(210 100% 55% / 0.6)' }}>Timewarp</span>
             </h1>
 
             <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-10">
@@ -238,7 +238,7 @@ export function QuizFunnel() {
                     <p className="text-base text-muted-foreground italic">{mode.description}</p>
                     
                     {/* Underline */}
-                    <div className="mt-4 w-16 h-0.5 rounded-full" style={{ backgroundColor: '#A78BFA' }} />
+                    <div className="mt-4 w-16 h-0.5 rounded-full bg-primary" />
                   </div>
                 </button>
               ))}
