@@ -164,7 +164,7 @@
     --input: 210 20% 85%;
     --ring: 210 100% 50%;
 
-    --radius: 0.875rem;
+    --radius: 0.625rem;
 
     /* Status colors - light */
     --status-success: 142 76% 36%;
@@ -290,7 +290,7 @@
     --sidebar-border: 215 20% 25%;
     --sidebar-ring: 210 100% 65%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-    --radius: 0.75rem;
+    --radius: 0.625rem;
     --chart-1: 218 100% 93%;
     --chart-2: 218 100% 87%;
     --chart-3: 210 57% 78%;
