@@ -11,6 +11,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TransitionOverlay } from "@/components/database/TransitionOverlay";
+import { useTheme } from "next-themes";
+import quizBgDark from "@/assets/quiz-bg-dark.svg";
+import quizBgLight from "@/assets/quiz-bg-light.svg";
 
 interface AnalysisStep {
   type: "thought" | "action" | "observation" | "finding" | "complete";
@@ -32,6 +35,7 @@ const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-w
 export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAnalysisViewProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { resolvedTheme } = useTheme();
   
   const [isRunning, setIsRunning] = useState(false);
   const [steps, setSteps] = useState<AnalysisStep[]>([]);
@@ -44,6 +48,8 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [showTransition, setShowTransition] = useState(false);
   const [pendingTask, setPendingTask] = useState<string>("");
+
+  const bgImage = resolvedTheme === 'dark' ? quizBgDark : quizBgLight;
 
   const startAnalysis = useCallback(async () => {
     setIsRunning(true);
@@ -218,7 +224,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
   const ModeIcon = mode === "action" ? Zap : Search;
 
   return (
-    <div className="min-h-screen portal-bg flex flex-col relative overflow-hidden">
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
       {/* Transition Overlay */}
       <TransitionOverlay
         isVisible={showTransition}
@@ -238,17 +244,11 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
         }}
       />
 
-      {/* Background effects */}
+      {/* Theme-based SVG background */}
       <div 
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{ backgroundImage: 'url(/stardust.png)', backgroundRepeat: 'repeat', opacity: 0.3 }}
+        className="absolute inset-0 pointer-events-none bg-cover bg-center bg-no-repeat z-0"
+        style={{ backgroundImage: `url(${bgImage})` }}
       />
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px] animate-nebula"
-          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)' }}
-        />
-      </div>
 
       {/* Header */}
       <header className="relative z-10 pt-6 pb-4">
