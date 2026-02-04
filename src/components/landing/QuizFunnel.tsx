@@ -96,43 +96,51 @@ export function QuizFunnel() {
   };
 
   return (
-    <div className="min-h-screen portal-bg flex flex-col relative overflow-hidden">
-      {/* Stardust texture overlay */}
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Aurora cosmic gradient background */}
       <div 
-        className="absolute inset-0 pointer-events-none z-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: 'url(/stardust.png)',
-          backgroundRepeat: 'repeat',
-          opacity: 0.3
+          background: `
+            radial-gradient(ellipse 120% 80% at 50% 100%, 
+              rgba(255, 180, 140, 0.4) 0%, 
+              rgba(200, 120, 180, 0.3) 15%,
+              rgba(140, 100, 200, 0.25) 30%,
+              transparent 50%
+            ),
+            radial-gradient(ellipse 100% 60% at 50% 90%, 
+              rgba(100, 180, 255, 0.5) 0%, 
+              rgba(60, 140, 220, 0.4) 25%,
+              transparent 60%
+            ),
+            radial-gradient(ellipse 80% 50% at 50% 70%, 
+              rgba(80, 160, 255, 0.3) 0%, 
+              transparent 70%
+            ),
+            linear-gradient(to bottom, 
+              hsl(220 30% 5%) 0%, 
+              hsl(220 40% 12%) 30%,
+              hsl(215 50% 25%) 60%,
+              hsl(210 60% 40%) 100%
+            )
+          `
         }}
       />
-      {/* Animated nebula background */}
+      
+      {/* Subtle star particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Animated blue corporate nebula orbs */}
-        <div 
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px] animate-nebula"
-          style={{ background: 'radial-gradient(circle, hsl(210 100% 60% / 0.3) 0%, transparent 70%)' }}
-        />
-        <div 
-          className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-[100px] animate-nebula"
-          style={{ background: 'radial-gradient(circle, hsl(210 80% 70% / 0.25) 0%, transparent 70%)', animationDelay: '-7s' }}
-        />
-        <div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[150px] animate-pulse-glow"
-          style={{ background: 'radial-gradient(circle, hsl(215 80% 25% / 0.4) 0%, transparent 60%)' }}
-        />
-        
-        {/* Falling stars */}
-        {[...Array(20)].map((_, i) => (
+        {[...Array(40)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-0.5 h-0.5 bg-foreground rounded-full animate-starfall"
+            className="absolute rounded-full bg-white"
             style={{
               left: `${Math.random() * 100}%`,
-              top: `-${Math.random() * 20}%`,
-              animationDuration: `${3 + Math.random() * 4}s`,
-              animationDelay: `${Math.random() * 5}s`,
-              opacity: 0.3 + Math.random() * 0.5,
+              top: `${Math.random() * 100}%`,
+              width: `${1 + Math.random() * 2}px`,
+              height: `${1 + Math.random() * 2}px`,
+              opacity: 0.2 + Math.random() * 0.4,
+              animation: `pulse ${2 + Math.random() * 3}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`,
             }}
           />
         ))}
