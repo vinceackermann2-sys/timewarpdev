@@ -126,7 +126,7 @@ export function QuizFunnel() {
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-0.5 h-0.5 bg-white rounded-full animate-starfall"
+            className="absolute w-0.5 h-0.5 bg-foreground rounded-full animate-starfall"
             style={{
               left: `${Math.random() * 100}%`,
               top: `-${Math.random() * 20}%`,
@@ -178,7 +178,7 @@ export function QuizFunnel() {
                 <button
                   key={role.id}
                   onClick={() => handleRoleSelect(role.id)}
-                  className="group relative w-[280px] h-[480px] md:w-[320px] md:h-[540px] rounded-[20px] overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-glow-lg focus:outline-none focus:ring-2 focus:ring-primary border-2 border-white/20 hover:border-white/40 bg-transparent"
+                  className="group relative w-[280px] h-[480px] md:w-[320px] md:h-[540px] rounded-[20px] overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-glow-lg focus:outline-none focus:ring-2 focus:ring-primary border-2 border-border hover:border-primary/40 bg-transparent"
                 >
                   {/* Background image */}
                   <img 
@@ -262,7 +262,7 @@ export function QuizFunnel() {
               <div className="portal-card rounded-3xl p-12 backdrop-blur-xl">
                 {/* Google icon */}
                 <div className="flex justify-center mb-8">
-                  <div className="h-20 w-20 rounded-full bg-white/10 flex items-center justify-center">
+                  <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center">
                     <svg className="h-10 w-10" viewBox="0 0 24 24">
                       <path 
                         fill="#9ca3af" 

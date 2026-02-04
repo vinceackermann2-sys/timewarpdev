@@ -20,7 +20,7 @@ const integrations: Integration[] = [
     name: "Gmail",
     description: "Read emails, draft responses, and send on your behalf",
     icon: Mail,
-    color: "bg-red-100 text-red-600",
+    color: "bg-status-error/10 text-status-error",
     status: "available",
   },
   {
@@ -28,7 +28,7 @@ const integrations: Integration[] = [
     name: "Google Drive",
     description: "Access and analyze your Docs, Sheets, and files",
     icon: FileSpreadsheet,
-    color: "bg-green-100 text-green-600",
+    color: "bg-status-success/10 text-status-success",
     status: "available",
   },
   {
@@ -36,7 +36,7 @@ const integrations: Integration[] = [
     name: "Google Docs",
     description: "Summarize and extract insights from your documents",
     icon: FileText,
-    color: "bg-blue-100 text-blue-600",
+    color: "bg-status-info/10 text-status-info",
     status: "available",
   },
   {
@@ -44,7 +44,7 @@ const integrations: Integration[] = [
     name: "Outlook",
     description: "Connect your Microsoft email account",
     icon: Mail,
-    color: "bg-sky-100 text-sky-600",
+    color: "bg-status-info/10 text-status-info",
     status: "coming_soon",
   },
   {
@@ -52,7 +52,7 @@ const integrations: Integration[] = [
     name: "Google Calendar",
     description: "Manage your schedule and meetings",
     icon: Calendar,
-    color: "bg-yellow-100 text-yellow-600",
+    color: "bg-status-warning/10 text-status-warning",
     status: "coming_soon",
   },
   {
@@ -60,7 +60,7 @@ const integrations: Integration[] = [
     name: "Google Analytics",
     description: "Analyze your website traffic and performance",
     icon: BarChart3,
-    color: "bg-orange-100 text-orange-600",
+    color: "bg-status-warning/10 text-status-warning",
     status: "coming_soon",
   },
 ];
@@ -88,7 +88,7 @@ export function IntegrationHub() {
   const getStatusBadge = (status: Integration["status"]) => {
     switch (status) {
       case "connected":
-        return <Badge variant="default" className="bg-green-500">Connected</Badge>;
+        return <Badge variant="default" className="bg-status-success">Connected</Badge>;
       case "coming_soon":
         return <Badge variant="secondary">Coming Soon</Badge>;
       default:

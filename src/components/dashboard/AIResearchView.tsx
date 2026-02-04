@@ -331,18 +331,18 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "urgent": return "text-red-400 border-red-400/30 bg-red-400/10";
-      case "high": return "text-orange-400 border-orange-400/30 bg-orange-400/10";
-      case "medium": return "text-yellow-400 border-yellow-400/30 bg-yellow-400/10";
-      default: return "text-green-400 border-green-400/30 bg-green-400/10";
+      case "urgent": return "text-status-error border-status-error/30 bg-status-error/10";
+      case "high": return "text-status-warning border-status-warning/30 bg-status-warning/10";
+      case "medium": return "text-status-warning/80 border-status-warning/20 bg-status-warning/10";
+      default: return "text-status-success border-status-success/30 bg-status-success/10";
     }
   };
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
-      case "high": return "bg-red-400/20 text-red-300";
-      case "medium": return "bg-yellow-400/20 text-yellow-300";
-      default: return "bg-green-400/20 text-green-300";
+      case "high": return "bg-status-error/20 text-status-error";
+      case "medium": return "bg-status-warning/20 text-status-warning";
+      default: return "bg-status-success/20 text-status-success";
     }
   };
 
@@ -379,17 +379,17 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
 
       {/* Main Browser Window */}
       <div className="relative z-10 w-full max-w-6xl flex-1 flex flex-col">
-        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl shadow-2xl flex-1 flex flex-col">
+        <div className="rounded-2xl overflow-hidden border border-border bg-browser-bg/90 backdrop-blur-xl shadow-2xl flex-1 flex flex-col">
           {/* Browser Header */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-[#1a1a2e]/80 border-b border-white/10">
+          <div className="flex items-center gap-3 px-4 py-3 bg-browser-header border-b border-border">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-              <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-              <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+              <div className="w-3 h-3 rounded-full bg-browser-dot-red" />
+              <div className="w-3 h-3 rounded-full bg-browser-dot-yellow" />
+              <div className="w-3 h-3 rounded-full bg-browser-dot-green" />
             </div>
             <div className="flex-1 flex justify-center">
-              <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs tracking-wider text-muted-foreground">
-                <span className="text-green-400">●</span>
+              <div className="px-4 py-1.5 rounded-full bg-muted/50 border border-border text-xs tracking-wider text-muted-foreground">
+                <span className="text-status-success">●</span>
                 {" "}PORTAL+ MODE &gt; {roleLabel} &gt; {modeLabel} &gt; STREAM_{streamId}
               </div>
             </div>
@@ -416,8 +416,8 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                         {workspaceData ? "LIVE DATA" : "SCANNING..."}
                       </div>
                       {workspaceData && (
-                        <div className="mb-4 p-3 rounded-lg bg-green-400/10 border border-green-400/20">
-                          <div className="text-[10px] text-green-400 mb-2 uppercase tracking-wider">Real Data Loaded</div>
+                        <div className="mb-4 p-3 rounded-lg bg-status-success/10 border border-status-success/20">
+                          <div className="text-[10px] text-status-success mb-2 uppercase tracking-wider">Real Data Loaded</div>
                           <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                             <div>{dataStats.emails} emails</div>
                             <div>{dataStats.docs} docs</div>
@@ -438,7 +438,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                           }`}
                         >
                           <span className="text-xs text-muted-foreground truncate">
-                            {scannedItems.includes(item) && <CheckCircle2 className="h-3 w-3 inline mr-2 text-green-400" />}
+                            {scannedItems.includes(item) && <CheckCircle2 className="h-3 w-3 inline mr-2 text-status-success" />}
                             {i === currentScanItem && !scannedItems.includes(item) && <Loader2 className="h-3 w-3 inline mr-2 animate-spin" />}
                             {item}
                           </span>
@@ -451,14 +451,14 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                 {/* Center content */}
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                   <div className="relative mb-8">
-                    <div className="absolute inset-0 rounded-full blur-2xl" style={{ background: 'radial-gradient(circle, rgba(167, 139, 250, 0.4) 0%, transparent 70%)' }} />
-                    <div className="relative h-28 w-28 rounded-full border-2 border-accent/30 flex items-center justify-center bg-gradient-to-b from-white/5 to-transparent">
-                      <Crown className="h-14 w-14 text-amber-400" strokeWidth={1.5} />
+                    <div className="absolute inset-0 rounded-full blur-2xl" style={{ background: 'radial-gradient(circle, hsl(var(--primary) / 0.4) 0%, transparent 70%)' }} />
+                    <div className="relative h-28 w-28 rounded-full border-2 border-accent/30 flex items-center justify-center bg-gradient-to-b from-muted/50 to-transparent">
+                      <Crown className="h-14 w-14 text-status-warning" strokeWidth={1.5} />
                     </div>
                     <div className="absolute inset-0 animate-spin" style={{ animationDuration: '8s' }}>
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 w-2 h-2 rounded-full bg-blue-400" />
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1 w-2 h-2 rounded-full bg-red-400" />
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 rounded-full bg-green-400" />
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 w-2 h-2 rounded-full bg-status-info" />
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1 w-2 h-2 rounded-full bg-status-error" />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 rounded-full bg-status-success" />
                     </div>
                   </div>
 
@@ -467,7 +467,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                   </h2>
                   
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
-                    <Circle className="h-2 w-2 fill-amber-400 text-amber-400 animate-pulse" />
+                    <Circle className="h-2 w-2 fill-status-warning text-status-warning animate-pulse" />
                     <span className="tracking-[0.15em]">
                       {phase === "fetching" ? "CONNECTING TO GOOGLE WORKSPACE..." : 
                        phase === "analyzing" ? (workspaceData ? "ANALYZING REAL DATA..." : "GENERATING INSIGHTS...") : 
@@ -526,19 +526,19 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                   {/* Metrics Grid */}
                   {results?.metrics && (
                     <div className="grid grid-cols-4 gap-4">
-                      <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-                        <div className="text-2xl font-bold text-accent">{results.metrics.areasAnalyzed}</div>
+                      <div className="bg-muted/50 rounded-xl p-4 border border-border text-center">
+                        <div className="text-2xl font-bold text-accent-foreground">{results.metrics.areasAnalyzed}</div>
                         <div className="text-xs text-muted-foreground mt-1">Areas Analyzed</div>
                       </div>
-                      <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-                        <div className="text-2xl font-bold text-orange-400">{results.metrics.issuesFound}</div>
+                      <div className="bg-muted/50 rounded-xl p-4 border border-border text-center">
+                        <div className="text-2xl font-bold text-status-warning">{results.metrics.issuesFound}</div>
                         <div className="text-xs text-muted-foreground mt-1">Issues Found</div>
                       </div>
-                      <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-                        <div className="text-2xl font-bold text-green-400">{results.metrics.opportunitiesIdentified}</div>
+                      <div className="bg-muted/50 rounded-xl p-4 border border-border text-center">
+                        <div className="text-2xl font-bold text-status-success">{results.metrics.opportunitiesIdentified}</div>
                         <div className="text-xs text-muted-foreground mt-1">Opportunities</div>
                       </div>
-                      <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
+                      <div className="bg-muted/50 rounded-xl p-4 border border-border text-center">
                         <div className="text-lg font-bold text-primary">{results.metrics.estimatedSavings}</div>
                         <div className="text-xs text-muted-foreground mt-1">Est. Impact</div>
                       </div>
@@ -548,16 +548,16 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                   {/* Key Findings */}
                   <div>
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-400" />
+                      <AlertTriangle className="h-5 w-5 text-status-warning" />
                       Key Findings
                     </h3>
                     <div className="space-y-3">
                       {results?.keyFindings.map((finding, i) => (
-                        <div key={i} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <div key={i} className="bg-muted/50 rounded-xl p-4 border border-border">
                           <div className="flex items-start justify-between gap-4">
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                                   {finding.category}
                                 </span>
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${getImpactColor(finding.impact)}`}>
@@ -576,7 +576,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                   {/* Recommendations */}
                   <div>
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-green-400" />
+                      <TrendingUp className="h-5 w-5 text-status-success" />
                       Recommendations
                     </h3>
                     <div className="space-y-3">
@@ -624,11 +624,11 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
 
         {/* Bottom Status Bar */}
         {phase !== "complete" && (
-          <div className="mt-4 rounded-xl border border-white/10 bg-[#0a0a1a]/80 backdrop-blur-xl px-6 py-4">
+          <div className="mt-4 rounded-xl border border-border bg-browser-bg/80 backdrop-blur-xl px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Circle className="h-2 w-2 fill-green-400 text-green-400 animate-pulse" />
+                  <Circle className="h-2 w-2 fill-status-success text-status-success animate-pulse" />
                   <span className="text-xs tracking-wider text-muted-foreground">SYSTEM.LOG</span>
                 </div>
                 <span className="text-sm font-medium tracking-wider">DEEP SCAN ANALYSIS</span>

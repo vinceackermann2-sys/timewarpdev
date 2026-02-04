@@ -306,7 +306,7 @@ export function LiveBrowserView({
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
             <span className="text-lg">{roleInfo.emoji}</span>
             {isAgentRunning && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-            {loginRequired && <span className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />}
+            {loginRequired && <span className="h-2 w-2 rounded-full bg-status-warning animate-pulse" />}
             <span className="text-sm font-medium text-primary">{roleInfo.label}</span>
           </div>
           {currentStep && (
@@ -347,7 +347,7 @@ export function LiveBrowserView({
             <Button
               size="sm"
               onClick={handleContinueAfterLogin}
-              className="bg-yellow-500 hover:bg-yellow-600 text-black"
+              className="bg-status-warning hover:bg-status-warning/90 text-status-warning-foreground"
             >
               <LogIn className="h-4 w-4 mr-2" />
               Continue After Login
@@ -389,13 +389,13 @@ export function LiveBrowserView({
 
       {/* Login Required Banner */}
       {loginRequired && (
-        <div className="bg-yellow-500/10 border-b border-yellow-500/30 p-4">
+        <div className="bg-status-warning/10 border-b border-status-warning/30 p-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 rounded-full bg-yellow-500/20">
-              <LogIn className="h-5 w-5 text-yellow-500" />
+            <div className="p-2 rounded-full bg-status-warning/20">
+              <LogIn className="h-5 w-5 text-status-warning" />
             </div>
             <div className="flex-1">
-              <h4 className="font-medium text-yellow-500 mb-1">Login Required</h4>
+              <h4 className="font-medium text-status-warning mb-1">Login Required</h4>
               <p className="text-sm text-muted-foreground mb-2">
                 {loginInstructions || "Please log in to the website in the browser view below, then click 'Continue After Login'."}
               </p>

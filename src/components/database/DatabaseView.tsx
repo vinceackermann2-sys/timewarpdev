@@ -200,13 +200,13 @@ function generatePersonalizedQuestions(
 
 // Database module definitions - styled as file folders
 const databaseModules = [
-  { id: "email", code: "EML", title: "EMAILS", icon: Mail, color: "from-blue-500 to-blue-600" },
-  { id: "calendar", code: "CAL", title: "CALENDAR", icon: Calendar, color: "from-purple-500 to-purple-600" },
-  { id: "docs", code: "DOC", title: "DOCUMENTS", icon: FileText, color: "from-emerald-500 to-emerald-600" },
-  { id: "uploads", code: "UPL", title: "UPLOADS", icon: Upload, color: "from-rose-500 to-rose-600" },
-  { id: "revenue", code: "REV", title: "REVENUE", icon: DollarSign, color: "from-amber-500 to-amber-600" },
-  { id: "team", code: "TEAM", title: "TEAM", icon: Users, color: "from-pink-500 to-pink-600" },
-  { id: "trends", code: "TRD", title: "TRENDS", icon: TrendingUp, color: "from-cyan-500 to-cyan-600" }
+  { id: "email", code: "EML", title: "EMAILS", icon: Mail, color: "from-status-info to-status-info/80" },
+  { id: "calendar", code: "CAL", title: "CALENDAR", icon: Calendar, color: "from-primary to-primary/80" },
+  { id: "docs", code: "DOC", title: "DOCUMENTS", icon: FileText, color: "from-status-success to-status-success/80" },
+  { id: "uploads", code: "UPL", title: "UPLOADS", icon: Upload, color: "from-status-error to-status-error/80" },
+  { id: "revenue", code: "REV", title: "REVENUE", icon: DollarSign, color: "from-status-warning to-status-warning/80" },
+  { id: "team", code: "TEAM", title: "TEAM", icon: Users, color: "from-accent-foreground to-accent-foreground/80" },
+  { id: "trends", code: "TRD", title: "TRENDS", icon: TrendingUp, color: "from-status-info to-primary" }
 ];
 
 // Helper to process message content
