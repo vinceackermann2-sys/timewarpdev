@@ -132,8 +132,9 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isTaskActive, setIsTaskActive] = useState(false);
   
-  // Browser session state (Stagehand Cloud - no connectUrl needed)
+  // Browser session state
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [connectUrl, setConnectUrl] = useState<string | null>(null);
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   
@@ -186,7 +187,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     });
   }, []);
 
-  const createBrowserSession = async (task: string): Promise<{ sessionId: string } | null> => {
+  const createBrowserSession = async (task: string): Promise<{ sessionId: string; connectUrl: string } | null> => {
     setIsCreatingSession(true);
     try {
       // Only show browser init step if watch live is enabled
@@ -223,6 +224,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
 
       const data = await response.json();
       setSessionId(data.sessionId);
+      setConnectUrl(data.connectUrl);
       setLiveViewUrl(data.liveViewUrl);
       
       // Only show session ready step if watch live is enabled
@@ -230,14 +232,14 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
         addStep({
           icon: "🎥",
           title: "Session Ready",
-          message: "Stagehand Cloud session initialized",
+          message: "Browser session initialized",
           details: `Session ID: ${data.sessionId?.substring(0, 8)}...`,
           type: "status"
         });
       }
 
       setIsCreatingSession(false);
-      return { sessionId: data.sessionId };
+      return { sessionId: data.sessionId, connectUrl: data.connectUrl };
     } catch (err) {
       console.error('Session creation error:', err);
       const errorMessage = err instanceof Error ? err.message : '';
@@ -282,8 +284,8 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     return null;
   };
 
-  const executeStep = useCallback(async (session: string): Promise<boolean> => {
-    if (!session) return false;
+  const executeStep = useCallback(async (session: string, wsUrl: string): Promise<boolean> => {
+    if (!session || !wsUrl) return false;
 
     try {
       const response = await fetch(
@@ -297,6 +299,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
           body: JSON.stringify({
             action: 'execute',
             sessionId: session,
+            connectUrl: wsUrl,
             task: currentTaskRef.current,
             role: 'assistant',
             stepNumber: stepNumberRef.current
@@ -386,10 +389,11 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     }
   }, [addStep]);
 
-  const runAgentLoop = useCallback(async (session?: string) => {
+  const runAgentLoop = useCallback(async (session?: string, wsUrl?: string) => {
     const activeSession = session || sessionId;
+    const activeWsUrl = wsUrl || connectUrl;
     
-    if (!activeSession || agentLoopRef.current) return;
+    if (!activeSession || !activeWsUrl || agentLoopRef.current) return;
 
     agentLoopRef.current = true;
     setIsAgentRunning(true);
@@ -398,8 +402,8 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     if (stepNumberRef.current === 0) {
       addStep({
         icon: isWatchLive ? "🤖" : "✨",
-        title: isWatchLive ? "Stagehand Agent Started" : "Starting",
-        message: isWatchLive ? "Beginning task execution with Stagehand Cloud..." : "Working on your task...",
+        title: isWatchLive ? "Agent Started" : "Starting",
+        message: isWatchLive ? "Beginning task execution..." : "Working on your task...",
         details: isWatchLive ? currentTaskRef.current : undefined,
         type: "action"
       });
@@ -416,9 +420,9 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     let shouldContinue = true;
 
     while (shouldContinue && stepNumberRef.current < maxSteps && agentLoopRef.current && !isPaused) {
-      shouldContinue = await executeStep(activeSession);
+      shouldContinue = await executeStep(activeSession, activeWsUrl);
       if (shouldContinue) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Slightly longer delay for Stagehand
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
@@ -433,7 +437,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
 
     setIsAgentRunning(false);
     agentLoopRef.current = false;
-  }, [sessionId, executeStep, isPaused, isComplete, addStep, isWatchLive]);
+  }, [sessionId, connectUrl, executeStep, isPaused, isComplete, addStep, isWatchLive]);
 
   const handleSubmit = async (taskOverride?: string) => {
     const task = taskOverride || inputValue.trim();
@@ -465,7 +469,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
 
     const sessionData = await createBrowserSession(task);
     if (sessionData) {
-      runAgentLoop(sessionData.sessionId);
+      runAgentLoop(sessionData.sessionId, sessionData.connectUrl);
     }
   };
 
@@ -515,6 +519,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     setSummary(null);
     setIsComplete(false);
     setSessionId(null);
+    setConnectUrl(null);
     setLiveViewUrl(null);
   };
 
