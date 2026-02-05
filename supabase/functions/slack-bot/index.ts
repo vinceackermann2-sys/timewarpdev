@@ -320,12 +320,18 @@
      // Handle event callbacks
      if (body.type === "event_callback") {
        const event = body.event;
-       console.log("Slack event received:", event.type);
+       console.log("Slack event received:", event.type, "subtype:", event.subtype, "thread_ts:", event.thread_ts, "channel_type:", event.channel_type);
  
        // Handle app mentions and direct messages
        if (event.type === "app_mention" || event.type === "message") {
          // Ignore bot messages to prevent loops
-         if (event.bot_id || event.subtype === "bot_message") {
+         if (event.bot_id || event.subtype === "bot_message" || event.subtype === "message_changed") {
+           return new Response("ok", { headers: corsHeaders });
+         }
+         
+         // For channel messages (not DMs, not mentions), only respond in threads where bot is participating
+         if (event.type === "message" && event.channel_type === "channel" && !event.thread_ts) {
+           // Top-level channel message without @mention - ignore
            return new Response("ok", { headers: corsHeaders });
          }
  
@@ -336,7 +342,7 @@
          const slackTeamId = body.team_id;
  
          // Remove bot mention from text
-         const cleanText = text.replace(/<@[A-Z0-9]+>/g, "").trim();
+         const cleanText = text.replace(/<@[A-Z0-9]+>/gi, "").trim();
  
          if (!cleanText) {
            await sendSlackMessage(
@@ -348,9 +354,13 @@
          }
  
          // Handle link command
-         const linkMatch = cleanText.match(/^link\s+([^\s]+@[^\s]+)$/i);
+         // More flexible regex - handles extra spaces and special chars
+         const linkMatch = cleanText.match(/^link\s+([^\s<>]+@[^\s<>]+)/i);
          if (linkMatch) {
-           const email = linkMatch[1];
+           // Clean any trailing punctuation from email
+           const email = linkMatch[1].replace(/[<>.,!?;:]+$/, "").trim();
+           console.log("Link attempt - Slack user:", slackUserId, "Team:", slackTeamId, "Email:", email);
+           
            const result = await linkSlackUser(slackUserId, slackTeamId, email);
            
            if (result.success) {
