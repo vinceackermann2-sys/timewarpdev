@@ -74,6 +74,39 @@ export type Database = {
         }
         Relationships: []
       }
+      slack_installations: {
+        Row: {
+          bot_token: string
+          bot_user_id: string | null
+          id: string
+          installed_at: string
+          installed_by_user_id: string | null
+          team_id: string
+          team_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          bot_token: string
+          bot_user_id?: string | null
+          id?: string
+          installed_at?: string
+          installed_by_user_id?: string | null
+          team_id: string
+          team_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bot_token?: string
+          bot_user_id?: string | null
+          id?: string
+          installed_at?: string
+          installed_by_user_id?: string | null
+          team_id?: string
+          team_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       slack_user_links: {
         Row: {
           id: string

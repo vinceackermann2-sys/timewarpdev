@@ -56,9 +56,9 @@
  const pendingLinks = new Map<string, { code: string; email: string; expiresAt: number }>();
  
  // Send message back to Slack
- async function sendSlackMessage(channel: string, text: string, threadTs?: string) {
-   const botToken = Deno.env.get("SLACK_BOT_TOKEN");
-   if (!botToken) {
+ async function sendSlackMessage(channel: string, text: string, threadTs?: string, botToken?: string) {
+   const token = botToken || Deno.env.get("SLACK_BOT_TOKEN");
+   if (!token) {
      console.error("SLACK_BOT_TOKEN not configured");
      return;
    }
@@ -76,7 +76,7 @@
    const response = await fetch("https://slack.com/api/chat.postMessage", {
      method: "POST",
      headers: {
-       Authorization: `Bearer ${botToken}`,
+       Authorization: `Bearer ${token}`,
        "Content-Type": "application/json",
      },
      body: JSON.stringify(payload),
@@ -87,6 +87,26 @@
      console.error("Slack API error:", result.error);
    }
    return result;
+ }
+ 
+ // Get bot token for a workspace
+ async function getBotTokenForTeam(teamId: string): Promise<string | null> {
+   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+   const supabase = createClient(supabaseUrl, supabaseKey);
+ 
+   const { data } = await supabase
+     .from("slack_installations")
+     .select("bot_token")
+     .eq("team_id", teamId)
+     .single();
+ 
+   if (data?.bot_token) {
+     return data.bot_token;
+   }
+ 
+   // Fallback to env var for backwards compatibility
+   return Deno.env.get("SLACK_BOT_TOKEN") || null;
  }
  
  // Get user's business data from database
@@ -341,6 +361,13 @@
          const slackUserId = event.user;
          const slackTeamId = body.team_id;
  
+         // Get bot token for this workspace
+         const botToken = await getBotTokenForTeam(slackTeamId);
+         if (!botToken) {
+           console.error("No bot token found for team:", slackTeamId);
+           return new Response("ok", { headers: corsHeaders });
+         }
+ 
          // Remove bot mention from text
          const cleanText = text.replace(/<@[A-Z0-9]+>/gi, "").trim();
  
@@ -348,7 +375,8 @@
            await sendSlackMessage(
              channel,
              "👋 Hi! I'm your AI assistant.\n\n*Getting Started:*\n• `link [your-email]` - Connect your TimeWarp account for personalized answers\n\n*Commands:*\n• `research: [question]` - Business research & analysis\n• `action: [request]` - Draft content & take action\n• `status` - Check your account link status\n\nExample: `link john@company.com`",
-             threadTs
+             threadTs,
+             botToken
            );
            return new Response("ok", { headers: corsHeaders });
          }
@@ -367,10 +395,11 @@
              await sendSlackMessage(
                channel,
                `✅ *Account linked successfully!*\n\nYour Slack is now connected to ${email}. I'll use your business data to give personalized answers.\n\nTry: \`research: What are my top priorities this week?\``,
-               threadTs
+               threadTs,
+               botToken
              );
            } else {
-             await sendSlackMessage(channel, `❌ ${result.error}`, threadTs);
+             await sendSlackMessage(channel, `❌ ${result.error}`, threadTs, botToken);
            }
            return new Response("ok", { headers: corsHeaders });
          }
@@ -382,13 +411,15 @@
              await sendSlackMessage(
                channel,
                "✅ *Account linked!* Your Slack is connected to your TimeWarp account. I'm using your business data for personalized answers.",
-               threadTs
+               threadTs,
+               botToken
              );
            } else {
              await sendSlackMessage(
                channel,
                "⚠️ *Not linked yet.* Use `link [your-email]` to connect your TimeWarp account for personalized answers.",
-               threadTs
+               threadTs,
+               botToken
              );
            }
            return new Response("ok", { headers: corsHeaders });
@@ -403,7 +434,8 @@
            await sendSlackMessage(
              channel,
              `🔐 *Account connection required*\n\nTo use the AI assistant, please link your TimeWarp account first:\n\n\`link your-email@company.com\`\n\nThis connects your business data (emails, calendar, documents) so I can give you personalized answers.\n\n_Don't have an account yet? Sign up at the TimeWarp app first._`,
-             threadTs
+             threadTs,
+             botToken
            );
            return new Response("ok", { headers: corsHeaders });
          }
@@ -429,7 +461,7 @@
          }
  
          // Send typing indicator
-         await sendSlackMessage(channel, `🤔 ${mode === "research" ? "Researching" : "Working on it"} using your business data...`, threadTs);
+         await sendSlackMessage(channel, `🤔 ${mode === "research" ? "Researching" : "Working on it"} using your business data...`, threadTs, botToken);
  
          try {
            let response: string;
@@ -444,13 +476,14 @@
              response = response.slice(0, 2900) + "\n\n_...response truncated. Use the web app for full features._";
            }
  
-           await sendSlackMessage(channel, response, threadTs);
+           await sendSlackMessage(channel, response, threadTs, botToken);
          } catch (error) {
            console.error("AI processing error:", error);
            await sendSlackMessage(
              channel,
              "❌ Sorry, I encountered an error processing your request. Please try again.",
-             threadTs
+             threadTs,
+             botToken
            );
          }
        }
