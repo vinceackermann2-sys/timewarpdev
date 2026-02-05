@@ -338,10 +338,18 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       });
 
       if (data.loginRequired) {
+        // Automatically enable watch live for manual takeover
+        setIsWatchLive(true);
         setHandoff({
           required: true,
           type: "login",
           instructions: data.loginInstructions || "Please log in to continue."
+        });
+        addStep({
+          icon: "🔐",
+          title: "Login Required",
+          message: data.loginInstructions || "Please log in to continue. Click Continue when done.",
+          type: "warning"
         });
         return false;
       }
@@ -349,6 +357,8 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       if (data.pageContent) {
         const detected = detectSensitiveContent(data.pageContent);
         if (detected) {
+          // Automatically enable watch live for manual takeover
+          setIsWatchLive(true);
           setHandoff(detected);
           addStep({
             icon: detected.type === "payment" ? "💳" : "🔐",
@@ -713,35 +723,27 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
         <div className={cn("flex-1 flex flex-col", isWatchLive && liveViewUrl && "w-1/2")}>
           {/* Handoff banner */}
           {handoff && (
-            <div className="bg-accent/10 border-b border-accent/30 p-4">
+            <div className="bg-accent/10 border-b border-accent/30 p-4 animate-in fade-in slide-in-from-top-2">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-full bg-accent/20 text-accent">
+                <div className="p-2 rounded-full bg-accent/20 text-accent animate-pulse">
                   {getHandoffIcon()}
                 </div>
                 <div className="flex-1">
                   <h4 className="font-medium text-accent mb-1">
-                    {handoff.type === "login" && "Login Required"}
-                    {handoff.type === "payment" && "Payment Required"}
-                    {handoff.type === "verification" && "Verification Required"}
-                    {handoff.type === "captcha" && "CAPTCHA Required"}
-                    {handoff.type === "sensitive" && "Sensitive Information Required"}
+                    {handoff.type === "login" && "🔐 Login Required"}
+                    {handoff.type === "payment" && "💳 Payment Required"}
+                    {handoff.type === "verification" && "🔑 Verification Required"}
+                    {handoff.type === "captcha" && "🤖 CAPTCHA Required"}
+                    {handoff.type === "sensitive" && "📋 Sensitive Information Required"}
                   </h4>
                   <p className="text-sm text-muted-foreground mb-3">{handoff.instructions}</p>
-                  <div className="flex items-center gap-3">
-                    <Button size="sm" onClick={handleContinue} className="bg-accent hover:bg-accent/90">
-                      <CheckCircle className="h-4 w-4 mr-1.5" />
-                      Continue
-                    </Button>
-                    {!isWatchLive && (
-                      <Button variant="outline" size="sm" onClick={() => setIsWatchLive(true)}>
-                        <Eye className="h-4 w-4 mr-1.5" />
-                        Watch Live
-                      </Button>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground/70 mt-2">
-                    🔒 Your credentials are entered directly in the secure browser
+                  <p className="text-xs text-muted-foreground/70 mb-3">
+                    Complete the action in the browser on the right, then click Continue →
                   </p>
+                  <Button size="sm" onClick={handleContinue} className="bg-accent hover:bg-accent/90">
+                    <CheckCircle className="h-4 w-4 mr-1.5" />
+                    Continue
+                  </Button>
                 </div>
               </div>
             </div>
