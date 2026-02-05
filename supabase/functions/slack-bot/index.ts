@@ -1,4 +1,5 @@
  import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.93.1";
  
  const corsHeaders = {
    "Access-Control-Allow-Origin": "*",
@@ -46,6 +47,14 @@
    return computedSignature === slackSignature;
  }
  
+ // Generate a random 6-digit code
+ function generateLinkCode(): string {
+   return Math.floor(100000 + Math.random() * 900000).toString();
+ }
+ 
+ // Store for pending link codes (in production, use Redis or database)
+ const pendingLinks = new Map<string, { code: string; email: string; expiresAt: number }>();
+ 
  // Send message back to Slack
  async function sendSlackMessage(channel: string, text: string, threadTs?: string) {
    const botToken = Deno.env.get("SLACK_BOT_TOKEN");
@@ -80,10 +89,111 @@
    return result;
  }
  
+ // Get user's business data from database
+ async function getUserBusinessData(userId: string): Promise<string> {
+   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+   const supabase = createClient(supabaseUrl, supabaseKey);
+ 
+   const { data: research } = await supabase
+     .from("workspace_research")
+     .select("*")
+     .eq("user_id", userId)
+     .order("updated_at", { ascending: false })
+     .limit(1)
+     .single();
+ 
+   if (!research) return "";
+ 
+   let context = "";
+   const rawData = research.raw_data || {};
+   const findings = research.findings || [];
+   const summary = research.research_summary || {};
+ 
+   context += `## Business Data Summary\n`;
+   context += `${summary.summary || summary.overallHealth || "No summary available"}\n\n`;
+ 
+   if (findings.length > 0) {
+     context += `## Key Findings (${findings.length} total)\n`;
+     context += findings.slice(0, 5).map((f: any, i: number) =>
+       `${i + 1}. [${f.impact?.toUpperCase() || "INFO"}] ${f.category || "General"}: ${f.finding || JSON.stringify(f)}`
+     ).join("\n") + "\n\n";
+   }
+ 
+   if (rawData.topContacts?.length) {
+     context += `## Top Contacts\n`;
+     context += rawData.topContacts.slice(0, 5).map((c: any) => `- ${c.email} (${c.count} interactions)`).join("\n") + "\n\n";
+   }
+ 
+   if (rawData.emailSummaries?.length) {
+     context += `## Recent Emails\n`;
+     context += rawData.emailSummaries.slice(0, 5).map((e: any) => `- "${e.subject}" from ${e.from}`).join("\n") + "\n\n";
+   }
+ 
+   if (rawData.calendarEvents?.length) {
+     context += `## Upcoming Events\n`;
+     context += rawData.calendarEvents.slice(0, 5).map((e: any) => `- ${e.summary} (${e.start?.dateTime || e.start})`).join("\n") + "\n\n";
+   }
+ 
+   return context;
+ }
+ 
+ // Check if Slack user is linked
+ async function getLinkedUserId(slackUserId: string, slackTeamId: string): Promise<string | null> {
+   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+   const supabase = createClient(supabaseUrl, supabaseKey);
+ 
+   const { data } = await supabase
+     .from("slack_user_links")
+     .select("user_id")
+     .eq("slack_user_id", slackUserId)
+     .eq("slack_team_id", slackTeamId)
+     .single();
+ 
+   return data?.user_id || null;
+ }
+ 
+ // Link Slack user to app user
+ async function linkSlackUser(slackUserId: string, slackTeamId: string, email: string): Promise<{ success: boolean; error?: string }> {
+   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+   const supabase = createClient(supabaseUrl, supabaseKey);
+ 
+   // Find user by email
+   const { data: users } = await supabase.auth.admin.listUsers();
+   const user = users?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+ 
+   if (!user) {
+     return { success: false, error: "No TimeWarp account found with that email. Please sign up at the app first." };
+   }
+ 
+   // Create or update link
+   const { error } = await supabase
+     .from("slack_user_links")
+     .upsert({
+       user_id: user.id,
+       slack_user_id: slackUserId,
+       slack_team_id: slackTeamId,
+       linked_at: new Date().toISOString()
+     }, { onConflict: "slack_user_id,slack_team_id" });
+ 
+   if (error) {
+     console.error("Link error:", error);
+     return { success: false, error: "Failed to link account. Please try again." };
+   }
+ 
+   return { success: true };
+ }
+ 
  // Call Research AI (non-streaming)
- async function callResearchAI(message: string): Promise<string> {
+ async function callResearchAI(message: string, businessContext: string): Promise<string> {
    const apiKey = Deno.env.get("LOVABLE_API_KEY");
    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+ 
+   const contextSection = businessContext
+     ? `\n\n## User's Business Data\n${businessContext}\n\nUse this data to provide personalized, relevant answers.`
+     : "\n\nNote: User hasn't connected their business data yet. Provide general answers.";
  
    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
      method: "POST",
@@ -105,8 +215,9 @@
  - Keep responses concise (max 2000 chars for Slack)
  - Be direct and actionable
  - Don't use [INSIGHT:] or [SUGGEST:] format - just plain Slack-friendly text
+ ${contextSection}
  
- Provide helpful business research and analysis.`,
+ Provide helpful, personalized business research and analysis based on the user's data when available.`,
          },
          { role: "user", content: message },
        ],
@@ -125,9 +236,13 @@
  }
  
  // Call Action AI (non-streaming) 
- async function callActionAI(message: string): Promise<string> {
+ async function callActionAI(message: string, businessContext: string): Promise<string> {
    const apiKey = Deno.env.get("LOVABLE_API_KEY");
    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+ 
+   const contextSection = businessContext
+     ? `\n\n## User's Business Data\n${businessContext}\n\nUse this data to create personalized content.`
+     : "\n\nNote: User hasn't connected their business data yet. Provide general content.";
  
    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
      method: "POST",
@@ -155,8 +270,9 @@
  - Keep responses concise (max 2000 chars for Slack)
  - Be direct and provide ready-to-use content
  - Don't use [STEP:] or [DOC:] format - just plain Slack-friendly text
+ ${contextSection}
  
- Note: In Slack mode, you cannot directly create Google Docs/Sheets. Instead, provide the content directly so users can copy-paste or use the web app for full integration.`,
+ In Slack mode, provide ready-to-use content that users can copy-paste. Reference their specific contacts, emails, and data when available.`,
          },
          { role: "user", content: message },
        ],
@@ -216,6 +332,8 @@
          const text = event.text || "";
          const channel = event.channel;
          const threadTs = event.thread_ts || event.ts;
+         const slackUserId = event.user;
+         const slackTeamId = body.team_id;
  
          // Remove bot mention from text
          const cleanText = text.replace(/<@[A-Z0-9]+>/g, "").trim();
@@ -223,10 +341,55 @@
          if (!cleanText) {
            await sendSlackMessage(
              channel,
-             "👋 Hi! I'm your AI assistant. Try:\n• `research: [your question]` - for business research & analysis\n• `action: [your request]` - for drafting content & taking action\n\nExample: `research: What are the key trends in AI?`",
+             "👋 Hi! I'm your AI assistant.\n\n*Getting Started:*\n• `link [your-email]` - Connect your TimeWarp account for personalized answers\n\n*Commands:*\n• `research: [question]` - Business research & analysis\n• `action: [request]` - Draft content & take action\n• `status` - Check your account link status\n\nExample: `link john@company.com`",
              threadTs
            );
            return new Response("ok", { headers: corsHeaders });
+         }
+ 
+         // Handle link command
+         const linkMatch = cleanText.match(/^link\s+([^\s]+@[^\s]+)$/i);
+         if (linkMatch) {
+           const email = linkMatch[1];
+           const result = await linkSlackUser(slackUserId, slackTeamId, email);
+           
+           if (result.success) {
+             await sendSlackMessage(
+               channel,
+               `✅ *Account linked successfully!*\n\nYour Slack is now connected to ${email}. I'll use your business data to give personalized answers.\n\nTry: \`research: What are my top priorities this week?\``,
+               threadTs
+             );
+           } else {
+             await sendSlackMessage(channel, `❌ ${result.error}`, threadTs);
+           }
+           return new Response("ok", { headers: corsHeaders });
+         }
+ 
+         // Handle status command
+         if (cleanText.toLowerCase() === "status") {
+           const linkedUserId = await getLinkedUserId(slackUserId, slackTeamId);
+           if (linkedUserId) {
+             await sendSlackMessage(
+               channel,
+               "✅ *Account linked!* Your Slack is connected to your TimeWarp account. I'm using your business data for personalized answers.",
+               threadTs
+             );
+           } else {
+             await sendSlackMessage(
+               channel,
+               "⚠️ *Not linked yet.* Use `link [your-email]` to connect your TimeWarp account for personalized answers.",
+               threadTs
+             );
+           }
+           return new Response("ok", { headers: corsHeaders });
+         }
+ 
+         // Check if user is linked and get their business data
+         const linkedUserId = await getLinkedUserId(slackUserId, slackTeamId);
+         let businessContext = "";
+         
+         if (linkedUserId) {
+           businessContext = await getUserBusinessData(linkedUserId);
          }
  
          // Detect mode from message
@@ -247,14 +410,15 @@
          }
  
          // Send typing indicator
-         await sendSlackMessage(channel, `🤔 ${mode === "research" ? "Researching" : "Working on it"}...`, threadTs);
+         const personalizedNote = linkedUserId ? " using your business data" : "";
+         await sendSlackMessage(channel, `🤔 ${mode === "research" ? "Researching" : "Working on it"}${personalizedNote}...`, threadTs);
  
          try {
            let response: string;
            if (mode === "research") {
-             response = await callResearchAI(query);
+             response = await callResearchAI(query, businessContext);
            } else {
-             response = await callActionAI(query);
+             response = await callActionAI(query, businessContext);
            }
  
            // Truncate if too long for Slack
