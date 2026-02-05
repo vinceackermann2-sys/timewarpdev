@@ -22,14 +22,14 @@ interface AnalysisStep {
 interface LiveAnalysisViewProps {
   role: string;
   mode: string;
-  googleToken: string | null;
+  googleToken?: string | null;
   onComplete: () => void;
   onTakeControl: () => void;
 }
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-workspace`;
 
-export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAnalysisViewProps) {
+export function LiveAnalysisView({ role, mode, onComplete }: LiveAnalysisViewProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -68,20 +68,6 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
         return;
       }
 
-      const accessToken =
-        googleToken ||
-        sessionStorage.getItem("googleProviderToken") ||
-        session.provider_token;
-      if (!accessToken) {
-        toast({
-          title: "Google Connection Required",
-          description: "Please sign out and reconnect with Google to access your workspace data.",
-          variant: "destructive",
-        });
-        setIsRunning(false);
-        return;
-      }
-
       setProgress(5);
       setCurrentPhase("Starting analysis...");
       setCurrentAction("Initializing AI agent...");
@@ -92,11 +78,12 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ accessToken, role, mode }),
+        body: JSON.stringify({ role, mode }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to start analysis");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to start analysis");
       }
 
       if (!response.body) throw new Error("No response body");
@@ -187,7 +174,7 @@ export function LiveAnalysisView({ role, mode, googleToken, onComplete }: LiveAn
     } finally {
       setIsRunning(false);
     }
-  }, [role, mode, googleToken, toast, finding]);
+  }, [role, mode, toast, finding]);
 
   useEffect(() => {
     startAnalysis();
