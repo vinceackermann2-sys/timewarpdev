@@ -1,187 +1,137 @@
 
+# Fix TimeWarp AI Default Mode
 
-# TimeWarp AI Chat Interface Redesign
+## Problem
+Currently, when submitting a task, the system always visibly connects to Browserbase and shows connection-related messages even when "Watch Live" is toggled off. The user wants:
 
-## Overview
+- **Default (Watch Live OFF)**: Task runs silently in the background, only showing clean step nodes for actual actions (navigate, click, type, etc.)
+- **Watch Live ON**: Show the live browser iframe and connection status messages
 
-Transform the current 3-step wizard into a conversational chat interface with two viewing modes: a default "Step View" showing AI actions as logic nodes, and a toggle-on "Watch Live" mode that streams the browser session.
-
-## Current vs New Design
-
+## Current Flow Issue
 ```text
-CURRENT FLOW:
-+------------------+     +------------------+
-|  Step 1: Role    | --> |  Step 2: Task    | --> Step 3: Time --> LiveBrowserView
-|  (CEO/CMO/CFO)   |     |  (Textarea)      |
-+------------------+     +------------------+
-
-NEW FLOW:
-+-------------------------------------------------------+
-|  Chat Interface                          [Watch Live] |
-|-------------------------------------------------------|
-|  AI: Hi! What would you like me to do?                |
-|  User: Create a Notion workspace for project mgmt     |
-|  AI: Got it! Starting task... (shows step nodes)      |
-|                                                       |
-|  [====== Step Nodes / Logic View ======]              |
-|  | 1. Navigate to notion.com          |               |
-|  | 2. Click "Get Started"             |               |
-|  | 3. LOGIN REQUIRED - Please sign in |               |
-|                                                       |
-|  [Type your task...]                     [Send]       |
-+-------------------------------------------------------+
+User submits task
+    ↓
+createBrowserSession() - Shows "Initializing browser..." (conditional)
+    ↓
+Session created - Shows "Session Ready" (conditional)
+    ↓
+runAgentLoop() - Shows "Agent Started"
+    ↓
+executeStep() - Shows action steps
 ```
 
-## Key Features
+The problem: Even with the conditional checks, errors like "Failed to start browser" still show, and the "Agent Started" message references browser internals.
 
-### 1. Chat-Based Input
-- Simple text input to describe tasks naturally
-- No role selection required (AI infers from context, defaults to general assistant)
-- Optional quick suggestions for common tasks
+## Solution
 
-### 2. Two Viewing Modes (Toggle Switch)
+### 1. Suppress ALL Browser-Related Messaging in Default Mode
 
-**Default: Step View (Logic Nodes)**
-- Shows agent actions as step cards/nodes
-- Lightweight, no browser iframe loaded
-- Displays: action icon, title, description, timestamp
-- Progress indicator for overall task
+Modify `createBrowserSession` to be completely silent when `isWatchLive` is false:
+- No "Initializing..." message
+- No "Session Ready" message  
+- No error messages about browser (show generic "Failed to start task" instead)
 
-**Toggle On: Watch Live**
-- Full Browserbase live view in iframe
-- Real-time browser interaction visible
-- Step nodes appear in a sidebar panel
+### 2. Clean Up Agent Loop Messages
 
-### 3. Safety Controls (Manual Handoff)
+When `isWatchLive` is false, the `runAgentLoop` should show user-friendly messages:
+- Instead of "Agent Started" → "Starting task..."
+- Instead of "Resumed" → "Continuing..."
+- Filter out any technical/browser-related details
 
-The AI will automatically pause and request manual intervention for:
-- Login pages (OAuth, email/password forms)
-- Payment/checkout pages
-- 2FA/verification prompts
-- CAPTCHAs
-- Any page with sensitive data entry
+### 3. Only Show Live Browser When Toggled
 
-When paused, user sees:
-- Clear instructions on what action is needed
-- "Continue" button to resume after completing the action
-- Option to take full control and stop automation
+The `RemoteBrowser` component should only render when:
+- `isWatchLive` is true AND
+- `liveViewUrl` exists
 
-## Component Structure
+### 4. Step Node Filtering
 
-### Files to Create/Modify
+Add logic to filter step types when displaying in default mode:
+- Show: `action`, `complete`, `error`, `warning`
+- Hide (unless Watch Live): `status` type steps that reference browser/session
 
-1. **`src/components/database/TimeWarpAIView.tsx`** (Major Rewrite)
-   - Chat interface with message history
-   - Toggle switch for viewing mode
-   - Input field at bottom
-   - Integrates step nodes or browser view based on mode
+## Code Changes
 
-2. **`src/components/database/AgentStepView.tsx`** (New)
-   - Standalone step nodes display (without activity log sidebar styling)
-   - Full-width layout optimized for chat context
-   - Clear visual hierarchy for completed/running/pending steps
+### File: `src/components/database/TimeWarpAIView.tsx`
 
-3. **`src/components/database/AgentChatMessage.tsx`** (New)
-   - Chat bubble component for user and assistant messages
-   - Assistant messages can embed step nodes inline
-   - Handles handoff UI (login required banner)
+1. **Update `createBrowserSession`**: Make it completely silent by default, only show messages when `isWatchLive` is true
 
-### State Management
+2. **Update `runAgentLoop`**: Change messaging to be user-friendly when Watch Live is off:
+   ```tsx
+   addStep({
+     icon: "✨",
+     title: isWatchLive ? "Agent Started" : "Starting",
+     message: isWatchLive ? "Beginning task execution..." : "Working on your task...",
+     details: isWatchLive ? currentTaskRef.current : undefined,
+     type: "action"
+   });
+   ```
 
+3. **Update error handling**: Show generic errors when Watch Live is off:
+   ```tsx
+   addStep({
+     icon: "❌",
+     title: "Error",
+     message: isWatchLive 
+       ? (err instanceof Error ? err.message : 'Failed to start browser')
+       : "Something went wrong. Please try again.",
+     type: "error"
+   });
+   ```
+
+4. **Ensure RemoteBrowser only renders when toggled**:
+   ```tsx
+   {isWatchLive && liveViewUrl && (
+     <div className="w-1/2 border-l border-border/50">
+       <RemoteBrowser url={liveViewUrl} />
+     </div>
+   )}
+   ```
+
+## Result
+
+**Default Mode (Watch Live OFF)**:
 ```text
-State:
-- messages: ChatMessage[] (role, content, steps?)
-- isAgentRunning: boolean
-- viewMode: "steps" | "live"
-- currentSession: { sessionId, connectUrl, liveViewUrl } | null
-- handoffRequired: { type: string, instructions: string } | null
+┌─────────────────────────────────────┐
+│ TimeWarp AI              [Live: OFF]│
+├─────────────────────────────────────┤
+│                                     │
+│  ✨ Starting                        │
+│     Working on your task...         │
+│                                     │
+│  🌐 Navigate                        │
+│     Opening canva.com               │
+│                                     │
+│  👆 Click                           │
+│     Clicking "Sign Up"              │
+│                                     │
+│  🔐 Login Required                  │
+│     Please sign in to continue      │
+│                                     │
+└─────────────────────────────────────┘
 ```
 
-## UI Layout
-
-### Step View Mode (Default)
+**Watch Live Mode (Toggled ON)**:
 ```text
-+----------------------------------------------------------+
-| TimeWarp AI                              [Toggle: Steps] |
-|----------------------------------------------------------|
-|                                                          |
-|  [Assistant bubble]                                      |
-|  What would you like me to help you with today?          |
-|                                                          |
-|  [User bubble - right aligned]                           |
-|  Sign up for Canva and create a social media template    |
-|                                                          |
-|  [Assistant bubble with embedded steps]                  |
-|  Starting task...                                        |
-|  +--------------------------------------------------+    |
-|  | Step 1: Navigate to canva.com            [Done]  |    |
-|  | Step 2: Click "Sign Up"                  [Done]  |    |
-|  | Step 3: LOGIN REQUIRED                   [Waiting]|    |
-|  +--------------------------------------------------+    |
-|                                                          |
-|  [HANDOFF BANNER - Yellow warning]                       |
-|  Please sign in to Canva, then click Continue            |
-|  [Continue After Login]                                  |
-|                                                          |
-|----------------------------------------------------------|
-| [Type what you'd like to accomplish...]        [Send]    |
-+----------------------------------------------------------+
+┌─────────────────────────────────────────────────────────┐
+│ TimeWarp AI                               [Live: ON]    │
+├─────────────────────────────────────────────────────────┤
+│ ┌───────────────────────┐ ┌───────────────────────────┐ │
+│ │                       │ │ 🚀 Starting               │ │
+│ │  [LIVE BROWSER VIEW]  │ │    Initializing browser...│ │
+│ │                       │ │                           │ │
+│ │  canva.com/signup     │ │ 🎥 Session Ready          │ │
+│ │                       │ │    Session: abc12345...   │ │
+│ │                       │ │                           │ │
+│ │                       │ │ 🌐 Navigate               │ │
+│ │                       │ │    Opening canva.com      │ │
+│ └───────────────────────┘ └───────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Watch Live Mode (Toggled On)
-```text
-+----------------------------------------------------------+
-| TimeWarp AI                              [Toggle: Live]  |
-|----------------------------------------------------------|
-| +--------------------------------+ +-------------------+ |
-| |                                | | Activity Log      | |
-| |   [BROWSERBASE LIVE VIEW]      | |                   | |
-| |                                | | Step 1: Navigate  | |
-| |   https://canva.com            | | Step 2: Click     | |
-| |                                | | Step 3: Waiting   | |
-| |                                | |                   | |
-| +--------------------------------+ +-------------------+ |
-|----------------------------------------------------------|
-| [Type what you'd like to accomplish...]        [Send]    |
-+----------------------------------------------------------+
-```
+## Technical Notes
 
-## Technical Implementation
-
-### 1. TimeWarpAIView.tsx Changes
-
-- Remove role selection cards
-- Remove time estimate selector
-- Add chat message list with ScrollArea
-- Add view mode toggle (Switch component)
-- Input at bottom with send button
-- Conditionally render AgentStepView or LiveBrowserView
-
-### 2. Agent Execution Flow
-
-1. User types task and hits send
-2. Message added to chat history
-3. Browser session created (always, for potential live view toggle)
-4. Agent loop starts, executing steps
-5. Steps displayed inline in chat (Step View) or in sidebar (Live View)
-6. On handoff triggers, pause with clear UI
-7. User completes action and clicks "Continue"
-8. On completion, show summary in chat
-
-### 3. Safety Checks (Existing Logic - Enhanced UI)
-
-The `run-agent` edge function already detects:
-- Login pages, OAuth prompts
-- 2FA/verification screens
-- CAPTCHAs
-
-Enhancement: Add detection for:
-- Payment forms (credit card inputs)
-- Sensitive forms (SSN, personal info)
-
-Handoff banner shows contextual instructions based on type.
-
-## Summary
-
-This redesign simplifies the user experience from a 3-step wizard to a natural chat interface, while adding flexibility with the view mode toggle. The default "Step View" is lightweight and shows clear progress, while "Watch Live" provides full visibility for users who want to see exactly what the AI is doing. Safety remains a priority with automatic pauses for any sensitive operations.
-
+- The Browserbase session is still created in both modes (required for task execution)
+- Only the UI messaging and live view are affected by the toggle
+- Error handling will show more technical details when Watch Live is on (for debugging)
+- All action steps (navigate, click, type, etc.) are always shown regardless of mode
