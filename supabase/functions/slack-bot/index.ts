@@ -363,6 +363,7 @@
  
          // Get bot token for this workspace
          const botToken = await getBotTokenForTeam(slackTeamId);
+         console.log("Bot token lookup for team:", slackTeamId, "found:", !!botToken);
          if (!botToken) {
            console.error("No bot token found for team:", slackTeamId);
            return new Response("ok", { headers: corsHeaders });
@@ -370,6 +371,7 @@
  
          // Remove bot mention from text
          const cleanText = text.replace(/<@[A-Z0-9]+>/gi, "").trim();
+         console.log("Processing message - cleanText:", cleanText);
  
          if (!cleanText) {
            await sendSlackMessage(
