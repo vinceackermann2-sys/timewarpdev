@@ -11,47 +11,47 @@
    mode: string;
  }
  
- const Index = () => {
+const Index = () => {
   const navigate = useNavigate();
-   const [searchParams] = useSearchParams();
-   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [showResearch, setShowResearch] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
 
   useEffect(() => {
-     // Check for Google OAuth error
-     const googleError = searchParams.get("google_error");
-     if (googleError) {
-       toast({
-         title: "Google connection failed",
-         description: `Error: ${googleError}. Please try again.`,
-         variant: "destructive",
-       });
-     }
- 
-     // Check for successful Google connection - trigger research mode
-     const googleConnected = searchParams.get("google_connected");
-     if (googleConnected === "true") {
-       const storedQuizData = sessionStorage.getItem('quizData');
-       if (storedQuizData) {
-         try {
-           const parsed = JSON.parse(storedQuizData);
-           setQuizData(parsed);
-           // Trigger research mode immediately after Google connection
-           setShowResearch(true);
-         } catch (e) {
-           console.error('Failed to parse quiz data:', e);
-         }
+    // Check for Google OAuth error
+    const googleError = searchParams.get("google_error");
+    if (googleError) {
+      toast({
+        title: "Google connection failed",
+        description: `Error: ${googleError}. Please try again.`,
+        variant: "destructive",
+      });
+    }
+
+    // Check for successful Google connection
+    const googleConnectedParam = searchParams.get("google_connected");
+    if (googleConnectedParam === "true") {
+      setGoogleConnected(true);
+      const storedQuizData = sessionStorage.getItem('quizData');
+      if (storedQuizData) {
+        try {
+          const parsed = JSON.parse(storedQuizData);
+          setQuizData(parsed);
+        } catch (e) {
+          console.error('Failed to parse quiz data:', e);
+        }
       }
     }
-   }, [searchParams, toast]);
+  }, [searchParams, toast]);
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-       (event, session) => {
+      (event, session) => {
         setIsAuthenticated(!!session);
       }
     );
@@ -60,12 +60,18 @@
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
       setIsLoading(false);
-
-       // Note: Research mode is now triggered by google_connected param in the other useEffect
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Trigger research mode when both auth and google connection are confirmed
+  useEffect(() => {
+    if (googleConnected && isAuthenticated && quizData && !isLoading) {
+      console.log("Starting research mode:", { googleConnected, isAuthenticated, quizData });
+      setShowResearch(true);
+    }
+  }, [googleConnected, isAuthenticated, quizData, isLoading]);
 
   const handleResearchComplete = () => {
     setShowResearch(false);
