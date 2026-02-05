@@ -1,43 +1,20 @@
-import { useState, useEffect } from "react";
-import { QuizFunnel } from "@/components/landing/QuizFunnel";
-import { LiveAnalysisView } from "@/components/dashboard/LiveAnalysisView";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
-
-interface QuizData {
-  role: string;
-  mode: string;
-}
-
-// Helper to store tokens via edge function (bypasses RLS)
-const storeTokensViaEdgeFunction = async (session: any) => {
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/google-oauth-callback`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        access_token: session.provider_token,
-        refresh_token: session.provider_refresh_token,
-        expires_in: 3600,
-      }),
-    });
-    if (!response.ok) {
-      console.error("[Index] Failed to store tokens:", await response.text());
-    } else {
-      console.log("[Index] Tokens stored successfully via edge function");
-    }
-  } catch (error) {
-    console.error("[Index] Error storing tokens:", error);
-  }
-};
-
-const Index = () => {
+ import { useState, useEffect } from "react";
+ import { QuizFunnel } from "@/components/landing/QuizFunnel";
+ import { LiveAnalysisView } from "@/components/dashboard/LiveAnalysisView";
+ import { useNavigate, useSearchParams } from "react-router-dom";
+ import { supabase } from "@/integrations/supabase/client";
+ import { Loader2 } from "lucide-react";
+ import { useToast } from "@/hooks/use-toast";
+ 
+ interface QuizData {
+   role: string;
+   mode: string;
+ }
+ 
+ const Index = () => {
   const navigate = useNavigate();
+   const [searchParams] = useSearchParams();
+   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
@@ -45,6 +22,16 @@ const Index = () => {
   const [googleToken, setGoogleToken] = useState<string | null>(null);
 
   useEffect(() => {
+     // Check for Google OAuth error
+     const googleError = searchParams.get("google_error");
+     if (googleError) {
+       toast({
+         title: "Google connection failed",
+         description: `Error: ${googleError}. Please try again.`,
+         variant: "destructive",
+       });
+     }
+ 
     // Check for quiz data from OAuth redirect
     const storedQuizData = sessionStorage.getItem('quizData');
     if (storedQuizData) {
@@ -66,22 +53,8 @@ const Index = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+       (event, session) => {
         setIsAuthenticated(!!session);
-        
-        // Capture provider_token when available (only on initial OAuth)
-        if (session?.provider_token) {
-          sessionStorage.setItem('googleProviderToken', session.provider_token);
-          setGoogleToken(session.provider_token);
-          
-          // Store refresh token if available
-          if (session.provider_refresh_token) {
-            sessionStorage.setItem('googleProviderRefreshToken', session.provider_refresh_token);
-          }
-          
-          // Store tokens via edge function (bypasses RLS)
-          await storeTokensViaEdgeFunction(session);
-        }
       }
     );
 
@@ -89,20 +62,6 @@ const Index = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
       setIsLoading(false);
-      
-      // Capture provider_token if available
-      if (session?.provider_token) {
-        sessionStorage.setItem('googleProviderToken', session.provider_token);
-        setGoogleToken(session.provider_token);
-        
-        // Store refresh token if available
-        if (session.provider_refresh_token) {
-          sessionStorage.setItem('googleProviderRefreshToken', session.provider_refresh_token);
-        }
-        
-        // Store tokens via edge function (bypasses RLS)
-        storeTokensViaEdgeFunction(session);
-      }
 
       // If authenticated and has quiz data, show the analysis view (both research and action modes)
       const storedQuizData = sessionStorage.getItem('quizData');
