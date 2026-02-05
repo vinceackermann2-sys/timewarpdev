@@ -242,15 +242,21 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       return true;
     } catch (err) {
       console.error('Session creation error:', err);
+      const errorMessage = err instanceof Error ? err.message : '';
+      const isQuotaError = errorMessage.toLowerCase().includes('limit') || 
+                          errorMessage.toLowerCase().includes('402') ||
+                          errorMessage.toLowerCase().includes('payment');
+      
       addStep({
-        icon: "❌",
-        title: "Error",
-        message: isWatchLive 
-          ? (err instanceof Error ? err.message : 'Failed to start browser session')
-          : "Something went wrong. Please try again.",
-        type: "error"
+        icon: isQuotaError ? "⚠️" : "❌",
+        title: isQuotaError ? "Service Limit" : "Error",
+        message: isQuotaError 
+          ? "Browser automation limit reached. Please try again later or upgrade your plan."
+          : (isWatchLive ? errorMessage || 'Failed to start browser session' : "Something went wrong. Please try again."),
+        type: isQuotaError ? "warning" : "error"
       });
       setIsCreatingSession(false);
+      setIsTaskActive(false);
       return false;
     }
   };
