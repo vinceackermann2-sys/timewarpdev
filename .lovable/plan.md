@@ -1,141 +1,187 @@
 
-# Fix Google OAuth Token Storage - Server-Side Callback
 
-## Root Cause
-The current implementation tries to capture `provider_token` on the client side after OAuth redirect. This fails due to a race condition:
-- Supabase SDK processes OAuth callback immediately on page load
-- By the time React components mount and set up listeners, the `provider_token` is already consumed
-- Result: Edge function never gets called, tokens never stored
+# TimeWarp AI Chat Interface Redesign
 
-## Solution
-Implement a true **server-side OAuth callback flow**:
-1. Google redirects to our edge function (not the app)
-2. Edge function exchanges authorization code for tokens
-3. Edge function stores tokens and redirects user to app
+## Overview
 
-## Implementation
+Transform the current 3-step wizard into a conversational chat interface with two viewing modes: a default "Step View" showing AI actions as logic nodes, and a toggle-on "Watch Live" mode that streams the browser session.
 
-### 1. Update Edge Function: `google-oauth-callback`
-
-Transform from POST endpoint to GET handler that receives the OAuth redirect:
+## Current vs New Design
 
 ```text
-Current: Receives tokens via POST from frontend (broken timing)
-New: Receives authorization code via GET from Google, exchanges for tokens
+CURRENT FLOW:
++------------------+     +------------------+
+|  Step 1: Role    | --> |  Step 2: Task    | --> Step 3: Time --> LiveBrowserView
+|  (CEO/CMO/CFO)   |     |  (Textarea)      |
++------------------+     +------------------+
 
-Flow:
-1. Google redirects: /functions/v1/google-oauth-callback?code=xxx&state=yyy
-2. Edge function exchanges code for tokens via Google API
-3. Stores tokens with service role (bypasses RLS)
-4. Redirects user to /database?google_connected=true
+NEW FLOW:
++-------------------------------------------------------+
+|  Chat Interface                          [Watch Live] |
+|-------------------------------------------------------|
+|  AI: Hi! What would you like me to do?                |
+|  User: Create a Notion workspace for project mgmt     |
+|  AI: Got it! Starting task... (shows step nodes)      |
+|                                                       |
+|  [====== Step Nodes / Logic View ======]              |
+|  | 1. Navigate to notion.com          |               |
+|  | 2. Click "Get Started"             |               |
+|  | 3. LOGIN REQUIRED - Please sign in |               |
+|                                                       |
+|  [Type your task...]                     [Send]       |
++-------------------------------------------------------+
 ```
 
-Key changes:
-- Handle GET requests with `code` and `state` parameters
-- Exchange code using GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET
-- Parse state parameter to get user_id (set when OAuth started)
-- Store tokens in database
-- Redirect to app with success/error status
+## Key Features
 
-### 2. Update Auth.tsx OAuth Initiation
+### 1. Chat-Based Input
+- Simple text input to describe tasks naturally
+- No role selection required (AI infers from context, defaults to general assistant)
+- Optional quick suggestions for common tasks
 
-Change redirect URL to point to edge function instead of app:
+### 2. Two Viewing Modes (Toggle Switch)
+
+**Default: Step View (Logic Nodes)**
+- Shows agent actions as step cards/nodes
+- Lightweight, no browser iframe loaded
+- Displays: action icon, title, description, timestamp
+- Progress indicator for overall task
+
+**Toggle On: Watch Live**
+- Full Browserbase live view in iframe
+- Real-time browser interaction visible
+- Step nodes appear in a sidebar panel
+
+### 3. Safety Controls (Manual Handoff)
+
+The AI will automatically pause and request manual intervention for:
+- Login pages (OAuth, email/password forms)
+- Payment/checkout pages
+- 2FA/verification prompts
+- CAPTCHAs
+- Any page with sensitive data entry
+
+When paused, user sees:
+- Clear instructions on what action is needed
+- "Continue" button to resume after completing the action
+- Option to take full control and stop automation
+
+## Component Structure
+
+### Files to Create/Modify
+
+1. **`src/components/database/TimeWarpAIView.tsx`** (Major Rewrite)
+   - Chat interface with message history
+   - Toggle switch for viewing mode
+   - Input field at bottom
+   - Integrates step nodes or browser view based on mode
+
+2. **`src/components/database/AgentStepView.tsx`** (New)
+   - Standalone step nodes display (without activity log sidebar styling)
+   - Full-width layout optimized for chat context
+   - Clear visual hierarchy for completed/running/pending steps
+
+3. **`src/components/database/AgentChatMessage.tsx`** (New)
+   - Chat bubble component for user and assistant messages
+   - Assistant messages can embed step nodes inline
+   - Handles handoff UI (login required banner)
+
+### State Management
 
 ```text
-Current:
-  redirectTo: window.location.origin + "/"
-
-New:
-  redirectTo: [SUPABASE_URL]/functions/v1/google-oauth-callback
+State:
+- messages: ChatMessage[] (role, content, steps?)
+- isAgentRunning: boolean
+- viewMode: "steps" | "live"
+- currentSession: { sessionId, connectUrl, liveViewUrl } | null
+- handoffRequired: { type: string, instructions: string } | null
 ```
 
-Also pass user identifier in state parameter so the edge function knows which user to associate tokens with.
+## UI Layout
 
-### 3. Remove Client-Side Token Storage Code
-
-Remove `storeTokensViaEdgeFunction` from:
-- `src/pages/Index.tsx` (lines 14-37, 77-84, 93-105)
-- `src/pages/Auth.tsx` (lines 26-51, 80-84, 112-116)
-
-This code is no longer needed since tokens are captured server-side.
-
-## Technical Details
-
-### OAuth Flow After Fix
-
+### Step View Mode (Default)
 ```text
-1. User clicks "Connect Google" in Auth.tsx
-              |
-              v
-2. Supabase initiates OAuth with redirect to edge function
-              |
-              v
-3. User consents on Google
-              |
-              v
-4. Google redirects: /functions/v1/google-oauth-callback?code=xxx
-              |
-              v
-5. Edge function exchanges code for access_token + refresh_token
-              |
-              v
-6. Edge function stores tokens (service role bypasses RLS)
-              |
-              v
-7. Edge function redirects to: /database?google_connected=true
-              |
-              v
-8. sync-research cron finds tokens, syncs data
-              |
-              v
-9. Slack bot can access business data
++----------------------------------------------------------+
+| TimeWarp AI                              [Toggle: Steps] |
+|----------------------------------------------------------|
+|                                                          |
+|  [Assistant bubble]                                      |
+|  What would you like me to help you with today?          |
+|                                                          |
+|  [User bubble - right aligned]                           |
+|  Sign up for Canva and create a social media template    |
+|                                                          |
+|  [Assistant bubble with embedded steps]                  |
+|  Starting task...                                        |
+|  +--------------------------------------------------+    |
+|  | Step 1: Navigate to canva.com            [Done]  |    |
+|  | Step 2: Click "Sign Up"                  [Done]  |    |
+|  | Step 3: LOGIN REQUIRED                   [Waiting]|    |
+|  +--------------------------------------------------+    |
+|                                                          |
+|  [HANDOFF BANNER - Yellow warning]                       |
+|  Please sign in to Canva, then click Continue            |
+|  [Continue After Login]                                  |
+|                                                          |
+|----------------------------------------------------------|
+| [Type what you'd like to accomplish...]        [Send]    |
++----------------------------------------------------------+
 ```
 
-### Edge Function Token Exchange
-
-```javascript
-// Exchange code for tokens
-const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-  method: "POST",
-  headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  body: new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    client_secret: GOOGLE_CLIENT_SECRET,
-    code: authorizationCode,
-    grant_type: "authorization_code",
-    redirect_uri: [edge function URL],
-  }),
-});
-
-const { access_token, refresh_token, expires_in } = await tokenResponse.json();
+### Watch Live Mode (Toggled On)
+```text
++----------------------------------------------------------+
+| TimeWarp AI                              [Toggle: Live]  |
+|----------------------------------------------------------|
+| +--------------------------------+ +-------------------+ |
+| |                                | | Activity Log      | |
+| |   [BROWSERBASE LIVE VIEW]      | |                   | |
+| |                                | | Step 1: Navigate  | |
+| |   https://canva.com            | | Step 2: Click     | |
+| |                                | | Step 3: Waiting   | |
+| |                                | |                   | |
+| +--------------------------------+ +-------------------+ |
+|----------------------------------------------------------|
+| [Type what you'd like to accomplish...]        [Send]    |
++----------------------------------------------------------+
 ```
 
-### User Identification Strategy
+## Technical Implementation
 
-Since the edge function receives the OAuth redirect (not the app), we need to identify which user initiated the flow:
+### 1. TimeWarpAIView.tsx Changes
 
-Option A - Use state parameter:
-- When initiating OAuth, encode user_id in state: `state=base64({user_id, nonce})`
-- Edge function decodes state to get user_id
-- Verify nonce against stored value to prevent CSRF
+- Remove role selection cards
+- Remove time estimate selector
+- Add chat message list with ScrollArea
+- Add view mode toggle (Switch component)
+- Input at bottom with send button
+- Conditionally render AgentStepView or LiveBrowserView
 
-Option B - Use email matching:
-- After getting tokens, call Google userinfo API to get email
-- Match email to Supabase user
-- This works but requires email match
+### 2. Agent Execution Flow
 
-Recommendation: Use state parameter (Option A) for reliability.
+1. User types task and hits send
+2. Message added to chat history
+3. Browser session created (always, for potential live view toggle)
+4. Agent loop starts, executing steps
+5. Steps displayed inline in chat (Step View) or in sidebar (Live View)
+6. On handoff triggers, pause with clear UI
+7. User completes action and clicks "Continue"
+8. On completion, show summary in chat
 
-## Files to Modify
+### 3. Safety Checks (Existing Logic - Enhanced UI)
 
-| File | Action |
-|------|--------|
-| `supabase/functions/google-oauth-callback/index.ts` | Rewrite to handle GET redirect |
-| `src/pages/Auth.tsx` | Change redirect URL, add state parameter |
-| `src/pages/Index.tsx` | Remove storeTokensViaEdgeFunction code |
+The `run-agent` edge function already detects:
+- Login pages, OAuth prompts
+- 2FA/verification screens
+- CAPTCHAs
 
-## Expected Outcome
-- Tokens reliably captured server-side before any client code runs
-- No race conditions - server handles everything
-- sync-research finds tokens within 1 minute
-- Slack bot accesses business data successfully
+Enhancement: Add detection for:
+- Payment forms (credit card inputs)
+- Sensitive forms (SSN, personal info)
+
+Handoff banner shows contextual instructions based on type.
+
+## Summary
+
+This redesign simplifies the user experience from a 3-step wizard to a natural chat interface, while adding flexibility with the view mode toggle. The default "Step View" is lightweight and shows clear progress, while "Watch Live" provides full visibility for users who want to see exactly what the AI is doing. Safety remains a priority with automatic pauses for any sensitive operations.
+
