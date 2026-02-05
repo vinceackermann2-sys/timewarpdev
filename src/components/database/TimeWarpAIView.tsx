@@ -693,7 +693,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Chat / Step view area */}
-        <div className={`flex-1 flex flex-col ${isWatchLive ? 'w-1/2' : 'w-full'}`}>
+        <div className={cn("flex-1 flex flex-col", isWatchLive && liveViewUrl && "w-1/2")}>
           {/* Handoff banner */}
           {handoff && (
             <div className="bg-accent/10 border-b border-accent/30 p-4">
@@ -730,45 +730,125 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
             </div>
           )}
 
-          {/* Messages / Steps */}
-          {!isWatchLive ? (
-            <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-              <div className="max-w-3xl mx-auto space-y-4">
-                {messages.map((message) => (
-                  <AgentChatMessage
-                    key={message.id}
-                    role={message.role}
-                    content={message.content}
-                    steps={message.steps}
-                    isStreaming={isAgentRunning && message.id === messages[messages.length - 1]?.id}
-                  />
-                ))}
+          {/* Step Nodes View (default) */}
+          <div className="flex-1 overflow-auto p-6" ref={scrollRef}>
+            <div className="max-w-4xl mx-auto">
+              {/* Task header */}
+              <div className="mb-6 p-4 rounded-xl bg-card/50 border border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm">Current Task</h3>
+                    <p className="text-sm text-muted-foreground truncate">{currentTaskRef.current}</p>
+                  </div>
+                  {isAgentRunning && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Running
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Live Step Nodes */}
+              <div className="relative">
+                {/* Connecting line */}
+                {steps.length > 1 && (
+                  <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
+                )}
                 
-                {isComplete && summary && (
-                  <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 mt-4">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-primary mb-1">Task Completed!</h4>
-                        <p className="text-sm text-muted-foreground">{summary}</p>
+                <div className="space-y-4">
+                  {steps.map((step, idx) => {
+                    const isLast = idx === steps.length - 1;
+                    const isRunning = isLast && isAgentRunning && step.type !== "complete" && step.type !== "error";
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "relative flex gap-4 p-4 rounded-xl border transition-all duration-500",
+                          "animate-in fade-in slide-in-from-bottom-2",
+                          isRunning ? "bg-primary/5 border-primary/30 shadow-glow-sm" :
+                          step.type === "error" ? "bg-destructive/5 border-destructive/30" :
+                          step.type === "warning" ? "bg-accent/5 border-accent/30" :
+                          step.type === "complete" ? "bg-primary/5 border-primary/30" :
+                          "bg-card/50 border-border/50"
+                        )}
+                        style={{ animationDelay: `${idx * 50}ms` }}
+                      >
+                        {/* Step icon */}
+                        <div className={cn(
+                          "relative z-10 flex-shrink-0 h-12 w-12 rounded-xl flex items-center justify-center text-2xl",
+                          isRunning ? "bg-primary/20 animate-pulse" :
+                          step.type === "complete" ? "bg-primary/20" :
+                          step.type === "error" ? "bg-destructive/20" :
+                          step.type === "warning" ? "bg-accent/20" :
+                          "bg-muted"
+                        )}>
+                          {step.icon}
+                        </div>
+                        
+                        {/* Step content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm">{step.title}</span>
+                            {isRunning && (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                            )}
+                            {step.type === "complete" && (
+                              <CheckCircle className="h-3.5 w-3.5 text-primary" />
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{step.message}</p>
+                          {step.details && (
+                            <p className="text-xs text-muted-foreground/70 mt-1.5 font-mono bg-muted/50 px-2 py-1 rounded inline-block">
+                              {step.details}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* Timestamp */}
+                        <span className="text-xs text-muted-foreground/50 flex-shrink-0">
+                          {step.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Waiting indicator */}
+                  {steps.length === 0 && (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary" />
+                        <p className="text-sm text-muted-foreground">Starting task...</p>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </ScrollArea>
-          ) : (
-            <AgentStepView 
-              steps={steps} 
-              isComplete={isComplete} 
-              summary={summary}
-              className="flex-1"
-            />
-          )}
+              
+              {/* Completion card */}
+              {isComplete && summary && (
+                <div className="mt-6 p-5 rounded-xl bg-primary/10 border border-primary/30">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-primary/20">
+                      <CheckCircle className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-primary mb-1">Task Completed!</h4>
+                      <p className="text-sm text-muted-foreground">{summary}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Live browser view */}
-        {isWatchLive && (
+        {/* Live browser view (only when toggled) */}
+        {isWatchLive && liveViewUrl && (
           <div className="w-1/2 border-l border-border/50 flex flex-col">
             <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-card/30">
               <div className="flex items-center gap-1 px-2">
@@ -778,33 +858,20 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
               </div>
               <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/50 border border-border/50">
                 <span className="text-xs text-muted-foreground truncate font-mono">
-                  {!sessionId ? 'Waiting for session...' : 
-                   handoff ? '🔐 Waiting for manual action...' : 
-                   'Browserbase Live View'}
+                  {handoff ? '🔐 Waiting for manual action...' : 'Browserbase Live View'}
                 </span>
               </div>
             </div>
 
             <div className="flex-1 overflow-hidden">
-              {!liveViewUrl ? (
-                <div className="w-full h-full flex items-center justify-center bg-muted/20">
-                  <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary/50" />
-                    <p className="text-sm text-muted-foreground">
-                      {isCreatingSession ? 'Starting browser...' : 'Initializing...'}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <RemoteBrowser
-                  liveViewUrl={liveViewUrl}
-                  onConnectionChange={(connected) => {
-                    if (connected) {
-                      console.log('Live browser connected');
-                    }
-                  }}
-                />
-              )}
+              <RemoteBrowser
+                liveViewUrl={liveViewUrl}
+                onConnectionChange={(connected) => {
+                  if (connected) {
+                    console.log('Live browser connected');
+                  }
+                }}
+              />
             </div>
           </div>
         )}
