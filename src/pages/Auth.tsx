@@ -28,7 +28,8 @@ const Auth = () => {
     quizDataFromNav ??
     (() => {
       try {
-        const raw = sessionStorage.getItem("quizData");
+        // Try localStorage first (more reliable across OAuth redirects)
+        const raw = localStorage.getItem("quizData") || sessionStorage.getItem("quizData");
         return raw ? JSON.parse(raw) : null;
       } catch {
         return null;
@@ -37,7 +38,9 @@ const Auth = () => {
 
   useEffect(() => {
     // Persist quiz data in case the user refreshes during the OAuth redirect flow
+    // Use both storage types for reliability
     if (quizData) {
+      localStorage.setItem("quizData", JSON.stringify(quizData));
       sessionStorage.setItem("quizData", JSON.stringify(quizData));
     }
 

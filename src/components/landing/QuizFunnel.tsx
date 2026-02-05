@@ -82,7 +82,9 @@ export function QuizFunnel() {
     setIsConnecting(true);
 
     // Store quiz data so Dashboard can pick it up after OAuth redirect
+    // Use localStorage for reliability across OAuth redirects (sessionStorage can be lost)
     const quizPayload = { role: selectedRole, mode: selectedMode };
+    localStorage.setItem("quizData", JSON.stringify(quizPayload));
     sessionStorage.setItem("quizData", JSON.stringify(quizPayload));
 
     // Route through /auth so we can request the required Google Workspace scopes.
