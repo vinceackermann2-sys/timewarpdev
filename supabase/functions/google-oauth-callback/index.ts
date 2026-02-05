@@ -152,7 +152,8 @@
      console.log("[google-oauth-callback] Redirecting to app");
      
      // Redirect to app with success indicator
-     return Response.redirect(`${APP_URL}/database?google_connected=true`, 302);
+     // Redirect to root - Index.tsx will detect google_connected and trigger research mode
+     return Response.redirect(`${APP_URL}/?google_connected=true`, 302);
    }
    
    // Return 405 for other methods

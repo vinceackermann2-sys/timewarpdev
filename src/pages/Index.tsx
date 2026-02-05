@@ -32,23 +32,22 @@
        });
      }
  
-    // Check for quiz data from OAuth redirect
-    const storedQuizData = sessionStorage.getItem('quizData');
-    if (storedQuizData) {
-      try {
-        const parsed = JSON.parse(storedQuizData);
-        setQuizData(parsed);
-      } catch (e) {
-        console.error('Failed to parse quiz data:', e);
+     // Check for successful Google connection - trigger research mode
+     const googleConnected = searchParams.get("google_connected");
+     if (googleConnected === "true") {
+       const storedQuizData = sessionStorage.getItem('quizData');
+       if (storedQuizData) {
+         try {
+           const parsed = JSON.parse(storedQuizData);
+           setQuizData(parsed);
+           // Trigger research mode immediately after Google connection
+           setShowResearch(true);
+         } catch (e) {
+           console.error('Failed to parse quiz data:', e);
+         }
       }
     }
-
-    // Check for stored Google token
-    const storedGoogleToken = sessionStorage.getItem('googleProviderToken');
-    if (storedGoogleToken) {
-      setGoogleToken(storedGoogleToken);
-    }
-  }, []);
+   }, [searchParams, toast]);
 
   useEffect(() => {
     // Set up auth state listener
@@ -63,20 +62,7 @@
       setIsAuthenticated(!!session);
       setIsLoading(false);
 
-      // If authenticated and has quiz data, show the analysis view (both research and action modes)
-      const storedQuizData = sessionStorage.getItem('quizData');
-      if (session && storedQuizData) {
-        try {
-          const parsed = JSON.parse(storedQuizData);
-          // Both research and action modes go through the same analysis flow
-          if (parsed.mode === 'research' || parsed.mode === 'action') {
-            setQuizData(parsed);
-            setShowResearch(true);
-          }
-        } catch (e) {
-          console.error('Failed to parse quiz data:', e);
-        }
-      }
+       // Note: Research mode is now triggered by google_connected param in the other useEffect
     });
 
     return () => subscription.unsubscribe();
