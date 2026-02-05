@@ -74,6 +74,30 @@ export type Database = {
         }
         Relationships: []
       }
+      slack_user_links: {
+        Row: {
+          id: string
+          linked_at: string
+          slack_team_id: string
+          slack_user_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          linked_at?: string
+          slack_team_id: string
+          slack_user_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          linked_at?: string
+          slack_team_id?: string
+          slack_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       workspace_research: {
         Row: {
           created_at: string
