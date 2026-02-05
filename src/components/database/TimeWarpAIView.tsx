@@ -190,12 +190,15 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
   const createBrowserSession = async (task: string): Promise<boolean> => {
     setIsCreatingSession(true);
     try {
-      addStep({
-        icon: "🚀",
-        title: "Starting",
-        message: "Initializing browser session...",
-        type: "status"
-      });
+      // Only show browser init step if watch live is enabled
+      if (isWatchLive) {
+        addStep({
+          icon: "🚀",
+          title: "Starting",
+          message: "Initializing browser session...",
+          type: "status"
+        });
+      }
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-agent`,
@@ -224,13 +227,16 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       setConnectUrl(data.connectUrl);
       setLiveViewUrl(data.liveViewUrl);
       
-      addStep({
-        icon: "🎥",
-        title: "Session Ready",
-        message: "Browser session initialized",
-        details: `Session ID: ${data.sessionId?.substring(0, 8)}...`,
-        type: "status"
-      });
+      // Only show session ready step if watch live is enabled
+      if (isWatchLive) {
+        addStep({
+          icon: "🎥",
+          title: "Session Ready",
+          message: "Browser session initialized",
+          details: `Session ID: ${data.sessionId?.substring(0, 8)}...`,
+          type: "status"
+        });
+      }
 
       setIsCreatingSession(false);
       return true;
@@ -239,7 +245,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       addStep({
         icon: "❌",
         title: "Error",
-        message: err instanceof Error ? err.message : 'Failed to start browser',
+        message: err instanceof Error ? err.message : 'Failed to start',
         type: "error"
       });
       setIsCreatingSession(false);
