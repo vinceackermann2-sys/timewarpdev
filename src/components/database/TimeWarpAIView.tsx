@@ -16,12 +16,16 @@ import {
   Pause,
   CheckCircle,
   CreditCard,
-  ShieldAlert
+  ShieldAlert,
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight
 } from "lucide-react";
 import { AgentStep } from "./AgentActivityLog";
 import { AgentChatMessage } from "./AgentChatMessage";
 import { AgentStepView } from "./AgentStepView";
 import { RemoteBrowser } from "./RemoteBrowser";
+import { cn } from "@/lib/utils";
 
 interface ChatMessage {
   id: string;
@@ -34,6 +38,15 @@ interface HandoffState {
   required: boolean;
   type: "login" | "payment" | "verification" | "captcha" | "sensitive";
   instructions: string;
+}
+
+interface SuggestionCard {
+  id: string;
+  title: string;
+  description: string;
+  task: string;
+  gradient: string;
+  icon: string;
 }
 
 interface TimeWarpAIViewProps {
@@ -53,14 +66,60 @@ const SENSITIVE_PATTERNS = {
   sensitive: ["ssn", "social security", "passport", "driver's license", "bank account"]
 };
 
+// Default suggestion cards - these would be personalized based on user data
+const DEFAULT_SUGGESTIONS: SuggestionCard[] = [
+  {
+    id: "1",
+    title: "Create CRM Setup",
+    description: "Set up a customer relationship management system in HubSpot",
+    task: "Sign up for HubSpot and create a CRM with sales pipelines for leads, deals, and customers",
+    gradient: "from-violet-500/20 to-purple-600/20",
+    icon: "👥"
+  },
+  {
+    id: "2",
+    title: "Project Management",
+    description: "Build a project workspace in Notion or Trello",
+    task: "Create a Notion workspace with project tracking, task boards, and team documentation",
+    gradient: "from-blue-500/20 to-cyan-600/20",
+    icon: "📋"
+  },
+  {
+    id: "3",
+    title: "Email Campaign",
+    description: "Set up email marketing in Mailchimp",
+    task: "Sign up for Mailchimp and create an email newsletter template with signup form",
+    gradient: "from-pink-500/20 to-rose-600/20",
+    icon: "📧"
+  },
+  {
+    id: "4",
+    title: "Social Media Graphics",
+    description: "Design marketing assets in Canva",
+    task: "Create social media templates in Canva for Instagram, LinkedIn, and Twitter posts",
+    gradient: "from-amber-500/20 to-orange-600/20",
+    icon: "🎨"
+  },
+  {
+    id: "5",
+    title: "Analytics Dashboard",
+    description: "Set up Google Analytics for your website",
+    task: "Configure Google Analytics 4 and create a custom dashboard with key metrics",
+    gradient: "from-emerald-500/20 to-green-600/20",
+    icon: "📊"
+  },
+  {
+    id: "6",
+    title: "Landing Page",
+    description: "Build a simple landing page on Carrd",
+    task: "Create a professional landing page on Carrd with email capture and call-to-action",
+    gradient: "from-indigo-500/20 to-blue-600/20",
+    icon: "🌐"
+  }
+];
+
 export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: "Hi! I'm your AI assistant. Tell me what task you'd like me to complete, and I'll handle it for you. I'll pause automatically if I need you to log in or enter sensitive information."
-    }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isWatchLive, setIsWatchLive] = useState(false);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
@@ -69,6 +128,9 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [handoff, setHandoff] = useState<HandoffState | null>(null);
+  const [suggestions] = useState<SuggestionCard[]>(DEFAULT_SUGGESTIONS);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [isTaskActive, setIsTaskActive] = useState(false);
   
   // Browser session state
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -80,6 +142,10 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
   const stepNumberRef = useRef<number>(0);
   const currentTaskRef = useRef<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const visibleCards = 3;
+  const maxIndex = Math.max(0, suggestions.length - visibleCards);
 
   // Auto-scroll messages
   useEffect(() => {
@@ -90,10 +156,8 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
 
   // Handle initial task from research flow
   useEffect(() => {
-    if (initialTask && !isAgentRunning && messages.length === 1) {
-      setInputValue(initialTask.task);
+    if (initialTask && !isAgentRunning && messages.length === 0) {
       onTaskConsumed?.();
-      // Auto-submit after a short delay
       setTimeout(() => {
         handleSubmit(initialTask.task);
       }, 500);
@@ -104,10 +168,8 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     const newStep = { ...step, timestamp: new Date() };
     setSteps(prev => [...prev, newStep]);
     
-    // Update the last assistant message with steps
     setMessages(prev => {
       const updated = [...prev];
-      // Find last assistant message (iterate backwards)
       let lastAssistantIdx = -1;
       for (let i = updated.length - 1; i >= 0; i--) {
         if (updated[i].role === "assistant") {
@@ -261,7 +323,6 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
               data.loginRequired ? 'warning' : 'action'
       });
 
-      // Check for login/sensitive content from backend
       if (data.loginRequired) {
         setHandoff({
           required: true,
@@ -271,7 +332,6 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
         return false;
       }
 
-      // Additional client-side detection for payment/sensitive pages
       if (data.pageContent) {
         const detected = detectSensitiveContent(data.pageContent);
         if (detected) {
@@ -356,15 +416,14 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     const task = taskOverride || inputValue.trim();
     if (!task) return;
 
-    // Reset state for new task
     setSteps([]);
     setSummary(null);
     setIsComplete(false);
     setHandoff(null);
     stepNumberRef.current = 0;
     currentTaskRef.current = task;
+    setIsTaskActive(true);
 
-    // Add user message
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
@@ -373,20 +432,22 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     setMessages(prev => [...prev, userMessage]);
     setInputValue("");
 
-    // Add assistant acknowledgment
     const assistantMessage: ChatMessage = {
       id: (Date.now() + 1).toString(),
       role: "assistant",
-      content: "Got it! Starting your task now...",
+      content: "Starting your task...",
       steps: []
     };
     setMessages(prev => [...prev, assistantMessage]);
 
-    // Create session and start
     const success = await createBrowserSession(task);
     if (success) {
       runAgentLoop();
     }
+  };
+
+  const handleSuggestionClick = (suggestion: SuggestionCard) => {
+    handleSubmit(suggestion.task);
   };
 
   const handleContinue = () => {
@@ -410,6 +471,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     setIsAgentRunning(false);
     setIsPaused(false);
     setHandoff(null);
+    setIsTaskActive(false);
     addStep({
       icon: "🛑",
       title: "Stopped",
@@ -423,6 +485,17 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     runAgentLoop();
   };
 
+  const handleNewTask = () => {
+    setIsTaskActive(false);
+    setMessages([]);
+    setSteps([]);
+    setSummary(null);
+    setIsComplete(false);
+    setSessionId(null);
+    setConnectUrl(null);
+    setLiveViewUrl(null);
+  };
+
   const getHandoffIcon = () => {
     switch (handoff?.type) {
       case "payment": return <CreditCard className="h-5 w-5" />;
@@ -431,6 +504,129 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     }
   };
 
+  const scrollCarousel = (direction: "left" | "right") => {
+    if (direction === "left") {
+      setCarouselIndex(Math.max(0, carouselIndex - 1));
+    } else {
+      setCarouselIndex(Math.min(maxIndex, carouselIndex + 1));
+    }
+  };
+
+  // Idle state - show floating chat and carousel
+  if (!isTaskActive) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 overflow-hidden">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <img 
+              src="/favicon.png" 
+              alt="TimeWarp" 
+              className="h-10 w-10 rounded-xl object-cover shadow-glow"
+            />
+            <h1 className="text-2xl font-bold">TimeWarp AI</h1>
+            <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+          </div>
+          <p className="text-muted-foreground text-sm max-w-md">
+            Your AI automation assistant. Describe a task and I'll handle it for you.
+          </p>
+        </div>
+
+        {/* Suggestion Cards Carousel */}
+        <div className="w-full max-w-4xl mb-8">
+          <div className="flex items-center justify-between mb-4 px-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Suggested for you</h3>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => scrollCarousel("left")}
+                disabled={carouselIndex === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => scrollCarousel("right")}
+                disabled={carouselIndex >= maxIndex}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="overflow-hidden">
+            <div 
+              ref={carouselRef}
+              className="flex gap-4 transition-transform duration-300 ease-out"
+              style={{ transform: `translateX(-${carouselIndex * (100 / visibleCards + 1.5)}%)` }}
+            >
+              {suggestions.map((suggestion) => (
+                <button
+                  key={suggestion.id}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className={cn(
+                    "flex-shrink-0 w-[calc(33.333%-11px)] min-w-[200px] p-5 rounded-2xl border border-border/50",
+                    "bg-gradient-to-br text-left transition-all duration-300",
+                    "hover:border-primary/50 hover:shadow-glow-sm hover:scale-[1.02]",
+                    "group",
+                    suggestion.gradient
+                  )}
+                >
+                  <span className="text-3xl mb-3 block">{suggestion.icon}</span>
+                  <h4 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">
+                    {suggestion.title}
+                  </h4>
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {suggestion.description}
+                  </p>
+                  <div className="mt-3 flex items-center gap-1 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    Start task <ArrowRight className="h-3 w-3" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Chat Input */}
+        <div className="w-full max-w-2xl">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+            className="relative"
+          >
+            <div className="flex items-center gap-3 p-2 rounded-2xl bg-card/80 backdrop-blur border border-border/50 shadow-lg">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="What would you like me to do?"
+                className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base px-4"
+              />
+              <Button 
+                type="submit" 
+                size="icon"
+                disabled={!inputValue.trim()}
+                className="h-10 w-10 rounded-xl gradient-primary shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </form>
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            I'll pause automatically for logins, payments, and sensitive information
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Active task state - show execution view
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -444,18 +640,20 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
           <div>
             <h1 className="font-semibold flex items-center gap-2">
               TimeWarp AI
-              <Sparkles className="h-4 w-4 text-primary" />
+              {isAgentRunning && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
             </h1>
-            <p className="text-xs text-muted-foreground">Your AI automation assistant</p>
+            <p className="text-xs text-muted-foreground truncate max-w-xs">
+              {currentTaskRef.current}
+            </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* View mode toggle */}
           <div className="flex items-center gap-2">
             <Label htmlFor="watch-live" className="text-sm text-muted-foreground flex items-center gap-1.5">
               {isWatchLive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              Watch Live
+              Live
             </Label>
             <Switch
               id="watch-live"
@@ -481,6 +679,12 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
             <Button variant="outline" size="sm" onClick={handleStop}>
               <Hand className="h-4 w-4 mr-1.5" />
               Stop
+            </Button>
+          )}
+          {isComplete && (
+            <Button size="sm" onClick={handleNewTask} className="gradient-primary">
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              New Task
             </Button>
           )}
         </div>
@@ -509,17 +713,17 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
                   <div className="flex items-center gap-3">
                     <Button size="sm" onClick={handleContinue} className="bg-accent hover:bg-accent/90">
                       <CheckCircle className="h-4 w-4 mr-1.5" />
-                      Continue After Completing
+                      Continue
                     </Button>
                     {!isWatchLive && (
                       <Button variant="outline" size="sm" onClick={() => setIsWatchLive(true)}>
                         <Eye className="h-4 w-4 mr-1.5" />
-                        Watch Live to Complete
+                        Watch Live
                       </Button>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground/70 mt-2">
-                    🔒 Your credentials are entered directly in the secure browser - we never see them
+                    🔒 Your credentials are entered directly in the secure browser
                   </p>
                 </div>
               </div>
@@ -528,7 +732,6 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
 
           {/* Messages / Steps */}
           {!isWatchLive ? (
-            // Chat view with inline steps
             <ScrollArea className="flex-1 p-4" ref={scrollRef}>
               <div className="max-w-3xl mx-auto space-y-4">
                 {messages.map((message) => (
@@ -555,7 +758,6 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
               </div>
             </ScrollArea>
           ) : (
-            // Step view panel (sidebar style when watching live)
             <AgentStepView 
               steps={steps} 
               isComplete={isComplete} 
@@ -563,45 +765,11 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
               className="flex-1"
             />
           )}
-
-          {/* Input area */}
-          <div className="p-4 border-t border-border/50 bg-card/30">
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSubmit();
-              }}
-              className="max-w-3xl mx-auto flex gap-3"
-            >
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Describe what you'd like me to do..."
-                disabled={isAgentRunning || isCreatingSession}
-                className="flex-1"
-              />
-              <Button 
-                type="submit" 
-                disabled={!inputValue.trim() || isAgentRunning || isCreatingSession}
-                className="gradient-primary"
-              >
-                {isCreatingSession ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </form>
-            <p className="text-xs text-muted-foreground text-center mt-2 max-w-3xl mx-auto">
-              The AI will browse the web and complete tasks. It pauses automatically for logins, payments, and sensitive data.
-            </p>
-          </div>
         </div>
 
-        {/* Live browser view (when toggled) */}
+        {/* Live browser view */}
         {isWatchLive && (
           <div className="w-1/2 border-l border-border/50 flex flex-col">
-            {/* Browser toolbar */}
             <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-card/30">
               <div className="flex items-center gap-1 px-2">
                 <div className="h-2.5 w-2.5 rounded-full bg-destructive/80" />
@@ -617,14 +785,13 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
               </div>
             </div>
 
-            {/* Browser content */}
             <div className="flex-1 overflow-hidden">
               {!liveViewUrl ? (
                 <div className="w-full h-full flex items-center justify-center bg-muted/20">
                   <div className="text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary/50" />
                     <p className="text-sm text-muted-foreground">
-                      {isCreatingSession ? 'Starting browser...' : 'Submit a task to start'}
+                      {isCreatingSession ? 'Starting browser...' : 'Initializing...'}
                     </p>
                   </div>
                 </div>
