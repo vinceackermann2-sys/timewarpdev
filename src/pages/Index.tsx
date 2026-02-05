@@ -19,7 +19,6 @@
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [showResearch, setShowResearch] = useState(false);
-  const [googleToken, setGoogleToken] = useState<string | null>(null);
 
   useEffect(() => {
      // Check for Google OAuth error
@@ -95,7 +94,6 @@
       <LiveAnalysisView
         role={quizData.role}
         mode={quizData.mode}
-        googleToken={googleToken}
         onComplete={handleResearchComplete}
         onTakeControl={handleTakeControl}
       />

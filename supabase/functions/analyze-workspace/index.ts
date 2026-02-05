@@ -6,6 +6,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Helper to refresh Google access token
+async function refreshAccessToken(refreshToken: string): Promise<string | null> {
+  const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+  const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+
+  if (!clientId || !clientSecret) {
+    console.error("Google OAuth credentials not configured");
+    return null;
+  }
+
+  try {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Token refresh failed:", await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    return data.access_token;
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    return null;
+  }
+}
+
 interface AnalysisStep {
   type: "thought" | "action" | "observation" | "finding" | "complete";
   content: string;
@@ -244,24 +279,58 @@ serve(async (req) => {
     console.log("Authenticated user for analysis:", userId);
 
     const body = await req.json().catch(() => ({}));
-    const { accessToken, role = 'ceo', mode = 'research', includeUploadedFiles } = body;
+   const { role = 'ceo', mode = 'research', includeUploadedFiles } = body;
     
     const isResearchMode = mode === 'research';
     const roleLabel = role?.toUpperCase() || 'CEO';
     
-    if (!accessToken) {
-      return new Response(
-        JSON.stringify({ error: "Google access token required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+   // Fetch Google access token from database (stored by server-side OAuth)
+   const supabaseServiceRole = createClient(
+     supabaseUrl,
+     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+     { auth: { persistSession: false } }
+   );
 
-    const tokenInfoResponse = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
-    if (!tokenInfoResponse.ok) {
-      return new Response(
-        JSON.stringify({ error: "Invalid Google access token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+   const { data: tokenData, error: tokenError } = await supabaseServiceRole
+     .from("google_workspace_tokens")
+     .select("access_token, refresh_token, expires_at")
+     .eq("user_id", userId)
+     .single();
+
+   if (tokenError || !tokenData) {
+     console.error("No Google tokens found for user:", userId, tokenError);
+     return new Response(
+       JSON.stringify({ error: "Google Workspace not connected. Please reconnect your Google account." }),
+       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+     );
+   }
+
+   // Check if token is expired and refresh if needed
+   let accessToken = tokenData.access_token;
+   const expiresAt = new Date(tokenData.expires_at);
+   const now = new Date();
+
+   if (expiresAt <= now && tokenData.refresh_token) {
+     console.log("Access token expired, refreshing...");
+     const newAccessToken = await refreshAccessToken(tokenData.refresh_token);
+     if (newAccessToken) {
+       accessToken = newAccessToken;
+       // Update the stored token
+       await supabaseServiceRole
+         .from("google_workspace_tokens")
+         .update({
+           access_token: newAccessToken,
+           expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+           updated_at: new Date().toISOString(),
+         })
+         .eq("user_id", userId);
+       console.log("Token refreshed successfully");
+     } else {
+       return new Response(
+         JSON.stringify({ error: "Failed to refresh Google token. Please reconnect your Google account." }),
+         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+       );
+     }
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
