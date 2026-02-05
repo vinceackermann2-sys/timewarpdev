@@ -187,7 +187,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     });
   }, []);
 
-  const createBrowserSession = async (task: string): Promise<boolean> => {
+  const createBrowserSession = async (task: string): Promise<{ sessionId: string; connectUrl: string } | null> => {
     setIsCreatingSession(true);
     try {
       // Only show browser init step if watch live is enabled
@@ -239,7 +239,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       }
 
       setIsCreatingSession(false);
-      return true;
+      return { sessionId: data.sessionId, connectUrl: data.connectUrl };
     } catch (err) {
       console.error('Session creation error:', err);
       const errorMessage = err instanceof Error ? err.message : '';
@@ -257,7 +257,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       });
       setIsCreatingSession(false);
       setIsTaskActive(false);
-      return false;
+      return null;
     }
   };
 
@@ -284,8 +284,8 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     return null;
   };
 
-  const executeStep = useCallback(async (): Promise<boolean> => {
-    if (!sessionId || !connectUrl) return false;
+  const executeStep = useCallback(async (session: string, wsUrl: string): Promise<boolean> => {
+    if (!session || !wsUrl) return false;
 
     try {
       const response = await fetch(
@@ -298,8 +298,8 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
           },
           body: JSON.stringify({
             action: 'execute',
-            sessionId,
-            connectUrl,
+            sessionId: session,
+            connectUrl: wsUrl,
             task: currentTaskRef.current,
             role: 'assistant',
             stepNumber: stepNumberRef.current
@@ -377,10 +377,13 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       });
       return false;
     }
-  }, [sessionId, connectUrl, addStep]);
+  }, [addStep]);
 
-  const runAgentLoop = useCallback(async () => {
-    if (!sessionId || !connectUrl || agentLoopRef.current) return;
+  const runAgentLoop = useCallback(async (session?: string, wsUrl?: string) => {
+    const activeSession = session || sessionId;
+    const activeWsUrl = wsUrl || connectUrl;
+    
+    if (!activeSession || !activeWsUrl || agentLoopRef.current) return;
 
     agentLoopRef.current = true;
     setIsAgentRunning(true);
@@ -407,7 +410,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     let shouldContinue = true;
 
     while (shouldContinue && stepNumberRef.current < maxSteps && agentLoopRef.current && !isPaused) {
-      shouldContinue = await executeStep();
+      shouldContinue = await executeStep(activeSession, activeWsUrl);
       if (shouldContinue) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
@@ -454,9 +457,9 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     };
     setMessages(prev => [...prev, assistantMessage]);
 
-    const success = await createBrowserSession(task);
-    if (success) {
-      runAgentLoop();
+    const sessionData = await createBrowserSession(task);
+    if (sessionData) {
+      runAgentLoop(sessionData.sessionId, sessionData.connectUrl);
     }
   };
 
