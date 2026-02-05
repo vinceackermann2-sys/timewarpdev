@@ -12,46 +12,9 @@ interface WhatsNewDropdownProps {
   isCollapsed: boolean;
 }
 
-const inboxItems = [
-  {
-    id: 1,
-    title: "Welcome to TimeWarp!",
-    message: "Get started by connecting your Google Workspace.",
-    time: "Just now",
-    unread: true,
-  },
-  {
-    id: 2,
-    title: "Analysis Complete",
-    message: "Your CEO analysis found 3 optimization opportunities.",
-    time: "2 hours ago",
-    unread: true,
-  },
-  {
-    id: 3,
-    title: "Weekly Report Ready",
-    message: "Your weekly productivity report is available.",
-    time: "Yesterday",
-    unread: false,
-  },
-];
+const inboxItems: Array<{ id: number; title: string; message: string; time: string; unread: boolean }> = [];
 
-const updateItems = [
-  {
-    id: 1,
-    title: "New Feature: Data Export",
-    message: "You can now export your analyzed data to CSV.",
-    time: "Today",
-    isNew: true,
-  },
-  {
-    id: 2,
-    title: "Improved AI Analysis",
-    message: "Our AI engine is now 2x faster and more accurate.",
-    time: "3 days ago",
-    isNew: false,
-  },
-];
+const updateItems: Array<{ id: number; title: string; message: string; time: string; isNew: boolean }> = [];
 
 export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
   const [activeTab, setActiveTab] = useState("inbox");
