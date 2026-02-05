@@ -22,6 +22,34 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
+  // Helper function to store tokens via edge function (bypasses RLS)
+  const storeTokensViaEdgeFunction = async (session: any) => {
+    try {
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/google-oauth-callback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          access_token: session.provider_token,
+          refresh_token: session.provider_refresh_token,
+          expires_in: 3600,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("[Auth] Failed to store tokens via edge function:", errorData);
+      } else {
+        console.log("[Auth] Tokens stored successfully via edge function");
+      }
+    } catch (error) {
+      console.error("[Auth] Error storing tokens:", error);
+    }
+  };
+
   // Get quiz data from navigation state
   const quizDataFromNav = (location.state as any)?.quizData;
   const quizData =
@@ -49,23 +77,10 @@ const Auth = () => {
         if (session.provider_token) {
           sessionStorage.setItem("googleProviderToken", session.provider_token);
           
-          // Store refresh token if available
+          // Store tokens via edge function (bypasses RLS)
           if (session.provider_refresh_token) {
             sessionStorage.setItem("googleProviderRefreshToken", session.provider_refresh_token);
-            
-            const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
-            await supabase.from("google_workspace_tokens").upsert({
-              user_id: session.user.id,
-              access_token: session.provider_token,
-              refresh_token: session.provider_refresh_token,
-              expires_at: expiresAt,
-            }, { onConflict: "user_id" });
-            
-            await supabase.from("google_workspace_connections").upsert({
-              user_id: session.user.id,
-              connected: true,
-              last_connected_at: new Date().toISOString(),
-            }, { onConflict: "user_id" });
+            await storeTokensViaEdgeFunction(session);
           }
           
           navigateToDashboard();
@@ -94,25 +109,10 @@ const Auth = () => {
         if (session.provider_token) {
           sessionStorage.setItem("googleProviderToken", session.provider_token);
           
-          // Store refresh token in database for later use
+          // Store tokens via edge function (bypasses RLS)
           if (session.provider_refresh_token) {
             sessionStorage.setItem("googleProviderRefreshToken", session.provider_refresh_token);
-            
-            // Also save to database for persistence
-            const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString(); // 1 hour from now
-            await supabase.from("google_workspace_tokens").upsert({
-              user_id: session.user.id,
-              access_token: session.provider_token,
-              refresh_token: session.provider_refresh_token,
-              expires_at: expiresAt,
-            }, { onConflict: "user_id" });
-            
-            // Also mark connection as active
-            await supabase.from("google_workspace_connections").upsert({
-              user_id: session.user.id,
-              connected: true,
-              last_connected_at: new Date().toISOString(),
-            }, { onConflict: "user_id" });
+            await storeTokensViaEdgeFunction(session);
           }
         }
 
@@ -176,43 +176,31 @@ const Auth = () => {
     try {
       const redirectTo = `${window.location.origin}/`;
 
-      // When coming from the quiz/research flow, we must request Google Workspace read scopes
-      // so we receive a usable Google access token in `session.provider_token`.
-      const workspaceScopes = [
-        // Gmail - read access
+      // When coming from the quiz/research flow, request Google Workspace scopes
+      const workspaceScopes = quizData ? [
         "https://www.googleapis.com/auth/gmail.readonly",
-        // Gmail - send and compose for Action Chat
         "https://www.googleapis.com/auth/gmail.send",
         "https://www.googleapis.com/auth/gmail.compose",
-        // Drive - read access for files and content
         "https://www.googleapis.com/auth/drive.readonly",
-        // Calendar - read access
         "https://www.googleapis.com/auth/calendar.readonly",
-        // Calendar - create events for Action Chat
         "https://www.googleapis.com/auth/calendar.events",
-        // Sheets - read spreadsheet content
         "https://www.googleapis.com/auth/spreadsheets.readonly",
-        // Sheets - create/edit spreadsheets for Action Chat
         "https://www.googleapis.com/auth/spreadsheets",
-        // Forms - read form structure and responses
         "https://www.googleapis.com/auth/forms.body.readonly",
-        // Docs - create/edit documents for Action Chat
         "https://www.googleapis.com/auth/documents",
-      ].join(" ");
+      ].join(" ") : undefined;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo,
-          ...(quizData
-            ? {
-                scopes: workspaceScopes,
-                queryParams: {
-                  access_type: "offline",
-                  prompt: "consent",
-                },
-              }
-            : {}),
+          ...(workspaceScopes ? {
+            scopes: workspaceScopes,
+            queryParams: {
+              access_type: "offline",
+              prompt: "consent",
+            },
+          } : {}),
         },
       });
 
