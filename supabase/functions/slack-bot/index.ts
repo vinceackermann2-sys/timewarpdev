@@ -145,14 +145,30 @@
      context += rawData.topContacts.slice(0, 5).map((c: any) => `- ${c.email} (${c.count} interactions)`).join("\n") + "\n\n";
    }
  
-   if (rawData.emailSummaries?.length) {
-     context += `## Recent Emails\n`;
-     context += rawData.emailSummaries.slice(0, 5).map((e: any) => `- "${e.subject}" from ${e.from}`).join("\n") + "\n\n";
-   }
+  // Handle both legacy format (emailSummaries) and new format (emails from sync-research)
+  const emails = rawData.emails || rawData.emailSummaries || [];
+  if (emails.length > 0) {
+    context += `## Recent Emails (${emails.length} total)\n`;
+    context += emails.slice(0, 10).map((e: any) => `- "${e.subject}" from ${e.from}`).join("\n") + "\n\n";
+  }
  
    if (rawData.calendarEvents?.length) {
-     context += `## Upcoming Events\n`;
-     context += rawData.calendarEvents.slice(0, 5).map((e: any) => `- ${e.summary} (${e.start?.dateTime || e.start})`).join("\n") + "\n\n";
+    context += `## Calendar Events (${rawData.calendarEvents.length} total)\n`;
+    context += rawData.calendarEvents.slice(0, 10).map((e: any) => `- ${e.summary} (${e.start?.dateTime || e.start})`).join("\n") + "\n\n";
+  }
+
+  // Handle documents from sync-research
+  const documents = rawData.documents || [];
+  if (documents.length > 0) {
+    context += `## Documents (${documents.length} total)\n`;
+    context += documents.slice(0, 10).map((d: any) => `- ${d.name} (modified: ${d.modifiedTime})`).join("\n") + "\n\n";
+  }
+
+  // Handle spreadsheets from sync-research
+  const spreadsheets = rawData.spreadsheets || [];
+  if (spreadsheets.length > 0) {
+    context += `## Spreadsheets (${spreadsheets.length} total)\n`;
+    context += spreadsheets.slice(0, 5).map((s: any) => `- ${s.name}`).join("\n") + "\n\n";
    }
  
    return context;
