@@ -18,10 +18,10 @@
  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
  const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
- const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
- 
- // App URL for redirects - use preview/production URL
- const APP_URL = "https://id-preview--d89e6779-3499-4f43-b442-f1bfad461bb0.lovable.app";
+const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
+
+// Fallback app URL if origin not in state
+const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
  
  Deno.serve(async (req) => {
    const url = new URL(req.url);
@@ -38,26 +38,30 @@
        error 
      });
      
-     // Handle OAuth errors from Google
-     if (error) {
-       console.error("[google-oauth-callback] OAuth error:", error);
-       return Response.redirect(`${APP_URL}/?google_error=${encodeURIComponent(error)}`, 302);
-     }
-     
-     if (!code || !state) {
-       console.error("[google-oauth-callback] Missing code or state");
-       return Response.redirect(`${APP_URL}/?google_error=missing_params`, 302);
-     }
-     
-     // Decode state to get user_id
-     let stateData: { user_id: string; nonce: string };
-     try {
-       stateData = JSON.parse(atob(state));
-       console.log("[google-oauth-callback] Decoded state:", { user_id: stateData.user_id });
-     } catch (e) {
-       console.error("[google-oauth-callback] Failed to decode state:", e);
-       return Response.redirect(`${APP_URL}/?google_error=invalid_state`, 302);
-     }
+    // Handle missing params first
+    if (!code || !state) {
+      console.error("[google-oauth-callback] Missing code or state");
+      return Response.redirect(`${FALLBACK_APP_URL}/?google_error=missing_params`, 302);
+    }
+    
+    // Decode state to get user_id and origin for redirects
+    let stateData: { user_id: string; nonce: string; origin?: string };
+    let appUrl = FALLBACK_APP_URL;
+    
+    try {
+      stateData = JSON.parse(atob(state));
+      appUrl = stateData.origin || FALLBACK_APP_URL;
+      console.log("[google-oauth-callback] Decoded state:", { user_id: stateData.user_id, origin: appUrl });
+    } catch (e) {
+      console.error("[google-oauth-callback] Failed to decode state:", e);
+      return Response.redirect(`${FALLBACK_APP_URL}/?google_error=invalid_state`, 302);
+    }
+    
+    // Handle OAuth errors from Google
+    if (error) {
+      console.error("[google-oauth-callback] OAuth error:", error);
+      return Response.redirect(`${appUrl}/?google_error=${encodeURIComponent(error)}`, 302);
+    }
      
      // Verify state nonce against stored value
      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -70,21 +74,21 @@
        .eq("user_id", stateData.user_id)
        .single();
      
-     if (connectionError || !connectionData) {
-       console.error("[google-oauth-callback] Failed to verify state:", connectionError);
-       return Response.redirect(`${APP_URL}/?google_error=state_verification_failed`, 302);
-     }
-     
-     // Check if state matches and hasn't expired
-     if (connectionData.oauth_state !== stateData.nonce) {
-       console.error("[google-oauth-callback] State nonce mismatch");
-       return Response.redirect(`${APP_URL}/?google_error=invalid_nonce`, 302);
-     }
-     
-     if (new Date(connectionData.oauth_state_expires_at!) < new Date()) {
-       console.error("[google-oauth-callback] State expired");
-       return Response.redirect(`${APP_URL}/?google_error=state_expired`, 302);
-     }
+    if (connectionError || !connectionData) {
+      console.error("[google-oauth-callback] Failed to verify state:", connectionError);
+      return Response.redirect(`${appUrl}/?google_error=state_verification_failed`, 302);
+    }
+    
+    // Check if state matches and hasn't expired
+    if (connectionData.oauth_state !== stateData.nonce) {
+      console.error("[google-oauth-callback] State nonce mismatch");
+      return Response.redirect(`${appUrl}/?google_error=invalid_nonce`, 302);
+    }
+    
+    if (new Date(connectionData.oauth_state_expires_at!) < new Date()) {
+      console.error("[google-oauth-callback] State expired");
+      return Response.redirect(`${appUrl}/?google_error=state_expired`, 302);
+    }
      
      // Exchange authorization code for tokens
      const redirectUri = `${SUPABASE_URL}/functions/v1/google-oauth-callback`;
@@ -103,11 +107,11 @@
        }),
      });
      
-     if (!tokenResponse.ok) {
-       const errorText = await tokenResponse.text();
-       console.error("[google-oauth-callback] Token exchange failed:", errorText);
-       return Response.redirect(`${APP_URL}/?google_error=token_exchange_failed`, 302);
-     }
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error("[google-oauth-callback] Token exchange failed:", errorText);
+      return Response.redirect(`${appUrl}/?google_error=token_exchange_failed`, 302);
+    }
      
      const tokenData = await tokenResponse.json();
      console.log("[google-oauth-callback] Token exchange successful", {
@@ -130,10 +134,10 @@
          updated_at: new Date().toISOString(),
        }, { onConflict: "user_id" });
      
-     if (tokenError) {
-       console.error("[google-oauth-callback] Failed to store tokens:", tokenError);
-       return Response.redirect(`${APP_URL}/?google_error=storage_failed`, 302);
-     }
+    if (tokenError) {
+      console.error("[google-oauth-callback] Failed to store tokens:", tokenError);
+      return Response.redirect(`${appUrl}/?google_error=storage_failed`, 302);
+    }
      
      console.log("[google-oauth-callback] Tokens stored successfully");
      
@@ -149,11 +153,11 @@
          oauth_state_expires_at: null,
        }, { onConflict: "user_id" });
      
-     console.log("[google-oauth-callback] Redirecting to app");
-     
-     // Redirect to app with success indicator
-     // Redirect to root - Index.tsx will detect google_connected and trigger research mode
-     return Response.redirect(`${APP_URL}/?google_connected=true`, 302);
+    console.log("[google-oauth-callback] Redirecting to app:", appUrl);
+    
+    // Redirect to app with success indicator
+    // Redirect to root - Index.tsx will detect google_connected and trigger research mode
+    return Response.redirect(`${appUrl}/?google_connected=true`, 302);
    }
    
    // Return 405 for other methods

@@ -181,6 +181,7 @@ const Auth = () => {
          body: JSON.stringify({
            user_id: session.user.id,
            scopes,
+           origin: window.location.origin,
          }),
        });
        
