@@ -26,43 +26,43 @@
      });
    }
    
-   try {
-     const { scopes, user_id } = await req.json();
-     
-     if (!user_id) {
-       return new Response(JSON.stringify({ error: "user_id required" }), {
-         status: 400,
-         headers: { ...corsHeaders, "Content-Type": "application/json" },
-       });
-     }
-     
-     // Generate nonce for CSRF protection
-     const nonce = crypto.randomUUID();
-     
-     // Store OAuth state for verification
-     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-       auth: { persistSession: false },
-     });
-     
-     const { error: stateError } = await supabase
-       .from("google_workspace_connections")
-       .upsert({
-         user_id,
-         oauth_state: nonce,
-         oauth_state_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-         updated_at: new Date().toISOString(),
-       }, { onConflict: "user_id" });
-     
-     if (stateError) {
-       console.error("[initiate-google-oauth] Failed to store state:", stateError);
-       return new Response(JSON.stringify({ error: "Failed to initiate OAuth" }), {
-         status: 500,
-         headers: { ...corsHeaders, "Content-Type": "application/json" },
-       });
-     }
-     
-     // Create state parameter
-     const stateParam = btoa(JSON.stringify({ user_id, nonce }));
+  try {
+    const { scopes, user_id, origin } = await req.json();
+    
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: "user_id required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    // Generate nonce for CSRF protection
+    const nonce = crypto.randomUUID();
+    
+    // Store OAuth state for verification
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
+    
+    const { error: stateError } = await supabase
+      .from("google_workspace_connections")
+      .upsert({
+        user_id,
+        oauth_state: nonce,
+        oauth_state_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+    
+    if (stateError) {
+      console.error("[initiate-google-oauth] Failed to store state:", stateError);
+      return new Response(JSON.stringify({ error: "Failed to initiate OAuth" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    // Create state parameter with origin for redirect
+    const stateParam = btoa(JSON.stringify({ user_id, nonce, origin: origin || "" }));
      
      // Build OAuth URL
      const redirectUri = `${SUPABASE_URL}/functions/v1/google-oauth-callback`;
