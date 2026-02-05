@@ -10,6 +10,32 @@ interface QuizData {
   mode: string;
 }
 
+// Helper to store tokens via edge function (bypasses RLS)
+const storeTokensViaEdgeFunction = async (session: any) => {
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/google-oauth-callback`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        access_token: session.provider_token,
+        refresh_token: session.provider_refresh_token,
+        expires_in: 3600,
+      }),
+    });
+    if (!response.ok) {
+      console.error("[Index] Failed to store tokens:", await response.text());
+    } else {
+      console.log("[Index] Tokens stored successfully via edge function");
+    }
+  } catch (error) {
+    console.error("[Index] Error storing tokens:", error);
+  }
+};
+
 const Index = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -40,13 +66,21 @@ const Index = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setIsAuthenticated(!!session);
         
         // Capture provider_token when available (only on initial OAuth)
         if (session?.provider_token) {
           sessionStorage.setItem('googleProviderToken', session.provider_token);
           setGoogleToken(session.provider_token);
+          
+          // Store refresh token if available
+          if (session.provider_refresh_token) {
+            sessionStorage.setItem('googleProviderRefreshToken', session.provider_refresh_token);
+          }
+          
+          // Store tokens via edge function (bypasses RLS)
+          await storeTokensViaEdgeFunction(session);
         }
       }
     );
@@ -60,6 +94,14 @@ const Index = () => {
       if (session?.provider_token) {
         sessionStorage.setItem('googleProviderToken', session.provider_token);
         setGoogleToken(session.provider_token);
+        
+        // Store refresh token if available
+        if (session.provider_refresh_token) {
+          sessionStorage.setItem('googleProviderRefreshToken', session.provider_refresh_token);
+        }
+        
+        // Store tokens via edge function (bypasses RLS)
+        storeTokensViaEdgeFunction(session);
       }
 
       // If authenticated and has quiz data, show the analysis view (both research and action modes)
