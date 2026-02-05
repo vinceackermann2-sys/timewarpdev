@@ -245,7 +245,9 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       addStep({
         icon: "❌",
         title: "Error",
-        message: err instanceof Error ? err.message : 'Failed to start',
+        message: isWatchLive 
+          ? (err instanceof Error ? err.message : 'Failed to start browser session')
+          : "Something went wrong. Please try again.",
         type: "error"
       });
       setIsCreatingSession(false);
@@ -380,18 +382,18 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
 
     if (stepNumberRef.current === 0) {
       addStep({
-        icon: "🤖",
-        title: "Agent Started",
-        message: "Beginning task execution...",
-        details: currentTaskRef.current,
+        icon: isWatchLive ? "🤖" : "✨",
+        title: isWatchLive ? "Agent Started" : "Starting",
+        message: isWatchLive ? "Beginning task execution..." : "Working on your task...",
+        details: isWatchLive ? currentTaskRef.current : undefined,
         type: "action"
       });
     } else {
       addStep({
         icon: "▶️",
-        title: "Resumed",
-        message: "Continuing after manual action...",
-        type: "status"
+        title: isWatchLive ? "Resumed" : "Continuing",
+        message: isWatchLive ? "Continuing after manual action..." : "Resuming task...",
+        type: isWatchLive ? "status" : "action"
       });
     }
 
@@ -416,7 +418,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
 
     setIsAgentRunning(false);
     agentLoopRef.current = false;
-  }, [sessionId, connectUrl, executeStep, isPaused, isComplete, addStep]);
+  }, [sessionId, connectUrl, executeStep, isPaused, isComplete, addStep, isWatchLive]);
 
   const handleSubmit = async (taskOverride?: string) => {
     const task = taskOverride || inputValue.trim();
