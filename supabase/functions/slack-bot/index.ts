@@ -384,11 +384,11 @@
          }
  
          // Handle link command
-         // More flexible regex - handles extra spaces and special chars
-         const linkMatch = cleanText.match(/^link\s+([^\s<>]+@[^\s<>]+)/i);
+          // Handle both plain email and Slack mailto format: <mailto:email@test.com|email@test.com>
+          const linkMatch = cleanText.match(/^link\s+(?:<mailto:([^|>]+)\|[^>]+>|([^\s<>]+@[^\s<>]+))/i);
          if (linkMatch) {
-           // Clean any trailing punctuation from email
-           const email = linkMatch[1].replace(/[<>.,!?;:]+$/, "").trim();
+            // Extract email from either capture group (mailto format or plain)
+            const email = (linkMatch[1] || linkMatch[2]).replace(/[<>.,!?;:]+$/, "").trim();
            console.log("Link attempt - Slack user:", slackUserId, "Team:", slackTeamId, "Email:", email);
            
            const result = await linkSlackUser(slackUserId, slackTeamId, email);
