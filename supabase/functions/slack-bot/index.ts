@@ -388,9 +388,18 @@
          const linkedUserId = await getLinkedUserId(slackUserId, slackTeamId);
          let businessContext = "";
          
-         if (linkedUserId) {
-           businessContext = await getUserBusinessData(linkedUserId);
+         // Require linking before using AI features
+         if (!linkedUserId) {
+           await sendSlackMessage(
+             channel,
+             `🔐 *Account connection required*\n\nTo use the AI assistant, please link your TimeWarp account first:\n\n\`link your-email@company.com\`\n\nThis connects your business data (emails, calendar, documents) so I can give you personalized answers.\n\n_Don't have an account yet? Sign up at the TimeWarp app first._`,
+             threadTs
+           );
+           return new Response("ok", { headers: corsHeaders });
          }
+ 
+         // User is linked - get their business data
+         businessContext = await getUserBusinessData(linkedUserId);
  
          // Detect mode from message
          const lowerText = cleanText.toLowerCase();
@@ -410,8 +419,7 @@
          }
  
          // Send typing indicator
-         const personalizedNote = linkedUserId ? " using your business data" : "";
-         await sendSlackMessage(channel, `🤔 ${mode === "research" ? "Researching" : "Working on it"}${personalizedNote}...`, threadTs);
+         await sendSlackMessage(channel, `🤔 ${mode === "research" ? "Researching" : "Working on it"} using your business data...`, threadTs);
  
          try {
            let response: string;
