@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.action-chat]
 verify_jwt = false
+ 
+ [functions.slack-bot]
+ verify_jwt = false
