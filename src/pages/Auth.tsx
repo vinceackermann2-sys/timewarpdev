@@ -22,34 +22,6 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // Helper function to store tokens via edge function (bypasses RLS)
-  const storeTokensViaEdgeFunction = async (session: any) => {
-    try {
-      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/google-oauth-callback`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          access_token: session.provider_token,
-          refresh_token: session.provider_refresh_token,
-          expires_in: 3600,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("[Auth] Failed to store tokens via edge function:", errorData);
-      } else {
-        console.log("[Auth] Tokens stored successfully via edge function");
-      }
-    } catch (error) {
-      console.error("[Auth] Error storing tokens:", error);
-    }
-  };
-
   // Get quiz data from navigation state
   const quizDataFromNav = (location.state as any)?.quizData;
   const quizData =
@@ -73,53 +45,28 @@ const Auth = () => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // If we have a fresh Google token (or previously stored one), we can proceed.
-        if (session.provider_token) {
-          sessionStorage.setItem("googleProviderToken", session.provider_token);
-          
-          // Store tokens via edge function (bypasses RLS)
-          if (session.provider_refresh_token) {
-            sessionStorage.setItem("googleProviderRefreshToken", session.provider_refresh_token);
-            await storeTokensViaEdgeFunction(session);
-          }
-          
-          navigateToDashboard();
-          return;
-        }
-
-        const storedGoogleToken = sessionStorage.getItem("googleProviderToken");
-
         // Normal login (no quiz/connect flow): go straight in.
         if (!quizData) {
           navigateToDashboard();
           return;
         }
 
-        // Quiz/connect flow: only proceed when we actually have a Google token.
-        if (storedGoogleToken) {
-          navigateToDashboard();
-        }
+         // With quiz data, user is signed in but needs to connect Google Workspace
+         // The UI will show "Connect Google Workspace" button
+         // Don't auto-redirect - let them click the button
       }
     };
     checkSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        if (session.provider_token) {
-          sessionStorage.setItem("googleProviderToken", session.provider_token);
-          
-          // Store tokens via edge function (bypasses RLS)
-          if (session.provider_refresh_token) {
-            sessionStorage.setItem("googleProviderRefreshToken", session.provider_refresh_token);
-            await storeTokensViaEdgeFunction(session);
-          }
-        }
-
-        // In quiz/connect flow, only continue once the Google token is present.
-        if (!quizData || sessionStorage.getItem("googleProviderToken")) {
+         // For non-quiz flow, navigate to dashboard
+         if (!quizData) {
           navigateToDashboard();
         }
+         // For quiz flow, user is now signed in
+         // They still need to connect Google Workspace - UI will show the button
       }
     });
 
@@ -174,10 +121,38 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/`;
-
-      // When coming from the quiz/research flow, request Google Workspace scopes
-      const workspaceScopes = quizData ? [
+       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+       
+       // Get the current user to pass in state
+       const { data: { session } } = await supabase.auth.getSession();
+       
+       // If no session and quiz flow, use Supabase OAuth for initial sign-in
+       // After sign-in, user will be redirected back and can connect Workspace
+       if (!session?.user && quizData) {
+         const { error } = await supabase.auth.signInWithOAuth({
+           provider: "google",
+           options: {
+             redirectTo: `${window.location.origin}/auth`,
+           },
+         });
+         if (error) throw error;
+         return;
+       }
+       
+       // If no session and no quiz, just do basic sign-in
+       if (!session?.user) {
+         const { error } = await supabase.auth.signInWithOAuth({
+           provider: "google",
+           options: {
+             redirectTo: `${window.location.origin}/`,
+           },
+         });
+         if (error) throw error;
+         return;
+       }
+       
+       // User is logged in - now connect Google Workspace with full scopes
+       const scopes = quizData ? [
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/gmail.send",
         "https://www.googleapis.com/auth/gmail.compose",
@@ -188,28 +163,38 @@ const Auth = () => {
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/forms.body.readonly",
         "https://www.googleapis.com/auth/documents",
-      ].join(" ") : undefined;
+         "openid",
+         "email", 
+         "profile",
+       ].join(" ") : "openid email profile";
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo,
-          ...(workspaceScopes ? {
-            scopes: workspaceScopes,
-            queryParams: {
-              access_type: "offline",
-              prompt: "consent",
-            },
-          } : {}),
-        },
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "Google sign-in failed",
-        description: error.message || "Could not connect to Google. Please try again.",
-        variant: "destructive",
+       // Call edge function to get OAuth URL (keeps client ID server-side)
+       const response = await fetch(`${SUPABASE_URL}/functions/v1/initiate-google-oauth`, {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+           "Authorization": `Bearer ${session.access_token}`,
+         },
+         body: JSON.stringify({
+           user_id: session.user.id,
+           scopes,
+         }),
+       });
+       
+       if (!response.ok) {
+         const errorData = await response.json().catch(() => ({}));
+         throw new Error(errorData.error || "Failed to initiate Google OAuth");
+       }
+       
+       const { url } = await response.json();
+       
+       // Redirect to Google OAuth
+       window.location.href = url;
+     } catch (error: any) {
+       toast({
+         title: "Google sign-in failed",
+         description: error.message || "Could not connect to Google. Please try again.",
+         variant: "destructive",
       });
       setIsGoogleLoading(false);
     }
