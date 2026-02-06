@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Send, 
   Sparkles, 
@@ -11,6 +12,8 @@ import {
   Loader2, 
   Hand,
   LogIn,
+  Play,
+  Pause,
   CheckCircle,
   CreditCard,
   ShieldAlert,
@@ -55,7 +58,15 @@ interface TimeWarpAIViewProps {
   onTaskConsumed?: () => void;
 }
 
-// Default suggestion cards
+const SENSITIVE_PATTERNS = {
+  login: ["login", "sign in", "log in", "signin", "oauth", "authenticate"],
+  payment: ["payment", "checkout", "credit card", "billing", "pay now", "card number"],
+  verification: ["2fa", "two-factor", "verify", "verification code", "otp", "authenticator"],
+  captcha: ["captcha", "i'm not a robot", "security check"],
+  sensitive: ["ssn", "social security", "passport", "driver's license", "bank account"]
+};
+
+// Default suggestion cards - these would be personalized based on user data
 const DEFAULT_SUGGESTIONS: SuggestionCard[] = [
   {
     id: "1",
@@ -111,7 +122,8 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isWatchLive, setIsWatchLive] = useState(false);
-  const [isTaskRunning, setIsTaskRunning] = useState(false);
+  const [isAgentRunning, setIsAgentRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
@@ -120,11 +132,15 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isTaskActive, setIsTaskActive] = useState(false);
   
-  // Browser session state — single session, no polling
+  // Browser session state
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+  const [connectUrl, setConnectUrl] = useState<string | null>(null);
+  const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   
+  const agentLoopRef = useRef<boolean>(false);
+  const stepNumberRef = useRef<number>(0);
+  const currentTaskRef = useRef<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -140,7 +156,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
 
   // Handle initial task from research flow
   useEffect(() => {
-    if (initialTask && !isTaskRunning && messages.length === 0) {
+    if (initialTask && !isAgentRunning && messages.length === 0) {
       onTaskConsumed?.();
       setTimeout(() => {
         handleSubmit(initialTask.task);
@@ -152,7 +168,6 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     const newStep = { ...step, timestamp: new Date() };
     setSteps(prev => [...prev, newStep]);
     
-    // Also update the last assistant message with this step
     setMessages(prev => {
       const updated = [...prev];
       let lastAssistantIdx = -1;
@@ -172,113 +187,274 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     });
   }, []);
 
-  /**
-   * Create a browser session via the run-browser-task edge function.
-   * Browserbase handles all automation (Stagehand + Playwright).
-   * We just get back a sessionId + iframeUrl for live viewing.
-   */
-  const startBrowserTask = async (task: string): Promise<boolean> => {
+  const createBrowserSession = async (task: string): Promise<{ sessionId: string; connectUrl: string } | null> => {
     setIsCreatingSession(true);
     try {
-      addStep({
-        icon: "🚀",
-        title: "Starting",
-        message: "Creating browser automation session...",
-        type: "status"
-      });
+      // Only show browser init step if watch live is enabled
+      if (isWatchLive) {
+        addStep({
+          icon: "🚀",
+          title: "Starting",
+          message: "Initializing browser session...",
+          type: "status"
+        });
+      }
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-browser-task`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-agent`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
             task,
-            businessContext: {
-              companyName: "User's Business",
-              industry: "General",
-              tools: ["Web Browser"],
-              goal: task,
-            },
-            userContext: {
-              userId: "anonymous",
-              role: "assistant",
-            },
-          }),
+            role: 'assistant',
+            timeEstimate: '15min',
+            action: 'create'
+          })
         }
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to start browser task");
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create browser session');
       }
 
       const data = await response.json();
-      console.log("[TimeWarpAI] Browser task started:", data);
-
       setSessionId(data.sessionId);
-      setIframeUrl(data.iframeUrl);
+      setConnectUrl(data.connectUrl);
+      setLiveViewUrl(data.liveViewUrl);
+      
+      // Only show session ready step if watch live is enabled
+      if (isWatchLive) {
+        addStep({
+          icon: "🎥",
+          title: "Session Ready",
+          message: "Browser session initialized",
+          details: `Session ID: ${data.sessionId?.substring(0, 8)}...`,
+          type: "status"
+        });
+      }
+
       setIsCreatingSession(false);
-
-      addStep({
-        icon: "🤖",
-        title: "Agent Running",
-        message: "Browser automation is executing your task autonomously",
-        details: `Session: ${data.sessionId?.substring(0, 8)}...`,
-        type: "action"
-      });
-
-      addStep({
-        icon: "👁️",
-        title: "Live View Available",
-        message: "Toggle 'Watch Live' to see the browser in real-time",
-        type: "status"
-      });
-
-      return true;
+      return { sessionId: data.sessionId, connectUrl: data.connectUrl };
     } catch (err) {
-      console.error("[TimeWarpAI] Task start error:", err);
-      const errorMessage = err instanceof Error ? err.message : "";
-      const isQuotaError =
-        errorMessage.toLowerCase().includes("limit") ||
-        errorMessage.toLowerCase().includes("402") ||
-        errorMessage.toLowerCase().includes("payment");
-
+      console.error('Session creation error:', err);
+      const errorMessage = err instanceof Error ? err.message : '';
+      const isQuotaError = errorMessage.toLowerCase().includes('limit') || 
+                          errorMessage.toLowerCase().includes('402') ||
+                          errorMessage.toLowerCase().includes('payment');
+      
       addStep({
         icon: isQuotaError ? "⚠️" : "❌",
         title: isQuotaError ? "Service Limit" : "Error",
-        message: isQuotaError
+        message: isQuotaError 
           ? "Browser automation limit reached. Please try again later or upgrade your plan."
-          : errorMessage || "Failed to start browser task",
-        type: isQuotaError ? "warning" : "error",
+          : (isWatchLive ? errorMessage || 'Failed to start browser session' : "Something went wrong. Please try again."),
+        type: isQuotaError ? "warning" : "error"
       });
       setIsCreatingSession(false);
       setIsTaskActive(false);
-      return false;
+      return null;
     }
   };
+
+  const detectSensitiveContent = (pageContent: string): HandoffState | null => {
+    const content = pageContent.toLowerCase();
+    
+    for (const [type, patterns] of Object.entries(SENSITIVE_PATTERNS)) {
+      if (patterns.some(p => content.includes(p))) {
+        const handoffType = type as HandoffState["type"];
+        const instructions = {
+          login: "Please log in to continue. I'll resume once you're authenticated.",
+          payment: "This page requires payment information. Please complete the payment, then click Continue.",
+          verification: "Two-factor authentication required. Please complete verification, then click Continue.",
+          captcha: "Please solve the CAPTCHA, then click Continue.",
+          sensitive: "This page requires sensitive personal information. Please fill it in, then click Continue."
+        };
+        return {
+          required: true,
+          type: handoffType,
+          instructions: instructions[handoffType]
+        };
+      }
+    }
+    return null;
+  };
+
+  const executeStep = useCallback(async (session: string, wsUrl: string): Promise<boolean> => {
+    if (!session || !wsUrl) return false;
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-agent`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            action: 'execute',
+            sessionId: session,
+            connectUrl: wsUrl,
+            task: currentTaskRef.current,
+            role: 'assistant',
+            stepNumber: stepNumberRef.current
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Step execution failed');
+      }
+
+      const data = await response.json();
+      stepNumberRef.current += 1;
+
+      const actionIcons: Record<string, string> = {
+        navigate: "🌐",
+        click: "👆",
+        type: "⌨️",
+        scroll: "📜",
+        wait: "⏳",
+        login_required: "🔐",
+        payment_required: "💳",
+        complete: "✅",
+        error: "❌"
+      };
+
+      addStep({
+        icon: actionIcons[data.action?.action] || "🔄",
+        title: data.action?.action?.charAt(0).toUpperCase() + data.action?.action?.slice(1) || "Action",
+        message: data.result?.message || data.action?.reasoning || "Executing...",
+        details: data.action?.value || data.action?.target ? `Target: ${data.action?.target || data.action?.value}` : undefined,
+        type: data.action?.action === 'error' ? 'error' :
+              data.action?.action === 'complete' ? 'complete' :
+              data.loginRequired ? 'warning' : 'action'
+      });
+
+      if (data.loginRequired) {
+        // Automatically enable watch live for manual takeover
+        setIsWatchLive(true);
+        setHandoff({
+          required: true,
+          type: "login",
+          instructions: data.loginInstructions || "Please log in to continue."
+        });
+        addStep({
+          icon: "🔐",
+          title: "Login Required",
+          message: data.loginInstructions || "Please log in to continue. Click Continue when done.",
+          type: "warning"
+        });
+        return false;
+      }
+
+      if (data.pageContent) {
+        const detected = detectSensitiveContent(data.pageContent);
+        if (detected) {
+          // Automatically enable watch live for manual takeover
+          setIsWatchLive(true);
+          setHandoff(detected);
+          addStep({
+            icon: detected.type === "payment" ? "💳" : "🔐",
+            title: "Manual Action Required",
+            message: detected.instructions,
+            type: "warning"
+          });
+          return false;
+        }
+      }
+
+      if (data.isComplete) {
+        setSummary(data.action?.reasoning || "Task completed successfully!");
+        setIsComplete(true);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Step error:', err);
+      addStep({
+        icon: "❌",
+        title: "Error",
+        message: err instanceof Error ? err.message : 'Unknown error',
+        type: "error"
+      });
+      return false;
+    }
+  }, [addStep]);
+
+  const runAgentLoop = useCallback(async (session?: string, wsUrl?: string) => {
+    const activeSession = session || sessionId;
+    const activeWsUrl = wsUrl || connectUrl;
+    
+    if (!activeSession || !activeWsUrl || agentLoopRef.current) return;
+
+    agentLoopRef.current = true;
+    setIsAgentRunning(true);
+    setHandoff(null);
+
+    if (stepNumberRef.current === 0) {
+      addStep({
+        icon: isWatchLive ? "🤖" : "✨",
+        title: isWatchLive ? "Agent Started" : "Starting",
+        message: isWatchLive ? "Beginning task execution..." : "Working on your task...",
+        details: isWatchLive ? currentTaskRef.current : undefined,
+        type: "action"
+      });
+    } else {
+      addStep({
+        icon: "▶️",
+        title: isWatchLive ? "Resumed" : "Continuing",
+        message: isWatchLive ? "Continuing after manual action..." : "Resuming task...",
+        type: isWatchLive ? "status" : "action"
+      });
+    }
+
+    const maxSteps = 30;
+    let shouldContinue = true;
+
+    while (shouldContinue && stepNumberRef.current < maxSteps && agentLoopRef.current && !isPaused) {
+      shouldContinue = await executeStep(activeSession, activeWsUrl);
+      if (shouldContinue) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    if (stepNumberRef.current >= maxSteps && !isComplete) {
+      addStep({
+        icon: "⚠️",
+        title: "Max Steps Reached",
+        message: "Agent reached maximum step limit",
+        type: "warning"
+      });
+    }
+
+    setIsAgentRunning(false);
+    agentLoopRef.current = false;
+  }, [sessionId, connectUrl, executeStep, isPaused, isComplete, addStep, isWatchLive]);
 
   const handleSubmit = async (taskOverride?: string) => {
     const task = taskOverride || inputValue.trim();
     if (!task) return;
 
-    // Reset state
     setSteps([]);
     setSummary(null);
     setIsComplete(false);
     setHandoff(null);
-    setSessionId(null);
-    setIframeUrl(null);
+    stepNumberRef.current = 0;
+    currentTaskRef.current = task;
     setIsTaskActive(true);
-    setIsTaskRunning(true);
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: task,
+      content: task
     };
     setMessages(prev => [...prev, userMessage]);
     setInputValue("");
@@ -287,14 +463,13 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       id: (Date.now() + 1).toString(),
       role: "assistant",
       content: "Starting your task...",
-      steps: [],
+      steps: []
     };
     setMessages(prev => [...prev, assistantMessage]);
 
-    // Single call — Browserbase handles everything
-    const success = await startBrowserTask(task);
-    if (!success) {
-      setIsTaskRunning(false);
+    const sessionData = await createBrowserSession(task);
+    if (sessionData) {
+      runAgentLoop(sessionData.sessionId, sessionData.connectUrl);
     }
   };
 
@@ -302,27 +477,50 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     handleSubmit(suggestion.task);
   };
 
-  const handleStop = () => {
-    setIsTaskRunning(false);
-    setIsTaskActive(false);
+  const handleContinue = () => {
     setHandoff(null);
+    runAgentLoop();
+  };
+
+  const handlePause = () => {
+    setIsPaused(true);
+    agentLoopRef.current = false;
+    addStep({
+      icon: "⏸️",
+      title: "Paused",
+      message: "Task paused by user",
+      type: "status"
+    });
+  };
+
+  const handleStop = () => {
+    agentLoopRef.current = false;
+    setIsAgentRunning(false);
+    setIsPaused(false);
+    setHandoff(null);
+    setIsTaskActive(false);
     addStep({
       icon: "🛑",
       title: "Stopped",
       message: "Task stopped by user",
-      type: "status",
+      type: "status"
     });
+  };
+
+  const handleResume = () => {
+    setIsPaused(false);
+    runAgentLoop();
   };
 
   const handleNewTask = () => {
     setIsTaskActive(false);
-    setIsTaskRunning(false);
     setMessages([]);
     setSteps([]);
     setSummary(null);
     setIsComplete(false);
     setSessionId(null);
-    setIframeUrl(null);
+    setConnectUrl(null);
+    setLiveViewUrl(null);
   };
 
   const getHandoffIcon = () => {
@@ -341,7 +539,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
     }
   };
 
-  // ========== IDLE STATE — show suggestions + chat input ==========
+  // Idle state - show floating chat and carousel
   if (!isTaskActive) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-6 overflow-hidden">
@@ -434,130 +632,243 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Describe a task... e.g. 'Set up a Trello board for my project'"
-                className="flex-1 border-0 bg-transparent focus-visible:ring-0 text-sm"
+                placeholder="What would you like me to do?"
+                className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base px-4"
               />
-              <Button
-                type="submit"
+              <Button 
+                type="submit" 
                 size="icon"
                 disabled={!inputValue.trim()}
-                className="rounded-xl h-10 w-10 flex-shrink-0"
+                className="h-10 w-10 rounded-xl gradient-primary shrink-0"
               >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
           </form>
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            I'll pause automatically for logins, payments, and sensitive information
+          </p>
         </div>
       </div>
     );
   }
 
-  // ========== ACTIVE TASK STATE ==========
+  // Active task state - show execution view
   return (
     <div className="h-full flex flex-col">
-      {/* Header bar */}
-      <div className="flex items-center justify-between p-3 border-b border-border/50 bg-card/50">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border/50 bg-card/30">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-            <Sparkles className="h-4 w-4 text-primary" />
-            {isTaskRunning && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-            <span className="text-sm font-medium text-primary">TimeWarp AI</span>
+          <img 
+            src="/favicon.png" 
+            alt="TimeWarp" 
+            className="h-8 w-8 rounded-lg object-cover"
+          />
+          <div>
+            <h1 className="font-semibold flex items-center gap-2">
+              TimeWarp AI
+              {isAgentRunning && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+            </h1>
+            <p className="text-xs text-muted-foreground truncate max-w-xs">
+              {currentTaskRef.current}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* View mode toggle */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="watch-live" className="text-sm text-muted-foreground flex items-center gap-1.5">
+              {isWatchLive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              Live
+            </Label>
+            <Switch
+              id="watch-live"
+              checked={isWatchLive}
+              onCheckedChange={setIsWatchLive}
+            />
           </div>
 
-          {/* Watch Live toggle */}
-          {iframeUrl && (
-            <div className="flex items-center gap-2 ml-2">
-              <Switch
-                id="watch-live"
-                checked={isWatchLive}
-                onCheckedChange={setIsWatchLive}
-              />
-              <Label htmlFor="watch-live" className="text-xs flex items-center gap-1.5 cursor-pointer">
-                {isWatchLive ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                Watch Live
-              </Label>
-            </div>
+          {/* Control buttons */}
+          {isAgentRunning && !isPaused && (
+            <Button variant="outline" size="sm" onClick={handlePause}>
+              <Pause className="h-4 w-4 mr-1.5" />
+              Pause
+            </Button>
           )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isTaskRunning && (
+          {isPaused && (
+            <Button size="sm" onClick={handleResume} className="gradient-primary">
+              <Play className="h-4 w-4 mr-1.5" />
+              Resume
+            </Button>
+          )}
+          {(isAgentRunning || isPaused) && (
             <Button variant="outline" size="sm" onClick={handleStop}>
-              <Hand className="h-4 w-4 mr-2" />
+              <Hand className="h-4 w-4 mr-1.5" />
               Stop
             </Button>
           )}
-          {!isTaskRunning && (
-            <Button variant="outline" size="sm" onClick={handleNewTask}>
+          {isComplete && (
+            <Button size="sm" onClick={handleNewTask} className="gradient-primary">
+              <Sparkles className="h-4 w-4 mr-1.5" />
               New Task
             </Button>
           )}
         </div>
       </div>
 
-      {/* Handoff Banner */}
-      {handoff?.required && (
-        <div className="bg-status-warning/10 border-b border-status-warning/30 p-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-full bg-status-warning/20 text-status-warning">
-              {getHandoffIcon()}
-            </div>
-            <div className="flex-1">
-              <h4 className="font-medium text-status-warning mb-1">Manual Action Required</h4>
-              <p className="text-sm text-muted-foreground">{handoff.instructions}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main content area */}
+      {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Chat / Step View panel */}
-        <div className="flex-1 flex flex-col">
-          {/* Messages / Steps */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((msg) => (
-              <AgentChatMessage
-                key={msg.id}
-                role={msg.role}
-                content={msg.content}
-                steps={msg.steps}
-                isStreaming={isTaskRunning && msg.role === "assistant"}
-              />
-            ))}
-          </div>
+        {/* Chat / Step view area */}
+        <div className={cn("flex-1 flex flex-col", isWatchLive && liveViewUrl && "w-1/2")}>
+          {/* Handoff banner */}
+          {handoff && (
+            <div className="bg-accent/10 border-b border-accent/30 p-4 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full bg-accent/20 text-accent animate-pulse">
+                  {getHandoffIcon()}
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-accent mb-1">
+                    {handoff.type === "login" && "🔐 Login Required"}
+                    {handoff.type === "payment" && "💳 Payment Required"}
+                    {handoff.type === "verification" && "🔑 Verification Required"}
+                    {handoff.type === "captcha" && "🤖 CAPTCHA Required"}
+                    {handoff.type === "sensitive" && "📋 Sensitive Information Required"}
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3">{handoff.instructions}</p>
+                  <p className="text-xs text-muted-foreground/70 mb-3">
+                    Complete the action in the browser on the right, then click Continue →
+                  </p>
+                  <Button size="sm" onClick={handleContinue} className="bg-accent hover:bg-accent/90">
+                    <CheckCircle className="h-4 w-4 mr-1.5" />
+                    Continue
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* Input bar */}
-          <div className="p-3 border-t border-border/50">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!isTaskRunning) handleSubmit();
-              }}
-              className="flex items-center gap-2"
-            >
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={isTaskRunning ? "Task is running..." : "Describe another task..."}
-                disabled={isTaskRunning}
-                className="flex-1 text-sm"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={isTaskRunning || !inputValue.trim()}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
+          {/* Step Nodes View (default) */}
+          <div className="flex-1 overflow-auto p-6" ref={scrollRef}>
+            <div className="max-w-4xl mx-auto">
+              {/* Task header */}
+              <div className="mb-6 p-4 rounded-xl bg-card/50 border border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm">Current Task</h3>
+                    <p className="text-sm text-muted-foreground truncate">{currentTaskRef.current}</p>
+                  </div>
+                  {isAgentRunning && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Running
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Live Step Nodes */}
+              <div className="relative">
+                {/* Connecting line */}
+                {steps.length > 1 && (
+                  <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
+                )}
+                
+                <div className="space-y-4">
+                  {steps.map((step, idx) => {
+                    const isLast = idx === steps.length - 1;
+                    const isRunning = isLast && isAgentRunning && step.type !== "complete" && step.type !== "error";
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "relative flex gap-4 p-4 rounded-xl border transition-all duration-500",
+                          "animate-in fade-in slide-in-from-bottom-2",
+                          isRunning ? "bg-primary/5 border-primary/30 shadow-glow-sm" :
+                          step.type === "error" ? "bg-destructive/5 border-destructive/30" :
+                          step.type === "warning" ? "bg-accent/5 border-accent/30" :
+                          step.type === "complete" ? "bg-primary/5 border-primary/30" :
+                          "bg-card/50 border-border/50"
+                        )}
+                        style={{ animationDelay: `${idx * 50}ms` }}
+                      >
+                        {/* Step icon */}
+                        <div className={cn(
+                          "relative z-10 flex-shrink-0 h-12 w-12 rounded-xl flex items-center justify-center text-2xl",
+                          isRunning ? "bg-primary/20 animate-pulse" :
+                          step.type === "complete" ? "bg-primary/20" :
+                          step.type === "error" ? "bg-destructive/20" :
+                          step.type === "warning" ? "bg-accent/20" :
+                          "bg-muted"
+                        )}>
+                          {step.icon}
+                        </div>
+                        
+                        {/* Step content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm">{step.title}</span>
+                            {isRunning && (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                            )}
+                            {step.type === "complete" && (
+                              <CheckCircle className="h-3.5 w-3.5 text-primary" />
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{step.message}</p>
+                          {step.details && (
+                            <p className="text-xs text-muted-foreground/70 mt-1.5 font-mono bg-muted/50 px-2 py-1 rounded inline-block">
+                              {step.details}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* Timestamp */}
+                        <span className="text-xs text-muted-foreground/50 flex-shrink-0">
+                          {step.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Waiting indicator */}
+                  {steps.length === 0 && (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary" />
+                        <p className="text-sm text-muted-foreground">Starting task...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Completion card */}
+              {isComplete && summary && (
+                <div className="mt-6 p-5 rounded-xl bg-primary/10 border border-primary/30">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-primary/20">
+                      <CheckCircle className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-primary mb-1">Task Completed!</h4>
+                      <p className="text-sm text-muted-foreground">{summary}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Live Browser View — only shown when Watch Live is on */}
-        {isWatchLive && iframeUrl && (
-          <div className="w-1/2 border-l border-border/50 flex flex-col bg-muted/20">
-            {/* Browser toolbar */}
+        {/* Live browser view (only when toggled) */}
+        {isWatchLive && liveViewUrl && (
+          <div className="w-1/2 border-l border-border/50 flex flex-col">
             <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-card/30">
               <div className="flex items-center gap-1 px-2">
                 <div className="h-2.5 w-2.5 rounded-full bg-destructive/80" />
@@ -566,39 +877,21 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
               </div>
               <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/50 border border-border/50">
                 <span className="text-xs text-muted-foreground truncate font-mono">
-                  Browserbase Live View
+                  {handoff ? '🔐 Waiting for manual action...' : 'Browserbase Live View'}
                 </span>
-                {isTaskRunning && <Loader2 className="h-3 w-3 animate-spin text-primary ml-auto" />}
               </div>
             </div>
 
-            {/* Iframe — Browserbase live session */}
             <div className="flex-1 overflow-hidden">
               <RemoteBrowser
-                liveViewUrl={iframeUrl}
+                liveViewUrl={liveViewUrl}
                 onConnectionChange={(connected) => {
                   if (connected) {
-                    addStep({
-                      icon: "🎥",
-                      title: "Connected",
-                      message: "Live browser view connected",
-                      type: "status",
-                    });
+                    console.log('Live browser connected');
                   }
                 }}
               />
             </div>
-          </div>
-        )}
-
-        {/* Step View — shown when Watch Live is off */}
-        {!isWatchLive && steps.length > 0 && (
-          <div className="w-80 border-l border-border/50">
-            <AgentStepView
-              steps={steps}
-              isComplete={isComplete}
-              summary={summary}
-            />
           </div>
         )}
       </div>
