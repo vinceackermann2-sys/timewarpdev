@@ -155,21 +155,19 @@ const Auth = () => {
        }
        
        // User is logged in - now connect Google Workspace with full scopes
-       const scopes = quizData ? [
-        "https://www.googleapis.com/auth/gmail.readonly",
-        "https://www.googleapis.com/auth/gmail.send",
-        "https://www.googleapis.com/auth/gmail.compose",
-        "https://www.googleapis.com/auth/drive.readonly",
-        "https://www.googleapis.com/auth/calendar.readonly",
-        "https://www.googleapis.com/auth/calendar.events",
-        "https://www.googleapis.com/auth/spreadsheets.readonly",
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/forms.body.readonly",
-        "https://www.googleapis.com/auth/documents",
-         "openid",
-         "email", 
-         "profile",
-       ].join(" ") : "openid email profile";
+        const scopes = quizData ? [
+         "https://www.googleapis.com/auth/gmail.send",
+         "https://www.googleapis.com/auth/gmail.compose",
+         "https://www.googleapis.com/auth/gmail.readonly",
+         "https://www.googleapis.com/auth/drive",
+         "https://www.googleapis.com/auth/calendar",
+         "https://www.googleapis.com/auth/spreadsheets",
+         "https://www.googleapis.com/auth/documents",
+         "https://www.googleapis.com/auth/forms.body.readonly",
+          "openid",
+          "email", 
+          "profile",
+        ].join(" ") : "openid email profile";
 
        // Call edge function to get OAuth URL (keeps client ID server-side)
        const response = await fetch(`${SUPABASE_URL}/functions/v1/initiate-google-oauth`, {
