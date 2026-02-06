@@ -6,6 +6,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Helper to refresh Google access token
+async function refreshGoogleAccessToken(refreshToken: string): Promise<string | null> {
+  const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+  const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+
+  if (!clientId || !clientSecret) {
+    console.error("Google OAuth credentials not configured");
+    return null;
+  }
+
+  try {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Token refresh failed:", await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    return data.access_token;
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    return null;
+  }
+}
+
 interface ConnectedContext {
   type: string;
   label: string;
@@ -247,7 +282,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, connectedContexts, googleAccessToken } = await req.json();
+    const { messages, connectedContexts } = await req.json();
     const userMessage = messages[messages.length - 1]?.content || "";
     const userMessageLower = userMessage.toLowerCase();
 
@@ -258,18 +293,58 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     let userEmail = "user";
-    let accessToken = googleAccessToken;
+    let accessToken: string | null = null;
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     if (authHeader) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabase.auth.getUser(token);
 
       if (user?.email) {
         userEmail = user.email;
+      }
+
+      if (user?.id) {
+        // Fetch Google token from database
+        const { data: tokenData, error: tokenError } = await supabase
+          .from("google_workspace_tokens")
+          .select("access_token, refresh_token, expires_at")
+          .eq("user_id", user.id)
+          .single();
+
+        if (tokenError || !tokenData) {
+          console.log("No Google token found for user:", user.id);
+        } else {
+          accessToken = tokenData.access_token;
+
+          // Check if token is expired and refresh if needed
+          const expiresAt = new Date(tokenData.expires_at).getTime();
+          const now = Date.now();
+
+          if (expiresAt <= now && tokenData.refresh_token) {
+            console.log("Access token expired, refreshing...");
+            const newAccessToken = await refreshGoogleAccessToken(tokenData.refresh_token);
+            if (newAccessToken) {
+              accessToken = newAccessToken;
+              // Update the stored token
+              await supabase
+                .from("google_workspace_tokens")
+                .update({
+                  access_token: newAccessToken,
+                  expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("user_id", user.id);
+              console.log("Token refreshed successfully");
+            } else {
+              console.error("Failed to refresh token");
+              accessToken = null;
+            }
+          }
+        }
       }
     }
 
