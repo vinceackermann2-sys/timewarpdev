@@ -21,6 +21,9 @@ verify_jwt = false
 [functions.run-agent]
 verify_jwt = false
 
+[functions.run-browser-task]
+verify_jwt = false
+
 [functions.research-chat]
 verify_jwt = false
 
@@ -29,15 +32,15 @@ verify_jwt = false
 
 [functions.action-chat]
 verify_jwt = false
- 
- [functions.slack-bot]
- verify_jwt = false
- 
- [functions.slack-oauth]
- verify_jwt = false
- 
- [functions.google-oauth-callback]
- verify_jwt = false
- 
- [functions.initiate-google-oauth]
- verify_jwt = false
+
+[functions.slack-bot]
+verify_jwt = false
+
+[functions.slack-oauth]
+verify_jwt = false
+
+[functions.google-oauth-callback]
+verify_jwt = false
+
+[functions.initiate-google-oauth]
+verify_jwt = false
