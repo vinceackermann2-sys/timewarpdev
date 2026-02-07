@@ -4,30 +4,16 @@ import researcherIllustration from "@/assets/researcher-illustration.png";
 
 const AiCeo = () => {
   return (
-    <div
-      className="min-h-screen relative overflow-hidden flex flex-col items-center justify-start"
-      style={{
-        background:
-          "linear-gradient(180deg, #0a0e1a 0%, #0d1428 10%, #112050 25%, #1a3a80 40%, #2a5ab0 55%, #3a70c8 65%, #5588d8 75%, #8090d0 82%, #b090c8 88%, #d0a0b8 93%, #c898b8 100%)",
-      }}
-    >
-      {/* Stardust overlay */}
+    <div className="min-h-screen w-full bg-black relative overflow-hidden flex flex-col items-center justify-start">
+      {/* Midnight Mist */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 z-0"
         style={{
-          backgroundImage: "url('/stardust.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.4,
-        }}
-      />
-
-      {/* Ambient glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 60%, rgba(60, 100, 220, 0.15) 0%, transparent 60%), radial-gradient(ellipse at 30% 10%, rgba(10, 20, 60, 0.3) 0%, transparent 50%)",
+          backgroundImage: `
+            radial-gradient(circle at 50% 100%, rgba(70, 85, 110, 0.5) 0%, transparent 60%),
+            radial-gradient(circle at 50% 100%, rgba(99, 102, 241, 0.4) 0%, transparent 70%),
+            radial-gradient(circle at 50% 100%, rgba(181, 184, 208, 0.3) 0%, transparent 80%)
+          `,
         }}
       />
 
