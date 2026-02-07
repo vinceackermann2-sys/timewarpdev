@@ -67,23 +67,23 @@ const AiCeo = () => {
             </div>
 
             {/* Screen content */}
-            <div className="px-3 pt-2 pb-3">
+            <div className="px-3 pt-4 pb-4">
               {/* Ready to research badge */}
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-5">
                 <span className="h-3 w-1.5 rounded-sm bg-green-500" />
                 <span className="text-white/80 text-xs font-medium">Ready to research</span>
               </div>
 
               {/* Chat container */}
-              <div className="rounded-xl overflow-hidden mb-4" style={{
+              <div className="rounded-xl overflow-hidden mb-5" style={{
               border: "1.5px solid rgba(59, 130, 246, 0.4)",
               background: "#1e2738"
             }}>
                 {/* Chat bubbles */}
-                <div className="p-4" style={{
+                <div className="p-5" style={{
                 background: "#252e42"
               }}>
-                  <div className="flex justify-end mb-2.5">
+                  <div className="flex justify-end mb-4">
                     <div className="rounded-full px-3.5 py-1.5 text-white/55 text-[10px] flex items-center gap-2" style={{
                     border: "1px solid rgba(150, 160, 200, 0.15)",
                     background: "#1e2738"
@@ -109,17 +109,17 @@ const AiCeo = () => {
                 </div>
 
                 {/* Illustration + label */}
-                <div className="flex flex-col items-center py-8 px-4" style={{
+                <div className="flex flex-col items-center py-10 px-4" style={{
                 background: "#161c28"
               }}>
-                  <img src={researcherIllustration} alt="Research documents illustration" className="h-24 w-auto object-contain mb-3" />
+                  <img src={researcherIllustration} alt="Research documents illustration" className="h-28 w-auto object-contain mb-4" />
                   <h3 className="text-white font-semibold text-base mb-0.5">Researcher</h3>
                   <p className="text-white/40 text-xs">Reveals what to do next</p>
                 </div>
               </div>
 
               {/* CTA Button */}
-              <Button asChild className="w-full rounded-xl h-11 text-sm font-semibold bg-[#3b82f6] hover:bg-[#2563eb] text-white border-0">
+              <Button asChild className="w-full rounded-xl h-12 text-sm font-semibold bg-[#3b82f6] hover:bg-[#2563eb] text-white border-0">
                 <Link to="/auth?mode=signup">Run AI CEO</Link>
               </Button>
             </div>
