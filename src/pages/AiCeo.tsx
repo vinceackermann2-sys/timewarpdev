@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import researcherIllustration from "@/assets/researcher-illustration.png";
 
 const AiCeo = () => {
   return (
@@ -18,12 +19,10 @@ const AiCeo = () => {
           {/* Status bar */}
           <div className="relative flex items-center justify-between px-6 pt-2.5 pb-1 text-white/50 text-[11px]">
             <span className="font-medium">9:41</span>
-            {/* Notch */}
             <div
               className="absolute left-1/2 -translate-x-1/2 top-0 w-[80px] h-[24px] rounded-b-2xl"
               style={{ background: "#101420" }}
             />
-            {/* Status icons */}
             <div className="flex items-center gap-1.5">
               <svg width="14" height="10" viewBox="0 0 15 11" fill="currentColor">
                 <rect x="0" y="8" width="2.5" height="3" rx="0.5" />
@@ -46,9 +45,10 @@ const AiCeo = () => {
 
           {/* Screen content */}
           <div className="px-3 pt-2 pb-3">
-            {/* Green status indicator */}
-            <div className="flex items-center mb-3">
+            {/* Ready to research badge */}
+            <div className="flex items-center gap-2 mb-3">
               <span className="h-3 w-1.5 rounded-sm bg-green-500" />
+              <span className="text-white/80 text-xs font-medium">Ready to research</span>
             </div>
 
             {/* Chat container with blue border */}
@@ -59,14 +59,14 @@ const AiCeo = () => {
                 background: "#1e2738",
               }}
             >
-              {/* Chat header area with bubbles */}
+              {/* Chat bubbles area */}
               <div className="p-3" style={{ background: "#252e42" }}>
-                {/* User message - right aligned */}
+                {/* User message */}
                 <div className="flex justify-end mb-2.5">
                   <div
-                    className="rounded-full px-3.5 py-1.5 text-white/50 text-[10px] flex items-center gap-2"
+                    className="rounded-full px-3.5 py-1.5 text-white/55 text-[10px] flex items-center gap-2"
                     style={{
-                      border: "1px solid rgba(150, 160, 200, 0.12)",
+                      border: "1px solid rgba(150, 160, 200, 0.15)",
                       background: "#1e2738",
                     }}
                   >
@@ -77,31 +77,39 @@ const AiCeo = () => {
                   </div>
                 </div>
 
-                {/* AI response - left aligned */}
-                <div className="flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-full bg-purple-400/25 flex items-center justify-center flex-shrink-0">
+                {/* AI response */}
+                <div className="flex items-start gap-2">
+                  <span className="h-5 w-5 rounded-full bg-purple-400/25 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <span className="h-2 w-2 rounded-full bg-purple-400" />
                   </span>
                   <div
-                    className="rounded-full px-3.5 py-1.5 text-white/45 text-[10px]"
+                    className="rounded-xl px-3.5 py-1.5 text-white/45 text-[10px] leading-relaxed"
                     style={{
-                      border: "1px solid rgba(150, 160, 200, 0.12)",
+                      border: "1px solid rgba(150, 160, 200, 0.15)",
                       background: "#1e2738",
                     }}
                   >
-                    your biggest spend is employees...
+                    your biggest spend is employees, all costs results to 13,018$ per day
                   </div>
                 </div>
               </div>
 
-              {/* Large dark empty area */}
-              <div className="h-48" style={{ background: "#161c28" }} />
+              {/* Illustration + label area */}
+              <div className="flex flex-col items-center py-5 px-4" style={{ background: "#161c28" }}>
+                <img
+                  src={researcherIllustration}
+                  alt="Research documents illustration"
+                  className="h-24 w-auto object-contain mb-3"
+                />
+                <h3 className="text-white font-semibold text-base mb-0.5">Researcher</h3>
+                <p className="text-white/40 text-xs">Reveals what to do next</p>
+              </div>
             </div>
 
             {/* CTA Button */}
             <Button
               asChild
-              className="w-full rounded-lg h-10 text-sm font-semibold bg-[#3b82f6] hover:bg-[#2563eb] text-white border-0"
+              className="w-full rounded-xl h-11 text-sm font-semibold bg-[#3b82f6] hover:bg-[#2563eb] text-white border-0"
             >
               <Link to="/auth?mode=signup">Run AI CEO</Link>
             </Button>
