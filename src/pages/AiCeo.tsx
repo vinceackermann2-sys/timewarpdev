@@ -37,7 +37,7 @@ const AiCeo = () => {
         <div className="w-[320px] sm:w-[380px] mb-10">
           <div className="rounded-[2rem] overflow-hidden" style={{
           background: "#181d2a",
-          padding: "10px",
+          padding: "10px 10px 14px",
           boxShadow: "0 30px 80px -15px rgba(0,0,0,0.5)"
         }}>
             {/* Status bar */}
@@ -80,7 +80,7 @@ const AiCeo = () => {
               background: "#1e2738"
             }}>
                 {/* Chat bubbles */}
-                <div className="p-3" style={{
+                <div className="p-4" style={{
                 background: "#252e42"
               }}>
                   <div className="flex justify-end mb-2.5">
@@ -109,7 +109,7 @@ const AiCeo = () => {
                 </div>
 
                 {/* Illustration + label */}
-                <div className="flex flex-col items-center py-5 px-4" style={{
+                <div className="flex flex-col items-center py-8 px-4" style={{
                 background: "#161c28"
               }}>
                   <img src={researcherIllustration} alt="Research documents illustration" className="h-24 w-auto object-contain mb-3" />
