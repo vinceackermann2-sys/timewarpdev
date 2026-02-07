@@ -1,40 +1,27 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import researcherIllustration from "@/assets/researcher-illustration.png";
-
 const AiCeo = () => {
-  return (
-    <div
-      className="min-h-screen relative overflow-hidden flex flex-col items-center justify-start"
-      style={{
-        background:
-          "linear-gradient(180deg, #0a0e1a 0%, #0d1428 10%, #112050 25%, #1a3a80 40%, #2a5ab0 55%, #3a70c8 65%, #5588d8 75%, #8090d0 82%, #b090c8 88%, #d0a0b8 93%, #c898b8 100%)",
-      }}
-    >
+  return <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-start" style={{
+    background: "linear-gradient(180deg, #0a0e1a 0%, #0d1428 10%, #112050 25%, #1a3a80 40%, #2a5ab0 55%, #3a70c8 65%, #5588d8 75%, #8090d0 82%, #b090c8 88%, #d0a0b8 93%, #c898b8 100%)"
+  }}>
       {/* Stardust overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: "url('/stardust.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.4,
-        }}
-      />
+      <div className="absolute inset-0 pointer-events-none" style={{
+      backgroundImage: "url('/stardust.png')",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      opacity: 0.4
+    }} />
 
       {/* Ambient glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 60%, rgba(60, 100, 220, 0.15) 0%, transparent 60%), radial-gradient(ellipse at 30% 10%, rgba(10, 20, 60, 0.3) 0%, transparent 50%)",
-        }}
-      />
+      <div className="absolute inset-0 pointer-events-none" style={{
+      background: "radial-gradient(ellipse at 50% 60%, rgba(60, 100, 220, 0.15) 0%, transparent 60%), radial-gradient(ellipse at 30% 10%, rgba(10, 20, 60, 0.3) 0%, transparent 50%)"
+    }} />
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-4xl mx-auto px-4 pt-16 pb-8 flex flex-col items-center text-center">
         {/* Headline */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] tracking-tight mb-5">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] tracking-tight mb-5 font-sans">
           Get business decisions
           <br />
           completed in seconds
@@ -48,21 +35,17 @@ const AiCeo = () => {
 
         {/* Phone mockup */}
         <div className="w-[280px] sm:w-[320px] mb-10">
-          <div
-            className="rounded-[2rem] overflow-hidden"
-            style={{
-              background: "#181d2a",
-              padding: "10px",
-              boxShadow: "0 30px 80px -15px rgba(0,0,0,0.5)",
-            }}
-          >
+          <div className="rounded-[2rem] overflow-hidden" style={{
+          background: "#181d2a",
+          padding: "10px",
+          boxShadow: "0 30px 80px -15px rgba(0,0,0,0.5)"
+        }}>
             {/* Status bar */}
             <div className="relative flex items-center justify-between px-6 pt-2.5 pb-1 text-white/50 text-[11px]">
               <span className="font-medium">9:41</span>
-              <div
-                className="absolute left-1/2 -translate-x-1/2 top-0 w-[80px] h-[24px] rounded-b-2xl"
-                style={{ background: "#101420" }}
-              />
+              <div className="absolute left-1/2 -translate-x-1/2 top-0 w-[80px] h-[24px] rounded-b-2xl" style={{
+              background: "#101420"
+            }} />
               <div className="flex items-center gap-1.5">
                 <svg width="14" height="10" viewBox="0 0 15 11" fill="currentColor">
                   <rect x="0" y="8" width="2.5" height="3" rx="0.5" />
@@ -92,23 +75,19 @@ const AiCeo = () => {
               </div>
 
               {/* Chat container */}
-              <div
-                className="rounded-xl overflow-hidden mb-4"
-                style={{
-                  border: "1.5px solid rgba(59, 130, 246, 0.4)",
-                  background: "#1e2738",
-                }}
-              >
+              <div className="rounded-xl overflow-hidden mb-4" style={{
+              border: "1.5px solid rgba(59, 130, 246, 0.4)",
+              background: "#1e2738"
+            }}>
                 {/* Chat bubbles */}
-                <div className="p-3" style={{ background: "#252e42" }}>
+                <div className="p-3" style={{
+                background: "#252e42"
+              }}>
                   <div className="flex justify-end mb-2.5">
-                    <div
-                      className="rounded-full px-3.5 py-1.5 text-white/55 text-[10px] flex items-center gap-2"
-                      style={{
-                        border: "1px solid rgba(150, 160, 200, 0.15)",
-                        background: "#1e2738",
-                      }}
-                    >
+                    <div className="rounded-full px-3.5 py-1.5 text-white/55 text-[10px] flex items-center gap-2" style={{
+                    border: "1px solid rgba(150, 160, 200, 0.15)",
+                    background: "#1e2738"
+                  }}>
                       <span>how much do we spend per day?</span>
                       <span className="h-4 w-4 rounded-full bg-purple-400/30 flex items-center justify-center flex-shrink-0">
                         <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
@@ -120,35 +99,27 @@ const AiCeo = () => {
                     <span className="h-5 w-5 rounded-full bg-purple-400/25 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="h-2 w-2 rounded-full bg-purple-400" />
                     </span>
-                    <div
-                      className="rounded-xl px-3.5 py-1.5 text-white/45 text-[10px] leading-relaxed"
-                      style={{
-                        border: "1px solid rgba(150, 160, 200, 0.15)",
-                        background: "#1e2738",
-                      }}
-                    >
+                    <div className="rounded-xl px-3.5 py-1.5 text-white/45 text-[10px] leading-relaxed" style={{
+                    border: "1px solid rgba(150, 160, 200, 0.15)",
+                    background: "#1e2738"
+                  }}>
                       your biggest spend is employees, all costs results to 13,018$ per day
                     </div>
                   </div>
                 </div>
 
                 {/* Illustration + label */}
-                <div className="flex flex-col items-center py-5 px-4" style={{ background: "#161c28" }}>
-                  <img
-                    src={researcherIllustration}
-                    alt="Research documents illustration"
-                    className="h-24 w-auto object-contain mb-3"
-                  />
+                <div className="flex flex-col items-center py-5 px-4" style={{
+                background: "#161c28"
+              }}>
+                  <img src={researcherIllustration} alt="Research documents illustration" className="h-24 w-auto object-contain mb-3" />
                   <h3 className="text-white font-semibold text-base mb-0.5">Researcher</h3>
                   <p className="text-white/40 text-xs">Reveals what to do next</p>
                 </div>
               </div>
 
               {/* CTA Button */}
-              <Button
-                asChild
-                className="w-full rounded-xl h-11 text-sm font-semibold bg-[#3b82f6] hover:bg-[#2563eb] text-white border-0"
-              >
+              <Button asChild className="w-full rounded-xl h-11 text-sm font-semibold bg-[#3b82f6] hover:bg-[#2563eb] text-white border-0">
                 <Link to="/auth?mode=signup">Run AI CEO</Link>
               </Button>
             </div>
@@ -167,8 +138,6 @@ const AiCeo = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AiCeo;
