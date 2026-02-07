@@ -34,7 +34,7 @@ const AiCeo = () => {
         </p>
 
         {/* Phone mockup */}
-        <div className="w-[280px] sm:w-[320px] mb-10">
+        <div className="w-[320px] sm:w-[380px] mb-10">
           <div className="rounded-[2rem] overflow-hidden" style={{
           background: "#181d2a",
           padding: "10px",
