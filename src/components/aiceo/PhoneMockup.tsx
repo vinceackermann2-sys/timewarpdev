@@ -1,5 +1,5 @@
 import React from "react";
-import { Battery, Wifi, Signal, FileText } from "lucide-react";
+import { Battery, Wifi, Signal, FileText, Check } from "lucide-react";
 
 export function PhoneMockup() {
   return (
@@ -62,12 +62,17 @@ export function PhoneMockup() {
           >
             <span
               style={{
-                width: 7,
-                height: 14,
-                borderRadius: 3.5,
-                background: "#22c55e",
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                background: "rgba(34, 197, 94, 0.65)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
-            />
+            >
+              <Check size={11} strokeWidth={3} style={{ color: "#22c55e" }} />
+            </span>
             <span
               style={{
                 color: "rgba(255,255,255,0.7)",
