@@ -13,9 +13,13 @@ export function PhoneMockup() {
   const [secondScanActive, setSecondScanActive] = useState(false);
   const [secondResearched, setSecondResearched] = useState(false);
   const [showActionButtons, setShowActionButtons] = useState(false);
+  const [fourthDone, setFourthDone] = useState(false);
+  const [showFifthMsg, setShowFifthMsg] = useState(false);
+  const [togglesOff, setTogglesOff] = useState(false);
   const handleFirstComplete = useCallback(() => setFirstDone(true), []);
   const handleSecondComplete = useCallback(() => setSecondDone(true), []);
   const handleThirdComplete = useCallback(() => setThirdDone(true), []);
+  const handleFourthComplete = useCallback(() => setFourthDone(true), []);
 
    useEffect(() => {
     if (firstDone) {
@@ -53,6 +57,18 @@ export function PhoneMockup() {
       };
     }
   }, [thirdDone]);
+
+  // After text 4 finishes, show text 5 "yes" and toggle off buttons
+  useEffect(() => {
+    if (fourthDone) {
+      const fifthTimer = setTimeout(() => setShowFifthMsg(true), 600);
+      const toggleTimer = setTimeout(() => setTogglesOff(true), 1200);
+      return () => {
+        clearTimeout(fifthTimer);
+        clearTimeout(toggleTimer);
+      };
+    }
+  }, [fourthDone]);
   return (
     <div
       className="relative mx-auto flex items-center justify-center"
@@ -301,6 +317,7 @@ export function PhoneMockup() {
                   <TypingAnimation
                     text="you have 23 active subscriptions, want me to remove any?"
                     duration={30}
+                    onComplete={handleFourthComplete}
                     style={{
                       color: "rgba(255,255,255,0.45)",
                       fontSize: 11,
@@ -309,6 +326,44 @@ export function PhoneMockup() {
                       fontWeight: 400,
                     }}
                   />
+                </div>
+              )}
+
+              {/* User Message 3 (Text 5) */}
+              {showFifthMsg && (
+                <div
+                  className="flex justify-end"
+                  style={{ marginTop: 14 }}
+                >
+                  <div
+                    className="flex items-center gap-2.5"
+                    style={{
+                      borderRadius: 14,
+                      padding: "7px 12px",
+                      background: "rgba(30, 40, 65, 0.8)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <TypingAnimation
+                      text="yes"
+                      duration={50}
+                      style={{
+                        color: "rgba(255,255,255,0.5)",
+                        fontSize: 11.5,
+                        lineHeight: 1.4,
+                      }}
+                    />
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: "linear-gradient(to right, #605aaf, #bb90d4)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -528,10 +583,11 @@ export function PhoneMockup() {
                         width: 30,
                         height: 16,
                         borderRadius: 14,
-                        background: "rgba(34, 197, 94, 0.7)",
+                        background: togglesOff ? "rgba(239, 68, 68, 0.5)" : "rgba(34, 197, 94, 0.7)",
                         position: "relative",
                         flexShrink: 0,
-                        boxShadow: "0 0 6px rgba(34, 197, 94, 0.3)",
+                        boxShadow: togglesOff ? "0 0 6px rgba(239, 68, 68, 0.3)" : "0 0 6px rgba(34, 197, 94, 0.3)",
+                        transition: "all 0.4s ease",
                       }}
                     >
                       <div
@@ -542,8 +598,10 @@ export function PhoneMockup() {
                           background: "#fff",
                           position: "absolute",
                           top: 2,
-                          right: 2,
+                          right: togglesOff ? "auto" : 2,
+                          left: togglesOff ? 2 : "auto",
                           boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                          transition: "all 0.4s ease",
                         }}
                       />
                     </div>
