@@ -115,6 +115,7 @@ export function PhoneMockup() {
 
           {/* Main Card */}
           <div
+            className="flex flex-col flex-1"
             style={{
               borderRadius: 18,
               overflow: "hidden",
@@ -448,6 +449,7 @@ export function PhoneMockup() {
             style={{
               borderRadius: 14,
               height: 52,
+              minHeight: 52,
               fontSize: 15,
               fontWeight: 700,
               background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
@@ -455,6 +457,7 @@ export function PhoneMockup() {
               border: "none",
               cursor: "pointer",
               letterSpacing: "0.01em",
+              marginTop: "auto",
             }}
             onClick={() =>
               (window.location.href = "/auth?mode=signup")
