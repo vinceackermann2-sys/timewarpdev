@@ -206,7 +206,7 @@ export function PhoneMockup() {
             <div
               className="relative flex flex-col items-center"
               style={{
-                padding: "40px 24px 34px",
+                padding: "55px 24px 50px",
                 background: "#0f1520",
               }}
             >
