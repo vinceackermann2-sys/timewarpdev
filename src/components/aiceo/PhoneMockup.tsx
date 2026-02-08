@@ -127,22 +127,10 @@ export function PhoneMockup() {
                       width: 20,
                       height: 20,
                       borderRadius: "50%",
-                      background: "linear-gradient(to right, #605aaf 50%, #bb90d4 50%)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      background: "linear-gradient(to right, #605aaf, #bb90d4)",
                       flexShrink: 0,
                     }}
-                  >
-                    <span
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: "50%",
-                        background: "#a882ff",
-                      }}
-                    />
-                  </span>
+                  />
                 </div>
               </div>
 
