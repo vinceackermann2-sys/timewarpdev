@@ -29,9 +29,10 @@ export function PhoneMockup() {
       style={{ width: "100%", minHeight: "100%" }}
     >
     <div
-      className="relative"
+      className="relative flex flex-col"
       style={{
         width: 400,
+        height: 700,
         background: "#1a1f2e",
         borderRadius: 48,
         padding: "8px",
@@ -54,10 +55,12 @@ export function PhoneMockup() {
 
       {/* Screen */}
       <div
+        className="flex flex-col"
         style={{
           background: "#0f131c",
           borderRadius: 40,
           overflow: "hidden",
+          height: "100%",
         }}
       >
         {/* Status Bar */}
@@ -79,7 +82,7 @@ export function PhoneMockup() {
         </div>
 
         {/* Main Content */}
-        <div style={{ padding: "10px 18px 18px" }}>
+        <div className="flex flex-col flex-1" style={{ padding: "10px 18px 18px" }}>
           {/* Ready to research indicator */}
           <div
             className="flex items-center gap-2"
@@ -204,9 +207,9 @@ export function PhoneMockup() {
 
             {/* Illustration Area */}
             <div
-              className="relative flex flex-col items-center"
+              className="relative flex flex-col items-center justify-center flex-1"
               style={{
-                padding: "55px 24px 50px",
+                padding: "24px",
                 background: "#0f1520",
               }}
             >
