@@ -107,10 +107,10 @@ export function PhoneMockup() {
                   className="flex items-center gap-2.5"
                   style={{
                     borderRadius: 14,
-                    padding: "9px 14px",
+                    padding: "7px 12px",
                     background: "rgba(30, 40, 65, 0.8)",
                     border: "1px solid rgba(255,255,255,0.06)",
-                    maxWidth: "85%",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   <span
