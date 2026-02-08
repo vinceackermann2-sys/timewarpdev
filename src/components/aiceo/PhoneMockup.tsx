@@ -1,9 +1,24 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Battery, Wifi, Signal, FileText, Check, ArrowRight } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 export function PhoneMockup() {
   const [firstDone, setFirstDone] = useState(false);
+  const [researched, setResearched] = useState(false);
+  const [scanActive, setScanActive] = useState(false);
   const handleFirstComplete = useCallback(() => setFirstDone(true), []);
+
+  useEffect(() => {
+    if (firstDone) {
+      // Start scan line after a brief delay
+      const scanTimer = setTimeout(() => setScanActive(true), 800);
+      // Papers become structured after scan completes
+      const structureTimer = setTimeout(() => setResearched(true), 2400);
+      return () => {
+        clearTimeout(scanTimer);
+        clearTimeout(structureTimer);
+      };
+    }
+  }, [firstDone]);
   return (
     <div
       className="relative mx-auto"
@@ -203,6 +218,32 @@ export function PhoneMockup() {
                 }}
               />
 
+              {/* Scan Line */}
+              {scanActive && (
+                <div
+                  className="absolute"
+                  style={{
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    zIndex: 10,
+                    background: "linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.8) 40%, rgba(59, 130, 246, 1) 50%, rgba(99, 102, 241, 0.8) 60%, transparent 100%)",
+                    boxShadow: "0 0 12px 3px rgba(99, 102, 241, 0.4), 0 0 30px 6px rgba(59, 130, 246, 0.15)",
+                    animation: "scanDown 1.4s ease-in-out forwards",
+                  }}
+                />
+              )}
+
+              <style>{`
+                @keyframes scanDown {
+                  0% { top: 0%; opacity: 0; }
+                  5% { opacity: 1; }
+                  90% { opacity: 1; }
+                  100% { top: 100%; opacity: 0; }
+                }
+              `}</style>
+
               {/* Stacked Papers */}
               <div
                 className="relative"
@@ -218,13 +259,14 @@ export function PhoneMockup() {
                   style={{
                     width: 70,
                     height: 90,
-                    left: 8,
-                    top: 14,
                     borderRadius: 7,
                     background:
                       "linear-gradient(145deg, #2a3550 0%, #1e2840 100%)",
                     border: "1px solid rgba(255,255,255,0.06)",
-                    transform: "rotate(-8deg)",
+                    transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    ...(researched
+                      ? { left: 8, top: 14, transform: "rotate(-8deg)" }
+                      : { left: -2, top: 25, transform: "rotate(-18deg) translateY(5px)" }),
                   }}
                 >
                   <div
@@ -264,13 +306,14 @@ export function PhoneMockup() {
                   style={{
                     width: 70,
                     height: 90,
-                    right: 8,
-                    top: 10,
                     borderRadius: 7,
                     background:
                       "linear-gradient(145deg, #2e3a58 0%, #222e48 100%)",
                     border: "1px solid rgba(255,255,255,0.07)",
-                    transform: "rotate(6deg)",
+                    transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s",
+                    ...(researched
+                      ? { right: 8, top: 10, left: "auto", transform: "rotate(6deg)" }
+                      : { right: -4, top: 22, left: "auto", transform: "rotate(15deg) translateY(8px)" }),
                   }}
                 >
                   <div
@@ -302,14 +345,15 @@ export function PhoneMockup() {
                   style={{
                     width: 74,
                     height: 95,
-                    left: "50%",
-                    top: 4,
-                    transform: "translateX(-50%)",
                     borderRadius: 8,
                     background:
                       "linear-gradient(145deg, #323e60 0%, #283450 100%)",
                     border: "1px solid rgba(255,255,255,0.1)",
                     zIndex: 2,
+                    transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s",
+                    ...(researched
+                      ? { left: "50%", top: 4, transform: "translateX(-50%) rotate(0deg)" }
+                      : { left: "50%", top: 12, transform: "translateX(-50%) rotate(4deg) translateY(6px)" }),
                   }}
                 >
                   <div
