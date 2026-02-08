@@ -136,32 +136,36 @@ export function PhoneMockup() {
 
               {/* AI Response */}
               <div
+                className="flex items-center gap-2.5"
                 style={{
                   borderRadius: 14,
-                  padding: "8px 12px",
+                  padding: "7px 12px",
                   background: "transparent",
                   border: "1px solid rgba(255,255,255,0.05)",
-                  color: "rgba(255,255,255,0.45)",
-                  fontSize: 11.5,
-                  lineHeight: 1.6,
-                  textAlign: "left",
-                  maxWidth: "88%",
+                  maxWidth: "82%",
                 }}
               >
-                <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
-                  <span
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: "50%",
-                      background: "linear-gradient(to right, #605aaf, #bb90d4)",
-                      flexShrink: 0,
-                    }}
-                  />
-                </div>
-                your biggest spend is employees, all costs results to{" "}
-                <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
-                  13,018$ per day
+                <span
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    background: "linear-gradient(to right, #605aaf, #bb90d4)",
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    color: "rgba(255,255,255,0.45)",
+                    fontSize: 11.5,
+                    lineHeight: 1.5,
+                    textAlign: "left",
+                  }}
+                >
+                  your biggest spend is employees, all costs results to{" "}
+                  <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
+                    13,018$ per day
+                  </span>
                 </span>
               </div>
             </div>
