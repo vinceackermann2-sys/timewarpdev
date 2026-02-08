@@ -135,33 +135,34 @@ export function PhoneMockup() {
               </div>
 
               {/* AI Response */}
-              <div className="flex items-start gap-2.5">
-                <span
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: "50%",
-                    background: "linear-gradient(to right, #605aaf, #bb90d4)",
-                    flexShrink: 0,
-                    marginTop: 1,
-                  }}
-                />
-                <div
-                  style={{
-                    borderRadius: 14,
-                    padding: "10px 14px",
-                    background: "transparent",
-                    border: "1px solid rgba(255,255,255,0.05)",
-                    color: "rgba(255,255,255,0.45)",
-                    fontSize: 11.5,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  your biggest spend is employees, all costs results to{" "}
-                  <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
-                    13,018$ per day
-                  </span>
+              <div
+                style={{
+                  borderRadius: 14,
+                  padding: "8px 12px",
+                  background: "transparent",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                  color: "rgba(255,255,255,0.45)",
+                  fontSize: 11.5,
+                  lineHeight: 1.6,
+                  textAlign: "left",
+                  maxWidth: "88%",
+                }}
+              >
+                <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: "50%",
+                      background: "linear-gradient(to right, #605aaf, #bb90d4)",
+                      flexShrink: 0,
+                    }}
+                  />
                 </div>
+                your biggest spend is employees, all costs results to{" "}
+                <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
+                  13,018$ per day
+                </span>
               </div>
             </div>
 
