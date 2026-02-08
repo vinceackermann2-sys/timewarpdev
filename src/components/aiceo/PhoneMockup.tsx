@@ -518,48 +518,34 @@ export function PhoneMockup() {
               {/* Toggle Switches */}
               {showActionButtons && (
                 <div
-                  className="flex flex-col gap-2.5 animate-fade-in"
-                  style={{ marginTop: 4, width: "100%" }}
+                  className="flex gap-3 animate-fade-in"
+                  style={{ marginTop: 4 }}
                 >
-                  {["Cancel subscriptions", "Renegotiate contracts", "Compare alternatives"].map((label) => (
+                  {[0, 1, 2].map((i) => (
                     <div
-                      key={label}
-                      className="flex items-center justify-between"
+                      key={i}
                       style={{
-                        padding: "6px 12px",
-                        borderRadius: 10,
-                        background: "rgba(34, 197, 94, 0.08)",
-                        border: "1px solid rgba(34, 197, 94, 0.15)",
+                        width: 30,
+                        height: 16,
+                        borderRadius: 14,
+                        background: "rgba(34, 197, 94, 0.7)",
+                        position: "relative",
+                        flexShrink: 0,
+                        boxShadow: "0 0 6px rgba(34, 197, 94, 0.3)",
                       }}
                     >
-                      <span style={{ fontSize: 10, fontWeight: 500, color: "rgba(255,255,255,0.6)" }}>
-                        {label}
-                      </span>
-                      {/* Toggle switch - ON state */}
                       <div
                         style={{
-                          width: 30,
-                          height: 16,
-                          borderRadius: 10,
-                          background: "rgba(34, 197, 94, 0.7)",
-                          position: "relative",
-                          flexShrink: 0,
-                          boxShadow: "0 0 6px rgba(34, 197, 94, 0.3)",
+                          width: 12,
+                          height: 12,
+                          borderRadius: "50%",
+                          background: "#fff",
+                          position: "absolute",
+                          top: 2,
+                          right: 2,
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
                         }}
-                      >
-                        <div
-                          style={{
-                            width: 12,
-                            height: 12,
-                            borderRadius: "50%",
-                            background: "#fff",
-                            position: "absolute",
-                            top: 2,
-                            right: 2,
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                          }}
-                        />
-                      </div>
+                      />
                     </div>
                   ))}
                 </div>
