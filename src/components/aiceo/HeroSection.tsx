@@ -50,7 +50,7 @@ export function HeroSection() {
       {/* Content */}
       <div className="relative z-10 w-full max-w-4xl mx-auto px-4 pt-16 pb-10 flex flex-col items-center text-center">
         {/* Headline */}
-        <h1 className="leading-[1.05] tracking-tight mb-5 text-7xl mx-px my-0" style={{
+        <h1 className="leading-[1.05] tracking-tight mb-5 text-7xl my-0 mx-0" style={{
         fontFamily: "'Plus Jakarta Sans', sans-serif",
         fontSize: "clamp(38px, 5.5vw, 68px)",
         fontWeight: 800,
