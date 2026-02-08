@@ -19,9 +19,9 @@ export function PhoneMockup() {
         className="absolute left-1/2 -translate-x-1/2"
         style={{
           top: 12,
-          width: 28,
+          width: 100,
           height: 28,
-          borderRadius: "50%",
+          borderRadius: 28,
           background: "#000",
           zIndex: 20,
         }}
