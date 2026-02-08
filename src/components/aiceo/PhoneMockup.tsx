@@ -1,27 +1,27 @@
 import React from "react";
-import { Battery, Wifi, Signal, FileText, CheckCircle2 } from "lucide-react";
+import { Battery, Wifi, Signal, FileText } from "lucide-react";
 
 export function PhoneMockup() {
   return (
     <div
       className="relative mx-auto"
       style={{
-        width: 280,
+        width: 340,
         background: "#1a1f2e",
-        borderRadius: 36,
-        padding: "6px",
+        borderRadius: 42,
+        padding: "7px",
         boxShadow:
-          "0 0 0 1px rgba(255,255,255,0.08), 0 40px 100px -20px rgba(0,0,0,0.7)",
+          "0 0 0 1px rgba(255,255,255,0.08), 0 50px 120px -20px rgba(0,0,0,0.7)",
       }}
     >
       {/* Notch */}
       <div
         className="absolute left-1/2 -translate-x-1/2"
         style={{
-          top: 6,
-          width: 90,
-          height: 24,
-          borderRadius: "0 0 16px 16px",
+          top: 7,
+          width: 100,
+          height: 28,
+          borderRadius: "0 0 18px 18px",
           background: "#0f131c",
           zIndex: 20,
         }}
@@ -31,7 +31,7 @@ export function PhoneMockup() {
       <div
         style={{
           background: "#0f131c",
-          borderRadius: 30,
+          borderRadius: 35,
           overflow: "hidden",
         }}
       >
@@ -39,39 +39,39 @@ export function PhoneMockup() {
         <div
           className="relative flex items-center justify-between"
           style={{
-            padding: "12px 20px 6px",
-            fontSize: 11,
+            padding: "14px 24px 8px",
+            fontSize: 12,
             fontWeight: 600,
             color: "rgba(255,255,255,0.6)",
           }}
         >
           <span>9:41</span>
-          <div className="flex items-center gap-1">
-            <Signal size={12} strokeWidth={2.5} />
-            <Wifi size={12} strokeWidth={2.5} />
-            <Battery size={14} strokeWidth={2.5} />
+          <div className="flex items-center gap-1.5">
+            <Signal size={13} strokeWidth={2.5} />
+            <Wifi size={13} strokeWidth={2.5} />
+            <Battery size={15} strokeWidth={2.5} />
           </div>
         </div>
 
         {/* Main Content */}
-        <div style={{ padding: "8px 14px 14px" }}>
+        <div style={{ padding: "10px 18px 18px" }}>
           {/* Ready to research indicator */}
           <div
             className="flex items-center gap-2"
-            style={{ marginBottom: 14 }}
+            style={{ marginBottom: 18 }}
           >
             <span
               style={{
-                width: 6,
-                height: 12,
-                borderRadius: 3,
+                width: 7,
+                height: 14,
+                borderRadius: 3.5,
                 background: "#22c55e",
               }}
             />
             <span
               style={{
                 color: "rgba(255,255,255,0.7)",
-                fontSize: 11,
+                fontSize: 12.5,
                 fontWeight: 500,
                 letterSpacing: "0.01em",
               }}
@@ -83,17 +83,17 @@ export function PhoneMockup() {
           {/* Main Card */}
           <div
             style={{
-              borderRadius: 16,
+              borderRadius: 18,
               overflow: "hidden",
               border: "1px solid rgba(59, 130, 246, 0.25)",
               background: "#141a28",
-              marginBottom: 14,
+              marginBottom: 18,
             }}
           >
             {/* Chat Area */}
             <div
               style={{
-                padding: "16px",
+                padding: "20px",
                 background:
                   "linear-gradient(180deg, #1e2a42 0%, #1a2438 100%)",
               }}
@@ -101,13 +101,13 @@ export function PhoneMockup() {
               {/* User Message */}
               <div
                 className="flex justify-end"
-                style={{ marginBottom: 12 }}
+                style={{ marginBottom: 14 }}
               >
                 <div
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2.5"
                   style={{
-                    borderRadius: 20,
-                    padding: "7px 12px",
+                    borderRadius: 22,
+                    padding: "9px 14px",
                     background: "rgba(30, 40, 65, 0.8)",
                     border: "1px solid rgba(255,255,255,0.06)",
                     maxWidth: "85%",
@@ -116,7 +116,7 @@ export function PhoneMockup() {
                   <span
                     style={{
                       color: "rgba(255,255,255,0.5)",
-                      fontSize: 10,
+                      fontSize: 11.5,
                       lineHeight: 1.4,
                     }}
                   >
@@ -124,8 +124,8 @@ export function PhoneMockup() {
                   </span>
                   <span
                     style={{
-                      width: 16,
-                      height: 16,
+                      width: 20,
+                      height: 20,
                       borderRadius: "50%",
                       background: "rgba(168,130,255,0.2)",
                       display: "flex",
@@ -136,8 +136,8 @@ export function PhoneMockup() {
                   >
                     <span
                       style={{
-                        width: 6,
-                        height: 6,
+                        width: 7,
+                        height: 7,
                         borderRadius: "50%",
                         background: "#a882ff",
                       }}
@@ -147,11 +147,11 @@ export function PhoneMockup() {
               </div>
 
               {/* AI Response */}
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2.5">
                 <span
                   style={{
-                    width: 18,
-                    height: 18,
+                    width: 22,
+                    height: 22,
                     borderRadius: "50%",
                     background: "rgba(168,130,255,0.15)",
                     display: "flex",
@@ -163,8 +163,8 @@ export function PhoneMockup() {
                 >
                   <span
                     style={{
-                      width: 7,
-                      height: 7,
+                      width: 8,
+                      height: 8,
                       borderRadius: "50%",
                       background: "#a882ff",
                     }}
@@ -172,12 +172,12 @@ export function PhoneMockup() {
                 </span>
                 <div
                   style={{
-                    borderRadius: 12,
-                    padding: "8px 12px",
+                    borderRadius: 14,
+                    padding: "10px 14px",
                     background: "rgba(20, 28, 48, 0.8)",
                     border: "1px solid rgba(255,255,255,0.05)",
                     color: "rgba(255,255,255,0.45)",
-                    fontSize: 10,
+                    fontSize: 11.5,
                     lineHeight: 1.6,
                   }}
                 >
@@ -193,7 +193,7 @@ export function PhoneMockup() {
             <div
               className="relative flex flex-col items-center"
               style={{
-                padding: "32px 20px 28px",
+                padding: "40px 24px 34px",
                 background: "#0f1520",
               }}
             >
@@ -204,12 +204,12 @@ export function PhoneMockup() {
                   top: "30%",
                   left: "50%",
                   transform: "translate(-50%, -50%)",
-                  width: 120,
-                  height: 80,
+                  width: 150,
+                  height: 100,
                   borderRadius: "50%",
                   background:
                     "radial-gradient(ellipse, rgba(99, 102, 241, 0.15) 0%, transparent 70%)",
-                  filter: "blur(20px)",
+                  filter: "blur(24px)",
                 }}
               />
 
@@ -217,20 +217,20 @@ export function PhoneMockup() {
               <div
                 className="relative"
                 style={{
-                  width: 120,
-                  height: 100,
-                  marginBottom: 16,
+                  width: 150,
+                  height: 125,
+                  marginBottom: 20,
                 }}
               >
                 {/* Paper 1 (Back) */}
                 <div
                   className="absolute"
                   style={{
-                    width: 56,
-                    height: 72,
-                    left: 6,
-                    top: 12,
-                    borderRadius: 6,
+                    width: 70,
+                    height: 90,
+                    left: 8,
+                    top: 14,
+                    borderRadius: 7,
                     background:
                       "linear-gradient(145deg, #2a3550 0%, #1e2840 100%)",
                     border: "1px solid rgba(255,255,255,0.06)",
@@ -238,12 +238,12 @@ export function PhoneMockup() {
                   }}
                 >
                   <div
-                    style={{ padding: 8 }}
-                    className="flex flex-col gap-1.5"
+                    style={{ padding: 10 }}
+                    className="flex flex-col gap-2"
                   >
                     <div
                       style={{
-                        height: 3,
+                        height: 3.5,
                         width: "80%",
                         borderRadius: 2,
                         background: "rgba(255,255,255,0.08)",
@@ -251,7 +251,7 @@ export function PhoneMockup() {
                     />
                     <div
                       style={{
-                        height: 3,
+                        height: 3.5,
                         width: "60%",
                         borderRadius: 2,
                         background: "rgba(255,255,255,0.06)",
@@ -259,7 +259,7 @@ export function PhoneMockup() {
                     />
                     <div
                       style={{
-                        height: 3,
+                        height: 3.5,
                         width: "70%",
                         borderRadius: 2,
                         background: "rgba(255,255,255,0.05)",
@@ -272,11 +272,11 @@ export function PhoneMockup() {
                 <div
                   className="absolute"
                   style={{
-                    width: 56,
-                    height: 72,
-                    right: 6,
-                    top: 8,
-                    borderRadius: 6,
+                    width: 70,
+                    height: 90,
+                    right: 8,
+                    top: 10,
+                    borderRadius: 7,
                     background:
                       "linear-gradient(145deg, #2e3a58 0%, #222e48 100%)",
                     border: "1px solid rgba(255,255,255,0.07)",
@@ -284,12 +284,12 @@ export function PhoneMockup() {
                   }}
                 >
                   <div
-                    style={{ padding: 8 }}
-                    className="flex flex-col gap-1.5"
+                    style={{ padding: 10 }}
+                    className="flex flex-col gap-2"
                   >
                     <div
                       style={{
-                        height: 3,
+                        height: 3.5,
                         width: "75%",
                         borderRadius: 2,
                         background: "rgba(255,255,255,0.08)",
@@ -297,7 +297,7 @@ export function PhoneMockup() {
                     />
                     <div
                       style={{
-                        height: 3,
+                        height: 3.5,
                         width: "55%",
                         borderRadius: 2,
                         background: "rgba(255,255,255,0.06)",
@@ -310,12 +310,12 @@ export function PhoneMockup() {
                 <div
                   className="absolute"
                   style={{
-                    width: 60,
-                    height: 76,
+                    width: 74,
+                    height: 95,
                     left: "50%",
                     top: 4,
                     transform: "translateX(-50%)",
-                    borderRadius: 7,
+                    borderRadius: 8,
                     background:
                       "linear-gradient(145deg, #323e60 0%, #283450 100%)",
                     border: "1px solid rgba(255,255,255,0.1)",
@@ -323,17 +323,17 @@ export function PhoneMockup() {
                   }}
                 >
                   <div
-                    style={{ padding: 10 }}
-                    className="flex flex-col gap-2"
+                    style={{ padding: 12 }}
+                    className="flex flex-col gap-2.5"
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <FileText
-                        size={10}
+                        size={12}
                         style={{ color: "rgba(255,255,255,0.3)" }}
                       />
                       <div
                         style={{
-                          height: 3,
+                          height: 3.5,
                           width: "60%",
                           borderRadius: 2,
                           background: "rgba(255,255,255,0.12)",
@@ -342,7 +342,7 @@ export function PhoneMockup() {
                     </div>
                     <div
                       style={{
-                        height: 3,
+                        height: 3.5,
                         width: "80%",
                         borderRadius: 2,
                         background: "rgba(255,255,255,0.08)",
@@ -350,7 +350,7 @@ export function PhoneMockup() {
                     />
                     <div
                       style={{
-                        height: 3,
+                        height: 3.5,
                         width: "65%",
                         borderRadius: 2,
                         background: "rgba(255,255,255,0.06)",
@@ -363,24 +363,24 @@ export function PhoneMockup() {
                 <div
                   className="absolute"
                   style={{
-                    width: 8,
-                    height: 8,
+                    width: 10,
+                    height: 10,
                     borderRadius: "50%",
                     background: "rgba(99, 102, 241, 0.3)",
                     top: 0,
-                    right: 16,
+                    right: 18,
                     filter: "blur(2px)",
                   }}
                 />
                 <div
                   className="absolute"
                   style={{
-                    width: 6,
-                    height: 6,
+                    width: 7,
+                    height: 7,
                     borderRadius: "50%",
                     background: "rgba(59, 130, 246, 0.25)",
-                    bottom: 8,
-                    left: 12,
+                    bottom: 10,
+                    left: 14,
                     filter: "blur(1px)",
                   }}
                 />
@@ -391,8 +391,8 @@ export function PhoneMockup() {
                 style={{
                   color: "#fff",
                   fontWeight: 700,
-                  fontSize: 16,
-                  marginBottom: 3,
+                  fontSize: 18,
+                  marginBottom: 4,
                   letterSpacing: "-0.01em",
                 }}
               >
@@ -401,7 +401,7 @@ export function PhoneMockup() {
               <p
                 style={{
                   color: "rgba(255,255,255,0.35)",
-                  fontSize: 11.5,
+                  fontSize: 13,
                   fontWeight: 400,
                 }}
               >
@@ -414,9 +414,9 @@ export function PhoneMockup() {
           <button
             className="w-full"
             style={{
-              borderRadius: 12,
-              height: 44,
-              fontSize: 13.5,
+              borderRadius: 14,
+              height: 52,
+              fontSize: 15,
               fontWeight: 700,
               background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
               color: "#fff",
