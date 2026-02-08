@@ -6,15 +6,18 @@ export function PhoneMockup() {
   const [researched, setResearched] = useState(false);
   const [scanActive, setScanActive] = useState(false);
   const [showResponse, setShowResponse] = useState(false);
+  const [secondDone, setSecondDone] = useState(false);
+  const [showThirdMsg, setShowThirdMsg] = useState(false);
+  const [thirdDone, setThirdDone] = useState(false);
+  const [showFourthMsg, setShowFourthMsg] = useState(false);
   const handleFirstComplete = useCallback(() => setFirstDone(true), []);
+  const handleSecondComplete = useCallback(() => setSecondDone(true), []);
+  const handleThirdComplete = useCallback(() => setThirdDone(true), []);
 
-  useEffect(() => {
+   useEffect(() => {
     if (firstDone) {
-      // Start scan line after a brief delay
       const scanTimer = setTimeout(() => setScanActive(true), 400);
-      // Papers become structured after 2 bounces (~3.6s animation)
       const structureTimer = setTimeout(() => setResearched(true), 4200);
-      // Show AI response text only after research is done
       const responseTimer = setTimeout(() => setShowResponse(true), 4600);
       return () => {
         clearTimeout(scanTimer);
@@ -23,6 +26,22 @@ export function PhoneMockup() {
       };
     }
   }, [firstDone]);
+
+  // After text 2 finishes, show text 3 after a brief pause
+  useEffect(() => {
+    if (secondDone) {
+      const timer = setTimeout(() => setShowThirdMsg(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [secondDone]);
+
+  // After text 3 finishes, show text 4 after a brief pause
+  useEffect(() => {
+    if (thirdDone) {
+      const timer = setTimeout(() => setShowFourthMsg(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [thirdDone]);
   return (
     <div
       className="relative mx-auto flex items-center justify-center"
@@ -194,6 +213,7 @@ export function PhoneMockup() {
                   <TypingAnimation
                     text="your biggest spend is employees, all costs results to 13,018$ per day"
                     duration={30}
+                    onComplete={handleSecondComplete}
                     style={{
                       color: "rgba(255,255,255,0.45)",
                       fontSize: 11,
@@ -204,6 +224,82 @@ export function PhoneMockup() {
                   />
                 ) : null}
               </div>
+
+              {/* User Message 2 (Text 3) */}
+              {showThirdMsg && (
+                <div
+                  className="flex justify-end"
+                  style={{ marginTop: 14 }}
+                >
+                  <div
+                    className="flex items-center gap-2.5"
+                    style={{
+                      borderRadius: 14,
+                      padding: "7px 12px",
+                      background: "rgba(30, 40, 65, 0.8)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <TypingAnimation
+                      text="i need to cut that spending"
+                      duration={50}
+                      onComplete={handleThirdComplete}
+                      style={{
+                        color: "rgba(255,255,255,0.5)",
+                        fontSize: 11.5,
+                        lineHeight: 1.4,
+                      }}
+                    />
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: "linear-gradient(to right, #605aaf, #bb90d4)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* AI Response 2 (Text 4) */}
+              {showFourthMsg && (
+                <div
+                  className="flex items-start gap-2.5"
+                  style={{
+                    borderRadius: 14,
+                    padding: "6px 10px",
+                    marginTop: 14,
+                    background: "transparent",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                    width: "100%",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      background: "linear-gradient(to right, #605aaf, #bb90d4)",
+                      flexShrink: 0,
+                      marginTop: 1,
+                    }}
+                  />
+                  <TypingAnimation
+                    text="you have 23 active subscriptions, want me to remove any?"
+                    duration={30}
+                    style={{
+                      color: "rgba(255,255,255,0.45)",
+                      fontSize: 11,
+                      lineHeight: 1.4,
+                      textAlign: "left" as const,
+                      fontWeight: 400,
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Illustration Area */}
