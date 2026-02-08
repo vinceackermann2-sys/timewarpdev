@@ -174,7 +174,7 @@ export function PhoneMockup() {
                   style={{
                     borderRadius: 14,
                     padding: "10px 14px",
-                    background: "rgba(20, 28, 48, 0.8)",
+                    background: "transparent",
                     border: "1px solid rgba(255,255,255,0.05)",
                     color: "rgba(255,255,255,0.45)",
                     fontSize: 11.5,
