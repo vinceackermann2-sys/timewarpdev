@@ -25,12 +25,16 @@ export function PhoneMockup() {
   }, [firstDone]);
   return (
     <div
-      className="relative mx-auto"
+      className="relative mx-auto flex items-center justify-center"
+      style={{ width: "100%", minHeight: "100%" }}
+    >
+    <div
+      className="relative"
       style={{
-        width: 340,
+        width: 400,
         background: "#1a1f2e",
-        borderRadius: 42,
-        padding: "7px",
+        borderRadius: 48,
+        padding: "8px",
         boxShadow:
           "0 0 0 2px #000, 0 50px 120px -20px rgba(0,0,0,0.7)",
       }}
@@ -39,9 +43,9 @@ export function PhoneMockup() {
       <div
         className="absolute left-1/2 -translate-x-1/2"
         style={{
-          top: 12,
-          width: 100,
-          height: 28,
+          top: 14,
+          width: 110,
+          height: 30,
           borderRadius: 28,
           background: "#000",
           zIndex: 20,
@@ -52,7 +56,7 @@ export function PhoneMockup() {
       <div
         style={{
           background: "#0f131c",
-          borderRadius: 35,
+          borderRadius: 40,
           overflow: "hidden",
         }}
       >
@@ -458,6 +462,7 @@ export function PhoneMockup() {
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }
