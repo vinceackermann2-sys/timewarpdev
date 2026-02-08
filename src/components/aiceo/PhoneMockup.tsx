@@ -11,7 +11,7 @@ export function PhoneMockup() {
         borderRadius: 42,
         padding: "7px",
         boxShadow:
-          "0 0 0 1px rgba(255,255,255,0.08), 0 50px 120px -20px rgba(0,0,0,0.7)",
+          "0 0 0 1px #000, 0 50px 120px -20px rgba(0,0,0,0.7)",
       }}
     >
       {/* Notch */}
