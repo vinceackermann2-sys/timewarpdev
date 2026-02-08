@@ -10,6 +10,9 @@ export function PhoneMockup() {
   const [showThirdMsg, setShowThirdMsg] = useState(false);
   const [thirdDone, setThirdDone] = useState(false);
   const [showFourthMsg, setShowFourthMsg] = useState(false);
+  const [secondScanActive, setSecondScanActive] = useState(false);
+  const [secondResearched, setSecondResearched] = useState(false);
+  const [showActionButtons, setShowActionButtons] = useState(false);
   const handleFirstComplete = useCallback(() => setFirstDone(true), []);
   const handleSecondComplete = useCallback(() => setSecondDone(true), []);
   const handleThirdComplete = useCallback(() => setThirdDone(true), []);
@@ -35,11 +38,19 @@ export function PhoneMockup() {
     }
   }, [secondDone]);
 
-  // After text 3 finishes, show text 4 after a brief pause
+  // After text 3 finishes, trigger second scan, then show results + text 4
   useEffect(() => {
     if (thirdDone) {
-      const timer = setTimeout(() => setShowFourthMsg(true), 600);
-      return () => clearTimeout(timer);
+      const scanTimer = setTimeout(() => setSecondScanActive(true), 400);
+      const researchTimer = setTimeout(() => setSecondResearched(true), 4200);
+      const buttonsTimer = setTimeout(() => setShowActionButtons(true), 4400);
+      const responseTimer = setTimeout(() => setShowFourthMsg(true), 4600);
+      return () => {
+        clearTimeout(scanTimer);
+        clearTimeout(researchTimer);
+        clearTimeout(buttonsTimer);
+        clearTimeout(responseTimer);
+      };
     }
   }, [thirdDone]);
   return (
@@ -326,7 +337,7 @@ export function PhoneMockup() {
                 }}
               />
 
-              {/* Scan Line */}
+              {/* Scan Line - First */}
               {scanActive && (
                 <div
                   className="absolute"
@@ -338,6 +349,23 @@ export function PhoneMockup() {
                     zIndex: 10,
                     background: "linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.8) 40%, rgba(59, 130, 246, 1) 50%, rgba(99, 102, 241, 0.8) 60%, transparent 100%)",
                     boxShadow: "0 0 12px 3px rgba(99, 102, 241, 0.4), 0 0 30px 6px rgba(59, 130, 246, 0.15)",
+                    animation: "scanBounce 3.6s ease-in-out forwards",
+                  }}
+                />
+              )}
+
+              {/* Scan Line - Second */}
+              {secondScanActive && !secondResearched && (
+                <div
+                  className="absolute"
+                  style={{
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    zIndex: 10,
+                    background: "linear-gradient(90deg, transparent 0%, rgba(34, 197, 94, 0.8) 40%, rgba(16, 185, 129, 1) 50%, rgba(34, 197, 94, 0.8) 60%, transparent 100%)",
+                    boxShadow: "0 0 12px 3px rgba(34, 197, 94, 0.4), 0 0 30px 6px rgba(16, 185, 129, 0.15)",
                     animation: "scanBounce 3.6s ease-in-out forwards",
                   }}
                 />
@@ -363,9 +391,10 @@ export function PhoneMockup() {
               <div
                 className="relative"
                 style={{
-                  width: 150,
-                  height: 125,
-                  marginBottom: 20,
+                  width: secondResearched ? 180 : 150,
+                  height: secondResearched ? 140 : 125,
+                  marginBottom: 12,
+                  transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
                 }}
               >
                 {/* Paper 1 (Back) */}
@@ -379,7 +408,9 @@ export function PhoneMockup() {
                       "linear-gradient(145deg, #2a3550 0%, #1e2840 100%)",
                     border: "1px solid rgba(255,255,255,0.06)",
                     transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                    ...(researched
+                    ...(secondResearched
+                      ? { left: -10, top: 30, transform: "rotate(-12deg) scale(0.7)", opacity: 0.4 }
+                      : researched
                       ? { left: 8, top: 14, transform: "rotate(-8deg)" }
                       : { left: -2, top: 25, transform: "rotate(-18deg) translateY(5px)" }),
                   }}
@@ -388,30 +419,9 @@ export function PhoneMockup() {
                     style={{ padding: 10 }}
                     className="flex flex-col gap-2"
                   >
-                    <div
-                      style={{
-                        height: 3.5,
-                        width: "80%",
-                        borderRadius: 2,
-                        background: "rgba(255,255,255,0.08)",
-                      }}
-                    />
-                    <div
-                      style={{
-                        height: 3.5,
-                        width: "60%",
-                        borderRadius: 2,
-                        background: "rgba(255,255,255,0.06)",
-                      }}
-                    />
-                    <div
-                      style={{
-                        height: 3.5,
-                        width: "70%",
-                        borderRadius: 2,
-                        background: "rgba(255,255,255,0.05)",
-                      }}
-                    />
+                    <div style={{ height: 3.5, width: "80%", borderRadius: 2, background: "rgba(255,255,255,0.08)" }} />
+                    <div style={{ height: 3.5, width: "60%", borderRadius: 2, background: "rgba(255,255,255,0.06)" }} />
+                    <div style={{ height: 3.5, width: "70%", borderRadius: 2, background: "rgba(255,255,255,0.05)" }} />
                   </div>
                 </div>
 
@@ -426,7 +436,9 @@ export function PhoneMockup() {
                       "linear-gradient(145deg, #2e3a58 0%, #222e48 100%)",
                     border: "1px solid rgba(255,255,255,0.07)",
                     transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s",
-                    ...(researched
+                    ...(secondResearched
+                      ? { right: -10, top: 30, left: "auto", transform: "rotate(10deg) scale(0.7)", opacity: 0.4 }
+                      : researched
                       ? { right: 8, top: 10, left: "auto", transform: "rotate(6deg)" }
                       : { right: -4, top: 22, left: "auto", transform: "rotate(15deg) translateY(8px)" }),
                   }}
@@ -435,76 +447,50 @@ export function PhoneMockup() {
                     style={{ padding: 10 }}
                     className="flex flex-col gap-2"
                   >
-                    <div
-                      style={{
-                        height: 3.5,
-                        width: "75%",
-                        borderRadius: 2,
-                        background: "rgba(255,255,255,0.08)",
-                      }}
-                    />
-                    <div
-                      style={{
-                        height: 3.5,
-                        width: "55%",
-                        borderRadius: 2,
-                        background: "rgba(255,255,255,0.06)",
-                      }}
-                    />
+                    <div style={{ height: 3.5, width: "75%", borderRadius: 2, background: "rgba(255,255,255,0.08)" }} />
+                    <div style={{ height: 3.5, width: "55%", borderRadius: 2, background: "rgba(255,255,255,0.06)" }} />
                   </div>
                 </div>
 
-                {/* Paper 3 (Front) */}
+                {/* Paper 3 (Front - becomes large) */}
                 <div
                   className="absolute"
                   style={{
-                    width: 74,
-                    height: 95,
-                    borderRadius: 8,
-                    background:
-                      "linear-gradient(145deg, #323e60 0%, #283450 100%)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: secondResearched ? 10 : 8,
+                    background: secondResearched
+                      ? "linear-gradient(145deg, #1e3a2a 0%, #1a3025 100%)"
+                      : "linear-gradient(145deg, #323e60 0%, #283450 100%)",
+                    border: secondResearched
+                      ? "1px solid rgba(34, 197, 94, 0.3)"
+                      : "1px solid rgba(255,255,255,0.1)",
                     zIndex: 2,
                     transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s",
-                    ...(researched
-                      ? { left: "50%", top: 4, transform: "translateX(-50%) rotate(0deg)" }
-                      : { left: "50%", top: 12, transform: "translateX(-50%) rotate(4deg) translateY(6px)" }),
+                    ...(secondResearched
+                      ? { left: "50%", top: 0, transform: "translateX(-50%) rotate(0deg)", width: 120, height: 130 }
+                      : researched
+                      ? { left: "50%", top: 4, transform: "translateX(-50%) rotate(0deg)", width: 74, height: 95 }
+                      : { left: "50%", top: 12, transform: "translateX(-50%) rotate(4deg) translateY(6px)", width: 74, height: 95 }),
                   }}
                 >
                   <div
-                    style={{ padding: 12 }}
+                    style={{ padding: secondResearched ? 14 : 12 }}
                     className="flex flex-col gap-2.5"
                   >
                     <div className="flex items-center gap-2">
                       <FileText
-                        size={12}
-                        style={{ color: "rgba(255,255,255,0.3)" }}
+                        size={secondResearched ? 14 : 12}
+                        style={{ color: secondResearched ? "rgba(34, 197, 94, 0.6)" : "rgba(255,255,255,0.3)" }}
                       />
-                      <div
-                        style={{
-                          height: 3.5,
-                          width: "60%",
-                          borderRadius: 2,
-                          background: "rgba(255,255,255,0.12)",
-                        }}
-                      />
+                      <div style={{ height: 3.5, width: "60%", borderRadius: 2, background: secondResearched ? "rgba(34, 197, 94, 0.2)" : "rgba(255,255,255,0.12)" }} />
                     </div>
-                    <div
-                      style={{
-                        height: 3.5,
-                        width: "80%",
-                        borderRadius: 2,
-                        background: "rgba(255,255,255,0.08)",
-                      }}
-                    />
-                    <div
-                      style={{
-                        height: 3.5,
-                        width: "65%",
-                        borderRadius: 2,
-                        background: "rgba(255,255,255,0.06)",
-                      }}
-                    />
+                    <div style={{ height: 3.5, width: "80%", borderRadius: 2, background: secondResearched ? "rgba(34, 197, 94, 0.15)" : "rgba(255,255,255,0.08)" }} />
+                    <div style={{ height: 3.5, width: "65%", borderRadius: 2, background: secondResearched ? "rgba(34, 197, 94, 0.1)" : "rgba(255,255,255,0.06)" }} />
+                    {secondResearched && (
+                      <>
+                        <div style={{ height: 3.5, width: "90%", borderRadius: 2, background: "rgba(34, 197, 94, 0.12)" }} />
+                        <div style={{ height: 3.5, width: "50%", borderRadius: 2, background: "rgba(34, 197, 94, 0.08)" }} />
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -512,28 +498,49 @@ export function PhoneMockup() {
                 <div
                   className="absolute"
                   style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: "50%",
-                    background: "rgba(99, 102, 241, 0.3)",
-                    top: 0,
-                    right: 18,
-                    filter: "blur(2px)",
+                    width: 10, height: 10, borderRadius: "50%",
+                    background: secondResearched ? "rgba(34, 197, 94, 0.3)" : "rgba(99, 102, 241, 0.3)",
+                    top: 0, right: 18, filter: "blur(2px)",
+                    transition: "background 0.6s ease",
                   }}
                 />
                 <div
                   className="absolute"
                   style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: "rgba(59, 130, 246, 0.25)",
-                    bottom: 10,
-                    left: 14,
-                    filter: "blur(1px)",
+                    width: 7, height: 7, borderRadius: "50%",
+                    background: secondResearched ? "rgba(16, 185, 129, 0.25)" : "rgba(59, 130, 246, 0.25)",
+                    bottom: 10, left: 14, filter: "blur(1px)",
+                    transition: "background 0.6s ease",
                   }}
                 />
               </div>
+
+              {/* Action Buttons */}
+              {showActionButtons && (
+                <div
+                  className="flex gap-2 animate-fade-in"
+                  style={{ marginTop: 4 }}
+                >
+                  {["Cancel subs", "Renegotiate", "Compare"].map((label) => (
+                    <button
+                      key={label}
+                      style={{
+                        padding: "5px 10px",
+                        borderRadius: 8,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        background: "rgba(34, 197, 94, 0.15)",
+                        border: "1px solid rgba(34, 197, 94, 0.3)",
+                        color: "rgba(34, 197, 94, 0.9)",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Labels */}
             </div>
