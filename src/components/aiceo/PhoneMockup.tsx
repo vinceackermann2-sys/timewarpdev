@@ -136,13 +136,13 @@ export function PhoneMockup() {
 
               {/* AI Response */}
               <div
-                className="flex items-center gap-2.5"
+                className="flex items-start gap-2.5"
                 style={{
                   borderRadius: 14,
-                  padding: "7px 12px",
+                  padding: "6px 10px",
                   background: "transparent",
                   border: "1px solid rgba(255,255,255,0.05)",
-                  maxWidth: "82%",
+                  width: "100%",
                 }}
               >
                 <span
@@ -152,20 +152,19 @@ export function PhoneMockup() {
                     borderRadius: "50%",
                     background: "linear-gradient(to right, #605aaf, #bb90d4)",
                     flexShrink: 0,
+                    marginTop: 1,
                   }}
                 />
                 <span
                   style={{
                     color: "rgba(255,255,255,0.45)",
-                    fontSize: 11.5,
-                    lineHeight: 1.5,
+                    fontSize: 11,
+                    lineHeight: 1.4,
                     textAlign: "left",
+                    fontWeight: 400,
                   }}
                 >
-                  your biggest spend is employees, all costs results to{" "}
-                  <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
-                    13,018$ per day
-                  </span>
+                  your biggest spend is employees, all costs results to 13,018$ per day
                 </span>
               </div>
             </div>
