@@ -5,17 +5,21 @@ export function PhoneMockup() {
   const [firstDone, setFirstDone] = useState(false);
   const [researched, setResearched] = useState(false);
   const [scanActive, setScanActive] = useState(false);
+  const [showResponse, setShowResponse] = useState(false);
   const handleFirstComplete = useCallback(() => setFirstDone(true), []);
 
   useEffect(() => {
     if (firstDone) {
       // Start scan line after a brief delay
-      const scanTimer = setTimeout(() => setScanActive(true), 800);
-      // Papers become structured after scan completes
-      const structureTimer = setTimeout(() => setResearched(true), 2400);
+      const scanTimer = setTimeout(() => setScanActive(true), 400);
+      // Papers become structured after 2 bounces (~3.6s animation)
+      const structureTimer = setTimeout(() => setResearched(true), 4200);
+      // Show AI response text only after research is done
+      const responseTimer = setTimeout(() => setShowResponse(true), 4600);
       return () => {
         clearTimeout(scanTimer);
         clearTimeout(structureTimer);
+        clearTimeout(responseTimer);
       };
     }
   }, [firstDone]);
@@ -178,7 +182,7 @@ export function PhoneMockup() {
                     marginTop: 1,
                   }}
                 />
-                {firstDone ? (
+                {showResponse ? (
                   <TypingAnimation
                     text="your biggest spend is employees, all costs results to 13,018$ per day"
                     duration={30}
@@ -230,17 +234,24 @@ export function PhoneMockup() {
                     zIndex: 10,
                     background: "linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.8) 40%, rgba(59, 130, 246, 1) 50%, rgba(99, 102, 241, 0.8) 60%, transparent 100%)",
                     boxShadow: "0 0 12px 3px rgba(99, 102, 241, 0.4), 0 0 30px 6px rgba(59, 130, 246, 0.15)",
-                    animation: "scanDown 1.4s ease-in-out forwards",
+                    animation: "scanBounce 3.6s ease-in-out forwards",
                   }}
                 />
               )}
 
               <style>{`
-                @keyframes scanDown {
+                @keyframes scanBounce {
                   0% { top: 0%; opacity: 0; }
-                  5% { opacity: 1; }
-                  90% { opacity: 1; }
-                  100% { top: 100%; opacity: 0; }
+                  2% { opacity: 1; }
+                  /* First pass down */
+                  25% { top: 100%; }
+                  /* First pass up */
+                  50% { top: 0%; }
+                  /* Second pass down */
+                  75% { top: 100%; }
+                  /* Second pass up */
+                  95% { top: 0%; opacity: 1; }
+                  100% { top: 0%; opacity: 0; }
                 }
               `}</style>
 
