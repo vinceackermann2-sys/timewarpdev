@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Battery, Wifi, Signal, FileText, Check, ArrowRight } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 export function PhoneMockup() {
+  const [loopKey, setLoopKey] = useState(0);
   const [firstDone, setFirstDone] = useState(false);
   const [researched, setResearched] = useState(false);
   const [scanActive, setScanActive] = useState(false);
@@ -16,6 +17,7 @@ export function PhoneMockup() {
   const [fourthDone, setFourthDone] = useState(false);
   const [showFifthMsg, setShowFifthMsg] = useState(false);
   const [togglesOff, setTogglesOff] = useState([false, false, false]);
+  const [showGlare, setShowGlare] = useState(false);
   const handleFirstComplete = useCallback(() => setFirstDone(true), []);
   const handleSecondComplete = useCallback(() => setSecondDone(true), []);
   const handleThirdComplete = useCallback(() => setThirdDone(true), []);
@@ -65,11 +67,33 @@ export function PhoneMockup() {
       const t1 = setTimeout(() => setTogglesOff(prev => [true, prev[1], prev[2]]), 1200);
       const t2 = setTimeout(() => setTogglesOff(prev => [prev[0], true, prev[2]]), 1600);
       const t3 = setTimeout(() => setTogglesOff(prev => [prev[0], prev[1], true]), 2000);
+      const glareTimer = setTimeout(() => setShowGlare(true), 2600);
+      const resetTimer = setTimeout(() => {
+        // Reset all states
+        setFirstDone(false);
+        setResearched(false);
+        setScanActive(false);
+        setShowResponse(false);
+        setSecondDone(false);
+        setShowThirdMsg(false);
+        setThirdDone(false);
+        setShowFourthMsg(false);
+        setSecondScanActive(false);
+        setSecondResearched(false);
+        setShowActionButtons(false);
+        setFourthDone(false);
+        setShowFifthMsg(false);
+        setTogglesOff([false, false, false]);
+        setShowGlare(false);
+        setLoopKey(prev => prev + 1);
+      }, 4200);
       return () => {
         clearTimeout(fifthTimer);
         clearTimeout(t1);
         clearTimeout(t2);
         clearTimeout(t3);
+        clearTimeout(glareTimer);
+        clearTimeout(resetTimer);
       };
     }
   }, [fourthDone]);
@@ -198,6 +222,7 @@ export function PhoneMockup() {
                   }}
                 >
                    <TypingAnimation
+                      key={loopKey}
                       text="how much do we spend per day?"
                       duration={50}
                       onComplete={handleFirstComplete}
@@ -434,15 +459,15 @@ export function PhoneMockup() {
                 @keyframes scanBounce {
                   0% { top: 0%; opacity: 0; }
                   2% { opacity: 1; }
-                  /* First pass down */
                   25% { top: 100%; }
-                  /* First pass up */
                   50% { top: 0%; }
-                  /* Second pass down */
                   75% { top: 100%; }
-                  /* Second pass up */
                   95% { top: 0%; opacity: 1; }
                   100% { top: 0%; opacity: 0; }
+                }
+                @keyframes buttonGlare {
+                  0% { transform: translateX(-100%); }
+                  100% { transform: translateX(100%); }
                 }
               `}</style>
 
@@ -632,11 +657,27 @@ export function PhoneMockup() {
               cursor: "pointer",
               letterSpacing: "0.01em",
               marginTop: "auto",
+              position: "relative",
+              overflow: "hidden",
             }}
             onClick={() =>
               (window.location.href = "/auth?mode=signup")
             }
           >
+            {showGlare && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)",
+                  animation: "buttonGlare 0.8s ease-in-out forwards",
+                  pointerEvents: "none",
+                }}
+              />
+            )}
             Run AI CEO
             <ArrowRight size={16} strokeWidth={2.5} />
           </button>
