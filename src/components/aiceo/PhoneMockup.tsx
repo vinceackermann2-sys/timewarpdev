@@ -18,11 +18,11 @@ export function PhoneMockup() {
       <div
         className="absolute left-1/2 -translate-x-1/2"
         style={{
-          top: 7,
-          width: 100,
+          top: 12,
+          width: 28,
           height: 28,
-          borderRadius: "0 0 18px 18px",
-          background: "#0f131c",
+          borderRadius: "50%",
+          background: "#000",
           zIndex: 20,
         }}
       />
