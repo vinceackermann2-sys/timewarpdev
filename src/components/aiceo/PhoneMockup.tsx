@@ -15,7 +15,7 @@ export function PhoneMockup() {
   const [showActionButtons, setShowActionButtons] = useState(false);
   const [fourthDone, setFourthDone] = useState(false);
   const [showFifthMsg, setShowFifthMsg] = useState(false);
-  const [togglesOff, setTogglesOff] = useState(false);
+  const [togglesOff, setTogglesOff] = useState([false, false, false]);
   const handleFirstComplete = useCallback(() => setFirstDone(true), []);
   const handleSecondComplete = useCallback(() => setSecondDone(true), []);
   const handleThirdComplete = useCallback(() => setThirdDone(true), []);
@@ -58,14 +58,18 @@ export function PhoneMockup() {
     }
   }, [thirdDone]);
 
-  // After text 4 finishes, show text 5 "yes" and toggle off buttons
+  // After text 4 finishes, show text 5 "yes" and toggle off buttons one by one
   useEffect(() => {
     if (fourthDone) {
       const fifthTimer = setTimeout(() => setShowFifthMsg(true), 600);
-      const toggleTimer = setTimeout(() => setTogglesOff(true), 1200);
+      const t1 = setTimeout(() => setTogglesOff(prev => [true, prev[1], prev[2]]), 1200);
+      const t2 = setTimeout(() => setTogglesOff(prev => [prev[0], true, prev[2]]), 1600);
+      const t3 = setTimeout(() => setTogglesOff(prev => [prev[0], prev[1], true]), 2000);
       return () => {
         clearTimeout(fifthTimer);
-        clearTimeout(toggleTimer);
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
       };
     }
   }, [fourthDone]);
@@ -583,10 +587,10 @@ export function PhoneMockup() {
                         width: 30,
                         height: 16,
                         borderRadius: 14,
-                        background: togglesOff ? "rgba(239, 68, 68, 0.5)" : "rgba(34, 197, 94, 0.7)",
+                        background: togglesOff[i] ? "rgba(239, 68, 68, 0.5)" : "rgba(34, 197, 94, 0.7)",
                         position: "relative",
                         flexShrink: 0,
-                        boxShadow: togglesOff ? "0 0 6px rgba(239, 68, 68, 0.3)" : "0 0 6px rgba(34, 197, 94, 0.3)",
+                        boxShadow: togglesOff[i] ? "0 0 6px rgba(239, 68, 68, 0.3)" : "0 0 6px rgba(34, 197, 94, 0.3)",
                         transition: "all 0.4s ease",
                       }}
                     >
@@ -598,8 +602,8 @@ export function PhoneMockup() {
                           background: "#fff",
                           position: "absolute",
                           top: 2,
-                          right: togglesOff ? "auto" : 2,
-                          left: togglesOff ? 2 : "auto",
+                          right: togglesOff[i] ? "auto" : 2,
+                          left: togglesOff[i] ? 2 : "auto",
                           boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
                           transition: "all 0.4s ease",
                         }}
