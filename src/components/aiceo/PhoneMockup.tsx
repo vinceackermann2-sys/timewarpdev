@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { Battery, Wifi, Signal, FileText, Check, ArrowRight } from "lucide-react";
-
+import { TypingAnimation } from "@/components/ui/typing-animation";
 export function PhoneMockup() {
+  const [firstDone, setFirstDone] = useState(false);
+  const handleFirstComplete = useCallback(() => setFirstDone(true), []);
   return (
     <div
       className="relative mx-auto"
@@ -118,15 +120,16 @@ export function PhoneMockup() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  <span
-                    style={{
-                      color: "rgba(255,255,255,0.5)",
-                      fontSize: 11.5,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    how much do we spend per day?
-                  </span>
+                   <TypingAnimation
+                      text="how much do we spend per day?"
+                      duration={50}
+                      onComplete={handleFirstComplete}
+                      style={{
+                        color: "rgba(255,255,255,0.5)",
+                        fontSize: 11.5,
+                        lineHeight: 1.4,
+                      }}
+                    />
                   <span
                     style={{
                       width: 20,
@@ -160,17 +163,19 @@ export function PhoneMockup() {
                     marginTop: 1,
                   }}
                 />
-                <span
-                  style={{
-                    color: "rgba(255,255,255,0.45)",
-                    fontSize: 11,
-                    lineHeight: 1.4,
-                    textAlign: "left",
-                    fontWeight: 400,
-                  }}
-                >
-                  your biggest spend is employees, all costs results to 13,018$ per day
-                </span>
+                {firstDone ? (
+                  <TypingAnimation
+                    text="your biggest spend is employees, all costs results to 13,018$ per day"
+                    duration={30}
+                    style={{
+                      color: "rgba(255,255,255,0.45)",
+                      fontSize: 11,
+                      lineHeight: 1.4,
+                      textAlign: "left" as const,
+                      fontWeight: 400,
+                    }}
+                  />
+                ) : null}
               </div>
             </div>
 
