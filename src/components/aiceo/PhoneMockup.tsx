@@ -127,7 +127,7 @@ export function PhoneMockup() {
                       width: 20,
                       height: 20,
                       borderRadius: "50%",
-                      background: "rgba(168,130,255,0.2)",
+                      background: "linear-gradient(to right, #605aaf 50%, #bb90d4 50%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
