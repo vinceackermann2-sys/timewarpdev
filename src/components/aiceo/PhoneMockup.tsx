@@ -377,17 +377,6 @@ export function PhoneMockup() {
               </div>
 
               {/* Labels */}
-              <h3
-                style={{
-                  color: "#fff",
-                  fontWeight: 700,
-                  fontSize: 18,
-                  marginBottom: 4,
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Researcher
-              </h3>
               <p
                 style={{
                   color: "rgba(255,255,255,0.35)",
