@@ -1,5 +1,5 @@
 import React from "react";
-import { Battery, Wifi, Signal, FileText, Check } from "lucide-react";
+import { Battery, Wifi, Signal, FileText, Check, ArrowRight } from "lucide-react";
 
 export function PhoneMockup() {
   return (
@@ -397,7 +397,7 @@ export function PhoneMockup() {
 
           {/* CTA Button */}
           <button
-            className="w-full"
+            className="w-full flex items-center justify-center gap-2"
             style={{
               borderRadius: 14,
               height: 52,
@@ -414,6 +414,7 @@ export function PhoneMockup() {
             }
           >
             Run AI CEO
+            <ArrowRight size={16} strokeWidth={2.5} />
           </button>
         </div>
       </div>
