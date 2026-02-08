@@ -377,15 +377,6 @@ export function PhoneMockup() {
               </div>
 
               {/* Labels */}
-              <p
-                style={{
-                  color: "rgba(255,255,255,0.35)",
-                  fontSize: 13,
-                  fontWeight: 400,
-                }}
-              >
-                Reveals what to do next
-              </p>
             </div>
           </div>
 
