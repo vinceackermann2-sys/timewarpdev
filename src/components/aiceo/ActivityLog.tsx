@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Activity, Globe, MousePointer, Eye, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Activity, Globe, MousePointer, Eye, CheckCircle, AlertCircle, Loader2, Hand, Play } from "lucide-react";
 
 export interface LogEntry {
   id: string;
   timestamp: Date;
-  type: "navigate" | "click" | "observe" | "success" | "error" | "info" | "loading";
+  type: "navigate" | "click" | "observe" | "success" | "error" | "info" | "loading" | "takeover" | "resume";
   message: string;
 }
 
@@ -20,6 +20,8 @@ const ICON_MAP: Record<LogEntry["type"], React.ReactNode> = {
   error: <AlertCircle size={13} style={{ color: "rgba(248, 113, 113, 0.8)" }} />,
   info: <Activity size={13} style={{ color: "rgba(148, 163, 184, 0.7)" }} />,
   loading: <Loader2 size={13} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.7)" }} />,
+  takeover: <Hand size={13} style={{ color: "rgba(251, 146, 60, 0.9)" }} />,
+  resume: <Play size={13} style={{ color: "rgba(74, 222, 128, 0.9)" }} />,
 };
 
 export function ActivityLog({ entries }: ActivityLogProps) {
