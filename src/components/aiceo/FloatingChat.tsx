@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
+import { Typewriter } from "@/components/ui/typewriter";
 import researchIcon from "@/assets/research-icon.png";
 import actionIcon from "@/assets/action-icon.png";
 
@@ -205,23 +206,53 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
           )}
         </div>
 
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Ask anything about your business..."
-          style={{
-            flex: 1,
-            background: "transparent",
-            border: "none",
-            outline: "none",
-            color: "#fff",
-            fontSize: 15,
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 400,
-            letterSpacing: "0.01em",
-          }}
-        />
+        <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
+          {!message && (
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                pointerEvents: "none",
+                display: "flex",
+                alignItems: "center",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 15,
+                fontWeight: 400,
+                letterSpacing: "0.01em",
+                color: "rgba(255, 255, 255, 0.35)",
+              }}
+            >
+              {"my "}
+              <Typewriter
+                text={["strategy", "finances", "marketing", "systems"]}
+                speed={80}
+                deleteSpeed={50}
+                waitTime={2000}
+                loop={true}
+                showCursor={true}
+                cursorChar="|"
+                className=""
+                cursorClassName="ml-0.5 opacity-50"
+              />
+            </div>
+          )}
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              color: "#fff",
+              fontSize: 15,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 400,
+              letterSpacing: "0.01em",
+            }}
+          />
+        </div>
         <button
           type="submit"
           disabled={!message.trim()}
