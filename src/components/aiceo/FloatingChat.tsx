@@ -249,7 +249,6 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
                   onTextChange={(_index, text) => setCurrentWord(text)}
                 />
               )}
-              {"..."}
             </div>
           )}
           <input
