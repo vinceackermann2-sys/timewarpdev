@@ -56,7 +56,7 @@ export function AiCeoChatView() {
                 loop={true}
                 showCursor={true}
                 cursorChar="|"
-                className="text-indigo-400"
+                className="text-primary"
               />
             </h1>
 
