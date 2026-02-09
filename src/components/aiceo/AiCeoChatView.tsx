@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { ConnectorGrid } from "./ConnectorGrid";
+import { BrowserWindow } from "./BrowserWindow";
+import { FloatingChat } from "./FloatingChat";
 import { Typewriter } from "@/components/ui/typewriter";
 import { useSearchParams } from "react-router-dom";
 import researchBg from "@/assets/research-card-bg.png";
@@ -16,7 +18,7 @@ export function AiCeoChatView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isOAuthReturn = searchParams.has("google_connected") || searchParams.has("microsoft_connected") || searchParams.has("slack_installed");
   
-  const [mode, setMode] = useState<"select" | "connectors">(isOAuthReturn ? "connectors" : "select");
+  const [mode, setMode] = useState<"select" | "connectors" | "action">(isOAuthReturn ? "connectors" : "select");
   const [activeCard, setActiveCard] = useState<"research" | "action">("research");
   const { initiateOAuth } = useConnectorOAuth();
 
@@ -152,7 +154,7 @@ export function AiCeoChatView() {
 
               {/* Action Card */}
               <button
-                onClick={() => setMode("connectors")}
+                onClick={() => setMode("action")}
                 style={{
                   width: 280,
                   height: 340,
@@ -234,7 +236,21 @@ export function AiCeoChatView() {
         {mode === "connectors" && (
           <ConnectorGrid onConnect={(name) => initiateOAuth(name)} />
         )}
+
+        {mode === "action" && (
+          <div style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+          }}>
+            <BrowserWindow />
+          </div>
+        )}
       </div>
+
+      {mode === "action" && <FloatingChat />}
 
       <style>{`
         @keyframes fadeSlideUp {
