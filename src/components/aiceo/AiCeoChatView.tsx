@@ -1,8 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
+
+const words = ["research", "act"];
 
 export function AiCeoChatView() {
   const [message, setMessage] = useState("");
+  const [wordIndex, setWordIndex] = useState(0);
+  const [fade, setFade] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setWordIndex((prev) => (prev + 1) % words.length);
+        setFade(true);
+      }, 400);
+    }, 2400);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col">
@@ -16,8 +31,48 @@ export function AiCeoChatView() {
         background: "radial-gradient(ellipse 80% 50% at 50% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 60%)",
       }} />
 
-      {/* Content area - takes up remaining space */}
-      <div className="relative z-10 flex-1" />
+      {/* Center text */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center select-none">
+        <h1
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: "clamp(36px, 5vw, 56px)",
+            fontWeight: 800,
+            color: "#fff",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.1,
+            textAlign: "center",
+          }}
+        >
+          do you want to{" "}
+          <span
+            style={{
+              display: "inline-block",
+              minWidth: 180,
+              transition: "opacity 0.4s ease, transform 0.4s ease",
+              opacity: fade ? 1 : 0,
+              transform: fade ? "translateY(0)" : "translateY(8px)",
+              background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            {words[wordIndex]}
+          </span>
+        </h1>
+        <p
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 14,
+            color: "rgba(255, 255, 255, 0.3)",
+            fontWeight: 400,
+            marginTop: 16,
+            letterSpacing: "0.01em",
+          }}
+        >
+          for better results research first
+        </p>
+      </div>
 
       {/* Floating chat input */}
       <div className="relative z-10 w-full flex justify-center pb-10 px-4">
