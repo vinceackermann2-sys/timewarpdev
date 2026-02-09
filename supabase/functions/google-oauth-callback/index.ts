@@ -41,7 +41,7 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
     // Handle missing params first
     if (!code || !state) {
       console.error("[google-oauth-callback] Missing code or state");
-      return Response.redirect(`${FALLBACK_APP_URL}/?google_error=missing_params`, 302);
+      return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?google_error=missing_params`, 302);
     }
     
     // Decode state to get user_id and origin for redirects
@@ -54,13 +54,13 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
       console.log("[google-oauth-callback] Decoded state:", { user_id: stateData.user_id, origin: appUrl });
     } catch (e) {
       console.error("[google-oauth-callback] Failed to decode state:", e);
-      return Response.redirect(`${FALLBACK_APP_URL}/?google_error=invalid_state`, 302);
+      return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?google_error=invalid_state`, 302);
     }
     
     // Handle OAuth errors from Google
     if (error) {
       console.error("[google-oauth-callback] OAuth error:", error);
-      return Response.redirect(`${appUrl}/?google_error=${encodeURIComponent(error)}`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?google_error=${encodeURIComponent(error)}`, 302);
     }
      
      // Verify state nonce against stored value
@@ -76,18 +76,18 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
      
     if (connectionError || !connectionData) {
       console.error("[google-oauth-callback] Failed to verify state:", connectionError);
-      return Response.redirect(`${appUrl}/?google_error=state_verification_failed`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?google_error=state_verification_failed`, 302);
     }
     
     // Check if state matches and hasn't expired
     if (connectionData.oauth_state !== stateData.nonce) {
       console.error("[google-oauth-callback] State nonce mismatch");
-      return Response.redirect(`${appUrl}/?google_error=invalid_nonce`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?google_error=invalid_nonce`, 302);
     }
     
     if (new Date(connectionData.oauth_state_expires_at!) < new Date()) {
       console.error("[google-oauth-callback] State expired");
-      return Response.redirect(`${appUrl}/?google_error=state_expired`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?google_error=state_expired`, 302);
     }
      
      // Exchange authorization code for tokens
@@ -110,7 +110,7 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error("[google-oauth-callback] Token exchange failed:", errorText);
-      return Response.redirect(`${appUrl}/?google_error=token_exchange_failed`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?google_error=token_exchange_failed`, 302);
     }
      
      const tokenData = await tokenResponse.json();
@@ -136,7 +136,7 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
      
     if (tokenError) {
       console.error("[google-oauth-callback] Failed to store tokens:", tokenError);
-      return Response.redirect(`${appUrl}/?google_error=storage_failed`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?google_error=storage_failed`, 302);
     }
      
      console.log("[google-oauth-callback] Tokens stored successfully");
@@ -155,9 +155,8 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
      
     console.log("[google-oauth-callback] Redirecting to app:", appUrl);
     
-    // Redirect to app with success indicator
-    // Redirect to root - Index.tsx will detect google_connected and trigger research mode
-    return Response.redirect(`${appUrl}/?google_connected=true`, 302);
+    // Redirect to /ai-ceo with success indicator
+    return Response.redirect(`${appUrl}/ai-ceo?google_connected=true`, 302);
    }
    
    // Return 405 for other methods

@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { ConnectorGrid } from "./ConnectorGrid";
 import { Typewriter } from "@/components/ui/typewriter";
+import { useSearchParams } from "react-router-dom";
 import researchBg from "@/assets/research-card-bg.png";
 import actionBg from "@/assets/action-card-bg.png";
 
@@ -12,9 +13,19 @@ const TEXT_TO_CARD: Record<string, "research" | "action"> = {
 };
 
 export function AiCeoChatView() {
-  const [mode, setMode] = useState<"select" | "connectors">("select");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isOAuthReturn = searchParams.has("google_connected") || searchParams.has("microsoft_connected") || searchParams.has("slack_installed");
+  
+  const [mode, setMode] = useState<"select" | "connectors">(isOAuthReturn ? "connectors" : "select");
   const [activeCard, setActiveCard] = useState<"research" | "action">("research");
   const { initiateOAuth } = useConnectorOAuth();
+
+  // Clear OAuth query params on mount so they don't persist
+  useEffect(() => {
+    if (isOAuthReturn) {
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   const handleTextChange = useCallback((_index: number, text: string) => {
     setActiveCard(TEXT_TO_CARD[text] ?? "research");

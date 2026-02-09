@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
     if (!code || !state) {
       console.error("[microsoft-oauth-callback] Missing code or state");
-      return Response.redirect(`${FALLBACK_APP_URL}/?microsoft_error=missing_params`, 302);
+      return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?microsoft_error=missing_params`, 302);
     }
 
     // Decode state
@@ -42,12 +42,12 @@ Deno.serve(async (req) => {
       console.log("[microsoft-oauth-callback] Decoded state:", { user_id: stateData.user_id, origin: appUrl });
     } catch (e) {
       console.error("[microsoft-oauth-callback] Failed to decode state:", e);
-      return Response.redirect(`${FALLBACK_APP_URL}/?microsoft_error=invalid_state`, 302);
+      return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?microsoft_error=invalid_state`, 302);
     }
 
     if (error) {
       console.error("[microsoft-oauth-callback] OAuth error:", error, errorDescription);
-      return Response.redirect(`${appUrl}/?microsoft_error=${encodeURIComponent(error)}`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=${encodeURIComponent(error)}`, 302);
     }
 
     // Verify state nonce
@@ -63,17 +63,17 @@ Deno.serve(async (req) => {
 
     if (connectionError || !connectionData) {
       console.error("[microsoft-oauth-callback] Failed to verify state:", connectionError);
-      return Response.redirect(`${appUrl}/?microsoft_error=state_verification_failed`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=state_verification_failed`, 302);
     }
 
     if (connectionData.oauth_state !== stateData.nonce) {
       console.error("[microsoft-oauth-callback] State nonce mismatch");
-      return Response.redirect(`${appUrl}/?microsoft_error=invalid_nonce`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=invalid_nonce`, 302);
     }
 
     if (new Date(connectionData.oauth_state_expires_at!) < new Date()) {
       console.error("[microsoft-oauth-callback] State expired");
-      return Response.redirect(`${appUrl}/?microsoft_error=state_expired`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=state_expired`, 302);
     }
 
     // Exchange code for tokens
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error("[microsoft-oauth-callback] Token exchange failed:", errorText);
-      return Response.redirect(`${appUrl}/?microsoft_error=token_exchange_failed`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=token_exchange_failed`, 302);
     }
 
     const tokenData = await tokenResponse.json();
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
 
     if (tokenError) {
       console.error("[microsoft-oauth-callback] Failed to store tokens:", tokenError);
-      return Response.redirect(`${appUrl}/?microsoft_error=storage_failed`, 302);
+      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=storage_failed`, 302);
     }
 
     console.log("[microsoft-oauth-callback] Tokens stored successfully");
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
       }, { onConflict: "user_id" });
 
     console.log("[microsoft-oauth-callback] Redirecting to app:", appUrl);
-    return Response.redirect(`${appUrl}/?microsoft_connected=true`, 302);
+    return Response.redirect(`${appUrl}/ai-ceo?microsoft_connected=true`, 302);
   }
 
   return new Response(JSON.stringify({ error: "Method not allowed" }), {
