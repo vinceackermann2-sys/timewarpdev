@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
-import researchBg from "@/assets/research-card-bg.png";
-import actionBg from "@/assets/action-card-bg.png";
+import researchIcon from "@/assets/research-icon.png";
+import actionIcon from "@/assets/action-icon.png";
 
 interface FloatingChatProps {
   mode: "research" | "action";
@@ -11,7 +11,7 @@ interface FloatingChatProps {
 const modeConfig = {
   research: {
     label: "Research",
-    image: researchBg,
+    icon: researchIcon,
     color: "rgba(99, 102, 241, 0.9)",
     bgColor: "rgba(99, 102, 241, 0.12)",
     borderColor: "rgba(99, 102, 241, 0.25)",
@@ -19,7 +19,7 @@ const modeConfig = {
   },
   action: {
     label: "Action",
-    image: actionBg,
+    icon: actionIcon,
     color: "rgba(249, 115, 22, 0.9)",
     bgColor: "rgba(249, 115, 22, 0.12)",
     borderColor: "rgba(249, 115, 22, 0.25)",
@@ -36,7 +36,7 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
   const other = mode === "research" ? modeConfig.action : modeConfig.research;
   const otherMode = mode === "research" ? "action" : "research";
 
-  // Close dropdown on outside click
+  // Close dropdown when clicking anywhere
   useEffect(() => {
     if (!showSwitch) return;
     const handler = (e: MouseEvent) => {
@@ -91,13 +91,14 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
           e.currentTarget.style.boxShadow = "none";
         }}
       >
-        {/* Mode indicator with hover switch */}
+        {/* Mode indicator — hover to open, click to dismiss */}
         <div
           ref={switchRef}
           style={{ position: "relative", flexShrink: 0 }}
+          onMouseEnter={() => setShowSwitch(true)}
         >
           <div
-            onClick={() => setShowSwitch((v) => !v)}
+            onClick={() => setShowSwitch(false)}
             style={{
               display: "flex",
               alignItems: "center",
@@ -112,7 +113,7 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
             }}
           >
             <img
-              src={current.image}
+              src={current.icon}
               alt=""
               style={{
                 width: 24,
@@ -148,6 +149,7 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
                 backdropFilter: "blur(16px)",
                 animation: "fadeSlideUp 0.2s ease-out forwards",
                 minWidth: 140,
+                zIndex: 60,
               }}
             >
               <button
@@ -176,7 +178,7 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
                 }}
               >
                 <img
-                  src={other.image}
+                  src={other.icon}
                   alt=""
                   style={{
                     width: 20,
