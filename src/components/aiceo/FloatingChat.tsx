@@ -233,26 +233,18 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
         <button
           type="submit"
           disabled={!message.trim()}
+          className="flex items-center justify-center shrink-0 border-none transition-all duration-300 w-8 h-8 rounded-full"
           style={{
-            width: 42,
-            height: 42,
-            borderRadius: 14,
-            border: "none",
             cursor: message.trim() ? "pointer" : "default",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             background: message.trim()
-              ? "linear-gradient(135deg, hsl(239, 84%, 67%), hsl(260, 80%, 60%))"
+              ? "hsl(var(--primary))"
               : "rgba(255, 255, 255, 0.06)",
-            transition: "all 0.3s ease",
-            flexShrink: 0,
           }}
         >
           <ArrowUp
-            size={18}
+            size={14}
             style={{
-              color: message.trim() ? "#fff" : "rgba(255, 255, 255, 0.25)",
+              color: message.trim() ? "hsl(var(--primary-foreground))" : "rgba(255, 255, 255, 0.25)",
               transition: "color 0.3s ease",
             }}
           />
