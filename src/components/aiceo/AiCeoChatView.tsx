@@ -45,7 +45,7 @@ export function AiCeoChatView() {
       const res = await fetch(`${REPLIT_URL}/scrape`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task: message }),
+        body: JSON.stringify({ url: message, instruction: message }),
       });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
