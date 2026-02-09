@@ -11,14 +11,10 @@ type ConnectorType = "Google" | "Microsoft" | "Slack";
 export function useConnectorOAuth() {
   const initiateOAuth = useCallback(async (connector: ConnectorType) => {
     try {
-      // Get current user
+      // Get current user session (optional - proceed even without auth)
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        toast.error("Please sign in first to connect your accounts.");
-        return;
-      }
 
-      const userId = session.user.id;
+      const userId = session?.user?.id ?? "anonymous";
       const origin = window.location.origin;
 
       if (connector === "Google") {
