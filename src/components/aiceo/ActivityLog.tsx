@@ -10,6 +10,7 @@ export interface LogEntry {
 
 interface ActivityLogProps {
   entries: LogEntry[];
+  liveViewUrl?: string | null;
 }
 
 const ICON_MAP: Record<LogEntry["type"], React.ReactNode> = {
@@ -24,7 +25,7 @@ const ICON_MAP: Record<LogEntry["type"], React.ReactNode> = {
   resume: <Play size={13} style={{ color: "rgba(74, 222, 128, 0.9)" }} />,
 };
 
-export function ActivityLog({ entries }: ActivityLogProps) {
+export function ActivityLog({ entries, liveViewUrl }: ActivityLogProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,18 +58,36 @@ export function ActivityLog({ entries }: ActivityLogProps) {
         }}
       >
         <Activity size={14} style={{ color: "rgba(99, 102, 241, 0.7)" }} />
-        <span
-          style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: 12,
-            fontWeight: 600,
-            color: "rgba(255, 255, 255, 0.5)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-          }}
-        >
-          Activity Log
-        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span
+            style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: 12,
+              fontWeight: 600,
+              color: "rgba(255, 255, 255, 0.5)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+            }}
+          >
+            Browser Logs
+          </span>
+          {liveViewUrl && (
+            <p
+              style={{
+                fontFamily: "'Plus Jakarta Sans', monospace",
+                fontSize: 10,
+                color: "rgba(99, 102, 241, 0.5)",
+                marginTop: 2,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+              title={liveViewUrl}
+            >
+              {liveViewUrl}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Entries */}

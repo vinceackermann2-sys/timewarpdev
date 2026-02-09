@@ -303,7 +303,7 @@ export function AiCeoChatView() {
 
         {mode === "action" && (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "100%", gap: 16, padding: "0 16px" }}>
-            <ActivityLog entries={logEntries} />
+            <ActivityLog entries={logEntries} liveViewUrl={liveViewUrl} />
             <BrowserWindow liveViewUrl={liveViewUrl} loading={browserLoading} />
           </div>
         )}
