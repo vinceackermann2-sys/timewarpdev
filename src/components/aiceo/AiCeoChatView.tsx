@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { Telescope, Zap } from "lucide-react";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { ConnectorGrid } from "./ConnectorGrid";
+import researchBg from "@/assets/research-card-bg.png";
+import actionBg from "@/assets/action-card-bg.png";
 
 export function AiCeoChatView() {
   const [mode, setMode] = useState<"select" | "connectors">("select");
@@ -34,7 +37,7 @@ export function AiCeoChatView() {
       }} />
 
       {/* Center content */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center select-none">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center select-none px-6">
         {mode === "select" && (
           <>
             <h1
@@ -46,62 +49,154 @@ export function AiCeoChatView() {
                 letterSpacing: "-0.025em",
                 lineHeight: 1.1,
                 textAlign: "center",
+                marginBottom: 40,
               }}
             >
               Do you want
             </h1>
 
-            {/* Research / Action buttons */}
-            <div className="flex items-center gap-6" style={{ marginTop: 32 }}>
+            {/* Research / Action cards */}
+            <div className="flex items-center gap-6">
+              {/* Research Card */}
               <button
                 onClick={() => setMode("connectors")}
                 style={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: "clamp(36px, 5vw, 56px)",
-                  fontWeight: 800,
-                  letterSpacing: "-0.02em",
-                  background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  width: 220,
+                  height: 260,
+                  borderRadius: 24,
                   border: "none",
                   cursor: "pointer",
-                  padding: "8px 16px",
-                  borderRadius: 16,
-                  transition: "transform 0.3s ease, opacity 0.3s ease",
-                  opacity: fade && activeWord === "research" ? 1 : 0.3,
-                  transform: fade && activeWord === "research" ? "scale(1.08)" : "scale(1)",
+                  position: "relative",
+                  overflow: "hidden",
+                  transition: "transform 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease",
+                  opacity: fade && activeWord === "research" ? 1 : 0.4,
+                  transform: fade && activeWord === "research" ? "scale(1.05)" : "scale(0.95)",
+                  boxShadow: fade && activeWord === "research"
+                    ? "0 0 40px rgba(99, 102, 241, 0.3), 0 8px 32px rgba(0,0,0,0.4)"
+                    : "0 4px 16px rgba(0,0,0,0.3)",
                 }}
-                className="hover:opacity-80 active:scale-95"
+                className="group"
               >
-                research
+                <img
+                  src={researchBg}
+                  alt=""
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "relative",
+                    zIndex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                    gap: 16,
+                  }}
+                >
+                  <Telescope size={48} color="white" strokeWidth={1.5} />
+                  <span
+                    style={{
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontSize: 24,
+                      fontWeight: 800,
+                      color: "#fff",
+                      letterSpacing: "-0.02em",
+                      textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    Research
+                  </span>
+                </div>
               </button>
+
+              {/* Divider */}
               <span style={{
-                color: "rgba(255, 255, 255, 0.15)",
-                fontSize: "clamp(28px, 4vw, 44px)",
-                fontWeight: 300,
+                color: "rgba(255, 255, 255, 0.12)",
+                fontSize: 36,
+                fontWeight: 200,
+                userSelect: "none",
               }}>
                 /
               </span>
+
+              {/* Action Card */}
               <button
+                onClick={() => setMode("connectors")}
                 style={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: "clamp(36px, 5vw, 56px)",
-                  fontWeight: 800,
-                  letterSpacing: "-0.02em",
-                  background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  width: 220,
+                  height: 260,
+                  borderRadius: 24,
                   border: "none",
                   cursor: "pointer",
-                  padding: "8px 16px",
-                  borderRadius: 16,
-                  transition: "transform 0.3s ease, opacity 0.3s ease",
-                  opacity: fade && activeWord === "action" ? 1 : 0.3,
-                  transform: fade && activeWord === "action" ? "scale(1.08)" : "scale(1)",
+                  position: "relative",
+                  overflow: "hidden",
+                  transition: "transform 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease",
+                  opacity: fade && activeWord === "action" ? 1 : 0.4,
+                  transform: fade && activeWord === "action" ? "scale(1.05)" : "scale(0.95)",
+                  boxShadow: fade && activeWord === "action"
+                    ? "0 0 40px rgba(249, 115, 22, 0.25), 0 8px 32px rgba(0,0,0,0.4)"
+                    : "0 4px 16px rgba(0,0,0,0.3)",
                 }}
-                className="hover:opacity-80 active:scale-95"
+                className="group"
               >
-                action
+                <img
+                  src={actionBg}
+                  alt=""
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "relative",
+                    zIndex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                    gap: 16,
+                  }}
+                >
+                  <Zap size={48} color="white" strokeWidth={1.5} />
+                  <span
+                    style={{
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontSize: 24,
+                      fontWeight: 800,
+                      color: "#fff",
+                      letterSpacing: "-0.02em",
+                      textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    Action
+                  </span>
+                </div>
               </button>
             </div>
 
@@ -111,7 +206,7 @@ export function AiCeoChatView() {
                 fontSize: 15,
                 color: "rgba(255, 255, 255, 0.3)",
                 fontWeight: 400,
-                marginTop: 24,
+                marginTop: 32,
                 letterSpacing: "0.01em",
               }}
             >
