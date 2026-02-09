@@ -106,6 +106,7 @@ export function AiCeoChatView() {
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
+                    animation: "revealTopDown 0.8s ease-out 0.2s both",
                   }}
                 />
                 <div
@@ -181,6 +182,7 @@ export function AiCeoChatView() {
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
+                    animation: "revealTopDown 0.8s ease-out 0.3s both",
                   }}
                 />
                 <div
@@ -256,6 +258,10 @@ export function AiCeoChatView() {
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes revealTopDown {
+          from { clip-path: inset(0 0 100% 0); }
+          to { clip-path: inset(0 0 0 0); }
         }
       `}</style>
     </div>
