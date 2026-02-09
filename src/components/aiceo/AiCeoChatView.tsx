@@ -5,8 +5,11 @@ import { BrowserWindow } from "./BrowserWindow";
 import { FloatingChat } from "./FloatingChat";
 import { Typewriter } from "@/components/ui/typewriter";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import researchBg from "@/assets/research-card-bg.png";
 import actionBg from "@/assets/action-card-bg.png";
+
+const REPLIT_URL = "https://timenodejs--vinceackermann2.replit.app";
 
 const TYPEWRITER_TEXTS = ["research", "act"];
 const TEXT_TO_CARD: Record<string, "research" | "action"> = {
@@ -20,6 +23,8 @@ export function AiCeoChatView() {
   
   const [mode, setMode] = useState<"select" | "connectors" | "action">(isOAuthReturn ? "connectors" : "select");
   const [activeCard, setActiveCard] = useState<"research" | "action">("research");
+  const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
+  const [browserLoading, setBrowserLoading] = useState(false);
   const { initiateOAuth } = useConnectorOAuth();
 
   // Clear OAuth query params on mount so they don't persist
@@ -31,6 +36,30 @@ export function AiCeoChatView() {
 
   const handleTextChange = useCallback((_index: number, text: string) => {
     setActiveCard(TEXT_TO_CARD[text] ?? "research");
+  }, []);
+
+  const handleActionSend = useCallback(async (message: string) => {
+    setBrowserLoading(true);
+    setLiveViewUrl(null);
+    try {
+      const res = await fetch(REPLIT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task: message }),
+      });
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      if (data.liveUrl) {
+        setLiveViewUrl(data.liveUrl);
+      } else {
+        toast.error("No live URL returned from server");
+      }
+    } catch (err: any) {
+      console.error("Action request failed:", err);
+      toast.error(err.message || "Failed to start browser session");
+    } finally {
+      setBrowserLoading(false);
+    }
   }, []);
 
   return (
@@ -243,14 +272,8 @@ export function AiCeoChatView() {
         )}
 
         {mode === "action" && (
-          <div style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-          }}>
-            <BrowserWindow />
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
+            <BrowserWindow liveViewUrl={liveViewUrl} loading={browserLoading} />
           </div>
         )}
       </div>
@@ -259,6 +282,8 @@ export function AiCeoChatView() {
         <FloatingChat
           mode="action"
           onModeChange={(m) => setMode(m === "research" ? "connectors" : "action")}
+          onSend={handleActionSend}
+          disabled={browserLoading}
         />
       )}
 
