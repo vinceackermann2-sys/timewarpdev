@@ -1,9 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
 
 export function AiCeoChatView() {
   const [message, setMessage] = useState("");
   const [showChat, setShowChat] = useState(false);
+  const [activeWord, setActiveWord] = useState<"research" | "action">("research");
+  const [fade, setFade] = useState(true);
+
+  // Cycle animation between research and action
+  useEffect(() => {
+    if (showChat) return; // Stop cycling once chat is shown
+    const interval = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setActiveWord((prev) => (prev === "research" ? "action" : "research"));
+        setFade(true);
+      }, 350);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [showChat]);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col">
@@ -49,7 +64,9 @@ export function AiCeoChatView() {
               cursor: "pointer",
               padding: "8px 16px",
               borderRadius: 16,
-              transition: "transform 0.2s ease, opacity 0.2s ease",
+              transition: "transform 0.3s ease, opacity 0.3s ease",
+              opacity: fade && activeWord === "research" ? 1 : activeWord === "research" ? 0.3 : 0.3,
+              transform: fade && activeWord === "research" ? "scale(1.08)" : "scale(1)",
             }}
             className="hover:opacity-80 active:scale-95"
           >
@@ -75,7 +92,9 @@ export function AiCeoChatView() {
               cursor: "pointer",
               padding: "8px 16px",
               borderRadius: 16,
-              transition: "transform 0.2s ease, opacity 0.2s ease",
+              transition: "transform 0.3s ease, opacity 0.3s ease",
+              opacity: fade && activeWord === "action" ? 1 : activeWord === "action" ? 0.3 : 0.3,
+              transform: fade && activeWord === "action" ? "scale(1.08)" : "scale(1)",
             }}
             className="hover:opacity-80 active:scale-95"
           >
