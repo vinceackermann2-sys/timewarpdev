@@ -45,7 +45,7 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 async function fetchEmails(accessToken: string) {
   try {
     const response = await fetch(
-      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100",
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500",
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
@@ -56,7 +56,7 @@ async function fetchEmails(accessToken: string) {
 
     const emailDetails: any[] = [];
     // Process in batches of 10 to avoid rate limits
-    for (let i = 0; i < Math.min(messages.length, 100); i += 10) {
+    for (let i = 0; i < Math.min(messages.length, 500); i += 10) {
       const batch = messages.slice(i, i + 10);
       const batchResults = await Promise.all(
         batch.map(async (msg: { id: string }) => {
@@ -101,7 +101,7 @@ async function fetchCalendarEvents(accessToken: string) {
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
 
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${oneYearAgo}&timeMax=${now}&maxResults=250&singleEvents=true&orderBy=startTime`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${oneYearAgo}&timeMax=${now}&maxResults=2500&singleEvents=true&orderBy=startTime`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
@@ -126,7 +126,7 @@ async function fetchCalendarEvents(accessToken: string) {
 async function fetchDriveDocuments(accessToken: string) {
   try {
     const response = await fetch(
-      "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.document' or mimeType='application/pdf'&fields=files(id,name,mimeType,modifiedTime,shared)&pageSize=50",
+      "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.document' or mimeType='application/pdf' or mimeType='application/vnd.google-apps.presentation' or mimeType='application/vnd.google-apps.form'&fields=files(id,name,mimeType,modifiedTime,shared)&pageSize=200",
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
@@ -144,7 +144,7 @@ async function fetchDriveDocuments(accessToken: string) {
 async function fetchSpreadsheets(accessToken: string) {
   try {
     const response = await fetch(
-      "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name,modifiedTime,shared)&pageSize=30",
+      "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name,modifiedTime,shared)&pageSize=100",
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
