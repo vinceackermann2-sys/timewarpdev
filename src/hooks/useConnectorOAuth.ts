@@ -44,31 +44,14 @@ export function useConnectorOAuth() {
           window.location.href = data.url;
         }
       } else if (connector === "Slack") {
-        // Slack uses bot-level OAuth (already installed via slack-oauth)
-        // For user-level linking, redirect to Slack OAuth
-        const slackClientId = import.meta.env.VITE_SLACK_CLIENT_ID;
-        if (!slackClientId) {
-          // Use edge function approach instead
-          toast.info("Connecting to Slack...");
-          // Slack is already connected at team level via slack-oauth
-          // Check if installation exists
-          const { data: installations } = await supabase
-            .from("slack_installations")
-            .select("team_name")
-            .limit(1);
+        const { data, error } = await supabase.functions.invoke("initiate-slack-oauth", {
+          body: {},
+        });
 
-          if (installations && installations.length > 0) {
-            toast.success(`Already connected to Slack workspace: ${installations[0].team_name}`);
-          } else {
-            toast.error("Slack workspace not yet connected. Please install the Slack app first.");
-          }
-          return;
+        if (error) throw error;
+        if (data?.url) {
+          window.location.href = data.url;
         }
-
-        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/slack-oauth`;
-        const slackScopes = "channels:history,channels:read,chat:write,users:read";
-        const slackUrl = `https://slack.com/oauth/v2/authorize?client_id=${slackClientId}&scope=${slackScopes}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-        window.location.href = slackUrl;
       }
     } catch (error) {
       console.error(`[useConnectorOAuth] Error initiating ${connector} OAuth:`, error);
