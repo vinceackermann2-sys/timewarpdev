@@ -1,23 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { ConnectorGrid } from "./ConnectorGrid";
 import { Typewriter } from "@/components/ui/typewriter";
 import researchBg from "@/assets/research-card-bg.png";
 import actionBg from "@/assets/action-card-bg.png";
 
+const TYPEWRITER_TEXTS = ["research", "act"];
+const TEXT_TO_CARD: Record<string, "research" | "action"> = {
+  research: "research",
+  act: "action",
+};
+
 export function AiCeoChatView() {
   const [mode, setMode] = useState<"select" | "connectors">("select");
   const [activeCard, setActiveCard] = useState<"research" | "action">("research");
   const { initiateOAuth } = useConnectorOAuth();
 
-  // Cycle between research and action cards
-  useEffect(() => {
-    if (mode !== "select") return;
-    const interval = setInterval(() => {
-      setActiveCard((prev) => (prev === "research" ? "action" : "research"));
-    }, 2500);
-    return () => clearInterval(interval);
-  }, [mode]);
+  const handleTextChange = useCallback((_index: number, text: string) => {
+    setActiveCard(TEXT_TO_CARD[text] ?? "research");
+  }, []);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col">
@@ -49,7 +50,7 @@ export function AiCeoChatView() {
             >
               {"We're born to "}
               <Typewriter
-                text={["research", "act"]}
+                text={TYPEWRITER_TEXTS}
                 speed={80}
                 deleteSpeed={50}
                 waitTime={2000}
@@ -57,6 +58,7 @@ export function AiCeoChatView() {
                 showCursor={true}
                 cursorChar="|"
                 className="text-primary"
+                onTextChange={handleTextChange}
               />
             </h1>
 

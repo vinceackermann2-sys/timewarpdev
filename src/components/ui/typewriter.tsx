@@ -19,6 +19,7 @@ interface TypewriterProps {
     animate: Variants["animate"]
   }
   cursorClassName?: string
+  onTextChange?: (index: number, text: string) => void
 }
 
 const Typewriter = ({
@@ -33,6 +34,7 @@ const Typewriter = ({
   hideCursorOnType = false,
   cursorChar = "|",
   cursorClassName = "ml-1",
+  onTextChange,
   cursorAnimationVariants = {
     initial: { opacity: 0 },
     animate: {
@@ -65,7 +67,9 @@ const Typewriter = ({
           if (currentTextIndex === texts.length - 1 && !loop) {
             return
           }
-          setCurrentTextIndex((prev) => (prev + 1) % texts.length)
+          const nextIndex = (currentTextIndex + 1) % texts.length
+          setCurrentTextIndex(nextIndex)
+          onTextChange?.(nextIndex, texts[nextIndex])
           setCurrentIndex(0)
           timeout = setTimeout(() => {}, waitTime)
         } else {
