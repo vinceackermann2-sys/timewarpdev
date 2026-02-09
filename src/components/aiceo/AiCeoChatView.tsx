@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { ConnectorGrid } from "./ConnectorGrid";
 import { Typewriter } from "@/components/ui/typewriter";
@@ -7,7 +7,17 @@ import actionBg from "@/assets/action-card-bg.png";
 
 export function AiCeoChatView() {
   const [mode, setMode] = useState<"select" | "connectors">("select");
+  const [activeCard, setActiveCard] = useState<"research" | "action">("research");
   const { initiateOAuth } = useConnectorOAuth();
+
+  // Cycle between research and action cards
+  useEffect(() => {
+    if (mode !== "select") return;
+    const interval = setInterval(() => {
+      setActiveCard((prev) => (prev === "research" ? "action" : "research"));
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [mode]);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col">
@@ -37,7 +47,7 @@ export function AiCeoChatView() {
                 marginBottom: 40,
               }}
             >
-              {"We're born 🌠 to "}
+              {"We're born to "}
               <Typewriter
                 text={["explore", "research", "act"]}
                 speed={80}
@@ -64,9 +74,11 @@ export function AiCeoChatView() {
                   position: "relative",
                   overflow: "hidden",
                   transition: "transform 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease",
-                  opacity: 1,
-                  transform: "scale(1)",
-                  boxShadow: "0 0 40px rgba(99, 102, 241, 0.15), 0 8px 32px rgba(0,0,0,0.4)",
+                  opacity: activeCard === "research" ? 1 : 0.4,
+                  transform: activeCard === "research" ? "scale(1.05)" : "scale(0.95)",
+                  boxShadow: activeCard === "research"
+                    ? "0 0 40px rgba(99, 102, 241, 0.3), 0 8px 32px rgba(0,0,0,0.4)"
+                    : "0 4px 16px rgba(0,0,0,0.3)",
                 }}
                 className="group"
               >
@@ -137,9 +149,11 @@ export function AiCeoChatView() {
                   position: "relative",
                   overflow: "hidden",
                   transition: "transform 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease",
-                  opacity: 1,
-                  transform: "scale(1)",
-                  boxShadow: "0 0 40px rgba(249, 115, 22, 0.15), 0 8px 32px rgba(0,0,0,0.4)",
+                  opacity: activeCard === "action" ? 1 : 0.4,
+                  transform: activeCard === "action" ? "scale(1.05)" : "scale(0.95)",
+                  boxShadow: activeCard === "action"
+                    ? "0 0 40px rgba(249, 115, 22, 0.25), 0 8px 32px rgba(0,0,0,0.4)"
+                    : "0 4px 16px rgba(0,0,0,0.3)",
                 }}
                 className="group"
               >
