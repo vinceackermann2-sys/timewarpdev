@@ -60,8 +60,8 @@ export function AiCeoChatView() {
               <button
                 onClick={() => setMode("connectors")}
                 style={{
-                  width: 220,
-                  height: 260,
+                  width: 280,
+                  height: 340,
                   borderRadius: 24,
                   border: "none",
                   cursor: "pointer",
@@ -101,14 +101,15 @@ export function AiCeoChatView() {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent: "flex-end",
                     height: "100%",
+                    paddingBottom: 28,
                   }}
                 >
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: 24,
+                      fontSize: 28,
                       fontWeight: 800,
                       color: "#fff",
                       letterSpacing: "-0.02em",
@@ -134,8 +135,8 @@ export function AiCeoChatView() {
               <button
                 onClick={() => setMode("connectors")}
                 style={{
-                  width: 220,
-                  height: 260,
+                  width: 280,
+                  height: 340,
                   borderRadius: 24,
                   border: "none",
                   cursor: "pointer",
@@ -175,14 +176,15 @@ export function AiCeoChatView() {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent: "flex-end",
                     height: "100%",
+                    paddingBottom: 28,
                   }}
                 >
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: 24,
+                      fontSize: 28,
                       fontWeight: 800,
                       color: "#fff",
                       letterSpacing: "-0.02em",
