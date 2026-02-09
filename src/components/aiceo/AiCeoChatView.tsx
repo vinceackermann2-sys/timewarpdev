@@ -37,9 +37,9 @@ export function AiCeoChatView() {
                 marginBottom: 40,
               }}
             >
-              {"Do you want "}
+              {"We're born 🌠 to "}
               <Typewriter
-                text={["research?", "action?"]}
+                text={["explore", "research", "act"]}
                 speed={80}
                 deleteSpeed={50}
                 waitTime={2000}
