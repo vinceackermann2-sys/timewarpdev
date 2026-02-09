@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
+import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 
 const connectors = [
   {
@@ -47,6 +48,7 @@ export function AiCeoChatView() {
   const [mode, setMode] = useState<"select" | "connectors">("select");
   const [activeWord, setActiveWord] = useState<"research" | "action">("research");
   const [fade, setFade] = useState(true);
+  const { initiateOAuth } = useConnectorOAuth();
 
   // Cycle animation between research and action
   useEffect(() => {
@@ -183,6 +185,7 @@ export function AiCeoChatView() {
               {connectors.map((connector, i) => (
                 <button
                   key={connector.name}
+                  onClick={() => initiateOAuth(connector.name as "Google" | "Microsoft" | "Slack")}
                   style={{
                     display: "flex",
                     flexDirection: "column",
