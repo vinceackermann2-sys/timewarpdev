@@ -41,11 +41,11 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
   }
 }
 
-// Fetch emails from Gmail
+// Fetch emails from Gmail — includes snippets for AI context
 async function fetchEmails(accessToken: string) {
   try {
     const response = await fetch(
-      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50",
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100",
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
@@ -54,30 +54,40 @@ async function fetchEmails(accessToken: string) {
     const data = await response.json();
     const messages = data.messages || [];
 
-    const emailDetails = await Promise.all(
-      messages.slice(0, 50).map(async (msg: { id: string }) => {
-        try {
-          const detailRes = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
-          if (!detailRes.ok) return null;
-          const detail = await detailRes.json();
-          const headers = detail.payload?.headers || [];
-          return {
-            id: msg.id,
-            subject: headers.find((h: any) => h.name === "Subject")?.value || "",
-            from: headers.find((h: any) => h.name === "From")?.value || "",
-            date: headers.find((h: any) => h.name === "Date")?.value || "",
-            labelIds: detail.labelIds || [],
-          };
-        } catch {
-          return null;
-        }
-      })
-    );
+    const emailDetails: any[] = [];
+    // Process in batches of 10 to avoid rate limits
+    for (let i = 0; i < Math.min(messages.length, 100); i += 10) {
+      const batch = messages.slice(i, i + 10);
+      const batchResults = await Promise.all(
+        batch.map(async (msg: { id: string }) => {
+          try {
+            const detailRes = await fetch(
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Date`,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+            if (!detailRes.ok) return null;
+            const detail = await detailRes.json();
+            const headers = detail.payload?.headers || [];
+            return {
+              id: msg.id,
+              subject: headers.find((h: any) => h.name === "Subject")?.value || "",
+              from: headers.find((h: any) => h.name === "From")?.value || "",
+              to: headers.find((h: any) => h.name === "To")?.value || "",
+              date: headers.find((h: any) => h.name === "Date")?.value || "",
+              snippet: detail.snippet || "",
+              labels: detail.labelIds || [],
+            };
+          } catch {
+            return null;
+          }
+        })
+      );
+      emailDetails.push(...batchResults.filter(Boolean));
+      // Small delay between batches
+      if (i + 10 < messages.length) await new Promise(r => setTimeout(r, 100));
+    }
 
-    return emailDetails.filter(Boolean);
+    return emailDetails;
   } catch (error) {
     console.error("Error fetching emails:", error);
     return [];
@@ -219,33 +229,44 @@ serve(async (req) => {
 
         console.log(`User ${conn.user_id}: ${emails.length} emails, ${calendarEvents.length} events, ${documents.length} docs`);
 
-        // Build research summary
+        // Build top contacts from email data
+        const contactCounts: Record<string, number> = {};
+        for (const email of emails) {
+          const from = (email as any).from?.match(/<(.+)>/)?.[1] || (email as any).from?.trim();
+          if (from) contactCounts[from] = (contactCounts[from] || 0) + 1;
+        }
+        const topContacts = Object.entries(contactCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 30)
+          .map(([email, count]) => ({ email, count }));
+
+        // Build research summary — include ALL data, not sliced
         const researchSummary = {
           lastUpdated: new Date().toISOString(),
-          emailPatterns: emails.slice(0, 20).map((e: any) => ({
+          emailPatterns: emails.map((e: any) => ({
             subject: e.subject,
             from: e.from,
-            labels: e.labelIds,
+            labels: e.labels || e.labelIds,
           })),
-          calendarSummary: calendarEvents.slice(0, 30).map((e: any) => ({
+          calendarSummary: calendarEvents.map((e: any) => ({
             summary: e.summary,
             start: e.start,
             attendees: e.attendees,
           })),
-          documentList: documents.slice(0, 20).map((d: any) => ({
+          documentList: documents.map((d: any) => ({
             name: d.name,
             modified: d.modifiedTime,
           })),
         };
 
-        // Update or insert workspace_research
+        // Update or insert workspace_research — store ALL raw data
         const { error: upsertError } = await supabase
           .from("workspace_research")
           .upsert(
             {
               user_id: conn.user_id,
               research_summary: researchSummary,
-              raw_data: { emails, calendarEvents, documents, spreadsheets },
+              raw_data: { emails, calendarEvents, documents, spreadsheets, topContacts },
               findings: [],
               emails_analyzed: emails.length,
               events_analyzed: calendarEvents.length,
