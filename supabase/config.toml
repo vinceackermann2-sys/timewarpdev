@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.microsoft-oauth-callback]
 verify_jwt = false
+
+[functions.initiate-slack-oauth]
+verify_jwt = false
+
+[functions.sync-research]
+verify_jwt = false
