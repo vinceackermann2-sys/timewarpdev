@@ -134,6 +134,42 @@ export type Database = {
         }
         Relationships: []
       }
+      scrape_jobs: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: number
+          instruction: string | null
+          live_url: string | null
+          result: string | null
+          session_id: string | null
+          status: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: never
+          instruction?: string | null
+          live_url?: string | null
+          result?: string | null
+          session_id?: string | null
+          status?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: never
+          instruction?: string | null
+          live_url?: string | null
+          result?: string | null
+          session_id?: string | null
+          status?: string | null
+          url?: string | null
+        }
+        Relationships: []
+      }
       slack_installations: {
         Row: {
           bot_token: string
