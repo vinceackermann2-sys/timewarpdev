@@ -160,6 +160,8 @@ interface ChatMessage {
   content: string;
 }
 
+const MAX_MESSAGES = 3;
+
 interface ConnectorGridProps {
   onConnect: (name: "Google" | "Microsoft" | "Slack") => void;
   onModeChange: (mode: "research" | "action") => void;
@@ -178,6 +180,11 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [workspaceData, setWorkspaceData] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const [userMessageCount, setUserMessageCount] = useState(0);
+  const [showWaitlist, setShowWaitlist] = useState(false);
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
+  const [waitlistForm, setWaitlistForm] = useState({ name: "", email: "", phone: "" });
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
 
   useEffect(() => {
     checkConnections();
@@ -288,6 +295,12 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   }
 
   const handleResearchSend = useCallback(async (message: string) => {
+    if (userMessageCount >= MAX_MESSAGES) {
+      setShowWaitlist(true);
+      return;
+    }
+    const newCount = userMessageCount + 1;
+    setUserMessageCount(newCount);
     const userMsg: ChatMessage = { role: "user", content: message };
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
@@ -367,7 +380,30 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     } finally {
       setIsStreaming(false);
     }
-  }, [messages, workspaceData]);
+  }, [messages, workspaceData, userMessageCount]);
+
+  const handleWaitlistSubmit = useCallback(async () => {
+    if (!waitlistForm.name.trim() || !waitlistForm.email.trim() || !waitlistForm.phone.trim()) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    setWaitlistLoading(true);
+    try {
+      const { error } = await supabase.from("waitlist" as any).insert({
+        name: waitlistForm.name.trim(),
+        email: waitlistForm.email.trim(),
+        phone: waitlistForm.phone.trim(),
+      });
+      if (error) throw error;
+      setWaitlistSubmitted(true);
+      toast.success("You've been added to the waitlist!");
+    } catch (err: any) {
+      console.error("Waitlist error:", err);
+      toast.error("Failed to join waitlist. Please try again.");
+    } finally {
+      setWaitlistLoading(false);
+    }
+  }, [waitlistForm]);
 
   const hasAnyConnection = useMemo(
     () => Object.values(connectionStatus).some(Boolean),
@@ -660,8 +696,254 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                   <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Analyzing your business data...</span>
                 </div>
               )}
+
+              {/* Message counter & waitlist button */}
+              {userMessageCount > 0 && userMessageCount < MAX_MESSAGES && (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  padding: "12px 0",
+                  animation: "fadeSlideUp 0.3s ease-out forwards",
+                }}>
+                  <span style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 13,
+                    color: "rgba(255,255,255,0.4)",
+                  }}>
+                    {MAX_MESSAGES - userMessageCount} message{MAX_MESSAGES - userMessageCount !== 1 ? "s" : ""} left
+                  </span>
+                  <button
+                    onClick={() => setShowWaitlist(true)}
+                    style={{
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "hsl(var(--primary))",
+                      background: "rgba(99, 102, 241, 0.15)",
+                      border: "1px solid rgba(99, 102, 241, 0.3)",
+                      borderRadius: 10,
+                      padding: "6px 16px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(99, 102, 241, 0.25)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(99, 102, 241, 0.15)";
+                    }}
+                  >
+                    Join Waitlist
+                  </button>
+                </div>
+              )}
+
+              {userMessageCount >= MAX_MESSAGES && !showWaitlist && (
+                <div style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "20px 0",
+                  animation: "fadeSlideUp 0.3s ease-out forwards",
+                }}>
+                  <span style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 14,
+                    color: "rgba(255,255,255,0.5)",
+                  }}>
+                    You've used all {MAX_MESSAGES} messages
+                  </span>
+                  <button
+                    onClick={() => setShowWaitlist(true)}
+                    style={{
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#fff",
+                      background: "hsl(var(--primary))",
+                      border: "none",
+                      borderRadius: 12,
+                      padding: "10px 24px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    Join Waitlist
+                  </button>
+                </div>
+              )}
+
               <div ref={chatEndRef} />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Waitlist modal overlay */}
+      {showWaitlist && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(8px)",
+            animation: "fadeSlideUp 0.3s ease-out forwards",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowWaitlist(false);
+          }}
+        >
+          <div
+            style={{
+              width: "min(90vw, 400px)",
+              background: "rgba(15, 18, 35, 0.98)",
+              border: "1px solid rgba(99, 102, 241, 0.3)",
+              borderRadius: 20,
+              padding: "32px 28px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+            }}
+          >
+            {waitlistSubmitted ? (
+              <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 12 }}>
+                <span style={{ fontSize: 48 }}>🎉</span>
+                <h3 style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: 22,
+                  fontWeight: 800,
+                  color: "#fff",
+                }}>
+                  You're on the list!
+                </h3>
+                <p style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: 14,
+                  color: "rgba(255,255,255,0.5)",
+                }}>
+                  We'll reach out when more capacity is available.
+                </p>
+                <button
+                  onClick={() => setShowWaitlist(false)}
+                  style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "#fff",
+                    background: "hsl(var(--primary))",
+                    border: "none",
+                    borderRadius: 12,
+                    padding: "10px 24px",
+                    cursor: "pointer",
+                    marginTop: 8,
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ textAlign: "center" }}>
+                  <h3 style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 22,
+                    fontWeight: 800,
+                    color: "#fff",
+                    marginBottom: 6,
+                  }}>
+                    Join the Waitlist
+                  </h3>
+                  <p style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 13,
+                    color: "rgba(255,255,255,0.4)",
+                  }}>
+                    {userMessageCount >= MAX_MESSAGES
+                      ? `You've used all ${MAX_MESSAGES} messages. Join the waitlist for full access.`
+                      : `${MAX_MESSAGES - userMessageCount} message${MAX_MESSAGES - userMessageCount !== 1 ? "s" : ""} left. Join the waitlist for full access.`}
+                  </p>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={waitlistForm.name}
+                    onChange={(e) => setWaitlistForm(prev => ({ ...prev, name: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.06)",
+                      color: "#fff",
+                      fontSize: 14,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      outline: "none",
+                    }}
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={waitlistForm.email}
+                    onChange={(e) => setWaitlistForm(prev => ({ ...prev, email: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.06)",
+                      color: "#fff",
+                      fontSize: 14,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      outline: "none",
+                    }}
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Phone number"
+                    value={waitlistForm.phone}
+                    onChange={(e) => setWaitlistForm(prev => ({ ...prev, phone: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.06)",
+                      color: "#fff",
+                      fontSize: 14,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={handleWaitlistSubmit}
+                  disabled={waitlistLoading}
+                  style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: "#fff",
+                    background: "hsl(var(--primary))",
+                    border: "none",
+                    borderRadius: 12,
+                    padding: "12px 24px",
+                    cursor: waitlistLoading ? "not-allowed" : "pointer",
+                    opacity: waitlistLoading ? 0.7 : 1,
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {waitlistLoading ? "Submitting..." : "Join Waitlist"}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -670,7 +952,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         mode="research"
         onModeChange={onModeChange}
         onSend={handleResearchSend}
-        disabled={isStreaming}
+        disabled={isStreaming || userMessageCount >= MAX_MESSAGES}
       />
     </>
   );
