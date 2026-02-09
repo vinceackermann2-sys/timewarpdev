@@ -1,6 +1,10 @@
 import React from "react";
 import { PhoneMockup } from "./PhoneMockup";
-export function HeroSection() {
+interface HeroSectionProps {
+  onRunClick?: () => void;
+}
+
+export function HeroSection({ onRunClick }: HeroSectionProps) {
   return <section className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-start">
       {/* Atmospheric Background */}
       <div className="absolute inset-0 z-0">
@@ -88,7 +92,7 @@ export function HeroSection() {
           background: "radial-gradient(ellipse, rgba(99, 102, 241, 0.15) 0%, rgba(59, 130, 246, 0.08) 40%, transparent 70%)",
           filter: "blur(40px)"
         }} />
-          <PhoneMockup />
+          <PhoneMockup onRunClick={onRunClick} />
         </div>
 
         {/* Trust Badges */}
