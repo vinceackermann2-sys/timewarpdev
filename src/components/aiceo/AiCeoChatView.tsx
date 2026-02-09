@@ -49,10 +49,13 @@ export function AiCeoChatView() {
       });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
-      if (data.liveUrl) {
-        setLiveViewUrl(data.liveUrl);
+      console.log("Scrape response:", JSON.stringify(data));
+      const url = data.liveUrl || data.liveViewUrl || data.connectUrl || data.debuggerUrl || data.debugUrl || data.url || data.live_url;
+      if (url) {
+        setLiveViewUrl(url);
       } else {
-        toast.error("No live URL returned from server");
+        console.error("Response keys:", Object.keys(data));
+        toast.error("No live URL found in response");
       }
     } catch (err: any) {
       console.error("Action request failed:", err);
