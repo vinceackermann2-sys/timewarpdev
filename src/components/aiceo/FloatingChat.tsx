@@ -120,6 +120,7 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
                 height: 24,
                 borderRadius: 8,
                 objectFit: "cover",
+                mixBlendMode: "screen",
               }}
             />
             <span
@@ -185,6 +186,7 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
                     height: 20,
                     borderRadius: 6,
                     objectFit: "cover",
+                    mixBlendMode: "screen",
                   }}
                 />
                 <span
