@@ -19,23 +19,23 @@ export function FloatingChat() {
         left: 0,
         right: 0,
         zIndex: 50,
-        padding: "16px 24px 28px",
-        background: "linear-gradient(180deg, transparent 0%, rgba(5, 7, 15, 0.95) 30%)",
+        padding: "20px 24px 36px",
+        background: "transparent",
         animation: "fadeSlideUp 0.5s ease-out forwards",
       }}
     >
       <form
         onSubmit={handleSubmit}
         style={{
-          maxWidth: 640,
+          maxWidth: 720,
           margin: "0 auto",
           display: "flex",
           alignItems: "center",
-          gap: 10,
+          gap: 12,
           background: "rgba(255, 255, 255, 0.06)",
           border: "1px solid rgba(255, 255, 255, 0.1)",
-          borderRadius: 16,
-          padding: "6px 6px 6px 18px",
+          borderRadius: 20,
+          padding: "8px 8px 8px 22px",
           backdropFilter: "blur(12px)",
           transition: "border-color 0.3s ease, box-shadow 0.3s ease",
         }}
@@ -59,7 +59,7 @@ export function FloatingChat() {
             border: "none",
             outline: "none",
             color: "#fff",
-            fontSize: 14,
+            fontSize: 15,
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 400,
             letterSpacing: "0.01em",
@@ -69,9 +69,9 @@ export function FloatingChat() {
           type="submit"
           disabled={!message.trim()}
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 12,
+            width: 42,
+            height: 42,
+            borderRadius: 14,
             border: "none",
             cursor: message.trim() ? "pointer" : "default",
             display: "flex",
