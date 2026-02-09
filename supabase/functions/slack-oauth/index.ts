@@ -22,7 +22,7 @@
      // Handle OAuth errors
      if (error) {
        console.error("Slack OAuth error:", error);
-       return Response.redirect(`${appUrl}?slack_error=${error}`, 302);
+       return Response.redirect(`${appUrl}/ai-ceo?slack_error=${error}`, 302);
      }
  
      if (!code) {
@@ -34,7 +34,7 @@
  
      if (!clientId || !clientSecret) {
        console.error("Missing Slack OAuth credentials");
-       return Response.redirect(`${appUrl}?slack_error=config_error`, 302);
+       return Response.redirect(`${appUrl}/ai-ceo?slack_error=config_error`, 302);
      }
  
      // Exchange code for access token
@@ -53,7 +53,7 @@
  
      if (!tokenData.ok) {
        console.error("Slack token exchange failed:", tokenData.error);
-       return Response.redirect(`${appUrl}?slack_error=${tokenData.error}`, 302);
+       return Response.redirect(`${appUrl}/ai-ceo?slack_error=${tokenData.error}`, 302);
      }
  
      // Store installation in database
@@ -74,16 +74,16 @@
  
      if (dbError) {
        console.error("Database error storing installation:", dbError);
-       return Response.redirect(`${appUrl}?slack_error=db_error`, 302);
+       return Response.redirect(`${appUrl}/ai-ceo?slack_error=db_error`, 302);
      }
  
      console.log("Slack app installed successfully for team:", tokenData.team.name);
  
      // Redirect to success page
-     return Response.redirect(`${appUrl}?slack_installed=true&team=${encodeURIComponent(tokenData.team.name)}`, 302);
+     return Response.redirect(`${appUrl}/ai-ceo?slack_installed=true&team=${encodeURIComponent(tokenData.team.name)}`, 302);
    } catch (error) {
      console.error("Slack OAuth error:", error);
      const appUrl = Deno.env.get("APP_URL") || "https://digital-guide-genie.lovable.app";
-     return Response.redirect(`${appUrl}?slack_error=unknown`, 302);
+     return Response.redirect(`${appUrl}/ai-ceo?slack_error=unknown`, 302);
    }
  });
