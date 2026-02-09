@@ -49,7 +49,7 @@ export function AiCeoChatView() {
             >
               {"We're born to "}
               <Typewriter
-                text={["explore", "research", "act"]}
+                text={["research", "act"]}
                 speed={80}
                 deleteSpeed={50}
                 waitTime={2000}
