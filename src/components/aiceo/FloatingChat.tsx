@@ -1,13 +1,43 @@
 import React, { useState } from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, FlaskConical, Zap } from "lucide-react";
 
-export function FloatingChat() {
+interface FloatingChatProps {
+  mode: "research" | "action";
+  onModeChange: (mode: "research" | "action") => void;
+}
+
+const modeConfig = {
+  research: {
+    label: "Research",
+    icon: FlaskConical,
+    color: "rgba(99, 102, 241, 0.9)",
+    bgColor: "rgba(99, 102, 241, 0.12)",
+    borderColor: "rgba(99, 102, 241, 0.25)",
+    hoverBg: "rgba(99, 102, 241, 0.2)",
+  },
+  action: {
+    label: "Action",
+    icon: Zap,
+    color: "rgba(249, 115, 22, 0.9)",
+    bgColor: "rgba(249, 115, 22, 0.12)",
+    borderColor: "rgba(249, 115, 22, 0.25)",
+    hoverBg: "rgba(249, 115, 22, 0.2)",
+  },
+};
+
+export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
   const [message, setMessage] = useState("");
+  const [showSwitch, setShowSwitch] = useState(false);
+
+  const current = modeConfig[mode];
+  const other = mode === "research" ? modeConfig.action : modeConfig.research;
+  const otherMode = mode === "research" ? "action" : "research";
+  const CurrentIcon = current.icon;
+  const OtherIcon = other.icon;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    // TODO: send message
     setMessage("");
   };
 
@@ -31,11 +61,11 @@ export function FloatingChat() {
           margin: "0 auto",
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: 8,
           background: "rgba(255, 255, 255, 0.06)",
           border: "1px solid rgba(255, 255, 255, 0.1)",
           borderRadius: 20,
-          padding: "8px 8px 8px 22px",
+          padding: "8px 8px 8px 8px",
           backdropFilter: "blur(12px)",
           transition: "border-color 0.3s ease, box-shadow 0.3s ease",
         }}
@@ -48,6 +78,98 @@ export function FloatingChat() {
           e.currentTarget.style.boxShadow = "none";
         }}
       >
+        {/* Mode indicator with hover switch */}
+        <div
+          style={{ position: "relative", flexShrink: 0 }}
+          onMouseEnter={() => setShowSwitch(true)}
+          onMouseLeave={() => setShowSwitch(false)}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 12px",
+              borderRadius: 12,
+              background: current.bgColor,
+              border: `1px solid ${current.borderColor}`,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <CurrentIcon size={14} style={{ color: current.color }} />
+            <span
+              style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 12,
+                fontWeight: 600,
+                color: current.color,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {current.label}
+            </span>
+          </div>
+
+          {/* Switch dropdown */}
+          {showSwitch && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "calc(100% + 6px)",
+                left: 0,
+                background: "rgba(15, 18, 30, 0.95)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                borderRadius: 12,
+                padding: 4,
+                backdropFilter: "blur(16px)",
+                animation: "fadeSlideUp 0.2s ease-out forwards",
+                minWidth: 140,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onModeChange(otherMode);
+                  setShowSwitch(false);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  transition: "background 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = other.hoverBg;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <OtherIcon size={14} style={{ color: other.color }} />
+                <span
+                  style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: other.color,
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  Switch to {other.label}
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
+
         <input
           type="text"
           value={message}
