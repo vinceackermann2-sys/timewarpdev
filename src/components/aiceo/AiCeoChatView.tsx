@@ -236,7 +236,10 @@ export function AiCeoChatView() {
         )}
 
         {mode === "connectors" && (
-          <ConnectorGrid onConnect={(name) => initiateOAuth(name)} />
+          <ConnectorGrid
+            onConnect={(name) => initiateOAuth(name)}
+            onModeChange={(m) => setMode(m === "research" ? "connectors" : "action")}
+          />
         )}
 
         {mode === "action" && (
@@ -252,7 +255,12 @@ export function AiCeoChatView() {
         )}
       </div>
 
-      {mode === "action" && <FloatingChat />}
+      {mode === "action" && (
+        <FloatingChat
+          mode="action"
+          onModeChange={(m) => setMode(m === "research" ? "connectors" : "action")}
+        />
+      )}
 
       <style>{`
         @keyframes fadeSlideUp {

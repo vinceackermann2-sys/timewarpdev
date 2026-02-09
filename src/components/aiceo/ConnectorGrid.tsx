@@ -157,9 +157,10 @@ function ConnectorCard({ connector, connected, index, onConnect, onDisconnect }:
 
 interface ConnectorGridProps {
   onConnect: (name: "Google" | "Microsoft" | "Slack") => void;
+  onModeChange: (mode: "research" | "action") => void;
 }
 
-export function ConnectorGrid({ onConnect }: ConnectorGridProps) {
+export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [connectionStatus, setConnectionStatus] = useState<Record<string, boolean>>({
     Google: false,
     Microsoft: false,
@@ -314,7 +315,7 @@ export function ConnectorGrid({ onConnect }: ConnectorGridProps) {
           }}>
             <BrowserWindow />
           </div>
-          <FloatingChat />
+          <FloatingChat mode="research" onModeChange={onModeChange} />
         </>
       )}
     </>
