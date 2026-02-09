@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { ConnectorGrid } from "./ConnectorGrid";
 import { BrowserWindow } from "./BrowserWindow";
 import { FloatingChat } from "./FloatingChat";
@@ -51,6 +52,17 @@ export function AiCeoChatView() {
       const data = await res.json();
       console.log("Scrape response:", JSON.stringify(data));
       const url = data.liveUrl || data.liveViewUrl || data.connectUrl || data.debuggerUrl || data.debugUrl || data.url || data.live_url;
+
+      // Save to scrape_jobs table
+      await supabase.from("scrape_jobs").insert({
+        url: message,
+        instruction: message,
+        live_url: url || null,
+        session_id: data.sessionId || data.session_id || null,
+        status: url ? "started" : "no_url",
+        result: url ? null : JSON.stringify(data),
+      });
+
       if (url) {
         setLiveViewUrl(url);
       } else {

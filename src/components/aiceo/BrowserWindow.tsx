@@ -9,8 +9,8 @@ export function BrowserWindow({ liveViewUrl, loading }: BrowserWindowProps) {
   return (
     <div
       style={{
-        width: "min(85vw, 900px)",
-        height: "min(55vh, 520px)",
+        width: "min(92vw, 1200px)",
+        height: "min(75vh, 720px)",
         borderRadius: 16,
         overflow: "hidden",
         border: "1px solid rgba(255, 255, 255, 0.08)",
