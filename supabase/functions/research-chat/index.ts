@@ -135,7 +135,7 @@ ${ctx.content.analysis}` : ''}
 Document Name: ${ctx.content.name || "Unknown"}
 
 ${ctx.content.extractedText ? `### Extracted Content
-${ctx.content.extractedText.slice(0, 8000)}` : ''}
+${ctx.content.extractedText}` : ''}
 
 ${ctx.content.analysis ? `### AI Analysis
 ${ctx.content.analysis}` : ''}
