@@ -1,27 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { ConnectorGrid } from "./ConnectorGrid";
+import { Typewriter } from "@/components/ui/typewriter";
 import researchBg from "@/assets/research-card-bg.png";
 import actionBg from "@/assets/action-card-bg.png";
 
 export function AiCeoChatView() {
   const [mode, setMode] = useState<"select" | "connectors">("select");
-  const [activeWord, setActiveWord] = useState<"research" | "action">("research");
-  const [fade, setFade] = useState(true);
   const { initiateOAuth } = useConnectorOAuth();
-
-  // Cycle animation between research and action
-  useEffect(() => {
-    if (mode !== "select") return;
-    const interval = setInterval(() => {
-      setFade(false);
-      setTimeout(() => {
-        setActiveWord((prev) => (prev === "research" ? "action" : "research"));
-        setFade(true);
-      }, 350);
-    }, 2200);
-    return () => clearInterval(interval);
-  }, [mode]);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col">
@@ -51,7 +37,17 @@ export function AiCeoChatView() {
                 marginBottom: 40,
               }}
             >
-              Do you want
+              {"Do you want "}
+              <Typewriter
+                text={["research?", "action?"]}
+                speed={80}
+                deleteSpeed={50}
+                waitTime={2000}
+                loop={true}
+                showCursor={true}
+                cursorChar="|"
+                className="text-indigo-400"
+              />
             </h1>
 
             {/* Research / Action cards */}
@@ -68,11 +64,9 @@ export function AiCeoChatView() {
                   position: "relative",
                   overflow: "hidden",
                   transition: "transform 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease",
-                  opacity: fade && activeWord === "research" ? 1 : 0.4,
-                  transform: fade && activeWord === "research" ? "scale(1.05)" : "scale(0.95)",
-                  boxShadow: fade && activeWord === "research"
-                    ? "0 0 40px rgba(99, 102, 241, 0.3), 0 8px 32px rgba(0,0,0,0.4)"
-                    : "0 4px 16px rgba(0,0,0,0.3)",
+                  opacity: 1,
+                  transform: "scale(1)",
+                  boxShadow: "0 0 40px rgba(99, 102, 241, 0.15), 0 8px 32px rgba(0,0,0,0.4)",
                 }}
                 className="group"
               >
@@ -143,11 +137,9 @@ export function AiCeoChatView() {
                   position: "relative",
                   overflow: "hidden",
                   transition: "transform 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease",
-                  opacity: fade && activeWord === "action" ? 1 : 0.4,
-                  transform: fade && activeWord === "action" ? "scale(1.05)" : "scale(0.95)",
-                  boxShadow: fade && activeWord === "action"
-                    ? "0 0 40px rgba(249, 115, 22, 0.25), 0 8px 32px rgba(0,0,0,0.4)"
-                    : "0 4px 16px rgba(0,0,0,0.3)",
+                  opacity: 1,
+                  transform: "scale(1)",
+                  boxShadow: "0 0 40px rgba(249, 115, 22, 0.15), 0 8px 32px rgba(0,0,0,0.4)",
                 }}
                 className="group"
               >
