@@ -454,6 +454,93 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
               .custom-chat-scroll::-webkit-scrollbar-thumb:hover {
                 background: rgba(255,255,255,0.25);
               }
+              .research-chat-md h1 {
+                font-size: 22px !important;
+                font-weight: 800 !important;
+                margin: 16px 0 8px !important;
+                color: #fff !important;
+                border-bottom: 2px solid rgba(99,102,241,0.4);
+                padding-bottom: 6px;
+              }
+              .research-chat-md h2 {
+                font-size: 18px !important;
+                font-weight: 700 !important;
+                margin: 14px 0 6px !important;
+                color: rgba(255,255,255,0.95) !important;
+                border-bottom: 1px solid rgba(255,255,255,0.12);
+                padding-bottom: 4px;
+              }
+              .research-chat-md h3 {
+                font-size: 15px !important;
+                font-weight: 700 !important;
+                margin: 12px 0 4px !important;
+                color: rgba(167,139,250,1) !important;
+              }
+              .research-chat-md strong {
+                color: #fff !important;
+                font-weight: 700 !important;
+              }
+              .research-chat-md em {
+                color: rgba(253,224,71,0.9) !important;
+                font-style: italic;
+              }
+              .research-chat-md ul, .research-chat-md ol {
+                margin: 6px 0 !important;
+                padding-left: 20px !important;
+              }
+              .research-chat-md li {
+                margin: 4px 0 !important;
+                color: rgba(255,255,255,0.85) !important;
+              }
+              .research-chat-md li::marker {
+                color: rgba(99,102,241,0.7) !important;
+              }
+              .research-chat-md blockquote {
+                border-left: 3px solid rgba(99,102,241,0.6) !important;
+                background: rgba(99,102,241,0.08) !important;
+                padding: 8px 14px !important;
+                margin: 8px 0 !important;
+                border-radius: 0 8px 8px 0 !important;
+                color: rgba(255,255,255,0.9) !important;
+                font-weight: 500;
+              }
+              .research-chat-md hr {
+                border: none !important;
+                height: 1px !important;
+                background: linear-gradient(90deg, transparent, rgba(99,102,241,0.4), transparent) !important;
+                margin: 12px 0 !important;
+              }
+              .research-chat-md code {
+                background: rgba(99,102,241,0.15) !important;
+                padding: 2px 6px !important;
+                border-radius: 4px !important;
+                font-size: 13px !important;
+                color: rgba(167,139,250,1) !important;
+              }
+              .research-chat-md table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin: 8px 0 !important;
+              }
+              .research-chat-md th {
+                background: rgba(99,102,241,0.15) !important;
+                color: #fff !important;
+                font-weight: 700 !important;
+                padding: 6px 10px !important;
+                text-align: left !important;
+                border-bottom: 2px solid rgba(99,102,241,0.3) !important;
+                font-size: 13px !important;
+              }
+              .research-chat-md td {
+                padding: 5px 10px !important;
+                border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+                color: rgba(255,255,255,0.8) !important;
+                font-size: 13px !important;
+              }
+              .research-chat-md p {
+                margin: 4px 0 !important;
+                line-height: 1.6 !important;
+              }
             `}</style>
             <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
               {messages.map((msg, i) => (
@@ -461,12 +548,12 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                   key={i}
                   style={{
                     alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                    maxWidth: msg.role === "user" ? "70%" : "90%",
-                    padding: "12px 16px",
+                    maxWidth: msg.role === "user" ? "70%" : "95%",
+                    padding: msg.role === "user" ? "12px 16px" : "16px 20px",
                     borderRadius: 16,
                     background: msg.role === "user"
                       ? "rgba(99, 102, 241, 0.2)"
-                      : "rgba(255, 255, 255, 0.06)",
+                      : "rgba(255, 255, 255, 0.04)",
                     border: `1px solid ${msg.role === "user" ? "rgba(99, 102, 241, 0.3)" : "rgba(255, 255, 255, 0.08)"}`,
                     animation: "fadeSlideUp 0.3s ease-out forwards",
                   }}
@@ -477,7 +564,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                     </p>
                   ) : (
                     <div
-                      className="prose prose-invert prose-sm max-w-none"
+                      className="research-chat-md prose prose-invert prose-sm max-w-none"
                       style={{ fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                     >
                       <ReactMarkdown>{msg.content.replace(/\[INSIGHT:[^\]]+\]/g, '').replace(/\[SUGGEST:[^\]]+\]/g, '')}</ReactMarkdown>
