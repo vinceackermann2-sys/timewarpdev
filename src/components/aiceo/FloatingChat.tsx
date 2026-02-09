@@ -28,10 +28,15 @@ const modeConfig = {
   },
 };
 
+const TYPEWRITER_WORDS = ["strategy", "finances", "marketing", "systems"];
+
 export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
   const [message, setMessage] = useState("");
   const [showSwitch, setShowSwitch] = useState(false);
+  const [currentWord, setCurrentWord] = useState(TYPEWRITER_WORDS[0]);
+  const [frozen, setFrozen] = useState(false);
   const switchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const current = modeConfig[mode];
   const other = mode === "research" ? modeConfig.action : modeConfig.research;
@@ -209,10 +214,14 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
         <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
           {!message && (
             <div
+              onClick={() => {
+                setMessage(`my ${currentWord} `);
+                setFrozen(true);
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }}
               style={{
                 position: "absolute",
                 left: 0,
-                pointerEvents: "none",
                 display: "flex",
                 alignItems: "center",
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -220,26 +229,37 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
                 fontWeight: 400,
                 letterSpacing: "0.01em",
                 color: "rgba(255, 255, 255, 0.35)",
+                cursor: "text",
               }}
             >
               {"my "}
-              <Typewriter
-                text={["strategy", "finances", "marketing", "systems"]}
-                speed={80}
-                deleteSpeed={50}
-                waitTime={2000}
-                loop={true}
-                showCursor={true}
-                cursorChar="|"
-                className=""
-                cursorClassName="ml-0.5 opacity-50"
-              />
+              {frozen ? (
+                <span>{currentWord}</span>
+              ) : (
+                <Typewriter
+                  text={TYPEWRITER_WORDS}
+                  speed={80}
+                  deleteSpeed={50}
+                  waitTime={2000}
+                  loop={true}
+                  showCursor={true}
+                  cursorChar="|"
+                  className=""
+                  cursorClassName="ml-0.5 opacity-50"
+                  onTextChange={(_index, text) => setCurrentWord(text)}
+                />
+              )}
+              {"..."}
             </div>
           )}
           <input
+            ref={inputRef}
             type="text"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              if (!e.target.value) setFrozen(false);
+            }}
             style={{
               width: "100%",
               background: "transparent",
