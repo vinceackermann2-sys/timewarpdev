@@ -323,47 +323,54 @@ export function AiCeoChatView() {
         )}
 
         {mode === "action" && (
-          <div style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 16,
-          }}>
+          <>
             <div style={{
-              width: "min(90vw, 700px)",
-              aspectRatio: "16/10",
-              borderRadius: 16,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(0,0,0,0.3)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
               gap: 16,
-              position: "relative",
             }}>
-              <span style={{ fontSize: 48 }}>🔒</span>
-              <span style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 22,
-                fontWeight: 700,
-                color: "rgba(255,255,255,0.7)",
+              <div style={{
+                width: "min(90vw, 700px)",
+                aspectRatio: "16/10",
+                borderRadius: 16,
+                border: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(0,0,0,0.3)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 16,
+                position: "relative",
               }}>
-                Coming Soon
-              </span>
-              <span style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 14,
-                color: "rgba(255,255,255,0.35)",
-                maxWidth: 320,
-                textAlign: "center",
-                lineHeight: 1.5,
-              }}>
-                The Action Agent browser is under development
-              </span>
+                <span style={{ fontSize: 48 }}>🔒</span>
+                <span style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: 22,
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.7)",
+                }}>
+                  Coming Soon
+                </span>
+                <span style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: 14,
+                  color: "rgba(255,255,255,0.35)",
+                  maxWidth: 320,
+                  textAlign: "center",
+                  lineHeight: 1.5,
+                }}>
+                  The Action Agent browser is under development
+                </span>
+              </div>
             </div>
-          </div>
+            <FloatingChat
+              mode="action"
+              onModeChange={(m) => setMode(m === "research" ? "connectors" : "action")}
+              disabled
+            />
+          </>
         )}
       </div>
 
