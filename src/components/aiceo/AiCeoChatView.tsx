@@ -55,7 +55,6 @@ const connectors = [
 ];
 
 export function AiCeoChatView() {
-  const [message, setMessage] = useState("");
   const [mode, setMode] = useState<"select" | "connectors">("select");
   const [activeWord, setActiveWord] = useState<"research" | "action">("research");
   const [fade, setFade] = useState(true);
@@ -179,17 +178,19 @@ export function AiCeoChatView() {
             <h2
               style={{
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 24,
-                fontWeight: 700,
+                fontSize: "clamp(28px, 4vw, 40px)",
+                fontWeight: 800,
                 color: "#fff",
                 textAlign: "center",
-                marginBottom: 32,
-                letterSpacing: "-0.01em",
+                marginBottom: 36,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.2,
               }}
             >
-              Connect your tools
+              Know your{" "}
+              <span className="text-primary">business</span>
             </h2>
-            <div className="grid grid-cols-2 gap-4" style={{ maxWidth: 420 }}>
+            <div className="grid grid-cols-2 gap-4" style={{ maxWidth: 540 }}>
               {connectors.map((connector, i) => (
                 <button
                   key={connector.name}
