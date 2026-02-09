@@ -25,7 +25,8 @@ export function BrowserWindow({ liveViewUrl, loading }: BrowserWindowProps) {
           src={liveViewUrl}
           className="w-full h-full border-none"
           title="Live Browser Session"
-          allow="clipboard-read; clipboard-write"
+          allow="clipboard-read; clipboard-write; popups"
+          sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-modals allow-top-navigation"
         />
       ) : loading ? (
         <div style={{ textAlign: "center", opacity: 0.6 }}>
