@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
 
-const words = ["research", "act"];
+const words = ["research", "action"];
 
 export function AiCeoChatView() {
   const [message, setMessage] = useState("");
@@ -36,19 +36,19 @@ export function AiCeoChatView() {
         <h1
           style={{
             fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: "clamp(36px, 5vw, 56px)",
+            fontSize: "clamp(44px, 6.5vw, 72px)",
             fontWeight: 800,
             color: "#fff",
-            letterSpacing: "-0.02em",
+            letterSpacing: "-0.025em",
             lineHeight: 1.1,
             textAlign: "center",
           }}
         >
-          do you want to{" "}
+          Do you want
           <span
             style={{
               display: "inline-block",
-              minWidth: 180,
+              minWidth: 220,
               transition: "opacity 0.4s ease, transform 0.4s ease",
               opacity: fade ? 1 : 0,
               transform: fade ? "translateY(0)" : "translateY(8px)",
@@ -63,14 +63,14 @@ export function AiCeoChatView() {
         <p
           style={{
             fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: 14,
+            fontSize: 15,
             color: "rgba(255, 255, 255, 0.3)",
             fontWeight: 400,
-            marginTop: 16,
+            marginTop: 20,
             letterSpacing: "0.01em",
           }}
         >
-          for better results research first
+          For better results research first
         </p>
       </div>
 
