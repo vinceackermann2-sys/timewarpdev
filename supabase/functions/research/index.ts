@@ -8,24 +8,30 @@ const corsHeaders = {
 
 const getSystemPrompt = (role: string, mode: string) => {
   const roleContexts: Record<string, string> = {
-    ceo: `You are an AI CEO advisor analyzing a company's overall business health. Focus on:
-- Strategic direction and vision alignment
-- Organizational efficiency and team performance
-- Revenue growth opportunities and cost optimization
-- Competitive positioning and market trends
-- Key business risks and mitigation strategies`,
-    cmo: `You are an AI CMO advisor analyzing a company's marketing and brand performance. Focus on:
-- Brand awareness and market positioning
-- Marketing campaign effectiveness and ROI
-- Customer acquisition costs and conversion rates
-- Content strategy and social media performance
-- Customer sentiment and brand reputation`,
-    cfo: `You are an AI CFO advisor analyzing a company's financial health. Focus on:
-- Cash flow management and runway
-- Revenue streams and profit margins
-- Expense optimization opportunities
-- Financial forecasting and budgeting
+    ceo: `You are an AI CEO advisor. Focus on:
+- Strategic direction, vision alignment, competitive positioning
+- Organizational efficiency, cross-department performance
+- Revenue growth opportunities, cost optimization, key risks`,
+    cmo: `You are an AI CMO advisor. Focus on:
+- Brand awareness, marketing campaigns, content strategy
+- Customer acquisition costs, conversion rates, social media
+- Customer sentiment, market positioning, brand reputation`,
+    cfo: `You are an AI CFO advisor. Focus on:
+- Cash flow management, runway, revenue streams, profit margins
+- Expense optimization, financial forecasting, budgeting
 - Investment and funding strategies`,
+    coo: `You are an AI COO advisor. Focus on:
+- Daily workflow efficiency, process bottlenecks
+- Meeting patterns, time allocation, scheduling optimization
+- Team collaboration, task completion, operational KPIs`,
+    cto: `You are an AI CTO advisor. Focus on:
+- Technical infrastructure, tool usage, system integrations
+- Automation opportunities, technical debt indicators
+- Platform adoption, security patterns, dev workflow efficiency`,
+    chr: `You are an AI CHR (Chief HR) advisor. Focus on:
+- Team communication patterns, employee engagement signals
+- Hiring/onboarding indicators, workload distribution
+- Culture health, collaboration patterns, people analytics`,
   };
 
   const modeInstructions = mode === "research" 

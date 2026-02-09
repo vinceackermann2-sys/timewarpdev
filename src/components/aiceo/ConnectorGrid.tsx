@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Plug, Plug2 } from "lucide-react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { Plug, Plug2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { toast } from "sonner";
 import { FloatingChat } from "./FloatingChat";
+import ReactMarkdown from "react-markdown";
 
 interface ConnectorDef {
   name: "Google" | "Microsoft" | "Slack";
@@ -154,10 +155,17 @@ function ConnectorCard({ connector, connected, index, onConnect, onDisconnect }:
   );
 }
 
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 interface ConnectorGridProps {
   onConnect: (name: "Google" | "Microsoft" | "Slack") => void;
   onModeChange: (mode: "research" | "action") => void;
 }
+
+const RESEARCH_CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/research-chat`;
 
 export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [connectionStatus, setConnectionStatus] = useState<Record<string, boolean>>({
@@ -165,11 +173,20 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     Microsoft: false,
     Slack: false,
   });
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [workspaceData, setWorkspaceData] = useState<any>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Check connection status on mount
   useEffect(() => {
     checkConnections();
   }, []);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   async function checkConnections() {
     try {
@@ -178,23 +195,24 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
       const userId = session.user.id;
 
-      // Check Google
       const { data: googleConn } = await supabase
         .from("google_workspace_connections")
         .select("connected")
         .eq("user_id", userId)
         .single();
 
-      // Check Slack
       const { data: slackInstalls } = await supabase
         .from("slack_installations")
         .select("team_name")
         .limit(1);
 
+      const googleConnected = googleConn?.connected ?? false;
+      const slackConnected = (slackInstalls && slackInstalls.length > 0) ?? false;
+
       setConnectionStatus({
-        Google: googleConn?.connected ?? false,
-        Microsoft: false, // Will check once table is populated
-        Slack: (slackInstalls && slackInstalls.length > 0) ?? false,
+        Google: googleConnected,
+        Microsoft: false,
+        Slack: slackConnected,
       });
 
       // Check Microsoft
@@ -207,11 +225,30 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         if (msConn) {
           setConnectionStatus(prev => ({ ...prev, Microsoft: (msConn as any).connected ?? false }));
         }
-      } catch {
-        // Table might not exist yet in types
+      } catch {}
+
+      // If any connector is connected, load workspace data
+      if (googleConnected || slackConnected) {
+        loadWorkspaceData(userId);
       }
     } catch (error) {
       console.error("[ConnectorGrid] Error checking connections:", error);
+    }
+  }
+
+  async function loadWorkspaceData(userId: string) {
+    try {
+      const { data } = await supabase
+        .from("workspace_research")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (data) {
+        setWorkspaceData(data);
+      }
+    } catch (error) {
+      console.error("Error loading workspace data:", error);
     }
   }
 
@@ -249,6 +286,88 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       toast.error(`Failed to disconnect ${name}`);
     }
   }
+
+  const handleResearchSend = useCallback(async (message: string) => {
+    const userMsg: ChatMessage = { role: "user", content: message };
+    setMessages(prev => [...prev, userMsg]);
+    setIsStreaming(true);
+
+    // Build context from workspace data
+    const connectedContexts: any[] = [];
+    if (workspaceData) {
+      connectedContexts.push({
+        type: "business-db",
+        label: "Google Workspace Data",
+        content: workspaceData,
+      });
+    }
+
+    let assistantSoFar = "";
+    try {
+      const resp = await fetch(RESEARCH_CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
+          connectedContexts,
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Failed" }));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+
+      const reader = resp.body?.getReader();
+      if (!reader) throw new Error("No stream");
+
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantSoFar += content;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
+                }
+                return [...prev, { role: "assistant", content: assistantSoFar }];
+              });
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("Research chat error:", err);
+      toast.error(err.message || "Failed to get AI response");
+      setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I couldn't process that request. Please try again." }]);
+    } finally {
+      setIsStreaming(false);
+    }
+  }, [messages, workspaceData]);
 
   const hasAnyConnection = useMemo(
     () => Object.values(connectionStatus).some(Boolean),
@@ -303,7 +422,97 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         </div>
       </div>
 
-      <FloatingChat mode="research" onModeChange={onModeChange} />
+      {/* Chat messages area - visible when connected */}
+      {hasAnyConnection && messages.length > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            top: 140,
+            left: 0,
+            right: 0,
+            bottom: 100,
+            overflowY: "auto",
+            padding: "0 24px",
+          }}
+        >
+          <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                style={{
+                  alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: msg.role === "user" ? "70%" : "90%",
+                  padding: "12px 16px",
+                  borderRadius: 16,
+                  background: msg.role === "user"
+                    ? "rgba(99, 102, 241, 0.2)"
+                    : "rgba(255, 255, 255, 0.06)",
+                  border: `1px solid ${msg.role === "user" ? "rgba(99, 102, 241, 0.3)" : "rgba(255, 255, 255, 0.08)"}`,
+                  animation: "fadeSlideUp 0.3s ease-out forwards",
+                }}
+              >
+                {msg.role === "user" ? (
+                  <p style={{ color: "#fff", fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>
+                    {msg.content}
+                  </p>
+                ) : (
+                  <div
+                    className="prose prose-invert prose-sm max-w-none"
+                    style={{ fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  >
+                    <ReactMarkdown>{msg.content.replace(/\[INSIGHT:[^\]]+\]/g, '').replace(/\[SUGGEST:[^\]]+\]/g, '')}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+            ))}
+            {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}>
+                <Loader2 size={16} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.7)" }} />
+                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Analyzing your business data...</span>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+        </div>
+      )}
+
+      {/* Status indicator when connected but no messages yet */}
+      {hasAnyConnection && messages.length === 0 && (
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            textAlign: "center",
+            animation: "fadeSlideUp 0.5s ease-out 0.3s both",
+          }}
+        >
+          <p style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 18,
+            fontWeight: 600,
+            color: "rgba(255,255,255,0.7)",
+            marginBottom: 8,
+          }}>
+            ✅ Data connected
+          </p>
+          <p style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 14,
+            color: "rgba(255,255,255,0.35)",
+          }}>
+            Ask anything about your business — emails, docs, calendar, finances, marketing, operations...
+          </p>
+        </div>
+      )}
+
+      <FloatingChat
+        mode="research"
+        onModeChange={onModeChange}
+        onSend={handleResearchSend}
+        disabled={isStreaming}
+      />
     </>
   );
 }
