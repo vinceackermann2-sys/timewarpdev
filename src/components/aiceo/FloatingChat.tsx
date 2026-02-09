@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import { ArrowUp, FlaskConical, Zap } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { ArrowUp } from "lucide-react";
+import researchBg from "@/assets/research-card-bg.png";
+import actionBg from "@/assets/action-card-bg.png";
 
 interface FloatingChatProps {
   mode: "research" | "action";
@@ -9,7 +11,7 @@ interface FloatingChatProps {
 const modeConfig = {
   research: {
     label: "Research",
-    icon: FlaskConical,
+    image: researchBg,
     color: "rgba(99, 102, 241, 0.9)",
     bgColor: "rgba(99, 102, 241, 0.12)",
     borderColor: "rgba(99, 102, 241, 0.25)",
@@ -17,7 +19,7 @@ const modeConfig = {
   },
   action: {
     label: "Action",
-    icon: Zap,
+    image: actionBg,
     color: "rgba(249, 115, 22, 0.9)",
     bgColor: "rgba(249, 115, 22, 0.12)",
     borderColor: "rgba(249, 115, 22, 0.25)",
@@ -28,12 +30,23 @@ const modeConfig = {
 export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
   const [message, setMessage] = useState("");
   const [showSwitch, setShowSwitch] = useState(false);
+  const switchRef = useRef<HTMLDivElement>(null);
 
   const current = modeConfig[mode];
   const other = mode === "research" ? modeConfig.action : modeConfig.research;
   const otherMode = mode === "research" ? "action" : "research";
-  const CurrentIcon = current.icon;
-  const OtherIcon = other.icon;
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showSwitch) return;
+    const handler = (e: MouseEvent) => {
+      if (switchRef.current && !switchRef.current.contains(e.target as Node)) {
+        setShowSwitch(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showSwitch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,16 +93,16 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
       >
         {/* Mode indicator with hover switch */}
         <div
+          ref={switchRef}
           style={{ position: "relative", flexShrink: 0 }}
-          onMouseEnter={() => setShowSwitch(true)}
-          onMouseLeave={() => setShowSwitch(false)}
         >
           <div
+            onClick={() => setShowSwitch((v) => !v)}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "6px 12px",
+              padding: "4px 12px 4px 4px",
               borderRadius: 12,
               background: current.bgColor,
               border: `1px solid ${current.borderColor}`,
@@ -98,7 +111,16 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
               whiteSpace: "nowrap",
             }}
           >
-            <CurrentIcon size={14} style={{ color: current.color }} />
+            <img
+              src={current.image}
+              alt=""
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 8,
+                objectFit: "cover",
+              }}
+            />
             <span
               style={{
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -153,7 +175,16 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
                   e.currentTarget.style.background = "transparent";
                 }}
               >
-                <OtherIcon size={14} style={{ color: other.color }} />
+                <img
+                  src={other.image}
+                  alt=""
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
+                    objectFit: "cover",
+                  }}
+                />
                 <span
                   style={{
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
