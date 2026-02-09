@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Telescope, Zap } from "lucide-react";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { ConnectorGrid } from "./ConnectorGrid";
 import researchBg from "@/assets/research-card-bg.png";
@@ -104,10 +103,8 @@ export function AiCeoChatView() {
                     alignItems: "center",
                     justifyContent: "center",
                     height: "100%",
-                    gap: 16,
                   }}
                 >
-                  <Telescope size={48} color="white" strokeWidth={1.5} />
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -180,10 +177,8 @@ export function AiCeoChatView() {
                     alignItems: "center",
                     justifyContent: "center",
                     height: "100%",
-                    gap: 16,
                   }}
                 >
-                  <Zap size={48} color="white" strokeWidth={1.5} />
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
