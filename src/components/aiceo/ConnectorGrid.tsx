@@ -376,17 +376,13 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
   return (
     <>
+      {/* Connectors row — always at top, never affected by chat */}
       <div
         style={{
           animation: "fadeSlideUp 0.5s ease-out forwards",
           transition: "all 0.5s ease",
           ...(hasAnyConnection
-            ? {
-                position: "absolute" as const,
-                top: 24,
-                left: 0,
-                right: 0,
-              }
+            ? { position: "absolute" as const, top: 24, left: 0, right: 0, zIndex: 10 }
             : {}),
         }}
         className="flex flex-col items-center"
@@ -422,88 +418,87 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         </div>
       </div>
 
-      {/* Chat messages area - visible when connected */}
-      {hasAnyConnection && messages.length > 0 && (
+      {/* Chat area — sits below connectors with independent scroll */}
+      {hasAnyConnection && (
         <div
           style={{
             position: "absolute",
-            top: 140,
+            top: 130,
             left: 0,
             right: 0,
-            bottom: 100,
-            overflowY: "auto",
-            padding: "0 24px",
+            bottom: 90,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                style={{
-                  alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                  maxWidth: msg.role === "user" ? "70%" : "90%",
-                  padding: "12px 16px",
-                  borderRadius: 16,
-                  background: msg.role === "user"
-                    ? "rgba(99, 102, 241, 0.2)"
-                    : "rgba(255, 255, 255, 0.06)",
-                  border: `1px solid ${msg.role === "user" ? "rgba(99, 102, 241, 0.3)" : "rgba(255, 255, 255, 0.08)"}`,
-                  animation: "fadeSlideUp 0.3s ease-out forwards",
-                }}
-              >
-                {msg.role === "user" ? (
-                  <p style={{ color: "#fff", fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>
-                    {msg.content}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "16px 24px 0",
+              maskImage: "linear-gradient(to bottom, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%)",
+            }}
+          >
+            <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+              {messages.length === 0 && (
+                <div style={{ textAlign: "center", paddingTop: 80, animation: "fadeSlideUp 0.5s ease-out 0.3s both" }}>
+                  <p style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: "rgba(255,255,255,0.7)",
+                    marginBottom: 8,
+                  }}>
+                    ✅ Data connected
                   </p>
-                ) : (
-                  <div
-                    className="prose prose-invert prose-sm max-w-none"
-                    style={{ fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                  >
-                    <ReactMarkdown>{msg.content.replace(/\[INSIGHT:[^\]]+\]/g, '').replace(/\[SUGGEST:[^\]]+\]/g, '')}</ReactMarkdown>
-                  </div>
-                )}
-              </div>
-            ))}
-            {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}>
-                <Loader2 size={16} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.7)" }} />
-                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Analyzing your business data...</span>
-              </div>
-            )}
-            <div ref={chatEndRef} />
+                  <p style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 14,
+                    color: "rgba(255,255,255,0.35)",
+                  }}>
+                    Ask anything about your business — emails, docs, calendar, finances, marketing, operations...
+                  </p>
+                </div>
+              )}
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  style={{
+                    alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+                    maxWidth: msg.role === "user" ? "70%" : "90%",
+                    padding: "12px 16px",
+                    borderRadius: 16,
+                    background: msg.role === "user"
+                      ? "rgba(99, 102, 241, 0.2)"
+                      : "rgba(255, 255, 255, 0.06)",
+                    border: `1px solid ${msg.role === "user" ? "rgba(99, 102, 241, 0.3)" : "rgba(255, 255, 255, 0.08)"}`,
+                    animation: "fadeSlideUp 0.3s ease-out forwards",
+                  }}
+                >
+                  {msg.role === "user" ? (
+                    <p style={{ color: "#fff", fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>
+                      {msg.content}
+                    </p>
+                  ) : (
+                    <div
+                      className="prose prose-invert prose-sm max-w-none"
+                      style={{ fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    >
+                      <ReactMarkdown>{msg.content.replace(/\[INSIGHT:[^\]]+\]/g, '').replace(/\[SUGGEST:[^\]]+\]/g, '')}</ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}>
+                  <Loader2 size={16} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.7)" }} />
+                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Analyzing your business data...</span>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Status indicator when connected but no messages yet */}
-      {hasAnyConnection && messages.length === 0 && (
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            textAlign: "center",
-            animation: "fadeSlideUp 0.5s ease-out 0.3s both",
-          }}
-        >
-          <p style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: 18,
-            fontWeight: 600,
-            color: "rgba(255,255,255,0.7)",
-            marginBottom: 8,
-          }}>
-            ✅ Data connected
-          </p>
-          <p style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: 14,
-            color: "rgba(255,255,255,0.35)",
-          }}>
-            Ask anything about your business — emails, docs, calendar, finances, marketing, operations...
-          </p>
         </div>
       )}
 
