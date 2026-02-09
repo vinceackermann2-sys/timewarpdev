@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { HeroSection } from "@/components/aiceo/HeroSection";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 
 const AiCeo = () => {
-  const [showChat, setShowChat] = useState(false);
+  const [searchParams] = useSearchParams();
+  const isOAuthReturn = searchParams.has("google_connected") || searchParams.has("microsoft_connected") || searchParams.has("slack_installed");
+
+  const [showChat, setShowChat] = useState(isOAuthReturn);
 
   if (showChat) {
     return <AiCeoChatView />;
