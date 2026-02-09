@@ -441,26 +441,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             }}
           >
             <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
-              {messages.length === 0 && (
-                <div style={{ textAlign: "center", paddingTop: 80, animation: "fadeSlideUp 0.5s ease-out 0.3s both" }}>
-                  <p style={{
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: "rgba(255,255,255,0.7)",
-                    marginBottom: 8,
-                  }}>
-                    ✅ Data connected
-                  </p>
-                  <p style={{
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    fontSize: 14,
-                    color: "rgba(255,255,255,0.35)",
-                  }}>
-                    Ask anything about your business — emails, docs, calendar, finances, marketing, operations...
-                  </p>
-                </div>
-              )}
+              {/* Empty state removed — chat starts clean */}
               {messages.map((msg, i) => (
                 <div
                   key={i}
