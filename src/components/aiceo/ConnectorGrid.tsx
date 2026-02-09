@@ -115,18 +115,39 @@ function ConnectorCard({ connector, connected, index, onConnect, onDisconnect }:
       >
         {connector.name}
       </span>
-      {connected && (
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 500,
-            color: "rgba(74, 222, 128, 0.9)",
-            letterSpacing: "0.03em",
-            textTransform: "uppercase",
-          }}
-        >
-          Connected
-        </span>
+    {connected && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 500,
+              color: "rgba(74, 222, 128, 0.9)",
+              letterSpacing: "0.03em",
+              textTransform: "uppercase",
+            }}
+          >
+            Connected
+          </span>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 10,
+              fontWeight: 600,
+              color: "rgba(255, 100, 100, 0.85)",
+              letterSpacing: "0.02em",
+              textTransform: "uppercase",
+              padding: "3px 8px",
+              borderRadius: 6,
+              background: "rgba(255, 80, 80, 0.1)",
+              border: "1px solid rgba(255, 80, 80, 0.2)",
+            }}
+          >
+            <Plug size={10} />
+            Disconnect
+          </span>
+        </div>
       )}
     </button>
   );
