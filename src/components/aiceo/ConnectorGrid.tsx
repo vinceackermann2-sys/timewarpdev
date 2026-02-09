@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Plug, Plug2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { toast } from "sonner";
+import { FloatingChat } from "./FloatingChat";
 
 interface ConnectorDef {
   name: "Google" | "Microsoft" | "Slack";
@@ -248,38 +249,52 @@ export function ConnectorGrid({ onConnect }: ConnectorGridProps) {
     }
   }
 
+  const hasAnyConnection = useMemo(
+    () => Object.values(connectionStatus).some(Boolean),
+    [connectionStatus]
+  );
+
   return (
-    <div
-      style={{ animation: "fadeSlideUp 0.5s ease-out forwards" }}
-      className="flex flex-col items-center"
-    >
-      <h2
+    <>
+      <div
         style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontSize: "clamp(40px, 5.5vw, 64px)",
-          fontWeight: 800,
-          color: "#fff",
-          textAlign: "center",
-          marginBottom: 48,
-          letterSpacing: "-0.03em",
-          lineHeight: 1.1,
+          animation: "fadeSlideUp 0.5s ease-out forwards",
+          transition: "transform 0.5s ease, margin-bottom 0.5s ease",
+          transform: hasAnyConnection ? "translateY(-40px)" : "translateY(0)",
+          marginBottom: hasAnyConnection ? 80 : 0,
         }}
+        className="flex flex-col items-center"
       >
-        Know your{" "}
-        <span className="text-primary">business</span>
-      </h2>
-      <div className="flex items-center gap-5">
-        {connectors.map((connector, i) => (
-          <ConnectorCard
-            key={connector.name}
-            connector={connector}
-            connected={connectionStatus[connector.name]}
-            index={i}
-            onConnect={() => onConnect(connector.name)}
-            onDisconnect={() => handleDisconnect(connector.name)}
-          />
-        ))}
+        <h2
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: "clamp(40px, 5.5vw, 64px)",
+            fontWeight: 800,
+            color: "#fff",
+            textAlign: "center",
+            marginBottom: 48,
+            letterSpacing: "-0.03em",
+            lineHeight: 1.1,
+          }}
+        >
+          Know your{" "}
+          <span className="text-primary">business</span>
+        </h2>
+        <div className="flex items-center gap-5">
+          {connectors.map((connector, i) => (
+            <ConnectorCard
+              key={connector.name}
+              connector={connector}
+              connected={connectionStatus[connector.name]}
+              index={i}
+              onConnect={() => onConnect(connector.name)}
+              onDisconnect={() => handleDisconnect(connector.name)}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+
+      {hasAnyConnection && <FloatingChat />}
+    </>
   );
 }
