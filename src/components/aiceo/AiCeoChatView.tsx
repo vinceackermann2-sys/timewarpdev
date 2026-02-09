@@ -231,25 +231,21 @@ export function AiCeoChatView() {
                 /
               </span>
 
-              {/* Action Card */}
-              <button
-                onClick={() => setMode("action")}
+              {/* Action Card - Coming Soon */}
+              <div
                 style={{
                   width: 280,
                   height: 340,
                   borderRadius: 24,
                   border: "none",
-                  cursor: "pointer",
                   position: "relative",
                   overflow: "hidden",
-                  transition: "transform 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease",
-                  opacity: activeCard === "action" ? 1 : 0.4,
-                  transform: activeCard === "action" ? "scale(1.05)" : "scale(0.95)",
-                  boxShadow: activeCard === "action"
-                    ? "0 0 40px rgba(249, 115, 22, 0.25), 0 8px 32px rgba(0,0,0,0.4)"
-                    : "0 4px 16px rgba(0,0,0,0.3)",
+                  opacity: 0.5,
+                  transform: activeCard === "action" ? "scale(1.02)" : "scale(0.95)",
+                  transition: "transform 0.4s ease, opacity 0.4s ease",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+                  cursor: "default",
                 }}
-                className="group"
               >
                 <img
                   src={actionBg}
@@ -260,28 +256,22 @@ export function AiCeoChatView() {
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                    animation: "revealTopDown 0.8s ease-out 0.3s both",
+                    filter: "grayscale(0.5) brightness(0.6)",
                   }}
                 />
                 <div
                   style={{
                     position: "absolute",
                     inset: 0,
-                    background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)",
-                  }}
-                />
-                <div
-                  style={{
-                    position: "relative",
-                    zIndex: 1,
+                    background: "rgba(0,0,0,0.6)",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "flex-end",
-                    height: "100%",
-                    paddingBottom: 28,
+                    justifyContent: "center",
+                    gap: 12,
                   }}
                 >
+                  <span style={{ fontSize: 36 }}>🔒</span>
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -294,8 +284,20 @@ export function AiCeoChatView() {
                   >
                     Action
                   </span>
+                  <span
+                    style={{
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "rgba(255,255,255,0.5)",
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Coming Soon
+                  </span>
                 </div>
-              </button>
+              </div>
             </div>
 
             <p
@@ -322,143 +324,49 @@ export function AiCeoChatView() {
 
         {mode === "action" && (
           <div style={{
-            width: "100%",
-            maxWidth: 800,
             display: "flex",
             flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
             gap: 16,
-            padding: "0 16px",
           }}>
-            {/* User message bubble */}
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div style={{
-                background: "rgba(99, 102, 241, 0.15)",
-                border: "1px solid rgba(99, 102, 241, 0.25)",
-                borderRadius: 16,
-                padding: "12px 18px",
-                maxWidth: "80%",
+            <div style={{
+              width: "min(90vw, 700px)",
+              aspectRatio: "16/10",
+              borderRadius: 16,
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(0,0,0,0.3)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 16,
+              position: "relative",
+            }}>
+              <span style={{ fontSize: 48 }}>🔒</span>
+              <span style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 22,
+                fontWeight: 700,
+                color: "rgba(255,255,255,0.7)",
               }}>
-                <p style={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: 15,
-                  fontWeight: 500,
-                  color: "rgba(255, 255, 255, 0.9)",
-                  lineHeight: 1.5,
-                  userSelect: "none",
-                }}>
-                  analyze nikes ads and create an ad in excalidraw.com for them
-                </p>
-              </div>
-            </div>
-
-            {/* AI response with browser preview */}
-            <div style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div style={{
-                background: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 16,
-                padding: 16,
-                width: "100%",
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
+                Coming Soon
+              </span>
+              <span style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 14,
+                color: "rgba(255,255,255,0.35)",
+                maxWidth: 320,
+                textAlign: "center",
+                lineHeight: 1.5,
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 8,
-                    background: "rgba(249, 115, 22, 0.15)",
-                    border: "1px solid rgba(249, 115, 22, 0.2)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <span style={{ fontSize: 14 }}>🤖</span>
-                  </div>
-                  <span style={{
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "rgba(249, 115, 22, 0.8)",
-                  }}>
-                    Action Agent
-                  </span>
-                </div>
-
-                <p style={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: 14,
-                  color: "rgba(255, 255, 255, 0.6)",
-                  lineHeight: 1.6,
-                }}>
-                  Analyzing Nike's ad campaigns and opening Excalidraw to design…
-                </p>
-
-                {/* Inline browser preview */}
-                <div style={{
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  background: "rgba(0, 0, 0, 0.3)",
-                  aspectRatio: "16/10",
-                  width: "100%",
-                  position: "relative",
-                }}>
-                  {liveViewUrl ? (
-                    <iframe
-                      src={liveViewUrl}
-                      className="w-full h-full border-none"
-                      style={{ position: "absolute", inset: 0 }}
-                      title="Live Browser Session"
-                      allow="clipboard-read; clipboard-write; popups"
-                      sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-modals allow-top-navigation"
-                    />
-                  ) : browserLoading ? (
-                    <div style={{
-                      position: "absolute", inset: 0,
-                      display: "flex", flexDirection: "column",
-                      alignItems: "center", justifyContent: "center", gap: 12,
-                    }}>
-                      <div className="animate-spin" style={{
-                        width: 28, height: 28, borderRadius: "50%",
-                        border: "2px solid rgba(99,102,241,0.2)",
-                        borderTopColor: "rgba(99,102,241,0.7)",
-                      }} />
-                      <span style={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
-                        fontSize: 13, color: "rgba(255,255,255,0.4)",
-                      }}>
-                        Starting browser session…
-                      </span>
-                    </div>
-                  ) : (
-                    <div style={{
-                      position: "absolute", inset: 0,
-                      display: "flex", flexDirection: "column",
-                      alignItems: "center", justifyContent: "center", gap: 8,
-                      opacity: 0.5,
-                    }}>
-                      <span style={{ fontSize: 28 }}>🖥️</span>
-                      <span style={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
-                        fontSize: 13, color: "rgba(255,255,255,0.4)",
-                      }}>
-                        Browser preview will appear here
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
+                The Action Agent browser is under development
+              </span>
             </div>
           </div>
         )}
       </div>
 
-      {mode === "action" && (
-        <FloatingChat
-          mode="action"
-          onModeChange={(m) => setMode(m === "research" ? "connectors" : "action")}
-          onSend={handleActionSend}
-          disabled={browserLoading}
-        />
-      )}
 
       <style>{`
         @keyframes fadeSlideUp {
