@@ -697,14 +697,14 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                 </div>
               )}
 
-              {/* Message counter & waitlist button */}
-              {userMessageCount > 0 && userMessageCount < MAX_MESSAGES && (
+              {/* Message counter & waitlist button — show after first AI response */}
+              {userMessageCount >= 1 && userMessageCount < MAX_MESSAGES && !isStreaming && (
                 <div style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 12,
-                  padding: "12px 0",
+                  padding: "16px 0",
                   animation: "fadeSlideUp 0.3s ease-out forwards",
                 }}>
                   <span style={{
@@ -740,35 +740,75 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                 </div>
               )}
 
-              {userMessageCount >= MAX_MESSAGES && !showWaitlist && (
+              {/* Locked state — all messages used */}
+              {userMessageCount >= MAX_MESSAGES && (
                 <div style={{
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  gap: 8,
-                  padding: "20px 0",
-                  animation: "fadeSlideUp 0.3s ease-out forwards",
+                  gap: 16,
+                  padding: "32px 0",
+                  animation: "fadeSlideUp 0.4s ease-out forwards",
                 }}>
+                  {/* Lock icon */}
+                  <div style={{
+                    width: 72,
+                    height: 72,
+                    borderRadius: 20,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                    <span style={{ fontSize: 36 }}>🔒</span>
+                  </div>
                   <span style={{
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    fontSize: 14,
-                    color: "rgba(255,255,255,0.5)",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: "rgba(255,255,255,0.6)",
                   }}>
-                    You've used all {MAX_MESSAGES} messages
+                    You've used all {MAX_MESSAGES} free messages
+                  </span>
+                  <span style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 13,
+                    color: "rgba(255,255,255,0.3)",
+                    textAlign: "center",
+                    maxWidth: 300,
+                    lineHeight: 1.5,
+                  }}>
+                    Join the waitlist to get full access when we launch
+                  </span>
+                  {/* Arrow pointing down to button */}
+                  <span style={{
+                    fontSize: 20,
+                    color: "rgba(99, 102, 241, 0.6)",
+                    animation: "bounceArrow 1.2s ease-in-out infinite",
+                  }}>
+                    ↓
                   </span>
                   <button
                     onClick={() => setShowWaitlist(true)}
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: 700,
                       color: "#fff",
                       background: "hsl(var(--primary))",
                       border: "none",
-                      borderRadius: 12,
-                      padding: "10px 24px",
+                      borderRadius: 14,
+                      padding: "12px 28px",
                       cursor: "pointer",
                       transition: "all 0.2s ease",
+                      boxShadow: "0 0 24px rgba(99, 102, 241, 0.3)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.05)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
                     }}
                   >
                     Join Waitlist

@@ -384,6 +384,10 @@ export function AiCeoChatView() {
           from { clip-path: inset(0 0 100% 0); }
           to { clip-path: inset(0 0 0 0); }
         }
+        @keyframes bounceArrow {
+          0%, 100% { transform: translateY(0); opacity: 0.6; }
+          50% { transform: translateY(6px); opacity: 1; }
+        }
       `}</style>
     </div>
   );
