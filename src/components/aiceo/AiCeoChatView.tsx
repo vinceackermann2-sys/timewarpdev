@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ConnectorGrid } from "./ConnectorGrid";
 import { BrowserWindow } from "./BrowserWindow";
 import { FloatingChat } from "./FloatingChat";
+import { ActivityLog, LogEntry } from "./ActivityLog";
 import { Typewriter } from "@/components/ui/typewriter";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ export function AiCeoChatView() {
   const [activeCard, setActiveCard] = useState<"research" | "action">("research");
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const [browserLoading, setBrowserLoading] = useState(false);
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const { initiateOAuth } = useConnectorOAuth();
 
   // Clear OAuth query params on mount so they don't persist
@@ -39,9 +41,18 @@ export function AiCeoChatView() {
     setActiveCard(TEXT_TO_CARD[text] ?? "research");
   }, []);
 
+  const addLog = useCallback((type: LogEntry["type"], message: string) => {
+    setLogEntries((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), timestamp: new Date(), type, message },
+    ]);
+  }, []);
+
   const handleActionSend = useCallback(async (message: string) => {
     setBrowserLoading(true);
     setLiveViewUrl(null);
+    addLog("info", `Task received: "${message}"`);
+    addLog("loading", "Starting browser session…");
     try {
       const res = await fetch(`${REPLIT_URL}/scrape`, {
         method: "POST",
@@ -53,7 +64,8 @@ export function AiCeoChatView() {
       console.log("Scrape response:", JSON.stringify(data));
       const url = data.liveUrl || data.liveViewUrl || data.connectUrl || data.debuggerUrl || data.debugUrl || data.url || data.live_url;
 
-      // Save to scrape_jobs table
+      addLog("navigate", "Connecting to session…");
+
       await supabase.from("scrape_jobs").insert({
         url: message,
         instruction: message,
@@ -65,17 +77,20 @@ export function AiCeoChatView() {
 
       if (url) {
         setLiveViewUrl(url);
+        addLog("success", "Browser session active");
       } else {
         console.error("Response keys:", Object.keys(data));
+        addLog("error", "No live URL found in response");
         toast.error("No live URL found in response");
       }
     } catch (err: any) {
       console.error("Action request failed:", err);
+      addLog("error", err.message || "Failed to start browser session");
       toast.error(err.message || "Failed to start browser session");
     } finally {
       setBrowserLoading(false);
     }
-  }, []);
+  }, [addLog]);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col">
@@ -287,7 +302,8 @@ export function AiCeoChatView() {
         )}
 
         {mode === "action" && (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "100%", gap: 16, padding: "0 16px" }}>
+            <ActivityLog entries={logEntries} />
             <BrowserWindow liveViewUrl={liveViewUrl} loading={browserLoading} />
           </div>
         )}
