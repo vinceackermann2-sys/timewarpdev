@@ -7,6 +7,8 @@ import actionIcon from "@/assets/action-icon.png";
 interface FloatingChatProps {
   mode: "research" | "action";
   onModeChange: (mode: "research" | "action") => void;
+  onSend?: (message: string) => void;
+  disabled?: boolean;
 }
 
 const modeConfig = {
@@ -30,7 +32,7 @@ const modeConfig = {
 
 const TYPEWRITER_WORDS = ["strategy", "finances", "marketing", "systems"];
 
-export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
+export function FloatingChat({ mode, onModeChange, onSend, disabled }: FloatingChatProps) {
   const [message, setMessage] = useState("");
   const [showSwitch, setShowSwitch] = useState(false);
   const switchRef = useRef<HTMLDivElement>(null);
@@ -54,7 +56,8 @@ export function FloatingChat({ mode, onModeChange }: FloatingChatProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() || disabled) return;
+    onSend?.(message.trim());
     setMessage("");
   };
 
