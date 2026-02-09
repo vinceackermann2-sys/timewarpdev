@@ -35,13 +35,19 @@ export function AiCeoChatView() {
     <div className="relative min-h-screen w-full flex flex-col">
       {/* Simple dark background */}
       <div className="absolute inset-0 z-0" style={{
-        background: "linear-gradient(180deg, #05070f 0%, #0a0f1e 40%, #0d1528 100%)",
+        background: "#05070f",
       }} />
 
-      {/* Subtle ambient glow */}
-      <div className="absolute inset-0 z-0" style={{
-        background: "radial-gradient(ellipse 80% 50% at 50% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 60%)",
-      }} />
+      {mode === "select" && (
+        <>
+          <div className="absolute inset-0 z-0" style={{
+            background: "linear-gradient(180deg, #05070f 0%, #0a0f1e 40%, #0d1528 100%)",
+          }} />
+          <div className="absolute inset-0 z-0" style={{
+            background: "radial-gradient(ellipse 80% 50% at 50% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 60%)",
+          }} />
+        </>
+      )}
 
       {/* Center content */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center select-none px-6">

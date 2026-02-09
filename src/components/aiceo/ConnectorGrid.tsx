@@ -259,27 +259,35 @@ export function ConnectorGrid({ onConnect }: ConnectorGridProps) {
       <div
         style={{
           animation: "fadeSlideUp 0.5s ease-out forwards",
-          transition: "transform 0.5s ease, margin-bottom 0.5s ease",
-          transform: hasAnyConnection ? "translateY(-40px)" : "translateY(0)",
-          marginBottom: hasAnyConnection ? 80 : 0,
+          transition: "all 0.5s ease",
+          ...(hasAnyConnection
+            ? {
+                position: "absolute" as const,
+                top: 24,
+                left: 0,
+                right: 0,
+              }
+            : {}),
         }}
         className="flex flex-col items-center"
       >
-        <h2
-          style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: "clamp(40px, 5.5vw, 64px)",
-            fontWeight: 800,
-            color: "#fff",
-            textAlign: "center",
-            marginBottom: 48,
-            letterSpacing: "-0.03em",
-            lineHeight: 1.1,
-          }}
-        >
-          Know your{" "}
-          <span className="text-primary">business</span>
-        </h2>
+        {!hasAnyConnection && (
+          <h2
+            style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: "clamp(40px, 5.5vw, 64px)",
+              fontWeight: 800,
+              color: "#fff",
+              textAlign: "center",
+              marginBottom: 48,
+              letterSpacing: "-0.03em",
+              lineHeight: 1.1,
+            }}
+          >
+            Know your{" "}
+            <span className="text-primary">business</span>
+          </h2>
+        )}
         <div className="flex items-center gap-5">
           {connectors.map((connector, i) => (
             <ConnectorCard
