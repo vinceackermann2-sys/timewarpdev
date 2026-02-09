@@ -423,7 +423,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         <div
           style={{
             position: "absolute",
-            top: 130,
+            top: 180,
             left: 0,
             right: 0,
             bottom: 90,
@@ -432,16 +432,30 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
           }}
         >
           <div
+            className="custom-chat-scroll"
             style={{
               flex: 1,
               overflowY: "auto",
               padding: "16px 24px 0",
-              maskImage: "linear-gradient(to bottom, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%)",
             }}
           >
+            <style>{`
+              .custom-chat-scroll::-webkit-scrollbar {
+                width: 6px;
+              }
+              .custom-chat-scroll::-webkit-scrollbar-track {
+                background: rgba(255,255,255,0.04);
+                border-radius: 3px;
+              }
+              .custom-chat-scroll::-webkit-scrollbar-thumb {
+                background: rgba(255,255,255,0.15);
+                border-radius: 3px;
+              }
+              .custom-chat-scroll::-webkit-scrollbar-thumb:hover {
+                background: rgba(255,255,255,0.25);
+              }
+            `}</style>
             <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
-              {/* Empty state removed — chat starts clean */}
               {messages.map((msg, i) => (
                 <div
                   key={i}
