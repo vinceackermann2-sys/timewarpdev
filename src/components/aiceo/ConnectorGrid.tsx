@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { toast } from "sonner";
 import { FloatingChat } from "./FloatingChat";
-import { BrowserWindow } from "./BrowserWindow";
 
 interface ConnectorDef {
   name: "Google" | "Microsoft" | "Slack";
@@ -304,20 +303,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         </div>
       </div>
 
-      {hasAnyConnection && (
-        <>
-          <div style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingTop: 80,
-          }}>
-            <BrowserWindow />
-          </div>
-          <FloatingChat mode="research" onModeChange={onModeChange} />
-        </>
-      )}
+      <FloatingChat mode="research" onModeChange={onModeChange} />
     </>
   );
 }
