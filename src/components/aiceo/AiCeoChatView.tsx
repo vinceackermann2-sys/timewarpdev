@@ -16,17 +16,6 @@ const connectors = [
     borderColor: "rgba(66, 133, 244, 0.25)",
   },
   {
-    name: "FortKnox",
-    icon: (
-      <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
-        <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" stroke="#f59e0b" strokeWidth="1.5" fill="rgba(245, 158, 11, 0.15)"/>
-        <path d="M12 8v4m0 0v4m0-4h4m-4 0H8" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    color: "rgba(245, 158, 11, 0.12)",
-    borderColor: "rgba(245, 158, 11, 0.25)",
-  },
-  {
     name: "Microsoft",
     icon: (
       <svg viewBox="0 0 24 24" width="24" height="24">
