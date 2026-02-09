@@ -41,38 +41,74 @@ serve(async (req) => {
           const findings = data.findings || [];
           const rawData = data.raw_data || {};
 
+          // Include ALL emails with snippets
+          const allEmails = rawData.emails || rawData.emailSummaries || [];
+          const emailBlock = allEmails.map((e: any, i: number) => 
+            `${i + 1}. "${e.subject || '(No subject)'}" from ${e.from}${e.snippet ? ' — ' + e.snippet.slice(0, 200) : ''}${e.labels ? ' [' + e.labels.join(', ') + ']' : ''}`
+          ).join('\n') || 'No email data';
+
+          // Include ALL calendar events
+          const allEvents = rawData.calendarEvents || [];
+          const calendarBlock = allEvents.map((e: any, i: number) => 
+            `${i + 1}. "${e.summary || 'Untitled'}" | ${e.start?.dateTime || e.start || ''} → ${e.end?.dateTime || e.end || ''} | Attendees: ${e.attendees || 0}${e.hasConferencing ? ' 📹' : ''}`
+          ).join('\n') || 'No calendar data';
+
+          // Include ALL documents
+          const allDocs = rawData.documents || [];
+          const docsBlock = allDocs.map((d: any, i: number) => 
+            `${i + 1}. "${d.name || d.title}" | Modified: ${d.modifiedTime || d.modified || 'unknown'}${d.shared ? ' (shared)' : ''}${d.mimeType ? ' [' + d.mimeType + ']' : ''}`
+          ).join('\n') || 'No document data';
+
+          // Include ALL spreadsheets
+          const allSheets = rawData.spreadsheets || [];
+          const sheetsBlock = allSheets.map((s: any, i: number) => 
+            `${i + 1}. "${s.name}" | Modified: ${s.modifiedTime || 'unknown'}`
+          ).join('\n') || 'No spreadsheet data';
+
+          // Include ALL contacts
+          const allContacts = rawData.topContacts || [];
+          const contactsBlock = allContacts.map((c: any, i: number) => 
+            `${i + 1}. ${c.email} (${c.count} interactions)`
+          ).join('\n') || 'No contact data';
+
+          // Email patterns from summary
+          const emailPatterns = summary.emailPatterns || [];
+          const calendarSummary = summary.calendarSummary || [];
+          const documentList = summary.documentList || [];
+
           fullContext += `
 ## Business Database: ${ctx.label}
 
-### Analysis Summary
-${summary.summary || summary.overallHealth || "No summary available"}
+### Overview
+- Total Emails Analyzed: ${data.emails_analyzed || allEmails.length || 0}
+- Total Documents: ${data.documents_analyzed || allDocs.length || 0}
+- Total Calendar Events: ${data.events_analyzed || allEvents.length || 0}
+- Total Spreadsheets: ${data.sheets_analyzed || allSheets.length || 0}
 
 ### Key Findings (${findings.length} total)
-${findings.slice(0, 10).map((f: any, i: number) => 
+${findings.map((f: any, i: number) => 
   `${i + 1}. [${f.impact?.toUpperCase() || f.priority?.toUpperCase() || 'INFO'}] ${f.category || f.issue?.category || 'General'}: ${f.finding || f.issue?.title || JSON.stringify(f)}`
-).join('\n') || 'No findings yet'}
+).join('\n') || 'No findings yet — this is fresh data, analyze it thoroughly'}
 
-### Data Analyzed
-- Emails: ${data.emails_analyzed || 0}
-- Documents: ${data.documents_analyzed || 0}
-- Calendar Events: ${data.events_analyzed || 0}
+### ALL Emails (${allEmails.length})
+${emailBlock}
+
+### ALL Calendar Events (${allEvents.length})
+${calendarBlock}
+
+### ALL Documents (${allDocs.length})
+${docsBlock}
+
+### ALL Spreadsheets (${allSheets.length})
+${sheetsBlock}
 
 ### Top Contacts
-${rawData.topContacts?.slice(0, 5).map((c: any) => `- ${c.email} (${c.count} interactions)`).join('\n') || 'No contact data'}
-
-### Recent Emails
-${rawData.emailSummaries?.slice(0, 10).map((e: any) => `- "${e.subject}" from ${e.from}${e.snippet ? ': ' + e.snippet.slice(0, 100) : ''}`).join('\n') || rawData.emails?.slice(0, 10).map((e: any) => `- "${e.subject}" from ${e.from}`).join('\n') || 'No email data'}
-
-### Upcoming Events
-${rawData.calendarEvents?.slice(0, 10).map((e: any) => `- ${e.summary} (${e.start?.dateTime || e.start})`).join('\n') || 'No calendar data'}
-
-### Documents
-${rawData.documents?.slice(0, 10).map((d: any) => `- ${d.name || d.title}`).join('\n') || 'No document data'}
+${contactsBlock}
 
 ### Recommendations
-${(summary.recommendations || []).slice(0, 5).map((r: any, i: number) => 
+${(summary.recommendations || []).map((r: any, i: number) => 
   `${i + 1}. [${r.priority?.toUpperCase() || 'MEDIUM'}] ${r.title}: ${r.description}`
-).join('\n') || 'No recommendations yet'}
+).join('\n') || 'None yet — generate recommendations from the data above'}
 
 `;
           break;
