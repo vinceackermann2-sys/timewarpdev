@@ -315,9 +315,11 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     // Build context from workspace data
     const connectedContexts: any[] = [];
     if (workspaceData) {
+      const sources = (workspaceData as any)?.raw_data?.sources || [];
+      const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
       connectedContexts.push({
         type: "business-db",
-        label: "Google Workspace Data",
+        label,
         content: workspaceData,
       });
     }

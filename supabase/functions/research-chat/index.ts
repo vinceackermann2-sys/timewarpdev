@@ -84,6 +84,7 @@ serve(async (req) => {
 - Total Documents: ${data.documents_analyzed || allDocs.length || 0}
 - Total Calendar Events: ${data.events_analyzed || allEvents.length || 0}
 - Total Spreadsheets: ${data.sheets_analyzed || allSheets.length || 0}
+- Data Sources: ${(rawData.sources || ['Unknown']).join(', ')}
 
 ### Key Findings (${findings.length} total)
 ${findings.map((f: any, i: number) => 
@@ -104,6 +105,16 @@ ${sheetsBlock}
 
 ### Top Contacts
 ${contactsBlock}
+
+### Slack Channels
+${(rawData.slackChannels || []).map((ch: any, i: number) => 
+  `${i + 1}. #${ch.name} (${ch.memberCount} members)${ch.topic ? ' — ' + ch.topic : ''}`
+).join('\n') || 'No Slack data'}
+
+### Recent Slack Messages
+${(rawData.slackMessages || []).slice(0, 100).map((m: any, i: number) => 
+  `${i + 1}. #${m.channel} | ${m.user}: ${m.text}`
+).join('\n') || 'No Slack messages'}
 
 ### Recommendations
 ${(summary.recommendations || []).map((r: any, i: number) => 
