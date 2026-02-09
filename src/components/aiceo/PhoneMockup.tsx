@@ -1,7 +1,11 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Battery, Wifi, Signal, FileText, Check, ArrowRight } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
-export function PhoneMockup() {
+interface PhoneMockupProps {
+  onRunClick?: () => void;
+}
+
+export function PhoneMockup({ onRunClick }: PhoneMockupProps) {
   const [loopKey, setLoopKey] = useState(0);
   const [firstDone, setFirstDone] = useState(false);
   const [researched, setResearched] = useState(false);
@@ -660,9 +664,7 @@ export function PhoneMockup() {
               position: "relative",
               overflow: "hidden",
             }}
-            onClick={() =>
-              (window.location.href = "/auth?mode=signup")
-            }
+            onClick={() => onRunClick ? onRunClick() : (window.location.href = "/auth?mode=signup")}
           >
             {showGlare && (
               <div
