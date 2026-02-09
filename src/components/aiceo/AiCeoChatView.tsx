@@ -321,9 +321,132 @@ export function AiCeoChatView() {
         )}
 
         {mode === "action" && (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "100%", gap: 16, padding: "0 16px" }}>
-            <ActivityLog entries={logEntries} liveViewUrl={liveViewUrl} />
-            <BrowserWindow liveViewUrl={liveViewUrl} loading={browserLoading} />
+          <div style={{
+            width: "100%",
+            maxWidth: 800,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            padding: "0 16px",
+          }}>
+            {/* User message bubble */}
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{
+                background: "rgba(99, 102, 241, 0.15)",
+                border: "1px solid rgba(99, 102, 241, 0.25)",
+                borderRadius: 16,
+                padding: "12px 18px",
+                maxWidth: "80%",
+              }}>
+                <p style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: "rgba(255, 255, 255, 0.9)",
+                  lineHeight: 1.5,
+                  userSelect: "none",
+                }}>
+                  analyze nikes ads and create an ad in excalidraw.com for them
+                </p>
+              </div>
+            </div>
+
+            {/* AI response with browser preview */}
+            <div style={{ display: "flex", justifyContent: "flex-start" }}>
+              <div style={{
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: 16,
+                padding: 16,
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: "rgba(249, 115, 22, 0.15)",
+                    border: "1px solid rgba(249, 115, 22, 0.2)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <span style={{ fontSize: 14 }}>🤖</span>
+                  </div>
+                  <span style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "rgba(249, 115, 22, 0.8)",
+                  }}>
+                    Action Agent
+                  </span>
+                </div>
+
+                <p style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: 14,
+                  color: "rgba(255, 255, 255, 0.6)",
+                  lineHeight: 1.6,
+                }}>
+                  Analyzing Nike's ad campaigns and opening Excalidraw to design…
+                </p>
+
+                {/* Inline browser preview */}
+                <div style={{
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  background: "rgba(0, 0, 0, 0.3)",
+                  aspectRatio: "16/10",
+                  width: "100%",
+                  position: "relative",
+                }}>
+                  {liveViewUrl ? (
+                    <iframe
+                      src={liveViewUrl}
+                      className="w-full h-full border-none"
+                      style={{ position: "absolute", inset: 0 }}
+                      title="Live Browser Session"
+                      allow="clipboard-read; clipboard-write; popups"
+                      sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-modals allow-top-navigation"
+                    />
+                  ) : browserLoading ? (
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", justifyContent: "center", gap: 12,
+                    }}>
+                      <div className="animate-spin" style={{
+                        width: 28, height: 28, borderRadius: "50%",
+                        border: "2px solid rgba(99,102,241,0.2)",
+                        borderTopColor: "rgba(99,102,241,0.7)",
+                      }} />
+                      <span style={{
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        fontSize: 13, color: "rgba(255,255,255,0.4)",
+                      }}>
+                        Starting browser session…
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", justifyContent: "center", gap: 8,
+                      opacity: 0.5,
+                    }}>
+                      <span style={{ fontSize: 28 }}>🖥️</span>
+                      <span style={{
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        fontSize: 13, color: "rgba(255,255,255,0.4)",
+                      }}>
+                        Browser preview will appear here
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
