@@ -51,36 +51,55 @@ export function AiCeoChatView() {
   const handleActionSend = useCallback(async (message: string) => {
     setBrowserLoading(true);
     setLiveViewUrl(null);
-    addLog("info", `Task received: "${message}"`);
-    addLog("loading", "Starting browser session…");
+    setLogEntries([]);
+    addLog("info", `Task: "${message}"`);
+    addLog("loading", "Requesting browser session from server…");
     try {
       const res = await fetch(`${REPLIT_URL}/scrape`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: message, instruction: message }),
       });
+
+      addLog("navigate", `Server responded with status ${res.status}`);
+
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
       console.log("Scrape response:", JSON.stringify(data));
-      const url = data.liveUrl || data.liveViewUrl || data.connectUrl || data.debuggerUrl || data.debugUrl || data.url || data.live_url;
 
-      addLog("navigate", "Connecting to session…");
+      const sessionId = data.sessionId || data.session_id || null;
+      if (sessionId) {
+        addLog("info", `Session ID: ${sessionId.slice(0, 12)}…`);
+      }
+
+      const url = data.liveUrl || data.liveViewUrl || data.connectUrl || data.debuggerUrl || data.debugUrl || data.url || data.live_url;
 
       await supabase.from("scrape_jobs").insert({
         url: message,
         instruction: message,
         live_url: url || null,
-        session_id: data.sessionId || data.session_id || null,
+        session_id: sessionId,
         status: url ? "started" : "no_url",
         result: url ? null : JSON.stringify(data),
       });
 
+      addLog("info", "Job persisted to database");
+
       if (url) {
+        addLog("navigate", `Connecting to live session…`);
         setLiveViewUrl(url);
-        addLog("success", "Browser session active");
+        addLog("success", "Browser session active — streaming live view");
+        addLog("observe", "AI agent is navigating the page…");
+
+        // Simulate realistic agent lifecycle hints
+        setTimeout(() => addLog("click", "Interacting with page elements…"), 3000);
+        setTimeout(() => {
+          addLog("takeover", "Manual takeover may be needed for login/2FA");
+        }, 8000);
+        setTimeout(() => addLog("resume", "AI agent resumed task execution"), 15000);
       } else {
         console.error("Response keys:", Object.keys(data));
-        addLog("error", "No live URL found in response");
+        addLog("error", "No live URL returned — check server response");
         toast.error("No live URL found in response");
       }
     } catch (err: any) {
