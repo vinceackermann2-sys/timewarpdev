@@ -74,6 +74,9 @@ export default function TimewarpOG() {
           <P>The opportunity has lied in the hands of <B>the powerful.</B></P>
           <Highlight>But it's changed...</Highlight>
           <P>AI CEO lets <B>modern day Aristotle</B> run your business.</P>
+          <div style={{ textAlign: "center", margin: "24px 0 0" }}>
+            <ApplyButton onClick={() => setShowForm(true)} isMobile={isMobile} />
+          </div>
         </Section>
 
         {/* What AI CEO Does */}
@@ -113,6 +116,9 @@ export default function TimewarpOG() {
             <BenefitCard icon={<Crown size={22} />} title="First In Line" desc="You get in before the herd." />
             <BenefitCard icon={<Infinity size={22} />} title="Unlimited Forever" desc="Unlimited AI CEO — FOREVER. No limited generations or top-up credits." />
           </div>
+          <div style={{ textAlign: "center", margin: "8px 0 0" }}>
+            <ApplyButton onClick={() => setShowForm(true)} isMobile={isMobile} />
+          </div>
         </Section>
 
         {/* Pricing Cards */}
@@ -146,37 +152,6 @@ export default function TimewarpOG() {
           </div>
         </Section>
 
-        {/* Apply CTA */}
-        <div style={{ textAlign: "center", margin: "48px 0" }}>
-          <button
-            onClick={() => setShowForm(true)}
-            style={{
-              fontSize: isMobile ? 15 : 18,
-              fontWeight: 700,
-              color: "#0a0a0a",
-              background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
-              border: "none",
-              borderRadius: 16,
-              padding: isMobile ? "14px 32px" : "18px 48px",
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-              boxShadow: "0 0 40px rgba(251,191,36,0.3)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "scale(1.05)";
-              e.currentTarget.style.boxShadow = "0 0 60px rgba(251,191,36,0.5)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-              e.currentTarget.style.boxShadow = "0 0 40px rgba(251,191,36,0.3)";
-            }}
-          >
-            Apply Now <ArrowRight size={20} />
-          </button>
-        </div>
 
         {/* Vision */}
         <Section>
@@ -250,6 +225,26 @@ export default function TimewarpOG() {
 }
 
 /* --- Sub-components --- */
+
+function ApplyButton({ onClick, isMobile }: { onClick: () => void; isMobile: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        fontSize: isMobile ? 15 : 18, fontWeight: 700, color: "#0a0a0a",
+        background: "linear-gradient(135deg, #fbbf24, #f59e0b)", border: "none",
+        borderRadius: 16, padding: isMobile ? "14px 32px" : "18px 48px",
+        cursor: "pointer", transition: "all 0.3s ease",
+        boxShadow: "0 0 40px rgba(251,191,36,0.3)",
+        display: "inline-flex", alignItems: "center", gap: 10,
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 0 60px rgba(251,191,36,0.5)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 0 40px rgba(251,191,36,0.3)"; }}
+    >
+      Apply Now <ArrowRight size={20} />
+    </button>
+  );
+}
 
 function B({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return <strong style={{ color: "#fff", fontWeight: 700, ...style }}>{children}</strong>;
