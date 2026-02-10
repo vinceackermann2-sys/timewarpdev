@@ -5,6 +5,13 @@ export default function PrivacyPolicy() {
         <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
 
         <div className="prose prose-invert max-w-none space-y-6 text-muted-foreground text-[15px] leading-relaxed">
+          <div className="space-y-1 mb-8 text-sm">
+            <p><strong className="text-foreground">Effective Date:</strong> February 10, 2026</p>
+            <p><strong className="text-foreground">Company:</strong> Vincent Ackermann ("Timewarp", "we", "our", "us")</p>
+            <p><strong className="text-foreground">Organization Number:</strong> 081003</p>
+            <p><strong className="text-foreground">Registered Address:</strong> Lillvägen 4, 182 49, Stockholm, Sweden</p>
+            <p><strong className="text-foreground">Contact Email:</strong> <a href="mailto:vincentackermann@timewarpdev.com" className="text-primary underline">vincentackermann@timewarpdev.com</a></p>
+          </div>
           <p>This privacy policy describes how your personal information is collected, used, and shared when you visit or make a purchase from Timewarp (the "Site").</p>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">Personal Information We Collect</h2>
