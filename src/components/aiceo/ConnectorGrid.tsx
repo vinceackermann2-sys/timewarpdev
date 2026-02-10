@@ -194,6 +194,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [userMessageCount, setUserMessageCount] = useState(0);
   const [showWaitlist, setShowWaitlist] = useState(false);
+  const [showLimitPopup, setShowLimitPopup] = useState(false);
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
   const [waitlistForm, setWaitlistForm] = useState({ name: "", email: "", phone: "" });
   const [waitlistLoading, setWaitlistLoading] = useState(false);
@@ -375,7 +376,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
   const handleResearchSend = useCallback(async (message: string) => {
     if (userMessageCount >= MAX_MESSAGES) {
-      setShowWaitlist(true);
+      setShowLimitPopup(true);
       return;
     }
     const newCount = userMessageCount + 1;
@@ -853,110 +854,108 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                )}
 
               {/* Locked state — all messages used */}
-              {userMessageCount >= MAX_MESSAGES && (
-                <div style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 16,
-                  padding: "32px 0",
-                  animation: "fadeSlideUp 0.4s ease-out forwards",
-                }}>
-                  {/* Lock icon */}
-                  <div style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 20,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}>
-                    <span style={{ fontSize: 36 }}>🔒</span>
-                  </div>
-                  <span style={{
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    fontSize: 16,
-                    fontWeight: 700,
-                    color: "rgba(255,255,255,0.6)",
-                  }}>
-                    You've used all {MAX_MESSAGES} free messages
-                  </span>
-                  <span style={{
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    fontSize: 13,
-                    color: "rgba(255,255,255,0.3)",
-                    textAlign: "center",
-                    maxWidth: 300,
-                    lineHeight: 1.5,
-                  }}>
-                    Join the waitlist to get full access when we launch
-                  </span>
-                  {/* Arrow pointing down to button */}
-                  <span style={{
-                    fontSize: 20,
-                    color: "rgba(99, 102, 241, 0.6)",
-                    animation: "bounceArrow 1.2s ease-in-out infinite",
-                  }}>
-                    ↓
-                  </span>
-                  <button
-                    onClick={() => setShowWaitlist(true)}
-                    style={{
-                      fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: "#fff",
-                      background: "hsl(var(--primary))",
-                      border: "none",
-                      borderRadius: 14,
-                      padding: "12px 28px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      boxShadow: "0 0 24px rgba(99, 102, 241, 0.3)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "scale(1.05)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "scale(1)";
-                    }}
-                  >
-                     Join Waitlist
-                   </button>
-                   <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>or</span>
+               {userMessageCount >= MAX_MESSAGES && !showLimitPopup && (
+                 <div style={{
+                   display: "flex",
+                   flexDirection: "column",
+                   alignItems: "center",
+                   gap: 16,
+                   padding: "32px 0",
+                   animation: "fadeSlideUp 0.4s ease-out forwards",
+                 }}>
+                   <div style={{
+                     width: 72, height: 72, borderRadius: 20,
+                     background: "rgba(255,255,255,0.04)",
+                     border: "1px solid rgba(255,255,255,0.08)",
+                     display: "flex", alignItems: "center", justifyContent: "center",
+                   }}>
+                     <span style={{ fontSize: 36 }}>🔒</span>
+                   </div>
+                   <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>
+                     You've used all {MAX_MESSAGES} free messages
+                   </span>
+                   <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "rgba(255,255,255,0.3)", textAlign: "center", maxWidth: 300, lineHeight: 1.5 }}>
+                     Unlock full access to your AI business advisor
+                   </span>
+                   <span style={{ fontSize: 20, color: "rgba(99, 102, 241, 0.6)", animation: "bounceArrow 1.2s ease-in-out infinite" }}>↓</span>
                    <button
-                     onClick={() => navigate("/timewarp-og")}
+                     onClick={() => setShowLimitPopup(true)}
                      style={{
-                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                       fontSize: 15,
-                       fontWeight: 700,
-                       color: "#fff",
-                       background: "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.2))",
-                       border: "1px solid rgba(251, 191, 36, 0.4)",
-                       borderRadius: 14,
-                       padding: "12px 28px",
-                       cursor: "pointer",
-                       transition: "all 0.2s ease",
-                       boxShadow: "0 0 24px rgba(251, 191, 36, 0.2)",
+                       fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700,
+                       color: "#fff", background: "hsl(var(--primary))", border: "none",
+                       borderRadius: 14, padding: "12px 28px", cursor: "pointer",
+                       transition: "all 0.2s ease", boxShadow: "0 0 24px rgba(99, 102, 241, 0.3)",
                      }}
-                     onMouseEnter={(e) => {
-                       e.currentTarget.style.transform = "scale(1.05)";
-                       e.currentTarget.style.boxShadow = "0 0 32px rgba(251, 191, 36, 0.35)";
-                     }}
-                     onMouseLeave={(e) => {
-                       e.currentTarget.style.transform = "scale(1)";
-                       e.currentTarget.style.boxShadow = "0 0 24px rgba(251, 191, 36, 0.2)";
-                     }}
+                     onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; }}
+                     onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                    >
-                     ⚡ Become TimeWarp OG
+                     Continue
                    </button>
                  </div>
                )}
 
               <div ref={chatEndRef} />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Limit reached — choice popup */}
+      {showLimitPopup && !showWaitlist && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(0, 0, 0, 0.7)", backdropFilter: "blur(8px)",
+            animation: "fadeSlideUp 0.3s ease-out forwards",
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowLimitPopup(false); }}
+        >
+          <div style={{
+            width: "min(90vw, 420px)", background: "rgba(15, 18, 35, 0.98)",
+            border: "1px solid rgba(99, 102, 241, 0.3)", borderRadius: 20,
+            padding: "36px 28px", display: "flex", flexDirection: "column", gap: 20, alignItems: "center",
+          }}>
+            <span style={{ fontSize: 48 }}>🚀</span>
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 22, fontWeight: 800, color: "#fff", textAlign: "center", margin: 0 }}>
+              Unlock Full Access
+            </h3>
+            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, color: "rgba(255,255,255,0.5)", textAlign: "center", margin: 0, lineHeight: 1.6 }}>
+              You've used all {MAX_MESSAGES} free messages. Choose how you'd like to continue:
+            </p>
+
+            {/* Waitlist option */}
+            <button
+              onClick={() => { setShowLimitPopup(false); setShowWaitlist(true); }}
+              style={{
+                width: "100%", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700,
+                color: "#fff", background: "hsl(var(--primary))", border: "none",
+                borderRadius: 14, padding: "14px 28px", cursor: "pointer",
+                transition: "all 0.2s ease", boxShadow: "0 0 24px rgba(99, 102, 241, 0.3)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.03)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+            >
+              📋 Join Waitlist
+            </button>
+
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>or</span>
+
+            {/* OG option */}
+            <button
+              onClick={() => navigate("/timewarp-og")}
+              style={{
+                width: "100%", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700,
+                color: "#fff", background: "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.2))",
+                border: "1px solid rgba(251, 191, 36, 0.4)", borderRadius: 14,
+                padding: "14px 28px", cursor: "pointer", transition: "all 0.2s ease",
+                boxShadow: "0 0 24px rgba(251, 191, 36, 0.2)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.03)"; e.currentTarget.style.boxShadow = "0 0 32px rgba(251, 191, 36, 0.35)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 0 24px rgba(251, 191, 36, 0.2)"; }}
+            >
+              ⚡ Become TimeWarp OG
+            </button>
           </div>
         </div>
       )}
