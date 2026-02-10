@@ -208,6 +208,8 @@ export function PhoneMockup({ onRunClick }: PhoneMockupProps) {
                 padding: "20px",
                 background:
                   "linear-gradient(180deg, #1e2a42 0%, #1a2438 100%)",
+                overflowY: "auto",
+                maxHeight: "45%",
               }}
             >
               {/* User Message */}
