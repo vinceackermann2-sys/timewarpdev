@@ -225,6 +225,12 @@ export default function TimewarpOG() {
             ← Back
           </button>
         </div>
+
+        {/* Legal links */}
+        <div style={{ textAlign: "center", marginTop: 48, display: "flex", justifyContent: "center", gap: 24 }}>
+          <a href="/privacy" style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.3)"; }}>Privacy Policy</a>
+          <a href="/terms" style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.3)"; }}>Terms & Information</a>
+        </div>
       </div>
     </div>
   );
