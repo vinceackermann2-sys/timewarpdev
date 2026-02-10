@@ -204,10 +204,17 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       if (session?.user) {
         console.log("[ConnectorGrid] Auth state changed:", event);
         checkConnections();
+        loadWorkspaceData(session.user.id);
       }
     });
 
     checkConnections();
+
+    // Also try to load workspace data immediately if we already have a session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) loadWorkspaceData(session.user.id);
+    });
+
     const interval = setInterval(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) loadWorkspaceData(session.user.id);
@@ -228,14 +235,33 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
       const userId = session.user.id;
 
-      const { data: googleConn } = await supabase
-        .from("google_workspace_connections")
-        .select("connected")
-        .eq("user_id", userId)
-        .single();
-
-      // Check Slack via user links (slack_installations has deny-all RLS)
+      let googleConnected = false;
+      let microsoftConnected = false;
       let slackConnected = false;
+
+      // Google
+      try {
+        const { data: googleConn } = await supabase
+          .from("google_workspace_connections")
+          .select("connected")
+          .eq("user_id", userId)
+          .single();
+        googleConnected = googleConn?.connected ?? false;
+      } catch {}
+
+      // Microsoft
+      try {
+        const { data: msConn } = await supabase
+          .from("microsoft_workspace_connections" as any)
+          .select("connected")
+          .eq("user_id", userId)
+          .single();
+        if (msConn) {
+          microsoftConnected = (msConn as any).connected ?? false;
+        }
+      } catch {}
+
+      // Slack via user links (slack_installations has deny-all RLS)
       try {
         const { data: slackLinks } = await supabase
           .from("slack_user_links")
@@ -245,32 +271,15 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         slackConnected = (slackLinks && slackLinks.length > 0) ?? false;
       } catch {}
 
-      const googleConnected = googleConn?.connected ?? false;
+      // Merge with existing status — never downgrade a URL-param-detected connection
+      setConnectionStatus(prev => ({
+        Google: prev.Google || googleConnected,
+        Microsoft: prev.Microsoft || microsoftConnected,
+        Slack: prev.Slack || slackConnected,
+      }));
 
-      setConnectionStatus({
-        Google: googleConnected,
-        Microsoft: false,
-        Slack: slackConnected,
-      });
-
-      // Check Microsoft
-      let microsoftConnected = false;
-      try {
-        const { data: msConn } = await supabase
-          .from("microsoft_workspace_connections" as any)
-          .select("connected")
-          .eq("user_id", userId)
-          .single();
-        if (msConn) {
-          microsoftConnected = (msConn as any).connected ?? false;
-          setConnectionStatus(prev => ({ ...prev, Microsoft: microsoftConnected }));
-        }
-      } catch {}
-
-      // If any connector is connected, load workspace data
-      if (googleConnected || slackConnected || microsoftConnected) {
-        loadWorkspaceData(userId);
-      }
+      // Always load workspace data when we have a session
+      loadWorkspaceData(userId);
     } catch (error) {
       console.error("[ConnectorGrid] Error checking connections:", error);
     }
