@@ -21,7 +21,7 @@ const TEXT_TO_CARD: Record<string, "research" | "action"> = {
 
 export function AiCeoChatView() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const isOAuthReturn = searchParams.has("google_connected") || searchParams.has("microsoft_connected") || searchParams.has("slack_installed");
+  const isOAuthReturn = searchParams.has("google_connected") || searchParams.has("microsoft_connected") || searchParams.has("slack_installed") || searchParams.has("google_error") || searchParams.has("microsoft_error") || searchParams.has("slack_error");
   
   const [mode, setMode] = useState<"select" | "connectors" | "action">(isOAuthReturn ? "connectors" : "select");
   const [activeCard, setActiveCard] = useState<"research" | "action">("research");
@@ -30,8 +30,17 @@ export function AiCeoChatView() {
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const { initiateOAuth } = useConnectorOAuth();
 
-  // Clear OAuth query params on mount so they don't persist
+  // Show error toasts for OAuth failures and clear params
   useEffect(() => {
+    if (searchParams.has("google_error")) {
+      toast.error("Failed to connect Google. Please try again.");
+    }
+    if (searchParams.has("microsoft_error")) {
+      toast.error("Failed to connect Microsoft. Please try again.");
+    }
+    if (searchParams.has("slack_error")) {
+      toast.error("Failed to connect Slack. Please try again.");
+    }
     if (isOAuthReturn) {
       setSearchParams({}, { replace: true });
     }
