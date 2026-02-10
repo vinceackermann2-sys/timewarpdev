@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     // Build Microsoft OAuth URL
     const redirectUri = `${SUPABASE_URL}/functions/v1/microsoft-oauth-callback`;
-    const defaultScopes = scopes || "openid email profile User.Read Mail.Read Calendars.Read Files.Read.All";
+    const defaultScopes = scopes || "offline_access openid email profile User.Read Mail.Read Calendars.Read Files.Read.All";
     
     const msAuthUrl = new URL("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
     msAuthUrl.searchParams.set("client_id", MICROSOFT_CLIENT_ID);

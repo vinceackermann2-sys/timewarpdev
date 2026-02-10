@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
         code,
         grant_type: "authorization_code",
         redirect_uri: redirectUri,
+        scope: "offline_access openid email profile User.Read Mail.Read Calendars.Read Files.Read.All",
       }),
     });
 
