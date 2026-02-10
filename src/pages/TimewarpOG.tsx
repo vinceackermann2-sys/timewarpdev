@@ -110,6 +110,37 @@ export default function TimewarpOG() {
           </div>
         </Section>
 
+        {/* Pricing Cards */}
+        <Section>
+          <SectionTitle>What it costs at launch</SectionTitle>
+          <P style={{ textAlign: "center", marginBottom: 24 }}>These plans are <B>not available yet</B> — OGs get unlimited access forever.</P>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, margin: "24px 0" }}>
+            <PricingCard
+              title="Monthly"
+              price="€499"
+              period="/month"
+              tagline="Instant wins. Cancel anytime."
+              features={["Full Business Connection", "CEO, CMO, CFO", "Support Line", "20 Task Executions"]}
+            />
+            <PricingCard
+              title="Quarterly"
+              price="€1,499"
+              period="/quarter"
+              tagline="Commit to growth."
+              features={["Everything in Monthly", "Whole C-Suite", "VIP-Support (jump the line)", "100 Task Executions"]}
+            />
+            <PricingCard
+              title="Semi-Annual"
+              price="€2,499"
+              period="/6 months"
+              tagline="Smart choice. Unlimited growth."
+              popular
+              saving="Save €495"
+              features={["Everything in Monthly", "Whole C-Suite", "VIP-Support (jump the line)", "200 Task Executions"]}
+            />
+          </div>
+        </Section>
+
         {/* Apply CTA */}
         <div style={{ textAlign: "center", margin: "48px 0" }}>
           <button
@@ -289,6 +320,47 @@ function BenefitCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
       <div>
         <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 4 }}>{title}</div>
         <div style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>{desc}</div>
+      </div>
+    </div>
+  );
+}
+
+function PricingCard({ title, price, period, tagline, features, popular, saving }: { title: string; price: string; period: string; tagline: string; features: string[]; popular?: boolean; saving?: string }) {
+  return (
+    <div style={{
+      padding: "24px 28px",
+      borderRadius: 18,
+      background: popular
+        ? "linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.06))"
+        : "rgba(255,255,255,0.03)",
+      border: popular
+        ? "2px solid rgba(251,191,36,0.4)"
+        : "1px solid rgba(255,255,255,0.08)",
+      position: "relative",
+    }}>
+      {popular && (
+        <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50)", display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 14px", borderRadius: 20, background: "linear-gradient(135deg, #fbbf24, #f59e0b)", fontSize: 12, fontWeight: 700, color: "#0a0a0a", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+          ⭐ Most Popular
+        </div>
+      )}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>{title}</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontStyle: "italic", marginTop: 2 }}>{tagline}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <span style={{ fontSize: 28, fontWeight: 900, color: popular ? "#fbbf24" : "#fff" }}>{price}</span>
+          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>{period}</span>
+          {saving && <div style={{ fontSize: 13, fontWeight: 700, color: "#34d399", marginTop: 2 }}>{saving}</div>}
+        </div>
+      </div>
+      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+        {features.map((f, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.6)" }}>
+            <span style={{ color: popular ? "#fbbf24" : "#818cf8", fontSize: 12 }}>✓</span>
+            {f}
+          </div>
+        ))}
       </div>
     </div>
   );
