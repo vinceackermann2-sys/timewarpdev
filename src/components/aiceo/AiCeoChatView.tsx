@@ -83,14 +83,18 @@ export function AiCeoChatView() {
 
       const url = data.liveUrl || data.liveViewUrl || data.connectUrl || data.debuggerUrl || data.debugUrl || data.url || data.live_url;
 
-      await supabase.from("scrape_jobs").insert({
-        url: message,
-        instruction: message,
-        live_url: url || null,
-        session_id: sessionId,
-        status: url ? "started" : "no_url",
-        result: url ? null : JSON.stringify(data),
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        await supabase.from("scrape_jobs").insert({
+          url: message,
+          instruction: message,
+          live_url: url || null,
+          session_id: sessionId,
+          status: url ? "started" : "no_url",
+          result: url ? null : JSON.stringify(data),
+          user_id: session.user.id,
+        });
+      }
 
       addLog("info", "Job persisted to database");
 
