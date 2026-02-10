@@ -11,28 +11,15 @@ type ConnectorType = "Google" | "Microsoft" | "Slack";
 export function useConnectorOAuth() {
   const initiateOAuth = useCallback(async (connector: ConnectorType) => {
     try {
-      // Refresh session first to handle timing issues on mobile
-      await supabase.auth.refreshSession();
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       const origin = window.location.origin;
 
       // Google & Microsoft require a user_id for OAuth state storage
       if (!userId && (connector === "Google" || connector === "Microsoft")) {
-        // Auto sign-up anonymously won't work — prompt sign-in via Google OAuth
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: `${origin}/ai-ceo?auto_connect=${connector.toLowerCase()}`,
-          },
-        });
-        if (error) {
-          console.error("[useConnectorOAuth] Auto sign-in failed:", error);
-          toast.error("Please sign in to connect your accounts.");
-        }
+        toast.error("Please sign in first to connect " + connector + ".");
         return;
       }
-
 
       if (connector === "Google") {
         const { data, error } = await supabase.functions.invoke("initiate-google-oauth", {
@@ -46,19 +33,23 @@ export function useConnectorOAuth() {
         if (error) throw error;
         if (data?.url) {
           window.location.href = data.url;
+        } else {
+          throw new Error("No OAuth URL returned");
         }
       } else if (connector === "Microsoft") {
         const { data, error } = await supabase.functions.invoke("initiate-microsoft-oauth", {
           body: {
             user_id: userId,
             origin,
-            scopes: "openid email profile User.Read Mail.Read Calendars.Read Files.Read.All",
+            scopes: "offline_access openid email profile User.Read Mail.Read Calendars.Read Files.Read.All",
           },
         });
 
         if (error) throw error;
         if (data?.url) {
           window.location.href = data.url;
+        } else {
+          throw new Error("No OAuth URL returned");
         }
       } else if (connector === "Slack") {
         const { data, error } = await supabase.functions.invoke("initiate-slack-oauth", {
@@ -68,6 +59,8 @@ export function useConnectorOAuth() {
         if (error) throw error;
         if (data?.url) {
           window.location.href = data.url;
+        } else {
+          throw new Error("No OAuth URL returned");
         }
       }
     } catch (error) {

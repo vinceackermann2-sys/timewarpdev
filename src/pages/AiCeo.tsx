@@ -5,7 +5,7 @@ import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
-  const isOAuthReturn = searchParams.has("google_connected") || searchParams.has("microsoft_connected") || searchParams.has("slack_installed") || searchParams.has("google_error") || searchParams.has("microsoft_error") || searchParams.has("slack_error") || searchParams.has("auto_connect");
+  const isOAuthReturn = searchParams.has("google_connected") || searchParams.has("microsoft_connected") || searchParams.has("slack_installed") || searchParams.has("google_error") || searchParams.has("microsoft_error") || searchParams.has("slack_error");
 
   const [showChat, setShowChat] = useState(isOAuthReturn);
 
