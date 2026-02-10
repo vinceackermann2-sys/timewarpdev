@@ -69,24 +69,25 @@ interface ConnectorCardProps {
 }
 
 function ConnectorCard({ connector, connected, index, onConnect, onDisconnect }: ConnectorCardProps) {
+  const isMobile = window.innerWidth < 640;
   return (
     <button
       onClick={connected ? onDisconnect : onConnect}
       style={{
         display: "flex",
-        flexDirection: "column",
+        flexDirection: isMobile ? "row" as const : "column" as const,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: "18px 20px",
-        borderRadius: 16,
+        gap: isMobile ? 6 : 10,
+        padding: isMobile ? "8px 12px" : "18px 20px",
+        borderRadius: isMobile ? 12 : 16,
         background: connected ? connector.connectedColor : connector.color,
         border: `1.5px solid ${connected ? "rgba(255,255,255,0.2)" : connector.borderColor}`,
         cursor: "pointer",
         transition: "all 0.3s ease",
         animation: `fadeSlideUp 0.4s ease-out ${index * 0.1}s both`,
         position: "relative",
-        minWidth: 100,
+        minWidth: isMobile ? 0 : 100,
       }}
       className="hover:scale-[1.05] active:scale-[0.97]"
       onMouseEnter={(e) => {
@@ -98,19 +99,21 @@ function ConnectorCard({ connector, connected, index, onConnect, onDisconnect }:
     >
       {connected ? (
         <Plug2
-          size={28}
+          size={isMobile ? 18 : 28}
           style={{
             color: "rgba(255, 255, 255, 0.9)",
             filter: "drop-shadow(0 0 6px rgba(255,255,255,0.3))",
           }}
         />
       ) : (
-        connector.icon
+        <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: isMobile ? 20 : undefined, height: isMobile ? 20 : undefined }}>
+          {React.cloneElement(connector.icon as React.ReactElement, isMobile ? { width: 20, height: 20 } : {})}
+        </span>
       )}
       <span
         style={{
           fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontSize: 13,
+          fontSize: isMobile ? 11 : 13,
           fontWeight: 600,
           color: connected ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.6)",
           letterSpacing: "0.01em",
@@ -118,7 +121,7 @@ function ConnectorCard({ connector, connected, index, onConnect, onDisconnect }:
       >
         {connector.name}
       </span>
-    {connected && (
+    {connected && !isMobile && (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
           <span
             style={{
@@ -436,7 +439,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
           animation: "fadeSlideUp 0.5s ease-out forwards",
           transition: "all 0.5s ease",
           ...(hasAnyConnection
-            ? { position: "absolute" as const, top: 24, left: 0, right: 0, zIndex: 10 }
+            ? { position: "absolute" as const, top: 12, left: 0, right: 0, zIndex: 10 }
             : {}),
         }}
         className="flex flex-col items-center"
@@ -477,7 +480,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         <div
           style={{
             position: "absolute",
-            top: 180,
+            top: window.innerWidth < 640 ? 70 : 180,
             left: 0,
             right: 0,
             bottom: 90,
@@ -678,13 +681,16 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                 text-underline-offset: 3px !important;
               }
             `}</style>
-            <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 8px", display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 8px", display: "flex", flexDirection: "column", gap: 16, width: "100%", boxSizing: "border-box" }}>
               {messages.map((msg, i) => (
                 <div
                   key={i}
                   style={{
                     alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
                     maxWidth: msg.role === "user" ? "85%" : "100%",
+                    overflowWrap: "break-word" as const,
+                    wordBreak: "break-word" as const,
+                    minWidth: 0,
                     padding: msg.role === "user" ? "10px 14px" : "16px 18px",
                     borderRadius: 16,
                     background: msg.role === "user"
