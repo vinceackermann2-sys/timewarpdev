@@ -11,9 +11,27 @@ type ConnectorType = "Google" | "Microsoft" | "Slack";
 export function useConnectorOAuth() {
   const initiateOAuth = useCallback(async (connector: ConnectorType) => {
     try {
+      // Refresh session first to handle timing issues on mobile
+      await supabase.auth.refreshSession();
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       const origin = window.location.origin;
+
+      // Google & Microsoft require a user_id for OAuth state storage
+      if (!userId && (connector === "Google" || connector === "Microsoft")) {
+        // Auto sign-up anonymously won't work — prompt sign-in via Google OAuth
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${origin}/ai-ceo?auto_connect=${connector.toLowerCase()}`,
+          },
+        });
+        if (error) {
+          console.error("[useConnectorOAuth] Auto sign-in failed:", error);
+          toast.error("Please sign in to connect your accounts.");
+        }
+        return;
+      }
 
 
       if (connector === "Google") {
