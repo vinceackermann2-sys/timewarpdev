@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function TimewarpOG() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
+  const isMobile = window.innerWidth < 640;
 
   return (
     <div
@@ -19,7 +20,7 @@ export default function TimewarpOG() {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "40px 24px 80px",
+        padding: "32px 16px 60px",
         position: "relative",
         overflow: "hidden",
         fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -117,7 +118,7 @@ export default function TimewarpOG() {
         <Section>
           <SectionTitle>What it costs at launch</SectionTitle>
           <P style={{ textAlign: "center", marginBottom: 24 }}>These plans are <B>not available yet</B> — OGs get unlimited access forever.</P>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, margin: "24px 0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, margin: "24px 0" }}>
             <PricingCard
               title="Monthly"
               price="€499"
@@ -155,7 +156,7 @@ export default function TimewarpOG() {
               background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
               border: "none",
               borderRadius: 16,
-              padding: "18px 48px",
+              padding: isMobile ? "14px 32px" : "18px 48px",
               cursor: "pointer",
               transition: "all 0.3s ease",
               boxShadow: "0 0 40px rgba(251,191,36,0.3)",
@@ -207,7 +208,7 @@ export default function TimewarpOG() {
               background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
               border: "none",
               borderRadius: 16,
-              padding: "18px 48px",
+              padding: isMobile ? "14px 32px" : "18px 48px",
               cursor: "pointer",
               transition: "all 0.3s ease",
               boxShadow: "0 0 40px rgba(251,191,36,0.3)",
@@ -254,7 +255,7 @@ function B({ children, style }: { children: React.ReactNode; style?: React.CSSPr
 }
 
 function P({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return <p style={{ fontSize: 17, color: "rgba(255,255,255,0.55)", lineHeight: 1.75, margin: "0 0 14px", ...style }}>{children}</p>;
+  return <p style={{ fontSize: "clamp(15px, 3.5vw, 17px)", color: "rgba(255,255,255,0.55)", lineHeight: 1.75, margin: "0 0 14px", ...style }}>{children}</p>;
 }
 
 function Section({ children }: { children: React.ReactNode }) {
@@ -263,7 +264,7 @@ function Section({ children }: { children: React.ReactNode }) {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 style={{ fontSize: 28, fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", marginBottom: 8, textAlign: "center" }}>
+    <h2 style={{ fontSize: "clamp(22px, 5vw, 28px)", fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", marginBottom: 8, textAlign: "center" }}>
       {children}
     </h2>
   );
@@ -271,7 +272,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function Highlight({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ fontSize: 22, fontWeight: 700, color: "#fbbf24", textAlign: "center", margin: "20px 0", lineHeight: 1.4 }}>
+    <p style={{ fontSize: "clamp(18px, 4vw, 22px)", fontWeight: 700, color: "#fbbf24", textAlign: "center", margin: "20px 0", lineHeight: 1.4 }}>
       {children}
     </p>
   );
