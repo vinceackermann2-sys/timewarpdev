@@ -6,20 +6,14 @@ type ConnectorType = "Google" | "Microsoft" | "Slack";
 
 /**
  * Hook to initiate OAuth flows for business connectors.
- * Each connector launches its server-side OAuth initiation endpoint.
+ * Works without requiring a signed-in user — callbacks auto-create accounts.
  */
 export function useConnectorOAuth() {
   const initiateOAuth = useCallback(async (connector: ConnectorType) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
+      const userId = session?.user?.id || null;
       const origin = window.location.origin;
-
-      // Google & Microsoft require a user_id for OAuth state storage
-      if (!userId && (connector === "Google" || connector === "Microsoft")) {
-        toast.error("Please sign in first to connect " + connector + ".");
-        return;
-      }
 
       if (connector === "Google") {
         const { data, error } = await supabase.functions.invoke("initiate-google-oauth", {

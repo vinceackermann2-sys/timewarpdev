@@ -1,6 +1,6 @@
 /**
  * Initiates Microsoft OAuth flow by returning the OAuth URL.
- * Keeps client credentials server-side.
+ * Works with or without a signed-in user.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -29,42 +29,34 @@ Deno.serve(async (req) => {
   try {
     const { scopes, user_id, origin } = await req.json();
 
-    if (!user_id) {
-      return new Response(JSON.stringify({ error: "user_id required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Generate nonce for CSRF protection
     const nonce = crypto.randomUUID();
 
-    // Store OAuth state
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false },
-    });
-
-    const { error: stateError } = await supabase
-      .from("microsoft_workspace_connections")
-      .upsert({
-        user_id,
-        oauth_state: nonce,
-        oauth_state_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
-
-    if (stateError) {
-      console.error("[initiate-microsoft-oauth] Failed to store state:", stateError);
-      return new Response(JSON.stringify({ error: "Failed to initiate OAuth" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // If we have a user_id, store state in DB for verification
+    if (user_id) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false },
       });
+
+      const { error: stateError } = await supabase
+        .from("microsoft_workspace_connections")
+        .upsert({
+          user_id,
+          oauth_state: nonce,
+          oauth_state_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+
+      if (stateError) {
+        console.error("[initiate-microsoft-oauth] Failed to store state:", stateError);
+      }
     }
 
-    // Create state parameter
-    const stateParam = btoa(JSON.stringify({ user_id, nonce, origin: origin || "" }));
+    const stateParam = btoa(JSON.stringify({ 
+      user_id: user_id || null, 
+      nonce, 
+      origin: origin || "" 
+    }));
 
-    // Build Microsoft OAuth URL
     const redirectUri = `${SUPABASE_URL}/functions/v1/microsoft-oauth-callback`;
     const defaultScopes = scopes || "offline_access openid email profile User.Read Mail.Read Calendars.Read Files.Read.All";
     
@@ -77,7 +69,7 @@ Deno.serve(async (req) => {
     msAuthUrl.searchParams.set("response_mode", "query");
     msAuthUrl.searchParams.set("prompt", "consent");
 
-    console.log("[initiate-microsoft-oauth] Generated OAuth URL for user:", user_id);
+    console.log("[initiate-microsoft-oauth] Generated OAuth URL, user_id:", user_id || "anonymous");
 
     return new Response(JSON.stringify({ url: msAuthUrl.toString() }), {
       status: 200,

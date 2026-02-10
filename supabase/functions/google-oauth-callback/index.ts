@@ -2,17 +2,7 @@
  
  /**
   * Server-side Google OAuth callback handler.
-  * 
-  * This edge function receives the OAuth redirect from Google directly,
-  * exchanges the authorization code for tokens, and stores them server-side.
-  * This eliminates race conditions with client-side token capture.
-  * 
-  * Flow:
-  * 1. User initiates OAuth in Auth.tsx with state containing user_id
-  * 2. Google redirects here with code and state
-  * 3. We exchange code for tokens
-  * 4. Store tokens with service role (bypasses RLS)
-  * 5. Redirect user to app
+  * Exchanges code for tokens, auto-creates user if needed, stores tokens.
   */
  
  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -20,13 +10,11 @@
  const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 
-// Fallback app URL if origin not in state
 const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
  
  Deno.serve(async (req) => {
    const url = new URL(req.url);
    
-   // Handle GET request (OAuth callback from Google)
    if (req.method === "GET") {
      const code = url.searchParams.get("code");
      const state = url.searchParams.get("state");
@@ -38,14 +26,12 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
        error 
      });
      
-    // Handle missing params first
     if (!code || !state) {
       console.error("[google-oauth-callback] Missing code or state");
       return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?google_error=missing_params`, 302);
     }
     
-    // Decode state to get user_id and origin for redirects
-    let stateData: { user_id: string; nonce: string; origin?: string };
+    let stateData: { user_id: string | null; nonce: string; origin?: string };
     let appUrl = FALLBACK_APP_URL;
     
     try {
@@ -57,38 +43,34 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
       return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?google_error=invalid_state`, 302);
     }
     
-    // Handle OAuth errors from Google
     if (error) {
       console.error("[google-oauth-callback] OAuth error:", error);
       return Response.redirect(`${appUrl}/ai-ceo?google_error=${encodeURIComponent(error)}`, 302);
     }
      
-     // Verify state nonce against stored value
      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
        auth: { persistSession: false },
      });
      
-     const { data: connectionData, error: connectionError } = await supabase
-       .from("google_workspace_connections")
-       .select("oauth_state, oauth_state_expires_at")
-       .eq("user_id", stateData.user_id)
-       .single();
-     
-    if (connectionError || !connectionData) {
-      console.error("[google-oauth-callback] Failed to verify state:", connectionError);
-      return Response.redirect(`${appUrl}/ai-ceo?google_error=state_verification_failed`, 302);
-    }
-    
-    // Check if state matches and hasn't expired
-    if (connectionData.oauth_state !== stateData.nonce) {
-      console.error("[google-oauth-callback] State nonce mismatch");
-      return Response.redirect(`${appUrl}/ai-ceo?google_error=invalid_nonce`, 302);
-    }
-    
-    if (new Date(connectionData.oauth_state_expires_at!) < new Date()) {
-      console.error("[google-oauth-callback] State expired");
-      return Response.redirect(`${appUrl}/ai-ceo?google_error=state_expired`, 302);
-    }
+     // Verify state nonce if user_id exists (signed-in flow)
+     if (stateData.user_id) {
+       const { data: connectionData, error: connectionError } = await supabase
+         .from("google_workspace_connections")
+         .select("oauth_state, oauth_state_expires_at")
+         .eq("user_id", stateData.user_id)
+         .single();
+       
+       if (connectionData) {
+         if (connectionData.oauth_state !== stateData.nonce) {
+           console.error("[google-oauth-callback] State nonce mismatch");
+           return Response.redirect(`${appUrl}/ai-ceo?google_error=invalid_nonce`, 302);
+         }
+         if (new Date(connectionData.oauth_state_expires_at!) < new Date()) {
+           console.error("[google-oauth-callback] State expired");
+           return Response.redirect(`${appUrl}/ai-ceo?google_error=state_expired`, 302);
+         }
+       }
+     }
      
      // Exchange authorization code for tokens
      const redirectUri = `${SUPABASE_URL}/functions/v1/google-oauth-callback`;
@@ -120,14 +102,59 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
        expiresIn: tokenData.expires_in,
      });
      
-     // Calculate expiration time
+     // Resolve user_id: use existing or auto-create from Google email
+     let userId = stateData.user_id;
+     
+     if (!userId) {
+       console.log("[google-oauth-callback] No user_id — fetching Google profile to auto-create user");
+       const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+         headers: { Authorization: `Bearer ${tokenData.access_token}` },
+       });
+       
+       if (profileRes.ok) {
+         const profile = await profileRes.json();
+         const email = profile.email;
+         console.log("[google-oauth-callback] Google profile email:", email);
+         
+         if (email) {
+           // Check if user exists
+           const { data: existingUsers } = await supabase.auth.admin.listUsers();
+           const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+           
+           if (existingUser) {
+             userId = existingUser.id;
+             console.log("[google-oauth-callback] Found existing user:", userId);
+           } else {
+             // Auto-create user
+             const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+               email,
+               email_confirm: true,
+               user_metadata: { full_name: profile.name, avatar_url: profile.picture },
+             });
+             
+             if (createError) {
+               console.error("[google-oauth-callback] Failed to create user:", createError);
+               return Response.redirect(`${appUrl}/ai-ceo?google_error=user_creation_failed`, 302);
+             }
+             
+             userId = newUser.user.id;
+             console.log("[google-oauth-callback] Auto-created user:", userId);
+           }
+         }
+       }
+       
+       if (!userId) {
+         console.error("[google-oauth-callback] Could not resolve user_id");
+         return Response.redirect(`${appUrl}/ai-ceo?google_error=no_user`, 302);
+       }
+     }
+     
      const expiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
      
-     // Store tokens using service role (bypasses RLS)
      const { error: tokenError } = await supabase
        .from("google_workspace_tokens")
        .upsert({
-         user_id: stateData.user_id,
+         user_id: userId,
          access_token: tokenData.access_token,
          refresh_token: tokenData.refresh_token || "",
          expires_at: expiresAt,
@@ -139,13 +166,12 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
       return Response.redirect(`${appUrl}/ai-ceo?google_error=storage_failed`, 302);
     }
      
-     console.log("[google-oauth-callback] Tokens stored successfully");
+     console.log("[google-oauth-callback] Tokens stored successfully for user:", userId);
      
-     // Update connection status and clear OAuth state
      await supabase
        .from("google_workspace_connections")
        .upsert({
-         user_id: stateData.user_id,
+         user_id: userId,
          connected: true,
          last_connected_at: new Date().toISOString(),
          updated_at: new Date().toISOString(),
@@ -154,12 +180,9 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
        }, { onConflict: "user_id" });
      
     console.log("[google-oauth-callback] Redirecting to app:", appUrl);
-    
-    // Redirect to /ai-ceo with success indicator
     return Response.redirect(`${appUrl}/ai-ceo?google_connected=true`, 302);
    }
    
-   // Return 405 for other methods
    return new Response(JSON.stringify({ error: "Method not allowed" }), {
      status: 405,
      headers: { "Content-Type": "application/json" },
