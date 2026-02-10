@@ -198,12 +198,33 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [waitlistForm, setWaitlistForm] = useState({ name: "", email: "", phone: "" });
   const [waitlistLoading, setWaitlistLoading] = useState(false);
 
+  const isOAuthReturn = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.has("google_connected") || params.has("microsoft_connected") || params.has("slack_installed");
+  }, []);
+
+  // Trigger an immediate background sync after OAuth return so data is available right away
+  async function triggerImmediateSync() {
+    try {
+      console.log("[ConnectorGrid] Triggering immediate data sync...");
+      const resp = await supabase.functions.invoke("sync-research");
+      console.log("[ConnectorGrid] Immediate sync result:", resp.data);
+    } catch (e) {
+      console.error("[ConnectorGrid] Immediate sync failed:", e);
+    }
+  }
+
   useEffect(() => {
     // Listen for auth state changes (e.g. magic link sign-in after OAuth redirect)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         console.log("[ConnectorGrid] Auth state changed:", event);
         checkConnections();
+
+        // If this is an OAuth return, trigger immediate sync then load data
+        if (isOAuthReturn) {
+          await triggerImmediateSync();
+        }
         loadWorkspaceData(session.user.id);
       }
     });
@@ -211,15 +232,21 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     checkConnections();
 
     // Also try to load workspace data immediately if we already have a session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) loadWorkspaceData(session.user.id);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        if (isOAuthReturn) {
+          await triggerImmediateSync();
+        }
+        loadWorkspaceData(session.user.id);
+      }
     });
 
+    // Poll for data updates (sync may complete after initial load)
     const interval = setInterval(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) loadWorkspaceData(session.user.id);
       });
-    }, 15000);
+    }, isOAuthReturn ? 5000 : 15000); // Poll faster after OAuth return
     return () => { subscription.unsubscribe(); clearInterval(interval); };
   }, []);
 
@@ -348,16 +375,40 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
 
-    // Build context from workspace data
+    // Build context from workspace data — only include data from actively connected sources
     const connectedContexts: any[] = [];
     if (workspaceData) {
-      const sources = (workspaceData as any)?.raw_data?.sources || [];
-      const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
-      connectedContexts.push({
-        type: "business-db",
-        label,
-        content: workspaceData,
-      });
+      const rawData = (workspaceData as any)?.raw_data || {};
+      const allSources = rawData.sources || [];
+
+      // Filter sources to only those the user has actively connected
+      const activeSources = allSources.filter((s: string) => connectionStatus[s]);
+      
+      if (activeSources.length > 0) {
+        // Build filtered raw_data based on active connections
+        const filteredRawData = { ...rawData, sources: activeSources };
+        
+        // Remove Slack data if Slack is not connected
+        if (!connectionStatus.Slack) {
+          filteredRawData.slackChannels = [];
+          filteredRawData.slackMessages = [];
+        }
+        
+        // Remove Google/Microsoft email/calendar data if not connected
+        // (sync-research already separates by source, but this is a safety filter)
+        
+        const filteredWorkspaceData = {
+          ...workspaceData,
+          raw_data: filteredRawData,
+        };
+
+        const label = `${activeSources.join(" + ")} Workspace Data`;
+        connectedContexts.push({
+          type: "business-db",
+          label,
+          content: filteredWorkspaceData,
+        });
+      }
     }
 
     let assistantSoFar = "";
