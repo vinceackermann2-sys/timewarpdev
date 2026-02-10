@@ -188,6 +188,13 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
   useEffect(() => {
     checkConnections();
+    // Refresh workspace data periodically to pick up background sync updates
+    const interval = setInterval(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) loadWorkspaceData(session.user.id);
+      });
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   // Auto-scroll chat
