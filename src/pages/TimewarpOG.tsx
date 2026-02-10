@@ -1,12 +1,16 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useRef } from "react";
 import { 
   Rocket, Brain, Database, Zap, Target, TrendingUp, 
   Link2, Search, Play, Crown, Users, Infinity,
-  Globe, Heart, Clock, ArrowRight, Sparkles
+  Globe, Heart, Clock, ArrowRight, Sparkles, Send, CheckCircle
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function TimewarpOG() {
   const navigate = useNavigate();
+  const formRef = useRef<HTMLDivElement>(null);
+  const scrollToForm = () => formRef.current?.scrollIntoView({ behavior: "smooth" });
 
   return (
     <div
@@ -144,9 +148,8 @@ export default function TimewarpOG() {
         {/* Apply CTA */}
         <div style={{ textAlign: "center", margin: "48px 0" }}>
           <button
-            onClick={() => navigate("/auth?mode=signup")}
+            onClick={scrollToForm}
             style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontSize: 18,
               fontWeight: 700,
               color: "#0a0a0a",
@@ -197,9 +200,8 @@ export default function TimewarpOG() {
         {/* Final CTA */}
         <div style={{ textAlign: "center", margin: "32px 0 48px" }}>
           <button
-            onClick={() => navigate("/auth?mode=signup")}
+            onClick={scrollToForm}
             style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontSize: 18,
               fontWeight: 700,
               color: "#0a0a0a",
@@ -227,8 +229,13 @@ export default function TimewarpOG() {
           </button>
         </div>
 
+        {/* Application Form */}
+        <div ref={formRef}>
+          <ApplicationForm />
+        </div>
+
         {/* Back */}
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", marginTop: 32 }}>
           <button
             onClick={() => navigate("/ai-ceo")}
             style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer", transition: "color 0.2s" }}
@@ -361,6 +368,135 @@ function PricingCard({ title, price, period, tagline, features, popular, saving 
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ApplicationForm() {
+  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", website: "" });
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await supabase.from("waitlist").insert({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+      });
+      setSubmitted(true);
+    } catch {
+      // silently handle
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ textAlign: "center", padding: "48px 24px", borderRadius: 20, background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)", margin: "32px 0" }}>
+        <CheckCircle size={48} style={{ color: "#fbbf24", marginBottom: 16 }} />
+        <h3 style={{ fontSize: 24, fontWeight: 800, color: "#fff", marginBottom: 8 }}>Application Received!</h3>
+        <p style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.7, maxWidth: 400, margin: "0 auto" }}>
+          We review every application personally. If we think we're a good fit for each other, we'll reach out soon.
+        </p>
+      </div>
+    );
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "14px 16px",
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.05)",
+    color: "#fff",
+    fontSize: 15,
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    outline: "none",
+    transition: "border-color 0.2s",
+  };
+
+  return (
+    <div style={{ margin: "32px 0", padding: "36px 32px", borderRadius: 20, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(251,191,36,0.2)" }}>
+      <h3 style={{ fontSize: 24, fontWeight: 800, color: "#fff", textAlign: "center", marginBottom: 8 }}>Apply to become a TimeWarp OG</h3>
+      <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textAlign: "center", marginBottom: 28, lineHeight: 1.6 }}>
+        We review every application personally. If we think we're a good fit for each other, we'll contact you.
+      </p>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 480, margin: "0 auto" }}>
+        <input
+          required
+          placeholder="Your Name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          style={inputStyle}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(251,191,36,0.5)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
+        />
+        <input
+          required
+          type="email"
+          placeholder="Email Address"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          style={inputStyle}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(251,191,36,0.5)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
+        />
+        <input
+          required
+          type="tel"
+          placeholder="Phone Number"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          style={inputStyle}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(251,191,36,0.5)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
+        />
+        <input
+          placeholder="Company Name"
+          value={form.company}
+          onChange={(e) => setForm({ ...form, company: e.target.value })}
+          style={inputStyle}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(251,191,36,0.5)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
+        />
+        <input
+          placeholder="Website (optional)"
+          value={form.website}
+          onChange={(e) => setForm({ ...form, website: e.target.value })}
+          style={inputStyle}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(251,191,36,0.5)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 17,
+            fontWeight: 700,
+            color: "#0a0a0a",
+            background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
+            border: "none",
+            borderRadius: 14,
+            padding: "16px 32px",
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.7 : 1,
+            transition: "all 0.3s ease",
+            boxShadow: "0 0 30px rgba(251,191,36,0.25)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            marginTop: 4,
+          }}
+        >
+          {loading ? "Submitting..." : "Apply Now"} <Send size={18} />
+        </button>
+      </form>
     </div>
   );
 }
