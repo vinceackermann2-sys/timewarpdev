@@ -66,7 +66,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         </h1>
 
         {/* Subtitle */}
-        <p className="max-w-lg mb-8 sm:mb-12 leading-relaxed px-4 text-[14px] sm:text-[clamp(13px,3vw,15px)]" style={{
+        <p className="max-w-lg mb-8 sm:mb-12 leading-relaxed px-4 text-[12px] sm:text-[clamp(13px,3vw,15px)]" style={{
         fontFamily: "'Plus Jakarta Sans', sans-serif",
         color: "rgba(255,255,255,0.45)",
         fontWeight: 400,
