@@ -5,6 +5,7 @@ import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { toast } from "sonner";
 import { FloatingChat } from "./FloatingChat";
 import ReactMarkdown from "react-markdown";
+import { useNavigate } from "react-router-dom";
 
 interface ConnectorDef {
   name: "Google" | "Microsoft" | "Slack";
@@ -170,6 +171,7 @@ interface ConnectorGridProps {
 const RESEARCH_CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/research-chat`;
 
 export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
+  const navigate = useNavigate();
   const [connectionStatus, setConnectionStatus] = useState<Record<string, boolean>>({
     Google: false,
     Microsoft: false,
@@ -751,10 +753,35 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                       e.currentTarget.style.background = "rgba(99, 102, 241, 0.15)";
                     }}
                   >
-                    Join Waitlist
-                  </button>
-                </div>
-              )}
+                     Join Waitlist
+                   </button>
+                   <button
+                     onClick={() => navigate("/timewarp-og")}
+                     style={{
+                       fontFamily: "'Plus Jakarta Sans', sans-serif",
+                       fontSize: 13,
+                       fontWeight: 700,
+                       color: "#fff",
+                       background: "linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.15))",
+                       border: "1px solid rgba(251, 191, 36, 0.4)",
+                       borderRadius: 10,
+                       padding: "6px 16px",
+                       cursor: "pointer",
+                       transition: "all 0.2s ease",
+                     }}
+                     onMouseEnter={(e) => {
+                       e.currentTarget.style.background = "linear-gradient(135deg, rgba(251, 191, 36, 0.4), rgba(245, 158, 11, 0.25))";
+                       e.currentTarget.style.transform = "scale(1.05)";
+                     }}
+                     onMouseLeave={(e) => {
+                       e.currentTarget.style.background = "linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.15))";
+                       e.currentTarget.style.transform = "scale(1)";
+                     }}
+                   >
+                     ⚡ Become TimeWarp OG
+                   </button>
+                 </div>
+               )}
 
               {/* Locked state — all messages used */}
               {userMessageCount >= MAX_MESSAGES && (
@@ -827,10 +854,36 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                       e.currentTarget.style.transform = "scale(1)";
                     }}
                   >
-                    Join Waitlist
-                  </button>
-                </div>
-              )}
+                     Join Waitlist
+                   </button>
+                   <button
+                     onClick={() => navigate("/timewarp-og")}
+                     style={{
+                       fontFamily: "'Plus Jakarta Sans', sans-serif",
+                       fontSize: 15,
+                       fontWeight: 700,
+                       color: "#fff",
+                       background: "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.2))",
+                       border: "1px solid rgba(251, 191, 36, 0.4)",
+                       borderRadius: 14,
+                       padding: "12px 28px",
+                       cursor: "pointer",
+                       transition: "all 0.2s ease",
+                       boxShadow: "0 0 24px rgba(251, 191, 36, 0.2)",
+                     }}
+                     onMouseEnter={(e) => {
+                       e.currentTarget.style.transform = "scale(1.05)";
+                       e.currentTarget.style.boxShadow = "0 0 32px rgba(251, 191, 36, 0.35)";
+                     }}
+                     onMouseLeave={(e) => {
+                       e.currentTarget.style.transform = "scale(1)";
+                       e.currentTarget.style.boxShadow = "0 0 24px rgba(251, 191, 36, 0.2)";
+                     }}
+                   >
+                     ⚡ Become TimeWarp OG
+                   </button>
+                 </div>
+               )}
 
               <div ref={chatEndRef} />
             </div>
