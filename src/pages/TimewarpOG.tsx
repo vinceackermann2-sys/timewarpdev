@@ -27,7 +27,7 @@ export default function TimewarpOG() {
       <div style={{ position: "absolute", top: "50%", right: "-10%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", top: "75%", left: "-5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-      <div style={{ maxWidth: 720, width: "100%", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: 960, width: "100%", position: "relative", zIndex: 1 }}>
 
         {/* Badge */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
@@ -114,7 +114,7 @@ export default function TimewarpOG() {
         <Section>
           <SectionTitle>What it costs at launch</SectionTitle>
           <P style={{ textAlign: "center", marginBottom: 24 }}>These plans are <B>not available yet</B> — OGs get unlimited access forever.</P>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, margin: "24px 0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, margin: "24px 0" }}>
             <PricingCard
               title="Monthly"
               price="€499"
@@ -328,36 +328,35 @@ function BenefitCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
 function PricingCard({ title, price, period, tagline, features, popular, saving }: { title: string; price: string; period: string; tagline: string; features: string[]; popular?: boolean; saving?: string }) {
   return (
     <div style={{
-      padding: "24px 28px",
+      padding: "24px 20px",
       borderRadius: 18,
-      background: popular
-        ? "linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.06))"
-        : "rgba(255,255,255,0.03)",
+      background: "rgba(255,255,255,0.03)",
       border: popular
-        ? "2px solid rgba(251,191,36,0.4)"
-        : "1px solid rgba(255,255,255,0.08)",
+        ? "2px solid rgba(251,191,36,0.5)"
+        : "1px solid rgba(251,191,36,0.25)",
       position: "relative",
+      display: "flex",
+      flexDirection: "column",
     }}>
       {popular && (
-        <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50)", display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 14px", borderRadius: 20, background: "linear-gradient(135deg, #fbbf24, #f59e0b)", fontSize: 12, fontWeight: 700, color: "#0a0a0a", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+        <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 14px", borderRadius: 20, background: "linear-gradient(135deg, #fbbf24, #f59e0b)", fontSize: 12, fontWeight: 700, color: "#0a0a0a", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
           ⭐ Most Popular
         </div>
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>{title}</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontStyle: "italic", marginTop: 2 }}>{tagline}</div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <span style={{ fontSize: 28, fontWeight: 900, color: popular ? "#fbbf24" : "#fff" }}>{price}</span>
-          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>{period}</span>
-          {saving && <div style={{ fontSize: 13, fontWeight: 700, color: "#34d399", marginTop: 2 }}>{saving}</div>}
-        </div>
+      <div style={{ marginBottom: 12, textAlign: "center" }}>
+        <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{title}</div>
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontStyle: "italic", marginTop: 4 }}>{tagline}</div>
       </div>
-      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ textAlign: "center", marginBottom: 16 }}>
+        <span style={{ fontSize: 32, fontWeight: 900, color: "#fbbf24" }}>{price}</span>
+        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{period}</span>
+        {saving && <div style={{ fontSize: 13, fontWeight: 700, color: "#34d399", marginTop: 4 }}>{saving}</div>}
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>What's included</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
         {features.map((f, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.6)" }}>
-            <span style={{ color: popular ? "#fbbf24" : "#818cf8", fontSize: 12 }}>✓</span>
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "rgba(255,255,255,0.6)" }}>
+            <span style={{ color: "#fbbf24", fontSize: 11 }}>✓</span>
             {f}
           </div>
         ))}
