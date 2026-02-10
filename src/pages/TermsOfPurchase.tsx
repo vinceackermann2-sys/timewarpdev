@@ -68,6 +68,24 @@ export default function TermsOfPurchase() {
           <p>Timewarp does not take responsibility for accidents or injuries occurring during the use of our products.</p>
           <p>Please note that product images on the website may include additional equipment. The product description always defines what is included. Note that product colors displayed on the website may differ from actual colors.</p>
 
+          <h2 className="text-xl font-semibold text-foreground mt-8">Google User Data &amp; API Access</h2>
+          <p>If you choose to connect your Google account to our services, Timewarp may access certain Google user data via Google APIs strictly for the purpose of providing the functionality you request.</p>
+
+          <h3 className="text-lg font-semibold text-foreground mt-6">Access &amp; Use</h3>
+          <p>We only access Google user data that is explicitly authorized by you through Google's consent screen. This data is used solely to deliver, maintain, and improve the features of our app that rely on Google services. We do not use Google user data for advertising, profiling, or any unrelated purposes.</p>
+
+          <h3 className="text-lg font-semibold text-foreground mt-6">Storage &amp; Security</h3>
+          <p>Google user data is stored only for as long as necessary to fulfill the intended functionality and is protected using industry-standard security measures to prevent unauthorized access, loss, or misuse.</p>
+
+          <h3 className="text-lg font-semibold text-foreground mt-6">Sharing &amp; Disclosure</h3>
+          <p>We do not sell, rent, or share Google user data with third parties, except when required to operate the requested functionality or when legally required to comply with applicable laws.</p>
+
+          <h3 className="text-lg font-semibold text-foreground mt-6">Limited Use Compliance</h3>
+          <p>Timewarp's use and transfer of information received from Google APIs complies with the Google API Services User Data Policy, including the Limited Use requirements.</p>
+
+          <h3 className="text-lg font-semibold text-foreground mt-6">User Control &amp; Revocation</h3>
+          <p>You may revoke our access to your Google account at any time through your Google Account settings. Upon revocation, we will stop accessing the data and delete any stored Google user data unless retention is required by law.</p>
+
           <h2 className="text-xl font-semibold text-foreground mt-8">Campaigns</h2>
           <p>Campaign offers and discount codes cannot be applied after an order has been completed. Campaigns apply only to new orders placed during the campaign period.</p>
 
