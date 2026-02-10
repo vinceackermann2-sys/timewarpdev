@@ -22,13 +22,31 @@ const TEXT_TO_CARD: Record<string, "research" | "action"> = {
 export function AiCeoChatView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isOAuthReturn = searchParams.has("google_connected") || searchParams.has("microsoft_connected") || searchParams.has("slack_installed") || searchParams.has("google_error") || searchParams.has("microsoft_error") || searchParams.has("slack_error");
+  const autoConnect = searchParams.get("auto_connect");
   
-  const [mode, setMode] = useState<"select" | "connectors" | "action">(isOAuthReturn ? "connectors" : "select");
+  const [mode, setMode] = useState<"select" | "connectors" | "action">(isOAuthReturn || autoConnect ? "connectors" : "select");
   const [activeCard, setActiveCard] = useState<"research" | "action">("research");
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const [browserLoading, setBrowserLoading] = useState(false);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const { initiateOAuth } = useConnectorOAuth();
+
+  // Auto-connect if redirected from auth with auto_connect param
+  useEffect(() => {
+    if (autoConnect) {
+      const connectorMap: Record<string, "Google" | "Microsoft" | "Slack"> = {
+        google: "Google",
+        microsoft: "Microsoft",
+        slack: "Slack",
+      };
+      const connector = connectorMap[autoConnect];
+      if (connector) {
+        // Clear the param first, then initiate
+        setSearchParams({}, { replace: true });
+        initiateOAuth(connector);
+      }
+    }
+  }, [autoConnect]);
 
   // Show error toasts for OAuth failures and clear params
   useEffect(() => {

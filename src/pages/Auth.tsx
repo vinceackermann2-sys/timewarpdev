@@ -48,7 +48,11 @@ const Auth = () => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Normal login (no quiz/connect flow): go straight in.
+        const redirect = searchParams.get("redirect");
+        if (redirect) {
+          navigate(redirect);
+          return;
+        }
         if (!quizData) {
           navigateToDashboard();
           return;
@@ -64,12 +68,14 @@ const Auth = () => {
     // Listen for auth changes
      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-         // For non-quiz flow, navigate to dashboard
+        const redirect = searchParams.get("redirect");
+        if (redirect) {
+          navigate(redirect);
+          return;
+        }
          if (!quizData) {
           navigateToDashboard();
         }
-         // For quiz flow, user is now signed in
-         // They still need to connect Google Workspace - UI will show the button
       }
     });
 
