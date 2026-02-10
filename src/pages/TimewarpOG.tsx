@@ -9,8 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function TimewarpOG() {
   const navigate = useNavigate();
-  const formRef = useRef<HTMLDivElement>(null);
-  const scrollToForm = () => formRef.current?.scrollIntoView({ behavior: "smooth" });
+  const [showForm, setShowForm] = useState(false);
 
   return (
     <div
@@ -148,7 +147,7 @@ export default function TimewarpOG() {
         {/* Apply CTA */}
         <div style={{ textAlign: "center", margin: "48px 0" }}>
           <button
-            onClick={scrollToForm}
+            onClick={() => setShowForm(true)}
             style={{
               fontSize: 18,
               fontWeight: 700,
@@ -200,7 +199,7 @@ export default function TimewarpOG() {
         {/* Final CTA */}
         <div style={{ textAlign: "center", margin: "32px 0 48px" }}>
           <button
-            onClick={scrollToForm}
+            onClick={() => setShowForm(true)}
             style={{
               fontSize: 18,
               fontWeight: 700,
@@ -229,10 +228,8 @@ export default function TimewarpOG() {
           </button>
         </div>
 
-        {/* Application Form */}
-        <div ref={formRef}>
-          <ApplicationForm />
-        </div>
+        {/* Application Form Modal */}
+        {showForm && <ApplicationFormModal onClose={() => setShowForm(false)} />}
 
         {/* Back */}
         <div style={{ textAlign: "center", marginTop: 32 }}>
@@ -372,7 +369,7 @@ function PricingCard({ title, price, period, tagline, features, popular, saving 
   );
 }
 
-function ApplicationForm() {
+function ApplicationFormModal({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", website: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -396,12 +393,15 @@ function ApplicationForm() {
 
   if (submitted) {
     return (
-      <div style={{ textAlign: "center", padding: "48px 24px", borderRadius: 20, background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)", margin: "32px 0" }}>
-        <CheckCircle size={48} style={{ color: "#fbbf24", marginBottom: 16 }} />
-        <h3 style={{ fontSize: 24, fontWeight: 800, color: "#fff", marginBottom: 8 }}>Application Received!</h3>
-        <p style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.7, maxWidth: 400, margin: "0 auto" }}>
-          We review every application personally. If we think we're a good fit for each other, we'll reach out soon.
-        </p>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ textAlign: "center", padding: "48px 24px", borderRadius: 20, background: "#0d1528", border: "1px solid rgba(251,191,36,0.2)", maxWidth: 500, width: "100%" }}>
+          <CheckCircle size={48} style={{ color: "#fbbf24", marginBottom: 16 }} />
+          <h3 style={{ fontSize: 24, fontWeight: 800, color: "#fff", marginBottom: 8 }}>Application Received!</h3>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.7, maxWidth: 400, margin: "0 auto 24px" }}>
+            We review every application personally. If we think we're a good fit for each other, we'll reach out soon.
+          </p>
+          <button onClick={onClose} style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.5)", background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "10px 24px", cursor: "pointer" }}>Close</button>
+        </div>
       </div>
     );
   }
@@ -420,11 +420,12 @@ function ApplicationForm() {
   };
 
   return (
-    <div style={{ margin: "32px 0", padding: "36px 32px", borderRadius: 20, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(251,191,36,0.2)" }}>
-      <h3 style={{ fontSize: 24, fontWeight: 800, color: "#fff", textAlign: "center", marginBottom: 8 }}>Apply to become a TimeWarp OG</h3>
-      <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textAlign: "center", marginBottom: 28, lineHeight: 1.6 }}>
-        We review every application personally. If we think we're a good fit for each other, we'll contact you.
-      </p>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500, width: "100%", padding: "36px 32px", borderRadius: 20, background: "#0d1528", border: "1px solid rgba(251,191,36,0.2)" }}>
+        <h3 style={{ fontSize: 24, fontWeight: 800, color: "#fff", textAlign: "center", marginBottom: 8 }}>Apply to become a TimeWarp OG</h3>
+        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textAlign: "center", marginBottom: 28, lineHeight: 1.6 }}>
+          We review every application personally. If we think we're a good fit for each other, we'll contact you.
+        </p>
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 480, margin: "0 auto" }}>
         <input
           required
@@ -497,6 +498,7 @@ function ApplicationForm() {
           {loading ? "Submitting..." : "Apply Now"} <Send size={18} />
         </button>
       </form>
+      </div>
     </div>
   );
 }
