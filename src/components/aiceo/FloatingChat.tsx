@@ -218,19 +218,22 @@ export function FloatingChat({ mode, onModeChange, onSend, disabled }: FloatingC
             type="text"
             value={message}
             onChange={(e) => {
-              setMessage(e.target.value);
+              if (!disabled) setMessage(e.target.value);
             }}
+            placeholder={disabled ? "Connect a source above to start…" : ""}
             style={{
               width: "100%",
               background: "transparent",
               border: "none",
               outline: "none",
-              color: "#fff",
+              color: disabled ? "rgba(255,255,255,0.3)" : "#fff",
               fontSize: 15,
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontWeight: 400,
               letterSpacing: "0.01em",
+              cursor: disabled ? "not-allowed" : "text",
             }}
+            disabled={disabled}
           />
         </div>
         <button
