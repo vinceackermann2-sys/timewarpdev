@@ -69,7 +69,7 @@ export function FloatingChat({ mode, onModeChange, onSend, disabled }: FloatingC
         left: 0,
         right: 0,
         zIndex: 50,
-        padding: "20px 24px 36px",
+        padding: "16px 12px 28px",
         background: "transparent",
         animation: "fadeSlideUp 0.5s ease-out forwards",
       }}

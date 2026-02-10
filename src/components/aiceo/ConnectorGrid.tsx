@@ -78,7 +78,7 @@ function ConnectorCard({ connector, connected, index, onConnect, onDisconnect }:
         alignItems: "center",
         justifyContent: "center",
         gap: 10,
-        padding: "24px 28px",
+        padding: "18px 20px",
         borderRadius: 16,
         background: connected ? connector.connectedColor : connector.color,
         border: `1.5px solid ${connected ? "rgba(255,255,255,0.2)" : connector.borderColor}`,
@@ -86,7 +86,7 @@ function ConnectorCard({ connector, connected, index, onConnect, onDisconnect }:
         transition: "all 0.3s ease",
         animation: `fadeSlideUp 0.4s ease-out ${index * 0.1}s both`,
         position: "relative",
-        minWidth: 130,
+        minWidth: 100,
       }}
       className="hover:scale-[1.05] active:scale-[0.97]"
       onMouseEnter={(e) => {
@@ -445,7 +445,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
           <h2
             style={{
               fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontSize: "clamp(40px, 5.5vw, 64px)",
+              fontSize: "clamp(28px, 5.5vw, 64px)",
               fontWeight: 800,
               color: "#fff",
               textAlign: "center",
@@ -458,7 +458,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             <span className="text-primary">business</span>
           </h2>
         )}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3 sm:gap-5 flex-wrap justify-center">
           {connectors.map((connector, i) => (
             <ConnectorCard
               key={connector.name}
@@ -678,14 +678,14 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                 text-underline-offset: 3px !important;
               }
             `}</style>
-            <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 8px", display: "flex", flexDirection: "column", gap: 16 }}>
               {messages.map((msg, i) => (
                 <div
                   key={i}
                   style={{
                     alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                    maxWidth: msg.role === "user" ? "70%" : "95%",
-                    padding: msg.role === "user" ? "12px 16px" : "20px 24px",
+                    maxWidth: msg.role === "user" ? "85%" : "100%",
+                    padding: msg.role === "user" ? "10px 14px" : "16px 18px",
                     borderRadius: 16,
                     background: msg.role === "user"
                       ? "rgba(99, 102, 241, 0.2)"
@@ -717,12 +717,13 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
               {/* Message counter & waitlist button — show after first AI response */}
               {userMessageCount >= 1 && userMessageCount < MAX_MESSAGES && !isStreaming && (
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 12,
-                  padding: "16px 0",
+                 <div style={{
+                   display: "flex",
+                   alignItems: "center",
+                   justifyContent: "center",
+                   gap: 8,
+                   padding: "12px 0",
+                   flexWrap: "wrap",
                   animation: "fadeSlideUp 0.3s ease-out forwards",
                 }}>
                   <span style={{

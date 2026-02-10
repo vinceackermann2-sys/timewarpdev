@@ -154,13 +154,13 @@ export function AiCeoChatView() {
             </h1>
 
             {/* Research / Action cards */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6 px-2" style={{ flexWrap: "nowrap" }}>
               {/* Research Card */}
               <button
                 onClick={() => setMode("connectors")}
                 style={{
-                  width: 280,
-                  height: 340,
+                  width: "min(40vw, 280px)",
+                  height: "min(50vw, 340px)",
                   borderRadius: 24,
                   border: "none",
                   cursor: "pointer",
@@ -209,7 +209,7 @@ export function AiCeoChatView() {
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: 28,
+                      fontSize: "clamp(18px, 4vw, 28px)",
                       fontWeight: 800,
                       color: "#fff",
                       letterSpacing: "-0.02em",
@@ -224,9 +224,10 @@ export function AiCeoChatView() {
               {/* Divider */}
               <span style={{
                 color: "rgba(255, 255, 255, 0.12)",
-                fontSize: 36,
+                fontSize: "clamp(24px, 5vw, 36px)",
                 fontWeight: 200,
                 userSelect: "none",
+                flexShrink: 0,
               }}>
                 /
               </span>
@@ -234,8 +235,8 @@ export function AiCeoChatView() {
               {/* Action Card - Coming Soon */}
               <div
                 style={{
-                  width: 280,
-                  height: 340,
+                  width: "min(40vw, 280px)",
+                  height: "min(50vw, 340px)",
                   borderRadius: 24,
                   border: "none",
                   position: "relative",
@@ -268,14 +269,14 @@ export function AiCeoChatView() {
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 12,
+                    gap: 8,
                   }}
                 >
-                  <span style={{ fontSize: 36 }}>🔒</span>
+                  <span style={{ fontSize: "clamp(24px, 5vw, 36px)" }}>🔒</span>
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: 28,
+                      fontSize: "clamp(18px, 4vw, 28px)",
                       fontWeight: 800,
                       color: "#fff",
                       letterSpacing: "-0.02em",
