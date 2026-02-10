@@ -56,7 +56,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         {/* Headline */}
         <h1 className="leading-[1.05] tracking-tight mb-5 my-0 mx-0" style={{
         fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontSize: "clamp(28px, 5.5vw, 68px)",
+        fontSize: "clamp(36px, 5.5vw, 68px)",
         fontWeight: 800,
         color: "#ffffff",
         letterSpacing: "-0.02em"
@@ -69,7 +69,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         {/* Subtitle */}
         <p className="max-w-lg mb-8 sm:mb-12 leading-relaxed px-4" style={{
         fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontSize: "clamp(13px, 3vw, 15px)",
+        fontSize: "clamp(15px, 3.5vw, 17px)",
         color: "rgba(255,255,255,0.45)",
         fontWeight: 400,
         lineHeight: 1.7
