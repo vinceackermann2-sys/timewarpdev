@@ -32,13 +32,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const origin = body.origin || "";
+
     const redirectUri = `${SUPABASE_URL}/functions/v1/slack-oauth`;
     const scopes = "channels:history,channels:read,chat:write,users:read";
+
+    // Encode origin in state so callback can redirect back correctly
+    const state = btoa(JSON.stringify({ origin }));
 
     const slackUrl = new URL("https://slack.com/oauth/v2/authorize");
     slackUrl.searchParams.set("client_id", SLACK_CLIENT_ID);
     slackUrl.searchParams.set("scope", scopes);
     slackUrl.searchParams.set("redirect_uri", redirectUri);
+    slackUrl.searchParams.set("state", state);
 
     console.log("[initiate-slack-oauth] Generated Slack OAuth URL");
 

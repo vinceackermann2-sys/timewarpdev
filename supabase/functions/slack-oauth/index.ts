@@ -12,12 +12,19 @@
    }
  
    try {
-     const url = new URL(req.url);
-     const code = url.searchParams.get("code");
-     const error = url.searchParams.get("error");
- 
-     // Get redirect URL from env or use default
-     const appUrl = Deno.env.get("APP_URL") || "https://digital-guide-genie.lovable.app";
+    const url = new URL(req.url);
+    const code = url.searchParams.get("code");
+    const error = url.searchParams.get("error");
+    const stateParam = url.searchParams.get("state");
+
+    // Decode origin from state, or fall back to env/default
+    let appUrl = Deno.env.get("APP_URL") || "https://digital-guide-genie.lovable.app";
+    if (stateParam) {
+      try {
+        const stateData = JSON.parse(atob(stateParam));
+        if (stateData.origin) appUrl = stateData.origin;
+      } catch (_) { /* ignore parse errors */ }
+    }
  
      // Handle OAuth errors
      if (error) {

@@ -45,7 +45,7 @@ export function useConnectorOAuth() {
         }
       } else if (connector === "Slack") {
         const { data, error } = await supabase.functions.invoke("initiate-slack-oauth", {
-          body: {},
+          body: { origin },
         });
 
         if (error) throw error;
