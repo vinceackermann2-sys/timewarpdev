@@ -199,13 +199,21 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
 
   useEffect(() => {
+    // Listen for auth state changes (e.g. magic link sign-in after OAuth redirect)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        console.log("[ConnectorGrid] Auth state changed:", event);
+        checkConnections();
+      }
+    });
+
     checkConnections();
     const interval = setInterval(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) loadWorkspaceData(session.user.id);
       });
     }, 15000);
-    return () => clearInterval(interval);
+    return () => { subscription.unsubscribe(); clearInterval(interval); };
   }, []);
 
   // Auto-scroll chat
