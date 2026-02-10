@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -10,21 +9,12 @@ type ConnectorType = "Google" | "Microsoft" | "Slack";
  * Each connector launches its server-side OAuth initiation endpoint.
  */
 export function useConnectorOAuth() {
-  const navigate = useNavigate();
-
   const initiateOAuth = useCallback(async (connector: ConnectorType) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session?.user?.id) {
-        // Redirect to auth with a return path so user comes back after signing in
-        toast.info("Sign in to connect your accounts.");
-        navigate("/auth?redirect=/ai-ceo?auto_connect=" + connector.toLowerCase());
-        return;
-      }
-
-      const userId = session.user.id;
+      const userId = session?.user?.id;
       const origin = window.location.origin;
+
 
       if (connector === "Google") {
         const { data, error } = await supabase.functions.invoke("initiate-google-oauth", {
