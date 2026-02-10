@@ -755,6 +755,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                   >
                      Join Waitlist
                    </button>
+                   <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>or</span>
                    <button
                      onClick={() => navigate("/timewarp-og")}
                      style={{
@@ -856,6 +857,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                   >
                      Join Waitlist
                    </button>
+                   <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>or</span>
                    <button
                      onClick={() => navigate("/timewarp-og")}
                      style={{
