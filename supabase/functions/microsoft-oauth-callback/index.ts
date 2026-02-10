@@ -1,6 +1,6 @@
 /**
  * Server-side Microsoft OAuth callback handler.
- * Receives redirect from Microsoft, exchanges code for tokens, stores them.
+ * Exchanges code for tokens, auto-creates user if needed, stores tokens.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -32,8 +32,7 @@ Deno.serve(async (req) => {
       return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?microsoft_error=missing_params`, 302);
     }
 
-    // Decode state
-    let stateData: { user_id: string; nonce: string; origin?: string };
+    let stateData: { user_id: string | null; nonce: string; origin?: string };
     let appUrl = FALLBACK_APP_URL;
 
     try {
@@ -50,30 +49,28 @@ Deno.serve(async (req) => {
       return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=${encodeURIComponent(error)}`, 302);
     }
 
-    // Verify state nonce
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
 
-    const { data: connectionData, error: connectionError } = await supabase
-      .from("microsoft_workspace_connections")
-      .select("oauth_state, oauth_state_expires_at")
-      .eq("user_id", stateData.user_id)
-      .single();
+    // Verify state nonce if user_id exists (signed-in flow)
+    if (stateData.user_id) {
+      const { data: connectionData } = await supabase
+        .from("microsoft_workspace_connections")
+        .select("oauth_state, oauth_state_expires_at")
+        .eq("user_id", stateData.user_id)
+        .single();
 
-    if (connectionError || !connectionData) {
-      console.error("[microsoft-oauth-callback] Failed to verify state:", connectionError);
-      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=state_verification_failed`, 302);
-    }
-
-    if (connectionData.oauth_state !== stateData.nonce) {
-      console.error("[microsoft-oauth-callback] State nonce mismatch");
-      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=invalid_nonce`, 302);
-    }
-
-    if (new Date(connectionData.oauth_state_expires_at!) < new Date()) {
-      console.error("[microsoft-oauth-callback] State expired");
-      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=state_expired`, 302);
+      if (connectionData) {
+        if (connectionData.oauth_state !== stateData.nonce) {
+          console.error("[microsoft-oauth-callback] State nonce mismatch");
+          return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=invalid_nonce`, 302);
+        }
+        if (new Date(connectionData.oauth_state_expires_at!) < new Date()) {
+          console.error("[microsoft-oauth-callback] State expired");
+          return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=state_expired`, 302);
+        }
+      }
     }
 
     // Exchange code for tokens
@@ -107,13 +104,57 @@ Deno.serve(async (req) => {
       expiresIn: tokenData.expires_in,
     });
 
+    // Resolve user_id: use existing or auto-create from Microsoft profile
+    let userId = stateData.user_id;
+
+    if (!userId) {
+      console.log("[microsoft-oauth-callback] No user_id — fetching Microsoft profile to auto-create user");
+      const profileRes = await fetch("https://graph.microsoft.com/v1.0/me", {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        const email = profile.mail || profile.userPrincipalName;
+        console.log("[microsoft-oauth-callback] Microsoft profile email:", email);
+
+        if (email) {
+          const { data: existingUsers } = await supabase.auth.admin.listUsers();
+          const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+
+          if (existingUser) {
+            userId = existingUser.id;
+            console.log("[microsoft-oauth-callback] Found existing user:", userId);
+          } else {
+            const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+              email,
+              email_confirm: true,
+              user_metadata: { full_name: profile.displayName },
+            });
+
+            if (createError) {
+              console.error("[microsoft-oauth-callback] Failed to create user:", createError);
+              return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=user_creation_failed`, 302);
+            }
+
+            userId = newUser.user.id;
+            console.log("[microsoft-oauth-callback] Auto-created user:", userId);
+          }
+        }
+      }
+
+      if (!userId) {
+        console.error("[microsoft-oauth-callback] Could not resolve user_id");
+        return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=no_user`, 302);
+      }
+    }
+
     const expiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
 
-    // Store tokens
     const { error: tokenError } = await supabase
       .from("microsoft_workspace_tokens")
       .upsert({
-        user_id: stateData.user_id,
+        user_id: userId,
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token || "",
         expires_at: expiresAt,
@@ -125,13 +166,12 @@ Deno.serve(async (req) => {
       return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=storage_failed`, 302);
     }
 
-    console.log("[microsoft-oauth-callback] Tokens stored successfully");
+    console.log("[microsoft-oauth-callback] Tokens stored successfully for user:", userId);
 
-    // Update connection status
     await supabase
       .from("microsoft_workspace_connections")
       .upsert({
-        user_id: stateData.user_id,
+        user_id: userId,
         connected: true,
         last_connected_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
