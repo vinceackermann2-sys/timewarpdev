@@ -109,8 +109,8 @@ export function PhoneMockup({ onRunClick }: PhoneMockupProps) {
     <div
       className="relative flex flex-col"
       style={{
-        width: 400,
-        height: 700,
+        width: "min(90vw, 400px)",
+        height: "min(160vw, 700px)",
         background: "#1a1f2e",
         borderRadius: 48,
         padding: "8px",

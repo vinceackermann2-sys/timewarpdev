@@ -6,11 +6,12 @@ import {
   Globe, Heart, Clock, ArrowRight, Sparkles, Send, CheckCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function TimewarpOG() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
-  const isMobile = window.innerWidth < 640;
+  const isMobile = useIsMobile();
 
   return (
     <div
@@ -41,13 +42,13 @@ export default function TimewarpOG() {
         </div>
 
         {/* Title */}
-        <h1 style={{ fontSize: "clamp(42px, 6vw, 72px)", fontWeight: 900, color: "#fff", textAlign: "center", letterSpacing: "-0.04em", lineHeight: 1.05, marginBottom: 48 }}>
+        <h1 style={{ fontSize: "clamp(32px, 8vw, 72px)", fontWeight: 900, color: "#fff", textAlign: "center", letterSpacing: "-0.04em", lineHeight: 1.05, marginBottom: isMobile ? 32 : 48 }}>
           TimeWarp <span style={{ color: "#fbbf24" }}>OG</span>
         </h1>
 
         {/* Opening - The Problem */}
         <Section>
-          <div style={{ display: "flex", gap: 16, marginBottom: 24, justifyContent: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 10, marginBottom: 24, justifyContent: "center", flexWrap: "wrap" }}>
             <IconPill icon={<Database size={16} />} label="Databases in space" />
             <IconPill icon={<Rocket size={16} />} label="Robotics" />
             <IconPill icon={<Zap size={16} />} label="Self-driving cars" />
@@ -150,7 +151,7 @@ export default function TimewarpOG() {
           <button
             onClick={() => setShowForm(true)}
             style={{
-              fontSize: 18,
+              fontSize: isMobile ? 15 : 18,
               fontWeight: 700,
               color: "#0a0a0a",
               background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
@@ -183,7 +184,7 @@ export default function TimewarpOG() {
           <P>If speed is time, then moving faster allows <B>Usain Bolt</B> to reach the goal line before Kevin Hart.</P>
           <P>So if businesses move faster — they produce <B>better products</B> and <B>better services.</B> The real metric for helping us tackle real problems: <B>climate change, diseases, and natural disasters.</B></P>
           
-          <div style={{ margin: "32px 0", padding: 24, borderRadius: 16, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)" }}>
+          <div style={{ margin: "24px 0", padding: isMobile ? "16px" : "24px", borderRadius: 16, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
               <Heart size={18} style={{ color: "#818cf8" }} />
               <span style={{ fontSize: 14, fontWeight: 600, color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Why we build</span>
@@ -202,7 +203,7 @@ export default function TimewarpOG() {
           <button
             onClick={() => setShowForm(true)}
             style={{
-              fontSize: 18,
+              fontSize: isMobile ? 15 : 18,
               fontWeight: 700,
               color: "#0a0a0a",
               background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
@@ -422,7 +423,7 @@ function ApplicationFormModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500, width: "100%", padding: "36px 32px", borderRadius: 20, background: "#0d1528", border: "1px solid rgba(251,191,36,0.2)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500, width: "100%", padding: "28px 20px", borderRadius: 20, background: "#0d1528", border: "1px solid rgba(251,191,36,0.2)" }}>
         <h3 style={{ fontSize: 24, fontWeight: 800, color: "#fff", textAlign: "center", marginBottom: 8 }}>Apply to become a TimeWarp OG</h3>
         <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textAlign: "center", marginBottom: 28, lineHeight: 1.6 }}>
           We review every application personally. If we think we're a good fit for each other, we'll contact you.
