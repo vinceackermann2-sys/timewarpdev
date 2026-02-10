@@ -175,11 +175,18 @@ const RESEARCH_CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/res
 
 export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const navigate = useNavigate();
-  const [connectionStatus, setConnectionStatus] = useState<Record<string, boolean>>({
-    Google: false,
-    Microsoft: false,
-    Slack: false,
-  });
+
+  // Seed connection status from URL params so the animation triggers immediately on OAuth return
+  const initialStatus = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      Google: params.has("google_connected"),
+      Microsoft: params.has("microsoft_connected"),
+      Slack: params.has("slack_installed"),
+    };
+  }, []);
+
+  const [connectionStatus, setConnectionStatus] = useState<Record<string, boolean>>(initialStatus);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [workspaceData, setWorkspaceData] = useState<any>(null);
@@ -193,7 +200,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
   useEffect(() => {
     checkConnections();
-    // Refresh workspace data periodically to pick up background sync updates
     const interval = setInterval(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) loadWorkspaceData(session.user.id);
