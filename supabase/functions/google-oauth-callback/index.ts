@@ -179,8 +179,40 @@ const FALLBACK_APP_URL = "https://digital-guide-genie.lovable.app";
          oauth_state_expires_at: null,
        }, { onConflict: "user_id" });
      
-    console.log("[google-oauth-callback] Redirecting to app:", appUrl);
-    return Response.redirect(`${appUrl}/ai-ceo?google_connected=true`, 302);
+     // Generate a magic link so the client gets a session automatically
+     const resolvedEmail = await (async () => {
+       if (!stateData.user_id) {
+         // We already fetched the profile above; re-fetch email
+         const pRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+           headers: { Authorization: `Bearer ${tokenData.access_token}` },
+         });
+         if (pRes.ok) { const p = await pRes.json(); return p.email; }
+       }
+       // For existing signed-in users, look up email from admin
+       const { data: userData } = await supabase.auth.admin.getUserById(userId!);
+       return userData?.user?.email;
+     })();
+
+     if (resolvedEmail) {
+       try {
+         const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+           type: 'magiclink',
+           email: resolvedEmail,
+         });
+         if (!linkError && linkData?.properties?.hashed_token) {
+           const redirectTo = `${appUrl}/ai-ceo?google_connected=true`;
+           const verifyUrl = `${SUPABASE_URL}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`;
+           console.log("[google-oauth-callback] Redirecting through magic link verify");
+           return Response.redirect(verifyUrl, 302);
+         }
+         console.warn("[google-oauth-callback] Magic link generation failed, falling back:", linkError);
+       } catch (e) {
+         console.warn("[google-oauth-callback] Magic link error, falling back:", e);
+       }
+     }
+
+     console.log("[google-oauth-callback] Redirecting to app (no session):", appUrl);
+     return Response.redirect(`${appUrl}/ai-ceo?google_connected=true`, 302);
    }
    
    return new Response(JSON.stringify({ error: "Method not allowed" }), {
