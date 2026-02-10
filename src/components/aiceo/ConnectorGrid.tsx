@@ -272,10 +272,11 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       } catch {}
 
       // Merge with existing status — never downgrade a URL-param-detected connection
+      // Slack is only marked connected via explicit user action (URL param from OAuth return)
       setConnectionStatus(prev => ({
         Google: prev.Google || googleConnected,
         Microsoft: prev.Microsoft || microsoftConnected,
-        Slack: prev.Slack || slackConnected,
+        Slack: prev.Slack,
       }));
 
       // Always load workspace data when we have a session
