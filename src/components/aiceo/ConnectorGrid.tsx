@@ -1089,11 +1089,45 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         </div>
       )}
 
+      {/* Arrow instruction when no source connected */}
+      {!hasAnyConnection && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 90,
+            left: 0,
+            right: 0,
+            zIndex: 49,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 8,
+            animation: "bounceArrow 2s ease-in-out infinite",
+            pointerEvents: "none",
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ transform: "rotate(180deg)" }}>
+            <path d="M12 5v14M5 12l7 7 7-7" stroke="rgba(99, 102, 241, 0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span
+            style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "rgba(255, 255, 255, 0.45)",
+              letterSpacing: "0.02em",
+            }}
+          >
+            Connect a source first to start chatting
+          </span>
+        </div>
+      )}
+
       <FloatingChat
         mode="research"
         onModeChange={onModeChange}
         onSend={handleResearchSend}
-        disabled={isStreaming || userMessageCount >= MAX_MESSAGES}
+        disabled={isStreaming || userMessageCount >= MAX_MESSAGES || !hasAnyConnection}
       />
     </>
   );
