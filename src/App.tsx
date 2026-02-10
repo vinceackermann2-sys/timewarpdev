@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import TimewarpOG from "./pages/TimewarpOG";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
+
 import Database from "./pages/Database";
 import AiCeo from "./pages/AiCeo";
 import NotFound from "./pages/NotFound";
@@ -26,7 +26,7 @@ const App = () => (
             <Route path="/" element={<AiCeo />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/timewarp-og" element={<TimewarpOG />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            
             <Route path="/database" element={<Database />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfPurchase />} />
