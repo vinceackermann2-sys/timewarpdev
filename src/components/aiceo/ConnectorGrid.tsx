@@ -315,14 +315,23 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
   async function loadWorkspaceData(userId: string) {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("workspace_research")
         .select("*")
         .eq("user_id", userId)
         .single();
 
+      if (error) {
+        console.error("[ConnectorGrid] loadWorkspaceData error:", error.message);
+        return;
+      }
+
       if (data) {
+        const rawData = (data as any)?.raw_data || {};
+        console.log("[ConnectorGrid] Workspace data loaded — sources:", rawData.sources, "emails:", (rawData.emails || []).length, "docs:", (rawData.documents || []).length);
         setWorkspaceData(data);
+      } else {
+        console.log("[ConnectorGrid] No workspace data found for user", userId);
       }
     } catch (error) {
       console.error("Error loading workspace data:", error);
@@ -375,40 +384,17 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
 
-    // Build context from workspace data — only include data from actively connected sources
+    // Build context from workspace data — per-user isolation is handled by RLS in the DB
     const connectedContexts: any[] = [];
     if (workspaceData) {
       const rawData = (workspaceData as any)?.raw_data || {};
-      const allSources = rawData.sources || [];
-
-      // Filter sources to only those the user has actively connected
-      const activeSources = allSources.filter((s: string) => connectionStatus[s]);
-      
-      if (activeSources.length > 0) {
-        // Build filtered raw_data based on active connections
-        const filteredRawData = { ...rawData, sources: activeSources };
-        
-        // Remove Slack data if Slack is not connected
-        if (!connectionStatus.Slack) {
-          filteredRawData.slackChannels = [];
-          filteredRawData.slackMessages = [];
-        }
-        
-        // Remove Google/Microsoft email/calendar data if not connected
-        // (sync-research already separates by source, but this is a safety filter)
-        
-        const filteredWorkspaceData = {
-          ...workspaceData,
-          raw_data: filteredRawData,
-        };
-
-        const label = `${activeSources.join(" + ")} Workspace Data`;
-        connectedContexts.push({
-          type: "business-db",
-          label,
-          content: filteredWorkspaceData,
-        });
-      }
+      const sources = rawData.sources || [];
+      const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
+      connectedContexts.push({
+        type: "business-db",
+        label,
+        content: workspaceData,
+      });
     }
 
     let assistantSoFar = "";
