@@ -5,6 +5,14 @@ export default function TermsOfPurchase() {
         <h1 className="text-3xl font-bold mb-8">Terms &amp; Information</h1>
 
         <div className="prose prose-invert max-w-none space-y-6 text-muted-foreground text-[15px] leading-relaxed">
+          <div className="space-y-1 mb-8 text-sm">
+            <p><strong className="text-foreground">Effective Date:</strong> February 10, 2026</p>
+            <p><strong className="text-foreground">Company:</strong> Vincent Ackermann ("Timewarp", "we", "our", "us")</p>
+            <p><strong className="text-foreground">Organization Number:</strong> 081003</p>
+            <p><strong className="text-foreground">Registered Address:</strong> Lillvägen 4, 182 49, Stockholm, Sweden</p>
+            <p><strong className="text-foreground">Contact Email:</strong> <a href="mailto:vincentackermann@timewarpdev.com" className="text-primary underline">vincentackermann@timewarpdev.com</a></p>
+          </div>
+
           <p>For clarity, the customer will be referred to as "you", Timewarp as "we", and <a href="https://www.timewarpdev.com" className="text-primary underline">www.timewarpdev.com</a> as "the website".</p>
           <p>These terms are written for your protection as a customer, and before completing a purchase we kindly ask you to read them carefully. By making a purchase on the website, you agree to these terms.</p>
           <p>Timewarp is not responsible for external circumstances. We refer to the Swedish law "Distance and Off-Premises Contracts Act" (2005:59).</p>
