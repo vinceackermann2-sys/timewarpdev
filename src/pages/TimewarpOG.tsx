@@ -110,13 +110,20 @@ export default function TimewarpOG() {
 
         {/* OG Benefits */}
         <Section>
-          <SectionTitle>Benefits of being a TimeWarp OG</SectionTitle>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: "clamp(22px, 5vw, 28px)", fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", marginBottom: 0, textAlign: "center" }}>Benefits of being a TimeWarp OG</h2>
+            <span style={{ fontSize: isMobile ? 12 : 14, fontWeight: 700, color: "#0a0a0a", background: "linear-gradient(135deg, #fbbf24, #f59e0b)", borderRadius: 20, padding: "4px 14px", whiteSpace: "nowrap" }}>Only 20 spots</span>
+            <span style={{ fontSize: isMobile ? 12 : 14, fontWeight: 700, color: "#0a0a0a", background: "linear-gradient(135deg, #fbbf24, #f59e0b)", borderRadius: 20, padding: "4px 14px", whiteSpace: "nowrap" }}>Only 20 spots</span>
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 16, margin: "24px 0" }}>
             <BenefitCard icon={<Users size={22} />} title="1-on-1 Build" desc="We work with you personally to build AI CEO after your bottlenecks." />
             <BenefitCard icon={<Crown size={22} />} title="First In Line" desc="You get in before the herd." />
             <BenefitCard icon={<Infinity size={22} />} title="Unlimited Forever" desc="Unlimited AI CEO — FOREVER. No limited generations or top-up credits." />
           </div>
           <div style={{ textAlign: "center", margin: "8px 0 0" }}>
+            <P style={{ fontSize: isMobile ? 15 : 17, lineHeight: 1.7, marginBottom: 4 }}>With that said we can't do this for everyone...</P>
+            <P style={{ fontSize: isMobile ? 15 : 17, lineHeight: 1.7, marginBottom: 4 }}>If you think you could benefit from this & we think you're the type of company we want to work with.</P>
+            <P style={{ fontSize: isMobile ? 15 : 17, lineHeight: 1.7, marginBottom: 20 }}>Apply below 100% free and no credit card 👇</P>
             <ApplyButton onClick={() => setShowForm(true)} isMobile={isMobile} />
           </div>
         </Section>
