@@ -410,9 +410,9 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     let assistantSoFar = "";
     const controller = new AbortController();
 
-    // 60-second hard failsafe — guarantees the user always sees something
+    // 30-second failsafe — the AI responds in <5s when the request reaches the server
     const hardFailsafe = setTimeout(() => {
-      console.warn("[ResearchChat] 60s hard failsafe — aborting");
+      console.warn("[ResearchChat] 30s failsafe — aborting");
       controller.abort();
       setIsStreaming(false);
       setMessages(prev => {
@@ -422,7 +422,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         }
         return prev;
       });
-    }, 60000);
+    }, 30000);
 
     try {
       // Simple auth — no refreshSession, no sync-wait
@@ -436,13 +436,13 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       }
 
       console.log("[ResearchChat] Sending request to research-chat...");
-      const fetchTimeout = setTimeout(() => controller.abort(), 90000);
 
       const resp = await fetch(RESEARCH_CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }),
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
@@ -450,7 +450,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         signal: controller.signal,
       });
 
-      clearTimeout(fetchTimeout);
       console.log("[ResearchChat] Response status:", resp.status);
 
       if (!resp.ok) {
@@ -465,29 +464,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       let textBuffer = "";
 
       let streamDone = false;
-      let contentReceived = false;
 
-      // Content timeout: if no AI content arrives within 20s, show fallback
-      const contentTimeout = setTimeout(() => {
-        if (!contentReceived && !streamDone) {
-          console.warn("[ResearchChat] 20s content timeout — no AI content received");
-          streamDone = true;
-          setIsStreaming(false);
-          setMessages(prev => {
-            const last = prev[prev.length - 1];
-            if (last?.role === "assistant" && !last.content) {
-              return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: "Could not get a response. Please try again." } : m);
-            }
-            return prev;
-          });
-        }
-      }, 20000);
-
-      const safetyTimeout = setTimeout(() => {
-        console.warn("[ResearchChat] 90s safety timeout — forcing stream end");
-        streamDone = true;
-        setIsStreaming(false);
-      }, 90000);
 
       while (!streamDone) {
         const { done, value } = await reader.read();
@@ -531,7 +508,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
-              contentReceived = true;
+              
               assistantSoFar += content;
               setMessages(prev => {
                 const last = prev[prev.length - 1];
@@ -546,8 +523,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
           }
         }
       }
-      clearTimeout(safetyTimeout);
-      clearTimeout(contentTimeout);
 
       if (!assistantSoFar.trim()) {
         console.warn("[ResearchChat] Stream completed but no content received");
