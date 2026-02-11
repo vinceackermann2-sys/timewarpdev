@@ -1,77 +1,53 @@
 
 
-# Fix: Make Research Chat Always Respond
+# Fix: Research Chat - First Principles Rebuild
 
-## Problem
-After connecting Google and sending a message, the user never gets a response. The `research-chat` backend function is never called — the request dies silently on the client side, likely due to the sync-wait mechanism or authentication check failing before the fetch.
+## Root Cause Found
 
-## Root Cause
-The `handleResearchSend` function in `ConnectorGrid.tsx` has multiple failure points before the actual API call:
-1. The sync-wait Promise can get into a bad state (resolved ref set to null while still being awaited)
-2. Both `refreshSession()` and `getSession()` can fail silently after OAuth redirect
-3. Errors are caught and shown as toasts, but the "Thinking..." spinner stays forever if the error handling doesn't update the message properly
+The previous fix made `apikey` and `Authorization` headers **mutually exclusive**. This is wrong. The Supabase gateway requires:
+- **`apikey`**: Always needed -- routes the request to the correct project
+- **`Authorization: Bearer <jwt>`**: Identifies the user to the edge function
 
-## Solution: Simplify and Make Bulletproof
+Without `apikey`, the gateway never forwards the request to the edge function. That's why there are zero server-side logs -- the request dies at the gateway level, the client waits 60 seconds, and shows "Request timed out."
 
-Strip the sync-wait complexity out of `handleResearchSend` entirely. The AI can respond even without synced data (it just says "connect your accounts"). The `sync-research` function runs every minute via pg_cron anyway, so data will be available shortly.
+## What the Direct Test Proved
 
-### Changes to `src/components/aiceo/ConnectorGrid.tsx`
+I called the `research-chat` function directly and it responded instantly with a 200 status and streaming AI content. The backend is fully functional.
 
-1. **Remove sync-wait from handleResearchSend** -- Delete the entire sync-wait block (lines 412-433). The function should go straight to auth + fetch. This eliminates the most fragile part of the code.
+## Plan
 
-2. **Make auth completely fault-tolerant** -- Wrap auth in a single try/catch that tries `getSession()` first (simpler, more reliable than `refreshSession()`). If no token, still proceed with the fetch using just the apikey header — the edge function will respond with "connect your accounts" instead of hanging.
+### 1. Fix the header configuration (the actual bug)
 
-3. **Add a hard 60-second failsafe** -- If the entire function hasn't completed in 60 seconds, force-set an error message on the assistant bubble and stop streaming. This guarantees the user always sees something.
+In `src/components/aiceo/ConnectorGrid.tsx`, change the fetch headers from:
 
-4. **Keep triggerImmediateSync running in background** -- The sync still runs after OAuth return, it just doesn't block the chat anymore. If the user asks before data is ready, the AI says "your data is still syncing, try again in a moment."
-
-### Simplified handleResearchSend flow:
-
-```text
-User sends message
-      |
-  Add user msg + empty assistant msg to chat
-      |
-  Try getSession() for auth token
-      |
-  fetch research-chat (with or without token)
-      |
-  Stream response to assistant bubble
-      |
-  If any error: show error in assistant bubble
-      |
-  60s hard timeout: force error message
+```
+// BROKEN - mutually exclusive
+...(accessToken ? { Authorization: Bearer } : { apikey: ... })
 ```
 
-### No edge function changes needed
-The `research-chat` function already handles unauthenticated requests gracefully (responds with "connect your accounts").
+To:
+
+```
+// CORRECT - always send apikey, add Authorization when available
+apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+```
+
+### 2. Simplify timeout logic
+
+The current code has 3 overlapping timeouts (20s content, 60s hard failsafe, 90s fetch + safety). Reduce to a single 30-second failsafe since the AI responds in under 5 seconds when the request actually reaches the server.
+
+### 3. No backend changes needed
+
+The `research-chat` edge function is confirmed working:
+- Authenticates users via JWT
+- Fetches workspace data from the database (with storage bucket fallback)
+- Streams AI responses with business context
+- Handles unauthenticated requests gracefully ("connect your accounts")
 
 ## Technical Details
 
-The key change is replacing ~40 lines of sync-wait + complex auth with ~10 lines:
+Only one file changes: `src/components/aiceo/ConnectorGrid.tsx`
 
-```typescript
-// Simple auth - no refreshSession, no sync-wait
-let accessToken = "";
-try {
-  const { data } = await supabase.auth.getSession();
-  accessToken = data.session?.access_token || "";
-} catch (e) {
-  console.warn("[ResearchChat] Auth error:", e);
-}
-
-// Always fetch - let the edge function handle missing auth
-const resp = await fetch(RESEARCH_CHAT_URL, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-  },
-  body: JSON.stringify({ messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })) }),
-  signal: controller.signal,
-});
-```
-
-Plus a 60-second hard failsafe wrapping the entire function to guarantee the user always sees a response or error message.
+The fix is a single line change in the `handleResearchSend` function's fetch headers (around line 443-445). The timeout simplification removes ~20 lines of redundant safety code.
 
