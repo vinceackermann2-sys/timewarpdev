@@ -487,20 +487,20 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       const decoder = new TextDecoder();
       let textBuffer = "";
 
-      while (true) {
+      let streamDone = false;
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
         textBuffer += decoder.decode(value, { stream: true });
 
         let newlineIndex: number;
         while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
+          const line = textBuffer.slice(0, newlineIndex).replace(/\r$/, "");
           textBuffer = textBuffer.slice(newlineIndex + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
           if (line.startsWith(":") || line.trim() === "") continue;
           if (!line.startsWith("data: ")) continue;
           const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
@@ -515,8 +515,8 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
               });
             }
           } catch {
-            textBuffer = line + "\n" + textBuffer;
-            break;
+            // Skip unparseable lines instead of re-buffering (prevents infinite loop)
+            console.warn("[ResearchChat] Skipping unparseable SSE line");
           }
         }
       }
