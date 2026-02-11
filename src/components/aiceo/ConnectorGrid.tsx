@@ -192,6 +192,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [workspaceData, setWorkspaceData] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const syncAttemptRef = useRef(0);
+  const syncInProgressRef = useRef(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [userMessageCount, setUserMessageCount] = useState(0);
   const [showWaitlist, setShowWaitlist] = useState(false);
@@ -207,12 +208,19 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
   // Trigger an immediate background sync after OAuth return so data is available right away
   async function triggerImmediateSync() {
+    if (syncInProgressRef.current) {
+      console.log("[ConnectorGrid] Sync already in progress, skipping");
+      return;
+    }
+    syncInProgressRef.current = true;
     try {
       console.log("[ConnectorGrid] Triggering immediate data sync...");
       const resp = await supabase.functions.invoke("sync-research");
       console.log("[ConnectorGrid] Immediate sync result:", resp.data);
     } catch (e) {
       console.error("[ConnectorGrid] Immediate sync failed:", e);
+    } finally {
+      syncInProgressRef.current = false;
     }
   }
 
@@ -391,15 +399,20 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
     let assistantSoFar = "";
     try {
-      // Get the user's actual JWT for server-side data fetching
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
+      // Refresh session first — critical after OAuth return when token may be stale
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn("[ResearchChat] refreshSession error, falling back to getSession:", refreshError.message);
+      }
+      
+      const session = refreshData?.session || (await supabase.auth.getSession()).data.session;
+      const accessToken = session?.access_token;
       
       if (!accessToken) {
         throw new Error("Not authenticated. Please reconnect your account.");
       }
 
-      console.log("[ResearchChat] Sending with user JWT, token length:", accessToken?.length, "userId:", sessionData?.session?.user?.id);
+      console.log("[ResearchChat] Sending with user JWT, token length:", accessToken?.length, "userId:", session?.user?.id);
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 90000);
