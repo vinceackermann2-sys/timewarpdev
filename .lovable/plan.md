@@ -1,47 +1,77 @@
 
 
-# Fix: Wait for Sync Before Sending to AI
+# Fix: Make Research Chat Always Respond
 
 ## Problem
-When a user connects their account and immediately asks a question, the `sync-research` function may still be running (15-30 seconds). The `research-chat` edge function finds no data and returns an unhelpful response or times out.
+After connecting Google and sending a message, the user never gets a response. The `research-chat` backend function is never called — the request dies silently on the client side, likely due to the sync-wait mechanism or authentication check failing before the fetch.
 
-## Solution
-Make `handleResearchSend` wait for `syncInProgressRef` to resolve before sending the request. The user sees a "Syncing your data..." indicator while waiting.
+## Root Cause
+The `handleResearchSend` function in `ConnectorGrid.tsx` has multiple failure points before the actual API call:
+1. The sync-wait Promise can get into a bad state (resolved ref set to null while still being awaited)
+2. Both `refreshSession()` and `getSession()` can fail silently after OAuth redirect
+3. Errors are caught and shown as toasts, but the "Thinking..." spinner stays forever if the error handling doesn't update the message properly
 
-## Changes (1 file)
+## Solution: Simplify and Make Bulletproof
 
-### `src/components/aiceo/ConnectorGrid.tsx`
+Strip the sync-wait complexity out of `handleResearchSend` entirely. The AI can respond even without synced data (it just says "connect your accounts"). The `sync-research` function runs every minute via pg_cron anyway, so data will be available shortly.
 
-1. **Convert `syncInProgressRef` to a Promise-based pattern**: Store a `syncPromise` ref so that `handleResearchSend` can `await` it if a sync is in progress.
+### Changes to `src/components/aiceo/ConnectorGrid.tsx`
 
-2. **Update `triggerImmediateSync`**: Set a Promise on `syncPromiseRef` when sync starts, resolve it when sync finishes.
+1. **Remove sync-wait from handleResearchSend** -- Delete the entire sync-wait block (lines 412-433). The function should go straight to auth + fetch. This eliminates the most fragile part of the code.
 
-3. **Update `handleResearchSend`**: 
-   - After appending the user message and showing "Thinking...", check if `syncInProgressRef.current` is true.
-   - If so, update the assistant placeholder to show "Syncing your data, please wait..." instead of "Thinking...".
-   - `await syncPromiseRef.current` to wait for sync to finish.
-   - Then update the placeholder back to "Thinking..." and proceed with the normal fetch to `research-chat`.
+2. **Make auth completely fault-tolerant** -- Wrap auth in a single try/catch that tries `getSession()` first (simpler, more reliable than `refreshSession()`). If no token, still proceed with the fetch using just the apikey header — the edge function will respond with "connect your accounts" instead of hanging.
 
-4. **Update loading indicator text**: When the assistant message is empty and streaming, show "Syncing your business data..." if sync is in progress, otherwise show "Thinking...".
+3. **Add a hard 60-second failsafe** -- If the entire function hasn't completed in 60 seconds, force-set an error message on the assistant bubble and stop streaming. This guarantees the user always sees something.
 
-## How It Works
+4. **Keep triggerImmediateSync running in background** -- The sync still runs after OAuth return, it just doesn't block the chat anymore. If the user asks before data is ready, the AI says "your data is still syncing, try again in a moment."
+
+### Simplified handleResearchSend flow:
 
 ```text
-User connects account
-        |
-  sync-research starts (15-30s)
-        |
-  User sends question immediately
-        |
-  UI shows "Syncing your data, please wait..."
-        |
-  sync-research finishes
-        |
-  UI switches to "Thinking..."
-        |
-  research-chat called with full data
-        |
-  AI responds with real answer
+User sends message
+      |
+  Add user msg + empty assistant msg to chat
+      |
+  Try getSession() for auth token
+      |
+  fetch research-chat (with or without token)
+      |
+  Stream response to assistant bubble
+      |
+  If any error: show error in assistant bubble
+      |
+  60s hard timeout: force error message
 ```
 
-No changes needed to any edge functions. This is purely a client-side coordination fix.
+### No edge function changes needed
+The `research-chat` function already handles unauthenticated requests gracefully (responds with "connect your accounts").
+
+## Technical Details
+
+The key change is replacing ~40 lines of sync-wait + complex auth with ~10 lines:
+
+```typescript
+// Simple auth - no refreshSession, no sync-wait
+let accessToken = "";
+try {
+  const { data } = await supabase.auth.getSession();
+  accessToken = data.session?.access_token || "";
+} catch (e) {
+  console.warn("[ResearchChat] Auth error:", e);
+}
+
+// Always fetch - let the edge function handle missing auth
+const resp = await fetch(RESEARCH_CHAT_URL, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  },
+  body: JSON.stringify({ messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })) }),
+  signal: controller.signal,
+});
+```
+
+Plus a 60-second hard failsafe wrapping the entire function to guarantee the user always sees a response or error message.
+
