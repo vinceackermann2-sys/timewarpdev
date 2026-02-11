@@ -193,6 +193,8 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const syncAttemptRef = useRef(0);
   const syncInProgressRef = useRef(false);
+  const syncPromiseRef = useRef<Promise<void> | null>(null);
+  const syncResolveRef = useRef<(() => void) | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [userMessageCount, setUserMessageCount] = useState(0);
   const [showWaitlist, setShowWaitlist] = useState(false);
@@ -213,6 +215,10 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       return;
     }
     syncInProgressRef.current = true;
+    // Create a promise that handleResearchSend can await
+    syncPromiseRef.current = new Promise<void>((resolve) => {
+      syncResolveRef.current = resolve;
+    });
     try {
       console.log("[ConnectorGrid] Triggering immediate data sync...");
       const resp = await supabase.functions.invoke("sync-research");
@@ -221,6 +227,10 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       console.error("[ConnectorGrid] Immediate sync failed:", e);
     } finally {
       syncInProgressRef.current = false;
+      // Resolve the promise so any waiting handleResearchSend can proceed
+      syncResolveRef.current?.();
+      syncResolveRef.current = null;
+      syncPromiseRef.current = null;
     }
   }
 
@@ -399,6 +409,25 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
     let assistantSoFar = "";
     try {
+      // If sync is in progress, wait for it to finish before calling research-chat
+      if (syncInProgressRef.current && syncPromiseRef.current) {
+        console.log("[ResearchChat] Sync in progress — waiting before sending...");
+        // Update the placeholder to show syncing status
+        setMessages(prev => prev.map((m, i) => 
+          i === prev.length - 1 && m.role === "assistant" && !m.content
+            ? { ...m, content: "⏳ Syncing your business data, please wait..." }
+            : m
+        ));
+        await syncPromiseRef.current;
+        console.log("[ResearchChat] Sync finished — proceeding with request");
+        // Clear the syncing message, show thinking
+        setMessages(prev => prev.map((m, i) =>
+          i === prev.length - 1 && m.role === "assistant"
+            ? { ...m, content: "" }
+            : m
+        ));
+      }
+
       // Refresh session first — critical after OAuth return when token may be stale
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
