@@ -392,15 +392,20 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     // If data isn't ready yet, poll silently while showing the streaming/loading indicator
     let currentData = workspaceData;
     if (!currentData) {
+      console.log("[ResearchChat] No workspace data yet, polling...");
       for (let i = 0; i < 12; i++) {
         await new Promise(r => setTimeout(r, 2500));
         const { data: session } = await supabase.auth.getSession();
-        if (!session?.session?.user) break;
-        const { data } = await supabase
+        if (!session?.session?.user) {
+          console.log("[ResearchChat] No auth session during poll attempt", i);
+          continue;
+        }
+        const { data, error } = await supabase
           .from("workspace_research")
           .select("*")
           .eq("user_id", session.session.user.id)
           .maybeSingle();
+        console.log("[ResearchChat] Poll attempt", i, "data:", !!data, "error:", error?.message);
         if (data) {
           currentData = data;
           setWorkspaceData(data);
@@ -414,7 +419,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       }
     }
 
-    // Build context from workspace data
+    // Build context from workspace data — trim to essentials to avoid oversized payloads
     const connectedContexts: any[] = [];
     const rawData = (currentData as any)?.raw_data || {};
     const sources = rawData.sources || [];
@@ -422,11 +427,24 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     connectedContexts.push({
       type: "business-db",
       label,
-      content: currentData,
+      content: {
+        raw_data: rawData,
+        research_summary: (currentData as any)?.research_summary || {},
+        findings: (currentData as any)?.findings || [],
+        emails_analyzed: (currentData as any)?.emails_analyzed || 0,
+        documents_analyzed: (currentData as any)?.documents_analyzed || 0,
+        events_analyzed: (currentData as any)?.events_analyzed || 0,
+        sheets_analyzed: (currentData as any)?.sheets_analyzed || 0,
+      },
     });
+
+    console.log("[ResearchChat] Sending request with", connectedContexts.length, "contexts, sources:", sources);
 
     let assistantSoFar = "";
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
       const resp = await fetch(RESEARCH_CHAT_URL, {
         method: "POST",
         headers: {
@@ -437,7 +455,11 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
           connectedContexts,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
+      console.log("[ResearchChat] Response status:", resp.status);
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "Failed" }));
