@@ -408,64 +408,42 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setIsStreaming(true);
 
     let assistantSoFar = "";
-    try {
-      // If sync is in progress, wait for it (max 45s) before calling research-chat
-      if (syncInProgressRef.current && syncPromiseRef.current) {
-        console.log("[ResearchChat] Sync in progress — waiting (max 45s) before sending...");
-        setMessages(prev => prev.map((m, i) => 
-          i === prev.length - 1 && m.role === "assistant" && !m.content
-            ? { ...m, content: "⏳ Syncing your business data, please wait..." }
-            : m
-        ));
-        // Race the sync promise against a 45s timeout so we never block forever
-        await Promise.race([
-          syncPromiseRef.current,
-          new Promise<void>(resolve => setTimeout(resolve, 45000)),
-        ]);
-        console.log("[ResearchChat] Sync wait done (finished or timed out) — proceeding");
-        setMessages(prev => prev.map((m, i) =>
-          i === prev.length - 1 && m.role === "assistant"
-            ? { ...m, content: "" }
-            : m
-        ));
-      } else {
-        console.log("[ResearchChat] No sync in progress, proceeding immediately");
-      }
+    const controller = new AbortController();
 
-      // Refresh session first — critical after OAuth return when token may be stale
-      let session: any = null;
-      try {
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) {
-          console.warn("[ResearchChat] refreshSession error:", refreshError.message);
+    // 60-second hard failsafe — guarantees the user always sees something
+    const hardFailsafe = setTimeout(() => {
+      console.warn("[ResearchChat] 60s hard failsafe — aborting");
+      controller.abort();
+      setIsStreaming(false);
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && !last.content) {
+          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: "Request timed out. Please try again." } : m);
         }
-        session = refreshData?.session;
-      } catch (e) {
-        console.warn("[ResearchChat] refreshSession exception:", e);
-      }
-      
-      if (!session) {
+        return prev;
+      });
+    }, 60000);
+
+    try {
+      // Simple auth — no refreshSession, no sync-wait
+      let accessToken = "";
+      try {
         const { data } = await supabase.auth.getSession();
-        session = data.session;
-      }
-      
-      const accessToken = session?.access_token;
-      
-      if (!accessToken) {
-        console.error("[ResearchChat] No access token available — user not authenticated");
-        throw new Error("Not authenticated. Please reconnect your account.");
+        accessToken = data.session?.access_token || "";
+        console.log("[ResearchChat] Auth token length:", accessToken.length, "userId:", data.session?.user?.id);
+      } catch (e) {
+        console.warn("[ResearchChat] Auth error (proceeding without token):", e);
       }
 
-      console.log("[ResearchChat] Sending request — token length:", accessToken?.length, "userId:", session?.user?.id);
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90000);
+      console.log("[ResearchChat] Sending request to research-chat...");
+      const fetchTimeout = setTimeout(() => controller.abort(), 90000);
 
       const resp = await fetch(RESEARCH_CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
@@ -473,7 +451,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         signal: controller.signal,
       });
 
-      clearTimeout(timeout);
+      clearTimeout(fetchTimeout);
       console.log("[ResearchChat] Response status:", resp.status);
 
       if (!resp.ok) {
@@ -597,6 +575,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         return [...prev, { role: "assistant", content: `Sorry, something went wrong: ${errorMsg}` }];
       });
     } finally {
+      clearTimeout(hardFailsafe);
       setIsStreaming(false);
     }
   }, [messages, userMessageCount]);
