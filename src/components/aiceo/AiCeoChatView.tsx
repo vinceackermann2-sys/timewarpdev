@@ -402,6 +402,11 @@ export function AiCeoChatView() {
           0%, 100% { transform: translateY(0); opacity: 0.6; }
           50% { transform: translateY(6px); opacity: 1; }
         }
+        @keyframes syncPulse {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(60%); }
+          100% { transform: translateX(-100%); }
+        }
       `}</style>
     </div>
   );
