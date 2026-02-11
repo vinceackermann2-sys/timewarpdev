@@ -389,34 +389,49 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
 
-    // If data isn't ready yet, poll silently while showing the streaming/loading indicator
-    let currentData = workspaceData;
-    if (!currentData) {
-      console.log("[ResearchChat] No workspace data yet, polling...");
-      for (let i = 0; i < 12; i++) {
-        await new Promise(r => setTimeout(r, 2500));
-        const { data: session } = await supabase.auth.getSession();
-        if (!session?.session?.user) {
-          console.log("[ResearchChat] No auth session during poll attempt", i);
-          continue;
-        }
-        const { data, error } = await supabase
+    // Always fetch fresh workspace data directly to avoid stale closures
+    let currentData: any = null;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    console.log("[ResearchChat] Auth user:", userId);
+
+    if (userId) {
+      // Try to get data immediately
+      const { data: freshData } = await supabase
+        .from("workspace_research")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+      currentData = freshData;
+      console.log("[ResearchChat] Immediate fetch:", !!currentData);
+    }
+
+    // If no data yet, poll silently while showing loading animation
+    if (!currentData && userId) {
+      console.log("[ResearchChat] No data yet, polling...");
+      for (let i = 0; i < 15; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const { data } = await supabase
           .from("workspace_research")
           .select("*")
-          .eq("user_id", session.session.user.id)
+          .eq("user_id", userId)
           .maybeSingle();
-        console.log("[ResearchChat] Poll attempt", i, "data:", !!data, "error:", error?.message);
+        console.log("[ResearchChat] Poll", i, "found:", !!data);
         if (data) {
           currentData = data;
-          setWorkspaceData(data);
           break;
         }
       }
-      if (!currentData) {
-        setMessages(prev => [...prev, { role: "assistant", content: "Your data is still being analyzed. Please try again in a moment." }]);
-        setIsStreaming(false);
-        return;
-      }
+    }
+
+    if (currentData) {
+      setWorkspaceData(currentData);
+    }
+
+    if (!currentData) {
+      setMessages(prev => [...prev, { role: "assistant", content: "Your data is still syncing. Please try again in a moment." }]);
+      setIsStreaming(false);
+      return;
     }
 
     // Build context from workspace data — trim to essentials to avoid oversized payloads
@@ -512,7 +527,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     } finally {
       setIsStreaming(false);
     }
-  }, [messages, workspaceData, userMessageCount]);
+  }, [messages, userMessageCount]);
 
   const handleWaitlistSubmit = useCallback(async () => {
     if (!waitlistForm.name.trim() || !waitlistForm.email.trim() || !waitlistForm.phone.trim()) {
