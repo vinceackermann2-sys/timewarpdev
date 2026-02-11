@@ -402,72 +402,130 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       setShowLimitPopup(true);
       return;
     }
+
     const newCount = userMessageCount + 1;
     setUserMessageCount(newCount);
+
     const userMsg: ChatMessage = { role: "user", content: message };
-    setMessages(prev => [...prev, userMsg, { role: "assistant", content: "" }]);
+
+    // Always show an immediate waiting animation so the UI never gets stuck on an empty "Thinking..." bubble.
+    setMessages((prev) => [...prev, userMsg, { role: "assistant", content: "", isSyncing: true }]);
     setIsStreaming(true);
 
     let assistantSoFar = "";
     const controller = new AbortController();
-
-    // Track whether we waited for sync so we can extend the failsafe
-    let syncWaitTime = 0;
     let hardFailsafe: ReturnType<typeof setTimeout> | undefined;
 
-    try {
-      // If sync is in progress, show a nice animated waiting message and wait for it
-      if (syncPromiseRef.current) {
-        console.log("[ResearchChat] Waiting for sync to complete before sending...");
-        const syncStart = Date.now();
-        
-        // Show animated syncing message
-        setMessages(prev => prev.map((m, i) =>
-          i === prev.length - 1 ? { ...m, content: "🔄 **Analyzing your business data...**\n\nThis usually takes 15–30 seconds on first connection. I'll respond to your question as soon as I have your data.", isSyncing: true } : m
-        ));
+    const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-        await Promise.race([
-          syncPromiseRef.current,
-          new Promise(resolve => setTimeout(resolve, 60000)),
-        ]);
+    const isWorkspaceReady = (data: any) => {
+      const raw = data?.raw_data || {};
+      const sources = Array.isArray(raw?.sources) ? raw.sources : [];
+      return sources.length > 0;
+    };
 
-        syncWaitTime = Date.now() - syncStart;
-        console.log("[ResearchChat] Sync complete or timed out after", syncWaitTime, "ms, proceeding...");
-        
-        // Clear the syncing placeholder
-        setMessages(prev => prev.map((m, i) =>
-          i === prev.length - 1 ? { ...m, content: "", isSyncing: false } : m
-        ));
+    const updateLastAssistant = (patch: Partial<ChatMessage>) => {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (!last || last.role !== "assistant") return prev;
+        return prev.map((m, i) => (i === prev.length - 1 ? { ...m, ...patch } : m));
+      });
+    };
+
+    const getSessionWithRetry = async (maxMs: number) => {
+      const start = Date.now();
+      let triedRefresh = false;
+
+      while (Date.now() - start < maxMs) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) return data.session;
+
+        if (!triedRefresh) {
+          triedRefresh = true;
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData.session) return refreshData.session;
+        }
+
+        await sleep(500);
       }
 
-      // 30-second failsafe AFTER sync wait
+      return null;
+    };
+
+    const waitForWorkspaceReady = async (userId: string, maxMs: number) => {
+      const start = Date.now();
+
+      while (Date.now() - start < maxMs) {
+        const { data, error } = await supabase
+          .from("workspace_research")
+          .select("raw_data, updated_at")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (!error && data && isWorkspaceReady(data)) {
+          setWorkspaceData(data);
+          return true;
+        }
+
+        await sleep(2500);
+      }
+
+      return false;
+    };
+
+    try {
+      // 1) Ensure the user session is actually established after OAuth redirect.
+      //    This is the main reason the very first message can fail (no session => no sync kickoff).
+      const session = await getSessionWithRetry(8000);
+      const accessToken = session?.access_token || "";
+      const userId = session?.user?.id || null;
+
+      // 2) If we have a user, ensure their workspace data is actually analyzed before calling the AI.
+      //    (No credits are spent during this wait.)
+      if (userId) {
+        // Quick check first
+        const { data: currentWs } = await supabase
+          .from("workspace_research")
+          .select("raw_data")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        const alreadyReady = isWorkspaceReady(currentWs);
+
+        if (!alreadyReady) {
+          // Kick off a sync if one isn't running (or wait for the in-flight one).
+          try {
+            if (!syncInProgressRef.current) {
+              await triggerImmediateSync();
+            } else if (syncPromiseRef.current) {
+              await Promise.race([syncPromiseRef.current, sleep(60000)]);
+            }
+          } catch (e) {
+            console.warn("[ResearchChat] Sync kickoff/wait error (continuing):", e);
+          }
+
+          // Now wait until the DB has usable data.
+          await waitForWorkspaceReady(userId, 120000);
+        }
+      }
+
+      // 3) Only start the request timeout AFTER data is ready (or we timed out waiting for it).
       hardFailsafe = setTimeout(() => {
-        console.warn("[ResearchChat] 30s failsafe — aborting");
+        console.warn("[ResearchChat] 60s failsafe — aborting");
         controller.abort();
         setIsStreaming(false);
-        setMessages(prev => {
+        setMessages((prev) => {
           const last = prev[prev.length - 1];
           if (last?.role === "assistant" && !last.content) {
-            return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: "Request timed out. Please try again." } : m);
+            return prev.map((m, i) =>
+              i === prev.length - 1
+                ? { ...m, content: "Request timed out. Please try again.", isSyncing: false }
+                : m
+            );
           }
           return prev;
         });
-      }, 30000);
-
-      // Get auth token — refresh first to ensure it's valid
-      let accessToken = "";
-      try {
-        const { data } = await supabase.auth.getSession();
-        accessToken = data.session?.access_token || "";
-        if (!accessToken) {
-          // Try refreshing — on OAuth return the session may not be ready yet
-          const { data: refreshData } = await supabase.auth.refreshSession();
-          accessToken = refreshData.session?.access_token || "";
-        }
-        console.log("[ResearchChat] Auth token length:", accessToken.length);
-      } catch (e) {
-        console.warn("[ResearchChat] Auth error (proceeding without token):", e);
-      }
+      }, 60000);
 
       console.log("[ResearchChat] Sending request to research-chat...");
 
@@ -479,7 +537,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({
-          messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
+          messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
         }),
         signal: controller.signal,
       });
@@ -496,12 +554,11 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
       const decoder = new TextDecoder();
       let textBuffer = "";
-
       let streamDone = false;
-
 
       while (!streamDone) {
         const { done, value } = await reader.read();
+
         if (done) {
           // Final buffer flush — handle data without trailing newline
           if (textBuffer.trim()) {
@@ -514,70 +571,94 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                   const content = parsed.choices?.[0]?.delta?.content;
                   if (content) {
                     assistantSoFar += content;
-                    setMessages(prev => {
+                    setMessages((prev) => {
                       const last = prev[prev.length - 1];
                       if (last?.role === "assistant") {
-                        return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
+                        return prev.map((m, i) =>
+                          i === prev.length - 1
+                            ? { ...m, content: assistantSoFar, isSyncing: false }
+                            : m
+                        );
                       }
                       return [...prev, { role: "assistant", content: assistantSoFar }];
                     });
                   }
-                } catch {}
+                } catch {
+                  // ignore
+                }
               }
             }
           }
           break;
         }
+
         textBuffer += decoder.decode(value, { stream: true });
 
         let newlineIndex: number;
         while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
           const line = textBuffer.slice(0, newlineIndex).replace(/\r$/, "");
           textBuffer = textBuffer.slice(newlineIndex + 1);
+
           if (line.startsWith(":") || line.trim() === "") continue;
           if (!line.startsWith("data: ")) continue;
+
           const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") { streamDone = true; break; }
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
+            break;
+          }
+
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
+
             if (content) {
-              
               assistantSoFar += content;
-              setMessages(prev => {
+              setMessages((prev) => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant") {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
+                  return prev.map((m, i) =>
+                    i === prev.length - 1
+                      ? { ...m, content: assistantSoFar, isSyncing: false }
+                      : m
+                  );
                 }
                 return [...prev, { role: "assistant", content: assistantSoFar }];
               });
             }
           } catch {
-            console.warn("[ResearchChat] Skipping unparseable SSE chunk:", jsonStr?.slice(0, 80));
+            console.warn(
+              "[ResearchChat] Skipping unparseable SSE chunk:",
+              jsonStr?.slice(0, 80)
+            );
           }
         }
       }
 
       if (!assistantSoFar.trim()) {
         console.warn("[ResearchChat] Stream completed but no content received");
-        setMessages(prev => {
-          const last = prev[prev.length - 1];
-          if (last?.role === "assistant" && !last.content) {
-            return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: "I received your question but couldn't generate a response. Please try again." } : m);
-          }
-          return prev;
+        updateLastAssistant({
+          content: "I received your question but couldn't generate a response. Please try again.",
+          isSyncing: false,
         });
       }
     } catch (err: any) {
       console.error("[ResearchChat] Error:", err);
-      const errorMsg = err.name === "AbortError"
-        ? "Request timed out. Please try again."
-        : (err.message || "Failed to get AI response");
+      const errorMsg =
+        err.name === "AbortError"
+          ? "Request timed out. Please try again."
+          : err.message || "Failed to get AI response";
+
       toast.error(errorMsg);
-      setMessages(prev => {
+
+      setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant" && !last.content) {
-          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: `Sorry, something went wrong: ${errorMsg}` } : m);
+          return prev.map((m, i) =>
+            i === prev.length - 1
+              ? { ...m, content: `Sorry, something went wrong: ${errorMsg}`, isSyncing: false }
+              : m
+          );
         }
         if (last?.role === "assistant" && last.content) return prev;
         return [...prev, { role: "assistant", content: `Sorry, something went wrong: ${errorMsg}` }];
@@ -587,6 +668,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       setIsStreaming(false);
     }
   }, [messages, userMessageCount]);
+
 
   const handleWaitlistSubmit = useCallback(async () => {
     if (!waitlistForm.name.trim() || !waitlistForm.email.trim() || !waitlistForm.phone.trim()) {
