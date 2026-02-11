@@ -399,17 +399,16 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         throw new Error("Not authenticated. Please reconnect your account.");
       }
 
-      console.log("[ResearchChat] Sending with user JWT, userId:", sessionData?.session?.user?.id);
+      console.log("[ResearchChat] Sending with user JWT, token length:", accessToken?.length, "userId:", sessionData?.session?.user?.id);
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000);
+      const timeout = setTimeout(() => controller.abort(), 90000);
 
       const resp = await fetch(RESEARCH_CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
@@ -432,6 +431,24 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       let textBuffer = "";
 
       let streamDone = false;
+      let contentReceived = false;
+
+      // Content timeout: if no AI content arrives within 20s, show fallback
+      const contentTimeout = setTimeout(() => {
+        if (!contentReceived && !streamDone) {
+          console.warn("[ResearchChat] 20s content timeout — no AI content received");
+          streamDone = true;
+          setIsStreaming(false);
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant" && !last.content) {
+              return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: "Could not get a response. Please try again." } : m);
+            }
+            return prev;
+          });
+        }
+      }, 20000);
+
       const safetyTimeout = setTimeout(() => {
         console.warn("[ResearchChat] 90s safety timeout — forcing stream end");
         streamDone = true;
@@ -480,6 +497,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
+              contentReceived = true;
               assistantSoFar += content;
               setMessages(prev => {
                 const last = prev[prev.length - 1];
@@ -495,6 +513,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         }
       }
       clearTimeout(safetyTimeout);
+      clearTimeout(contentTimeout);
 
       if (!assistantSoFar.trim()) {
         console.warn("[ResearchChat] Stream completed but no content received");
