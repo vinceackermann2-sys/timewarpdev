@@ -105,7 +105,7 @@ serve(async (req) => {
     // --- Step 1: Authenticate user via service role (reliable pattern) ---
     let userId: string | null = null;
     const authHeader = req.headers.get("Authorization");
-    console.log("[research-chat] Auth header present:", !!authHeader);
+    console.log("[research-chat] Auth header present:", !!authHeader, "length:", authHeader?.length || 0);
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.replace("Bearer ", "");
