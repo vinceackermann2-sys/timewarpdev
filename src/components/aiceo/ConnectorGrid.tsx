@@ -191,6 +191,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [workspaceData, setWorkspaceData] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [userMessageCount, setUserMessageCount] = useState(0);
   const [showWaitlist, setShowWaitlist] = useState(false);
@@ -331,6 +332,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         const rawData = (data as any)?.raw_data || {};
         console.log("[ConnectorGrid] Workspace data loaded — sources:", rawData.sources, "emails:", (rawData.emails || []).length, "docs:", (rawData.documents || []).length);
         setWorkspaceData(data);
+        setDataLoading(false);
       } else {
         console.log("[ConnectorGrid] No workspace data found for user", userId);
       }
@@ -550,6 +552,37 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             flexDirection: "column",
           }}
         >
+          {/* Syncing indicator when data hasn't loaded yet */}
+          {dataLoading && (
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              padding: "48px 24px",
+              animation: "fadeSlideUp 0.4s ease-out forwards",
+            }}>
+              <Loader2 size={28} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.7)" }} />
+              <span style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 15,
+                fontWeight: 600,
+                color: "rgba(255,255,255,0.6)",
+              }}>
+                Syncing your business data...
+              </span>
+              <span style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 13,
+                color: "rgba(255,255,255,0.3)",
+                textAlign: "center",
+                maxWidth: 320,
+              }}>
+                This may take a moment on first connect
+              </span>
+            </div>
+          )}
           <div
             className="custom-chat-scroll"
             style={{
@@ -1164,7 +1197,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         mode="research"
         onModeChange={onModeChange}
         onSend={handleResearchSend}
-        disabled={isStreaming || userMessageCount >= MAX_MESSAGES || !hasAnyConnection}
+        disabled={isStreaming || userMessageCount >= MAX_MESSAGES || !hasAnyConnection || dataLoading}
       />
     </>
   );
