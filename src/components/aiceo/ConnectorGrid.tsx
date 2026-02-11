@@ -389,13 +389,9 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
 
-    // If data isn't ready yet, show analyzing status and poll until it arrives
+    // If data isn't ready yet, poll silently while showing the streaming/loading indicator
     let currentData = workspaceData;
     if (!currentData) {
-      let analyzeMsg = "⏳ Analyzing your connected data";
-      setMessages(prev => [...prev, { role: "assistant", content: analyzeMsg }]);
-
-      // Poll for data up to 12 times (~30s)
       for (let i = 0; i < 12; i++) {
         await new Promise(r => setTimeout(r, 2500));
         const { data: session } = await supabase.auth.getSession();
@@ -410,19 +406,9 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
           setWorkspaceData(data);
           break;
         }
-        const dots = ".".repeat((i % 3) + 1);
-        setMessages(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { role: "assistant", content: `⏳ Analyzing your connected data${dots}` };
-          return updated;
-        });
       }
-
-      // Remove the analyzing message
-      setMessages(prev => prev.slice(0, -1));
-
       if (!currentData) {
-        setMessages(prev => [...prev, { role: "assistant", content: "⚠️ Data analysis is taking longer than expected. Please try again in a moment." }]);
+        setMessages(prev => [...prev, { role: "assistant", content: "Your data is still being analyzed. Please try again in a moment." }]);
         setIsStreaming(false);
         return;
       }
