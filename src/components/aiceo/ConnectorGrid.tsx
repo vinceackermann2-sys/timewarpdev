@@ -386,7 +386,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     const newCount = userMessageCount + 1;
     setUserMessageCount(newCount);
     const userMsg: ChatMessage = { role: "user", content: message };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev => [...prev, userMsg, { role: "assistant", content: "" }]);
     setIsStreaming(true);
 
     let assistantSoFar = "";
@@ -498,7 +498,13 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
       if (!assistantSoFar.trim()) {
         console.warn("[ResearchChat] Stream completed but no content received");
-        setMessages(prev => [...prev, { role: "assistant", content: "I received your question but couldn't generate a response. Please try again." }]);
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && !last.content) {
+            return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: "I received your question but couldn't generate a response. Please try again." } : m);
+          }
+          return prev;
+        });
       }
     } catch (err: any) {
       console.error("[ResearchChat] Error:", err);
@@ -508,6 +514,9 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       toast.error(errorMsg);
       setMessages(prev => {
         const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && !last.content) {
+          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: `Sorry, something went wrong: ${errorMsg}` } : m);
+        }
         if (last?.role === "assistant" && last.content) return prev;
         return [...prev, { role: "assistant", content: `Sorry, something went wrong: ${errorMsg}` }];
       });
@@ -817,12 +826,17 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                     <p style={{ color: "#fff", fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>
                       {msg.content}
                     </p>
-                  ) : (
+                  ) : msg.content ? (
                     <div
                       className="research-chat-md prose prose-invert max-w-none"
                       style={{ fontSize: 15, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                     >
                       <ReactMarkdown>{msg.content.replace(/\[INSIGHT:[^\]]+\]/g, '').replace(/\[SUGGEST:[^\]]+\]/g, '')}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                      <Loader2 size={14} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.7)" }} />
+                      <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Thinking...</span>
                     </div>
                   )}
                 </div>
