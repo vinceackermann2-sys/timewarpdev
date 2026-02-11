@@ -389,87 +389,30 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
 
-    // Always fetch fresh workspace data directly to avoid stale closures
-    let currentData: any = null;
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    console.log("[ResearchChat] Auth user:", userId);
-
-    if (userId) {
-      // Try to get data immediately
-      const { data: freshData } = await supabase
-        .from("workspace_research")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-      currentData = freshData;
-      console.log("[ResearchChat] Immediate fetch:", !!currentData);
-    }
-
-    // If no data yet, poll silently while showing loading animation
-    if (!currentData && userId) {
-      console.log("[ResearchChat] No data yet, polling...");
-      for (let i = 0; i < 15; i++) {
-        await new Promise(r => setTimeout(r, 2000));
-        const { data } = await supabase
-          .from("workspace_research")
-          .select("*")
-          .eq("user_id", userId)
-          .maybeSingle();
-        console.log("[ResearchChat] Poll", i, "found:", !!data);
-        if (data) {
-          currentData = data;
-          break;
-        }
-      }
-    }
-
-    if (currentData) {
-      setWorkspaceData(currentData);
-    }
-
-    if (!currentData) {
-      setMessages(prev => [...prev, { role: "assistant", content: "Your data is still syncing. Please try again in a moment." }]);
-      setIsStreaming(false);
-      return;
-    }
-
-    // Build context from workspace data — trim to essentials to avoid oversized payloads
-    const connectedContexts: any[] = [];
-    const rawData = (currentData as any)?.raw_data || {};
-    const sources = rawData.sources || [];
-    const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
-    connectedContexts.push({
-      type: "business-db",
-      label,
-      content: {
-        raw_data: rawData,
-        research_summary: (currentData as any)?.research_summary || {},
-        findings: (currentData as any)?.findings || [],
-        emails_analyzed: (currentData as any)?.emails_analyzed || 0,
-        documents_analyzed: (currentData as any)?.documents_analyzed || 0,
-        events_analyzed: (currentData as any)?.events_analyzed || 0,
-        sheets_analyzed: (currentData as any)?.sheets_analyzed || 0,
-      },
-    });
-
-    console.log("[ResearchChat] Sending request with", connectedContexts.length, "contexts, sources:", sources);
-
     let assistantSoFar = "";
     try {
+      // Get the user's actual JWT for server-side data fetching
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error("Not authenticated. Please reconnect your account.");
+      }
+
+      console.log("[ResearchChat] Sending with user JWT, userId:", sessionData?.session?.user?.id);
+
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
+      const timeout = setTimeout(() => controller.abort(), 60000);
 
       const resp = await fetch(RESEARCH_CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${accessToken}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
-          connectedContexts,
         }),
         signal: controller.signal,
       });
@@ -516,26 +459,24 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
               });
             }
           } catch {
-            // Skip unparseable lines instead of re-buffering (prevents infinite loop)
             console.warn("[ResearchChat] Skipping unparseable SSE line");
           }
         }
       }
 
-      // Safety: if stream completed but no content was received
       if (!assistantSoFar.trim()) {
         console.warn("[ResearchChat] Stream completed but no content received");
         setMessages(prev => [...prev, { role: "assistant", content: "I received your question but couldn't generate a response. Please try again." }]);
       }
     } catch (err: any) {
       console.error("[ResearchChat] Error:", err);
-      const errorMsg = err.name === "AbortError" 
-        ? "Request timed out. Please try again." 
+      const errorMsg = err.name === "AbortError"
+        ? "Request timed out. Please try again."
         : (err.message || "Failed to get AI response");
       toast.error(errorMsg);
       setMessages(prev => {
         const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && last.content) return prev; // Keep partial response
+        if (last?.role === "assistant" && last.content) return prev;
         return [...prev, { role: "assistant", content: `Sorry, something went wrong: ${errorMsg}` }];
       });
     } finally {
