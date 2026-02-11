@@ -126,6 +126,12 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
         ">
           <ReactMarkdown
             components={{
+              h1: ({ children }) => (
+                <h1 className="text-lg font-bold text-foreground mt-4 mb-2 border-b border-primary/30 pb-1">{children}</h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="text-base font-semibold text-foreground mt-3 mb-1.5">{children}</h2>
+              ),
               h3: ({ children }) => (
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mt-3 mb-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
@@ -146,6 +152,26 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
               ),
               p: ({ children }) => (
                 <p className="text-muted-foreground my-1.5">{children}</p>
+              ),
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{children}</blockquote>
+              ),
+              table: ({ children }) => (
+                <div className="my-3 w-full overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full border-collapse text-xs">{children}</table>
+                </div>
+              ),
+              thead: ({ children }) => (
+                <thead className="bg-muted/50">{children}</thead>
+              ),
+              th: ({ children }) => (
+                <th className="border-b border-border px-3 py-2 text-left font-semibold text-foreground text-xs">{children}</th>
+              ),
+              tr: ({ children }) => (
+                <tr className="border-b border-border/50 last:border-0">{children}</tr>
+              ),
+              td: ({ children }) => (
+                <td className="px-3 py-2 text-muted-foreground text-xs">{children}</td>
               ),
             }}
           >
