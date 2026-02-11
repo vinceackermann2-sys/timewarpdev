@@ -432,9 +432,40 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       let textBuffer = "";
 
       let streamDone = false;
+      const safetyTimeout = setTimeout(() => {
+        console.warn("[ResearchChat] 90s safety timeout — forcing stream end");
+        streamDone = true;
+        setIsStreaming(false);
+      }, 90000);
+
       while (!streamDone) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          // Final buffer flush — handle data without trailing newline
+          if (textBuffer.trim()) {
+            const remaining = textBuffer.trim();
+            if (remaining.startsWith("data: ")) {
+              const jsonStr = remaining.slice(6).trim();
+              if (jsonStr !== "[DONE]") {
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const content = parsed.choices?.[0]?.delta?.content;
+                  if (content) {
+                    assistantSoFar += content;
+                    setMessages(prev => {
+                      const last = prev[prev.length - 1];
+                      if (last?.role === "assistant") {
+                        return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
+                      }
+                      return [...prev, { role: "assistant", content: assistantSoFar }];
+                    });
+                  }
+                } catch {}
+              }
+            }
+          }
+          break;
+        }
         textBuffer += decoder.decode(value, { stream: true });
 
         let newlineIndex: number;
@@ -459,10 +490,11 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
               });
             }
           } catch {
-            console.warn("[ResearchChat] Skipping unparseable SSE line");
+            console.warn("[ResearchChat] Skipping unparseable SSE chunk:", jsonStr?.slice(0, 80));
           }
         }
       }
+      clearTimeout(safetyTimeout);
 
       if (!assistantSoFar.trim()) {
         console.warn("[ResearchChat] Stream completed but no content received");

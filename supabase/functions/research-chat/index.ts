@@ -87,46 +87,50 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
+      console.error("[research-chat] LOVABLE_API_KEY not configured");
       return new Response(
         JSON.stringify({ error: "AI service not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Authenticate user via JWT
-    const authHeader = req.headers.get("Authorization");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+    // Create admin client ONCE — used for both auth verification and data fetching
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { persistSession: false },
+    });
+
+    // --- Step 1: Authenticate user via service role (reliable pattern) ---
     let userId: string | null = null;
+    const authHeader = req.headers.get("Authorization");
+    console.log("[research-chat] Auth header present:", !!authHeader);
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.replace("Bearer ", "");
-      // Skip if token is the anon key itself
-      if (token !== supabaseAnonKey) {
-        try {
-          const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-            global: { headers: { Authorization: authHeader } },
-            auth: { persistSession: false },
-          });
-          const { data: userData } = await supabaseAuth.auth.getUser(token);
+      try {
+        const { data: userData, error: authError } = await supabaseAdmin.auth.getUser(token);
+        if (authError) {
+          console.error("[research-chat] getUser error:", authError.message);
+        } else {
           userId = userData?.user?.id || null;
-        } catch (e) {
-          console.error("Auth check failed:", e);
+          console.log("[research-chat] Authenticated userId:", userId);
         }
+      } catch (e) {
+        console.error("[research-chat] Auth exception:", e);
       }
     }
 
-    console.log("Research chat - userId:", userId);
+    if (!userId) {
+      console.warn("[research-chat] No userId — will respond without business context");
+    }
 
-    // Fetch user's workspace data server-side
+    // --- Step 2: Fetch workspace data from DB, fallback to storage bucket ---
     let businessContext = "";
     if (userId) {
+      // Try database first
       try {
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-          auth: { persistSession: false },
-        });
         const { data: workspaceData, error } = await supabaseAdmin
           .from("workspace_research")
           .select("*")
@@ -134,17 +138,42 @@ serve(async (req) => {
           .maybeSingle();
 
         if (error) {
-          console.error("Error fetching workspace data:", error.message);
+          console.error("[research-chat] DB fetch error:", error.message);
         } else if (workspaceData) {
-          console.log("Found workspace data - emails:", workspaceData.emails_analyzed, "docs:", workspaceData.documents_analyzed);
+          const rawData = (workspaceData as any).raw_data || {};
+          const emailCount = (rawData.emails || rawData.emailSummaries || []).length;
+          const docCount = (rawData.documents || []).length;
+          console.log("[research-chat] DB data found — emails:", emailCount, "docs:", docCount, "sources:", rawData.sources);
           businessContext = buildContextFromWorkspace(workspaceData);
         } else {
-          console.log("No workspace data found for user");
+          console.log("[research-chat] No DB data for user, trying storage bucket...");
         }
       } catch (e) {
-        console.error("Error fetching workspace data:", e);
+        console.error("[research-chat] DB fetch exception:", e);
+      }
+
+      // Fallback: try storage bucket if no DB data
+      if (!businessContext) {
+        try {
+          const { data: fileData, error: dlError } = await supabaseAdmin.storage
+            .from("business-data")
+            .download(`${userId}/research.json`);
+
+          if (dlError) {
+            console.log("[research-chat] Storage fallback - no file:", dlError.message);
+          } else if (fileData) {
+            const text = await fileData.text();
+            const parsed = JSON.parse(text);
+            console.log("[research-chat] Storage fallback - loaded research.json, keys:", Object.keys(parsed));
+            businessContext = buildContextFromWorkspace(parsed);
+          }
+        } catch (e) {
+          console.error("[research-chat] Storage fallback exception:", e);
+        }
       }
     }
+
+    console.log("[research-chat] Business context length:", businessContext.length, "chars");
 
     const systemPrompt = `You are a sharp, no-nonsense business advisor. You cut straight to the point — no fluff, no filler. You speak with confidence and warmth but never waste the user's time.
 
@@ -173,6 +202,8 @@ ${businessContext ? `## USER'S BUSINESS DATA\n${businessContext}` : '## NO DATA 
 ## REQUIRED: End every response with
 [SUGGEST:action1|action2|action3]`;
 
+    console.log("[research-chat] Calling AI gateway...");
+
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -192,9 +223,11 @@ ${businessContext ? `## USER'S BUSINESS DATA\n${businessContext}` : '## NO DATA 
       }
     );
 
+    console.log("[research-chat] AI gateway status:", response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("[research-chat] AI gateway error:", response.status, errorText);
 
       if (response.status === 429) {
         return new Response(
@@ -225,7 +258,7 @@ ${businessContext ? `## USER'S BUSINESS DATA\n${businessContext}` : '## NO DATA 
       },
     });
   } catch (error) {
-    console.error("Research chat error:", error);
+    console.error("[research-chat] Fatal error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
