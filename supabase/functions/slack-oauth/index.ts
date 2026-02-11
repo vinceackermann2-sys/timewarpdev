@@ -41,17 +41,17 @@ Deno.serve(async (req) => {
     // Handle OAuth errors
     if (error) {
       console.error("[slack-oauth] OAuth error:", error);
-      return Response.redirect(`${appUrl}/ai-ceo?slack_error=${error}`, 302);
+      return Response.redirect(`${appUrl}/?slack_error=${error}`, 302);
     }
 
     if (!code) {
       console.error("[slack-oauth] Missing authorization code");
-      return Response.redirect(`${appUrl}/ai-ceo?slack_error=missing_code`, 302);
+      return Response.redirect(`${appUrl}/?slack_error=missing_code`, 302);
     }
 
     if (!SLACK_CLIENT_ID || !SLACK_CLIENT_SECRET) {
       console.error("[slack-oauth] Missing Slack OAuth credentials");
-      return Response.redirect(`${appUrl}/ai-ceo?slack_error=config_error`, 302);
+      return Response.redirect(`${appUrl}/?slack_error=config_error`, 302);
     }
 
     // Exchange code for access token
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
 
     if (!tokenData.ok) {
       console.error("[slack-oauth] Token exchange failed:", tokenData.error);
-      return Response.redirect(`${appUrl}/ai-ceo?slack_error=${tokenData.error}`, 302);
+      return Response.redirect(`${appUrl}/?slack_error=${tokenData.error}`, 302);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
 
     if (dbError) {
       console.error("[slack-oauth] Failed to store installation:", dbError);
-      return Response.redirect(`${appUrl}/ai-ceo?slack_error=db_error`, 302);
+      return Response.redirect(`${appUrl}/?slack_error=db_error`, 302);
     }
 
     console.log("[slack-oauth] Bot installed for team:", tokenData.team.name);
@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
             email: userEmail,
           });
           if (!linkError && linkData?.properties?.hashed_token) {
-            const redirectTo = `${appUrl}/ai-ceo?slack_installed=true&team=${encodeURIComponent(tokenData.team.name)}`;
+            const redirectTo = `${appUrl}/?slack_installed=true&team=${encodeURIComponent(tokenData.team.name)}`;
             const verifyUrl = `${SUPABASE_URL}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`;
             console.log("[slack-oauth] Redirecting through magic link verify");
             return Response.redirect(verifyUrl, 302);
@@ -193,9 +193,9 @@ Deno.serve(async (req) => {
 
     // Fallback redirect (no session)
     console.log("[slack-oauth] Redirecting to app (no session)");
-    return Response.redirect(`${appUrl}/ai-ceo?slack_installed=true&team=${encodeURIComponent(tokenData.team.name)}`, 302);
+    return Response.redirect(`${appUrl}/?slack_installed=true&team=${encodeURIComponent(tokenData.team.name)}`, 302);
   } catch (error) {
     console.error("[slack-oauth] Error:", error);
-    return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?slack_error=unknown`, 302);
+    return Response.redirect(`${FALLBACK_APP_URL}/?slack_error=unknown`, 302);
   }
 });
