@@ -465,6 +465,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
@@ -520,10 +521,23 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
           }
         }
       }
+
+      // Safety: if stream completed but no content was received
+      if (!assistantSoFar.trim()) {
+        console.warn("[ResearchChat] Stream completed but no content received");
+        setMessages(prev => [...prev, { role: "assistant", content: "I received your question but couldn't generate a response. Please try again." }]);
+      }
     } catch (err: any) {
-      console.error("Research chat error:", err);
-      toast.error(err.message || "Failed to get AI response");
-      setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I couldn't process that request. Please try again." }]);
+      console.error("[ResearchChat] Error:", err);
+      const errorMsg = err.name === "AbortError" 
+        ? "Request timed out. Please try again." 
+        : (err.message || "Failed to get AI response");
+      toast.error(errorMsg);
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && last.content) return prev; // Keep partial response
+        return [...prev, { role: "assistant", content: `Sorry, something went wrong: ${errorMsg}` }];
+      });
     } finally {
       setIsStreaming(false);
     }
