@@ -386,6 +386,13 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     const newCount = userMessageCount + 1;
     setUserMessageCount(newCount);
     const userMsg: ChatMessage = { role: "user", content: message };
+    // Block sending if data hasn't loaded yet to avoid wasting messages
+    if (!workspaceData) {
+      setMessages(prev => [...prev, userMsg, { role: "assistant", content: "⏳ Your data is still being analyzed. Please wait a moment and try again — I want to make sure I give you accurate insights." }]);
+      setUserMessageCount(newCount - 1); // Refund the message count
+      return;
+    }
+
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
 
