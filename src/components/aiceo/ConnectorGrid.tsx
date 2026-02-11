@@ -162,6 +162,7 @@ function ConnectorCard({ connector, connected, index, onConnect, onDisconnect }:
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  isSyncing?: boolean;
 }
 
 const MAX_MESSAGES = 3;
@@ -410,37 +411,48 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     let assistantSoFar = "";
     const controller = new AbortController();
 
-    // 30-second failsafe — the AI responds in <5s when the request reaches the server
-    const hardFailsafe = setTimeout(() => {
-      console.warn("[ResearchChat] 30s failsafe — aborting");
-      controller.abort();
-      setIsStreaming(false);
-      setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && !last.content) {
-          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: "Request timed out. Please try again." } : m);
-        }
-        return prev;
-      });
-    }, 30000);
+    // Track whether we waited for sync so we can extend the failsafe
+    let syncWaitTime = 0;
+    let hardFailsafe: ReturnType<typeof setTimeout> | undefined;
 
     try {
-      // Wait for any in-progress sync to complete (max 45s) so the AI has data
+      // If sync is in progress, show a nice animated waiting message and wait for it
       if (syncPromiseRef.current) {
         console.log("[ResearchChat] Waiting for sync to complete before sending...");
+        const syncStart = Date.now();
+        
+        // Show animated syncing message
         setMessages(prev => prev.map((m, i) =>
-          i === prev.length - 1 ? { ...m, content: "⏳ Syncing your business data, please wait..." } : m
+          i === prev.length - 1 ? { ...m, content: "🔄 **Analyzing your business data...**\n\nThis usually takes 15–30 seconds on first connection. I'll respond to your question as soon as I have your data.", isSyncing: true } : m
         ));
+
         await Promise.race([
           syncPromiseRef.current,
-          new Promise(resolve => setTimeout(resolve, 45000)),
+          new Promise(resolve => setTimeout(resolve, 60000)),
         ]);
-        console.log("[ResearchChat] Sync complete or timed out, proceeding...");
+
+        syncWaitTime = Date.now() - syncStart;
+        console.log("[ResearchChat] Sync complete or timed out after", syncWaitTime, "ms, proceeding...");
+        
         // Clear the syncing placeholder
         setMessages(prev => prev.map((m, i) =>
-          i === prev.length - 1 ? { ...m, content: "" } : m
+          i === prev.length - 1 ? { ...m, content: "", isSyncing: false } : m
         ));
       }
+
+      // 30-second failsafe AFTER sync wait
+      hardFailsafe = setTimeout(() => {
+        console.warn("[ResearchChat] 30s failsafe — aborting");
+        controller.abort();
+        setIsStreaming(false);
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && !last.content) {
+            return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: "Request timed out. Please try again." } : m);
+          }
+          return prev;
+        });
+      }, 30000);
 
       // Get auth token — refresh first to ensure it's valid
       let accessToken = "";
@@ -877,6 +889,25 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                     <p style={{ color: "#fff", fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>
                       {msg.content}
                     </p>
+                  ) : msg.isSyncing ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "4px 0" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Loader2 size={16} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.8)" }} />
+                        <span style={{ color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Analyzing your business data...</span>
+                      </div>
+                      <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>
+                        This usually takes 15–30 seconds on first connection. I'll respond to your question as soon as I have your data.
+                      </p>
+                      <div style={{ width: "100%", height: 4, borderRadius: 2, background: "rgba(99, 102, 241, 0.1)", overflow: "hidden" }}>
+                        <div style={{ 
+                          height: "100%", 
+                          borderRadius: 2,
+                          background: "linear-gradient(90deg, rgba(99, 102, 241, 0.6), rgba(139, 92, 246, 0.6))",
+                          animation: "syncPulse 2s ease-in-out infinite",
+                          width: "60%",
+                        }} />
+                      </div>
+                    </div>
                   ) : msg.content ? (
                     <div
                       className="research-chat-md prose prose-invert max-w-none"
