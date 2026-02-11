@@ -389,23 +389,18 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
 
-    // If workspace data hasn't loaded yet, show analyzing message and wait
-    if (!workspaceData) {
-      setMessages(prev => [...prev, { role: "assistant", content: "⏳ Still analyzing your connected data... Please try again in a moment." }]);
-      setIsStreaming(false);
-      return;
-    }
-
     // Build context from workspace data — per-user isolation is handled by RLS in the DB
     const connectedContexts: any[] = [];
-    const rawData = (workspaceData as any)?.raw_data || {};
-    const sources = rawData.sources || [];
-    const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
-    connectedContexts.push({
-      type: "business-db",
-      label,
-      content: workspaceData,
-    });
+    if (workspaceData) {
+      const rawData = (workspaceData as any)?.raw_data || {};
+      const sources = rawData.sources || [];
+      const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
+      connectedContexts.push({
+        type: "business-db",
+        label,
+        content: workspaceData,
+      });
+    }
 
     let assistantSoFar = "";
     try {
