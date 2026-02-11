@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
     if (!code || !state) {
       console.error("[microsoft-oauth-callback] Missing code or state");
-      return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?microsoft_error=missing_params`, 302);
+      return Response.redirect(`${FALLBACK_APP_URL}/?microsoft_error=missing_params`, 302);
     }
 
     let stateData: { user_id: string | null; nonce: string; origin?: string };
@@ -41,12 +41,12 @@ Deno.serve(async (req) => {
       console.log("[microsoft-oauth-callback] Decoded state:", { user_id: stateData.user_id, origin: appUrl });
     } catch (e) {
       console.error("[microsoft-oauth-callback] Failed to decode state:", e);
-      return Response.redirect(`${FALLBACK_APP_URL}/ai-ceo?microsoft_error=invalid_state`, 302);
+      return Response.redirect(`${FALLBACK_APP_URL}/?microsoft_error=invalid_state`, 302);
     }
 
     if (error) {
       console.error("[microsoft-oauth-callback] OAuth error:", error, errorDescription);
-      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=${encodeURIComponent(error)}`, 302);
+      return Response.redirect(`${appUrl}/?microsoft_error=${encodeURIComponent(error)}`, 302);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -64,11 +64,11 @@ Deno.serve(async (req) => {
       if (connectionData) {
         if (connectionData.oauth_state !== stateData.nonce) {
           console.error("[microsoft-oauth-callback] State nonce mismatch");
-          return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=invalid_nonce`, 302);
+          return Response.redirect(`${appUrl}/?microsoft_error=invalid_nonce`, 302);
         }
         if (new Date(connectionData.oauth_state_expires_at!) < new Date()) {
           console.error("[microsoft-oauth-callback] State expired");
-          return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=state_expired`, 302);
+          return Response.redirect(`${appUrl}/?microsoft_error=state_expired`, 302);
         }
       }
     }
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error("[microsoft-oauth-callback] Token exchange failed:", errorText);
-      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=token_exchange_failed`, 302);
+      return Response.redirect(`${appUrl}/?microsoft_error=token_exchange_failed`, 302);
     }
 
     const tokenData = await tokenResponse.json();
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
 
             if (createError) {
               console.error("[microsoft-oauth-callback] Failed to create user:", createError);
-              return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=user_creation_failed`, 302);
+              return Response.redirect(`${appUrl}/?microsoft_error=user_creation_failed`, 302);
             }
 
             userId = newUser.user.id;
@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
 
       if (!userId) {
         console.error("[microsoft-oauth-callback] Could not resolve user_id");
-        return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=no_user`, 302);
+        return Response.redirect(`${appUrl}/?microsoft_error=no_user`, 302);
       }
     }
 
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
 
     if (tokenError) {
       console.error("[microsoft-oauth-callback] Failed to store tokens:", tokenError);
-      return Response.redirect(`${appUrl}/ai-ceo?microsoft_error=storage_failed`, 302);
+      return Response.redirect(`${appUrl}/?microsoft_error=storage_failed`, 302);
     }
 
     console.log("[microsoft-oauth-callback] Tokens stored successfully for user:", userId);
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
           email: resolvedEmail,
         });
         if (!linkError && linkData?.properties?.hashed_token) {
-          const redirectTo = `${appUrl}/ai-ceo?microsoft_connected=true`;
+          const redirectTo = `${appUrl}/?microsoft_connected=true`;
           const verifyUrl = `${SUPABASE_URL}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`;
           console.log("[microsoft-oauth-callback] Redirecting through magic link verify");
           return Response.redirect(verifyUrl, 302);
@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
     }
 
     console.log("[microsoft-oauth-callback] Redirecting to app (no session):", appUrl);
-    return Response.redirect(`${appUrl}/ai-ceo?microsoft_connected=true`, 302);
+    return Response.redirect(`${appUrl}/?microsoft_connected=true`, 302);
   }
 
   return new Response(JSON.stringify({ error: "Method not allowed" }), {
