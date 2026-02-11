@@ -191,7 +191,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [workspaceData, setWorkspaceData] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [dataLoading, setDataLoading] = useState(false);
   const syncAttemptRef = useRef(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [userMessageCount, setUserMessageCount] = useState(0);
@@ -226,7 +225,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
         // If this is an OAuth return, trigger immediate sync then load data
         if (isOAuthReturn) {
-          setDataLoading(true);
           syncAttemptRef.current = 0;
           await triggerImmediateSync();
         }
@@ -240,7 +238,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         if (isOAuthReturn) {
-          setDataLoading(true);
           syncAttemptRef.current = 0;
           await triggerImmediateSync();
         }
@@ -330,7 +327,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
       if (error) {
         console.error("[ConnectorGrid] loadWorkspaceData error:", error.message);
-        setDataLoading(false);
         return;
       }
 
@@ -338,20 +334,12 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         const rawData = (data as any)?.raw_data || {};
         console.log("[ConnectorGrid] Workspace data loaded — sources:", rawData.sources, "emails:", (rawData.emails || []).length, "docs:", (rawData.documents || []).length);
         setWorkspaceData(data);
-        setDataLoading(false);
       } else {
         console.log("[ConnectorGrid] No workspace data yet for user", userId, "— will retry via polling");
-        // Don't set dataLoading false yet — polling will retry
         syncAttemptRef.current += 1;
-        // After 6 attempts (~30s), stop showing loading and let user chat anyway
-        if (syncAttemptRef.current >= 6) {
-          console.log("[ConnectorGrid] Giving up waiting for sync, enabling chat");
-          setDataLoading(false);
-        }
       }
     } catch (error) {
       console.error("Error loading workspace data:", error);
-      setDataLoading(false);
     }
   }
 
@@ -401,18 +389,23 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
 
+    // If workspace data hasn't loaded yet, show analyzing message and wait
+    if (!workspaceData) {
+      setMessages(prev => [...prev, { role: "assistant", content: "⏳ Still analyzing your connected data... Please try again in a moment." }]);
+      setIsStreaming(false);
+      return;
+    }
+
     // Build context from workspace data — per-user isolation is handled by RLS in the DB
     const connectedContexts: any[] = [];
-    if (workspaceData) {
-      const rawData = (workspaceData as any)?.raw_data || {};
-      const sources = rawData.sources || [];
-      const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
-      connectedContexts.push({
-        type: "business-db",
-        label,
-        content: workspaceData,
-      });
-    }
+    const rawData = (workspaceData as any)?.raw_data || {};
+    const sources = rawData.sources || [];
+    const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
+    connectedContexts.push({
+      type: "business-db",
+      label,
+      content: workspaceData,
+    });
 
     let assistantSoFar = "";
     try {
@@ -566,37 +559,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             flexDirection: "column",
           }}
         >
-          {/* Syncing indicator when data hasn't loaded yet */}
-          {dataLoading && (
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              padding: "48px 24px",
-              animation: "fadeSlideUp 0.4s ease-out forwards",
-            }}>
-              <Loader2 size={28} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.7)" }} />
-              <span style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 15,
-                fontWeight: 600,
-                color: "rgba(255,255,255,0.6)",
-              }}>
-                Syncing your business data...
-              </span>
-              <span style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 13,
-                color: "rgba(255,255,255,0.3)",
-                textAlign: "center",
-                maxWidth: 320,
-              }}>
-                This may take a moment on first connect
-              </span>
-            </div>
-          )}
           <div
             className="custom-chat-scroll"
             style={{
@@ -1211,7 +1173,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         mode="research"
         onModeChange={onModeChange}
         onSend={handleResearchSend}
-        disabled={isStreaming || userMessageCount >= MAX_MESSAGES || !hasAnyConnection || dataLoading}
+        disabled={isStreaming || userMessageCount >= MAX_MESSAGES || !hasAnyConnection}
       />
     </>
   );
