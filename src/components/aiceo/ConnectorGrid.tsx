@@ -425,12 +425,34 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     }, 30000);
 
     try {
-      // Simple auth — no refreshSession, no sync-wait
+      // Wait for any in-progress sync to complete (max 45s) so the AI has data
+      if (syncPromiseRef.current) {
+        console.log("[ResearchChat] Waiting for sync to complete before sending...");
+        setMessages(prev => prev.map((m, i) =>
+          i === prev.length - 1 ? { ...m, content: "⏳ Syncing your business data, please wait..." } : m
+        ));
+        await Promise.race([
+          syncPromiseRef.current,
+          new Promise(resolve => setTimeout(resolve, 45000)),
+        ]);
+        console.log("[ResearchChat] Sync complete or timed out, proceeding...");
+        // Clear the syncing placeholder
+        setMessages(prev => prev.map((m, i) =>
+          i === prev.length - 1 ? { ...m, content: "" } : m
+        ));
+      }
+
+      // Get auth token — refresh first to ensure it's valid
       let accessToken = "";
       try {
         const { data } = await supabase.auth.getSession();
         accessToken = data.session?.access_token || "";
-        console.log("[ResearchChat] Auth token length:", accessToken.length, "userId:", data.session?.user?.id);
+        if (!accessToken) {
+          // Try refreshing — on OAuth return the session may not be ready yet
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          accessToken = refreshData.session?.access_token || "";
+        }
+        console.log("[ResearchChat] Auth token length:", accessToken.length);
       } catch (e) {
         console.warn("[ResearchChat] Auth error (proceeding without token):", e);
       }
