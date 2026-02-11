@@ -386,28 +386,58 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     const newCount = userMessageCount + 1;
     setUserMessageCount(newCount);
     const userMsg: ChatMessage = { role: "user", content: message };
-    // Block sending if data hasn't loaded yet to avoid wasting messages
-    if (!workspaceData) {
-      setMessages(prev => [...prev, userMsg, { role: "assistant", content: "⏳ Your data is still being analyzed. Please wait a moment and try again — I want to make sure I give you accurate insights." }]);
-      setUserMessageCount(newCount - 1); // Refund the message count
-      return;
-    }
-
     setMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
 
-    // Build context from workspace data — per-user isolation is handled by RLS in the DB
-    const connectedContexts: any[] = [];
-    if (workspaceData) {
-      const rawData = (workspaceData as any)?.raw_data || {};
-      const sources = rawData.sources || [];
-      const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
-      connectedContexts.push({
-        type: "business-db",
-        label,
-        content: workspaceData,
-      });
+    // If data isn't ready yet, show analyzing status and poll until it arrives
+    let currentData = workspaceData;
+    if (!currentData) {
+      let analyzeMsg = "⏳ Analyzing your connected data";
+      setMessages(prev => [...prev, { role: "assistant", content: analyzeMsg }]);
+
+      // Poll for data up to 12 times (~30s)
+      for (let i = 0; i < 12; i++) {
+        await new Promise(r => setTimeout(r, 2500));
+        const { data: session } = await supabase.auth.getSession();
+        if (!session?.session?.user) break;
+        const { data } = await supabase
+          .from("workspace_research")
+          .select("*")
+          .eq("user_id", session.session.user.id)
+          .maybeSingle();
+        if (data) {
+          currentData = data;
+          setWorkspaceData(data);
+          break;
+        }
+        const dots = ".".repeat((i % 3) + 1);
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: `⏳ Analyzing your connected data${dots}` };
+          return updated;
+        });
+      }
+
+      // Remove the analyzing message
+      setMessages(prev => prev.slice(0, -1));
+
+      if (!currentData) {
+        setMessages(prev => [...prev, { role: "assistant", content: "⚠️ Data analysis is taking longer than expected. Please try again in a moment." }]);
+        setIsStreaming(false);
+        return;
+      }
     }
+
+    // Build context from workspace data
+    const connectedContexts: any[] = [];
+    const rawData = (currentData as any)?.raw_data || {};
+    const sources = rawData.sources || [];
+    const label = sources.length > 0 ? `${sources.join(" + ")} Workspace Data` : "Connected Workspace Data";
+    connectedContexts.push({
+      type: "business-db",
+      label,
+      content: currentData,
+    });
 
     let assistantSoFar = "";
     try {
