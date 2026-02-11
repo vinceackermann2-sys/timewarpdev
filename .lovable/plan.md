@@ -1,60 +1,62 @@
 
+# Fix Research Chat - Complete Diagnosis and Fix
 
-# Fix OAuth Connector Issues on Mobile
+## Root Causes Found
 
-## Problem Summary
+1. **Auth failure in edge function**: The `getUser()` call silently returns null. The current approach creates a redundant Supabase client with the anon key + auth header, then calls `getUser(token)`. This is unreliable. The fix is to use the **service role client** to call `getUser(token)` directly -- this bypasses any client-level auth issues.
 
-All three connector OAuth flows (Google, Microsoft, Slack) are broken because the user is **not authenticated** when clicking connect. The code falls back to `userId = "anonymous"`, which causes failures:
+2. **Client stream parser may silently fail**: If the `fetch` response arrives but the SSE parsing encounters unexpected chunks (e.g., `OPENROUTER PROCESSING` comment lines that come as separate chunks without trailing newlines), the buffer can stall. Need to add safety handling and better logging.
 
-- **Google**: The edge function tries to upsert `"anonymous"` into a UUID column (`user_id`), causing a database error. The function returns `{ error: "Failed to initiate OAuth" }` silently.
-- **Microsoft**: The initiation may partially succeed with `"anonymous"`, but the callback fails on state nonce verification because the stored record doesn't match.
-- **Slack**: Similar redirect issues; error params aren't detected by the page.
-
-Additionally, `AiCeo.tsx` only checks for success query params (`google_connected`, `microsoft_connected`, `slack_installed`) but not error params, so any OAuth failure dumps the user back to the start/hero page.
+3. **No fallback for empty responses**: If the stream completes with no assistant content, the fallback message appears but the user thinks it's still loading because the "Analyzing" spinner shows instead.
 
 ## Plan
 
-### 1. Require authentication before initiating OAuth
+### Step 1: Fix Edge Function Auth (research-chat)
 
-**File: `src/hooks/useConnectorOAuth.ts`**
+Rewrite the auth section to use the **service role key** for token verification -- this is the standard reliable pattern:
 
-- Before attempting any OAuth flow, check if the user has a valid session.
-- If no session exists, show a toast message directing the user to sign in first, and return early.
-- Remove the `"anonymous"` fallback entirely -- all three connectors need a real `user_id`.
+```text
+// BEFORE (broken):
+const supabaseAuth = createClient(url, anonKey, {
+  global: { headers: { Authorization: authHeader } },
+});
+const { data } = await supabaseAuth.auth.getUser(token);
 
-### 2. Handle OAuth error params in the page routing
-
-**File: `src/pages/AiCeo.tsx`**
-
-- Expand the `isOAuthReturn` check to also include error params: `google_error`, `microsoft_error`, `slack_error`.
-- This ensures that even on OAuth failures, the user stays in the chat/connector view (where they can see an error toast) instead of being dumped to the hero page.
-
-### 3. Show error toasts for OAuth error redirects
-
-**File: `src/components/aiceo/AiCeoChatView.tsx`**
-
-- On mount, check for error query params (`google_error`, `microsoft_error`, `slack_error`) and display appropriate toast notifications so the user knows what went wrong.
-
-### Technical Details
-
-**useConnectorOAuth.ts changes:**
-```
-- Remove: const userId = session?.user?.id ?? "anonymous";
-- Add: if (!session?.user?.id) { toast.error("Please sign in first"); return; }
-- Use: const userId = session.user.id;
+// AFTER (reliable):
+const supabaseAdmin = createClient(url, serviceRoleKey, {
+  auth: { persistSession: false },
+});
+const { data, error } = await supabaseAdmin.auth.getUser(token);
 ```
 
-**AiCeo.tsx changes:**
-```
-- Expand isOAuthReturn to include error params:
-  searchParams.has("google_error") || 
-  searchParams.has("microsoft_error") || 
-  searchParams.has("slack_error")
-```
+Also add comprehensive logging at every step:
+- Log whether Authorization header exists
+- Log the getUser result AND error
+- Log whether workspace data was found and its size
+- Log the AI gateway response status
 
-**AiCeoChatView.tsx changes:**
-```
-- Add useEffect to check for error params and show toasts
-- Include error params in the isOAuthReturn check
-```
+### Step 2: Add Storage Bucket Fallback
 
+If the `workspace_research` table query returns no data, also try reading from the `business-data/{user_id}/research.json` storage bucket as a fallback source.
+
+### Step 3: Fix Client-Side Stream Handling
+
+In `ConnectorGrid.tsx`:
+- Add a final buffer flush after the stream reader finishes (handle data without trailing newline)
+- Add `console.log` for every parsed chunk so we can debug
+- Ensure `setIsStreaming(false)` is always called, even in edge cases
+- Add a timeout that auto-stops the spinner after 90 seconds as ultimate safety net
+
+### Step 4: Deploy and Verify
+
+Deploy the updated edge function and test it end-to-end to verify:
+- Auth succeeds (userId is populated)
+- Workspace data is fetched
+- AI responds with actual business insights
+- Client displays the response
+
+## Technical Details
+
+### Files to modify:
+- `supabase/functions/research-chat/index.ts` -- fix auth, add storage fallback, add logging
+- `src/components/aiceo/ConnectorGrid.tsx` -- fix stream parser, add buffer flush, add safety timeout
