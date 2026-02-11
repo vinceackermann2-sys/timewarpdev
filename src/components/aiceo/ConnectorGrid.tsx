@@ -191,7 +191,8 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [workspaceData, setWorkspaceData] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
+  const syncAttemptRef = useRef(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [userMessageCount, setUserMessageCount] = useState(0);
   const [showWaitlist, setShowWaitlist] = useState(false);
@@ -225,6 +226,8 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
         // If this is an OAuth return, trigger immediate sync then load data
         if (isOAuthReturn) {
+          setDataLoading(true);
+          syncAttemptRef.current = 0;
           await triggerImmediateSync();
         }
         loadWorkspaceData(session.user.id);
@@ -237,6 +240,8 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         if (isOAuthReturn) {
+          setDataLoading(true);
+          syncAttemptRef.current = 0;
           await triggerImmediateSync();
         }
         loadWorkspaceData(session.user.id);
@@ -321,10 +326,11 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         .from("workspace_research")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("[ConnectorGrid] loadWorkspaceData error:", error.message);
+        setDataLoading(false);
         return;
       }
 
@@ -334,10 +340,18 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         setWorkspaceData(data);
         setDataLoading(false);
       } else {
-        console.log("[ConnectorGrid] No workspace data found for user", userId);
+        console.log("[ConnectorGrid] No workspace data yet for user", userId, "— will retry via polling");
+        // Don't set dataLoading false yet — polling will retry
+        syncAttemptRef.current += 1;
+        // After 6 attempts (~30s), stop showing loading and let user chat anyway
+        if (syncAttemptRef.current >= 6) {
+          console.log("[ConnectorGrid] Giving up waiting for sync, enabling chat");
+          setDataLoading(false);
+        }
       }
     } catch (error) {
       console.error("Error loading workspace data:", error);
+      setDataLoading(false);
     }
   }
 
