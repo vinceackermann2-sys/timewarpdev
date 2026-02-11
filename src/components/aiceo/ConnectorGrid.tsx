@@ -409,39 +409,54 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
     let assistantSoFar = "";
     try {
-      // If sync is in progress, wait for it to finish before calling research-chat
+      // If sync is in progress, wait for it (max 45s) before calling research-chat
       if (syncInProgressRef.current && syncPromiseRef.current) {
-        console.log("[ResearchChat] Sync in progress — waiting before sending...");
-        // Update the placeholder to show syncing status
+        console.log("[ResearchChat] Sync in progress — waiting (max 45s) before sending...");
         setMessages(prev => prev.map((m, i) => 
           i === prev.length - 1 && m.role === "assistant" && !m.content
             ? { ...m, content: "⏳ Syncing your business data, please wait..." }
             : m
         ));
-        await syncPromiseRef.current;
-        console.log("[ResearchChat] Sync finished — proceeding with request");
-        // Clear the syncing message, show thinking
+        // Race the sync promise against a 45s timeout so we never block forever
+        await Promise.race([
+          syncPromiseRef.current,
+          new Promise<void>(resolve => setTimeout(resolve, 45000)),
+        ]);
+        console.log("[ResearchChat] Sync wait done (finished or timed out) — proceeding");
         setMessages(prev => prev.map((m, i) =>
           i === prev.length - 1 && m.role === "assistant"
             ? { ...m, content: "" }
             : m
         ));
+      } else {
+        console.log("[ResearchChat] No sync in progress, proceeding immediately");
       }
 
       // Refresh session first — critical after OAuth return when token may be stale
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.warn("[ResearchChat] refreshSession error, falling back to getSession:", refreshError.message);
+      let session: any = null;
+      try {
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.warn("[ResearchChat] refreshSession error:", refreshError.message);
+        }
+        session = refreshData?.session;
+      } catch (e) {
+        console.warn("[ResearchChat] refreshSession exception:", e);
       }
       
-      const session = refreshData?.session || (await supabase.auth.getSession()).data.session;
+      if (!session) {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+      }
+      
       const accessToken = session?.access_token;
       
       if (!accessToken) {
+        console.error("[ResearchChat] No access token available — user not authenticated");
         throw new Error("Not authenticated. Please reconnect your account.");
       }
 
-      console.log("[ResearchChat] Sending with user JWT, token length:", accessToken?.length, "userId:", session?.user?.id);
+      console.log("[ResearchChat] Sending request — token length:", accessToken?.length, "userId:", session?.user?.id);
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 90000);
