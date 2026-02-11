@@ -1,14 +1,80 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface ConnectedContext {
-  type: string;
-  label: string;
-  content: any;
+function buildContextFromWorkspace(data: any): string {
+  const rawData = data.raw_data || {};
+  const summary = data.research_summary || {};
+  const findings = data.findings || [];
+
+  const allEmails = rawData.emails || rawData.emailSummaries || [];
+  const emailBlock = allEmails.slice(0, 100).map((e: any, i: number) =>
+    `${i + 1}. "${e.subject || '(No subject)'}" from ${e.from}${e.snippet ? ' — ' + e.snippet.slice(0, 200) : ''}`
+  ).join('\n') || 'No email data';
+
+  const allEvents = rawData.calendarEvents || [];
+  const calendarBlock = allEvents.slice(0, 50).map((e: any, i: number) =>
+    `${i + 1}. "${e.summary || 'Untitled'}" | ${e.start?.dateTime || e.start || ''} → ${e.end?.dateTime || e.end || ''}`
+  ).join('\n') || 'No calendar data';
+
+  const allDocs = rawData.documents || [];
+  const docsBlock = allDocs.slice(0, 50).map((d: any, i: number) =>
+    `${i + 1}. "${d.name || d.title}" | Modified: ${d.modifiedTime || 'unknown'}`
+  ).join('\n') || 'No document data';
+
+  const allContacts = rawData.topContacts || [];
+  const contactsBlock = allContacts.slice(0, 30).map((c: any, i: number) =>
+    `${i + 1}. ${c.email} (${c.count} interactions)`
+  ).join('\n') || 'No contact data';
+
+  const slackChannels = (rawData.slackChannels || []).slice(0, 20).map((ch: any, i: number) =>
+    `${i + 1}. #${ch.name} (${ch.memberCount} members)`
+  ).join('\n') || 'No Slack data';
+
+  const slackMessages = (rawData.slackMessages || []).slice(0, 50).map((m: any, i: number) =>
+    `${i + 1}. #${m.channel} | ${m.user}: ${m.text}`
+  ).join('\n') || 'No Slack messages';
+
+  return `
+## Business Data Overview
+- Emails Analyzed: ${data.emails_analyzed || allEmails.length || 0}
+- Documents: ${data.documents_analyzed || allDocs.length || 0}
+- Calendar Events: ${data.events_analyzed || allEvents.length || 0}
+- Spreadsheets: ${data.sheets_analyzed || 0}
+- Sources: ${(rawData.sources || ['Unknown']).join(', ')}
+
+### Key Findings (${findings.length})
+${findings.map((f: any, i: number) =>
+  `${i + 1}. [${f.impact?.toUpperCase() || 'INFO'}] ${f.category || 'General'}: ${f.finding || JSON.stringify(f)}`
+).join('\n') || 'No findings yet'}
+
+### Emails (${allEmails.length})
+${emailBlock}
+
+### Calendar Events (${allEvents.length})
+${calendarBlock}
+
+### Documents (${allDocs.length})
+${docsBlock}
+
+### Top Contacts
+${contactsBlock}
+
+### Slack Channels
+${slackChannels}
+
+### Slack Messages
+${slackMessages}
+
+### Recommendations
+${(summary.recommendations || []).map((r: any, i: number) =>
+  `${i + 1}. [${r.priority?.toUpperCase() || 'MEDIUM'}] ${r.title}: ${r.description}`
+).join('\n') || 'None yet'}
+`;
 }
 
 serve(async (req) => {
@@ -17,7 +83,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, connectedContexts } = await req.json();
+    const { messages } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -27,233 +93,85 @@ serve(async (req) => {
       );
     }
 
-    // Build context from all connected nodes
-    let fullContext = "";
-    const contextSources: string[] = [];
+    // Authenticate user via JWT
+    const authHeader = req.headers.get("Authorization");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    for (const ctx of (connectedContexts || []) as ConnectedContext[]) {
-      contextSources.push(`${ctx.label} (${ctx.type})`);
+    let userId: string | null = null;
 
-      switch (ctx.type) {
-        case "business-db": {
-          const data = ctx.content;
-          const summary = data.research_summary || {};
-          const findings = data.findings || [];
-          const rawData = data.raw_data || {};
-
-          // Include ALL emails with snippets
-          const allEmails = rawData.emails || rawData.emailSummaries || [];
-          const emailBlock = allEmails.map((e: any, i: number) => 
-            `${i + 1}. "${e.subject || '(No subject)'}" from ${e.from}${e.snippet ? ' — ' + e.snippet.slice(0, 200) : ''}${e.labels ? ' [' + e.labels.join(', ') + ']' : ''}`
-          ).join('\n') || 'No email data';
-
-          // Include ALL calendar events
-          const allEvents = rawData.calendarEvents || [];
-          const calendarBlock = allEvents.map((e: any, i: number) => 
-            `${i + 1}. "${e.summary || 'Untitled'}" | ${e.start?.dateTime || e.start || ''} → ${e.end?.dateTime || e.end || ''} | Attendees: ${e.attendees || 0}${e.hasConferencing ? ' 📹' : ''}`
-          ).join('\n') || 'No calendar data';
-
-          // Include ALL documents
-          const allDocs = rawData.documents || [];
-          const docsBlock = allDocs.map((d: any, i: number) => 
-            `${i + 1}. "${d.name || d.title}" | Modified: ${d.modifiedTime || d.modified || 'unknown'}${d.shared ? ' (shared)' : ''}${d.mimeType ? ' [' + d.mimeType + ']' : ''}`
-          ).join('\n') || 'No document data';
-
-          // Include ALL spreadsheets
-          const allSheets = rawData.spreadsheets || [];
-          const sheetsBlock = allSheets.map((s: any, i: number) => 
-            `${i + 1}. "${s.name}" | Modified: ${s.modifiedTime || 'unknown'}`
-          ).join('\n') || 'No spreadsheet data';
-
-          // Include ALL contacts
-          const allContacts = rawData.topContacts || [];
-          const contactsBlock = allContacts.map((c: any, i: number) => 
-            `${i + 1}. ${c.email} (${c.count} interactions)`
-          ).join('\n') || 'No contact data';
-
-          // Email patterns from summary
-          const emailPatterns = summary.emailPatterns || [];
-          const calendarSummary = summary.calendarSummary || [];
-          const documentList = summary.documentList || [];
-
-          fullContext += `
-## Business Database: ${ctx.label}
-
-### Overview
-- Total Emails Analyzed: ${data.emails_analyzed || allEmails.length || 0}
-- Total Documents: ${data.documents_analyzed || allDocs.length || 0}
-- Total Calendar Events: ${data.events_analyzed || allEvents.length || 0}
-- Total Spreadsheets: ${data.sheets_analyzed || allSheets.length || 0}
-- Data Sources: ${(rawData.sources || ['Unknown']).join(', ')}
-
-### Key Findings (${findings.length} total)
-${findings.map((f: any, i: number) => 
-  `${i + 1}. [${f.impact?.toUpperCase() || f.priority?.toUpperCase() || 'INFO'}] ${f.category || f.issue?.category || 'General'}: ${f.finding || f.issue?.title || JSON.stringify(f)}`
-).join('\n') || 'No findings yet — this is fresh data, analyze it thoroughly'}
-
-### ALL Emails (${allEmails.length})
-${emailBlock}
-
-### ALL Calendar Events (${allEvents.length})
-${calendarBlock}
-
-### ALL Documents (${allDocs.length})
-${docsBlock}
-
-### ALL Spreadsheets (${allSheets.length})
-${sheetsBlock}
-
-### Top Contacts
-${contactsBlock}
-
-### Slack Channels
-${(rawData.slackChannels || []).map((ch: any, i: number) => 
-  `${i + 1}. #${ch.name} (${ch.memberCount} members)${ch.topic ? ' — ' + ch.topic : ''}`
-).join('\n') || 'No Slack data'}
-
-### Recent Slack Messages
-${(rawData.slackMessages || []).slice(0, 100).map((m: any, i: number) => 
-  `${i + 1}. #${m.channel} | ${m.user}: ${m.text}`
-).join('\n') || 'No Slack messages'}
-
-### Recommendations
-${(summary.recommendations || []).map((r: any, i: number) => 
-  `${i + 1}. [${r.priority?.toUpperCase() || 'MEDIUM'}] ${r.title}: ${r.description}`
-).join('\n') || 'None yet — generate recommendations from the data above'}
-
-`;
-          break;
-        }
-
-        case "text": {
-          fullContext += `
-## Text Content: ${ctx.label}
-
-### Original Text
-${ctx.content.text}
-
-${ctx.content.analysis ? `### AI Analysis
-${ctx.content.analysis}` : ''}
-
-`;
-          break;
-        }
-
-        case "document": {
-          fullContext += `
-## Document: ${ctx.label}
-
-Document Name: ${ctx.content.name || "Unknown"}
-
-${ctx.content.extractedText ? `### Extracted Content
-${ctx.content.extractedText}` : ''}
-
-${ctx.content.analysis ? `### AI Analysis
-${ctx.content.analysis}` : ''}
-
-`;
-          break;
-        }
-
-        case "image": {
-          fullContext += `
-## Image: ${ctx.label}
-
-Image has been analyzed by AI vision.
-
-${ctx.content.analysis ? `### AI Vision Analysis
-${ctx.content.analysis}` : 'No analysis available - please ensure the image was analyzed before connecting.'}
-
-`;
-          break;
-        }
-
-        case "website": {
-          fullContext += `
-## Website: ${ctx.label}
-
-URL: ${ctx.content.url}
-${ctx.content.title ? `Title: ${ctx.content.title}` : ""}
-
-${ctx.content.analysis ? `### AI Analysis of Website Content
-${ctx.content.analysis}` : 'No analysis available - please ensure the website was analyzed before connecting.'}
-
-`;
-          break;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      // Skip if token is the anon key itself
+      if (token !== supabaseAnonKey) {
+        try {
+          const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+            global: { headers: { Authorization: authHeader } },
+            auth: { persistSession: false },
+          });
+          const { data: userData } = await supabaseAuth.auth.getUser(token);
+          userId = userData?.user?.id || null;
+        } catch (e) {
+          console.error("Auth check failed:", e);
         }
       }
     }
 
-    // Build system prompt with C-suite role categorization
+    console.log("Research chat - userId:", userId);
+
+    // Fetch user's workspace data server-side
+    let businessContext = "";
+    if (userId) {
+      try {
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+          auth: { persistSession: false },
+        });
+        const { data: workspaceData, error } = await supabaseAdmin
+          .from("workspace_research")
+          .select("*")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching workspace data:", error.message);
+        } else if (workspaceData) {
+          console.log("Found workspace data - emails:", workspaceData.emails_analyzed, "docs:", workspaceData.documents_analyzed);
+          businessContext = buildContextFromWorkspace(workspaceData);
+        } else {
+          console.log("No workspace data found for user");
+        }
+      } catch (e) {
+        console.error("Error fetching workspace data:", e);
+      }
+    }
+
     const systemPrompt = `You are a sharp, no-nonsense business advisor. You cut straight to the point — no fluff, no filler. You speak with confidence and warmth but never waste the user's time.
 
 ## RULES
-1. **Be direct.** Lead with the answer. No preambles like "Great question!" or "Let me think about that."
-2. **Use rich formatting aggressively** — your output is rendered as markdown with full styling support.
+1. **Be direct.** Lead with the answer.
+2. **Use rich formatting aggressively** — your output is rendered as markdown.
 3. **Structure everything visually** so it's scannable in 5 seconds.
 
-## FORMATTING (USE ALL OF THESE)
-
-### Headers — use generously to organize
-# For the main topic (big, bold, underlined automatically)
-## For major sections  
-### For subsections
-
-### Bold & Emphasis
-- **Bold** for every key number, name, or takeaway
-- *Italics* for subtle emphasis or caveats
-- ***Bold italic*** for critical warnings or alerts
-
-### Tables — use for ANY comparison or list of data
-| Metric | Value | Status |
-|--------|-------|--------|
-| Emails | 47 | **⚠️ High volume** |
-
-### Blockquotes — for key takeaways or bottom-line summaries
-> 💡 **Bottom line:** Your email volume is 3x higher than last week.
-
-### Dividers — between major sections
----
-
-### Status Lists with visual indicators
-- ✅ **Done:** Q4 report submitted on time
-- ⚠️ **Watch:** 3 unanswered client emails since Monday
-- 🔴 **Urgent:** Contract with Acme expires in 2 days
-- 📊 **Trend:** Revenue up 12% month-over-month
-
-### Visual Metric Cards (rendered as styled cards)
-[INSIGHT:icon|title|value|trend|trendValue]
-Use 3-5 per response when data is available.
-
-Examples:
-[INSIGHT:📧|Emails This Week|47|up|+23%]
-[INSIGHT:📅|Meetings Today|5|down|-2]
-[INSIGHT:⚠️|Needs Attention|3]
-[INSIGHT:💰|Revenue Trend|$42K|up|+12%]
+## FORMATTING
+- Use **bold** for key numbers, names, takeaways
+- Use tables for comparisons
+- Use blockquotes for key takeaways: > 💡 **Bottom line:**
+- Use status indicators: ✅ ⚠️ 🔴 📊
 
 ## WHEN YOU DON'T HAVE DATA
-Be blunt and helpful:
-> ⚠️ **I don't have your [X] data.** To unlock this: connect your **[Google/Microsoft/Slack]** account using the buttons above.
-
-Never guess. Never make up numbers.
+Be blunt: tell the user to connect their Google, Microsoft, or Slack account.
 
 ## TONE
 - Lead with the answer, then explain if needed
 - Max 2 sentences per paragraph
 - Use specific numbers, names, dates — never vague
 - Reference actual email subjects, contacts, document titles by name
-- If something is good, say so briefly. If something is bad, say it directly.
 
-## Connected Data Sources
-## Connected Data Sources
-${contextSources.length > 0 ? contextSources.map(s => `- ${s}`).join('\n') : 'No data sources connected yet'}
-
-${fullContext}
+${businessContext ? `## USER'S BUSINESS DATA\n${businessContext}` : '## NO DATA CONNECTED\nThe user has not connected any data sources yet. Tell them to connect Google, Microsoft, or Slack above.'}
 
 ## REQUIRED: End every response with
 [SUGGEST:action1|action2|action3]`;
-
-    console.log("Research chat context sources:", contextSources);
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
