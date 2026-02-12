@@ -83,7 +83,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, connectedContexts } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -175,12 +175,29 @@ serve(async (req) => {
 
     console.log("[research-chat] Business context length:", businessContext.length, "chars");
 
+    // Build connected node contexts (from whiteboard data sources)
+    let nodeContextBlock = "";
+    if (connectedContexts && Array.isArray(connectedContexts) && connectedContexts.length > 0) {
+      console.log("[research-chat] Connected node contexts:", connectedContexts.length);
+      nodeContextBlock = `\n## CONNECTED DATA SOURCES (from whiteboard nodes)\n` +
+        connectedContexts.map((ctx: any, i: number) => {
+          const label = ctx.label || ctx.type || `Source ${i + 1}`;
+          const type = ctx.type || "unknown";
+          const content = ctx.content || ctx.text || ctx.extractedText || "";
+          const summary = ctx.summary || "";
+          return `### ${i + 1}. [${type.toUpperCase()}] ${label}\n${summary ? `**Summary:** ${summary}\n` : ""}${content ? `**Content:**\n${content.slice(0, 5000)}` : "(no content)"}`;
+        }).join("\n\n");
+    } else {
+      console.log("[research-chat] No connected node contexts provided");
+    }
+
     const systemPrompt = `You are a sharp, no-nonsense business advisor. You cut straight to the point — no fluff, no filler. You speak with confidence and warmth but never waste the user's time.
 
 ## RULES
 1. **Be direct.** Lead with the answer.
 2. **Use rich formatting aggressively** — your output is rendered as markdown.
 3. **Structure everything visually** so it's scannable in 5 seconds.
+4. **Prioritize connected data sources** — if the user has connected specific nodes (documents, text, websites, etc.), focus your answers on THAT data first.
 
 ## FORMATTING
 - Use **bold** for key numbers, names, takeaways
@@ -197,7 +214,9 @@ Be blunt: tell the user to connect their Google, Microsoft, or Slack account.
 - Use specific numbers, names, dates — never vague
 - Reference actual email subjects, contacts, document titles by name
 
-${businessContext ? `## USER'S BUSINESS DATA\n${businessContext}` : '## NO DATA CONNECTED\nThe user has not connected any data sources yet. Tell them to connect Google, Microsoft, or Slack above.'}
+${nodeContextBlock}
+
+${businessContext ? `## USER'S BUSINESS DATA (global workspace)\n${businessContext}` : '## NO DATA CONNECTED\nThe user has not connected any data sources yet. Tell them to connect Google, Microsoft, or Slack above.'}
 
 ## REQUIRED: End every response with
 [SUGGEST:action1|action2|action3]`;
