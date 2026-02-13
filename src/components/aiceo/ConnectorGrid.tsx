@@ -612,10 +612,10 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     }
     setWaitlistLoading(true);
     try {
-      const { error } = await supabase.from("waitlist" as any).insert({
-        name: waitlistForm.name.trim(),
-        email: waitlistForm.email.trim(),
-        phone: waitlistForm.phone.trim(),
+      const { error } = await supabase.rpc('insert_waitlist' as any, {
+        p_name: waitlistForm.name.trim(),
+        p_email: waitlistForm.email.trim(),
+        p_phone: waitlistForm.phone.trim(),
       });
       if (error) throw error;
       setWaitlistSubmitted(true);

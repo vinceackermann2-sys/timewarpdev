@@ -382,10 +382,10 @@ function ApplicationFormModal({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await supabase.from("waitlist").insert({
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
+      await supabase.rpc('insert_waitlist' as any, {
+        p_name: form.name,
+        p_email: form.email,
+        p_phone: form.phone,
       });
       setSubmitted(true);
     } catch {
