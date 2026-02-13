@@ -7,6 +7,22 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { motion, useInView } from "framer-motion";
+
+function ScrollReveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-60px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+      transition={{ duration: 0.6, ease: "easeOut", delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 export default function TimewarpOG() {
   const navigate = useNavigate();
@@ -35,16 +51,20 @@ export default function TimewarpOG() {
       <div style={{ maxWidth: 960, width: "100%", position: "relative", zIndex: 1 }}>
 
         {/* Badge */}
+        <ScrollReveal>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 20, background: "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1))", border: "1px solid rgba(251,191,36,0.3)", fontSize: 13, fontWeight: 600, color: "#fbbf24", letterSpacing: "0.05em", textTransform: "uppercase" }}>
             <Crown size={14} /> Exclusive Early Access
           </span>
         </div>
+        </ScrollReveal>
 
         {/* Title */}
+        <ScrollReveal delay={0.1}>
         <h1 style={{ fontSize: "clamp(32px, 8vw, 72px)", fontWeight: 900, color: "#fff", textAlign: "center", letterSpacing: "-0.04em", lineHeight: 1.05, marginBottom: isMobile ? 32 : 48 }}>
           TimeWarp <span style={{ color: "#fbbf24" }}>OG</span>
         </h1>
+        </ScrollReveal>
 
         {/* Opening - The Problem */}
         <Section>
@@ -180,6 +200,7 @@ export default function TimewarpOG() {
         </Section>
 
         {/* Final CTA */}
+        <ScrollReveal>
         <div style={{ textAlign: "center", margin: "32px 0 48px" }}>
           <button
             onClick={() => setShowForm(true)}
@@ -210,11 +231,13 @@ export default function TimewarpOG() {
             Apply Now <ArrowRight size={20} />
           </button>
         </div>
+        </ScrollReveal>
 
         {/* Application Form Modal */}
         {showForm && <ApplicationFormModal onClose={() => setShowForm(false)} />}
 
         {/* Back */}
+        <ScrollReveal>
         <div style={{ textAlign: "center", marginTop: 32 }}>
           <button
             onClick={() => navigate("/ai-ceo")}
@@ -225,6 +248,7 @@ export default function TimewarpOG() {
             ← Back
           </button>
         </div>
+        </ScrollReveal>
 
       </div>
     </div>
@@ -262,7 +286,7 @@ function P({ children, style }: { children: React.ReactNode; style?: React.CSSPr
 }
 
 function Section({ children }: { children: React.ReactNode }) {
-  return <div style={{ marginBottom: 40 }}>{children}</div>;
+  return <ScrollReveal><div style={{ marginBottom: 40 }}>{children}</div></ScrollReveal>;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
