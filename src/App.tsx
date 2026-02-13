@@ -23,9 +23,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<AiCeo />} />
+            <Route path="/" element={<TimewarpOG />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/timewarp-og" element={<TimewarpOG />} />
+            <Route path="/timewarp-og" element={<AiCeo />} />
             
             <Route path="/database" element={<Database />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
