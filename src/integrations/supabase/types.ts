@@ -232,25 +232,31 @@ export type Database = {
       }
       waitlist: {
         Row: {
+          company_name: string | null
           created_at: string
           email: string
           id: string
           name: string
           phone: string
+          website: string | null
         }
         Insert: {
+          company_name?: string | null
           created_at?: string
           email: string
           id?: string
           name: string
           phone: string
+          website?: string | null
         }
         Update: {
+          company_name?: string | null
           created_at?: string
           email?: string
           id?: string
           name?: string
           phone?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -304,10 +310,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      insert_waitlist: {
-        Args: { p_email: string; p_name: string; p_phone: string }
-        Returns: string
-      }
+      insert_waitlist:
+        | {
+            Args: { p_email: string; p_name: string; p_phone: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_company_name?: string
+              p_email: string
+              p_name: string
+              p_phone: string
+              p_website?: string
+            }
+            Returns: string
+          }
     }
     Enums: {
       [_ in never]: never

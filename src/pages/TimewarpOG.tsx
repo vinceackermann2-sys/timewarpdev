@@ -406,14 +406,18 @@ function ApplicationFormModal({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await supabase.rpc('insert_waitlist' as any, {
+      const { error } = await supabase.rpc('insert_waitlist' as any, {
         p_name: form.name,
         p_email: form.email,
         p_phone: form.phone,
+        p_company_name: form.company || null,
+        p_website: form.website || null,
       });
+      if (error) throw error;
       setSubmitted(true);
-    } catch {
-      // silently handle
+    } catch (err: any) {
+      console.error('Waitlist submission error:', err);
+      alert(err?.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
