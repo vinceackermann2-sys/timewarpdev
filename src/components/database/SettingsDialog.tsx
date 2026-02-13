@@ -115,9 +115,6 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   const handleDisconnectGoogle = async () => {
     setIsDisconnecting(true);
     try {
-      // Clear stored Google token
-      sessionStorage.removeItem('googleProviderToken');
-      
       // Update connection status in database
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {

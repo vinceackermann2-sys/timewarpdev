@@ -94,18 +94,6 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
         return;
       }
 
-      const accessToken = session.provider_token;
-      
-      if (!accessToken) {
-        console.log("No provider token - falling back to simulation mode");
-        toast({
-          title: "Limited Access",
-          description: "Running in simulation mode. Re-authenticate with Google for real data.",
-        });
-        setPhase("scanning");
-        return;
-      }
-
       setStatus("CONNECTING TO GOOGLE WORKSPACE...");
       
       const response = await fetch(WORKSPACE_FETCH_URL, {
@@ -114,7 +102,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ accessToken }),
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
