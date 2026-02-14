@@ -23,7 +23,7 @@ const researchNode: NodeItem = {
 
 const actionNode: NodeItem = {
   id: "action",
-  label: "Action",
+  label: "Generation",
   description: "Execute from research",
 };
 
