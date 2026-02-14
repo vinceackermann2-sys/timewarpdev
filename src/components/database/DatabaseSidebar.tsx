@@ -131,13 +131,17 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton 
-                    isActive={currentView === "aiceo"}
-                    onClick={() => onViewChange("aiceo")}
-                    tooltip="TimeWarp AI"
-                    className={currentView === "aiceo" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
+                    tooltip="TimeWarp AI - Coming Soon"
+                    className="opacity-50 cursor-not-allowed"
+                    disabled
                   >
-                    <Bot className="h-4 w-4" />
-                    {!isCollapsed && <span>TimeWarp AI</span>}
+                    <Lock className="h-4 w-4" />
+                    {!isCollapsed && (
+                      <span className="flex items-center gap-2">
+                        TimeWarp AI
+                        <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full leading-none">Soon</span>
+                      </span>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
