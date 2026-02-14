@@ -636,7 +636,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
           <div className="w-px h-5 bg-border mx-1" />
 
           <Button 
-            variant={tool === "select" ? "secondary" : "ghost"} 
+            variant={tool === "select" ? "default" : "ghost"} 
             size="icon" 
             className="h-8 w-8" 
             title="Select (drag to multi-select)"
@@ -645,7 +645,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
             <MousePointer2 className="h-4 w-4" />
           </Button>
           <Button 
-            variant={tool === "pan" ? "secondary" : "ghost"} 
+            variant={tool === "pan" ? "default" : "ghost"} 
             size="icon" 
             className="h-8 w-8" 
             title="Pan (drag to move canvas)"
