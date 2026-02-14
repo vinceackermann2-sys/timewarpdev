@@ -155,35 +155,35 @@
 @layer base {
   :root {
     /* Light theme - Blue Corp Pastel */
-    --background: 210 40% 98%;
-    --foreground: 215 25% 15%;
+    --background: 240 4% 95%;
+    --foreground: 240 5% 10%;
 
-    --card: 210 40% 99%;
-    --card-foreground: 215 25% 15%;
+    --card: 0 0% 98%;
+    --card-foreground: 240 5% 10%;
 
-    --popover: 210 30% 96%;
-    --popover-foreground: 215 25% 15%;
+    --popover: 240 5% 90%;
+    --popover-foreground: 240 5% 10%;
 
-    --primary: 210 100% 50%;
+    --primary: 218 100% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 20% 40%;
+    --secondary: 240 5% 33%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 210 20% 88%;
-    --muted-foreground: 215 15% 35%;
+    --muted: 240 4% 83%;
+    --muted-foreground: 240 5% 10%;
 
-    --accent: 210 100% 95%;
-    --accent-foreground: 210 100% 40%;
+    --accent: 269 100% 98%;
+    --accent-foreground: 218 100% 65%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 210 20% 85%;
-    --input: 210 20% 85%;
-    --ring: 210 100% 50%;
+    --border: 240 4% 83%;
+    --input: 240 4% 83%;
+    --ring: 218 100% 65%;
 
-    --radius: 0.625rem;
+    --radius: 0.875rem;
 
     /* Status colors - light */
     --status-success: 142 76% 36%;
@@ -214,13 +214,13 @@
     --browser-dot-green: 142 76% 36%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 215 25% 15%;
-    --sidebar-primary: 210 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 40%;
+    --sidebar-foreground: 240 5% 10%;
+    --sidebar-primary: 258 89% 66%;
+    --sidebar-primary-foreground: 250 100% 97%;
+    --sidebar-accent: 240 5% 33%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 210 20% 85%;
-    --sidebar-ring: 210 100% 50%;
+    --sidebar-border: 240 4% 83%;
+    --sidebar-ring: 258 89% 66%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --chart-1: 218 100% 93%;
     --chart-2: 218 100% 87%;
@@ -232,10 +232,10 @@
     --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0px 1px 3.75px 0px hsl(0, 0%, 0%);
-    --shadow: 0px 1px 7.5px 0px hsl(0, 0%, 0%);
-    --shadow-md: 0px 1px 11.25px 0px hsl(0, 0%, 0%);
-    --shadow-lg: 0px 1px 18.75px 0px hsl(0, 0%, 0%);
+    --shadow-sm: 0px 1px 3.75px 0px hsla(0, 0%, 0%, 0.23);
+    --shadow: 0px 1px 7.5px 0px hsla(0, 0%, 0%, 0.23);
+    --shadow-md: 0px 1px 11.25px 0px hsla(0, 0%, 0%, 0.23);
+    --shadow-lg: 0px 1px 18.75px 0px hsla(0, 0%, 0%, 0.23);
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
     --tracking-normal: 0em;
@@ -244,33 +244,33 @@
 
   .dark {
     /* Dark theme - Blue Corp Pastel */
-    --background: 215 25% 8%;
+    --background: 240 5% 10%;
     --foreground: 0 0% 98%;
 
-    --card: 215 20% 12%;
+    --card: 240 3% 15%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 215 20% 16%;
+    --popover: 240 5% 26%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 210 100% 60%;
+    --primary: 218 100% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 15% 35%;
+    --secondary: 240 3% 46%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 215 15% 30%;
-    --muted-foreground: 210 20% 70%;
+    --muted: 240 3% 46%;
+    --muted-foreground: 0 0% 98%;
 
-    --accent: 215 50% 20%;
-    --accent-foreground: 210 100% 70%;
+    --accent: 273 86% 20%;
+    --accent-foreground: 218 100% 65%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 215 20% 25%;
-    --input: 215 20% 25%;
-    --ring: 210 100% 60%;
+    --border: 240 5% 33%;
+    --input: 240 5% 33%;
+    --ring: 218 100% 65%;
 
     /* Status colors - dark */
     --status-success: 142 70% 45%;
@@ -302,12 +302,12 @@
 
     --sidebar-background: 215 25% 8%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 210 100% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 80% 60%;
-    --sidebar-accent-foreground: 215 50% 20%;
-    --sidebar-border: 215 20% 25%;
-    --sidebar-ring: 210 100% 65%;
+    --sidebar-primary: 255 91% 76%;
+    --sidebar-primary-foreground: 261 72% 22%;
+    --sidebar-accent: 270 95% 75%;
+    --sidebar-accent-foreground: 273 86% 20%;
+    --sidebar-border: 240 5% 33%;
+    --sidebar-ring: 255 91% 76%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --radius: 0.625rem;
     --chart-1: 218 100% 93%;
@@ -318,10 +318,10 @@
     --sidebar: 240 3% 15%;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0px 1px 3.75px 0px hsl(210, 40%, 98%);
-    --shadow: 0px 1px 7.5px 0px hsl(210, 40%, 98%);
-    --shadow-md: 0px 1px 11.25px 0px hsl(210, 40%, 98%);
-    --shadow-lg: 0px 1px 18.75px 0px hsl(210, 40%, 98%);
+    --shadow-sm: 0px 1px 3.75px 0px hsla(210, 40%, 98%, 0.23);
+    --shadow: 0px 1px 7.5px 0px hsla(210, 40%, 98%, 0.23);
+    --shadow-md: 0px 1px 11.25px 0px hsla(210, 40%, 98%, 0.23);
+    --shadow-lg: 0px 1px 18.75px 0px hsla(210, 40%, 98%, 0.23);
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   }
