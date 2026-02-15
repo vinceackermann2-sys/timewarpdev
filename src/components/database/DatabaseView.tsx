@@ -392,10 +392,10 @@ export function DatabaseView() {
       {/* Theme blue radial gradient background */}
       <BgGradient
         gradientFrom="hsl(var(--background))"
-        gradientTo="hsl(var(--primary) / 0.15)"
+        gradientTo="hsl(var(--primary) / 0.35)"
         gradientSize="125% 125%"
         gradientPosition="50% 10%"
-        gradientStop="60%"
+        gradientStop="50%"
         className="z-0"
       />
 
