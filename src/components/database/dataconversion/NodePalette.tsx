@@ -130,7 +130,7 @@ export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
 
         {/* Research & Action Side by Side */}
         <div className="p-3">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Workflow Nodes</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">AI Chats</p>
           <div className="flex gap-2">
             <MainNodeCard 
               item={researchNode} 
