@@ -48,9 +48,36 @@ serve(async (req) => {
         userPrompt = `Analyze this image in detail. Describe what you see, extract any text (OCR), identify key elements, and provide relevant business insights.`;
         break;
 
-      case "website":
-        userPrompt = `Analyze the website at ${content.websiteUrl}.\n\nProvide a structured summary of what this website is about, its purpose, key information you can infer from the URL, and any relevant insights.`;
+      case "website": {
+        // Actually fetch the website content
+        let websiteContent = "";
+        try {
+          const fetchRes = await fetch(content.websiteUrl, {
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0)" },
+            redirect: "follow",
+          });
+          if (fetchRes.ok) {
+            const html = await fetchRes.text();
+            // Strip HTML tags to get text content (simple extraction)
+            websiteContent = html
+              .replace(/<script[\s\S]*?<\/script>/gi, "")
+              .replace(/<style[\s\S]*?<\/style>/gi, "")
+              .replace(/<[^>]+>/g, " ")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 15000); // Limit to ~15k chars
+          }
+        } catch (fetchErr) {
+          console.error("Failed to fetch website:", fetchErr);
+        }
+
+        if (websiteContent) {
+          userPrompt = `Analyze this website (${content.websiteUrl}).\n\nExtracted content:\n${websiteContent}\n\nProvide a structured summary including: what the website is about, key topics, main offerings/products, contact info if available, and actionable business insights.`;
+        } else {
+          userPrompt = `Analyze the website at ${content.websiteUrl}. I couldn't fetch its content directly. Provide any insights you can based on the URL and domain name, and note that the content could not be retrieved.`;
+        }
         break;
+      }
 
       default:
         throw new Error(`Unsupported content type: ${type}`);
