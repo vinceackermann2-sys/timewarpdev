@@ -389,24 +389,14 @@ export function DatabaseView() {
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden bg-background">
-      {/* Theme blue radial gradient background */}
+      {/* Theme blue radial gradient at the bottom */}
       <BgGradient
         gradientFrom="hsl(var(--background))"
-        gradientTo="hsl(var(--primary) / 0.35)"
-        gradientSize="125% 125%"
-        gradientPosition="50% 10%"
-        gradientStop="50%"
+        gradientTo="hsl(var(--primary) / 0.3)"
+        gradientSize="150% 60%"
+        gradientPosition="50% 100%"
+        gradientStop="70%"
         className="z-0"
-      />
-
-      {/* Stardust texture overlay */}
-      <div 
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          backgroundImage: 'url(/stardust.png)',
-          backgroundRepeat: 'repeat',
-          opacity: 0.2
-        }}
       />
 
       {/* Main content area */}
