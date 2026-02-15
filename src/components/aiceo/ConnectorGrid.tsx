@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Plug, Plug2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { toast } from "sonner";
 import { FloatingChat } from "./FloatingChat";
 import ReactMarkdown from "react-markdown";
@@ -259,14 +258,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
       // Microsoft
       try {
-        const { data: msConn } = await supabase
-          .from("microsoft_workspace_connections" as any)
-          .select("connected")
-          .eq("user_id", userId)
-          .single();
-        if (msConn) {
-          microsoftConnected = (msConn as any).connected ?? false;
-        }
+        // Microsoft connection check removed - tables cleared
       } catch {}
 
       setConnectionStatus(prev => ({
@@ -282,7 +274,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
 
   async function loadWorkspaceData(userId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("workspace_research")
         .select("*")
         .eq("user_id", userId)
@@ -391,7 +383,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       const start = Date.now();
 
       while (Date.now() - start < maxMs) {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("workspace_research")
           .select("raw_data, updated_at")
           .eq("user_id", userId)
@@ -419,7 +411,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
       //    (No credits are spent during this wait.)
       if (userId) {
         // Quick check first
-        const { data: currentWs } = await supabase
+        const { data: currentWs } = await (supabase as any)
           .from("workspace_research")
           .select("raw_data")
           .eq("user_id", userId)
@@ -612,7 +604,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     }
     setWaitlistLoading(true);
     try {
-      const { error } = await supabase.rpc('insert_waitlist' as any, {
+      const { error } = await (supabase as any).rpc('insert_waitlist', {
         p_name: waitlistForm.name.trim(),
         p_email: waitlistForm.email.trim(),
         p_phone: waitlistForm.phone.trim(),

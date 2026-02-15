@@ -118,10 +118,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       // Update connection status in database
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase
-          .from('google_workspace_connections')
-          .update({ connected: false })
-          .eq('user_id', user.id);
+      // Google connection table removed
       }
       
       toast({
