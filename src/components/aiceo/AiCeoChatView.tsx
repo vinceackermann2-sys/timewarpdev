@@ -137,13 +137,13 @@ export function AiCeoChatView() {
             <h1
               style={{
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: "clamp(52px, 8vw, 88px)",
+                fontSize: "clamp(44px, 6.5vw, 72px)",
                 fontWeight: 800,
                 color: "#fff",
-                letterSpacing: "-0.03em",
-                lineHeight: 1.08,
+                letterSpacing: "-0.025em",
+                lineHeight: 1.1,
                 textAlign: "center",
-                marginBottom: 48,
+                marginBottom: 40,
               }}
             >
               {"We're born to "}
@@ -161,14 +161,14 @@ export function AiCeoChatView() {
             </h1>
 
             {/* Research / Action cards */}
-            <div className="flex items-center gap-5 sm:gap-8 px-2" style={{ flexWrap: "nowrap" }}>
+            <div className="flex items-center gap-4 sm:gap-6 px-2" style={{ flexWrap: "nowrap" }}>
               {/* Research Card */}
               <button
                 onClick={() => setMode("connectors")}
                 style={{
-                  width: "min(42vw, 320px)",
-                  height: "min(55vw, 400px)",
-                  borderRadius: 28,
+                  width: "min(40vw, 280px)",
+                  height: "min(50vw, 340px)",
+                  borderRadius: 24,
                   border: "none",
                   cursor: "pointer",
                   position: "relative",
@@ -210,13 +210,13 @@ export function AiCeoChatView() {
                     alignItems: "center",
                     justifyContent: "flex-end",
                     height: "100%",
-                    paddingBottom: 32,
+                    paddingBottom: 28,
                   }}
                 >
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: "clamp(20px, 4.5vw, 32px)",
+                      fontSize: "clamp(18px, 4vw, 28px)",
                       fontWeight: 800,
                       color: "#fff",
                       letterSpacing: "-0.02em",
@@ -231,7 +231,7 @@ export function AiCeoChatView() {
               {/* Divider */}
               <span style={{
                 color: "rgba(255, 255, 255, 0.12)",
-                fontSize: "clamp(28px, 5.5vw, 42px)",
+                fontSize: "clamp(24px, 5vw, 36px)",
                 fontWeight: 200,
                 userSelect: "none",
                 flexShrink: 0,
@@ -242,9 +242,9 @@ export function AiCeoChatView() {
               {/* Action Card - Coming Soon */}
               <div
                 style={{
-                  width: "min(42vw, 320px)",
-                  height: "min(55vw, 400px)",
-                  borderRadius: 28,
+                  width: "min(40vw, 280px)",
+                  height: "min(50vw, 340px)",
+                  borderRadius: 24,
                   border: "none",
                   position: "relative",
                   overflow: "hidden",
@@ -279,11 +279,11 @@ export function AiCeoChatView() {
                     gap: 8,
                   }}
                 >
-                  <span style={{ fontSize: "clamp(28px, 5.5vw, 42px)" }}>🔒</span>
+                  <span style={{ fontSize: "clamp(24px, 5vw, 36px)" }}>🔒</span>
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: "clamp(20px, 4.5vw, 32px)",
+                      fontSize: "clamp(18px, 4vw, 28px)",
                       fontWeight: 800,
                       color: "#fff",
                       letterSpacing: "-0.02em",
@@ -295,7 +295,7 @@ export function AiCeoChatView() {
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: 600,
                       color: "rgba(255,255,255,0.5)",
                       letterSpacing: "0.05em",
@@ -311,10 +311,10 @@ export function AiCeoChatView() {
             <p
               style={{
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 16,
+                fontSize: 15,
                 color: "rgba(255, 255, 255, 0.3)",
                 fontWeight: 400,
-                marginTop: 40,
+                marginTop: 32,
                 letterSpacing: "0.01em",
               }}
             >
@@ -324,45 +324,10 @@ export function AiCeoChatView() {
         )}
 
         {mode === "connectors" && (
-          <div style={{
-            width: "100%",
-            maxWidth: 900,
-            display: "flex",
-            flexDirection: "column",
-            gap: 0,
-          }}>
-            {/* Section header */}
-            <div style={{
-              marginBottom: 32,
-              textAlign: "center",
-              animation: "fadeSlideUp 0.5s ease-out both",
-            }}>
-              <h2 style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: "clamp(28px, 5vw, 40px)",
-                fontWeight: 800,
-                color: "#fff",
-                letterSpacing: "-0.025em",
-                marginBottom: 8,
-              }}>
-                Connections
-              </h2>
-              <p style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 15,
-                color: "rgba(255,255,255,0.4)",
-                fontWeight: 400,
-              }}>
-                Connect your workspace to start researching
-              </p>
-            </div>
-
-            {/* Connector grid */}
-            <ConnectorGrid
-              onConnect={(name) => initiateOAuth(name)}
-              onModeChange={(m) => setMode(m === "research" ? "connectors" : "action")}
-            />
-          </div>
+          <ConnectorGrid
+            onConnect={(name) => initiateOAuth(name)}
+            onModeChange={(m) => setMode(m === "research" ? "connectors" : "action")}
+          />
         )}
 
         {mode === "action" && (
