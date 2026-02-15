@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { useConnectorOAuth } from "@/hooks/useConnectorOAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ConnectorGrid } from "./ConnectorGrid";
 import { BrowserWindow } from "./BrowserWindow";
@@ -28,7 +27,7 @@ export function AiCeoChatView() {
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const [browserLoading, setBrowserLoading] = useState(false);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
-  const { initiateOAuth } = useConnectorOAuth();
+  // OAuth removed
 
   // Show error toasts for OAuth failures and clear params
   useEffect(() => {
@@ -77,20 +76,7 @@ export function AiCeoChatView() {
 
       const url = data.liveUrl || data.liveViewUrl || data.connectUrl || data.debuggerUrl || data.debugUrl || data.url || data.live_url;
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        await supabase.from("scrape_jobs").insert({
-          url: message,
-          instruction: message,
-          live_url: url || null,
-          session_id: sessionId,
-          status: url ? "started" : "no_url",
-          result: url ? null : JSON.stringify(data),
-          user_id: session.user.id,
-        });
-      }
-
-      addLog("info", "Job persisted to database");
+      // Database persistence removed - tables cleared
 
       if (url) {
         addLog("navigate", `Connecting to live session…`);
@@ -325,7 +311,7 @@ export function AiCeoChatView() {
 
         {mode === "connectors" && (
           <ConnectorGrid
-            onConnect={(name) => initiateOAuth(name)}
+            onConnect={() => {}}
             onModeChange={(m) => setMode(m === "research" ? "connectors" : "action")}
           />
         )}
