@@ -23,6 +23,7 @@ import {
   type InsightCard 
 } from "./DatabaseChatMessage";
 import { SuggestedActions } from "./dataconversion/SuggestedActions";
+import { BgGradient } from "@/components/ui/bg-gradient";
 
 interface BusinessData {
   topContacts?: { email: string; count: number }[];
@@ -387,28 +388,26 @@ export function DatabaseView() {
   const hasBusinessData = businessData && Object.keys(businessData).length > 0;
 
   return (
-    <div className="h-full flex flex-col portal-bg relative overflow-hidden">
+    <div className="h-full flex flex-col relative overflow-hidden bg-background">
+      {/* Theme blue radial gradient background */}
+      <BgGradient
+        gradientFrom="hsl(var(--background))"
+        gradientTo="hsl(var(--primary) / 0.15)"
+        gradientSize="125% 125%"
+        gradientPosition="50% 10%"
+        gradientStop="60%"
+        className="z-0"
+      />
+
       {/* Stardust texture overlay */}
       <div 
         className="absolute inset-0 pointer-events-none z-0"
         style={{
           backgroundImage: 'url(/stardust.png)',
           backgroundRepeat: 'repeat',
-          opacity: 0.3
+          opacity: 0.2
         }}
       />
-      
-      {/* Animated nebula background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px] animate-nebula"
-          style={{ background: 'radial-gradient(circle, hsl(var(--primary) / 0.3) 0%, transparent 70%)' }}
-        />
-        <div 
-          className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-[100px] animate-nebula"
-          style={{ background: 'radial-gradient(circle, hsl(var(--accent) / 0.25) 0%, transparent 70%)', animationDelay: '-7s' }}
-        />
-      </div>
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
