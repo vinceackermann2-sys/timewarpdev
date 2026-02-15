@@ -16,22 +16,40 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     let userPrompt = "";
+    let useMultimodal = false;
+    let mediaUrl = "";
 
     switch (type) {
       case "text":
         userPrompt = `Analyze this text content and provide a structured summary with key insights, topics, and any actionable information:\n\n${content.text}`;
         break;
 
-      case "document":
-        userPrompt = `Analyze this document titled "${content.documentName || "Unknown"}".\n\nExtracted content:\n${content.documentText || content.text || "No content extracted"}\n\nProvide a structured summary including: document type, key topics, main findings, and actionable insights.`;
+      case "document": {
+        const name = content.documentName || "Unknown";
+        if (content.documentText) {
+          // Text-based document (TXT, CSV)
+          userPrompt = `Analyze this document titled "${name}".\n\nContent:\n${content.documentText}\n\nProvide a structured summary including: document type, key topics, main findings, and actionable insights. Also extract and return the key text content.`;
+        } else if (content.fileBase64) {
+          // Binary document (PDF, DOCX, XLSX) - use multimodal
+          useMultimodal = true;
+          mediaUrl = `data:${content.fileMimeType || "application/pdf"};base64,${content.fileBase64}`;
+          userPrompt = `Analyze this document titled "${name}" in detail. Extract ALL text content, identify the document type, key topics, main findings, tables, and actionable insights. Be thorough in extracting text - include all readable content from the document.`;
+        } else {
+          userPrompt = `Analyze a document titled "${name}". No content was provided. Return a note that the document could not be read.`;
+        }
         break;
+      }
 
       case "image":
+        useMultimodal = true;
+        if (content.imageBase64) {
+          mediaUrl = `data:${content.imageMimeType || "image/png"};base64,${content.imageBase64}`;
+        }
         userPrompt = `Analyze this image in detail. Describe what you see, extract any text (OCR), identify key elements, and provide relevant business insights.`;
         break;
 
       case "website":
-        userPrompt = `Analyze this website at ${content.websiteUrl}.\n\nProvide a structured summary of the website's purpose, key information, and relevant insights.`;
+        userPrompt = `Analyze the website at ${content.websiteUrl}.\n\nProvide a structured summary of what this website is about, its purpose, key information you can infer from the URL, and any relevant insights.`;
         break;
 
       default:
@@ -42,21 +60,21 @@ serve(async (req) => {
       {
         role: "system",
         content:
-          "You are a business data analyst. Analyze the provided content thoroughly and return a structured, scannable summary. Use bold headers, bullet points, and tables where appropriate. Focus on extracting actionable business insights. Keep your analysis concise but comprehensive.",
+          "You are a business data analyst. Analyze the provided content thoroughly and return a structured, scannable summary. Use bold headers, bullet points, and tables where appropriate. Focus on extracting actionable business insights. Keep your analysis concise but comprehensive. When analyzing documents or images, extract as much text content as possible.",
       },
-      { role: "user", content: userPrompt },
     ];
 
-    // For images with base64 data, use multimodal
-    if (type === "image" && content.imageBase64) {
-      const mimeType = content.imageMimeType || "image/png";
-      messages[1] = {
+    // Build the user message - multimodal for images and binary documents
+    if (useMultimodal && mediaUrl) {
+      messages.push({
         role: "user",
         content: [
           { type: "text", text: userPrompt },
-          { type: "image_url", image_url: { url: `data:${mimeType};base64,${content.imageBase64}` } },
+          { type: "image_url", image_url: { url: mediaUrl } },
         ],
-      };
+      });
+    } else {
+      messages.push({ role: "user", content: userPrompt });
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
