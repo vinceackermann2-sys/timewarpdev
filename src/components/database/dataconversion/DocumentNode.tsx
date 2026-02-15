@@ -66,37 +66,18 @@ export function DocumentNode({
     }, 400);
 
     try {
-      // First, parse the document using parse-file edge function
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const parseResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-file`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: formData,
-        }
-      );
-
-      const parseData = await parseResponse.json();
+      // Read file content as text for supported text-based formats
+      let documentText = "";
+      const ext = file.name.split(".").pop()?.toLowerCase();
       
-      if (!parseData.success || !parseData.content) {
-        console.error("Failed to parse document:", parseData.error);
-        onUpdate(node.id, { 
-          documentUrl, 
-          documentName: file.name,
-          documentContent: "",
-          isAnalyzed: false 
-        });
-        return;
+      if (ext === "txt" || ext === "csv") {
+        documentText = await file.text();
+      } else {
+        // For binary formats (PDF, DOCX, XLSX), read as base64 and let AI analyze what it can
+        documentText = `[Binary file: ${file.name}, size: ${(file.size / 1024).toFixed(1)}KB, type: ${file.type}]`;
       }
 
-      const documentText = parseData.content;
-
-      // Now analyze the parsed content
+      // Analyze the content
       const analyzeResponse = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
         {

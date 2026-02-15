@@ -11,8 +11,6 @@ serve(async (req) => {
 
   try {
     const { type, content } = await req.json();
-    // type: "text" | "document" | "image" | "website"
-    // content: { text?, url?, fileName?, mimeType?, extractedText? }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -25,15 +23,15 @@ serve(async (req) => {
         break;
 
       case "document":
-        userPrompt = `Analyze this document titled "${content.fileName || "Unknown"}".\n\nExtracted content:\n${content.extractedText || content.text || "No content extracted"}\n\nProvide a structured summary including: document type, key topics, main findings, and actionable insights.`;
+        userPrompt = `Analyze this document titled "${content.documentName || "Unknown"}".\n\nExtracted content:\n${content.documentText || content.text || "No content extracted"}\n\nProvide a structured summary including: document type, key topics, main findings, and actionable insights.`;
         break;
 
       case "image":
-        userPrompt = `Analyze this image. URL: ${content.url}\n\nDescribe what you see, extract any text (OCR), identify key elements, and provide relevant insights.`;
+        userPrompt = `Analyze this image in detail. Describe what you see, extract any text (OCR), identify key elements, and provide relevant business insights.`;
         break;
 
       case "website":
-        userPrompt = `Analyze this website content from ${content.url}.\n\nPage title: ${content.title || "Unknown"}\n\nContent:\n${content.extractedText || "No content extracted"}\n\nProvide a structured summary of the website's purpose, key information, and relevant insights.`;
+        userPrompt = `Analyze this website at ${content.websiteUrl}.\n\nProvide a structured summary of the website's purpose, key information, and relevant insights.`;
         break;
 
       default:
@@ -49,13 +47,14 @@ serve(async (req) => {
       { role: "user", content: userPrompt },
     ];
 
-    // For images, use multimodal if URL is provided
-    if (type === "image" && content.url) {
+    // For images with base64 data, use multimodal
+    if (type === "image" && content.imageBase64) {
+      const mimeType = content.imageMimeType || "image/png";
       messages[1] = {
         role: "user",
         content: [
           { type: "text", text: userPrompt },
-          { type: "image_url", image_url: { url: content.url } },
+          { type: "image_url", image_url: { url: `data:${mimeType};base64,${content.imageBase64}` } },
         ],
       };
     }
@@ -75,13 +74,13 @@ serve(async (req) => {
     if (!response.ok) {
       const status = response.status;
       if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+        return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again shortly." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+        return new Response(JSON.stringify({ success: false, error: "AI credits exhausted. Please add credits." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -94,12 +93,12 @@ serve(async (req) => {
     const data = await response.json();
     const analysis = data.choices?.[0]?.message?.content || "No analysis generated.";
 
-    return new Response(JSON.stringify({ analysis }), {
+    return new Response(JSON.stringify({ success: true, analysis }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("analyze-content error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ success: false, error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
