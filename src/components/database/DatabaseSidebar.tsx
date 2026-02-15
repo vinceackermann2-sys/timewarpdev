@@ -37,8 +37,12 @@ import {
   ChevronUp,
   User,
   Inbox,
-  Bell
+  Bell,
+  Sun,
+  Moon,
+  Monitor
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { WhatsNewDropdown } from "./WhatsNewDropdown";
 import { SettingsDialog } from "./SettingsDialog";
 import { FeedbackDialog } from "./FeedbackDialog";
@@ -56,6 +60,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
   const { toast } = useToast();
   const { state, toggleSidebar, setOpen } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const { theme, setTheme } = useTheme();
 
   // Auto-collapse sidebar when in dataconversion view
   useEffect(() => {
@@ -190,6 +195,32 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal py-1">Appearance</DropdownMenuLabel>
+              <div className="flex gap-1 px-2 pb-2">
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors ${theme === "light" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+                >
+                  <Sun className="h-3.5 w-3.5" />
+                  Light
+                </button>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors ${theme === "dark" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+                >
+                  <Moon className="h-3.5 w-3.5" />
+                  Dark
+                </button>
+                <button
+                  onClick={() => setTheme("system")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors ${theme === "system" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+                >
+                  <Monitor className="h-3.5 w-3.5" />
+                  Auto
+                </button>
+              </div>
+              <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer"
                 onClick={() => setFeedbackOpen(true)}
