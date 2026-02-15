@@ -4,8 +4,8 @@ import {
   FileImage, 
   Globe, 
   Type,
-  Search,
-  Zap,
+  Telescope,
+  Images,
   LucideIcon
 } from "lucide-react";
 
@@ -16,8 +16,8 @@ export const nodeIconMap: Record<string, LucideIcon> = {
   "document": FileText,
   "image": FileImage,
   "website": Globe,
-  "research": Search,
-  "action": Zap,
+  "research": Telescope,
+  "action": Images,
 };
 
 export interface NodeItem {

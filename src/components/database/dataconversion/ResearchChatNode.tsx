@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Search, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
+import { Telescope, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -366,11 +366,11 @@ export function ResearchChatNode({
       <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30 rounded-t-xl">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Search className="h-4 w-4 text-primary" />
+            <Telescope className="h-4 w-4 text-primary" />
           </div>
           <div>
             <p className="text-sm font-medium">Research Chat</p>
-            <p className="text-xs text-muted-foreground">Ask about your data</p>
+            <p className="text-xs text-muted-foreground">Research your data</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -438,7 +438,7 @@ export function ResearchChatNode({
           </div>
         ) : messages.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <Telescope className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">
               {connectedContexts.length > 0
                 ? `Ask about ${connectedContexts.map(c => c.label).join(", ")}`

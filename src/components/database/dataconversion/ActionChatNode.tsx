@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Zap, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
+import { Images, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -423,11 +423,11 @@ export function ActionChatNode({
       <div className="flex items-center justify-between p-3 border-b border-border bg-accent/10 rounded-t-xl">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-accent/20 flex items-center justify-center">
-            <Zap className="h-4 w-4 text-accent-foreground" />
+            <Images className="h-4 w-4 text-accent-foreground" />
           </div>
           <div>
-            <p className="text-sm font-medium">Action Chat</p>
-            <p className="text-xs text-muted-foreground">Execute workspace tasks</p>
+            <p className="text-sm font-medium">Generation Chat</p>
+            <p className="text-xs text-muted-foreground">Generate data & content</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -470,7 +470,7 @@ export function ActionChatNode({
                 "document": FileText,
                 "image": Image,
                 "website": Globe,
-                "research": Zap,
+                "research": Images,
               };
               const Icon = IconMap[ctx.type] || Database;
               return (
@@ -496,8 +496,8 @@ export function ActionChatNode({
           </div>
         ) : messages.length === 0 ? (
           <div className="text-center text-muted-foreground py-6">
-            <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-medium mb-2">Execute Workspace Actions</p>
+            <Images className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-medium mb-2">Generate Data & Content</p>
             <div className="text-xs space-y-1">
               <p>• "Draft a reply to John's email"</p>
               <p>• "Create an SOP for onboarding"</p>
