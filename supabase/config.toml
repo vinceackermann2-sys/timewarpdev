@@ -1,55 +1,7 @@
 project_id = "ohvxqlxugqlzzbmfypiy"
 
-[functions.chat]
-verify_jwt = false
-
-[functions.research]
-verify_jwt = false
-
-[functions.workspace-fetch]
-verify_jwt = false
-
-[functions.analyze-workspace]
-verify_jwt = false
-
-[functions.browser-agent]
-verify_jwt = false
-
-[functions.parse-file]
-verify_jwt = false
-
-[functions.run-agent]
-verify_jwt = false
-
-[functions.research-chat]
-verify_jwt = false
-
 [functions.analyze-content]
 verify_jwt = false
 
-[functions.action-chat]
-verify_jwt = false
-
-[functions.slack-bot]
-verify_jwt = false
-
-[functions.slack-oauth]
-verify_jwt = false
-
-[functions.google-oauth-callback]
-verify_jwt = false
-
-[functions.initiate-google-oauth]
-verify_jwt = false
-
-[functions.initiate-microsoft-oauth]
-verify_jwt = false
-
-[functions.microsoft-oauth-callback]
-verify_jwt = false
-
-[functions.initiate-slack-oauth]
-verify_jwt = false
-
-[functions.sync-research]
+[functions.research-chat]
 verify_jwt = false
