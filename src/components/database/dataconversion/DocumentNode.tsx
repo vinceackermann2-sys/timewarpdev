@@ -66,15 +66,25 @@ export function DocumentNode({
     }, 400);
 
     try {
-      // Read file content as text for supported text-based formats
-      let documentText = "";
       const ext = file.name.split(".").pop()?.toLowerCase();
+      let documentText = "";
+      let fileBase64 = "";
+      let fileMimeType = file.type;
       
+      // Text-based formats: read as text
       if (ext === "txt" || ext === "csv") {
         documentText = await file.text();
       } else {
-        // For binary formats (PDF, DOCX, XLSX), read as base64 and let AI analyze what it can
-        documentText = `[Binary file: ${file.name}, size: ${(file.size / 1024).toFixed(1)}KB, type: ${file.type}]`;
+        // Binary formats (PDF, DOCX, XLSX): convert to base64 for multimodal AI analysis
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(",")[1];
+            resolve(base64);
+          };
+        });
+        reader.readAsDataURL(file);
+        fileBase64 = await base64Promise;
       }
 
       // Analyze the content
@@ -90,7 +100,9 @@ export function DocumentNode({
             type: "document",
             content: {
               documentText,
-              documentName: file.name
+              documentName: file.name,
+              fileBase64,
+              fileMimeType,
             }
           }),
         }
@@ -102,7 +114,7 @@ export function DocumentNode({
         onUpdate(node.id, { 
           documentUrl, 
           documentName: file.name,
-          documentContent: documentText,
+          documentContent: analyzeData.extractedText || documentText,
           analyzedContent: analyzeData.analysis,
           isAnalyzed: true
         });
