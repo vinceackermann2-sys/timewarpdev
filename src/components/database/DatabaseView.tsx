@@ -1,21 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { 
-  Mail, 
-  Calendar, 
-  FileText, 
-  TrendingUp, 
-  Users, 
-  DollarSign,
   Loader2,
   Sparkles,
   ArrowUp,
-  Upload
+  Telescope,
+  Images,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { FileUploadZone } from "./FileUploadZone";
 import { 
   DatabaseChatMessage, 
   parseInsightCards, 
@@ -25,229 +19,110 @@ import {
 import { SuggestedActions } from "./dataconversion/SuggestedActions";
 import { BgGradient } from "@/components/ui/bg-gradient";
 import { ConnectBusinessDNA } from "./ConnectBusinessDNA";
+import { ResearchChatMessage } from "./dataconversion/ResearchChatMessage";
+import { ActionChatMessage, type ActionStep, type DocumentLink } from "./dataconversion/ActionChatMessage";
 
-interface BusinessData {
-  topContacts?: { email: string; count: number }[];
-  emailSummaries?: { from: string; subject: string; snippet?: string }[];
-  calendarEvents?: { summary: string; start: any; attendees?: number }[];
-  documents?: { name: string }[];
-  sheets?: { name: string; title?: string }[];
-  slides?: { name: string; title?: string }[];
-}
-
-interface ResearchSummary {
-  emailsAnalyzed?: number;
-  eventsAnalyzed?: number;
-  documentsAnalyzed?: number;
-  sheetsAnalyzed?: number;
-  analyzedAt?: string;
-}
+type ChatMode = "research" | "generation";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   insights?: InsightCard[];
+  suggestions?: string[];
+  steps?: ActionStep[];
+  documentLinks?: DocumentLink[];
+  isStreaming?: boolean;
 }
 
-// Generate personalized questions from business data
-function generatePersonalizedQuestions(
-  moduleId: string,
-  businessData: BusinessData | null,
-  summary: ResearchSummary | null,
-  researchFindings?: any
-): string[] {
-  const questions: string[] = [];
+// Parse research response
+function parseResearchResponse(text: string): { content: string; suggestions: string[]; insights: InsightCard[] } {
+  const suggestions: string[] = [];
+  let content = text;
 
-  // Extract findings from research if available
-  const findings = researchFindings?.findings || researchFindings?.insights || [];
-  const keyTopics = researchFindings?.keyTopics || [];
-  const recommendations = researchFindings?.recommendations || [];
-
-  switch (moduleId) {
-    case "email":
-      if (businessData?.topContacts?.length) {
-        const topContact = businessData.topContacts[0];
-        const contactName = topContact.email.split('@')[0].replace(/[._]/g, ' ');
-        questions.push(`What does ${contactName} need from me?`);
-        if (businessData.topContacts.length > 1) {
-          const secondContact = businessData.topContacts[1].email.split('@')[0].replace(/[._]/g, ' ');
-          questions.push(`Compare conversations with ${contactName} and ${secondContact}`);
-        }
-      }
-      if (businessData?.emailSummaries?.length) {
-        const recentSubject = businessData.emailSummaries[0]?.subject;
-        if (recentSubject) {
-          questions.push(`Follow up needed for "${recentSubject.slice(0, 30)}..."?`);
-        }
-      }
-      // Add from findings
-      const emailFinding = findings.find((f: any) => f?.category?.toLowerCase?.().includes('email') || f?.area?.toLowerCase?.().includes('communication'));
-      if (emailFinding?.title || emailFinding?.issue) {
-        questions.push(`How can I address: ${(emailFinding.title || emailFinding.issue).slice(0, 40)}?`);
-      }
-      break;
-
-    case "calendar":
-      if (businessData?.calendarEvents?.length) {
-        const nextEvent = businessData.calendarEvents[0];
-        if (nextEvent.summary) {
-          questions.push(`How should I prepare for "${nextEvent.summary.slice(0, 25)}"?`);
-        }
-        const bigMeeting = businessData.calendarEvents.find(e => (e.attendees || 0) > 3);
-        if (bigMeeting?.summary) {
-          questions.push(`What's the agenda for "${bigMeeting.summary.slice(0, 25)}"?`);
-        }
-      }
-      questions.push(`Which meetings can I reschedule this week?`);
-      // From research findings
-      const timeFinding = findings.find((f: any) => f?.category?.toLowerCase?.().includes('time') || f?.area?.toLowerCase?.().includes('schedule'));
-      if (timeFinding) {
-        questions.push(`How do I optimize my calendar based on findings?`);
-      }
-      break;
-
-    case "docs":
-      if (businessData?.documents?.length) {
-        const recentDoc = businessData.documents[0];
-        questions.push(`Summarize "${recentDoc.name.slice(0, 30)}"`);
-        if (businessData.documents.length > 2) {
-          questions.push(`Compare my ${businessData.documents.length} documents for trends`);
-        }
-      }
-      if (businessData?.sheets?.length) {
-        const sheet = businessData.sheets[0];
-        questions.push(`What key numbers in "${(sheet.title || sheet.name).slice(0, 25)}"?`);
-      }
-      if (businessData?.slides?.length) {
-        questions.push(`Review my presentation content`);
-      }
-      break;
-
-    case "revenue":
-      // Pull from financial findings
-      const revenueFinding = findings.find((f: any) => 
-        f?.category?.toLowerCase?.().includes('financ') || 
-        f?.category?.toLowerCase?.().includes('revenue') ||
-        f?.area?.toLowerCase?.().includes('money')
-      );
-      if (revenueFinding?.title || revenueFinding?.issue) {
-        questions.push(`Explain: ${(revenueFinding.title || revenueFinding.issue).slice(0, 40)}`);
-      }
-      questions.push(`What payment discussions are in my emails?`);
-      questions.push(`Identify budget concerns from my data`);
-      // From recommendations
-      const revenueRec = recommendations.find((r: any) => r?.toLowerCase?.().includes('cost') || r?.toLowerCase?.().includes('revenue'));
-      if (revenueRec) {
-        questions.push(`How do I implement: ${revenueRec.slice(0, 35)}?`);
-      }
-      break;
-
-    case "team":
-      if (businessData?.topContacts?.length && businessData.topContacts.length > 2) {
-        questions.push(`Who are my top ${Math.min(5, businessData.topContacts.length)} collaborators?`);
-      }
-      const teamFinding = findings.find((f: any) => 
-        f?.category?.toLowerCase?.().includes('team') || 
-        f?.area?.toLowerCase?.().includes('collaborat')
-      );
-      if (teamFinding?.title) {
-        questions.push(`Address team issue: ${teamFinding.title.slice(0, 35)}`);
-      }
-      questions.push(`Who needs follow-up this week?`);
-      questions.push(`What team discussions are happening?`);
-      break;
-
-    case "trends":
-      // Pull key topics from research
-      if (keyTopics.length > 0) {
-        questions.push(`Deep dive into: ${keyTopics[0]}`);
-      }
-      const trendFinding = findings[0];
-      if (trendFinding?.title || trendFinding?.issue) {
-        questions.push(`What's the impact of: ${(trendFinding.title || trendFinding.issue).slice(0, 30)}?`);
-      }
-      if (recommendations.length > 0) {
-        questions.push(`Priority action: ${recommendations[0].slice(0, 35)}?`);
-      }
-      questions.push(`What patterns are emerging in my business?`);
-      break;
-
-    case "uploads":
-      questions.push(`Analyze my uploaded files`);
-      questions.push(`What key data is in my documents?`);
-      questions.push(`Compare uploaded documents`);
-      break;
+  const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
+  let match;
+  while ((match = suggestRegex.exec(text)) !== null) {
+    const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
+    suggestions.push(...items);
   }
+  content = content.replace(suggestRegex, "").trim();
 
-  // Fallback questions if we don't have enough
-  const fallbackQuestions: Record<string, string[]> = {
-    email: ["Who are my top contacts?", "Summarize urgent emails", "What needs my response?"],
-    calendar: ["What's my week look like?", "Upcoming deadlines?", "Meeting time analysis"],
-    docs: ["Recent document activity?", "Key document insights", "What needs my review?"],
-    revenue: ["Financial overview", "Payment trends", "Budget analysis"],
-    team: ["Team collaboration status", "Who's most active?", "Pending team items"],
-    trends: ["Business patterns", "What should I focus on?", "Key opportunities"],
-    uploads: ["File analysis", "Document summary", "Key extracted data"]
-  };
+  const { content: cleanContent, insights } = parseInsightCards(content);
 
-  while (questions.length < 3) {
-    const fallback = fallbackQuestions[moduleId]?.[questions.length];
-    if (fallback && !questions.includes(fallback)) {
-      questions.push(fallback);
-    } else break;
-  }
-
-  return questions.slice(0, 4);
+  return { content: cleanContent, suggestions: suggestions.slice(0, 3), insights };
 }
 
-// Database module definitions - styled as file folders
-const databaseModules = [
-  { id: "email", code: "EML", title: "EMAILS", icon: Mail, color: "from-status-info to-status-info/80" },
-  { id: "calendar", code: "CAL", title: "CALENDAR", icon: Calendar, color: "from-primary to-primary/80" },
-  { id: "docs", code: "DOC", title: "DOCUMENTS", icon: FileText, color: "from-status-success to-status-success/80" },
-  { id: "uploads", code: "UPL", title: "UPLOADS", icon: Upload, color: "from-status-error to-status-error/80" },
-  { id: "revenue", code: "REV", title: "REVENUE", icon: DollarSign, color: "from-status-warning to-status-warning/80" },
-  { id: "team", code: "TEAM", title: "TEAM", icon: Users, color: "from-accent-foreground to-accent-foreground/80" },
-  { id: "trends", code: "TRD", title: "TRENDS", icon: TrendingUp, color: "from-status-info to-primary" }
-];
+// Parse action/generation response
+function parseGenerationResponse(text: string): {
+  steps: ActionStep[];
+  content: string;
+  documentLinks: DocumentLink[];
+  suggestions: string[];
+} {
+  const steps: ActionStep[] = [];
+  const documentLinks: DocumentLink[] = [];
+  const suggestions: string[] = [];
+  let content = text;
 
-// Helper to process message content
-function processMessageContent(content: string): { displayContent: string; insights: InsightCard[]; suggestions: string[] } {
-  const { content: withoutInsights, insights } = parseInsightCards(content);
-  const { content: displayContent, suggestions } = parseSuggestions(withoutInsights);
-  return { displayContent, insights, suggestions };
+  const stepMap = new Map<string, ActionStep>();
+  const stepRegex = /\[STEP:([^:]+):([^:]+):([^\]]+)\]/g;
+  let match;
+  while ((match = stepRegex.exec(text)) !== null) {
+    stepMap.set(match[2], {
+      icon: match[1],
+      label: match[2],
+      status: match[3] as ActionStep["status"],
+    });
+  }
+  steps.push(...stepMap.values());
+  content = content.replace(stepRegex, "");
+
+  const docRegex = /\[DOC:([^|]+)\|([^|]+)\|([^|\]]+)(?:\|([^\]]*))?\]/g;
+  while ((match = docRegex.exec(text)) !== null) {
+    documentLinks.push({
+      type: match[1] as DocumentLink["type"],
+      title: match[2],
+      url: match[3],
+      previewText: match[4] || undefined,
+    });
+  }
+  content = content.replace(docRegex, "");
+
+  const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
+  while ((match = suggestRegex.exec(text)) !== null) {
+    const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
+    suggestions.push(...items);
+  }
+  content = content.replace(suggestRegex, "");
+  content = content.trim().replace(/\n{3,}/g, "\n\n");
+
+  return { steps, content, documentLinks, suggestions: suggestions.slice(0, 3) };
 }
 
 export function DatabaseView() {
-  const [hoveredModule, setHoveredModule] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [businessData, setBusinessData] = useState<BusinessData | null>(null);
-  const [researchSummary, setResearchSummary] = useState<ResearchSummary | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [showUploadPanel, setShowUploadPanel] = useState(false);
-  const [uploadedFilesCount, setUploadedFilesCount] = useState(0);
-  const [researchFindings, setResearchFindings] = useState<any>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [hasConnected, setHasConnected] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+  const [chatMode, setChatMode] = useState<ChatMode>("research");
+  const [showModeSelector, setShowModeSelector] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const modeSelectorRef = useRef<HTMLDivElement>(null);
 
-  // Check DB for existing connections instead of localStorage
-  // If oauth_success is in URL, keep showing connection screen so user can continue connecting more
+  // Check DB for existing connections
   useEffect(() => {
     const checkConnections = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
         const hasOAuthReturn = params.get("oauth_success") || params.get("oauth_error");
-        
-        // If returning from OAuth, always show the connection screen
+
         if (hasOAuthReturn) {
           setIsCheckingConnection(false);
           return;
         }
 
-        // Check if user previously dismissed the connection screen
         const dismissed = sessionStorage.getItem("businessDnaDismissed");
         if (dismissed === "true") {
           setHasConnected(true);
@@ -268,10 +143,7 @@ export function DatabaseView() {
           .eq('status', 'connected')
           .limit(1);
 
-        if (!error && data && data.length > 0) {
-          // Has connections but hasn't explicitly dismissed — show screen so they can add more
-          // Only auto-skip if they previously dismissed
-        }
+        // Don't auto-skip — let user explicitly dismiss
       } catch (err) {
         console.error("Failed to check connections:", err);
       }
@@ -280,153 +152,209 @@ export function DatabaseView() {
 
     checkConnections();
   }, []);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch business data from storage bucket
+  // Loading data check
   useEffect(() => {
-    const fetchBusinessData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          setIsLoadingData(false);
-          return;
-        }
-
-        const { data, error } = await supabase.storage
-          .from('business-data')
-          .download(`${session.user.id}/research.json`);
-
-        if (error) {
-          console.log('No business data found yet:', error.message);
-          setIsLoadingData(false);
-          return;
-        }
-
-        const text = await data.text();
-        const parsed = JSON.parse(text);
-        
-        setBusinessData(parsed.rawData || null);
-        setResearchSummary(parsed.summary || null);
-        setResearchFindings(parsed.findings || parsed.analysis || null);
-      } catch (error) {
-        console.error('Error fetching business data:', error);
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    fetchBusinessData();
+    const timer = setTimeout(() => setIsLoadingData(false), 500);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
     }
   }, [messages]);
 
-  const handleQuestionClick = async (question: string) => {
-    await sendMessage(question);
-  };
+  // Close mode selector on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modeSelectorRef.current && !modeSelectorRef.current.contains(e.target as Node)) {
+        setShowModeSelector(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  const sendMessage = async (content: string) => {
+  const buildContexts = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return [];
+
+    const { data: bizData, error } = await (supabase as any)
+      .from('user_business_data')
+      .select('data_type, title, content, analyzed_content, metadata, is_analyzed')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!error && bizData && bizData.length > 0) {
+      return [{
+        type: "business-db",
+        label: "Business Data",
+        content: {
+          total_items: bizData.length,
+          items: bizData.map((item: any) => ({
+            type: item.data_type,
+            title: item.title,
+            content: item.content?.slice(0, 500),
+            analysis: item.analyzed_content?.slice(0, 500),
+          })),
+        }
+      }];
+    }
+    return [];
+  }, []);
+
+  const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content };
     setMessages(prev => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
-    setSuggestions([]);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setMessages(prev => [...prev, { 
-          role: "assistant", 
-          content: "Please log in to use the AI assistant." 
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: "Please log in to use the AI assistant."
         }]);
         setIsLoading(false);
         return;
       }
 
+      const connectedContexts = await buildContexts();
+      const endpoint = chatMode === "research" ? "research-chat" : "action-chat";
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${endpoint}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
             messages: [...messages, userMessage].map(m => ({
               role: m.role,
-              content: m.content
-            }))
+              content: m.content,
+            })),
+            connectedContexts,
           }),
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to get response");
-      }
+      if (!response.ok) throw new Error("Failed to get response");
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No response body");
 
-      let assistantContent = "";
-      setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+      let fullResponse = "";
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "",
+        isStreaming: true,
+      }]);
 
       const decoder = new TextDecoder();
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n").filter(line => line.startsWith("data: "));
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
 
         for (const line of lines) {
-          const data = line.slice(6);
-          if (data === "[DONE]") continue;
+          if (line.startsWith("data: ") && line !== "data: [DONE]") {
+            try {
+              const json = JSON.parse(line.slice(6));
+              const delta = json.choices?.[0]?.delta?.content;
+              if (delta) {
+                fullResponse += delta;
 
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              assistantContent += delta;
-              // Parse and update with insights
-              const { displayContent, insights, suggestions: newSuggestions } = processMessageContent(assistantContent);
-              setMessages(prev => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1] = {
-                  role: "assistant",
-                  content: displayContent,
-                  insights: insights.length > 0 ? insights : undefined
-                };
-                return newMessages;
-              });
-              if (newSuggestions.length > 0) {
-                setSuggestions(newSuggestions);
+                if (chatMode === "research") {
+                  const parsed = parseResearchResponse(fullResponse);
+                  setMessages(prev => {
+                    const newMessages = [...prev];
+                    newMessages[newMessages.length - 1] = {
+                      role: "assistant",
+                      content: parsed.content,
+                      suggestions: parsed.suggestions,
+                      insights: parsed.insights,
+                      isStreaming: true,
+                    };
+                    return newMessages;
+                  });
+                } else {
+                  const parsed = parseGenerationResponse(fullResponse);
+                  setMessages(prev => {
+                    const newMessages = [...prev];
+                    newMessages[newMessages.length - 1] = {
+                      role: "assistant",
+                      content: parsed.content,
+                      steps: parsed.steps,
+                      documentLinks: parsed.documentLinks,
+                      suggestions: parsed.suggestions,
+                      isStreaming: true,
+                    };
+                    return newMessages;
+                  });
+                }
               }
+            } catch {
+              // Skip invalid JSON
             }
-          } catch {
-            // Skip malformed JSON
           }
         }
       }
+
+      // Final parse
+      if (chatMode === "research") {
+        const finalParsed = parseResearchResponse(fullResponse);
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = {
+            role: "assistant",
+            content: finalParsed.content,
+            suggestions: finalParsed.suggestions,
+            insights: finalParsed.insights,
+            isStreaming: false,
+          };
+          return newMessages;
+        });
+      } else {
+        const finalParsed = parseGenerationResponse(fullResponse);
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = {
+            role: "assistant",
+            content: finalParsed.content,
+            steps: finalParsed.steps,
+            documentLinks: finalParsed.documentLinks,
+            suggestions: finalParsed.suggestions,
+            isStreaming: false,
+          };
+          return newMessages;
+        });
+      }
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages(prev => [...prev, { 
-        role: "assistant", 
-        content: "Sorry, I couldn't process your request. Please try again." 
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "Sorry, I couldn't process your request. Please try again.",
       }]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [inputValue, messages, isLoading, chatMode, buildContexts]);
 
   const handleSendMessage = () => {
-    if (inputValue.trim()) {
-      sendMessage(inputValue);
-    }
+    if (inputValue.trim()) sendMessage(inputValue);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -436,12 +364,22 @@ export function DatabaseView() {
     }
   };
 
-  const hasBusinessData = businessData && Object.keys(businessData).length > 0;
-
   const handleConnectComplete = () => {
     sessionStorage.setItem("businessDnaDismissed", "true");
     setHasConnected(true);
   };
+
+  const handleModeSwitch = (mode: ChatMode) => {
+    if (mode !== chatMode) {
+      setChatMode(mode);
+      setMessages([]);
+    }
+    setShowModeSelector(false);
+  };
+
+  // Get last message suggestions
+  const lastMsg = messages.filter(m => m.role === "assistant" && !m.isStreaming).slice(-1)[0];
+  const currentSuggestions = lastMsg?.suggestions || [];
 
   if (isCheckingConnection) {
     return (
@@ -457,7 +395,6 @@ export function DatabaseView() {
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden bg-background">
-      {/* Theme blue radial gradient at the bottom */}
       <BgGradient
         gradientFrom="hsl(var(--background))"
         gradientTo="hsl(var(--primary) / 0.3)"
@@ -469,8 +406,8 @@ export function DatabaseView() {
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        {/* Chat messages - above the file storage */}
-        {messages.length > 0 && (
+        {/* Chat messages */}
+        {messages.length > 0 ? (
           <div className="flex-1 min-h-0 px-8 pt-6">
             <ScrollArea className="h-full" ref={scrollRef}>
               <div className="max-w-3xl mx-auto space-y-4 pb-4">
@@ -482,19 +419,29 @@ export function DatabaseView() {
                       message.role === "user" ? "justify-end" : "justify-start"
                     )}
                   >
-                    <DatabaseChatMessage
-                      role={message.role}
-                      content={message.content}
-                      insightCards={message.insights}
-                      isStreaming={isLoading && index === messages.length - 1 && message.role === "assistant"}
-                    />
+                    {chatMode === "research" ? (
+                      <ResearchChatMessage
+                        role={message.role}
+                        content={message.content}
+                        insightCards={message.insights}
+                        isStreaming={message.isStreaming}
+                      />
+                    ) : (
+                      <ActionChatMessage
+                        role={message.role}
+                        content={message.content}
+                        steps={message.steps}
+                        documentLinks={message.documentLinks}
+                        isStreaming={message.isStreaming}
+                      />
+                    )}
                   </div>
                 ))}
-                {/* Suggested actions after last message */}
-                {!isLoading && suggestions.length > 0 && (
+                {/* Suggested actions */}
+                {!isLoading && currentSuggestions.length > 0 && (
                   <div className="pt-2">
                     <SuggestedActions
-                      suggestions={suggestions}
+                      suggestions={currentSuggestions}
                       onSelect={(suggestion) => sendMessage(suggestion)}
                       isLoading={isLoading}
                     />
@@ -503,222 +450,114 @@ export function DatabaseView() {
               </div>
             </ScrollArea>
           </div>
-        )}
-
-        {/* File Storage Shelf - Map folder style */}
-        <div className={cn(
-          "px-8 py-6",
-          messages.length === 0 && "flex-1 flex flex-col justify-center"
-        )}>
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl md:text-3xl font-light mb-3">
-              Your <span className="italic text-primary font-normal">Business</span> Storage
-            </h1>
-            {isLoadingData ? (
-              <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading your business data...
+        ) : (
+          /* Empty state */
+          <div className="flex-1 flex flex-col items-center justify-center px-8">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 mb-5">
+                {chatMode === "research" ? (
+                  <Telescope className="h-7 w-7 text-primary" />
+                ) : (
+                  <Images className="h-7 w-7 text-primary" />
+                )}
               </div>
-            ) : hasBusinessData ? (
-              <p className="text-muted-foreground text-sm">
-                <span className="inline-block h-2 w-2 rounded-full bg-primary mr-2 animate-pulse" />
-                {researchSummary?.emailsAnalyzed || 0} emails • {researchSummary?.eventsAnalyzed || 0} events synced
+              <h1 className="text-2xl md:text-3xl font-light mb-3">
+                {chatMode === "research" ? (
+                  <>Your <span className="italic text-primary font-normal">Research</span> Assistant</>
+                ) : (
+                  <>Your <span className="italic text-primary font-normal">Generation</span> Assistant</>
+                )}
+              </h1>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                {chatMode === "research"
+                  ? "Ask questions about your business data and get personalized insights"
+                  : "Generate content, draft emails, create documents from your business data"
+                }
               </p>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                Complete research to unlock personalized insights
-              </p>
-            )}
-          </div>
-
-          {/* Shelf - horizontal bar that holds the files */}
-          <div className="relative max-w-5xl mx-auto">
-            {/* Shelf surface */}
-            <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-b from-muted/50 to-muted/20 rounded-lg border-b-2 border-primary/20" />
-            
-            {/* File folders on shelf */}
-            <div className="flex items-end justify-center gap-1 pb-3">
-              {databaseModules.map((module, index) => {
-                const Icon = module.icon;
-                const isHovered = hoveredModule === module.id;
-                const questions = generatePersonalizedQuestions(module.id, businessData, researchSummary, researchFindings);
-
-                return (
-                  <div
-                    key={module.id}
-                    className="relative group"
-                    onMouseEnter={() => setHoveredModule(module.id)}
-                    onMouseLeave={() => setHoveredModule(null)}
-                    onClick={() => module.id === "uploads" && setShowUploadPanel(true)}
-                    style={{ zIndex: isHovered ? 50 : 10 - index }}
-                  >
-                    {/* Tab-style card that expands on hover */}
-                    <div
-                      className={cn(
-                        "relative cursor-pointer transition-all duration-400 ease-out origin-bottom",
-                        isHovered ? "w-72" : "w-28"
-                      )}
-                    >
-                      {/* Folder tab */}
-                      <div className={cn(
-                        "absolute -top-6 left-2 h-7 rounded-t-lg transition-all duration-300",
-                        "bg-gradient-to-b",
-                        module.color,
-                        isHovered ? "right-4 shadow-glow" : "right-8"
-                      )}>
-                        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90 tracking-wider">
-                          {module.code}
-                        </span>
-                      </div>
-
-                      {/* Main card body */}
-                      <div className={cn(
-                        "relative rounded-lg transition-all duration-400 overflow-hidden",
-                        "bg-gradient-to-b from-card to-card/80",
-                        "border border-border/50",
-                        isHovered ? "h-auto min-h-[160px] border-primary/50 shadow-glow" : "h-36"
-                      )}>
-                        {/* Collapsed view - icon and title */}
-                        <div className={cn(
-                          "absolute inset-0 flex flex-col items-center justify-center p-3 transition-all duration-300",
-                          isHovered ? "opacity-0 pointer-events-none" : "opacity-100"
-                        )}>
-                          <div className={cn(
-                            "p-2.5 rounded-xl mb-2 transition-all duration-300",
-                            "bg-gradient-to-br",
-                            module.color
-                          )}>
-                            <Icon className="h-5 w-5 text-white" />
-                          </div>
-                          <span className="text-[10px] font-semibold tracking-wider text-center text-muted-foreground">
-                            {module.title}
-                          </span>
-                          <div className="flex gap-1 mt-2">
-                            <span className={cn(
-                              "h-1 w-1 rounded-full",
-                              hasBusinessData ? "bg-primary" : "bg-muted-foreground/30"
-                            )} />
-                            <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
-                            <span className="h-1 w-1 rounded-full bg-muted-foreground/10" />
-                          </div>
-                        </div>
-
-                        {/* Expanded view - questions panel */}
-                        <div className={cn(
-                          "p-4 transition-all duration-400",
-                          isHovered ? "opacity-100" : "opacity-0"
-                        )}>
-                          {/* Header */}
-                          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/30">
-                            <div className={cn("p-1.5 rounded-lg bg-gradient-to-br shrink-0", module.color)}>
-                              <Icon className="h-3.5 w-3.5 text-white" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-foreground truncate">{module.title}</p>
-                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
-                                {hasBusinessData ? "Your Insights" : "Quick Access"}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Questions */}
-                          <div className="space-y-1.5">
-                            {questions.map((question, idx) => (
-                              <button
-                                key={idx}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleQuestionClick(question);
-                                }}
-                                className={cn(
-                                  "w-full text-left px-2.5 py-2 rounded-lg text-[11px] transition-all duration-200",
-                                  "bg-muted/40 hover:bg-primary/20 hover:text-primary",
-                                  "border border-transparent hover:border-primary/30",
-                                  "flex items-center gap-2 group/q"
-                                )}
-                              >
-                                <Sparkles className="h-3 w-3 text-primary/50 group-hover/q:text-primary shrink-0" />
-                                <span className="line-clamp-2 leading-tight">{question}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Upload Panel - slides up when uploads folder is clicked */}
-        {showUploadPanel && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <div className="relative w-full max-w-lg mx-4 bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden">
-              {/* Panel header */}
-              <div className="flex items-center justify-between p-4 border-b border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-rose-500 to-rose-600">
-                    <Upload className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Upload Files</h3>
-                    <p className="text-xs text-muted-foreground">PDFs, images, and documents for AI analysis</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowUploadPanel(false)}
-                  className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <span className="sr-only">Close</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              {/* Upload zone */}
-              <div className="p-6">
-                <FileUploadZone 
-                  onFileUploaded={() => {
-                    setUploadedFilesCount(prev => prev + 1);
-                  }}
-                />
-              </div>
-              
-              {/* Panel footer */}
-              <div className="flex items-center justify-between p-4 border-t border-border/30 bg-muted/20">
-                <p className="text-xs text-muted-foreground">
-                  {uploadedFilesCount > 0 
-                    ? `${uploadedFilesCount} file${uploadedFilesCount > 1 ? 's' : ''} analyzed` 
-                    : "Uploaded files become part of your AI context"
-                  }
-                </p>
-                <button
-                  onClick={() => setShowUploadPanel(false)}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  Done
-                </button>
-              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Floating chat input - always at bottom */}
+      {/* Floating chat input with mode switcher */}
       <div className="relative z-20 p-6 pt-0">
         <div className="max-w-2xl mx-auto">
           <div className="relative flex items-center glass-portal rounded-full shadow-glow">
-            <Sparkles className="absolute left-5 h-5 w-5 text-primary" />
+            {/* Mode indicator / toggle */}
+            <div className="relative" ref={modeSelectorRef}>
+              <button
+                onClick={() => setShowModeSelector(!showModeSelector)}
+                className={cn(
+                  "absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all z-10",
+                  chatMode === "research"
+                    ? "bg-primary/15 text-primary hover:bg-primary/25"
+                    : "bg-accent/15 text-accent-foreground hover:bg-accent/25"
+                )}
+              >
+                {chatMode === "research" ? (
+                  <Telescope className="h-3.5 w-3.5" />
+                ) : (
+                  <Images className="h-3.5 w-3.5" />
+                )}
+                <span className="hidden sm:inline">
+                  {chatMode === "research" ? "Research" : "Generation"}
+                </span>
+              </button>
+
+              {/* Mode selector dropdown */}
+              {showModeSelector && (
+                <div className="absolute left-3 bottom-full mb-2 bg-card border border-border rounded-xl shadow-xl overflow-hidden min-w-[200px] z-50">
+                  <button
+                    onClick={() => handleModeSwitch("research")}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors",
+                      chatMode === "research"
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-muted/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-8 w-8 rounded-lg flex items-center justify-center",
+                      chatMode === "research" ? "bg-primary/20" : "bg-muted"
+                    )}>
+                      <Telescope className="h-4 w-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium">Research</p>
+                      <p className="text-xs text-muted-foreground">Analyze your data</p>
+                    </div>
+                  </button>
+                  <div className="border-t border-border" />
+                  <button
+                    onClick={() => handleModeSwitch("generation")}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors",
+                      chatMode === "generation"
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-muted/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-8 w-8 rounded-lg flex items-center justify-center",
+                      chatMode === "generation" ? "bg-primary/20" : "bg-muted"
+                    )}>
+                      <Images className="h-4 w-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium">Generation</p>
+                      <p className="text-xs text-muted-foreground">Generate content</p>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={hasBusinessData ? "Ask about your business data..." : "Ask a question..."}
-              className="w-full pl-14 pr-16 py-7 rounded-full bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+              placeholder={chatMode === "research" ? "Ask about your business data..." : "Generate content from your data..."}
+              className="w-full pl-[120px] sm:pl-[140px] pr-16 py-7 rounded-full bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
               disabled={isLoading}
             />
             <button
