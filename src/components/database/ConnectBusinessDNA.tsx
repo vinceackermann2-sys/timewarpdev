@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, ArrowRight, Briefcase } from "lucide-react";
+import { Check, ArrowRight, Briefcase, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BgGradient } from "@/components/ui/bg-gradient";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Integration {
   id: string;
@@ -56,12 +57,86 @@ interface ConnectBusinessDNAProps {
 
 export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
   const [selected, setSelected] = useState<string[]>([]);
+  const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Check existing connections on mount
+  useEffect(() => {
+    const checkExisting = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          setIsLoading(false);
+          return;
+        }
+
+        const { data, error } = await (supabase as any)
+          .from('user_connections')
+          .select('provider, status')
+          .eq('user_id', session.user.id)
+          .eq('status', 'connected');
+
+        if (!error && data && data.length > 0) {
+          setConnectedProviders(data.map((d: any) => d.provider));
+          // Already connected — skip this screen
+          onComplete();
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to check connections:", err);
+      }
+      setIsLoading(false);
+    };
+
+    checkExisting();
+  }, [onComplete]);
 
   const toggleIntegration = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
   };
+
+  const handleConnect = async () => {
+    if (selected.length === 0) return;
+    setIsSaving(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        onComplete();
+        return;
+      }
+
+      const rows = selected.map((provider) => ({
+        user_id: session.user.id,
+        provider,
+        status: 'connected',
+      }));
+
+      const { error } = await (supabase as any)
+        .from('user_connections')
+        .insert(rows);
+
+      if (error) {
+        console.error("Failed to save connections:", error);
+      }
+    } catch (err) {
+      console.error("Error saving connections:", err);
+    }
+
+    setIsSaving(false);
+    onComplete();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden bg-background">
@@ -102,15 +177,19 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
             {integrations.map((integration, index) => {
               const isSelected = selected.includes(integration.id);
+              const isAlreadyConnected = connectedProviders.includes(integration.id);
               return (
                 <motion.button
                   key={integration.id}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.07, duration: 0.35 }}
-                  onClick={() => toggleIntegration(integration.id)}
+                  onClick={() => !isAlreadyConnected && toggleIntegration(integration.id)}
+                  disabled={isAlreadyConnected}
                   className={`relative flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left ${
-                    isSelected
+                    isAlreadyConnected
+                      ? "border-green-500/50 bg-green-500/5 opacity-70"
+                      : isSelected
                       ? "border-primary bg-primary/5 shadow-sm"
                       : "border-border hover:border-primary/40 hover:bg-muted/50"
                   }`}
@@ -133,12 +212,12 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
                   {/* Check */}
                   <div
                     className={`flex-shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      isSelected
+                      isAlreadyConnected || isSelected
                         ? "bg-primary border-primary"
                         : "border-muted-foreground/30"
                     }`}
                   >
-                    {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                    {(isAlreadyConnected || isSelected) && <Check className="h-3 w-3 text-primary-foreground" />}
                   </div>
                 </motion.button>
               );
@@ -151,16 +230,26 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
               variant="ghost"
               onClick={onComplete}
               className="text-muted-foreground"
+              disabled={isSaving}
             >
               Skip for now
             </Button>
             <Button
-              onClick={onComplete}
-              disabled={selected.length === 0}
+              onClick={handleConnect}
+              disabled={selected.length === 0 || isSaving}
               className="gap-2"
             >
-              Connect {selected.length > 0 ? `(${selected.length})` : ""}
-              <ArrowRight className="h-4 w-4" />
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  Connect {selected.length > 0 ? `(${selected.length})` : ""}
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
           </div>
         </motion.div>

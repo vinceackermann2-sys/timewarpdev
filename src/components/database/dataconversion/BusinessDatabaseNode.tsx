@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Database, Loader2, CheckCircle2, Mail, FileText, Calendar } from "lucide-react";
+import { Database, Loader2, CheckCircle2, FileText, Image, Globe, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { CanvasNode, PendingConnection } from "./types";
@@ -13,11 +13,12 @@ interface BusinessDatabaseNodeProps {
   onOutputPortMouseDown: (e: React.MouseEvent) => void;
 }
 
-interface BusinessSummary {
-  emailsAnalyzed?: number;
-  eventsAnalyzed?: number;
-  documentsAnalyzed?: number;
-  sheetsAnalyzed?: number;
+interface DataCounts {
+  documents: number;
+  images: number;
+  text: number;
+  websites: number;
+  total: number;
 }
 
 export function BusinessDatabaseNode({
@@ -28,59 +29,48 @@ export function BusinessDatabaseNode({
   onInputPortMouseUp,
   onOutputPortMouseDown,
 }: BusinessDatabaseNodeProps) {
-  const [summary, setSummary] = useState<BusinessSummary | null>(null);
+  const [counts, setCounts] = useState<DataCounts | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Simulate loading progress
-      const progressInterval = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= 90) return prev;
-          return prev + Math.random() * 20 + 5;
-        });
-      }, 150);
-
+    const fetchCounts = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
           setIsLoading(false);
-          clearInterval(progressInterval);
           return;
         }
 
-        const { data, error } = await supabase.storage
-          .from('business-data')
-          .download(`${session.user.id}/research.json`);
+        const { data, error } = await (supabase as any)
+          .from('user_business_data')
+          .select('data_type')
+          .eq('user_id', session.user.id);
 
         if (error) {
           console.log("No business data yet");
           setIsLoading(false);
-          clearInterval(progressInterval);
           return;
         }
 
-        const text = await data.text();
-        const parsed = JSON.parse(text);
-        setSummary(parsed.summary || null);
-        setLoadingProgress(100);
+        const items = data || [];
+        setCounts({
+          documents: items.filter((d: any) => d.data_type === 'document').length,
+          images: items.filter((d: any) => d.data_type === 'image').length,
+          text: items.filter((d: any) => d.data_type === 'text').length,
+          websites: items.filter((d: any) => d.data_type === 'website').length,
+          total: items.length,
+        });
       } catch (err) {
-        console.error("Failed to fetch business data:", err);
+        console.error("Failed to fetch business data counts:", err);
       } finally {
-        clearInterval(progressInterval);
-        setTimeout(() => setIsLoading(false), 300);
+        setIsLoading(false);
       }
     };
 
-    fetchData();
+    fetchCounts();
   }, []);
 
-  const hasData = summary && (
-    (summary.emailsAnalyzed || 0) > 0 ||
-    (summary.documentsAnalyzed || 0) > 0 ||
-    (summary.eventsAnalyzed || 0) > 0
-  );
+  const hasData = counts && counts.total > 0;
 
   return (
     <div
@@ -106,13 +96,13 @@ export function BusinessDatabaseNode({
         <div className="flex items-center gap-2">
           {isLoading && (
             <span className="text-xs text-primary flex items-center gap-1">
-              Syncing... ({Math.min(Math.round(loadingProgress), 100)}%)
+              Loading...
               <Loader2 className="h-3 w-3 animate-spin" />
             </span>
           )}
           {!isLoading && hasData && (
             <span className="text-xs text-green-500 flex items-center gap-1">
-              Ready
+              {counts!.total} items
               <CheckCircle2 className="h-3.5 w-3.5" />
             </span>
           )}
@@ -127,43 +117,41 @@ export function BusinessDatabaseNode({
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-            <p className="text-xs text-muted-foreground">Connecting to business data...</p>
+            <p className="text-xs text-muted-foreground">Loading business data...</p>
           </div>
         ) : hasData ? (
           <div className="h-full rounded-lg bg-muted/30 p-3 space-y-2">
             <div className="flex items-center gap-2 text-sm">
-              <Mail className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">Emails:</span>
-              <span className="font-medium">{summary!.emailsAnalyzed || 0}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
               <FileText className="h-4 w-4 text-primary" />
               <span className="text-muted-foreground">Documents:</span>
-              <span className="font-medium">{summary!.documentsAnalyzed || 0}</span>
+              <span className="font-medium">{counts!.documents}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">Events:</span>
-              <span className="font-medium">{summary!.eventsAnalyzed || 0}</span>
+              <Image className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Images:</span>
+              <span className="font-medium">{counts!.images}</span>
             </div>
-            {(summary!.sheetsAnalyzed || 0) > 0 && (
-              <div className="flex items-center gap-2 text-sm">
-                <FileText className="h-4 w-4 text-primary" />
-                <span className="text-muted-foreground">Sheets:</span>
-                <span className="font-medium">{summary!.sheetsAnalyzed}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 text-sm">
+              <Type className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Text:</span>
+              <span className="font-medium">{counts!.text}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Globe className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Websites:</span>
+              <span className="font-medium">{counts!.websites}</span>
+            </div>
           </div>
         ) : (
           <div className="h-full rounded-lg bg-muted/20 flex flex-col items-center justify-center p-4">
             <Database className="h-8 w-8 text-muted-foreground/40 mb-2" />
             <p className="text-sm text-muted-foreground text-center">No business data</p>
-            <p className="text-xs text-muted-foreground/60 text-center mt-1">Run research to sync data</p>
+            <p className="text-xs text-muted-foreground/60 text-center mt-1">Add data via canvas nodes</p>
           </div>
         )}
       </div>
 
-      {/* Output port (centered on right edge of card) */}
+      {/* Output port */}
       <div
         className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
         onMouseDown={(e) => {

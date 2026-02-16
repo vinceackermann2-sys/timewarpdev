@@ -230,9 +230,37 @@ export function DatabaseView() {
   const [uploadedFilesCount, setUploadedFilesCount] = useState(0);
   const [researchFindings, setResearchFindings] = useState<any>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [hasConnected, setHasConnected] = useState(() => {
-    return localStorage.getItem("businessDnaConnected") === "true";
-  });
+  const [hasConnected, setHasConnected] = useState(false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+
+  // Check DB for existing connections instead of localStorage
+  useEffect(() => {
+    const checkConnections = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          setIsCheckingConnection(false);
+          return;
+        }
+
+        const { data, error } = await (supabase as any)
+          .from('user_connections')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('status', 'connected')
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          setHasConnected(true);
+        }
+      } catch (err) {
+        console.error("Failed to check connections:", err);
+      }
+      setIsCheckingConnection(false);
+    };
+
+    checkConnections();
+  }, []);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch business data from storage bucket
@@ -392,9 +420,16 @@ export function DatabaseView() {
   const hasBusinessData = businessData && Object.keys(businessData).length > 0;
 
   const handleConnectComplete = () => {
-    localStorage.setItem("businessDnaConnected", "true");
     setHasConnected(true);
   };
+
+  if (isCheckingConnection) {
+    return (
+      <div className="h-full flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!hasConnected) {
     return <ConnectBusinessDNA onComplete={handleConnectComplete} />;

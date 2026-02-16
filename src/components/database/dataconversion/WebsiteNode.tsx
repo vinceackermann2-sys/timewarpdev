@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Globe, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 import type { CanvasNode, PendingConnection } from "./types";
 
 interface WebsiteNodeProps {
@@ -60,6 +61,25 @@ export function WebsiteNode({
           analyzedContent: data.analysis,
           isAnalyzed: true
         });
+
+        // Persist to user_business_data
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            await (supabase as any).from('user_business_data').insert({
+              user_id: session.user.id,
+              data_type: 'website',
+              source: 'canvas',
+              title: websiteUrl,
+              content: websiteUrl,
+              analyzed_content: data.analysis,
+              is_analyzed: true,
+              metadata: { url: websiteUrl },
+            });
+          }
+        } catch (dbErr) {
+          console.error("Failed to persist website data:", dbErr);
+        }
       } else {
         onUpdate(node.id, { websiteUrl, isAnalyzed: false });
       }

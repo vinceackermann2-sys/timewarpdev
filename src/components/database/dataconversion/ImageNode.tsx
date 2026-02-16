@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Image as ImageIcon, Upload, X, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import type { CanvasNode, PendingConnection } from "./types";
 
 interface ImageNodeProps {
@@ -78,6 +79,28 @@ export function ImageNode({
           analyzedContent: data.analysis,
           isAnalyzed: true
         });
+
+        // Persist to user_business_data
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const storagePath = `${session.user.id}/canvas/${Date.now()}_${file.name}`;
+            await supabase.storage.from('business-data').upload(storagePath, file);
+
+            await (supabase as any).from('user_business_data').insert({
+              user_id: session.user.id,
+              data_type: 'image',
+              source: 'canvas',
+              title: file.name,
+              analyzed_content: data.analysis,
+              is_analyzed: true,
+              file_path: storagePath,
+              metadata: { mime_type: file.type, size: file.size },
+            });
+          }
+        } catch (dbErr) {
+          console.error("Failed to persist image data:", dbErr);
+        }
       } else {
         onUpdate(node.id, { imageUrl, isAnalyzed: false });
       }

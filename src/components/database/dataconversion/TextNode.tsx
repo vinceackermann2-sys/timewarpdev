@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Type, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 import type { CanvasNode, PendingConnection } from "./types";
 
 interface TextNodeProps {
@@ -63,6 +64,24 @@ export function TextNode({
           analyzedContent: data.analysis,
           isAnalyzed: true
         });
+
+        // Persist to user_business_data
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            await (supabase as any).from('user_business_data').insert({
+              user_id: session.user.id,
+              data_type: 'text',
+              source: 'canvas',
+              title: `Text note (${textToAnalyze.slice(0, 30)}...)`,
+              content: textToAnalyze,
+              analyzed_content: data.analysis,
+              is_analyzed: true,
+            });
+          }
+        } catch (dbErr) {
+          console.error("Failed to persist text data:", dbErr);
+        }
       }
     } catch (error) {
       console.error("Failed to analyze text:", error);
