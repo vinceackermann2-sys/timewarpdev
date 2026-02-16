@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,6 +83,46 @@ async function getValidToken(supabaseAdmin: any, userId: string, provider: strin
   return null;
 }
 
+// Extract text from a PDF using the AI gateway (Gemini multimodal)
+async function extractPdfText(pdfBytes: Uint8Array, fileName: string): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) return "";
+
+  const b64 = base64Encode(pdfBytes);
+  const dataUrl = `data:application/pdf;base64,${b64}`;
+
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          { role: "system", content: "You are a document text extractor. Extract ALL text content from the document. Return ONLY the extracted text, no commentary." },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: `Extract all text from this PDF document "${fileName}". Return the complete text content.` },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return (data.choices?.[0]?.message?.content || "").slice(0, 15000);
+    }
+  } catch (e) {
+    console.error(`PDF extraction failed for ${fileName}:`, e);
+  }
+  return "";
+}
+
 async function fetchMicrosoftData(accessToken: string): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -136,6 +177,16 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
         const contentRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${f.id}/content`, { headers });
         if (contentRes.ok) {
           fileInfo.extractedContent = (await contentRes.text()).slice(0, 10000);
+        }
+      } catch { /* skip */ }
+    } else if (name.endsWith(".pdf") || mime === "application/pdf") {
+      try {
+        const contentRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${f.id}/content`, { headers });
+        if (contentRes.ok) {
+          const buf = new Uint8Array(await contentRes.arrayBuffer());
+          if (buf.length < 5 * 1024 * 1024) {
+            fileInfo.extractedContent = await extractPdfText(buf, f.name);
+          }
         }
       } catch { /* skip */ }
     }
@@ -248,6 +299,21 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
         );
         if (dlRes.ok) {
           fileInfo.extractedContent = (await dlRes.text()).slice(0, 10000);
+        }
+      } catch { /* skip */ }
+    } else if (f.mimeType === "application/pdf") {
+      // Download PDF and extract text via AI
+      try {
+        const dlRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,
+          { headers }
+        );
+        if (dlRes.ok) {
+          const buf = new Uint8Array(await dlRes.arrayBuffer());
+          // Only process PDFs under 5MB to avoid timeouts
+          if (buf.length < 5 * 1024 * 1024) {
+            fileInfo.extractedContent = await extractPdfText(buf, f.name);
+          }
         }
       } catch { /* skip */ }
     }
