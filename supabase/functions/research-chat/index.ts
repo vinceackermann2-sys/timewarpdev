@@ -30,13 +30,13 @@ async function fetchUserBusinessContext(userId: string): Promise<string> {
     } catch { /* fall through to DB query */ }
   }
 
-  // Fallback: query DB directly
+  // Fallback: query DB directly — fetch ALL user data
   const { data: bizData } = await supabase
     .from("user_business_data")
     .select("data_type, source, title, content, analyzed_content, metadata, is_analyzed")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(500);
 
   if (bizData && bizData.length > 0) {
     return formatContextItems(bizData);
@@ -58,12 +58,16 @@ function formatContextItems(items: any[]): string {
 
   for (const [source, sourceItems] of Object.entries(bySource)) {
     context += `### Source: ${source} (${sourceItems.length} items)\n`;
-    for (const item of sourceItems.slice(0, 30)) {
+    for (const item of sourceItems) {
       context += `- **${item.title}** (${item.data_type})`;
       if (item.analyzed_content) {
-        context += `\n  Analysis: ${item.analyzed_content.slice(0, 400)}`;
+        context += `\n  Analysis: ${item.analyzed_content.slice(0, 2000)}`;
       } else if (item.content) {
-        context += `\n  Content: ${item.content.slice(0, 300)}`;
+        context += `\n  Content: ${item.content.slice(0, 1500)}`;
+      }
+      if (item.metadata) {
+        const meta = typeof item.metadata === "string" ? item.metadata : JSON.stringify(item.metadata);
+        context += `\n  Metadata: ${meta.slice(0, 300)}`;
       }
       context += "\n";
     }

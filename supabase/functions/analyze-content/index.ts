@@ -23,9 +23,10 @@ async function updateBucketContext(supabaseAdmin: any, userId: string) {
         data_type: item.data_type,
         source: item.source,
         title: item.title,
-        content: item.content?.slice(0, 500) || null,
-        analyzed_content: item.analyzed_content?.slice(0, 500) || null,
+        content: item.content?.slice(0, 2000) || null,
+        analyzed_content: item.analyzed_content?.slice(0, 2000) || null,
         is_analyzed: item.is_analyzed,
+        metadata: item.metadata || null,
       })),
     });
 
