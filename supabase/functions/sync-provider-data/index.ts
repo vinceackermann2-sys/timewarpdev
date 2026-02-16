@@ -258,6 +258,39 @@ async function fetchWordPressData(siteUrl: string, basicAuth: string): Promise<a
   };
 }
 
+async function updateBucketContext(supabaseAdmin: any, userId: string) {
+  try {
+    const { data: allData } = await supabaseAdmin
+      .from("user_business_data")
+      .select("data_type, source, title, content, analyzed_content, metadata, is_analyzed")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    const contextJson = JSON.stringify({
+      updated_at: new Date().toISOString(),
+      total: allData?.length || 0,
+      items: (allData || []).map((item: any) => ({
+        data_type: item.data_type,
+        source: item.source,
+        title: item.title,
+        content: item.content?.slice(0, 500) || null,
+        analyzed_content: item.analyzed_content?.slice(0, 500) || null,
+        is_analyzed: item.is_analyzed,
+      })),
+    });
+
+    await supabaseAdmin.storage
+      .from("business-data")
+      .upload(`${userId}/context.json`, new Blob([contextJson], { type: "application/json" }), {
+        upsert: true,
+        contentType: "application/json",
+      });
+  } catch (e) {
+    console.error("Failed to update bucket context:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -363,6 +396,9 @@ serve(async (req) => {
           await supabaseAdmin.from("user_business_data").insert(dataItems.slice(i, i + 50));
         }
       }
+
+      // Update consolidated context in bucket
+      await updateBucketContext(supabaseAdmin, user.id);
 
       return new Response(JSON.stringify({
         success: true,
@@ -471,6 +507,9 @@ serve(async (req) => {
           .insert(dataItems.slice(i, i + 50));
       }
     }
+
+    // Update consolidated context in bucket
+    await updateBucketContext(supabaseAdmin, user.id);
 
     return new Response(JSON.stringify({
       success: true,
