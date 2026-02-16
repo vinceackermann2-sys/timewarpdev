@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Check, ArrowRight, Briefcase, Loader2, ExternalLink, CheckCircle2, RefreshCw } from "lucide-react";
+import { ArrowRight, Briefcase, Loader2, ExternalLink, CheckCircle2, RefreshCw, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { BgGradient } from "@/components/ui/bg-gradient";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,50 +13,14 @@ interface Integration {
   description: string;
   icon: string;
   color: string;
-  hasOAuth: boolean;
+  authType: "oauth" | "credentials";
 }
 
 const integrations: Integration[] = [
-  {
-    id: "microsoft",
-    name: "Microsoft",
-    description: "Outlook, OneDrive, Calendar, Teams",
-    icon: "⊞",
-    color: "from-[hsl(210,80%,50%)] to-[hsl(210,80%,40%)]",
-    hasOAuth: true,
-  },
-  {
-    id: "google",
-    name: "Google",
-    description: "Gmail, Drive, Calendar, Sheets",
-    icon: "G",
-    color: "from-[hsl(4,80%,56%)] to-[hsl(36,100%,50%)]",
-    hasOAuth: true,
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    description: "Messages, Channels, Files",
-    icon: "#",
-    color: "from-[hsl(283,44%,47%)] to-[hsl(340,82%,52%)]",
-    hasOAuth: true,
-  },
-  {
-    id: "wordpress",
-    name: "WordPress",
-    description: "Posts, Pages, Analytics, Media",
-    icon: "W",
-    color: "from-[hsl(200,18%,26%)] to-[hsl(200,18%,36%)]",
-    hasOAuth: false,
-  },
-  {
-    id: "fortknox",
-    name: "FortKnox",
-    description: "Financial data, Invoices, Reports",
-    icon: "F",
-    color: "from-[hsl(45,93%,47%)] to-[hsl(36,100%,50%)]",
-    hasOAuth: false,
-  },
+  { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", icon: "⊞", color: "from-[hsl(210,80%,50%)] to-[hsl(210,80%,40%)]", authType: "oauth" },
+  { id: "google", name: "Google", description: "Gmail, Drive, Calendar, Sheets", icon: "G", color: "from-[hsl(4,80%,56%)] to-[hsl(36,100%,50%)]", authType: "oauth" },
+  { id: "slack", name: "Slack", description: "Messages, Channels, Files", icon: "#", color: "from-[hsl(283,44%,47%)] to-[hsl(340,82%,52%)]", authType: "oauth" },
+  { id: "wordpress", name: "WordPress", description: "Posts, Pages, Media", icon: "W", color: "from-[hsl(200,18%,26%)] to-[hsl(200,18%,36%)]", authType: "credentials" },
 ];
 
 interface ConnectedProvider {
@@ -72,14 +37,15 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
+  const [showWpForm, setShowWpForm] = useState(false);
+  const [wpSiteUrl, setWpSiteUrl] = useState("");
+  const [wpUsername, setWpUsername] = useState("");
+  const [wpAppPassword, setWpAppPassword] = useState("");
 
   const checkConnections = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        setIsLoading(false);
-        return;
-      }
+      if (!session?.user) { setIsLoading(false); return; }
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
@@ -104,21 +70,15 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
     setIsLoading(false);
   }, []);
 
-  useEffect(() => {
-    checkConnections();
-  }, [checkConnections]);
+  useEffect(() => { checkConnections(); }, [checkConnections]);
 
-  // Listen for OAuth callback redirects
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthSuccess = params.get("oauth_success");
     const oauthError = params.get("oauth_error");
-
     if (oauthSuccess) {
       toast.success(`${oauthSuccess.charAt(0).toUpperCase() + oauthSuccess.slice(1)} connected successfully!`);
-      // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
-      // Re-check connections and sync data
       checkConnections();
       syncProviderData(oauthSuccess);
     } else if (oauthError) {
@@ -131,20 +91,15 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
     const integration = integrations.find((i) => i.id === providerId);
     if (!integration) return;
 
-    if (!integration.hasOAuth) {
-      toast.info(`${integration.name} integration is coming soon!`);
+    if (integration.authType === "credentials") {
+      setShowWpForm(true);
       return;
     }
 
     setConnectingProvider(providerId);
-
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error("Please log in first");
-        setConnectingProvider(null);
-        return;
-      }
+      if (!session) { toast.error("Please log in first"); setConnectingProvider(null); return; }
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
@@ -160,9 +115,7 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
       );
 
       const data = await response.json();
-
       if (data.authUrl) {
-        // Open OAuth in same window
         window.location.href = data.authUrl;
       } else {
         toast.error(data.error || "Failed to get authorization URL");
@@ -171,7 +124,55 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
       console.error("Connect error:", err);
       toast.error("Failed to start connection");
     }
+    setConnectingProvider(null);
+  };
 
+  const handleWordPressConnect = async () => {
+    if (!wpSiteUrl || !wpUsername || !wpAppPassword) {
+      toast.error("Please fill in all WordPress fields");
+      return;
+    }
+
+    setConnectingProvider("wordpress");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please log in first"); setConnectingProvider(null); return; }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            provider: "wordpress",
+            action: "save-credentials",
+            siteUrl: wpSiteUrl,
+            username: wpUsername,
+            appPassword: wpAppPassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success("WordPress connected successfully!");
+        setShowWpForm(false);
+        setWpSiteUrl("");
+        setWpUsername("");
+        setWpAppPassword("");
+        checkConnections();
+        syncProviderData("wordpress");
+      } else {
+        toast.error(data.error || "Failed to connect WordPress");
+      }
+    } catch (err) {
+      console.error("WordPress connect error:", err);
+      toast.error("Failed to connect WordPress");
+    }
     setConnectingProvider(null);
   };
 
@@ -197,9 +198,11 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
       const data = await response.json();
       if (data.success) {
         const s = data.summary;
-        toast.success(
-          `Synced ${s.emails || 0} emails, ${s.events || 0} events, ${s.files || 0} files`
-        );
+        if (provider === "wordpress") {
+          toast.success(`Synced ${s.posts || 0} posts, ${s.pages || 0} pages, ${s.media || 0} media`);
+        } else {
+          toast.success(`Synced ${s.emails || 0} emails, ${s.events || 0} events, ${s.files || 0} files`);
+        }
       } else {
         toast.error(data.error || "Sync failed");
       }
@@ -210,12 +213,8 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
     setSyncingProvider(null);
   };
 
-  const isProviderConnected = (id: string) =>
-    connectedProviders.some((p) => p.provider === id);
-
-  const getProviderEmail = (id: string) =>
-    connectedProviders.find((p) => p.provider === id)?.email;
-
+  const isProviderConnected = (id: string) => connectedProviders.some((p) => p.provider === id);
+  const getProviderEmail = (id: string) => connectedProviders.find((p) => p.provider === id)?.email;
   const hasAnyConnection = connectedProviders.length > 0;
 
   if (isLoading) {
@@ -251,18 +250,15 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
             </div>
             <h1 className="text-2xl md:text-3xl font-light mb-3">
               Connect your{" "}
-              <span className="italic text-primary font-normal">
-                Business DNA
-              </span>
+              <span className="italic text-primary font-normal">Business DNA</span>
             </h1>
             <p className="text-muted-foreground text-sm max-w-md mx-auto">
-              Link your real accounts to analyze your business data and provide
-              personalized insights.
+              Link your real accounts to analyze your business data and provide personalized insights.
             </p>
           </div>
 
           {/* Integration Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {integrations.map((integration, index) => {
               const connected = isProviderConnected(integration.id);
               const email = getProviderEmail(integration.id);
@@ -281,58 +277,29 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
                       : "border-border hover:border-primary/40 hover:bg-muted/50"
                   }`}
                 >
-                  {/* Icon */}
-                  <div
-                    className={`flex-shrink-0 h-11 w-11 rounded-xl bg-gradient-to-br ${integration.color} flex items-center justify-center text-white font-bold text-lg`}
-                  >
+                  <div className={`flex-shrink-0 h-11 w-11 rounded-xl bg-gradient-to-br ${integration.color} flex items-center justify-center text-white font-bold text-lg`}>
                     {integration.icon}
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{integration.name}</p>
                     {connected && email ? (
                       <p className="text-xs text-green-600 dark:text-green-400 truncate">{email}</p>
                     ) : (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {integration.description}
-                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{integration.description}</p>
                     )}
                   </div>
-
-                  {/* Action */}
                   <div className="flex-shrink-0">
                     {connected ? (
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => syncProviderData(integration.id)}
-                          disabled={isSyncing}
-                        >
-                          {isSyncing ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
-                          )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => syncProviderData(integration.id)} disabled={isSyncing}>
+                          {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
                         </Button>
                         <CheckCircle2 className="h-5 w-5 text-green-500" />
                       </div>
                     ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs gap-1.5"
-                        onClick={() => handleConnect(integration.id)}
-                        disabled={isConnecting || !integration.hasOAuth}
-                      >
-                        {isConnecting ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <ExternalLink className="h-3 w-3" />
-                        )}
-                        {integration.hasOAuth ? "Connect" : "Coming Soon"}
+                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => handleConnect(integration.id)} disabled={isConnecting}>
+                        {isConnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : integration.authType === "credentials" ? <Globe className="h-3 w-3" /> : <ExternalLink className="h-3 w-3" />}
+                        Connect
                       </Button>
                     )}
                   </div>
@@ -341,13 +308,39 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
             })}
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-center gap-3">
-            <Button
-              variant="ghost"
-              onClick={onComplete}
-              className="text-muted-foreground"
+          {/* WordPress Credentials Form */}
+          {showWpForm && !isProviderConnected("wordpress") && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="border border-border rounded-xl p-4 mb-4 space-y-3"
             >
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Globe className="h-4 w-4" /> WordPress Connection
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Use an{" "}
+                <a href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/" target="_blank" rel="noopener noreferrer" className="underline">
+                  Application Password
+                </a>{" "}
+                from your WordPress admin → Users → Profile.
+              </p>
+              <Input placeholder="https://yoursite.com" value={wpSiteUrl} onChange={(e) => setWpSiteUrl(e.target.value)} className="h-9 text-sm" />
+              <Input placeholder="WordPress username" value={wpUsername} onChange={(e) => setWpUsername(e.target.value)} className="h-9 text-sm" />
+              <Input placeholder="Application password" type="password" value={wpAppPassword} onChange={(e) => setWpAppPassword(e.target.value)} className="h-9 text-sm" />
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowWpForm(false)}>Cancel</Button>
+                <Button size="sm" onClick={handleWordPressConnect} disabled={connectingProvider === "wordpress"}>
+                  {connectingProvider === "wordpress" ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : null}
+                  Connect WordPress
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <Button variant="ghost" onClick={onComplete} className="text-muted-foreground">
               {hasAnyConnection ? "Continue" : "Skip for now"}
             </Button>
             {hasAnyConnection && (
