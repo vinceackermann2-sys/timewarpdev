@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { FileText, Upload, X, Loader2, CheckCircle2, FileSpreadsheet, FileType, File } from "lucide-react";
+import { FileText, Upload, X, Loader2, CheckCircle2, FileSpreadsheet, FileType, File, Music, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,9 +21,15 @@ const SUPPORTED_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "text/plain",
+  // Audio
+  "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/mp4", "audio/m4a", "audio/aac", "audio/ogg", "audio/webm",
+  // Video
+  "video/mp4", "video/quicktime", "video/webm", "video/x-msvideo",
+  // Images
+  "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif",
 ];
 
-const FILE_EXTENSIONS = ".pdf,.csv,.docx,.xlsx,.txt";
+const FILE_EXTENSIONS = ".pdf,.csv,.docx,.xlsx,.txt,.mp3,.wav,.m4a,.aac,.ogg,.mp4,.mov,.webm,.avi,.png,.jpg,.jpeg,.webp,.gif";
 
 export function DocumentNode({
   node,
@@ -52,6 +58,23 @@ export function DocumentNode({
         return <FileType className="h-10 w-10 text-blue-500" />;
       case "txt":
         return <File className="h-10 w-10 text-muted-foreground" />;
+      case "mp3":
+      case "wav":
+      case "m4a":
+      case "aac":
+      case "ogg":
+        return <Music className="h-10 w-10 text-purple-500" />;
+      case "mp4":
+      case "mov":
+      case "webm":
+      case "avi":
+        return <Video className="h-10 w-10 text-orange-500" />;
+      case "png":
+      case "jpg":
+      case "jpeg":
+      case "webp":
+      case "gif":
+        return <FileText className="h-10 w-10 text-teal-500" />;
       default:
         return <FileText className="h-10 w-10 text-muted-foreground" />;
     }
@@ -72,11 +95,21 @@ export function DocumentNode({
       let fileBase64 = "";
       let fileMimeType = file.type;
       
+      // Determine content type for the API
+      const audioExts = ["mp3", "wav", "m4a", "aac", "ogg"];
+      const videoExts = ["mp4", "mov", "webm", "avi"];
+      const imageExts = ["png", "jpg", "jpeg", "webp", "gif"];
+      
+      let analyzeType = "document";
+      if (audioExts.includes(ext || "")) analyzeType = "audio";
+      else if (videoExts.includes(ext || "")) analyzeType = "video";
+      else if (imageExts.includes(ext || "")) analyzeType = "image";
+
       // Text-based formats: read as text
       if (ext === "txt" || ext === "csv") {
         documentText = await file.text();
       } else {
-        // Binary formats (PDF, DOCX, XLSX): convert to base64 for multimodal AI analysis
+        // Binary formats: convert to base64 for multimodal AI analysis
         const reader = new FileReader();
         const base64Promise = new Promise<string>((resolve) => {
           reader.onload = () => {
@@ -88,6 +121,38 @@ export function DocumentNode({
         fileBase64 = await base64Promise;
       }
 
+      // Build request body based on content type
+      let requestBody: any;
+      if (analyzeType === "audio" || analyzeType === "video") {
+        requestBody = {
+          type: analyzeType,
+          content: {
+            fileName: file.name,
+            fileBase64,
+            fileMimeType,
+          }
+        };
+      } else if (analyzeType === "image") {
+        requestBody = {
+          type: "image",
+          content: {
+            imageName: file.name,
+            imageBase64: fileBase64,
+            imageMimeType: fileMimeType,
+          }
+        };
+      } else {
+        requestBody = {
+          type: "document",
+          content: {
+            documentText,
+            documentName: file.name,
+            fileBase64,
+            fileMimeType,
+          }
+        };
+      }
+
       // Analyze the content
       const analyzeResponse = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
@@ -97,15 +162,7 @@ export function DocumentNode({
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({
-            type: "document",
-            content: {
-              documentText,
-              documentName: file.name,
-              fileBase64,
-              fileMimeType,
-            }
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
@@ -324,8 +381,8 @@ export function DocumentNode({
             ) : (
               <>
                 <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">Drop document here</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">PDF, CSV, DOCX, XLSX, TXT</p>
+                <p className="text-sm text-muted-foreground">Drop file here</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">PDF, DOC, Audio, Video, Images & more</p>
               </>
             )}
           </div>
