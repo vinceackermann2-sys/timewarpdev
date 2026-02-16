@@ -39,8 +39,10 @@ interface LeadResult {
   title: string;
   linkedIn: string;
   email: string;
+  emailConfidence: string;
   growthSignal: string;
   icpFitReason: string;
+  leadScore: number;
 }
 
 type Step = "select-type" | "criteria" | "searching" | "results";
@@ -132,12 +134,12 @@ export function LeadsNode({
 
   const handleDownloadCSV = () => {
     if (leads.length === 0) return;
-    const headers = ["Company", "Website", "Industry", "Size", "Location", "Decision Maker", "Title", "LinkedIn", "Email", "Growth Signal", "ICP Fit Reason"];
-    const rows = leads.map(l => [
-      l.companyName, l.website, l.industry, l.sizeEstimate, l.location,
-      l.decisionMakerName, l.title, l.linkedIn, l.email, l.growthSignal, l.icpFitReason
+    const headers = ["#", "Score", "Company", "Website", "Industry", "Size", "Location", "Decision Maker", "Title", "LinkedIn", "Email", "Email Confidence", "Growth Signal", "ICP Fit Reason"];
+    const rows = leads.map((l, i) => [
+      i + 1, l.leadScore || "", l.companyName, l.website, l.industry, l.sizeEstimate, l.location,
+      l.decisionMakerName, l.title, l.linkedIn, l.email, l.emailConfidence || "", l.growthSignal, l.icpFitReason
     ]);
-    const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${(v || "").replace(/"/g, '""')}"`).join(","))].join("\n");
+    const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -363,6 +365,7 @@ export function LeadsNode({
                     <TableHeader>
                       <TableRow>
                         <TableHead className="font-extrabold">#</TableHead>
+                        <TableHead className="font-extrabold">Score</TableHead>
                         <TableHead className="font-extrabold">Company</TableHead>
                         <TableHead className="font-extrabold">Industry</TableHead>
                         <TableHead className="font-extrabold">Size</TableHead>
@@ -371,6 +374,7 @@ export function LeadsNode({
                         <TableHead className="font-extrabold">Title</TableHead>
                         <TableHead className="font-extrabold">LinkedIn</TableHead>
                         <TableHead className="font-extrabold">Email</TableHead>
+                        <TableHead className="font-extrabold">Confidence</TableHead>
                         <TableHead className="font-extrabold">Growth Signal</TableHead>
                         <TableHead className="font-extrabold">ICP Fit</TableHead>
                       </TableRow>
@@ -379,6 +383,17 @@ export function LeadsNode({
                       {leads.map((lead, i) => (
                         <TableRow key={i}>
                           <TableCell className="font-medium">{i + 1}</TableCell>
+                          <TableCell>
+                            <span className={cn(
+                              "inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold",
+                              lead.leadScore >= 5 ? "bg-green-500/20 text-green-400" :
+                              lead.leadScore >= 4 ? "bg-emerald-500/20 text-emerald-400" :
+                              lead.leadScore >= 3 ? "bg-yellow-500/20 text-yellow-400" :
+                              "bg-red-500/20 text-red-400"
+                            )}>
+                              {lead.leadScore || "?"}
+                            </span>
+                          </TableCell>
                           <TableCell>
                             <div>
                               <p className="font-semibold text-sm">{lead.companyName}</p>
@@ -407,6 +422,17 @@ export function LeadsNode({
                             {lead.email && lead.email !== "Not found" ? lead.email : (
                               <span className="text-xs text-muted-foreground">Not found</span>
                             )}
+                          </TableCell>
+                          <TableCell>
+                            <span className={cn(
+                              "text-xs px-2 py-0.5 rounded-full",
+                              lead.emailConfidence === "High" ? "bg-green-500/20 text-green-400" :
+                              lead.emailConfidence === "Medium" ? "bg-yellow-500/20 text-yellow-400" :
+                              lead.emailConfidence === "Low" ? "bg-red-500/20 text-red-400" :
+                              "text-muted-foreground"
+                            )}>
+                              {lead.emailConfidence || "N/A"}
+                            </span>
                           </TableCell>
                           <TableCell className="text-xs max-w-[200px]">{lead.growthSignal}</TableCell>
                           <TableCell className="text-xs max-w-[200px]">{lead.icpFitReason}</TableCell>
