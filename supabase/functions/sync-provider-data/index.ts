@@ -86,9 +86,9 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
 
   const [mailRes, calRes, filesRes] = await Promise.all([
-    fetch("https://graph.microsoft.com/v1.0/me/messages?$top=50&$select=subject,from,receivedDateTime,bodyPreview&$orderby=receivedDateTime desc", { headers }),
+    fetch("https://graph.microsoft.com/v1.0/me/messages?$top=30&$select=subject,from,receivedDateTime,body&$orderby=receivedDateTime desc", { headers }),
     fetch("https://graph.microsoft.com/v1.0/me/events?$top=30&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc", { headers }),
-    fetch("https://graph.microsoft.com/v1.0/me/drive/recent?$top=30", { headers }),
+    fetch("https://graph.microsoft.com/v1.0/me/drive/recent?$top=20", { headers }),
   ]);
 
   const [mail, calendar, files] = await Promise.all([
@@ -97,13 +97,54 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
     filesRes.ok ? filesRes.json() : { value: [] },
   ]);
 
-  return {
-    emails: (mail.value || []).map((m: any) => ({
+  // Extract full email body text (strip HTML)
+  const emails = (mail.value || []).map((m: any) => {
+    let bodyText = m.body?.content || "";
+    // Strip HTML tags to get plain text
+    bodyText = bodyText
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 5000);
+    return {
       subject: m.subject,
       from: m.from?.emailAddress?.address,
       date: m.receivedDateTime,
-      preview: m.bodyPreview?.slice(0, 200),
-    })),
+      body: bodyText,
+    };
+  });
+
+  // Try to download text content from files (PDFs, docs, etc.)
+  const fileDetails = [];
+  for (const f of (files.value || []).slice(0, 20)) {
+    const fileInfo: any = {
+      name: f.name,
+      size: f.size,
+      lastModified: f.lastModifiedDateTime,
+      webUrl: f.webUrl,
+      mimeType: f["file"]?.mimeType || "",
+    };
+
+    // Try to get file content for text-extractable types
+    const mime = fileInfo.mimeType || "";
+    const name = (f.name || "").toLowerCase();
+    if (name.endsWith(".txt") || name.endsWith(".csv") || mime.includes("text/")) {
+      try {
+        const contentRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${f.id}/content`, { headers });
+        if (contentRes.ok) {
+          fileInfo.extractedContent = (await contentRes.text()).slice(0, 10000);
+        }
+      } catch { /* skip */ }
+    }
+
+    fileDetails.push(fileInfo);
+  }
+
+  return {
+    emails,
     events: (calendar.value || []).map((e: any) => ({
       subject: e.subject,
       start: e.start?.dateTime,
@@ -111,12 +152,7 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
       organizer: e.organizer?.emailAddress?.address,
       attendees: e.attendees?.length || 0,
     })),
-    files: (files.value || []).map((f: any) => ({
-      name: f.name,
-      size: f.size,
-      lastModified: f.lastModifiedDateTime,
-      webUrl: f.webUrl,
-    })),
+    files: fileDetails,
   };
 }
 
@@ -124,9 +160,9 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
 
   const [mailRes, calRes, driveRes] = await Promise.all([
-    fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50", { headers }),
+    fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30", { headers }),
     fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=30&orderBy=startTime&singleEvents=true&timeMin=" + new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), { headers }),
-    fetch("https://www.googleapis.com/drive/v3/files?pageSize=30&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)", { headers }),
+    fetch("https://www.googleapis.com/drive/v3/files?pageSize=20&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)", { headers }),
   ]);
 
   const [mailList, calendar, drive] = await Promise.all([
@@ -135,26 +171,88 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
     driveRes.ok ? driveRes.json() : { files: [] },
   ]);
 
-  // Fetch email details for top 20
+  // Fetch full email body for top 20
   const emailDetails = [];
   const messageIds = (mailList.messages || []).slice(0, 20);
   for (const msg of messageIds) {
     try {
       const detailRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
         { headers }
       );
       if (detailRes.ok) {
         const detail = await detailRes.json();
-        const getHeader = (name: string) => detail.payload?.headers?.find((h: any) => h.name === name)?.value;
+        const getHeader = (name: string) => detail.payload?.headers?.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value;
+        
+        // Extract body text from parts
+        let bodyText = "";
+        const extractText = (part: any) => {
+          if (part.mimeType === "text/plain" && part.body?.data) {
+            bodyText += atob(part.body.data.replace(/-/g, "+").replace(/_/g, "/"));
+          } else if (part.parts) {
+            for (const p of part.parts) extractText(p);
+          }
+        };
+        
+        if (detail.payload) extractText(detail.payload);
+        
+        // Fallback to snippet if no body extracted
+        if (!bodyText && detail.snippet) bodyText = detail.snippet;
+        
         emailDetails.push({
           subject: getHeader("Subject"),
           from: getHeader("From"),
           date: getHeader("Date"),
-          snippet: detail.snippet?.slice(0, 200),
+          body: bodyText.slice(0, 5000),
         });
       }
     } catch { /* skip */ }
+  }
+
+  // Fetch content from Google Drive files where possible
+  const fileDetails = [];
+  for (const f of (drive.files || []).slice(0, 20)) {
+    const fileInfo: any = {
+      name: f.name,
+      type: f.mimeType,
+      lastModified: f.modifiedTime,
+      webUrl: f.webViewLink,
+    };
+
+    // Export Google Docs/Sheets/Slides as plain text
+    if (f.mimeType === "application/vnd.google-apps.document") {
+      try {
+        const exportRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/plain`,
+          { headers }
+        );
+        if (exportRes.ok) {
+          fileInfo.extractedContent = (await exportRes.text()).slice(0, 10000);
+        }
+      } catch { /* skip */ }
+    } else if (f.mimeType === "application/vnd.google-apps.spreadsheet") {
+      try {
+        const exportRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/csv`,
+          { headers }
+        );
+        if (exportRes.ok) {
+          fileInfo.extractedContent = (await exportRes.text()).slice(0, 10000);
+        }
+      } catch { /* skip */ }
+    } else if (f.mimeType === "text/plain" || f.mimeType === "text/csv") {
+      try {
+        const dlRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,
+          { headers }
+        );
+        if (dlRes.ok) {
+          fileInfo.extractedContent = (await dlRes.text()).slice(0, 10000);
+        }
+      } catch { /* skip */ }
+    }
+
+    fileDetails.push(fileInfo);
   }
 
   return {
@@ -165,12 +263,7 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
       end: e.end?.dateTime || e.end?.date,
       attendees: e.attendees?.length || 0,
     })),
-    files: (drive.files || []).map((f: any) => ({
-      name: f.name,
-      type: f.mimeType,
-      lastModified: f.modifiedTime,
-      webUrl: f.webViewLink,
-    })),
+    files: fileDetails,
   };
 }
 
@@ -443,7 +536,7 @@ serve(async (req) => {
           data_type: "email",
           source: provider,
           title: email.subject || "No subject",
-          content: email.preview || email.snippet || null,
+          content: email.body || email.preview || email.snippet || null,
           metadata: { from: email.from, date: email.date },
           is_analyzed: false,
         });
@@ -471,9 +564,9 @@ serve(async (req) => {
           data_type: "document",
           source: provider,
           title: file.name || "Untitled",
-          content: null,
-          metadata: { size: file.size, type: file.type, webUrl: file.webUrl, lastModified: file.lastModified },
-          is_analyzed: false,
+          content: file.extractedContent || null,
+          metadata: { size: file.size, type: file.type || file.mimeType, webUrl: file.webUrl, lastModified: file.lastModified },
+          is_analyzed: !!file.extractedContent,
         });
       }
     }
