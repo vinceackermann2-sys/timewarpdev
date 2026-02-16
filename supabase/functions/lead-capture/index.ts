@@ -60,7 +60,7 @@ Search thoroughly. Find 5-15 real, verifiable companies. Use real data from alla
 IMPORTANT: Return ONLY the JSON array, no other text. Example:
 [{"companyName":"Example AB","website":"https://example.se","ceoName":"John Doe","phoneNumber":"+46701234567","country":"Sweden","market":"Technology"}]`;
 
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
