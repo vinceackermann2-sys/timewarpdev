@@ -8,3 +8,18 @@ verify_jwt = false
 
 [functions.action-chat]
 verify_jwt = false
+
+[functions.connect-provider]
+verify_jwt = false
+
+[functions.microsoft-oauth-callback]
+verify_jwt = false
+
+[functions.google-oauth-callback]
+verify_jwt = false
+
+[functions.slack-oauth-callback]
+verify_jwt = false
+
+[functions.sync-provider-data]
+verify_jwt = false
