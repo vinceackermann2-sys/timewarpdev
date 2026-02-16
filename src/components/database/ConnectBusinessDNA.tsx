@@ -285,10 +285,8 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{integration.name}</p>
-                    {connected && email ? (
+                    {connected && email && (
                       <p className="text-xs text-green-600 dark:text-green-400 truncate">{email}</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground truncate">{integration.description}</p>
                     )}
                   </div>
                   <div className="flex-shrink-0">
