@@ -234,9 +234,27 @@ export function DatabaseView() {
   const [isCheckingConnection, setIsCheckingConnection] = useState(true);
 
   // Check DB for existing connections instead of localStorage
+  // If oauth_success is in URL, keep showing connection screen so user can continue connecting more
   useEffect(() => {
     const checkConnections = async () => {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const hasOAuthReturn = params.get("oauth_success") || params.get("oauth_error");
+        
+        // If returning from OAuth, always show the connection screen
+        if (hasOAuthReturn) {
+          setIsCheckingConnection(false);
+          return;
+        }
+
+        // Check if user previously dismissed the connection screen
+        const dismissed = sessionStorage.getItem("businessDnaDismissed");
+        if (dismissed === "true") {
+          setHasConnected(true);
+          setIsCheckingConnection(false);
+          return;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
           setIsCheckingConnection(false);
@@ -251,7 +269,8 @@ export function DatabaseView() {
           .limit(1);
 
         if (!error && data && data.length > 0) {
-          setHasConnected(true);
+          // Has connections but hasn't explicitly dismissed — show screen so they can add more
+          // Only auto-skip if they previously dismissed
         }
       } catch (err) {
         console.error("Failed to check connections:", err);
@@ -420,6 +439,7 @@ export function DatabaseView() {
   const hasBusinessData = businessData && Object.keys(businessData).length > 0;
 
   const handleConnectComplete = () => {
+    sessionStorage.setItem("businessDnaDismissed", "true");
     setHasConnected(true);
   };
 
