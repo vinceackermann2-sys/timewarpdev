@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Telescope, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -449,29 +450,40 @@ export function ResearchChatNode({
           </div>
         ) : (
           <div className="space-y-3">
-            {messages.map((msg, idx) => (
-              <div key={idx}>
-                <ResearchChatMessage
-                  role={msg.role}
-                  content={msg.content}
-                  insightCards={msg.insightCards}
-                  isStreaming={msg.isStreaming}
-                />
-                {/* Show suggestions for the last assistant message when not streaming */}
-                {msg.role === "assistant" && 
-                 !msg.isStreaming && 
-                 idx === messages.length - 1 && 
-                 msg.suggestions && 
-                 msg.suggestions.length > 0 && (
-                  <div className="mt-2 mr-4">
-                    <SuggestedActions
-                      suggestions={msg.suggestions}
-                      onSelect={(suggestion) => handleSend(suggestion)}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {messages.map((msg, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <ResearchChatMessage
+                    role={msg.role}
+                    content={msg.content}
+                    insightCards={msg.insightCards}
+                    isStreaming={msg.isStreaming}
+                  />
+                  {msg.role === "assistant" && 
+                   !msg.isStreaming && 
+                   idx === messages.length - 1 && 
+                   msg.suggestions && 
+                   msg.suggestions.length > 0 && (
+                    <motion.div
+                      className="mt-2 mr-4"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2, duration: 0.3 }}
+                    >
+                      <SuggestedActions
+                        suggestions={msg.suggestions}
+                        onSelect={(suggestion) => handleSend(suggestion)}
+                      />
+                    </motion.div>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </ScrollArea>
