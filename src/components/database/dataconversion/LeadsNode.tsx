@@ -281,7 +281,7 @@ export function LeadsNode({
 
           {/* Step: B2B Criteria */}
           {step === "criteria" && (
-            <div className="flex flex-col flex-1 p-8 max-w-2xl mx-auto w-full">
+            <div className="flex flex-col flex-1 p-8 max-w-3xl mx-auto w-full">
               <div className="mb-8">
                 <button
                   onClick={() => setStep("select-type")}
@@ -295,50 +295,57 @@ export function LeadsNode({
                 </p>
               </div>
 
-              <div className="flex-1 space-y-3">
-                {criteria.map((c) => (
-                  <div key={c.id} className="flex items-center gap-3 group">
-                    <span className="text-sm font-medium text-muted-foreground w-24 shrink-0 text-right">
-                      {c.label}
-                    </span>
-                    <Input
-                      placeholder={c.id === "role" ? "e.g. CEO, CTO, CFO..." : `Enter ${c.label.toLowerCase()}...`}
-                      value={c.value}
-                      onChange={(e) => handleCriteriaChange(c.id, e.target.value)}
-                      className="flex-1 bg-background"
-                    />
-                    {c.id.startsWith("custom-") && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveCriteria(c.id)}
-                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+              <div className="flex-1">
+                <div className="flex flex-wrap gap-3">
+                  {criteria.map((c) => (
+                    <div
+                      key={c.id}
+                      className="relative flex flex-col gap-1.5 rounded-xl border border-border bg-card p-3 min-w-[160px] max-w-[220px] flex-1 group"
+                    >
+                      {c.id.startsWith("custom-") && (
+                        <button
+                          onClick={() => handleRemoveCriteria(c.id)}
+                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {c.label}
+                      </span>
+                      <Input
+                        placeholder={c.id === "role" ? "e.g. CEO, CTO, CFO..." : `Enter ${c.label.toLowerCase()}...`}
+                        value={c.value}
+                        onChange={(e) => handleCriteriaChange(c.id, e.target.value)}
+                        className="h-9 text-sm bg-background border-border"
+                      />
+                    </div>
+                  ))}
 
-                {/* Add custom criteria */}
-                <div className="flex items-center gap-3 pt-4 mt-4 border-t border-border">
-                  <span className="text-sm font-medium text-muted-foreground w-24 shrink-0 text-right">Custom</span>
-                  <Input
-                    placeholder="New criteria name..."
-                    value={customCriteriaName}
-                    onChange={(e) => setCustomCriteriaName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddCustomCriteria()}
-                    className="flex-1 bg-background"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleAddCustomCriteria}
-                    disabled={!customCriteriaName.trim()}
-                    className="shrink-0 h-10 w-10"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                  {/* Add custom criteria card */}
+                  <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-border bg-muted/30 p-3 min-w-[160px] max-w-[220px] flex-1">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Add Custom
+                    </span>
+                    <div className="flex gap-1.5">
+                      <Input
+                        placeholder="Name..."
+                        value={customCriteriaName}
+                        onChange={(e) => setCustomCriteriaName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAddCustomCriteria()}
+                        className="h-9 text-sm bg-background border-border flex-1"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleAddCustomCriteria}
+                        disabled={!customCriteriaName.trim()}
+                        className="shrink-0 h-9 w-9"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
