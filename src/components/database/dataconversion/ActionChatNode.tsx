@@ -143,23 +143,25 @@ export function ActionChatNode({
             case "business-db": {
               const { data: { session } } = await supabase.auth.getSession();
               if (session?.user) {
-                const { data, error } = await supabase.storage
-                  .from('business-data')
-                  .download(`${session.user.id}/research.json`);
-                
-                if (!error && data) {
-                  const text = await data.text();
-                  const parsed = JSON.parse(text);
+                const { data: bizData, error } = await (supabase as any)
+                  .from('user_business_data')
+                  .select('data_type, title, content, analyzed_content, metadata, is_analyzed')
+                  .eq('user_id', session.user.id)
+                  .order('created_at', { ascending: false })
+                  .limit(50);
+
+                if (!error && bizData && bizData.length > 0) {
                   contexts.push({
                     type: "business-db",
                     label: source.label,
                     content: {
-                      research_summary: parsed.summary || {},
-                      findings: parsed.findings || parsed.analysis || [],
-                      raw_data: parsed.rawData || {},
-                      emails_analyzed: parsed.summary?.emailsAnalyzed || 0,
-                      documents_analyzed: parsed.summary?.documentsAnalyzed || 0,
-                      events_analyzed: parsed.summary?.eventsAnalyzed || 0,
+                      total_items: bizData.length,
+                      items: bizData.map((item: any) => ({
+                        type: item.data_type,
+                        title: item.title,
+                        content: item.content?.slice(0, 500),
+                        analysis: item.analyzed_content?.slice(0, 500),
+                      })),
                     }
                   });
                 }

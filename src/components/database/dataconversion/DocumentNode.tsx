@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { FileText, Upload, X, Loader2, CheckCircle2, FileSpreadsheet, FileType, File } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import type { CanvasNode, PendingConnection } from "./types";
 
 interface DocumentNodeProps {
@@ -118,6 +119,30 @@ export function DocumentNode({
           analyzedContent: analyzeData.analysis,
           isAnalyzed: true
         });
+
+        // Persist to user_business_data
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            // Upload file to storage
+            const storagePath = `${session.user.id}/canvas/${Date.now()}_${file.name}`;
+            await supabase.storage.from('business-data').upload(storagePath, file);
+
+            await (supabase as any).from('user_business_data').insert({
+              user_id: session.user.id,
+              data_type: 'document',
+              source: 'canvas',
+              title: file.name,
+              content: analyzeData.extractedText || documentText || null,
+              analyzed_content: analyzeData.analysis,
+              is_analyzed: true,
+              file_path: storagePath,
+              metadata: { mime_type: file.type, size: file.size },
+            });
+          }
+        } catch (dbErr) {
+          console.error("Failed to persist document data:", dbErr);
+        }
       } else {
         onUpdate(node.id, { 
           documentUrl, 

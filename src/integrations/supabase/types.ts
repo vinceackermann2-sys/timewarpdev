@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      user_business_data: {
+        Row: {
+          analyzed_content: string | null
+          content: string | null
+          created_at: string | null
+          data_type: string
+          file_path: string | null
+          id: string
+          is_analyzed: boolean | null
+          metadata: Json | null
+          source: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          analyzed_content?: string | null
+          content?: string | null
+          created_at?: string | null
+          data_type: string
+          file_path?: string | null
+          id?: string
+          is_analyzed?: boolean | null
+          metadata?: Json | null
+          source?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          analyzed_content?: string | null
+          content?: string | null
+          created_at?: string | null
+          data_type?: string
+          file_path?: string | null
+          id?: string
+          is_analyzed?: boolean | null
+          metadata?: Json | null
+          source?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_connections: {
+        Row: {
+          connected_at: string | null
+          id: string
+          metadata: Json | null
+          provider: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          id?: string
+          metadata?: Json | null
+          provider: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
