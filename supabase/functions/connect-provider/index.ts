@@ -12,7 +12,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { provider, action } = await req.json();
+    const body = await req.json();
+    const { provider, action } = body;
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -105,6 +106,57 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ authUrl }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Action: save-credentials (for WordPress Application Passwords)
+    if (action === "save-credentials" && provider === "wordpress") {
+      if (!body.siteUrl || !body.username || !body.appPassword) {
+        return new Response(JSON.stringify({ error: "Missing siteUrl, username, or appPassword" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Validate credentials by testing WP REST API
+      const normalizedUrl = body.siteUrl.replace(/\/+$/, "");
+      const basicAuth = btoa(`${body.username}:${body.appPassword}`);
+      const testRes = await fetch(`${normalizedUrl}/wp-json/wp/v2/users/me`, {
+        headers: { Authorization: `Basic ${basicAuth}` },
+      });
+
+      if (!testRes.ok) {
+        return new Response(JSON.stringify({ error: "Invalid WordPress credentials. Check your site URL, username, and application password." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const wpUser = await testRes.json();
+
+      await supabaseAdmin
+        .from("user_oauth_tokens")
+        .upsert({
+          user_id: user.id,
+          provider: "wordpress",
+          access_token: basicAuth,
+          refresh_token: null,
+          scopes: "posts,pages,media",
+          provider_user_id: String(wpUser.id),
+          provider_email: wpUser.email || body.username,
+        }, { onConflict: "user_id,provider" });
+
+      await supabaseAdmin
+        .from("user_connections")
+        .upsert({
+          user_id: user.id,
+          provider: "wordpress",
+          status: "connected",
+          metadata: { siteUrl: normalizedUrl, username: body.username, displayName: wpUser.name },
+        }, { onConflict: "user_id,provider" });
+
+      return new Response(JSON.stringify({ success: true, displayName: wpUser.name }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

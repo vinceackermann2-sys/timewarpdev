@@ -219,6 +219,45 @@ async function fetchSlackData(accessToken: string): Promise<any> {
   };
 }
 
+async function fetchWordPressData(siteUrl: string, basicAuth: string): Promise<any> {
+  const headers = { Authorization: `Basic ${basicAuth}` };
+
+  const [postsRes, pagesRes, mediaRes] = await Promise.all([
+    fetch(`${siteUrl}/wp-json/wp/v2/posts?per_page=50&_fields=id,title,excerpt,status,date,link`, { headers }),
+    fetch(`${siteUrl}/wp-json/wp/v2/pages?per_page=50&_fields=id,title,excerpt,status,date,link`, { headers }),
+    fetch(`${siteUrl}/wp-json/wp/v2/media?per_page=30&_fields=id,title,date,mime_type,source_url`, { headers }),
+  ]);
+
+  const [posts, pages, media] = await Promise.all([
+    postsRes.ok ? postsRes.json() : [],
+    pagesRes.ok ? pagesRes.json() : [],
+    mediaRes.ok ? mediaRes.json() : [],
+  ]);
+
+  return {
+    posts: (posts || []).map((p: any) => ({
+      title: p.title?.rendered,
+      excerpt: p.excerpt?.rendered?.replace(/<[^>]+>/g, ""),
+      status: p.status,
+      date: p.date,
+      link: p.link,
+    })),
+    pages: (pages || []).map((p: any) => ({
+      title: p.title?.rendered,
+      excerpt: p.excerpt?.rendered?.replace(/<[^>]+>/g, ""),
+      status: p.status,
+      date: p.date,
+      link: p.link,
+    })),
+    media: (media || []).map((m: any) => ({
+      title: m.title?.rendered,
+      mimeType: m.mime_type,
+      url: m.source_url,
+      date: m.date,
+    })),
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -247,6 +286,90 @@ serve(async (req) => {
     }
 
     const { provider } = await req.json();
+
+    // WordPress uses credentials stored differently
+    if (provider === "wordpress") {
+      const { data: tokenRow } = await supabaseAdmin
+        .from("user_oauth_tokens")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("provider", "wordpress")
+        .maybeSingle();
+
+      if (!tokenRow) {
+        return new Response(JSON.stringify({ error: "WordPress not connected" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: connRow } = await supabaseAdmin
+        .from("user_connections")
+        .select("metadata")
+        .eq("user_id", user.id)
+        .eq("provider", "wordpress")
+        .maybeSingle();
+
+      const siteUrl = (connRow?.metadata as any)?.siteUrl;
+      if (!siteUrl) {
+        return new Response(JSON.stringify({ error: "WordPress site URL not found" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const wpData = await fetchWordPressData(siteUrl, tokenRow.access_token);
+      const dataItems: any[] = [];
+
+      for (const post of wpData.posts || []) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "document",
+          source: "wordpress",
+          title: post.title || "Untitled Post",
+          content: post.excerpt?.slice(0, 500) || null,
+          metadata: { type: "post", status: post.status, date: post.date, link: post.link },
+          is_analyzed: false,
+        });
+      }
+
+      for (const page of wpData.pages || []) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "document",
+          source: "wordpress",
+          title: page.title || "Untitled Page",
+          content: page.excerpt?.slice(0, 500) || null,
+          metadata: { type: "page", status: page.status, date: page.date, link: page.link },
+          is_analyzed: false,
+        });
+      }
+
+      for (const media of wpData.media || []) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "document",
+          source: "wordpress",
+          title: media.title || "Untitled Media",
+          content: null,
+          metadata: { type: "media", mimeType: media.mimeType, url: media.url, date: media.date },
+          is_analyzed: false,
+        });
+      }
+
+      if (dataItems.length > 0) {
+        await supabaseAdmin.from("user_business_data").delete().eq("user_id", user.id).eq("source", "wordpress");
+        for (let i = 0; i < dataItems.length; i += 50) {
+          await supabaseAdmin.from("user_business_data").insert(dataItems.slice(i, i + 50));
+        }
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        provider: "wordpress",
+        summary: { posts: wpData.posts?.length || 0, pages: wpData.pages?.length || 0, media: wpData.media?.length || 0 },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const accessToken = await getValidToken(supabaseAdmin, user.id, provider);
     if (!accessToken) {
