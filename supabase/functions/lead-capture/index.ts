@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { criteria, type } = await req.json();
+    const { criteria, type, targetCount = 10 } = await req.json();
 
     if (!criteria || Object.keys(criteria).length === 0) {
       return new Response(
@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("Lead capture request:", { criteria, type });
+    console.log("Lead capture request:", { criteria, type, targetCount });
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
@@ -30,41 +30,61 @@ Deno.serve(async (req) => {
     }
 
     const criteriaStr = Object.entries(criteria)
+      .filter(([, v]) => v && String(v).trim())
       .map(([k, v]) => `${k}: ${v}`)
-      .join(", ");
+      .join("\n- ");
 
-    // Step 1: Find real companies matching criteria using grounded search
-    const searchPrompt = `You are a B2B lead research assistant. Your job is to find REAL, VERIFIABLE companies.
+    const searchPrompt = `You are a B2B lead research agent. Your task is to find REAL, VERIFIABLE companies and decision-makers matching an Ideal Customer Profile (ICP).
 
-SEARCH CRITERIA: ${criteriaStr}
+## IDEAL CUSTOMER PROFILE (ICP)
+- ${criteriaStr}
 
-STRICT RULES:
-1. ONLY return companies you are HIGHLY CONFIDENT actually exist based on your training data.
-2. For Swedish companies: use the legal entity name ending in "AB" (Aktiebolag). This is the registered trademark name you'd find on allabolag.se.
-3. For CEO/Managing Director: Only provide the name if you are confident about it from your training data. If you looked up this company on allabolag.se, who would be listed as VD (CEO)?
-4. For phone numbers: Only provide if you are confident. Otherwise use "Not found - check hitta.se for [CEO name]".
-5. NEVER FABRICATE OR GUESS:
-   - If you don't know the CEO → put "Not found - verify on allabolag.se"
-   - If you don't know the phone → put "Not found - verify on hitta.se"  
-   - If you're unsure about the website → put "Not verified"
+## TARGET: Find ${Math.min(targetCount, 15)} qualified leads.
+
+## YOUR PROCESS (follow strictly):
+
+### STEP 1: FIND COMPANIES
+- Search your knowledge for real companies matching the ICP criteria.
+- Prioritize companies showing growth signals: recent funding rounds, active hiring, geographic expansion, new product launches, or partnerships.
+- ONLY include companies you are HIGHLY CONFIDENT actually exist.
+
+### STEP 2: FILTER AGAINST ICP
+- For each company, verify it matches ALL provided ICP criteria (industry, size, geography).
+- Skip any company that doesn't clearly fit.
+- Never include duplicate companies.
+
+### STEP 3: FIND DECISION MAKER
+- For each qualifying company, identify 1-2 decision-makers whose titles match or are closest to the requested titles.
+- Prioritize titles with budget authority (e.g., C-suite > VP > Director > Manager).
+- Only provide names you are confident about from your training data.
+
+### STEP 4: ENRICH DATA
+For each lead, extract ALL of the following fields. If you cannot verify a field, use "Not found" — NEVER fabricate data.
+
+## STRICT RULES:
+1. ONLY return companies and people you are HIGHLY CONFIDENT exist.
+2. NEVER fabricate company names, person names, emails, LinkedIn URLs, or any data.
+3. If you don't know a field → "Not found"
+4. For LinkedIn → Only provide if you're confident about the URL format (linkedin.com/in/firstname-lastname). Otherwise "Not found".
+5. For email → Only provide if publicly known. Otherwise "Not found".
 6. Company websites MUST be real domains you're confident about.
-7. Return 5-10 companies maximum. Quality over quantity.
+7. Quality over quantity — fewer verified leads are better than many fabricated ones.
 
-VERIFICATION MINDSET:
-- Think: "If someone went to allabolag.se and searched for this company name, would they find it?"
-- Think: "If someone went to this website URL, would it load?"
-- Think: "If someone searched hitta.se for this person's name, would they find them?"
-
-Return ONLY a JSON array. No markdown, no explanation. Each object must have:
-- companyName: Legal registered name (with AB for Swedish companies)
-- website: Company website URL (or "Not verified")
-- ceoName: CEO/VD full name (or "Not found - verify on allabolag.se")
-- phoneNumber: Phone number (or "Not found - verify on hitta.se for [name]")
-- country: Country
-- market: Industry/market
-
-Example:
-[{"companyName":"Spotify AB","website":"https://spotify.com","ceoName":"Daniel Ek","phoneNumber":"Not found - verify on hitta.se for Daniel Ek","country":"Sweden","market":"Music Technology"}]`;
+## OUTPUT FORMAT:
+Return ONLY a valid JSON array. No markdown, no explanation, no wrapping. Each object:
+{
+  "companyName": "string",
+  "website": "string or Not found",
+  "industry": "string",
+  "sizeEstimate": "string (e.g. '50-200 employees', '$10M-$50M revenue')",
+  "location": "string (city, country)",
+  "decisionMakerName": "string or Not found",
+  "title": "string (their job title)",
+  "linkedIn": "string URL or Not found",
+  "email": "string or Not found",
+  "growthSignal": "string describing why this company is growing or Not found",
+  "icpFitReason": "string explaining why this company matches the ICP"
+}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -77,7 +97,7 @@ Example:
         messages: [
           {
             role: "system",
-            content: "You are a factual business research assistant. You NEVER fabricate company names, people, or contact details. If you are not confident about a piece of data, you explicitly say 'Not found' with instructions on where to verify. You prefer returning fewer verified results over many unverified ones."
+            content: "You are a factual B2B lead research agent. You maintain an internal state of visited companies to avoid duplicates. You NEVER fabricate company names, people, contact details, or URLs. If you are not confident about any piece of data, you explicitly return 'Not found'. You prefer returning fewer verified results over many unverified ones. You always follow the structured research process: Find → Filter → Identify Decision Maker → Enrich."
           },
           { role: "user", content: searchPrompt },
         ],
@@ -117,6 +137,14 @@ Example:
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         leads = JSON.parse(jsonMatch[0]);
+        // Deduplicate by company name
+        const seen = new Set();
+        leads = leads.filter((l: any) => {
+          const key = l.companyName?.toLowerCase().trim();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       }
     } catch (parseErr) {
       console.error("Failed to parse leads:", parseErr);

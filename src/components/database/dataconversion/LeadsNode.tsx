@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Building2, ShoppingCart, ArrowRight, Loader2, Download, Search, ChevronRight, Globe, BarChart3, Target, UserCog } from "lucide-react";
+import { Users, Building2, ShoppingCart, ArrowRight, Loader2, Download, Search, ChevronRight, Factory, MapPin, UserCog, Ruler } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,20 +32,32 @@ interface LeadsNodeProps {
 interface LeadResult {
   companyName: string;
   website: string;
-  ceoName: string;
-  phoneNumber: string;
-  country: string;
-  market: string;
+  industry: string;
+  sizeEstimate: string;
+  location: string;
+  decisionMakerName: string;
+  title: string;
+  linkedIn: string;
+  email: string;
+  growthSignal: string;
+  icpFitReason: string;
 }
 
 type Step = "select-type" | "criteria" | "searching" | "results";
 
 const DEFAULT_CRITERIA = [
-  { id: "country", label: "Country", value: "", editable: true },
-  { id: "market", label: "Market", value: "", editable: true },
-  { id: "audience", label: "Audience", value: "", editable: true },
-  { id: "role", label: "Role", value: "CEO", editable: true },
+  { id: "industry", label: "Industry", value: "", placeholder: "e.g. SaaS, FinTech, Healthcare..." },
+  { id: "companySize", label: "Company Size", value: "", placeholder: "e.g. 50-200 employees, $10M+ revenue..." },
+  { id: "geography", label: "Geography", value: "", placeholder: "e.g. Sweden, Nordics, Europe..." },
+  { id: "decisionMakerTitles", label: "Decision-Maker Titles", value: "", placeholder: "e.g. CEO, CTO, VP Sales..." },
 ];
+
+const CRITERIA_ICONS: Record<string, React.ReactNode> = {
+  industry: <Factory className="h-4 w-4 text-primary" />,
+  companySize: <Ruler className="h-4 w-4 text-primary" />,
+  geography: <MapPin className="h-4 w-4 text-primary" />,
+  decisionMakerTitles: <UserCog className="h-4 w-4 text-primary" />,
+};
 
 export function LeadsNode({
   node,
@@ -59,12 +71,6 @@ export function LeadsNode({
     (node.textContent as "b2b" | "b2c") || null
   );
   const [criteria, setCriteria] = useState(DEFAULT_CRITERIA.map(c => ({ ...c })));
-  const CRITERIA_ICONS: Record<string, React.ReactNode> = {
-    country: <Globe className="h-4 w-4 text-primary" />,
-    market: <BarChart3 className="h-4 w-4 text-primary" />,
-    audience: <Target className="h-4 w-4 text-primary" />,
-    role: <UserCog className="h-4 w-4 text-primary" />,
-  };
   const [leads, setLeads] = useState<LeadResult[]>([]);
   const [searchProgress, setSearchProgress] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -75,7 +81,6 @@ export function LeadsNode({
       setStep("criteria");
     }
   };
-
 
   const handleCriteriaChange = (id: string, value: string) => {
     setCriteria(prev => prev.map(c => c.id === id ? { ...c, value } : c));
@@ -90,15 +95,15 @@ export function LeadsNode({
 
     setStep("searching");
     setIsSearching(true);
-    setSearchProgress("Initializing lead search...");
+    setSearchProgress("Initializing ICP-based lead research...");
 
     try {
       const criteriaObj: Record<string, string> = {};
       filledCriteria.forEach(c => {
-        criteriaObj[c.label.toLowerCase()] = c.value;
+        criteriaObj[c.label.toLowerCase().replace(/-/g, " ")] = c.value;
       });
 
-      setSearchProgress("Searching the web for matching companies...");
+      setSearchProgress("Finding companies matching your ICP, filtering, and enriching decision-maker data...");
 
       const { data, error } = await supabase.functions.invoke("lead-capture", {
         body: { criteria: criteriaObj, type: selectedType },
@@ -110,11 +115,11 @@ export function LeadsNode({
         setLeads(data.leads);
         setStep("results");
         onUpdate(node.id, { textContent: selectedType || "b2b", isAnalyzed: true });
-        toast.success(`Found ${data.leads.length} leads!`);
+        toast.success(`Found ${data.leads.length} qualified leads!`);
       } else {
         setLeads([]);
         setStep("results");
-        toast.info("No leads found matching your criteria. Try adjusting your search.");
+        toast.info("No leads found matching your ICP. Try adjusting your criteria.");
       }
     } catch (err) {
       console.error("Lead capture error:", err);
@@ -127,9 +132,12 @@ export function LeadsNode({
 
   const handleDownloadCSV = () => {
     if (leads.length === 0) return;
-    const headers = ["Company Name", "Website", "CEO Name", "Phone Number", "Country", "Market"];
-    const rows = leads.map(l => [l.companyName, l.website, l.ceoName, l.phoneNumber, l.country, l.market]);
-    const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${v}"`).join(","))].join("\n");
+    const headers = ["Company", "Website", "Industry", "Size", "Location", "Decision Maker", "Title", "LinkedIn", "Email", "Growth Signal", "ICP Fit Reason"];
+    const rows = leads.map(l => [
+      l.companyName, l.website, l.industry, l.sizeEstimate, l.location,
+      l.decisionMakerName, l.title, l.linkedIn, l.email, l.growthSignal, l.icpFitReason
+    ]);
+    const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${(v || "").replace(/"/g, '""')}"`).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -166,13 +174,11 @@ export function LeadsNode({
       }}
       onMouseDown={onMouseDown}
     >
-      {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
         <Users className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium">Leads</span>
       </div>
 
-      {/* Content */}
       <div className="p-3 flex flex-col items-center justify-center gap-2">
         {!storedType ? (
           <>
@@ -180,10 +186,7 @@ export function LeadsNode({
             <Button
               size="sm"
               className="mt-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenDialog();
-              }}
+              onClick={(e) => { e.stopPropagation(); handleOpenDialog(); }}
             >
               Get Started
               <ArrowRight className="h-3.5 w-3.5 ml-1" />
@@ -209,10 +212,7 @@ export function LeadsNode({
             </div>
             <button
               className="text-[10px] text-muted-foreground hover:text-foreground underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenDialog();
-              }}
+              onClick={(e) => { e.stopPropagation(); handleOpenDialog(); }}
             >
               {leads.length > 0 ? "View leads" : "Configure"}
             </button>
@@ -220,9 +220,6 @@ export function LeadsNode({
         )}
       </div>
 
-      {/* No ports - Leads node is standalone */}
-
-      {/* Fullscreen Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent
           className="max-w-none w-screen h-screen m-0 p-0 rounded-none border-none flex flex-col"
@@ -230,7 +227,6 @@ export function LeadsNode({
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          {/* Step: Select Type */}
           {step === "select-type" && (
             <div className="flex flex-col items-center justify-center flex-1 gap-8 p-8">
               <div className="text-center max-w-lg">
@@ -277,7 +273,6 @@ export function LeadsNode({
             </div>
           )}
 
-          {/* Step: B2B Criteria */}
           {step === "criteria" && (
             <div className="flex flex-col flex-1 p-8 max-w-3xl mx-auto w-full">
               <div className="mb-8">
@@ -287,9 +282,9 @@ export function LeadsNode({
                 >
                   ← Back
                 </button>
-                <h1 className="text-3xl font-extrabold mb-2">Define Your Criteria</h1>
+                <h1 className="text-3xl font-extrabold mb-2">Define Your ICP</h1>
                 <p className="text-muted-foreground">
-                  Set the criteria for your B2B lead search. The AI will find matching companies, identify the key person via allabolag.se, and get phone numbers from hitta.se.
+                  Set your Ideal Customer Profile. The AI will find matching companies, filter against your ICP, identify decision-makers with budget authority, and enrich each lead with growth signals.
                 </p>
               </div>
 
@@ -298,7 +293,7 @@ export function LeadsNode({
                   {criteria.map((c) => (
                     <div
                       key={c.id}
-                      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 min-w-[200px] max-w-[240px] flex-1"
+                      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 min-w-[220px] max-w-[260px] flex-1"
                     >
                       <div className="flex items-center gap-2">
                         {CRITERIA_ICONS[c.id] || <Search className="h-4 w-4 text-primary" />}
@@ -307,7 +302,7 @@ export function LeadsNode({
                         </span>
                       </div>
                       <Input
-                        placeholder={c.id === "role" ? "e.g. CEO, CTO, CFO..." : `Enter ${c.label.toLowerCase()}...`}
+                        placeholder={c.placeholder}
                         value={c.value}
                         onChange={(e) => handleCriteriaChange(c.id, e.target.value)}
                         className="h-9 text-sm bg-background border-border"
@@ -327,12 +322,11 @@ export function LeadsNode({
             </div>
           )}
 
-          {/* Step: Searching */}
           {step === "searching" && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 p-8">
               <Loader2 className="h-16 w-16 animate-spin text-primary" />
               <div className="text-center max-w-md">
-                <h2 className="text-2xl font-extrabold mb-2">Capturing Leads</h2>
+                <h2 className="text-2xl font-extrabold mb-2">Researching Leads</h2>
                 <p className="text-muted-foreground">{searchProgress}</p>
               </div>
               <div className="flex flex-wrap gap-2 justify-center mt-4">
@@ -345,13 +339,12 @@ export function LeadsNode({
             </div>
           )}
 
-          {/* Step: Results */}
           {step === "results" && (
             <div className="flex flex-col flex-1 p-8 overflow-hidden">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h1 className="text-3xl font-extrabold mb-1">Lead Results</h1>
-                  <p className="text-muted-foreground">{leads.length} leads found</p>
+                  <p className="text-muted-foreground">{leads.length} qualified leads found</p>
                 </div>
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={() => setStep("criteria")}>
@@ -371,27 +364,52 @@ export function LeadsNode({
                       <TableRow>
                         <TableHead className="font-extrabold">#</TableHead>
                         <TableHead className="font-extrabold">Company</TableHead>
-                        <TableHead className="font-extrabold">Website</TableHead>
-                        <TableHead className="font-extrabold">Contact</TableHead>
-                        <TableHead className="font-extrabold">Phone</TableHead>
-                        <TableHead className="font-extrabold">Country</TableHead>
-                        <TableHead className="font-extrabold">Market</TableHead>
+                        <TableHead className="font-extrabold">Industry</TableHead>
+                        <TableHead className="font-extrabold">Size</TableHead>
+                        <TableHead className="font-extrabold">Location</TableHead>
+                        <TableHead className="font-extrabold">Decision Maker</TableHead>
+                        <TableHead className="font-extrabold">Title</TableHead>
+                        <TableHead className="font-extrabold">LinkedIn</TableHead>
+                        <TableHead className="font-extrabold">Email</TableHead>
+                        <TableHead className="font-extrabold">Growth Signal</TableHead>
+                        <TableHead className="font-extrabold">ICP Fit</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {leads.map((lead, i) => (
                         <TableRow key={i}>
                           <TableCell className="font-medium">{i + 1}</TableCell>
-                          <TableCell className="font-semibold">{lead.companyName}</TableCell>
                           <TableCell>
-                            <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">
-                              {lead.website}
-                            </a>
+                            <div>
+                              <p className="font-semibold text-sm">{lead.companyName}</p>
+                              {lead.website && lead.website !== "Not found" && (
+                                <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">
+                                  {lead.website}
+                                </a>
+                              )}
+                            </div>
                           </TableCell>
-                          <TableCell>{lead.ceoName}</TableCell>
-                          <TableCell className="font-mono text-sm">{lead.phoneNumber}</TableCell>
-                          <TableCell>{lead.country}</TableCell>
-                          <TableCell>{lead.market}</TableCell>
+                          <TableCell className="text-sm">{lead.industry}</TableCell>
+                          <TableCell className="text-sm">{lead.sizeEstimate}</TableCell>
+                          <TableCell className="text-sm">{lead.location}</TableCell>
+                          <TableCell className="font-medium text-sm">{lead.decisionMakerName}</TableCell>
+                          <TableCell className="text-sm">{lead.title}</TableCell>
+                          <TableCell>
+                            {lead.linkedIn && lead.linkedIn !== "Not found" ? (
+                              <a href={lead.linkedIn} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">
+                                Profile
+                              </a>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Not found</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm font-mono">
+                            {lead.email && lead.email !== "Not found" ? lead.email : (
+                              <span className="text-xs text-muted-foreground">Not found</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs max-w-[200px]">{lead.growthSignal}</TableCell>
+                          <TableCell className="text-xs max-w-[200px]">{lead.icpFitReason}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -399,7 +417,7 @@ export function LeadsNode({
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                  <p>No leads found. Try adjusting your criteria.</p>
+                  <p>No leads found. Try adjusting your ICP criteria.</p>
                 </div>
               )}
             </div>
