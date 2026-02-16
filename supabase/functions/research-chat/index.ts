@@ -59,17 +59,17 @@ function formatContextItems(items: any[]): string {
   for (const [source, sourceItems] of Object.entries(bySource)) {
     context += `### Source: ${source} (${sourceItems.length} items)\n`;
     for (const item of sourceItems) {
-      context += `- **${item.title}** (${item.data_type})`;
+      context += `- **${item.title}** (${item.data_type})\n`;
       if (item.analyzed_content) {
-        context += `\n  Analysis: ${item.analyzed_content.slice(0, 2000)}`;
-      } else if (item.content) {
-        context += `\n  Content: ${item.content.slice(0, 1500)}`;
+        context += `  **Full Analysis:**\n${item.analyzed_content}\n\n`;
+      }
+      if (item.content) {
+        context += `  **Full Content:**\n${item.content}\n\n`;
       }
       if (item.metadata) {
         const meta = typeof item.metadata === "string" ? item.metadata : JSON.stringify(item.metadata);
-        context += `\n  Metadata: ${meta.slice(0, 300)}`;
+        context += `  Metadata: ${meta.slice(0, 500)}\n`;
       }
-      context += "\n";
     }
     context += "\n";
   }
