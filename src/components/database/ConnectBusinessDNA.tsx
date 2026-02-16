@@ -1,26 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Briefcase, Loader2, ExternalLink, CheckCircle2, RefreshCw, Globe } from "lucide-react";
+import { ArrowRight, Briefcase, Loader2, Plug, CheckCircle2, RefreshCw, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BgGradient } from "@/components/ui/bg-gradient";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoGoogle from "@/assets/logo-google.png";
+import logoSlack from "@/assets/logo-slack.png";
+import logoWordpress from "@/assets/logo-wordpress.png";
 
 interface Integration {
   id: string;
   name: string;
   description: string;
-  icon: string;
-  color: string;
+  logo: string;
   authType: "oauth" | "credentials";
 }
 
 const integrations: Integration[] = [
-  { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", icon: "⊞", color: "from-[hsl(210,80%,50%)] to-[hsl(210,80%,40%)]", authType: "oauth" },
-  { id: "google", name: "Google", description: "Gmail, Drive, Calendar, Sheets", icon: "G", color: "from-[hsl(4,80%,56%)] to-[hsl(36,100%,50%)]", authType: "oauth" },
-  { id: "slack", name: "Slack", description: "Messages, Channels, Files", icon: "#", color: "from-[hsl(283,44%,47%)] to-[hsl(340,82%,52%)]", authType: "oauth" },
-  { id: "wordpress", name: "WordPress", description: "Posts, Pages, Media", icon: "W", color: "from-[hsl(200,18%,26%)] to-[hsl(200,18%,36%)]", authType: "credentials" },
+  { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" },
+  { id: "google", name: "Google", description: "Gmail, Drive, Calendar, Sheets", logo: logoGoogle, authType: "oauth" },
+  { id: "slack", name: "Slack", description: "Messages, Channels, Files", logo: logoSlack, authType: "oauth" },
+  { id: "wordpress", name: "WordPress", description: "Posts, Pages, Media", logo: logoWordpress, authType: "credentials" },
 ];
 
 interface ConnectedProvider {
@@ -277,8 +280,8 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
                       : "border-border hover:border-primary/40 hover:bg-muted/50"
                   }`}
                 >
-                  <div className={`flex-shrink-0 h-11 w-11 rounded-xl bg-gradient-to-br ${integration.color} flex items-center justify-center text-white font-bold text-lg`}>
-                    {integration.icon}
+                  <div className="flex-shrink-0 h-11 w-11 rounded-xl bg-muted flex items-center justify-center p-2">
+                    <img src={integration.logo} alt={integration.name} className="h-7 w-7 object-contain" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{integration.name}</p>
@@ -297,9 +300,8 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
                         <CheckCircle2 className="h-5 w-5 text-green-500" />
                       </div>
                     ) : (
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => handleConnect(integration.id)} disabled={isConnecting}>
-                        {isConnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : integration.authType === "credentials" ? <Globe className="h-3 w-3" /> : <ExternalLink className="h-3 w-3" />}
-                        Connect
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleConnect(integration.id)} disabled={isConnecting}>
+                        {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plug className="h-4 w-4" />}
                       </Button>
                     )}
                   </div>
