@@ -41,6 +41,16 @@ async function updateBucketContext(supabaseAdmin: any, userId: string) {
   }
 }
 
+// Determine if a MIME type is audio
+function isAudioMime(mime: string): boolean {
+  return mime.startsWith("audio/") || ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/mp4", "audio/m4a", "audio/aac", "audio/ogg", "audio/webm"].includes(mime);
+}
+
+// Determine if a MIME type is video
+function isVideoMime(mime: string): boolean {
+  return mime.startsWith("video/") || ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/avi"].includes(mime);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -70,22 +80,25 @@ serve(async (req) => {
     let mediaUrl = "";
     let dataTitle = "Untitled";
     let dataType = type;
+    let extractedText = "";
 
     switch (type) {
       case "text":
         userPrompt = `Analyze this text content and provide a structured summary with key insights, topics, and any actionable information:\n\n${content.text}`;
         dataTitle = content.text?.slice(0, 80) || "Text content";
+        extractedText = content.text || "";
         break;
 
       case "document": {
         const name = content.documentName || "Unknown";
         dataTitle = name;
         if (content.documentText) {
+          extractedText = content.documentText;
           userPrompt = `Analyze this document titled "${name}".\n\nContent:\n${content.documentText}\n\nProvide a structured summary including: document type, key topics, main findings, and actionable insights.`;
         } else if (content.fileBase64) {
           useMultimodal = true;
           mediaUrl = `data:${content.fileMimeType || "application/pdf"};base64,${content.fileBase64}`;
-          userPrompt = `Analyze this document titled "${name}" in detail. Extract ALL text content, identify the document type, key topics, main findings, tables, and actionable insights.`;
+          userPrompt = `Analyze this document titled "${name}" in detail. Extract ALL text content, identify the document type, key topics, main findings, tables, and actionable insights. Return the full extracted text at the end under a "## Extracted Text" heading.`;
         } else {
           userPrompt = `Analyze a document titled "${name}". No content was provided.`;
         }
@@ -98,8 +111,77 @@ serve(async (req) => {
         if (content.imageBase64) {
           mediaUrl = `data:${content.imageMimeType || "image/png"};base64,${content.imageBase64}`;
         }
-        userPrompt = `Analyze this image in detail. Describe what you see, extract any text (OCR), identify key elements, and provide relevant business insights.`;
+        userPrompt = `Analyze this image in detail. Describe what you see, extract any text (OCR), identify key elements, and provide relevant business insights. Return all extracted text under a "## Extracted Text" heading.`;
         break;
+
+      case "audio": {
+        // Audio files: send as base64 to Gemini for transcription + analysis
+        const audioName = content.fileName || "Audio file";
+        dataTitle = audioName;
+        if (content.fileBase64) {
+          useMultimodal = true;
+          mediaUrl = `data:${content.fileMimeType || "audio/mpeg"};base64,${content.fileBase64}`;
+          userPrompt = `You are receiving an audio file titled "${audioName}". Please:
+1. **Transcribe** the entire audio content word-for-word
+2. **Summarize** the key topics discussed
+3. **Extract** any action items, decisions, names, dates, or numbers mentioned
+4. **Identify** speakers if there are multiple
+5. Provide **business insights** from the content
+
+Format your response with these sections:
+## Full Transcript
+(word-for-word transcription)
+
+## Summary
+(key topics and overview)
+
+## Key Findings
+(action items, decisions, important details)
+
+## Business Insights
+(actionable takeaways)`;
+        } else {
+          userPrompt = `An audio file titled "${audioName}" was uploaded but no content was provided for analysis.`;
+        }
+        break;
+      }
+
+      case "video": {
+        // Video files: send as base64 to Gemini for visual + audio analysis
+        const videoName = content.fileName || "Video file";
+        dataTitle = videoName;
+        if (content.fileBase64) {
+          useMultimodal = true;
+          mediaUrl = `data:${content.fileMimeType || "video/mp4"};base64,${content.fileBase64}`;
+          userPrompt = `You are receiving a video file titled "${videoName}". Please analyze both the visual and audio content:
+
+1. **Transcribe** all spoken audio content word-for-word
+2. **Describe** the key visual scenes, on-screen text, graphics, charts, or slides
+3. **Summarize** the overall content and purpose of the video
+4. **Extract** any action items, decisions, names, dates, numbers, or data shown
+5. **Identify** speakers or presenters if visible/audible
+6. Provide **business insights** from the content
+
+Format your response with these sections:
+## Audio Transcript
+(word-for-word transcription of spoken content)
+
+## Visual Content
+(description of key frames, slides, charts, on-screen text)
+
+## Summary
+(key topics and overview)
+
+## Key Findings
+(action items, decisions, important details)
+
+## Business Insights
+(actionable takeaways)`;
+        } else {
+          userPrompt = `A video file titled "${videoName}" was uploaded but no content was provided for analysis.`;
+        }
+        break;
+      }
 
       case "website": {
         dataTitle = content.websiteUrl || "Website";
@@ -123,6 +205,7 @@ serve(async (req) => {
           console.error("Failed to fetch website:", fetchErr);
         }
 
+        extractedText = websiteContent;
         if (websiteContent) {
           userPrompt = `Analyze this website (${content.websiteUrl}).\n\nExtracted content:\n${websiteContent}\n\nProvide a structured summary including: what the website is about, key topics, main offerings/products, contact info if available, and actionable business insights.`;
         } else {
@@ -139,7 +222,7 @@ serve(async (req) => {
       {
         role: "system",
         content:
-          "You are a business data analyst. Analyze the provided content thoroughly and return a structured, scannable summary. Use bold headers, bullet points, and tables where appropriate. Focus on extracting actionable business insights.",
+          "You are a business data analyst. Analyze the provided content thoroughly and return a structured, scannable summary. Use bold headers, bullet points, and tables where appropriate. Focus on extracting actionable business insights. For audio and video, prioritize accurate transcription of all spoken content.",
       },
     ];
 
@@ -194,13 +277,15 @@ serve(async (req) => {
         data_type: dataType,
         source: "canvas",
         title: dataTitle,
-        content: content.text || content.documentText || content.websiteUrl || null,
+        content: extractedText || content.text || content.documentText || content.websiteUrl || null,
         analyzed_content: analysis,
         is_analyzed: true,
         metadata: {
           ...(content.websiteUrl ? { url: content.websiteUrl } : {}),
-          ...(content.documentName ? { fileName: content.documentName } : {}),
+          ...(content.documentName || content.fileName ? { fileName: content.documentName || content.fileName } : {}),
           ...(content.fileMimeType ? { mimeType: content.fileMimeType } : {}),
+          ...(type === "audio" ? { mediaType: "audio" } : {}),
+          ...(type === "video" ? { mediaType: "video" } : {}),
         },
       });
 
@@ -208,7 +293,7 @@ serve(async (req) => {
       await updateBucketContext(supabaseAdmin, userId);
     }
 
-    return new Response(JSON.stringify({ success: true, analysis }), {
+    return new Response(JSON.stringify({ success: true, analysis, extractedText: extractedText || null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
