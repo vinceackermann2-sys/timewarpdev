@@ -3,13 +3,9 @@ import { Users, Building2, ShoppingCart, ArrowRight, Plus, X, Loader2, Download,
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -45,19 +41,16 @@ interface LeadResult {
 type Step = "select-type" | "criteria" | "searching" | "results";
 
 const DEFAULT_CRITERIA = [
-  { id: "country", label: "Country", value: "" },
-  { id: "market", label: "Market", value: "" },
-  { id: "audience", label: "Audience", value: "" },
-  { id: "ceo", label: "CEO", value: "" },
+  { id: "country", label: "Country", value: "", editable: true },
+  { id: "market", label: "Market", value: "", editable: true },
+  { id: "audience", label: "Audience", value: "", editable: true },
+  { id: "role", label: "Role", value: "CEO", editable: true },
 ];
 
 export function LeadsNode({
   node,
   isSelected,
-  pendingConnection,
   onMouseDown,
-  onInputPortMouseUp,
-  onOutputPortMouseDown,
   onUpdate,
 }: LeadsNodeProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -76,12 +69,11 @@ export function LeadsNode({
     if (type === "b2b") {
       setStep("criteria");
     }
-    // B2C flow can be expanded later
   };
 
   const handleAddCustomCriteria = () => {
     if (!customCriteriaName.trim()) return;
-    setCriteria(prev => [...prev, { id: `custom-${Date.now()}`, label: customCriteriaName.trim(), value: "" }]);
+    setCriteria(prev => [...prev, { id: `custom-${Date.now()}`, label: customCriteriaName.trim(), value: "", editable: true }]);
     setCustomCriteriaName("");
   };
 
@@ -232,15 +224,7 @@ export function LeadsNode({
         )}
       </div>
 
-      {/* Output port */}
-      <div
-        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          onOutputPortMouseDown(e);
-        }}
-      />
+      {/* No ports - Leads node is standalone */}
 
       {/* Fullscreen Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -297,7 +281,7 @@ export function LeadsNode({
 
           {/* Step: B2B Criteria */}
           {step === "criteria" && (
-            <div className="flex flex-col flex-1 p-8 max-w-3xl mx-auto w-full">
+            <div className="flex flex-col flex-1 p-8 max-w-2xl mx-auto w-full">
               <div className="mb-8">
                 <button
                   onClick={() => setStep("select-type")}
@@ -307,52 +291,53 @@ export function LeadsNode({
                 </button>
                 <h1 className="text-3xl font-extrabold mb-2">Define Your Criteria</h1>
                 <p className="text-muted-foreground">
-                  Set the criteria for your B2B lead search. The AI will find matching companies, identify CEOs via allabolag.se, and get phone numbers from hitta.se.
+                  Set the criteria for your B2B lead search. The AI will find matching companies, identify the key person via allabolag.se, and get phone numbers from hitta.se.
                 </p>
               </div>
 
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-3">
                 {criteria.map((c) => (
-                  <div key={c.id} className="flex items-center gap-3">
-                    <Badge variant="secondary" className="min-w-[100px] justify-center text-sm py-1.5">
+                  <div key={c.id} className="flex items-center gap-3 group">
+                    <span className="text-sm font-medium text-muted-foreground w-24 shrink-0 text-right">
                       {c.label}
-                    </Badge>
+                    </span>
                     <Input
-                      placeholder={`Enter ${c.label.toLowerCase()}...`}
+                      placeholder={c.id === "role" ? "e.g. CEO, CTO, CFO..." : `Enter ${c.label.toLowerCase()}...`}
                       value={c.value}
                       onChange={(e) => handleCriteriaChange(c.id, e.target.value)}
-                      className="flex-1"
+                      className="flex-1 bg-background"
                     />
                     {c.id.startsWith("custom-") && (
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleRemoveCriteria(c.id)}
-                        className="shrink-0"
+                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </div>
                 ))}
 
                 {/* Add custom criteria */}
-                <div className="flex items-center gap-3 pt-2 border-t border-border mt-4">
+                <div className="flex items-center gap-3 pt-4 mt-4 border-t border-border">
+                  <span className="text-sm font-medium text-muted-foreground w-24 shrink-0 text-right">Custom</span>
                   <Input
-                    placeholder="Custom criteria name..."
+                    placeholder="New criteria name..."
                     value={customCriteriaName}
                     onChange={(e) => setCustomCriteriaName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleAddCustomCriteria()}
-                    className="flex-1"
+                    className="flex-1 bg-background"
                   />
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
                     onClick={handleAddCustomCriteria}
                     disabled={!customCriteriaName.trim()}
+                    className="shrink-0 h-10 w-10"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -377,9 +362,9 @@ export function LeadsNode({
               </div>
               <div className="flex flex-wrap gap-2 justify-center mt-4">
                 {criteria.filter(c => c.value.trim()).map(c => (
-                  <Badge key={c.id} variant="outline" className="text-sm">
+                  <span key={c.id} className="text-xs border border-border rounded-full px-3 py-1 text-muted-foreground">
                     {c.label}: {c.value}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             </div>
@@ -412,7 +397,7 @@ export function LeadsNode({
                         <TableHead className="font-extrabold">#</TableHead>
                         <TableHead className="font-extrabold">Company</TableHead>
                         <TableHead className="font-extrabold">Website</TableHead>
-                        <TableHead className="font-extrabold">CEO</TableHead>
+                        <TableHead className="font-extrabold">Contact</TableHead>
                         <TableHead className="font-extrabold">Phone</TableHead>
                         <TableHead className="font-extrabold">Country</TableHead>
                         <TableHead className="font-extrabold">Market</TableHead>
