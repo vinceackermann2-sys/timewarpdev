@@ -24,6 +24,7 @@ import {
 } from "./DatabaseChatMessage";
 import { SuggestedActions } from "./dataconversion/SuggestedActions";
 import { BgGradient } from "@/components/ui/bg-gradient";
+import { ConnectBusinessDNA } from "./ConnectBusinessDNA";
 
 interface BusinessData {
   topContacts?: { email: string; count: number }[];
@@ -229,6 +230,9 @@ export function DatabaseView() {
   const [uploadedFilesCount, setUploadedFilesCount] = useState(0);
   const [researchFindings, setResearchFindings] = useState<any>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [hasConnected, setHasConnected] = useState(() => {
+    return localStorage.getItem("businessDnaConnected") === "true";
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch business data from storage bucket
@@ -386,6 +390,15 @@ export function DatabaseView() {
   };
 
   const hasBusinessData = businessData && Object.keys(businessData).length > 0;
+
+  const handleConnectComplete = () => {
+    localStorage.setItem("businessDnaConnected", "true");
+    setHasConnected(true);
+  };
+
+  if (!hasConnected) {
+    return <ConnectBusinessDNA onComplete={handleConnectComplete} />;
+  }
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden bg-background">
