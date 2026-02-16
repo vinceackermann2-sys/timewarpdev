@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Database, Loader2, CheckCircle2, FileText, Image, Globe, Type } from "lucide-react";
+import { Database, Loader2, CheckCircle2, FileText, Image, Globe, Type, Mail, Video, Music, Table2, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { CanvasNode, PendingConnection } from "./types";
 
 interface BusinessDatabaseNodeProps {
@@ -13,13 +14,36 @@ interface BusinessDatabaseNodeProps {
   onOutputPortMouseDown: (e: React.MouseEvent) => void;
 }
 
-interface DataCounts {
-  documents: number;
-  images: number;
-  text: number;
-  websites: number;
-  total: number;
+interface DataItem {
+  id: string;
+  data_type: string;
+  source: string;
+  title: string;
+  content: string | null;
+  analyzed_content: string | null;
+  is_analyzed: boolean | null;
+  created_at: string | null;
 }
+
+const typeIcons: Record<string, React.ReactNode> = {
+  document: <FileText className="h-3.5 w-3.5 text-primary" />,
+  image: <Image className="h-3.5 w-3.5 text-primary" />,
+  text: <Type className="h-3.5 w-3.5 text-primary" />,
+  website: <Globe className="h-3.5 w-3.5 text-primary" />,
+  email: <Mail className="h-3.5 w-3.5 text-primary" />,
+  video: <Video className="h-3.5 w-3.5 text-primary" />,
+  audio: <Music className="h-3.5 w-3.5 text-primary" />,
+  spreadsheet: <Table2 className="h-3.5 w-3.5 text-primary" />,
+};
+
+const sourceLabels: Record<string, string> = {
+  canvas: "Canvas",
+  google: "Google",
+  microsoft: "Microsoft",
+  slack: "Slack",
+  wordpress: "WordPress",
+  upload: "Upload",
+};
 
 export function BusinessDatabaseNode({
   node,
@@ -29,11 +53,12 @@ export function BusinessDatabaseNode({
   onInputPortMouseUp,
   onOutputPortMouseDown,
 }: BusinessDatabaseNodeProps) {
-  const [counts, setCounts] = useState<DataCounts | null>(null);
+  const [items, setItems] = useState<DataItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchCounts = async () => {
+    const fetchData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
@@ -43,34 +68,37 @@ export function BusinessDatabaseNode({
 
         const { data, error } = await (supabase as any)
           .from('user_business_data')
-          .select('data_type')
-          .eq('user_id', session.user.id);
+          .select('id, data_type, source, title, content, analyzed_content, is_analyzed, created_at')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(100);
 
-        if (error) {
-          console.log("No business data yet");
-          setIsLoading(false);
-          return;
+        if (!error && data) {
+          setItems(data);
         }
-
-        const items = data || [];
-        setCounts({
-          documents: items.filter((d: any) => d.data_type === 'document').length,
-          images: items.filter((d: any) => d.data_type === 'image').length,
-          text: items.filter((d: any) => d.data_type === 'text').length,
-          websites: items.filter((d: any) => d.data_type === 'website').length,
-          total: items.length,
-        });
       } catch (err) {
-        console.error("Failed to fetch business data counts:", err);
+        console.error("Failed to fetch business data:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchCounts();
+    fetchData();
   }, []);
 
-  const hasData = counts && counts.total > 0;
+  // Group items by source
+  const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
+    const src = item.source || "unknown";
+    if (!acc[src]) acc[src] = [];
+    acc[src].push(item);
+    return acc;
+  }, {});
+
+  const getPreview = (item: DataItem) => {
+    const text = item.analyzed_content || item.content;
+    if (!text) return "No content extracted";
+    return text.slice(0, 120) + (text.length > 120 ? "…" : "");
+  };
 
   return (
     <div
@@ -81,8 +109,8 @@ export function BusinessDatabaseNode({
       style={{
         left: node.x,
         top: node.y,
-        width: 280,
-        height: 180,
+        width: 320,
+        height: 360,
       }}
       onMouseDown={onMouseDown}
     >
@@ -100,56 +128,98 @@ export function BusinessDatabaseNode({
               <Loader2 className="h-3 w-3 animate-spin" />
             </span>
           )}
-          {!isLoading && hasData && (
+          {!isLoading && items.length > 0 && (
             <span className="text-xs text-green-500 flex items-center gap-1">
-              {counts!.total} items
+              {items.length} items
               <CheckCircle2 className="h-3.5 w-3.5" />
             </span>
           )}
-          {!isLoading && !hasData && (
+          {!isLoading && items.length === 0 && (
             <span className="text-xs text-amber-500">No data</span>
           )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-3 h-[calc(100%-44px)]">
-        {isLoading ? (
-          <div className="h-full flex flex-col items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-            <p className="text-xs text-muted-foreground">Loading business data...</p>
-          </div>
-        ) : hasData ? (
-          <div className="h-full rounded-lg bg-muted/30 p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <FileText className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">Documents:</span>
-              <span className="font-medium">{counts!.documents}</span>
+      <ScrollArea className="h-[calc(100%-44px)]">
+        <div className="p-2">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+              <p className="text-xs text-muted-foreground">Loading business data...</p>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Image className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">Images:</span>
-              <span className="font-medium">{counts!.images}</span>
+          ) : items.length > 0 ? (
+            <div className="space-y-3">
+              {Object.entries(groupedBySource).map(([source, sourceItems]) => (
+                <div key={source}>
+                  <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                      {sourceLabels[source] || source}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/60">({sourceItems.length})</span>
+                  </div>
+                  <div className="space-y-1">
+                    {sourceItems.map((item) => {
+                      const isExpanded = expandedId === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            "rounded-lg border border-border/40 transition-all cursor-pointer hover:border-primary/30",
+                            isExpanded && "border-primary/40 bg-muted/30"
+                          )}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                        >
+                          <div className="flex items-center gap-2 px-2.5 py-2">
+                            {typeIcons[item.data_type] || <FileText className="h-3.5 w-3.5 text-muted-foreground" />}
+                            <span className="text-xs font-semibold text-foreground truncate flex-1">
+                              {item.title}
+                            </span>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {item.is_analyzed && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500" title="Analyzed" />
+                              )}
+                              {isExpanded ? (
+                                <ChevronUp className="h-3 w-3 text-muted-foreground" />
+                              ) : (
+                                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </div>
+                          </div>
+                          {isExpanded && (
+                            <div className="px-2.5 pb-2.5 pt-0">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold">
+                                  {item.data_type}
+                                </span>
+                                {item.created_at && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {new Date(item.created_at).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-foreground/70 leading-relaxed">
+                                {getPreview(item)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Type className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">Text:</span>
-              <span className="font-medium">{counts!.text}</span>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+              <Database className="h-8 w-8 text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground text-center">No business data</p>
+              <p className="text-xs text-muted-foreground/60 text-center mt-1">Connect integrations or add data via canvas nodes</p>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Globe className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">Websites:</span>
-              <span className="font-medium">{counts!.websites}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="h-full rounded-lg bg-muted/20 flex flex-col items-center justify-center p-4">
-            <Database className="h-8 w-8 text-muted-foreground/40 mb-2" />
-            <p className="text-sm text-muted-foreground text-center">No business data</p>
-            <p className="text-xs text-muted-foreground/60 text-center mt-1">Add data via canvas nodes</p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </ScrollArea>
 
       {/* Output port */}
       <div
