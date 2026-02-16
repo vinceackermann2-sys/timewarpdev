@@ -6,6 +6,7 @@ import {
   Type,
   Telescope,
   Images,
+  Users,
   LucideIcon
 } from "lucide-react";
 
@@ -18,6 +19,7 @@ export const nodeIconMap: Record<string, LucideIcon> = {
   "website": Globe,
   "research": Telescope,
   "action": Images,
+  "leads": Users,
 };
 
 export interface NodeItem {

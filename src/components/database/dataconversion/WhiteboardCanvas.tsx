@@ -19,6 +19,7 @@ import { TextNode } from "./TextNode";
 import { DocumentNode } from "./DocumentNode";
 import { ImageNode } from "./ImageNode";
 import { WebsiteNode } from "./WebsiteNode";
+import { LeadsNode } from "./LeadsNode";
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 60;
@@ -545,6 +546,22 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
             if (node.type === "website") {
               return (
                 <WebsiteNode
+                  key={node.id}
+                  node={node}
+                  isSelected={isSelected}
+                  pendingConnection={pendingConnection}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                  onInputPortMouseUp={(e) => handleInputPortMouseUp(e, node.id)}
+                  onOutputPortMouseDown={(e) => handleOutputPortMouseDown(e, node.id)}
+                  onUpdate={handleNodeUpdate}
+                />
+              );
+            }
+
+            // Leads node with onboarding
+            if (node.type === "leads") {
+              return (
+                <LeadsNode
                   key={node.id}
                   node={node}
                   isSelected={isSelected}
