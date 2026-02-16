@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Building2, ShoppingCart, ArrowRight, Plus, X, Loader2, Download, Search, ChevronRight } from "lucide-react";
+import { Users, Building2, ShoppingCart, ArrowRight, Loader2, Download, Search, ChevronRight, Globe, BarChart3, Target, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,12 @@ export function LeadsNode({
     (node.textContent as "b2b" | "b2c") || null
   );
   const [criteria, setCriteria] = useState(DEFAULT_CRITERIA.map(c => ({ ...c })));
-  const [customCriteriaName, setCustomCriteriaName] = useState("");
+  const CRITERIA_ICONS: Record<string, React.ReactNode> = {
+    country: <Globe className="h-4 w-4 text-primary" />,
+    market: <BarChart3 className="h-4 w-4 text-primary" />,
+    audience: <Target className="h-4 w-4 text-primary" />,
+    role: <UserCog className="h-4 w-4 text-primary" />,
+  };
   const [leads, setLeads] = useState<LeadResult[]>([]);
   const [searchProgress, setSearchProgress] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -71,15 +76,6 @@ export function LeadsNode({
     }
   };
 
-  const handleAddCustomCriteria = () => {
-    if (!customCriteriaName.trim()) return;
-    setCriteria(prev => [...prev, { id: `custom-${Date.now()}`, label: customCriteriaName.trim(), value: "", editable: true }]);
-    setCustomCriteriaName("");
-  };
-
-  const handleRemoveCriteria = (id: string) => {
-    setCriteria(prev => prev.filter(c => c.id !== id));
-  };
 
   const handleCriteriaChange = (id: string, value: string) => {
     setCriteria(prev => prev.map(c => c.id === id ? { ...c, value } : c));
@@ -296,23 +292,18 @@ export function LeadsNode({
               </div>
 
               <div className="flex-1">
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-4">
                   {criteria.map((c) => (
                     <div
                       key={c.id}
-                      className="relative flex flex-col gap-1.5 rounded-xl border border-border bg-card p-3 min-w-[160px] max-w-[220px] flex-1 group"
+                      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 min-w-[200px] max-w-[240px] flex-1"
                     >
-                      {c.id.startsWith("custom-") && (
-                        <button
-                          onClick={() => handleRemoveCriteria(c.id)}
-                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        {c.label}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {CRITERIA_ICONS[c.id] || <Search className="h-4 w-4 text-primary" />}
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          {c.label}
+                        </span>
+                      </div>
                       <Input
                         placeholder={c.id === "role" ? "e.g. CEO, CTO, CFO..." : `Enter ${c.label.toLowerCase()}...`}
                         value={c.value}
@@ -321,31 +312,6 @@ export function LeadsNode({
                       />
                     </div>
                   ))}
-
-                  {/* Add custom criteria card */}
-                  <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-border bg-muted/30 p-3 min-w-[160px] max-w-[220px] flex-1">
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Add Custom
-                    </span>
-                    <div className="flex gap-1.5">
-                      <Input
-                        placeholder="Name..."
-                        value={customCriteriaName}
-                        onChange={(e) => setCustomCriteriaName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleAddCustomCriteria()}
-                        className="h-9 text-sm bg-background border-border flex-1"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleAddCustomCriteria}
-                        disabled={!customCriteriaName.trim()}
-                        className="shrink-0 h-9 w-9"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </div>
 
