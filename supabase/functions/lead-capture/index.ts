@@ -4,15 +4,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface LeadResult {
-  companyName: string;
-  website: string;
-  ceoName: string;
-  phoneNumber: string;
-  country: string;
-  market: string;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,27 +29,42 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build the search prompt
     const criteriaStr = Object.entries(criteria)
       .map(([k, v]) => `${k}: ${v}`)
       .join(", ");
 
-    const prompt = `You are a B2B lead generation expert. Based on these criteria: ${criteriaStr}
+    // Step 1: Find real companies matching criteria using grounded search
+    const searchPrompt = `You are a B2B lead research assistant. Your job is to find REAL, VERIFIABLE companies.
 
-Find real companies that match. For each company, provide:
-1. Company registered name (from their website or allabolag.se)
-2. Company website URL
-3. CEO/Managing Director full name (lookup on allabolag.se for Swedish companies)
-4. CEO phone number (lookup on hitta.se)
-5. Country
-6. Market/Industry
+SEARCH CRITERIA: ${criteriaStr}
 
-Return EXACTLY a JSON array of objects with these fields: companyName, website, ceoName, phoneNumber, country, market.
+STRICT RULES:
+1. ONLY return companies you are HIGHLY CONFIDENT actually exist based on your training data.
+2. For Swedish companies: use the legal entity name ending in "AB" (Aktiebolag). This is the registered trademark name you'd find on allabolag.se.
+3. For CEO/Managing Director: Only provide the name if you are confident about it from your training data. If you looked up this company on allabolag.se, who would be listed as VD (CEO)?
+4. For phone numbers: Only provide if you are confident. Otherwise use "Not found - check hitta.se for [CEO name]".
+5. NEVER FABRICATE OR GUESS:
+   - If you don't know the CEO → put "Not found - verify on allabolag.se"
+   - If you don't know the phone → put "Not found - verify on hitta.se"  
+   - If you're unsure about the website → put "Not verified"
+6. Company websites MUST be real domains you're confident about.
+7. Return 5-10 companies maximum. Quality over quantity.
 
-Search thoroughly. Find 5-15 real, verifiable companies. Use real data from allabolag.se and hitta.se where applicable for Swedish companies. For non-Swedish companies, find the CEO info from public sources.
+VERIFICATION MINDSET:
+- Think: "If someone went to allabolag.se and searched for this company name, would they find it?"
+- Think: "If someone went to this website URL, would it load?"
+- Think: "If someone searched hitta.se for this person's name, would they find them?"
 
-IMPORTANT: Return ONLY the JSON array, no other text. Example:
-[{"companyName":"Example AB","website":"https://example.se","ceoName":"John Doe","phoneNumber":"+46701234567","country":"Sweden","market":"Technology"}]`;
+Return ONLY a JSON array. No markdown, no explanation. Each object must have:
+- companyName: Legal registered name (with AB for Swedish companies)
+- website: Company website URL (or "Not verified")
+- ceoName: CEO/VD full name (or "Not found - verify on allabolag.se")
+- phoneNumber: Phone number (or "Not found - verify on hitta.se for [name]")
+- country: Country
+- market: Industry/market
+
+Example:
+[{"companyName":"Spotify AB","website":"https://spotify.com","ceoName":"Daniel Ek","phoneNumber":"Not found - verify on hitta.se for Daniel Ek","country":"Sweden","market":"Music Technology"}]`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -67,18 +73,35 @@ IMPORTANT: Return ONLY the JSON array, no other text. Example:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: "You are a lead generation AI. Return only valid JSON arrays. No markdown, no explanation." },
-          { role: "user", content: prompt },
+          {
+            role: "system",
+            content: "You are a factual business research assistant. You NEVER fabricate company names, people, or contact details. If you are not confident about a piece of data, you explicitly say 'Not found' with instructions on where to verify. You prefer returning fewer verified results over many unverified ones."
+          },
+          { role: "user", content: searchPrompt },
         ],
-        temperature: 0.3,
+        temperature: 0.1,
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("AI API error:", errText);
+      console.error("AI API error:", response.status, errText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Rate limited. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ success: false, error: "AI credits exhausted. Please add credits." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ success: false, error: "AI search failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -89,10 +112,8 @@ IMPORTANT: Return ONLY the JSON array, no other text. Example:
     const content = aiData.choices?.[0]?.message?.content || "";
     console.log("AI response:", content.substring(0, 500));
 
-    // Parse the JSON from the response
-    let leads: LeadResult[] = [];
+    let leads = [];
     try {
-      // Try to extract JSON array from the response
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         leads = JSON.parse(jsonMatch[0]);
