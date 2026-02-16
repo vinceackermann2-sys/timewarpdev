@@ -227,6 +227,8 @@ export function LeadsNode({
         <DialogContent
           className="max-w-none w-screen h-screen m-0 p-0 rounded-none border-none flex flex-col"
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           {/* Step: Select Type */}
           {step === "select-type" && (
