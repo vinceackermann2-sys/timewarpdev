@@ -35,18 +35,24 @@ interface NodeItemCardProps {
 
 function NodeItemCard({ item, onDragStart }: NodeItemCardProps) {
   const Icon = nodeIconMap[item.id];
+  const isNew = item.id === "leads";
 
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart?.(e, item)}
       className={cn(
-        "flex flex-col items-center justify-center gap-2 rounded-lg cursor-grab active:cursor-grabbing",
+        "relative flex flex-col items-center justify-center gap-2 rounded-lg cursor-grab active:cursor-grabbing",
         "bg-transparent border border-border hover:border-primary hover:bg-card/30",
         "transition-all duration-200",
         "w-[106px] h-[106px]"
       )}
     >
+      {isNew && (
+        <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+          NEW
+        </span>
+      )}
       <div className="flex items-center justify-center h-10 w-10">
         {Icon && <Icon className="text-primary h-5 w-5" />}
       </div>
