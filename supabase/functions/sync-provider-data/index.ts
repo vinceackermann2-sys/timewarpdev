@@ -123,6 +123,55 @@ async function extractPdfText(pdfBytes: Uint8Array, fileName: string): Promise<s
   return "";
 }
 
+// Extract content from a video using the AI gateway (Gemini multimodal)
+async function extractVideoContent(videoBytes: Uint8Array, fileName: string, mimeType: string): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) return "";
+
+  const b64 = base64Encode(videoBytes);
+  const mime = mimeType || "video/mp4";
+  const dataUrl = `data:${mime};base64,${b64}`;
+
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: "You are a video content analyst. Transcribe all spoken audio and describe key visual content. Return structured results." },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: `Analyze this video "${fileName}". Transcribe all spoken content word-for-word, describe key visual scenes, and extract any on-screen text, numbers, or data. Format with ## Transcript, ## Visual Content, ## Key Findings sections.` },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return (data.choices?.[0]?.message?.content || "").slice(0, 15000);
+    }
+  } catch (e) {
+    console.error(`Video extraction failed for ${fileName}:`, e);
+  }
+  return "";
+}
+
+const VIDEO_MIMES = ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/avi", "video/mpeg"];
+const VIDEO_EXTENSIONS = [".mp4", ".mov", ".webm", ".avi", ".mpeg", ".mpg"];
+
+function isVideoFile(name: string, mime: string): boolean {
+  const lname = (name || "").toLowerCase();
+  return VIDEO_MIMES.includes(mime) || mime.startsWith("video/") || VIDEO_EXTENSIONS.some(ext => lname.endsWith(ext));
+}
+
 async function fetchMicrosoftData(accessToken: string): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -186,6 +235,17 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
           const buf = new Uint8Array(await contentRes.arrayBuffer());
           if (buf.length < 5 * 1024 * 1024) {
             fileInfo.extractedContent = await extractPdfText(buf, f.name);
+          }
+        }
+      } catch { /* skip */ }
+    } else if (isVideoFile(f.name, mime)) {
+      // Download video and extract content via AI (under 10MB)
+      try {
+        const contentRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${f.id}/content`, { headers });
+        if (contentRes.ok) {
+          const buf = new Uint8Array(await contentRes.arrayBuffer());
+          if (buf.length < 10 * 1024 * 1024) {
+            fileInfo.extractedContent = await extractVideoContent(buf, f.name, mime);
           }
         }
       } catch { /* skip */ }
@@ -313,6 +373,20 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
           // Only process PDFs under 5MB to avoid timeouts
           if (buf.length < 5 * 1024 * 1024) {
             fileInfo.extractedContent = await extractPdfText(buf, f.name);
+          }
+        }
+      } catch { /* skip */ }
+    } else if (isVideoFile(f.name, f.mimeType)) {
+      // Download video and extract content via AI (under 10MB)
+      try {
+        const dlRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,
+          { headers }
+        );
+        if (dlRes.ok) {
+          const buf = new Uint8Array(await dlRes.arrayBuffer());
+          if (buf.length < 10 * 1024 * 1024) {
+            fileInfo.extractedContent = await extractVideoContent(buf, f.name, f.mimeType);
           }
         }
       } catch { /* skip */ }
