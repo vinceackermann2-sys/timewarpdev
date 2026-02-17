@@ -312,27 +312,24 @@ export function LeadsNode({
                   </div>
                   <div className="text-center">
                     <p className="font-extrabold text-xl">B2B</p>
-                    <p className="text-sm text-muted-foreground mt-1">Business-to-Business</p>
-                    <p className="text-xs text-muted-foreground mt-2">Target companies, decision makers & organizations</p>
                   </div>
                 </button>
-                <button
-                  onClick={() => handleSelectType("b2c")}
+                <div
                   className={cn(
-                    "flex flex-col items-center gap-4 p-8 rounded-2xl border-2 transition-all hover:scale-[1.02]",
-                    "hover:border-primary hover:bg-primary/5",
-                    selectedType === "b2c" ? "border-primary bg-primary/5" : "border-border"
+                    "flex flex-col items-center gap-4 p-8 rounded-2xl border-2 transition-all relative opacity-50 cursor-not-allowed",
+                    "border-border"
                   )}
                 >
+                  <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+                    Coming Soon
+                  </span>
                   <div className="h-16 w-16 rounded-full bg-accent/10 flex items-center justify-center">
                     <ShoppingCart className="h-8 w-8 text-accent-foreground" />
                   </div>
                   <div className="text-center">
                     <p className="font-extrabold text-xl">B2C</p>
-                    <p className="text-sm text-muted-foreground mt-1">Business-to-Consumer</p>
-                    <p className="text-xs text-muted-foreground mt-2">Target individual customers & end consumers</p>
                   </div>
-                </button>
+                </div>
               </div>
             </div>
           )}
