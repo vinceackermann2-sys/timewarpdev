@@ -362,8 +362,8 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
             width: 'calc(100% + 20000px)',
             height: 'calc(100% + 20000px)',
             backgroundImage: `radial-gradient(circle, hsl(var(--muted-foreground) / 0.3) 1.5px, transparent 1.5px)`,
-            backgroundSize: `${40 * (zoom / 100)}px ${40 * (zoom / 100)}px`,
-            backgroundPosition: `${panOffset.x % (40 * (zoom / 100))}px ${panOffset.y % (40 * (zoom / 100))}px`,
+            backgroundSize: '40px 40px',
+            backgroundPosition: `${panOffset.x % 40}px ${panOffset.y % 40}px`,
           }}
         />
         {/* Transformed container */}
