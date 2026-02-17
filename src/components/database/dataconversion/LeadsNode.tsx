@@ -385,13 +385,7 @@ export function LeadsNode({
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-end">
-                <Button size="lg" onClick={handleStartSearch} className="px-8">
-                  <Search className="h-4 w-4 mr-2" />
-                  Find {targetCount} Leads
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
+              {/* Find Leads button moved to bottom nav bar */}
             </div>
           )}
 
@@ -552,25 +546,38 @@ export function LeadsNode({
               <span className="mx-1.5">–</span>
               <span className="text-foreground font-medium">{STEPS[currentStepIndex]?.label}</span>
             </span>
-            <Button
-              size="sm"
-              disabled={
-                step === "searching" ||
-                step === "results" ||
-                (step === "select-type" && !selectedType) ||
-                (step === "criteria" && criteria.filter(c => c.value.trim()).length === 0)
-              }
-              onClick={() => {
-                if (step === "select-type" && selectedType === "b2b") {
-                  setStep("criteria");
-                } else if (step === "criteria") {
-                  handleStartSearch();
+            <div className="flex items-center gap-2">
+              {step === "criteria" && (
+                <Button
+                  size="sm"
+                  onClick={handleStartSearch}
+                  disabled={criteria.filter(c => c.value.trim()).length === 0}
+                >
+                  <Search className="h-4 w-4 mr-1.5" />
+                  Find {targetCount} Leads
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant={step === "criteria" ? "outline" : "default"}
+                disabled={
+                  step === "searching" ||
+                  step === "results" ||
+                  (step === "select-type" && !selectedType) ||
+                  (step === "criteria" && criteria.filter(c => c.value.trim()).length === 0)
                 }
-              }}
-            >
-              Next
-              <ArrowRight className="h-4 w-4 ml-1.5" />
-            </Button>
+                onClick={() => {
+                  if (step === "select-type" && selectedType === "b2b") {
+                    setStep("criteria");
+                  } else if (step === "criteria") {
+                    handleStartSearch();
+                  }
+                }}
+              >
+                Next
+                <ArrowRight className="h-4 w-4 ml-1.5" />
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
