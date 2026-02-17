@@ -163,6 +163,13 @@ serve(async (req) => {
 
     // Action: disconnect
     if (action === "disconnect") {
+      // Remove all business data sourced from this provider
+      await supabaseAdmin
+        .from("user_business_data")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("source", provider);
+
       await supabaseAdmin
         .from("user_connections")
         .update({ status: "disconnected" })
