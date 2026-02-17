@@ -1,6 +1,8 @@
-import { ExternalLink, FileText, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, Sparkles, ArrowRight, Table2 } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, FileText, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, Sparkles, ArrowRight, Table2, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 export interface ActionStep {
   icon: string;
@@ -24,6 +26,8 @@ export interface ActionChatMessageProps {
 }
 
 export function ActionChatMessage({ role, content, steps, documentLinks, isStreaming }: ActionChatMessageProps) {
+  const [copied, setCopied] = useState(false);
+
   if (role === "user") {
     return (
       <div className="bg-accent text-accent-foreground ml-8 rounded-xl px-4 py-2.5 text-sm shadow-sm">
@@ -31,6 +35,13 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       </div>
     );
   }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    toast.success("Copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // formatContent no longer needed — using ReactMarkdown
 
@@ -66,7 +77,17 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
   };
 
   return (
-    <div className="mr-4 rounded-xl overflow-hidden text-sm">
+    <div className="mr-4 rounded-xl overflow-hidden text-sm group/msg relative">
+      {/* Copy button */}
+      {content && !isStreaming && (
+        <button
+          onClick={handleCopy}
+          className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground z-10"
+          title="Copy response"
+        >
+          {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+      )}
       {/* Progress Steps */}
       {steps && steps.length > 0 && (
         <div className="px-4 py-3 border-b border-border/50 bg-card/50 space-y-2">

@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { 
   Sparkles, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, 
   Lightbulb, BarChart3, Users, Mail, Calendar, FileText, Loader2,
-  ArrowRight, Info
+  ArrowRight, Info, Copy, Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 export interface InsightCard {
   icon: string;
@@ -58,6 +60,8 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export function ResearchChatMessage({ role, content, insightCards, isStreaming }: ResearchChatMessageProps) {
+  const [copied, setCopied] = useState(false);
+
   if (role === "user") {
     return (
       <div className="bg-primary text-primary-foreground ml-8 rounded-lg px-3 py-2 text-sm">
@@ -65,6 +69,13 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
       </div>
     );
   }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    toast.success("Copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const getTrendIcon = (trend?: InsightCard["trend"]) => {
     if (trend === "up") return <TrendingUp className="h-3 w-3 text-primary" />;
@@ -79,7 +90,18 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
   };
 
   return (
-    <div className="mr-4 rounded-xl overflow-hidden text-sm">
+    <div className="mr-4 rounded-xl overflow-hidden text-sm group/msg relative">
+      {/* Copy button */}
+      {content && !isStreaming && (
+        <button
+          onClick={handleCopy}
+          className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground"
+          title="Copy response"
+        >
+          {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+      )}
+
       {/* Insight Cards Grid */}
       {insightCards && insightCards.length > 0 && (
         <div className="px-4 pt-4 pb-2">
