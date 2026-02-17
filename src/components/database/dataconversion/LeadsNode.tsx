@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Building2, ShoppingCart, ArrowRight, Loader2, Download, Search, ChevronRight, Factory, MapPin, UserCog, Ruler, Check } from "lucide-react";
+import { Users, Building2, ShoppingCart, ArrowRight, Loader2, Download, Search, ChevronRight, Factory, MapPin, UserCog, Ruler, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -535,6 +535,43 @@ export function LeadsNode({
               )}
             </div>
           )}
+
+          {/* Bottom Navigation Bar */}
+          <div className="border-t border-border px-6 py-3 flex items-center justify-between shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDialogOpen(false)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4 mr-1.5" />
+              Exit
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Step {currentStepIndex + 1} of {STEPS.length}
+              <span className="mx-1.5">–</span>
+              <span className="text-foreground font-medium">{STEPS[currentStepIndex]?.label}</span>
+            </span>
+            <Button
+              size="sm"
+              disabled={
+                step === "searching" ||
+                step === "results" ||
+                (step === "select-type" && !selectedType) ||
+                (step === "criteria" && criteria.filter(c => c.value.trim()).length === 0)
+              }
+              onClick={() => {
+                if (step === "select-type" && selectedType === "b2b") {
+                  setStep("criteria");
+                } else if (step === "criteria") {
+                  handleStartSearch();
+                }
+              }}
+            >
+              Next
+              <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
