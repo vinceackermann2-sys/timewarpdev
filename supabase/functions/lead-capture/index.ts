@@ -10,7 +10,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { criteria, type, targetCount = 10 } = await req.json();
+    const { criteria, type, targetCount: rawCount = 10 } = await req.json();
+    const targetCount = Math.min(rawCount, 30); // Cap at 30 to avoid timeout
 
     if (!criteria || Object.keys(criteria).length === 0) {
       return new Response(
