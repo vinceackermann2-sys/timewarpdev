@@ -354,6 +354,18 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
       >
+        {/* Infinite dot pattern background */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            inset: -10000,
+            width: 'calc(100% + 20000px)',
+            height: 'calc(100% + 20000px)',
+            backgroundImage: `radial-gradient(circle, hsl(var(--muted-foreground) / 0.3) 1.5px, transparent 1.5px)`,
+            backgroundSize: `${40 * (zoom / 100)}px ${40 * (zoom / 100)}px`,
+            backgroundPosition: `${panOffset.x % (40 * (zoom / 100))}px ${panOffset.y % (40 * (zoom / 100))}px`,
+          }}
+        />
         {/* Transformed container */}
         <div 
           className="absolute inset-0"
@@ -362,15 +374,6 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
             transformOrigin: "top left",
           }}
         >
-          {/* Dot pattern background */}
-          <svg className="absolute w-[20000px] h-[20000px] pointer-events-none opacity-30" style={{ left: -10000, top: -10000 }}>
-            <defs>
-              <pattern id="dots" width="40" height="40" patternUnits="userSpaceOnUse">
-                <circle cx="20" cy="20" r="2" className="fill-muted-foreground" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#dots)" />
-          </svg>
 
           {/* Connection lines SVG layer */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: "visible" }}>
