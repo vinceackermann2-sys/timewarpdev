@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Building2, ShoppingCart, ArrowRight, Loader2, Download, Search, ChevronRight, Factory, MapPin, UserCog, Ruler } from "lucide-react";
+import { Users, Building2, ShoppingCart, ArrowRight, Loader2, Download, Search, ChevronRight, Factory, MapPin, UserCog, Ruler, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +78,24 @@ export function LeadsNode({
   const [leads, setLeads] = useState<LeadResult[]>([]);
   const [searchProgress, setSearchProgress] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [targetCount, setTargetCount] = useState(10);
+
+  const STEPS: { key: Step; label: string }[] = [
+    { key: "select-type", label: "Type" },
+    { key: "criteria", label: "ICP" },
+    { key: "searching", label: "Search" },
+    { key: "results", label: "Results" },
+  ];
+  const currentStepIndex = STEPS.findIndex(s => s.key === step);
+
+  const canNavigateToStep = (targetStep: Step) => {
+    if (isSearching) return false;
+    if (targetStep === "select-type") return true;
+    if (targetStep === "criteria") return !!selectedType;
+    if (targetStep === "searching") return false; // can't click into searching
+    if (targetStep === "results") return leads.length > 0;
+    return false;
+  };
 
   const handleSelectType = (type: "b2b" | "b2c") => {
     setSelectedType(type);
@@ -110,7 +128,7 @@ export function LeadsNode({
       setSearchProgress("Finding companies matching your ICP, filtering, and enriching decision-maker data...");
 
       const { data, error } = await supabase.functions.invoke("lead-capture", {
-        body: { criteria: criteriaObj, type: selectedType },
+        body: { criteria: criteriaObj, type: selectedType, targetCount: Math.min(targetCount, 500) },
       });
 
       if (error) throw error;
@@ -232,6 +250,47 @@ export function LeadsNode({
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
+          {/* Step Progress Bar */}
+          <div className="flex items-center gap-0 px-8 pt-6 pb-2 max-w-2xl mx-auto w-full">
+            {STEPS.map((s, i) => {
+              const isActive = i === currentStepIndex;
+              const isCompleted = i < currentStepIndex;
+              const clickable = canNavigateToStep(s.key);
+              return (
+                <div key={s.key} className="flex items-center flex-1 last:flex-none">
+                  <button
+                    disabled={!clickable}
+                    onClick={() => clickable && setStep(s.key)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+                      isActive && "bg-primary text-primary-foreground",
+                      isCompleted && "bg-primary/20 text-primary cursor-pointer hover:bg-primary/30",
+                      !isActive && !isCompleted && "text-muted-foreground",
+                      clickable && !isActive && "cursor-pointer hover:text-foreground",
+                      !clickable && !isActive && !isCompleted && "cursor-default opacity-50"
+                    )}
+                  >
+                    <span className={cn(
+                      "flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold border",
+                      isActive && "border-primary-foreground",
+                      isCompleted && "border-primary bg-primary text-primary-foreground",
+                      !isActive && !isCompleted && "border-muted-foreground"
+                    )}>
+                      {isCompleted ? <Check className="h-3 w-3" /> : i + 1}
+                    </span>
+                    {s.label}
+                  </button>
+                  {i < STEPS.length - 1 && (
+                    <div className={cn(
+                      "flex-1 h-px mx-2",
+                      i < currentStepIndex ? "bg-primary" : "bg-border"
+                    )} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
           {step === "select-type" && (
             <div className="flex flex-col items-center justify-center flex-1 gap-8 p-8">
               <div className="text-center max-w-lg">
@@ -281,12 +340,6 @@ export function LeadsNode({
           {step === "criteria" && (
             <div className="flex flex-col flex-1 p-8 max-w-3xl mx-auto w-full">
               <div className="mb-8">
-                <button
-                  onClick={() => setStep("select-type")}
-                  className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1"
-                >
-                  ← Back
-                </button>
                 <h1 className="text-3xl font-extrabold mb-2">Define Your ICP</h1>
                 <p className="text-muted-foreground">
                   Set your Ideal Customer Profile. The AI will find matching companies, filter against your ICP, identify decision-makers with budget authority, and enrich each lead with growth signals.
@@ -314,13 +367,31 @@ export function LeadsNode({
                       />
                     </div>
                   ))}
+                  <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 min-w-[220px] max-w-[260px] flex-1">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Number of Leads
+                      </span>
+                    </div>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={500}
+                      placeholder="e.g. 10"
+                      value={targetCount}
+                      onChange={(e) => setTargetCount(Math.max(1, Math.min(500, Number(e.target.value) || 1)))}
+                      className="h-9 text-sm bg-background border-border"
+                    />
+                    <span className="text-[10px] text-muted-foreground">Max 500 leads per search</span>
+                  </div>
                 </div>
               </div>
 
               <div className="mt-8 flex justify-end">
                 <Button size="lg" onClick={handleStartSearch} className="px-8">
                   <Search className="h-4 w-4 mr-2" />
-                  Find Leads
+                  Find {targetCount} Leads
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
