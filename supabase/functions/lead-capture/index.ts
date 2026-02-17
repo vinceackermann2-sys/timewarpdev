@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 ## IDEAL CUSTOMER PROFILE (ICP)
 - ${criteriaStr}
 
-## TARGET: Find ${Math.min(targetCount, 15)} qualified leads.
+## TARGET: Find exactly ${targetCount} qualified leads. Do NOT return fewer unless you truly cannot find enough matching companies.
 
 ## STATE MANAGEMENT RULES:
 - Maintain an internal Visited Companies list — NEVER research the same company twice.
