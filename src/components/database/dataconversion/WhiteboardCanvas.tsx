@@ -362,14 +362,14 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
             transformOrigin: "top left",
           }}
         >
-          {/* Grid pattern background */}
+          {/* Dot pattern background */}
           <svg className="absolute w-[5000px] h-[5000px] pointer-events-none opacity-30" style={{ left: -2500, top: -2500 }}>
             <defs>
-              <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" />
+              <pattern id="dots" width="40" height="40" patternUnits="userSpaceOnUse">
+                <circle cx="20" cy="20" r="2" className="fill-muted-foreground" />
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
+            <rect width="100%" height="100%" fill="url(#dots)" />
           </svg>
 
           {/* Connection lines SVG layer */}
