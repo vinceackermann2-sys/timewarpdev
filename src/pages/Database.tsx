@@ -7,9 +7,10 @@ import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
 import { DatabaseView } from "@/components/database/DatabaseView";
 import { DataConversionView } from "@/components/database/DataConversionView";
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
+import { BusinessDNAView } from "@/components/database/BusinessDNAView";
 import { Loader2 } from "lucide-react";
 
-type View = "database" | "dataconversion" | "aiceo";
+type View = "database" | "dataconversion" | "aiceo" | "businessdna";
 
 interface PendingTask {
   role: string;
@@ -101,6 +102,7 @@ const Database = () => {
                 onTaskConsumed={() => setPendingTask(null)}
               />
             )}
+            {currentView === "businessdna" && <BusinessDNAView />}
           </main>
         </SidebarInset>
       </div>

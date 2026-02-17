@@ -28,6 +28,7 @@ import {
   RefreshCw, 
   Bot,
   LogOut,
+  Dna,
   Lock,
   PanelLeftClose,
   PanelLeft,
@@ -47,7 +48,7 @@ import { WhatsNewDropdown } from "./WhatsNewDropdown";
 import { SettingsDialog } from "./SettingsDialog";
 import { FeedbackDialog } from "./FeedbackDialog";
 
-type View = "database" | "dataconversion" | "aiceo";
+type View = "database" | "dataconversion" | "aiceo" | "businessdna";
 
 interface DatabaseSidebarProps {
   currentView: View;
@@ -132,6 +133,17 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   >
                     <RefreshCw className="h-4 w-4" />
                     {!isCollapsed && <span>Data Conversion</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    isActive={currentView === "businessdna"}
+                    onClick={() => onViewChange("businessdna")}
+                    tooltip="Business DNA"
+                    className={currentView === "businessdna" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
+                  >
+                    <Dna className="h-4 w-4" />
+                    {!isCollapsed && <span>Business DNA</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
