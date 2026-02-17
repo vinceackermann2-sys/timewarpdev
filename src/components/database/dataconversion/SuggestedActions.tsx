@@ -11,24 +11,22 @@ export function SuggestedActions({ suggestions, onSelect, isLoading }: Suggested
   if (!suggestions.length || isLoading) return null;
 
   return (
-    <div className="px-3 pb-3 space-y-2">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <MessageSquareText className="h-3 w-3" />
-        <span>Recommended next steps</span>
-      </div>
-      <div className="flex flex-col gap-1.5">
+    <div className="px-3 pb-3 space-y-1.5">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Next steps</span>
+      <div className="flex flex-col gap-1">
         {suggestions.map((suggestion, idx) => (
           <button
             key={idx}
             onClick={() => onSelect(suggestion)}
             className={cn(
-              "text-left text-xs px-3 py-2 rounded-lg",
-              "bg-muted/50 hover:bg-primary/10 border border-transparent hover:border-primary/30",
+              "flex items-center gap-1.5 text-left text-xs px-2 py-1.5 rounded-md",
+              "bg-muted/40 hover:bg-primary/10 border border-transparent hover:border-primary/30",
               "transition-all duration-200 cursor-pointer",
               "text-muted-foreground hover:text-foreground"
             )}
           >
-            {suggestion}
+            <MessageSquareText className="h-3 w-3 flex-shrink-0 text-primary/60" />
+            <span className="line-clamp-1">{suggestion}</span>
           </button>
         ))}
       </div>
