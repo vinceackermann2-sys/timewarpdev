@@ -93,7 +93,7 @@ serve(async (req) => {
           const clientId = Deno.env.get("SLACK_CLIENT_ID");
           if (!clientId) throw new Error("SLACK_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/slack-oauth-callback`;
-          const scopes = "channels:read,channels:history,files:read,users:read,team:read";
+          const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read";
           const state = btoa(JSON.stringify({ userId: user.id }));
           authUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
           break;

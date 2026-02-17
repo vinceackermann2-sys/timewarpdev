@@ -415,10 +415,15 @@ async function fetchSlackData(accessToken: string): Promise<any> {
     fetch("https://slack.com/api/team.info", { headers }),
   ]);
 
-  const [channels, team] = await Promise.all([
-    channelsRes.ok ? channelsRes.json() : { channels: [] },
-    teamRes.ok ? teamRes.json() : { team: {} },
-  ]);
+  const channels = await channelsRes.json();
+  const team = await teamRes.json();
+
+  console.log("Slack conversations.list ok:", channels.ok, "error:", channels.error, "count:", channels.channels?.length);
+  console.log("Slack team.info ok:", team.ok, "error:", team.error);
+
+  if (!channels.ok) {
+    console.error("Slack conversations.list failed:", channels.error);
+  }
 
   // Fetch recent messages from top 5 active channels
   const channelList = (channels.channels || []).slice(0, 5);
@@ -442,7 +447,7 @@ async function fetchSlackData(accessToken: string): Promise<any> {
   }
 
   return {
-    team: team.team?.name || "Unknown",
+    team: team.team?.name || team.name || "Unknown",
     channels: (channels.channels || []).map((c: any) => ({
       name: c.name,
       memberCount: c.num_members,
