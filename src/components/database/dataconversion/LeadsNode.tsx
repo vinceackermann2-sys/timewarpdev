@@ -128,7 +128,7 @@ export function LeadsNode({
       setSearchProgress("Finding companies matching your ICP, filtering, and enriching decision-maker data...");
 
       const { data, error } = await supabase.functions.invoke("lead-capture", {
-        body: { criteria: criteriaObj, type: selectedType, targetCount: Math.min(targetCount, 500) },
+        body: { criteria: criteriaObj, type: selectedType, targetCount: Math.min(targetCount, 30) },
       });
 
       if (error) throw error;
@@ -374,10 +374,10 @@ export function LeadsNode({
                     <Input
                       type="number"
                       min={1}
-                      max={500}
+                      max={30}
                       placeholder="e.g. 10"
                       value={targetCount}
-                      onChange={(e) => setTargetCount(Math.max(1, Math.min(500, Number(e.target.value) || 1)))}
+                      onChange={(e) => setTargetCount(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
                       className="h-9 text-sm bg-background border-border"
                     />
                     <span className="text-[10px] text-muted-foreground">Max 500 leads per search</span>
