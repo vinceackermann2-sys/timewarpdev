@@ -94,9 +94,17 @@ For each qualifying company, identify 1–3 relevant decision-makers.
 
 ---
 
-## STEP 4 — EXTRACT & ENRICH DATA
+## STEP 4 — EXTRACT & ENRICH DATA (INCLUDING WEBSITE CONTACT INFO)
 
 For each lead, extract ALL fields below. If you cannot verify a field, use "Not found" — NEVER FABRICATE DATA.
+
+**IMPORTANT — Website Contact Scraping:**
+Many companies publish contact information directly on their website (typically on /contact, /about, /team, or footer sections). For each company:
+- Check if you know the company's public contact email (e.g. info@, hello@, contact@, sales@ addresses found on their website)
+- Check if you know the company's public phone number (often listed on contact pages, footers, or Google Business profiles)
+- These are COMPANY-LEVEL contact details, separate from the decision-maker's personal email
+- Only include contact info you are confident is real and publicly available
+- If a company is well-known enough that you have their contact page info in your training data, include it
 
 ---
 
@@ -131,10 +139,12 @@ Return ONLY a valid JSON array. No markdown, no explanation, no wrapping. Each o
   "industry": "string",
   "sizeEstimate": "string (e.g. '50-200 employees')",
   "location": "string (city, country)",
+  "companyEmail": "string (public contact email from website, e.g. info@company.com) or Not found",
+  "companyPhone": "string (public phone number from website/Google) or Not found",
   "decisionMakerName": "string or Not found",
   "title": "string (their job title)",
   "linkedIn": "string URL or Not found",
-  "email": "string or Not found",
+  "email": "string (decision-maker's work email) or Not found",
   "emailConfidence": "High | Medium | Low | N/A",
   "growthSignal": "string describing why this company is growing, or Not found",
   "icpFitReason": "string explaining why this company matches the ICP",
