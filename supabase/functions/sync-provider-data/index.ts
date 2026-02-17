@@ -725,6 +725,39 @@ serve(async (req) => {
       }
     }
 
+    // Persist Slack messages
+    if (providerData.recentMessages) {
+      for (const ch of providerData.recentMessages) {
+        const messagesText = (ch.messages || [])
+          .map((m: any) => `[${m.user || "unknown"}] ${m.text || ""}`)
+          .join("\n");
+        if (messagesText) {
+          dataItems.push({
+            user_id: user.id,
+            data_type: "message",
+            source: provider,
+            title: `Slack messages from #${ch.channel}`,
+            content: messagesText.slice(0, 10000),
+            metadata: { channel: ch.channel, messageCount: ch.messages?.length || 0 },
+            is_analyzed: false,
+          });
+        }
+      }
+    }
+
+    // Persist Slack team info
+    if (providerData.team) {
+      dataItems.push({
+        user_id: user.id,
+        data_type: "integration",
+        source: provider,
+        title: `Slack Workspace: ${providerData.team}`,
+        content: `Workspace "${providerData.team}" with ${providerData.channels?.length || 0} channels`,
+        metadata: { team: providerData.team },
+        is_analyzed: false,
+      });
+    }
+
     // Batch insert (clear old data from this provider first)
     if (dataItems.length > 0) {
       await supabaseAdmin
@@ -752,6 +785,7 @@ serve(async (req) => {
         events: providerData.events?.length || 0,
         files: providerData.files?.length || 0,
         channels: providerData.channels?.length || 0,
+        messages: providerData.recentMessages?.length || 0,
       },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
