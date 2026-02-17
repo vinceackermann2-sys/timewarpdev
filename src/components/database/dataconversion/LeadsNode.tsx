@@ -35,6 +35,8 @@ interface LeadResult {
   industry: string;
   sizeEstimate: string;
   location: string;
+  companyEmail: string;
+  companyPhone: string;
   decisionMakerName: string;
   title: string;
   linkedIn: string;
@@ -134,9 +136,10 @@ export function LeadsNode({
 
   const handleDownloadCSV = () => {
     if (leads.length === 0) return;
-    const headers = ["#", "Score", "Company", "Website", "Industry", "Size", "Location", "Decision Maker", "Title", "LinkedIn", "Email", "Email Confidence", "Growth Signal", "ICP Fit Reason"];
+    const headers = ["#", "Score", "Company", "Website", "Industry", "Size", "Location", "Company Email", "Company Phone", "Decision Maker", "Title", "LinkedIn", "Email", "Email Confidence", "Growth Signal", "ICP Fit Reason"];
     const rows = leads.map((l, i) => [
       i + 1, l.leadScore || "", l.companyName, l.website, l.industry, l.sizeEstimate, l.location,
+      l.companyEmail || "", l.companyPhone || "",
       l.decisionMakerName, l.title, l.linkedIn, l.email, l.emailConfidence || "", l.growthSignal, l.icpFitReason
     ]);
     const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(","))].join("\n");
@@ -370,6 +373,8 @@ export function LeadsNode({
                         <TableHead className="font-extrabold">Industry</TableHead>
                         <TableHead className="font-extrabold">Size</TableHead>
                         <TableHead className="font-extrabold">Location</TableHead>
+                        <TableHead className="font-extrabold">Company Email</TableHead>
+                        <TableHead className="font-extrabold">Company Phone</TableHead>
                         <TableHead className="font-extrabold">Decision Maker</TableHead>
                         <TableHead className="font-extrabold">Title</TableHead>
                         <TableHead className="font-extrabold">LinkedIn</TableHead>
@@ -407,6 +412,20 @@ export function LeadsNode({
                           <TableCell className="text-sm">{lead.industry}</TableCell>
                           <TableCell className="text-sm">{lead.sizeEstimate}</TableCell>
                           <TableCell className="text-sm">{lead.location}</TableCell>
+                          <TableCell className="text-sm font-mono">
+                            {lead.companyEmail && lead.companyEmail !== "Not found" ? (
+                              <a href={`mailto:${lead.companyEmail}`} className="text-primary hover:underline">{lead.companyEmail}</a>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Not found</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm font-mono">
+                            {lead.companyPhone && lead.companyPhone !== "Not found" ? (
+                              <a href={`tel:${lead.companyPhone}`} className="text-primary hover:underline">{lead.companyPhone}</a>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Not found</span>
+                            )}
+                          </TableCell>
                           <TableCell className="font-medium text-sm">{lead.decisionMakerName}</TableCell>
                           <TableCell className="text-sm">{lead.title}</TableCell>
                           <TableCell>
