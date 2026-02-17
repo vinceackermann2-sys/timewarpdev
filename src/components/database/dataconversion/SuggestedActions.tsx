@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { MessageSquareText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SuggestedActionsProps {
@@ -13,7 +13,7 @@ export function SuggestedActions({ suggestions, onSelect, isLoading }: Suggested
   return (
     <div className="px-3 pb-3 space-y-2">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Sparkles className="h-3 w-3" />
+        <MessageSquareText className="h-3 w-3" />
         <span>Recommended next steps</span>
       </div>
       <div className="flex flex-col gap-1.5">
