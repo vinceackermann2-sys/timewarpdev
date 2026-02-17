@@ -361,7 +361,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
             inset: -10000,
             width: 'calc(100% + 20000px)',
             height: 'calc(100% + 20000px)',
-            backgroundImage: `radial-gradient(circle, hsl(var(--muted-foreground) / 0.3) ${1.5 / (zoom / 100)}px, transparent ${1.5 / (zoom / 100)}px)`,
+            backgroundImage: `radial-gradient(circle, hsl(var(--muted-foreground) / 0.3) ${Math.min(2.5, Math.max(1, 1.5 / Math.sqrt(zoom / 100)))}px, transparent ${Math.min(2.5, Math.max(1, 1.5 / Math.sqrt(zoom / 100)))}px)`,
             backgroundSize: `${40 * (zoom / 100)}px ${40 * (zoom / 100)}px`,
             backgroundPosition: `${panOffset.x % (40 * (zoom / 100))}px ${panOffset.y % (40 * (zoom / 100))}px`,
           }}
