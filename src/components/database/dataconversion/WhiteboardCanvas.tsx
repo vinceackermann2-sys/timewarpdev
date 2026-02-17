@@ -363,7 +363,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
           }}
         >
           {/* Dot pattern background */}
-          <svg className="absolute w-[5000px] h-[5000px] pointer-events-none opacity-30" style={{ left: -2500, top: -2500 }}>
+          <svg className="absolute w-[20000px] h-[20000px] pointer-events-none opacity-30" style={{ left: -10000, top: -10000 }}>
             <defs>
               <pattern id="dots" width="40" height="40" patternUnits="userSpaceOnUse">
                 <circle cx="20" cy="20" r="2" className="fill-muted-foreground" />
