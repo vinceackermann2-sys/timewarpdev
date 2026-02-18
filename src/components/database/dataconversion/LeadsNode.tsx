@@ -380,7 +380,7 @@ export function LeadsNode({
                       onChange={(e) => setTargetCount(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
                       className="h-9 text-sm bg-background border-border"
                     />
-                    <span className="text-[10px] text-muted-foreground">Max 500 leads per search</span>
+                    <span className="text-[10px] text-muted-foreground">Max 30 leads per search</span>
                   </div>
                 </div>
               </div>
