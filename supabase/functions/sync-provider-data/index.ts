@@ -176,9 +176,9 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
 
   const [mailRes, calRes, filesRes] = await Promise.all([
-    fetch("https://graph.microsoft.com/v1.0/me/messages?$top=30&$select=subject,from,receivedDateTime,body&$orderby=receivedDateTime desc", { headers }),
-    fetch("https://graph.microsoft.com/v1.0/me/events?$top=30&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc", { headers }),
-    fetch("https://graph.microsoft.com/v1.0/me/drive/recent?$top=20", { headers }),
+    fetch("https://graph.microsoft.com/v1.0/me/messages?$top=15&$select=subject,from,receivedDateTime,body&$orderby=receivedDateTime desc", { headers }),
+    fetch("https://graph.microsoft.com/v1.0/me/events?$top=20&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc", { headers }),
+    fetch("https://graph.microsoft.com/v1.0/me/drive/recent?$top=10", { headers }),
   ]);
 
   const [mail, calendar, files] = await Promise.all([
@@ -209,7 +209,7 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
 
   // Try to download text content from files (PDFs, docs, etc.)
   const fileDetails = [];
-  for (const f of (files.value || []).slice(0, 20)) {
+  for (const f of (files.value || []).slice(0, 10)) {
     const fileInfo: any = {
       name: f.name,
       size: f.size,
@@ -271,9 +271,9 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
 
   const [mailRes, calRes, driveRes] = await Promise.all([
-    fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30", { headers }),
-    fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=30&orderBy=startTime&singleEvents=true&timeMin=" + new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), { headers }),
-    fetch("https://www.googleapis.com/drive/v3/files?pageSize=20&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)", { headers }),
+    fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15", { headers }),
+    fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=20&orderBy=startTime&singleEvents=true&timeMin=" + new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), { headers }),
+    fetch("https://www.googleapis.com/drive/v3/files?pageSize=10&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)", { headers }),
   ]);
 
   const [mailList, calendar, drive] = await Promise.all([
@@ -282,10 +282,10 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
     driveRes.ok ? driveRes.json() : { files: [] },
   ]);
 
-  // Fetch full email body for top 20
+  // Fetch full email body for top 10 (in parallel batches to stay fast)
   const emailDetails = [];
-  const messageIds = (mailList.messages || []).slice(0, 20);
-  for (const msg of messageIds) {
+  const messageIds = (mailList.messages || []).slice(0, 10);
+  const emailFetches = messageIds.map(async (msg: any) => {
     try {
       const detailRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
@@ -295,7 +295,6 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
         const detail = await detailRes.json();
         const getHeader = (name: string) => detail.payload?.headers?.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value;
         
-        // Extract body text from parts
         let bodyText = "";
         const extractText = (part: any) => {
           if (part.mimeType === "text/plain" && part.body?.data) {
@@ -306,23 +305,25 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
         };
         
         if (detail.payload) extractText(detail.payload);
-        
-        // Fallback to snippet if no body extracted
         if (!bodyText && detail.snippet) bodyText = detail.snippet;
         
-        emailDetails.push({
+        return {
           subject: getHeader("Subject"),
           from: getHeader("From"),
           date: getHeader("Date"),
-          body: bodyText.slice(0, 5000),
-        });
+          body: bodyText.slice(0, 3000),
+        };
       }
     } catch { /* skip */ }
-  }
+    return null;
+  });
+  const emailResults = await Promise.all(emailFetches);
+  emailDetails.push(...emailResults.filter(Boolean));
 
   // Fetch content from Google Drive files where possible
+  // Process drive files (limit to 10, skip heavy video extraction)
   const fileDetails = [];
-  for (const f of (drive.files || []).slice(0, 20)) {
+  for (const f of (drive.files || []).slice(0, 10)) {
     const fileInfo: any = {
       name: f.name,
       type: f.mimeType,
@@ -330,7 +331,7 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
       webUrl: f.webViewLink,
     };
 
-    // Export Google Docs/Sheets/Slides as plain text
+    // Export Google Docs/Sheets as plain text
     if (f.mimeType === "application/vnd.google-apps.document") {
       try {
         const exportRes = await fetch(
@@ -338,7 +339,7 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
           { headers }
         );
         if (exportRes.ok) {
-          fileInfo.extractedContent = (await exportRes.text()).slice(0, 10000);
+          fileInfo.extractedContent = (await exportRes.text()).slice(0, 8000);
         }
       } catch { /* skip */ }
     } else if (f.mimeType === "application/vnd.google-apps.spreadsheet") {
@@ -348,7 +349,7 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
           { headers }
         );
         if (exportRes.ok) {
-          fileInfo.extractedContent = (await exportRes.text()).slice(0, 10000);
+          fileInfo.extractedContent = (await exportRes.text()).slice(0, 8000);
         }
       } catch { /* skip */ }
     } else if (f.mimeType === "text/plain" || f.mimeType === "text/csv") {
@@ -358,11 +359,11 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
           { headers }
         );
         if (dlRes.ok) {
-          fileInfo.extractedContent = (await dlRes.text()).slice(0, 10000);
+          fileInfo.extractedContent = (await dlRes.text()).slice(0, 8000);
         }
       } catch { /* skip */ }
     } else if (f.mimeType === "application/pdf") {
-      // Download PDF and extract text via AI
+      // Only process small PDFs (under 2MB) to avoid timeout
       try {
         const dlRes = await fetch(
           `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,
@@ -370,27 +371,13 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
         );
         if (dlRes.ok) {
           const buf = new Uint8Array(await dlRes.arrayBuffer());
-          // Only process PDFs under 5MB to avoid timeouts
-          if (buf.length < 5 * 1024 * 1024) {
+          if (buf.length < 2 * 1024 * 1024) {
             fileInfo.extractedContent = await extractPdfText(buf, f.name);
           }
         }
       } catch { /* skip */ }
-    } else if (isVideoFile(f.name, f.mimeType)) {
-      // Download video and extract content via AI (under 10MB)
-      try {
-        const dlRes = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,
-          { headers }
-        );
-        if (dlRes.ok) {
-          const buf = new Uint8Array(await dlRes.arrayBuffer());
-          if (buf.length < 10 * 1024 * 1024) {
-            fileInfo.extractedContent = await extractVideoContent(buf, f.name, f.mimeType);
-          }
-        }
-      } catch { /* skip */ }
     }
+    // Skip video extraction during sync to avoid timeouts
 
     fileDetails.push(fileInfo);
   }
