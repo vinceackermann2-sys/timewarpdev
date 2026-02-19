@@ -29,7 +29,6 @@ import {
   Bot,
   LogOut,
   Dna,
-  Lock,
   PanelLeftClose,
   PanelLeft,
   Sparkles,
@@ -152,7 +151,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     className="opacity-50 cursor-not-allowed"
                     disabled
                   >
-                    <Lock className="h-4 w-4" />
+                    <Bot className="h-4 w-4" />
                     {!isCollapsed && (
                       <span className="flex items-center gap-2">
                         TimeWarp AI
