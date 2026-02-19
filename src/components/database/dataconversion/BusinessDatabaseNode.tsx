@@ -141,7 +141,7 @@ export function BusinessDatabaseNode({
       </div>
 
       {/* Content */}
-      <ScrollArea className="h-[calc(100%-44px)]">
+      <ScrollArea className="h-[calc(100%-44px)]" onWheel={(e) => e.stopPropagation()}>
         <div className="p-2">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
