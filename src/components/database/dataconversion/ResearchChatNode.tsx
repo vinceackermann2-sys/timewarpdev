@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Telescope, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { extractSuggestions } from "@/lib/parseSuggestions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -37,22 +38,12 @@ interface ResearchChatNodeProps {
 
 // Parse suggestions and insights from response
 function parseResponse(text: string): { content: string; suggestions: string[]; insights: InsightCard[] } {
-  const suggestions: string[] = [];
-  let content = text;
-  
-  // Parse suggestions
-  const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
-  let match;
-  while ((match = suggestRegex.exec(text)) !== null) {
-    const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
-    suggestions.push(...items);
-  }
-  content = content.replace(suggestRegex, "").trim();
+  const { content: stripped, suggestions } = extractSuggestions(text);
   
   // Parse insight cards
-  const { content: cleanContent, insights } = parseInsightCards(content);
+  const { content: cleanContent, insights } = parseInsightCards(stripped);
   
-  return { content: cleanContent, suggestions: suggestions.slice(0, 3), insights };
+  return { content: cleanContent, suggestions, insights };
 }
 
 export function ResearchChatNode({

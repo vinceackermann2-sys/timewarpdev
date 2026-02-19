@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { extractSuggestions } from "@/lib/parseSuggestions";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   DatabaseChatMessage, 
@@ -39,13 +40,9 @@ function parseResearchResponse(text: string): { content: string; suggestions: st
   const suggestions: string[] = [];
   let content = text;
 
-  const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
-  let match;
-  while ((match = suggestRegex.exec(text)) !== null) {
-    const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
-    suggestions.push(...items);
-  }
-  content = content.replace(suggestRegex, "").trim();
+  const { content: suggestStripped, suggestions: parsedSuggestions } = extractSuggestions(text);
+  content = suggestStripped;
+  suggestions.push(...parsedSuggestions);
 
   const { content: cleanContent, insights } = parseInsightCards(content);
 
@@ -88,12 +85,9 @@ function parseGenerationResponse(text: string): {
   }
   content = content.replace(docRegex, "");
 
-  const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
-  while ((match = suggestRegex.exec(text)) !== null) {
-    const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
-    suggestions.push(...items);
-  }
-  content = content.replace(suggestRegex, "");
+  const { content: suggestStripped2, suggestions: parsedSuggestions2 } = extractSuggestions(content);
+  content = suggestStripped2;
+  suggestions.push(...parsedSuggestions2);
   content = content.trim().replace(/\n{3,}/g, "\n\n");
 
   return { steps, content, documentLinks, suggestions: suggestions.slice(0, 3) };
