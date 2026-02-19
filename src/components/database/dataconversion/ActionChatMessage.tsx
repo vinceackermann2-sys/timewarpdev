@@ -78,6 +78,10 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
 
   return (
     <div className="mr-4 rounded-xl overflow-hidden text-sm group/msg relative">
+      {/* Name label */}
+      <div className="px-2 pt-2 pb-0.5">
+        <span className="text-[10px] font-semibold text-accent/60 uppercase tracking-widest">TimeWarp AI</span>
+      </div>
       {/* Copy button */}
       {content && !isStreaming && (
         <button
