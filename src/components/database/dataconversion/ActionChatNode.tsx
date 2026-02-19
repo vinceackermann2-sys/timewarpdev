@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Images, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { extractSuggestions } from "@/lib/parseSuggestions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -77,13 +78,10 @@ function parseActionResponse(text: string): {
   }
   content = content.replace(docRegex, "");
 
-  // Parse suggestions: [SUGGEST:suggestion1|suggestion2|suggestion3]
-  const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
-  while ((match = suggestRegex.exec(text)) !== null) {
-    const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
-    suggestions.push(...items);
-  }
-  content = content.replace(suggestRegex, "");
+  // Parse suggestions using shared robust parser
+  const { content: suggestStripped, suggestions: parsedSuggestions } = extractSuggestions(content);
+  content = suggestStripped;
+  suggestions.push(...parsedSuggestions);
 
   // Clean up extra whitespace
   content = content.trim().replace(/\n{3,}/g, "\n\n");

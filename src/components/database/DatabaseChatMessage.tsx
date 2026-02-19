@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { extractSuggestions } from "@/lib/parseSuggestions";
 
 export interface InsightCard {
   icon: string;
@@ -42,13 +43,9 @@ export function parseInsightCards(text: string): { content: string; insights: In
   return { content: content.trim(), insights };
 }
 
-// Parse suggestions: [SUGGEST:suggestion1|suggestion2|suggestion3]
+// Parse suggestions using shared robust parser
 export function parseSuggestions(text: string): { content: string; suggestions: string[] } {
-  const suggestRegex = /\[SUGGEST:([^\]]+)\]/g;
-  const match = suggestRegex.exec(text);
-  const suggestions = match ? match[1].split("|").map(s => s.trim()).filter(Boolean) : [];
-  const content = text.replace(suggestRegex, "").trim();
-  return { content, suggestions };
+  return extractSuggestions(text);
 }
 
 const iconMap: Record<string, React.ReactNode> = {
