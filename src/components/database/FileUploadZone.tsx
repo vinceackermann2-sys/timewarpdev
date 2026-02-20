@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, FileText, Image, File, Loader2, X, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, Image, File, Loader2, X, CheckCircle2, Music, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -29,10 +29,16 @@ const SUPPORTED_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
+  // Audio
+  "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/mp4", "audio/m4a", "audio/aac", "audio/ogg", "audio/webm",
+  // Video
+  "video/mp4", "video/quicktime", "video/webm", "video/x-msvideo",
 ];
 
 const getFileIcon = (mimeType: string) => {
   if (mimeType.startsWith("image/")) return Image;
+  if (mimeType.startsWith("audio/")) return Music;
+  if (mimeType.startsWith("video/")) return Video;
   if (mimeType === "application/pdf") return FileText;
   return File;
 };
@@ -92,19 +98,34 @@ export function FileUploadZone({ onFileUploaded }: FileUploadZoneProps) {
       }
       const base64Data = btoa(binary);
 
+      // Determine content type
+      let analyzeType = "document";
+      if (file.type.startsWith("image/")) analyzeType = "image";
+      else if (file.type.startsWith("audio/")) analyzeType = "audio";
+      else if (file.type.startsWith("video/")) analyzeType = "video";
+      else if (file.type === "text/plain" || file.type === "text/csv") analyzeType = "text";
+
+      // Build request body matching analyze-content expectations
+      let contentBody: any;
+      if (analyzeType === "audio" || analyzeType === "video") {
+        contentBody = { fileName: file.name, fileBase64: base64Data, fileMimeType: file.type };
+      } else if (analyzeType === "image") {
+        contentBody = { imageName: file.name, imageBase64: base64Data, imageMimeType: file.type };
+      } else if (analyzeType === "text") {
+        contentBody = { text: await file.text() };
+      } else {
+        contentBody = { documentName: file.name, fileBase64: base64Data, fileMimeType: file.type };
+      }
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-file`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({
-            fileData: base64Data,
-            fileName: file.name,
-            mimeType: file.type,
-          }),
+          body: JSON.stringify({ type: analyzeType, content: contentBody }),
         }
       );
 
@@ -115,8 +136,20 @@ export function FileUploadZone({ onFileUploaded }: FileUploadZoneProps) {
 
       const result = await response.json();
       
-      setUploadedFiles(prev => [...prev, result.file]);
-      onFileUploaded?.(result.file);
+      if (!result.success) {
+        throw new Error(result.error || "Analysis failed");
+      }
+
+      const uploadedFile: UploadedFile = {
+        id: crypto.randomUUID(),
+        fileName: file.name,
+        mimeType: file.type,
+        summary: result.analysis?.slice(0, 200) || "Analyzed successfully",
+        uploadedAt: new Date().toISOString(),
+      };
+      
+      setUploadedFiles(prev => [...prev, uploadedFile]);
+      onFileUploaded?.(uploadedFile);
 
       toast({
         title: "File analyzed",
@@ -203,7 +236,7 @@ export function FileUploadZone({ onFileUploaded }: FileUploadZoneProps) {
                 {isDragging ? "Drop files here" : "Upload files for AI analysis"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                PDF, images, CSV, Word, Excel • Max 10MB
+                PDF, images, audio, video, CSV, Word, Excel • Max 10MB
               </p>
             </div>
           </>
