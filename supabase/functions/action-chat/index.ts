@@ -100,15 +100,27 @@ serve(async (req) => {
 
     let frontendContext = "";
     if (connectedContexts && connectedContexts.length > 0) {
-      frontendContext = "\n\n## Additional Connected Data\n\n";
-      for (const ctx of connectedContexts) {
-        frontendContext += `### ${ctx.label} (${ctx.type})\n`;
-        if (ctx.content?.analysis) frontendContext += `**AI Analysis:**\n${ctx.content.analysis}\n\n`;
-        if (ctx.content?.text) frontendContext += `**Raw Text:**\n${ctx.content.text}\n\n`;
-        if (ctx.content?.extractedText) frontendContext += `**Extracted Content:**\n${ctx.content.extractedText}\n\n`;
-        if (ctx.content?.url) frontendContext += `**Source URL:** ${ctx.content.url}\n\n`;
-        if (ctx.content?.name) frontendContext += `**Document:** ${ctx.content.name}\n\n`;
-        if (ctx.content?.items) frontendContext += `**Data:** ${JSON.stringify(ctx.content.items?.slice(0, 20))}\n\n`;
+      const unanalyzedSources = connectedContexts.filter((ctx: any) => ctx.isAnalyzed === false);
+      if (unanalyzedSources.length > 0) {
+        frontendContext += "\n\n## ⚠️ UNANALYZED DATA SOURCES\nThe following connected sources have NOT been analyzed yet. You MUST inform the user that these sources need to be analyzed first before you can generate content from them. Tell them to click the 'Analyze' button on the node.\n";
+        for (const ctx of unanalyzedSources) {
+          frontendContext += `- **${ctx.label}** (${ctx.type}) — NOT YET ANALYZED\n`;
+        }
+        frontendContext += "\n";
+      }
+
+      const analyzedContexts = connectedContexts.filter((ctx: any) => ctx.isAnalyzed !== false);
+      if (analyzedContexts.length > 0) {
+        frontendContext += "\n\n## Additional Connected Data\n\n";
+        for (const ctx of analyzedContexts) {
+          frontendContext += `### ${ctx.label} (${ctx.type})\n`;
+          if (ctx.content?.analysis) frontendContext += `**AI Analysis:**\n${ctx.content.analysis}\n\n`;
+          if (ctx.content?.text) frontendContext += `**Raw Text:**\n${ctx.content.text}\n\n`;
+          if (ctx.content?.extractedText) frontendContext += `**Extracted Content:**\n${ctx.content.extractedText}\n\n`;
+          if (ctx.content?.url) frontendContext += `**Source URL:** ${ctx.content.url}\n\n`;
+          if (ctx.content?.name) frontendContext += `**Document:** ${ctx.content.name}\n\n`;
+          if (ctx.content?.items) frontendContext += `**Data:** ${JSON.stringify(ctx.content.items?.slice(0, 20))}\n\n`;
+        }
       }
     }
 
