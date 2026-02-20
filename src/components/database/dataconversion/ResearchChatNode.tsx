@@ -22,6 +22,7 @@ interface ChatMessage {
 interface ConnectedContext {
   type: string;
   label: string;
+  isAnalyzed?: boolean;
   content: any;
 }
 
@@ -130,9 +131,10 @@ export function ResearchChatNode({
                 contexts.push({
                   type: "text",
                   label: source.label,
+                  isAnalyzed: !!source.analyzedContent,
                   content: { 
                     text: source.textContent,
-                    analysis: source.analyzedContent // Include AI analysis
+                    analysis: source.analyzedContent
                   }
                 });
               }
@@ -143,10 +145,11 @@ export function ResearchChatNode({
                 contexts.push({
                   type: "document",
                   label: source.label,
+                  isAnalyzed: !!source.analyzedContent,
                   content: { 
                     name: source.documentName,
-                    extractedText: source.documentContent, // Include extracted text
-                    analysis: source.analyzedContent // Include AI analysis
+                    extractedText: source.documentContent,
+                    analysis: source.analyzedContent
                   }
                 });
               }
@@ -157,9 +160,10 @@ export function ResearchChatNode({
                 contexts.push({
                   type: "image",
                   label: source.label,
+                  isAnalyzed: !!source.analyzedContent,
                   content: { 
                     url: source.imageUrl,
-                    analysis: source.analyzedContent // Include AI analysis of the image
+                    analysis: source.analyzedContent
                   }
                 });
               }
@@ -170,10 +174,11 @@ export function ResearchChatNode({
                 contexts.push({
                   type: "website",
                   label: source.label,
+                  isAnalyzed: !!source.analyzedContent,
                   content: { 
                     url: source.websiteUrl,
                     title: source.websiteTitle,
-                    analysis: source.analyzedContent // Include AI analysis of the website
+                    analysis: source.analyzedContent
                   }
                 });
               }

@@ -23,6 +23,7 @@ interface ChatMessage {
 interface ConnectedContext {
   type: string;
   label: string;
+  isAnalyzed?: boolean;
   content: any;
 }
 
@@ -172,6 +173,7 @@ export function ActionChatNode({
                 contexts.push({
                   type: "text",
                   label: source.label,
+                  isAnalyzed: !!source.analyzedContent,
                   content: { 
                     text: source.textContent,
                     analysis: source.analyzedContent
@@ -185,6 +187,7 @@ export function ActionChatNode({
                 contexts.push({
                   type: "document",
                   label: source.label,
+                  isAnalyzed: !!source.analyzedContent,
                   content: { 
                     name: source.documentName,
                     extractedText: source.documentContent,
@@ -199,6 +202,7 @@ export function ActionChatNode({
                 contexts.push({
                   type: "image",
                   label: source.label,
+                  isAnalyzed: !!source.analyzedContent,
                   content: { 
                     url: source.imageUrl,
                     analysis: source.analyzedContent
@@ -212,6 +216,7 @@ export function ActionChatNode({
                 contexts.push({
                   type: "website",
                   label: source.label,
+                  isAnalyzed: !!source.analyzedContent,
                   content: { 
                     url: source.websiteUrl,
                     title: source.websiteTitle,
