@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Dna, Zap, Cog, Eye, Scale, Loader2, Plus, Trash2, Check, X,
-  RefreshCw, Upload, Globe, Pencil, Link, FileText, Image, Music, Video, File
+  RefreshCw, Upload, Globe, Pencil, Link, FileText, Image, Music, Video, File,
+  ChevronLeft
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import timewarpLogo from "@/assets/timewarp-logo.png";
 
 // ── Types ──
 interface SegmentEntry {
@@ -97,6 +100,26 @@ const DNA_SEGMENTS: DNASegment[] = [
       ],
     },
   },
+];
+
+// ── DNA Section definitions (expandable later) ──
+interface DNASection {
+  id: string;
+  label: string;
+  description: string;
+  angle: number; // position around the swirl (degrees)
+  color: string;
+}
+
+const DNA_SECTIONS: DNASection[] = [
+  {
+    id: "value-exchange",
+    label: "The Value Exchange Loop",
+    description: "The repeatable delivery of a solution that costs less than the value it provides.",
+    angle: 0,
+    color: "hsl(var(--primary))",
+  },
+  // More sections will be added here later
 ];
 
 // ── File upload helpers ──
@@ -466,6 +489,94 @@ function ContextUploadSection({ onUploaded }: { onUploaded: () => void }) {
   );
 }
 
+// ── Swirl Hub ──
+function SwirlHub({
+  hoveredSection,
+  activeSection,
+  onHover,
+  onClick,
+}: {
+  hoveredSection: string | null;
+  activeSection: string | null;
+  onHover: (id: string | null) => void;
+  onClick: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 gap-6">
+      {/* Logo with hover zones */}
+      <div className="relative">
+        <motion.div
+          className="relative w-48 h-48 cursor-pointer"
+          whileHover={{ scale: 1.05 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        >
+          <img
+            src={timewarpLogo}
+            alt="Business DNA"
+            className="w-full h-full object-contain drop-shadow-md"
+          />
+
+          {/* Invisible hover zone — currently one swirl = Value Exchange Loop */}
+          <button
+            className="absolute inset-0 rounded-full z-10"
+            onMouseEnter={() => onHover("value-exchange")}
+            onMouseLeave={() => onHover(null)}
+            onClick={() => onClick("value-exchange")}
+            aria-label="Open The Value Exchange Loop"
+          />
+        </motion.div>
+
+        {/* Tooltip on hover */}
+        <AnimatePresence>
+          {hoveredSection && !activeSection && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.15 }}
+              className="absolute -bottom-16 left-1/2 -translate-x-1/2 whitespace-nowrap"
+            >
+              <div className="bg-card border border-border/50 rounded-lg px-4 py-2.5 shadow-lg">
+                <p className="text-sm font-semibold text-foreground">
+                  {DNA_SECTIONS.find(s => s.id === hoveredSection)?.label}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {DNA_SECTIONS.find(s => s.id === hoveredSection)?.description}
+                </p>
+              </div>
+              <div className="w-2.5 h-2.5 bg-card border-l border-t border-border/50 rotate-45 absolute -top-1.5 left-1/2 -translate-x-1/2" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Section labels around logo */}
+      <div className="flex flex-wrap justify-center gap-3">
+        {DNA_SECTIONS.map((section) => (
+          <button
+            key={section.id}
+            onMouseEnter={() => onHover(section.id)}
+            onMouseLeave={() => onHover(null)}
+            onClick={() => onClick(section.id)}
+            className={cn(
+              "px-4 py-2 rounded-lg border text-sm font-medium transition-all",
+              activeSection === section.id
+                ? "bg-primary/10 border-primary/30 text-primary"
+                : "bg-card/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/20 hover:bg-primary/5"
+            )}
+          >
+            {section.label}
+          </button>
+        ))}
+      </div>
+
+      <p className="text-xs text-muted-foreground/60 italic">
+        Hover or click a strand to explore
+      </p>
+    </div>
+  );
+}
+
 // ── Main View ──
 export function BusinessDNAView() {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
@@ -473,6 +584,8 @@ export function BusinessDNAView() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isCategorizing, setIsCategorizing] = useState(false);
+  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
   const { toast } = useToast();
 
   const loadEntries = useCallback(async () => {
@@ -578,7 +691,6 @@ export function BusinessDNAView() {
   };
 
   const handleEditEntry = async (entryId: string, newText: string) => {
-    // Update both the content and the dna_insight in metadata
     const { data: existing } = await (supabase as any)
       .from("user_business_data")
       .select("metadata")
@@ -617,58 +729,119 @@ export function BusinessDNAView() {
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Business DNA</h1>
             <p className="text-sm text-muted-foreground">
-              The repeatable delivery of a solution that costs less than the value it provides.
+              Map the fundamental strands of your business
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 text-xs"
-          onClick={handleCategorize}
-          disabled={isCategorizing}
-        >
-          {isCategorizing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-          {isCategorizing ? "Analyzing..." : "Auto-categorize"}
-        </Button>
-      </div>
-
-      {/* Summary */}
-      <div className="mx-6 mt-2 mb-4 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          <span className="font-semibold text-foreground">What is the DNA?</span>{" "}
-          If you remove the Price, it's a gift. If you remove the Solution, it's a scam. If you remove the Value, it's obsolete.
-          Everything else—marketing, HR, legal, branding—is just the "flesh" built around that skeleton.
-          {totalInsights > 0 && (
-            <span className="ml-1 text-primary font-medium">• {totalInsights} insights extracted</span>
-          )}
-        </p>
+        {activeSection && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={handleCategorize}
+            disabled={isCategorizing}
+          >
+            {isCategorizing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {isCategorizing ? "Analyzing..." : "Auto-categorize"}
+          </Button>
+        )}
       </div>
 
       <ScrollArea className="flex-1 px-6 pb-6">
-        <div className="space-y-6">
-          {/* Context upload section */}
-          <Card className="border border-border/50 bg-card/50">
-            <CardContent className="pt-4 pb-4">
-              <ContextUploadSection onUploaded={() => { loadEntries(); }} />
-            </CardContent>
-          </Card>
+        <AnimatePresence mode="wait">
+          {!activeSection ? (
+            /* ── Hub View ── */
+            <motion.div
+              key="hub"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Context upload at top */}
+              <Card className="border border-border/50 bg-card/50 mt-4">
+                <CardContent className="pt-4 pb-4">
+                  <ContextUploadSection onUploaded={() => { loadEntries(); }} />
+                </CardContent>
+              </Card>
 
-          {/* Segment grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {DNA_SEGMENTS.map((seg) => (
-              <SegmentCard
-                key={seg.id}
-                segment={seg}
-                entries={segmentEntries[seg.id] || []}
-                isLoading={isLoading}
-                onAddManual={handleAddManual}
-                onDeleteEntry={handleDeleteEntry}
-                onEditEntry={handleEditEntry}
+              {/* Swirl Hub */}
+              <SwirlHub
+                hoveredSection={hoveredSection}
+                activeSection={activeSection}
+                onHover={setHoveredSection}
+                onClick={(id) => setActiveSection(id)}
               />
-            ))}
-          </div>
-        </div>
+
+              {/* Summary */}
+              <div className="rounded-lg border border-border/50 bg-muted/30 px-4 py-3 mb-6">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">What is the DNA?</span>{" "}
+                  If you remove the Price, it's a gift. If you remove the Solution, it's a scam. If you remove the Value, it's obsolete.
+                  Everything else—marketing, HR, legal, branding—is just the "flesh" built around that skeleton.
+                  {totalInsights > 0 && (
+                    <span className="ml-1 text-primary font-medium">• {totalInsights} insights extracted</span>
+                  )}
+                </p>
+              </div>
+            </motion.div>
+          ) : activeSection === "value-exchange" ? (
+            /* ── Value Exchange Loop View ── */
+            <motion.div
+              key="value-exchange"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-4 mt-4"
+            >
+              {/* Back + section header */}
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setActiveSection(null)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">The Value Exchange Loop</h2>
+                  <p className="text-xs text-muted-foreground">
+                    The repeatable delivery of a solution that costs less than the value it provides.
+                  </p>
+                </div>
+              </div>
+
+              {/* Summary card */}
+              <div className="rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">The Atomic Formula:</span>{" "}
+                  <span className="font-mono font-bold text-foreground">Vp &gt; P &gt; C</span>{" "}
+                  — Perceived Value must exceed Price, which must exceed Cost. Remove any variable and the business ceases to function.
+                  {totalInsights > 0 && (
+                    <span className="ml-1 text-primary font-medium">• {totalInsights} insights</span>
+                  )}
+                </p>
+              </div>
+
+              {/* Segment grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {DNA_SEGMENTS.map((seg) => (
+                  <SegmentCard
+                    key={seg.id}
+                    segment={seg}
+                    entries={segmentEntries[seg.id] || []}
+                    isLoading={isLoading}
+                    onAddManual={handleAddManual}
+                    onDeleteEntry={handleDeleteEntry}
+                    onEditEntry={handleEditEntry}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </ScrollArea>
     </div>
   );
