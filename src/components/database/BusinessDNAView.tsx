@@ -615,7 +615,7 @@ export function BusinessDNAView() {
             <Dna className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Value Exchange Loop</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Business DNA</h1>
             <p className="text-sm text-muted-foreground">
               The repeatable delivery of a solution that costs less than the value it provides.
             </p>
