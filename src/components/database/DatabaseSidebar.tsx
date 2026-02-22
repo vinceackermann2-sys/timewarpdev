@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Database, 
+  FileText,
   RefreshCw, 
   Bot,
   LogOut,
@@ -171,6 +172,30 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
           {/* What's New Section */}
           <WhatsNewDropdown isCollapsed={isCollapsed} />
 
+          {/* Privacy & Terms links */}
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => navigate("/privacy")}
+                tooltip="Privacy Policy"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <FileText className="h-4 w-4" />
+                {!isCollapsed && <span className="text-xs">Privacy Policy</span>}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => navigate("/terms")}
+                tooltip="Terms of Service"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <FileText className="h-4 w-4" />
+                {!isCollapsed && <span className="text-xs">Terms of Service</span>}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+
           {/* User Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -240,19 +265,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Developer
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="cursor-pointer"
-                onClick={() => navigate("/privacy")}
-              >
-                Privacy Policy
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="cursor-pointer"
-                onClick={() => navigate("/terms")}
-              >
-                Terms of Service
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
