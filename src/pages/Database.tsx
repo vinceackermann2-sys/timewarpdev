@@ -55,22 +55,16 @@ const Database = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null);
-        if (!session) {
-          navigate("/auth?redirect=/");
-        }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setIsLoading(false);
-      if (!session) {
-        navigate("/auth?redirect=/");
-      }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   if (isLoading) {
     return (
@@ -80,29 +74,33 @@ const Database = () => {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  const handleViewChange = (view: View) => {
+    if (!user && view !== "database") {
+      navigate("/auth?redirect=/");
+      return;
+    }
+    setCurrentView(view);
+  };
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <DatabaseSidebar 
           currentView={currentView} 
-          onViewChange={setCurrentView}
-          userEmail={user.email || ""}
+          onViewChange={handleViewChange}
+          userEmail={user?.email || ""}
         />
         <SidebarInset className="flex flex-col flex-1">
           <main className="flex-1 overflow-hidden">
             {currentView === "database" && <DatabaseView />}
-            {currentView === "dataconversion" && <DataConversionView />}
-            {currentView === "aiceo" && (
+            {currentView === "dataconversion" && user && <DataConversionView />}
+            {currentView === "aiceo" && user && (
               <TimeWarpAIView 
                 initialTask={pendingTask}
                 onTaskConsumed={() => setPendingTask(null)}
               />
             )}
-            {currentView === "businessdna" && <BusinessDNAView />}
+            {currentView === "businessdna" && user && <BusinessDNAView />}
           </main>
         </SidebarInset>
       </div>
