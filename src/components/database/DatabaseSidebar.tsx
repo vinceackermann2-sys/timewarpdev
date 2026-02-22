@@ -243,6 +243,19 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => navigate("/privacy")}
+              >
+                Privacy Policy
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => navigate("/terms")}
+              >
+                Terms of Service
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
                 className="cursor-pointer text-destructive focus:text-destructive"
                 onClick={handleLogout}
               >
