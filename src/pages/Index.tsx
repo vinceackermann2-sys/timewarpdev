@@ -89,14 +89,14 @@ const Index = () => {
     // Clear quiz data after completion
     localStorage.removeItem('quizData');
     sessionStorage.removeItem('quizData');
-    navigate("/database");
+    navigate("/");
   };
 
   const handleTakeControl = () => {
     setShowResearch(false);
     localStorage.removeItem('quizData');
     sessionStorage.removeItem('quizData');
-    navigate("/database");
+    navigate("/");
   };
 
   if (isLoading) {

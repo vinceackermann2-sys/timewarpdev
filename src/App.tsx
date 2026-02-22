@@ -23,11 +23,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<TimewarpOG />} />
+            <Route path="/" element={<Database />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/timewarp-og" element={<AiCeo />} />
             
-            <Route path="/database" element={<Database />} />
+            <Route path="/database" element={<TimewarpOG />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfPurchase />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
