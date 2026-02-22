@@ -7,7 +7,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-4">
+            <Link to="/database" className="flex items-center gap-2 mb-4">
               <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">AI</span>
               </div>

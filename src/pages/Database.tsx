@@ -56,7 +56,7 @@ const Database = () => {
       (event, session) => {
         setUser(session?.user ?? null);
         if (!session) {
-          navigate("/auth");
+          navigate("/auth?redirect=/");
         }
       }
     );
@@ -65,7 +65,7 @@ const Database = () => {
       setUser(session?.user ?? null);
       setIsLoading(false);
       if (!session) {
-        navigate("/auth");
+        navigate("/auth?redirect=/");
       }
     });
 
