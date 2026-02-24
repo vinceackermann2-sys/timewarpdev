@@ -74,6 +74,11 @@ const Database = () => {
     );
   }
 
+  if (!user) {
+    navigate("/");
+    return null;
+  }
+
   const handleViewChange = (view: View) => {
     if (!user && view !== "database") {
       navigate("/auth?redirect=/app");
