@@ -240,7 +240,7 @@ export default function TimewarpOG() {
         <ScrollReveal>
         <div style={{ textAlign: "center", marginTop: 32 }}>
           <button
-            onClick={() => navigate("/ai-ceo")}
+            onClick={() => navigate("/")}
             style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer", transition: "color 0.2s" }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; }}

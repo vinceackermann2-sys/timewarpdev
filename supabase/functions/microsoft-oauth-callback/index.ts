@@ -17,7 +17,7 @@ serve(async (req) => {
   const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://digital-guide-genie.lovable.app";
 
   if (error || !code || !stateParam) {
-    return Response.redirect(`${frontendUrl}/?oauth_error=${error || "missing_code"}`, 302);
+    return Response.redirect(`${frontendUrl}/app?oauth_error=${error || "missing_code"}`, 302);
   }
 
   try {
@@ -43,7 +43,7 @@ serve(async (req) => {
 
     if (!tokenResponse.ok || !tokenData.access_token) {
       console.error("Microsoft token error:", tokenData);
-      return Response.redirect(`${frontendUrl}/?oauth_error=token_exchange_failed`, 302);
+      return Response.redirect(`${frontendUrl}/app?oauth_error=token_exchange_failed`, 302);
     }
 
     // Get user profile
@@ -82,9 +82,9 @@ serve(async (req) => {
         metadata: { email: profile.mail || profile.userPrincipalName },
       }, { onConflict: "user_id,provider" });
 
-    return Response.redirect(`${frontendUrl}/?oauth_success=microsoft`, 302);
+    return Response.redirect(`${frontendUrl}/app?oauth_success=microsoft`, 302);
   } catch (e) {
     console.error("Microsoft OAuth callback error:", e);
-    return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);
+    return Response.redirect(`${frontendUrl}/app?oauth_error=callback_failed`, 302);
   }
 });

@@ -83,7 +83,7 @@ const Auth = () => {
   }, [navigate, quizData]);
 
   const navigateToDashboard = () => {
-    navigate("/", { state: { quizData } });
+    navigate("/app", { state: { quizData } });
   };
 
   const validateForm = () => {
@@ -275,7 +275,7 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="p-4 sm:p-6">
-        <Link to="/database" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Back to home
         </Link>
@@ -285,7 +285,7 @@ const Auth = () => {
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-border/50 shadow-lg">
           <CardHeader className="text-center">
-            <Link to="/database" className="flex items-center justify-center gap-2 mb-4">
+            <Link to="/" className="flex items-center justify-center gap-2 mb-4">
               <img 
                 src="/favicon.png" 
                 alt="TimeWarp" 
