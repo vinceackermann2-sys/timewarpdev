@@ -16,7 +16,7 @@ serve(async (req) => {
   const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://digital-guide-genie.lovable.app";
 
   if (error || !code || !stateParam) {
-    return Response.redirect(`${frontendUrl}/?oauth_error=${error || "missing_code"}`, 302);
+    return Response.redirect(`${frontendUrl}/app?oauth_error=${error || "missing_code"}`, 302);
   }
 
   try {
@@ -40,7 +40,7 @@ serve(async (req) => {
 
     if (!tokenData.ok || !tokenData.access_token) {
       console.error("Slack token error:", tokenData);
-      return Response.redirect(`${frontendUrl}/?oauth_error=token_exchange_failed`, 302);
+      return Response.redirect(`${frontendUrl}/app?oauth_error=token_exchange_failed`, 302);
     }
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -73,9 +73,9 @@ serve(async (req) => {
         metadata: { team: teamName, team_id: tokenData.team?.id },
       }, { onConflict: "user_id,provider" });
 
-    return Response.redirect(`${frontendUrl}/?oauth_success=slack`, 302);
+    return Response.redirect(`${frontendUrl}/app?oauth_success=slack`, 302);
   } catch (e) {
     console.error("Slack OAuth callback error:", e);
-    return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);
+    return Response.redirect(`${frontendUrl}/app?oauth_error=callback_failed`, 302);
   }
 });

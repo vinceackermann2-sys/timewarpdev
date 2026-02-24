@@ -24,7 +24,7 @@ export function AICEOView() {
           </CardDescription>
           
           <Button 
-            onClick={() => navigate("/database")}
+            onClick={() => navigate("/app")}
             className="gradient-primary shadow-glow"
           >
             Start Analysis

@@ -81,7 +81,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
         variant: "destructive",
       });
     } else {
-      navigate("/database");
+      navigate("/");
     }
   };
 
@@ -91,7 +91,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
         <SidebarHeader className="border-b border-sidebar-border p-2">
           <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'justify-between'}`}>
             {!isCollapsed && (
-              <Link to="/" className="flex items-center gap-2">
+              <Link to="/app" className="flex items-center gap-2">
                 <img 
                   src="/favicon.png" 
                   alt="TimeWarp" 

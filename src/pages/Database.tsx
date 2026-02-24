@@ -76,7 +76,7 @@ const Database = () => {
 
   const handleViewChange = (view: View) => {
     if (!user && view !== "database") {
-      navigate("/auth?redirect=/");
+      navigate("/auth?redirect=/app");
       return;
     }
     setCurrentView(view);

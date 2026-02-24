@@ -221,7 +221,7 @@ export function LiveAnalysisView({ role, mode, onComplete }: LiveAnalysisViewPro
           // Clear quiz data
           sessionStorage.removeItem('quizData');
           // Navigate to database with aiceo view
-          navigate('/database?view=aiceo&autostart=true');
+          navigate('/app?view=aiceo&autostart=true');
         }}
       />
 
