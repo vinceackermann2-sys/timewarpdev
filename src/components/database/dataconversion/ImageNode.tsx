@@ -167,18 +167,20 @@ export function ImageNode({
 
   return (
     <div
-      className={cn(
-        "absolute bg-card border rounded-xl shadow-lg select-none",
-        isSelected ? "border-primary ring-2 ring-primary/30 shadow-xl" : "border-border hover:border-primary/50"
-      )}
+      className="absolute"
       style={{
         left: node.x,
         top: node.y,
         width: 260,
         height: 220,
-        overflow: "visible",
       }}
       onMouseDown={onMouseDown}
+    >
+    <div
+      className={cn(
+        "w-full h-full bg-card border rounded-xl shadow-lg select-none overflow-hidden",
+        isSelected ? "border-primary ring-2 ring-primary/30 shadow-xl" : "border-border hover:border-primary/50"
+      )}
     >
       <input
         ref={fileInputRef}
@@ -268,6 +270,7 @@ export function ImageNode({
             )}
           </div>
         )}
+      </div>
       </div>
 
       {/* Output port (centered on right edge of card) */}
