@@ -186,7 +186,7 @@ export function LeadsNode({
   return (
     <div
       className={cn(
-        "absolute bg-card border rounded-xl shadow-lg select-none overflow-visible",
+        "absolute bg-card border rounded-xl shadow-lg select-none overflow-hidden",
         isSelected ? "border-primary ring-2 ring-primary/30 shadow-xl" : "border-border hover:border-primary/50"
       )}
       style={{
