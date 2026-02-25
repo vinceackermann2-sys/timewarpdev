@@ -193,7 +193,7 @@ export function LeadsNode({
         left: node.x,
         top: node.y,
         width: 240,
-        height: storedType ? 160 : 130,
+        height: storedType ? 160 : 140,
       }}
       onMouseDown={onMouseDown}
     >
