@@ -271,6 +271,7 @@ export function ImageNode({
           </div>
         )}
       </div>
+      </div>
 
       {/* Output port (centered on right edge of card) */}
       <div
