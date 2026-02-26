@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      timewarp_chats: {
+        Row: {
+          ai_reply: string | null
+          created_at: string | null
+          id: string
+          page_url: string | null
+          user_id: string
+          user_message: string | null
+        }
+        Insert: {
+          ai_reply?: string | null
+          created_at?: string | null
+          id?: string
+          page_url?: string | null
+          user_id: string
+          user_message?: string | null
+        }
+        Update: {
+          ai_reply?: string | null
+          created_at?: string | null
+          id?: string
+          page_url?: string | null
+          user_id?: string
+          user_message?: string | null
+        }
+        Relationships: []
+      }
       user_business_data: {
         Row: {
           analyzed_content: string | null
