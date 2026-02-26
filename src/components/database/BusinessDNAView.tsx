@@ -170,21 +170,17 @@ function SegmentContent({
 }
 
 
-// ── Animated Brain Circle ──
-function AnimatedBrainCircle() {
+// ── Idle State ──
+function IdleState({ totalInsights }: { totalInsights: number }) {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <SiriOrb
-        size="128px"
-        animationDuration={15}
-        colors={{
-          bg: "transparent",
-          c1: "oklch(70% 0.18 280)",
-          c2: "oklch(72% 0.16 200)",
-          c3: "oklch(68% 0.14 160)",
-        }}
-      />
-      <p className="text-sm text-muted-foreground animate-pulse">Business brain setting up...</p>
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <Brain className="h-10 w-10 text-muted-foreground/40 mb-3" />
+      <p className="text-sm text-muted-foreground">Select a segment above to view insights</p>
+      {totalInsights > 0 && (
+        <p className="text-xs text-muted-foreground/60 mt-2">
+          {totalInsights} insight{totalInsights !== 1 ? "s" : ""} across your business brain
+        </p>
+      )}
     </div>
   );
 }
@@ -360,12 +356,7 @@ export function BusinessDNAView() {
               transition={{ duration: 0.25 }}
               className="flex flex-col items-center justify-center py-16"
             >
-              <AnimatedBrainCircle />
-              {totalInsights > 0 && (
-                <p className="text-xs text-muted-foreground/60 mt-4">
-                  {totalInsights} insight{totalInsights !== 1 ? "s" : ""} across your business brain
-                </p>
-              )}
+              <IdleState totalInsights={totalInsights} />
             </motion.div>
           ) : activeSegmentData ? (
             <motion.div
