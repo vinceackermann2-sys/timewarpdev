@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Dna, Zap, Cog, Eye, Scale, Loader2, Plus, Trash2, Check, X,
-  RefreshCw, Globe, Pencil, Link,
-  ChevronLeft
+  Brain, Palette, Package, BookOpen, Loader2, Plus, Trash2, Check, X,
+  RefreshCw, Globe, Pencil, Link, ChevronLeft
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,94 +26,54 @@ interface SegmentEntry {
   createdAt: string;
 }
 
-interface DNASegment {
+interface BrainSegment {
   id: string;
   label: string;
   subtitle: string;
   icon: any;
-  physics: string;
-  dnaComponent: string;
   description: string;
   color: string;
+  hslColor: string;
   bgAccent: string;
   borderAccent: string;
-  formula?: { equation: string; terms: readonly { readonly symbol: string; readonly meaning: string }[] };
 }
 
-const DNA_SEGMENTS: DNASegment[] = [
+const BRAIN_SEGMENTS: BrainSegment[] = [
   {
-    id: "problem",
-    label: "The Problem",
-    subtitle: "The Void",
-    icon: Zap,
-    physics: "Potential energy",
-    dnaComponent: "Gap",
+    id: "brand",
+    label: "Brand",
+    subtitle: "Identity & Perception",
+    icon: Palette,
     description:
-      "Before a business exists, there is a gap between a current state and a desired state. Without a problem to solve or a desire to fulfill, there is no reason for an exchange to occur.",
-    color: "text-red-400",
-    bgAccent: "bg-red-500/10",
-    borderAccent: "border-red-500/20",
+      "Your brand DNA — mission, vision, values, voice, visual identity, positioning, and how the world perceives you. Everything that shapes who you are.",
+    color: "text-violet-400",
+    hslColor: "263 70% 58%",
+    bgAccent: "bg-violet-500/10",
+    borderAccent: "border-violet-500/20",
   },
   {
-    id: "solution",
-    label: "The Solution",
-    subtitle: "The Transformation",
-    icon: Cog,
-    physics: "Kinetic energy (the work being done)",
-    dnaComponent: "Utility",
+    id: "product",
+    label: "Product",
+    subtitle: "What You Build & Deliver",
+    icon: Package,
     description:
-      'This is the mechanism that bridges the gap. It is the specific "how" that moves a person from Point A to Point B.',
-    color: "text-blue-400",
-    bgAccent: "bg-blue-500/10",
-    borderAccent: "border-blue-500/20",
+      "Your product DNA — features, pricing, competitive advantages, user experience, roadmap, and the core value proposition you deliver to customers.",
+    color: "text-sky-400",
+    hslColor: "199 89% 48%",
+    bgAccent: "bg-sky-500/10",
+    borderAccent: "border-sky-500/20",
   },
   {
-    id: "customer",
-    label: "The Customer",
-    subtitle: "The Observer",
-    icon: Eye,
-    physics: "Demand",
-    dnaComponent: "Demand",
+    id: "sop",
+    label: "SOP",
+    subtitle: "Standard Operating Procedures",
+    icon: BookOpen,
     description:
-      "A business cannot exist in a vacuum. You need a conscious entity that perceives the value of the solution and has the authority to initiate the exchange.",
+      "Your operational DNA — processes, workflows, playbooks, team structures, and the repeatable systems that keep your business running consistently.",
     color: "text-emerald-400",
+    hslColor: "160 84% 39%",
     bgAccent: "bg-emerald-500/10",
     borderAccent: "border-emerald-500/20",
-  },
-  {
-    id: "economics",
-    label: "The Economics",
-    subtitle: "The Equilibrium",
-    icon: Scale,
-    physics: "Minimum breaking point",
-    dnaComponent: "Viability",
-    description:
-      "For a business to be a business and not a hobby or a charity, the Value Created must be greater than the Cost of Creation.",
-    color: "text-amber-400",
-    bgAccent: "bg-amber-500/10",
-    borderAccent: "border-amber-500/20",
-    formula: {
-      equation: "Vp > P > C",
-      terms: [
-        { symbol: "Vp", meaning: "Perceived Value — What the customer thinks it's worth" },
-        { symbol: "P", meaning: "Price — What is exchanged" },
-        { symbol: "C", meaning: "Cost — What it takes to sustain the solution" },
-      ],
-    },
-  },
-];
-
-interface DNASection {
-  id: string;
-  label: string;
-  description: string;
-}
-
-const DNA_SECTIONS: DNASection[] = [
-  {
-    id: "value-exchange",
-    label: "The Value Exchange Loop",
-    description: "The repeatable delivery of a solution that costs less than the value it provides.",
   },
 ];
 
@@ -122,7 +81,7 @@ const DNA_SECTIONS: DNASection[] = [
 function SegmentCard({
   segment, entries, isLoading, onAddManual, onDeleteEntry, onEditEntry,
 }: {
-  segment: DNASegment;
+  segment: BrainSegment;
   entries: SegmentEntry[];
   isLoading: boolean;
   onAddManual: (segmentId: string, text: string) => Promise<void>;
@@ -162,35 +121,24 @@ function SegmentCard({
               <CardDescription className="text-xs">{segment.subtitle}</CardDescription>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setIsAdding(!isAdding)}>
-            {isAdding ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-          </Button>
+          <div className="flex items-center gap-1.5">
+            {entries.length > 0 && (
+              <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full", segment.bgAccent, segment.color)}>
+                {entries.length}
+              </span>
+            )}
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setIsAdding(!isAdding)}>
+              {isAdding ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground leading-relaxed">{segment.description}</p>
-        <div className={cn("text-[11px] px-2.5 py-1.5 rounded-md inline-flex items-center gap-1.5", segment.bgAccent)}>
-          <span className="text-muted-foreground">Physics:</span>
-          <span className={cn("font-medium", segment.color)}>{segment.physics}</span>
-        </div>
-
-        {segment.formula && (
-          <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-2">
-            <p className="text-sm font-mono font-bold text-center text-foreground tracking-wider">{segment.formula.equation}</p>
-            <div className="space-y-1">
-              {segment.formula.terms.map((t) => (
-                <div key={t.symbol} className="flex items-start gap-2 text-[11px]">
-                  <span className={cn("font-mono font-bold min-w-[20px]", segment.color)}>{t.symbol}</span>
-                  <span className="text-muted-foreground">{t.meaning}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {isAdding && (
           <div className="space-y-2 pt-1">
-            <Textarea placeholder={`Add your ${segment.label.toLowerCase()} insight...`} className="text-xs min-h-[60px] resize-none" value={newText} onChange={(e) => setNewText(e.target.value)} />
+            <Textarea placeholder={`Add a ${segment.label.toLowerCase()} insight...`} className="text-xs min-h-[60px] resize-none" value={newText} onChange={(e) => setNewText(e.target.value)} />
             <div className="flex justify-end gap-1.5">
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setIsAdding(false); setNewText(""); }}>Cancel</Button>
               <Button size="sm" className="h-7 text-xs" onClick={handleAdd} disabled={!newText.trim()}>
@@ -204,7 +152,6 @@ function SegmentCard({
           <div className="flex items-center justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
         ) : entries.length > 0 ? (
           <div className="space-y-1.5 pt-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Insights ({entries.length})</p>
             {entries.map((entry) => (
               <div key={entry.id} className="group rounded-md border border-border/40 bg-muted/20 px-2.5 py-2 text-xs">
                 {editingId === entry.id ? (
@@ -312,194 +259,213 @@ function WebsiteDialog({ open, onOpenChange, onUploaded }: { open: boolean; onOp
   );
 }
 
-// ── Animated DNA Helix ──
-const HELIX_PAIRS = 8;
-const PAIR_HEIGHT = 28;
-const HELIX_WIDTH = 180;
-const RADIUS = 65;
-
-function DNAHelix({
-  hoveredSection,
+// ── Animated Brain Visualization ──
+function BrainVisualization({
+  hoveredSegment,
   onHover,
   onClick,
+  entryCounts,
 }: {
-  hoveredSection: string | null;
+  hoveredSegment: string | null;
   onHover: (id: string | null) => void;
   onClick: (id: string) => void;
+  entryCounts: Record<string, number>;
 }) {
-  const totalHeight = HELIX_PAIRS * PAIR_HEIGHT + 40;
+  const totalEntries = Object.values(entryCounts).reduce((s, n) => s + n, 0);
+
+  // Brain node positions (triangle layout)
+  const nodes = [
+    { id: "brand", cx: 150, cy: 60, color: "263 70% 58%", label: "Brand" },
+    { id: "product", cx: 60, cy: 220, color: "199 89% 48%", label: "Product" },
+    { id: "sop", cx: 240, cy: 220, color: "160 84% 39%", label: "SOP" },
+  ];
+
+  // Connection lines between nodes
+  const connections = [
+    { from: nodes[0], to: nodes[1] },
+    { from: nodes[0], to: nodes[2] },
+    { from: nodes[1], to: nodes[2] },
+  ];
 
   return (
-    <div className="flex flex-col items-center justify-center py-10 gap-6">
+    <div className="flex flex-col items-center justify-center py-8 gap-6">
       <motion.div
-        className="relative cursor-pointer"
-        onMouseEnter={() => onHover("value-exchange")}
-        onMouseLeave={() => onHover(null)}
-        onClick={() => onClick("value-exchange")}
-        whileHover={{ scale: 1.03 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative"
       >
-        <svg
-          width={HELIX_WIDTH}
-          height={totalHeight}
-          viewBox={`0 0 ${HELIX_WIDTH} ${totalHeight}`}
-          className="overflow-visible"
-        >
-          {/* Render base pairs */}
-          {Array.from({ length: HELIX_PAIRS }).map((_, i) => {
-            const y = 20 + i * PAIR_HEIGHT;
-            const phase = (i / HELIX_PAIRS) * Math.PI * 2;
-            const cx = HELIX_WIDTH / 2;
-            const leftX = cx - Math.cos(phase) * RADIUS;
-            const rightX = cx + Math.cos(phase) * RADIUS;
-            const depth = Math.sin(phase);
-            const opacity = 0.4 + (depth + 1) * 0.3;
+        <svg width={300} height={280} viewBox="0 0 300 280" className="overflow-visible">
+          {/* Pulsing center brain icon area */}
+          <motion.circle
+            cx={150} cy={140} r={40}
+            fill="hsl(var(--primary) / 0.05)"
+            stroke="hsl(var(--primary) / 0.15)"
+            strokeWidth={1}
+            animate={{ r: [38, 42, 38], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          />
 
-            const colors = [
-              ["#ef4444", "#f97316"],
-              ["#3b82f6", "#6366f1"],
-              ["#10b981", "#14b8a6"],
-              ["#f59e0b", "#eab308"],
-            ];
-            const [c1, c2] = colors[i % 4];
+          {/* Connection lines */}
+          {connections.map((conn, i) => (
+            <motion.line
+              key={i}
+              x1={conn.from.cx} y1={conn.from.cy}
+              x2={conn.to.cx} y2={conn.to.cy}
+              stroke={
+                hoveredSegment === conn.from.id || hoveredSegment === conn.to.id
+                  ? "hsl(var(--primary))"
+                  : "hsl(var(--border))"
+              }
+              strokeWidth={hoveredSegment === conn.from.id || hoveredSegment === conn.to.id ? 2 : 1}
+              strokeOpacity={0.4}
+              strokeDasharray="6 4"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 1, delay: 0.3 + i * 0.15 }}
+            />
+          ))}
+
+          {/* Data flow particles along connections */}
+          {connections.map((conn, i) => (
+            <motion.circle
+              key={`particle-${i}`}
+              r={2}
+              fill="hsl(var(--primary))"
+              opacity={0.6}
+              animate={{
+                cx: [conn.from.cx, conn.to.cx],
+                cy: [conn.from.cy, conn.to.cy],
+              }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "linear", delay: i * 0.8 }}
+            />
+          ))}
+
+          {/* Brain nodes */}
+          {nodes.map((node, i) => {
+            const isHovered = hoveredSegment === node.id;
+            const count = entryCounts[node.id] || 0;
+            const baseR = 32;
+            const r = isHovered ? 36 : baseR;
 
             return (
               <motion.g
-                key={i}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.4 }}
+                key={node.id}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 + i * 0.15, type: "spring", stiffness: 200 }}
+                onMouseEnter={() => onHover(node.id)}
+                onMouseLeave={() => onHover(null)}
+                onClick={() => onClick(node.id)}
+                className="cursor-pointer"
               >
-                {/* Connecting bar */}
-                <motion.line
-                  x1={leftX} y1={y} x2={rightX} y2={y}
-                  stroke={hoveredSection ? "hsl(var(--primary))" : "hsl(var(--border))"}
-                  strokeWidth={hoveredSection ? 2 : 1.5}
-                  strokeOpacity={opacity * 0.6}
-                  strokeDasharray={hoveredSection ? "none" : "4 3"}
-                  animate={{
-                    x1: [leftX, cx - Math.cos(phase + 0.3) * RADIUS, leftX],
-                    x2: [rightX, cx + Math.cos(phase + 0.3) * RADIUS, rightX],
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: i * 0.15 }}
+                {/* Glow */}
+                {isHovered && (
+                  <motion.circle
+                    cx={node.cx} cy={node.cy} r={r + 12}
+                    fill={`hsl(${node.color} / 0.1)`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  />
+                )}
+                {/* Outer ring */}
+                <circle
+                  cx={node.cx} cy={node.cy} r={r + 4}
+                  fill="none"
+                  stroke={`hsl(${node.color} / ${isHovered ? 0.5 : 0.2})`}
+                  strokeWidth={1.5}
                 />
-                {/* Left node */}
+                {/* Main circle */}
                 <motion.circle
-                  cx={leftX} cy={y} r={hoveredSection ? 5 : 4}
-                  fill={c1}
-                  opacity={opacity}
-                  animate={{
-                    cx: [leftX, cx - Math.cos(phase + 0.3) * RADIUS, leftX],
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: i * 0.15 }}
+                  cx={node.cx} cy={node.cy}
+                  r={r}
+                  fill={`hsl(${node.color} / ${isHovered ? 0.2 : 0.1})`}
+                  stroke={`hsl(${node.color} / ${isHovered ? 0.8 : 0.4})`}
+                  strokeWidth={2}
+                  animate={{ r }}
+                  transition={{ type: "spring", stiffness: 300 }}
                 />
-                {/* Right node */}
-                <motion.circle
-                  cx={rightX} cy={y} r={hoveredSection ? 5 : 4}
-                  fill={c2}
-                  opacity={opacity}
-                  animate={{
-                    cx: [rightX, cx + Math.cos(phase + 0.3) * RADIUS, rightX],
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: i * 0.15 }}
-                />
+                {/* Label */}
+                <text
+                  x={node.cx} y={node.cy - 4}
+                  textAnchor="middle"
+                  fill={`hsl(${node.color})`}
+                  fontSize={12}
+                  fontWeight={600}
+                  className="select-none"
+                >
+                  {node.label}
+                </text>
+                {/* Count */}
+                <text
+                  x={node.cx} y={node.cy + 12}
+                  textAnchor="middle"
+                  fill="hsl(var(--muted-foreground))"
+                  fontSize={10}
+                  className="select-none"
+                >
+                  {count} insight{count !== 1 ? "s" : ""}
+                </text>
               </motion.g>
             );
           })}
 
-          {/* Left backbone */}
-          <motion.path
-            d={Array.from({ length: HELIX_PAIRS })
-              .map((_, i) => {
-                const y = 20 + i * PAIR_HEIGHT;
-                const phase = (i / HELIX_PAIRS) * Math.PI * 2;
-                const x = HELIX_WIDTH / 2 - Math.cos(phase) * RADIUS;
-                return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-              })
-              .join(" ")}
-            fill="none"
-            stroke={hoveredSection ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"}
-            strokeWidth={2}
-            strokeOpacity={0.3}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {/* Right backbone */}
-          <motion.path
-            d={Array.from({ length: HELIX_PAIRS })
-              .map((_, i) => {
-                const y = 20 + i * PAIR_HEIGHT;
-                const phase = (i / HELIX_PAIRS) * Math.PI * 2;
-                const x = HELIX_WIDTH / 2 + Math.cos(phase) * RADIUS;
-                return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-              })
-              .join(" ")}
-            fill="none"
-            stroke={hoveredSection ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"}
-            strokeWidth={2}
-            strokeOpacity={0.3}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          {/* Center brain icon */}
+          <text
+            x={150} y={145}
+            textAnchor="middle"
+            fill="hsl(var(--primary) / 0.6)"
+            fontSize={24}
+            className="select-none"
+          >
+            🧠
+          </text>
         </svg>
-
-        {/* Glow effect on hover */}
-        <AnimatePresence>
-          {hoveredSection && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 rounded-xl pointer-events-none"
-              style={{
-                background: "radial-gradient(ellipse at center, hsl(var(--primary) / 0.12) 0%, transparent 70%)",
-              }}
-            />
-          )}
-        </AnimatePresence>
       </motion.div>
 
-      {/* Tooltip on hover */}
+      {/* Hover tooltip */}
       <AnimatePresence>
-        {hoveredSection && (
+        {hoveredSegment && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.15 }}
           >
-            <div className="bg-card border border-border/50 rounded-lg px-4 py-2.5 shadow-lg text-center">
+            <div className="bg-card border border-border/50 rounded-lg px-4 py-2.5 shadow-lg text-center max-w-xs">
               <p className="text-sm font-semibold text-foreground">
-                {DNA_SECTIONS.find(s => s.id === hoveredSection)?.label}
+                {BRAIN_SEGMENTS.find(s => s.id === hoveredSegment)?.label}
               </p>
               <p className="text-[11px] text-muted-foreground">
-                {DNA_SECTIONS.find(s => s.id === hoveredSection)?.description}
+                {BRAIN_SEGMENTS.find(s => s.id === hoveredSegment)?.subtitle}
               </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Section buttons */}
+      {/* Segment buttons */}
       <div className="flex flex-wrap justify-center gap-3">
-        {DNA_SECTIONS.map((section) => (
+        {BRAIN_SEGMENTS.map((seg) => (
           <button
-            key={section.id}
-            onMouseEnter={() => onHover(section.id)}
+            key={seg.id}
+            onMouseEnter={() => onHover(seg.id)}
             onMouseLeave={() => onHover(null)}
-            onClick={() => onClick(section.id)}
+            onClick={() => onClick(seg.id)}
             className={cn(
               "px-4 py-2 rounded-lg border text-sm font-medium transition-all",
               "bg-card/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/20 hover:bg-primary/5"
             )}
           >
-            {section.label}
+            {seg.label}
           </button>
         ))}
       </div>
 
       <p className="text-xs text-muted-foreground/60 italic">
-        Hover or click the DNA strand to explore
+        {totalEntries > 0
+          ? `${totalEntries} total insights across your business brain`
+          : "Click a node to explore or add insights"}
       </p>
     </div>
   );
@@ -508,12 +474,12 @@ function DNAHelix({
 // ── Main View ──
 export function BusinessDNAView() {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
-    problem: [], solution: [], customer: [], economics: []
+    brand: [], product: [], sop: []
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isCategorizing, setIsCategorizing] = useState(false);
-  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
+  const [activeSegment, setActiveSegment] = useState<string | null>(null);
   const [showWebsiteDialog, setShowWebsiteDialog] = useState(false);
   const { toast } = useToast();
 
@@ -528,7 +494,7 @@ export function BusinessDNAView() {
       .order("created_at", { ascending: false });
 
     if (data) {
-      const grouped: Record<string, SegmentEntry[]> = { problem: [], solution: [], customer: [], economics: [] };
+      const grouped: Record<string, SegmentEntry[]> = { brand: [], product: [], sop: [] };
       for (const d of data) {
         const meta = d.metadata as any;
         const seg = meta?.dna_segment;
@@ -561,7 +527,7 @@ export function BusinessDNAView() {
       );
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Failed");
-      toast({ title: "DNA categorized", description: "Your business data has been analyzed and sorted." });
+      toast({ title: "Brain updated", description: "Your business data has been analyzed and categorized." });
       await loadEntries();
     } catch (error) {
       toast({ title: "Categorization failed", description: error instanceof Error ? error.message : "Failed", variant: "destructive" });
@@ -577,7 +543,7 @@ export function BusinessDNAView() {
       .from("user_business_data")
       .insert({
         user_id: session.user.id,
-        title: `${DNA_SEGMENTS.find(s => s.id === segmentId)?.label} insight`,
+        title: `${BRAIN_SEGMENTS.find(s => s.id === segmentId)?.label} insight`,
         content: text, data_type: "text", source: "canvas", is_analyzed: true, analyzed_content: text,
         metadata: { dna_segment: segmentId, dna_insight: text },
       })
@@ -612,6 +578,9 @@ export function BusinessDNAView() {
   };
 
   const totalInsights = Object.values(segmentEntries).reduce((sum, arr) => sum + arr.length, 0);
+  const entryCounts = Object.fromEntries(BRAIN_SEGMENTS.map(s => [s.id, segmentEntries[s.id]?.length || 0]));
+
+  const activeSegmentData = BRAIN_SEGMENTS.find(s => s.id === activeSegment);
 
   return (
     <div className="flex flex-col h-full">
@@ -619,11 +588,11 @@ export function BusinessDNAView() {
       <div className="flex items-center justify-between px-6 pt-6 pb-2">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Dna className="h-5 w-5 text-primary" />
+            <Brain className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Business DNA</h1>
-            <p className="text-sm text-muted-foreground">Map the fundamental strands of your business</p>
+            <h1 className="text-2xl font-semibold text-foreground">Business DNA Brain</h1>
+            <p className="text-sm text-muted-foreground">Your business intelligence organized into Brand, Product & SOPs</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -631,67 +600,61 @@ export function BusinessDNAView() {
             <Globe className="h-3.5 w-3.5" />
             Add Website
           </Button>
-          {activeSection && (
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleCategorize} disabled={isCategorizing}>
-              {isCategorizing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              {isCategorizing ? "Analyzing..." : "Auto-categorize"}
-            </Button>
-          )}
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleCategorize} disabled={isCategorizing}>
+            {isCategorizing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {isCategorizing ? "Analyzing..." : "Auto-categorize"}
+          </Button>
         </div>
       </div>
 
       <ScrollArea className="flex-1 px-6 pb-6">
         <AnimatePresence mode="wait">
-          {!activeSection ? (
+          {!activeSegment ? (
             <motion.div key="hub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
-              {/* DNA Helix Hub */}
-              <DNAHelix
-                hoveredSection={hoveredSection}
-                onHover={setHoveredSection}
-                onClick={(id) => setActiveSection(id)}
+              <BrainVisualization
+                hoveredSegment={hoveredSegment}
+                onHover={setHoveredSegment}
+                onClick={(id) => setActiveSegment(id)}
+                entryCounts={entryCounts}
               />
 
               {/* Summary */}
               <div className="rounded-lg border border-border/50 bg-muted/30 px-4 py-3 mb-6">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  <span className="font-semibold text-foreground">What is the DNA?</span>{" "}
-                  If you remove the Price, it's a gift. If you remove the Solution, it's a scam. If you remove the Value, it's obsolete.
+                  <span className="font-semibold text-foreground">Your Business Brain</span>{" "}
+                  accumulates all your business intelligence into three core pillars — Brand identity, Product knowledge, and Standard Operating Procedures.
                   {totalInsights > 0 && <span className="ml-1 text-primary font-medium">• {totalInsights} insights extracted</span>}
                 </p>
               </div>
             </motion.div>
-          ) : activeSection === "value-exchange" ? (
-            <motion.div key="value-exchange" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="space-y-4 mt-4">
+          ) : activeSegmentData ? (
+            <motion.div key={activeSegment} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="space-y-4 mt-4">
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setActiveSection(null)}>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setActiveSegment(null)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
+                <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", activeSegmentData.bgAccent)}>
+                  <activeSegmentData.icon className={cn("h-4.5 w-4.5", activeSegmentData.color)} />
+                </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">The Value Exchange Loop</h2>
-                  <p className="text-xs text-muted-foreground">The repeatable delivery of a solution that costs less than the value it provides.</p>
+                  <h2 className="text-lg font-semibold text-foreground">{activeSegmentData.label}</h2>
+                  <p className="text-xs text-muted-foreground">{activeSegmentData.subtitle}</p>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  <span className="font-semibold text-foreground">The Atomic Formula:</span>{" "}
-                  <span className="font-mono font-bold text-foreground">Vp &gt; P &gt; C</span>{" "}
-                  — Perceived Value must exceed Price, which must exceed Cost.
-                  {totalInsights > 0 && <span className="ml-1 text-primary font-medium">• {totalInsights} insights</span>}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {DNA_SEGMENTS.map((seg) => (
-                  <SegmentCard key={seg.id} segment={seg} entries={segmentEntries[seg.id] || []} isLoading={isLoading} onAddManual={handleAddManual} onDeleteEntry={handleDeleteEntry} onEditEntry={handleEditEntry} />
-                ))}
-              </div>
+              <SegmentCard
+                segment={activeSegmentData}
+                entries={segmentEntries[activeSegment] || []}
+                isLoading={isLoading}
+                onAddManual={handleAddManual}
+                onDeleteEntry={handleDeleteEntry}
+                onEditEntry={handleEditEntry}
+              />
             </motion.div>
           ) : null}
         </AnimatePresence>
       </ScrollArea>
 
-      {/* Website URL popup */}
       <WebsiteDialog open={showWebsiteDialog} onOpenChange={setShowWebsiteDialog} onUploaded={loadEntries} />
     </div>
   );
