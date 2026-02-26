@@ -330,30 +330,25 @@ export function BusinessDNAView() {
           {/* Name + brain statuses */}
           <div className="flex flex-col gap-1.5 pt-1">
             <h1 className="text-xl font-bold text-foreground leading-tight">Your Business</h1>
-            {/* Status rows with animated dots */}
             <div className="flex items-center gap-2">
               <motion.div
-                className="h-3 w-3 rounded-full shrink-0"
+                className="h-3.5 w-3.5 rounded-full shrink-0 p-[1.5px]"
                 style={{
-                  background: "conic-gradient(from 0deg, hsl(263 70% 58%), hsl(199 89% 48%), hsl(160 84% 39%), hsl(263 70% 58%))",
+                  background: "conic-gradient(from 0deg, hsl(var(--primary)), hsl(263 70% 58%), hsl(199 89% 48%), hsl(160 84% 39%), hsl(var(--primary)))",
                 }}
                 animate={{ rotate: 360 }}
                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-              />
-              <span className="text-sm text-muted-foreground">Research Brain</span>
-              <span className="text-sm font-medium text-primary">Learning</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <motion.div
-                className="h-3 w-3 rounded-full shrink-0"
-                style={{
-                  background: "conic-gradient(from 0deg, hsl(var(--primary)), hsl(199 89% 48%), hsl(var(--primary)))",
-                }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-              />
+              >
+                <div className="h-full w-full rounded-full bg-background" />
+              </motion.div>
               <span className="text-sm text-muted-foreground">Business Brain</span>
-              <span className="text-sm font-medium text-primary">Setting up</span>
+              <motion.span
+                className="text-sm font-medium text-primary"
+                animate={{ opacity: [1, 0.4, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              >
+                Setting up
+              </motion.span>
             </div>
           </div>
         </div>
