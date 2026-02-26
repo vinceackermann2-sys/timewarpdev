@@ -150,14 +150,14 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton 
-                    tooltip="TimeWarp AI - Coming Soon"
+                    tooltip="Employees - Coming Soon"
                     className="opacity-50 cursor-not-allowed"
                     disabled
                   >
                     <Bot className="h-4 w-4" />
                     {!isCollapsed && (
                       <span className="flex items-center gap-2">
-                        TimeWarp AI
+                        Employees
                         <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full leading-none">Soon</span>
                       </span>
                     )}
