@@ -58,20 +58,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "AI not configured" }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const systemPrompt = `You are a business analyst. You categorize business information into the "Value Exchange Loop" framework with 4 segments:
+    const systemPrompt = `You are a business analyst. You categorize business information into 3 core pillars of a Business DNA Brain:
 
-1. **problem** - The Problem (The Void): What gap/pain/desire exists? What current vs desired state? Market problems, customer complaints, unmet needs.
-2. **solution** - The Solution (The Transformation): How is the gap bridged? The product/service, its utility, features, technology, methodology.
-3. **customer** - The Customer (The Observer): Who perceives the value? Target audience, demographics, buyer personas, user behavior, demand signals.
-4. **economics** - The Economics (The Equilibrium): Financial viability. Pricing, costs, margins, revenue models, perceived value vs price vs cost.
+1. **brand** - Brand (Identity & Perception): Mission, vision, values, brand voice, visual identity, positioning, market perception, company culture, messaging, storytelling, reputation.
+2. **product** - Product (What You Build & Deliver): Features, pricing, competitive advantages, user experience, product roadmap, value proposition, technology stack, customer feedback on product, use cases.
+3. **sop** - SOP (Standard Operating Procedures): Processes, workflows, playbooks, team structures, operational guidelines, automation rules, quality standards, compliance, hiring procedures, internal documentation.
 
-Analyze each piece of business data and categorize it. Each data item can belong to ONE segment. Extract a concise insight (1-2 sentences) for each categorization.
+Analyze each piece of business data and categorize it into the MOST relevant pillar. Each data item belongs to ONE segment. Extract a concise insight (1-2 sentences) for each categorization.
 
 Return ONLY valid JSON in this format:
 {
   "categorizations": [
-    { "data_id": "uuid-here", "segment": "problem", "insight": "Brief insight extracted" },
-    { "data_id": "uuid-here", "segment": "solution", "insight": "Brief insight extracted" }
+    { "data_id": "uuid-here", "segment": "brand", "insight": "Brief insight extracted" },
+    { "data_id": "uuid-here", "segment": "product", "insight": "Brief insight extracted" }
   ]
 }
 
@@ -114,7 +113,7 @@ Skip items that don't clearly fit any segment.`;
 
     // Group by segment
     const segments: Record<string, Array<{ data_id: string; insight: string; title: string; source: string }>> = {
-      problem: [], solution: [], customer: [], economics: []
+      brand: [], product: [], sop: []
     };
 
     const dataMap = new Map(businessData.map(d => [d.id, d]));
