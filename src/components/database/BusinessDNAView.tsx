@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Brain, Palette, Package, BookOpen, Loader2, Plus, Trash2, Check, X,
-  RefreshCw, Globe, Pencil, Link, ChevronLeft
+  RefreshCw, Globe, Pencil, Link, ChevronDown, Building2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +14,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 // ── Types ──
 interface SegmentEntry {
@@ -44,8 +46,7 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     label: "Brand",
     subtitle: "Identity & Perception",
     icon: Palette,
-    description:
-      "Your brand DNA — mission, vision, values, voice, visual identity, positioning, and how the world perceives you. Everything that shapes who you are.",
+    description: "Your brand DNA — mission, vision, values, voice, visual identity, positioning, and how the world perceives you.",
     color: "text-violet-400",
     hslColor: "263 70% 58%",
     bgAccent: "bg-violet-500/10",
@@ -56,8 +57,7 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     label: "Product",
     subtitle: "What You Build & Deliver",
     icon: Package,
-    description:
-      "Your product DNA — features, pricing, competitive advantages, user experience, roadmap, and the core value proposition you deliver to customers.",
+    description: "Your product DNA — features, pricing, competitive advantages, user experience, roadmap, and core value proposition.",
     color: "text-sky-400",
     hslColor: "199 89% 48%",
     bgAccent: "bg-sky-500/10",
@@ -68,8 +68,7 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     label: "SOP",
     subtitle: "Standard Operating Procedures",
     icon: BookOpen,
-    description:
-      "Your operational DNA — processes, workflows, playbooks, team structures, and the repeatable systems that keep your business running consistently.",
+    description: "Your operational DNA — processes, workflows, playbooks, team structures, and repeatable systems.",
     color: "text-emerald-400",
     hslColor: "160 84% 39%",
     bgAccent: "bg-emerald-500/10",
@@ -77,8 +76,8 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
   },
 ];
 
-// ── Segment Card ──
-function SegmentCard({
+// ── Segment Content ──
+function SegmentContent({
   segment, entries, isLoading, onAddManual, onDeleteEntry, onEditEntry,
 }: {
   segment: BrainSegment;
@@ -92,7 +91,6 @@ function SegmentCard({
   const [newText, setNewText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
-  const Icon = segment.icon;
 
   const handleAdd = async () => {
     if (!newText.trim()) return;
@@ -109,82 +107,71 @@ function SegmentCard({
   };
 
   return (
-    <Card className={cn("border", segment.borderAccent, "bg-card/50 backdrop-blur-sm")}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", segment.bgAccent)}>
-              <Icon className={cn("h-4.5 w-4.5", segment.color)} />
-            </div>
-            <div>
-              <CardTitle className="text-base font-semibold">{segment.label}</CardTitle>
-              <CardDescription className="text-xs">{segment.subtitle}</CardDescription>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {entries.length > 0 && (
-              <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full", segment.bgAccent, segment.color)}>
-                {entries.length}
-              </span>
-            )}
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setIsAdding(!isAdding)}>
-              {isAdding ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">{segment.description}</p>
+        <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 shrink-0" onClick={() => setIsAdding(!isAdding)}>
+          {isAdding ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+          {isAdding ? "Cancel" : "Add Insight"}
+        </Button>
+      </div>
+
+      {isAdding && (
+        <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
+          <Textarea placeholder={`Add a ${segment.label.toLowerCase()} insight...`} className="text-sm min-h-[80px] resize-none bg-background" value={newText} onChange={(e) => setNewText(e.target.value)} />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setIsAdding(false); setNewText(""); }}>Cancel</Button>
+            <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={!newText.trim()}>
+              <Check className="h-3 w-3 mr-1" /> Save
             </Button>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground leading-relaxed">{segment.description}</p>
+      )}
 
-        {isAdding && (
-          <div className="space-y-2 pt-1">
-            <Textarea placeholder={`Add a ${segment.label.toLowerCase()} insight...`} className="text-xs min-h-[60px] resize-none" value={newText} onChange={(e) => setNewText(e.target.value)} />
-            <div className="flex justify-end gap-1.5">
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setIsAdding(false); setNewText(""); }}>Cancel</Button>
-              <Button size="sm" className="h-7 text-xs" onClick={handleAdd} disabled={!newText.trim()}>
-                <Check className="h-3 w-3 mr-1" /> Save
-              </Button>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+      ) : entries.length > 0 ? (
+        <div className="space-y-2">
+          {entries.map((entry) => (
+            <div key={entry.id} className="group rounded-lg border border-border/40 bg-card/50 px-4 py-3 text-sm">
+              {editingId === entry.id ? (
+                <div className="space-y-2">
+                  <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="text-sm min-h-[60px] resize-none" />
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditingId(null)}>Cancel</Button>
+                    <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handleEdit(entry.id)}>Save</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <span className="flex-1 leading-relaxed text-foreground/80">{entry.text}</span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    {!entry.isManual && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary mr-1">AI</span>}
+                    <button onClick={() => { setEditingId(entry.id); setEditText(entry.text); }} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Pencil className="h-3 w-3" /></button>
+                    <button onClick={() => onDeleteEntry(entry.id)} className="p-1 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                </div>
+              )}
+              {editingId !== entry.id && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[10px] text-muted-foreground/60">{entry.source}</span>
+                  <span className="text-[10px] text-muted-foreground/40">•</span>
+                  <span className="text-[10px] text-muted-foreground/60 truncate">{entry.title}</span>
+                </div>
+              )}
             </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center mb-3", segment.bgAccent)}>
+            <segment.icon className={cn("h-6 w-6", segment.color)} />
           </div>
-        )}
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
-        ) : entries.length > 0 ? (
-          <div className="space-y-1.5 pt-1">
-            {entries.map((entry) => (
-              <div key={entry.id} className="group rounded-md border border-border/40 bg-muted/20 px-2.5 py-2 text-xs">
-                {editingId === entry.id ? (
-                  <div className="space-y-1.5">
-                    <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="text-xs min-h-[50px] resize-none" />
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => setEditingId(null)}>Cancel</Button>
-                      <Button size="sm" className="h-6 px-2 text-[10px]" onClick={() => handleEdit(entry.id)}>Save</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2">
-                    <span className="flex-1 leading-relaxed text-foreground/80">{entry.text}</span>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                      {!entry.isManual && <span className="text-[9px] px-1 py-0.5 rounded bg-primary/10 text-primary mr-1">AI</span>}
-                      <button onClick={() => { setEditingId(entry.id); setEditText(entry.text); }} className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Pencil className="h-2.5 w-2.5" /></button>
-                      <button onClick={() => onDeleteEntry(entry.id)} className="p-0.5 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive"><Trash2 className="h-2.5 w-2.5" /></button>
-                    </div>
-                  </div>
-                )}
-                {editingId !== entry.id && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] text-muted-foreground/60">{entry.source}</span>
-                    <span className="text-[9px] text-muted-foreground/40">•</span>
-                    <span className="text-[9px] text-muted-foreground/60 truncate">{entry.title}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+          <p className="text-sm text-muted-foreground">No {segment.label.toLowerCase()} insights yet</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Add insights manually or auto-categorize your data</p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -259,214 +246,64 @@ function WebsiteDialog({ open, onOpenChange, onUploaded }: { open: boolean; onOp
   );
 }
 
-// ── Animated Brain Visualization ──
-function BrainVisualization({
-  hoveredSegment,
-  onHover,
-  onClick,
-  entryCounts,
-}: {
-  hoveredSegment: string | null;
-  onHover: (id: string | null) => void;
-  onClick: (id: string) => void;
-  entryCounts: Record<string, number>;
-}) {
-  const totalEntries = Object.values(entryCounts).reduce((s, n) => s + n, 0);
-
-  // Brain node positions (triangle layout)
-  const nodes = [
-    { id: "brand", cx: 150, cy: 60, color: "263 70% 58%", label: "Brand" },
-    { id: "product", cx: 60, cy: 220, color: "199 89% 48%", label: "Product" },
-    { id: "sop", cx: 240, cy: 220, color: "160 84% 39%", label: "SOP" },
-  ];
-
-  // Connection lines between nodes
-  const connections = [
-    { from: nodes[0], to: nodes[1] },
-    { from: nodes[0], to: nodes[2] },
-    { from: nodes[1], to: nodes[2] },
-  ];
-
+// ── Animated Brain Circle ──
+function AnimatedBrainCircle() {
   return (
-    <div className="flex flex-col items-center justify-center py-8 gap-6">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative"
-      >
-        <svg width={300} height={280} viewBox="0 0 300 280" className="overflow-visible">
-          {/* Pulsing center brain icon area */}
-          <motion.circle
-            cx={150} cy={140} r={40}
-            fill="hsl(var(--primary) / 0.05)"
-            stroke="hsl(var(--primary) / 0.15)"
-            strokeWidth={1}
-            animate={{ r: [38, 42, 38], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          />
-
-          {/* Connection lines */}
-          {connections.map((conn, i) => (
-            <motion.line
-              key={i}
-              x1={conn.from.cx} y1={conn.from.cy}
-              x2={conn.to.cx} y2={conn.to.cy}
-              stroke={
-                hoveredSegment === conn.from.id || hoveredSegment === conn.to.id
-                  ? "hsl(var(--primary))"
-                  : "hsl(var(--border))"
-              }
-              strokeWidth={hoveredSegment === conn.from.id || hoveredSegment === conn.to.id ? 2 : 1}
-              strokeOpacity={0.4}
-              strokeDasharray="6 4"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 1, delay: 0.3 + i * 0.15 }}
-            />
-          ))}
-
-          {/* Data flow particles along connections */}
-          {connections.map((conn, i) => (
-            <motion.circle
-              key={`particle-${i}`}
-              r={2}
-              fill="hsl(var(--primary))"
-              opacity={0.6}
-              animate={{
-                cx: [conn.from.cx, conn.to.cx],
-                cy: [conn.from.cy, conn.to.cy],
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative">
+        {/* Outer animated gradient ring */}
+        <motion.div
+          className="h-32 w-32 rounded-full p-[3px]"
+          style={{
+            background: "conic-gradient(from 0deg, hsl(var(--primary)), hsl(263 70% 58%), hsl(199 89% 48%), hsl(160 84% 39%), hsl(var(--primary)))",
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+        >
+          <div className="h-full w-full rounded-full bg-background flex items-center justify-center">
+            {/* Inner pulsing gradient */}
+            <motion.div
+              className="h-24 w-24 rounded-full flex items-center justify-center"
+              style={{
+                background: "radial-gradient(circle, hsl(var(--primary) / 0.15) 0%, transparent 70%)",
               }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "linear", delay: i * 0.8 }}
-            />
-          ))}
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: [0.6, 1, 0.6],
+              }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Brain className="h-10 w-10 text-primary" />
+            </motion.div>
+          </div>
+        </motion.div>
 
-          {/* Brain nodes */}
-          {nodes.map((node, i) => {
-            const isHovered = hoveredSegment === node.id;
-            const count = entryCounts[node.id] || 0;
-            const baseR = 32;
-            const r = isHovered ? 36 : baseR;
-
-            return (
-              <motion.g
-                key={node.id}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 + i * 0.15, type: "spring", stiffness: 200 }}
-                onMouseEnter={() => onHover(node.id)}
-                onMouseLeave={() => onHover(null)}
-                onClick={() => onClick(node.id)}
-                className="cursor-pointer"
-              >
-                {/* Glow */}
-                {isHovered && (
-                  <motion.circle
-                    cx={node.cx} cy={node.cy} r={r + 12}
-                    fill={`hsl(${node.color} / 0.1)`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  />
-                )}
-                {/* Outer ring */}
-                <circle
-                  cx={node.cx} cy={node.cy} r={r + 4}
-                  fill="none"
-                  stroke={`hsl(${node.color} / ${isHovered ? 0.5 : 0.2})`}
-                  strokeWidth={1.5}
-                />
-                {/* Main circle */}
-                <motion.circle
-                  cx={node.cx} cy={node.cy}
-                  r={r}
-                  fill={`hsl(${node.color} / ${isHovered ? 0.2 : 0.1})`}
-                  stroke={`hsl(${node.color} / ${isHovered ? 0.8 : 0.4})`}
-                  strokeWidth={2}
-                  animate={{ r }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                />
-                {/* Label */}
-                <text
-                  x={node.cx} y={node.cy - 4}
-                  textAnchor="middle"
-                  fill={`hsl(${node.color})`}
-                  fontSize={12}
-                  fontWeight={600}
-                  className="select-none"
-                >
-                  {node.label}
-                </text>
-                {/* Count */}
-                <text
-                  x={node.cx} y={node.cy + 12}
-                  textAnchor="middle"
-                  fill="hsl(var(--muted-foreground))"
-                  fontSize={10}
-                  className="select-none"
-                >
-                  {count} insight{count !== 1 ? "s" : ""}
-                </text>
-              </motion.g>
-            );
-          })}
-
-          {/* Center brain icon */}
-          <text
-            x={150} y={145}
-            textAnchor="middle"
-            fill="hsl(var(--primary) / 0.6)"
-            fontSize={24}
-            className="select-none"
-          >
-            🧠
-          </text>
-        </svg>
-      </motion.div>
-
-      {/* Hover tooltip */}
-      <AnimatePresence>
-        {hoveredSegment && (
+        {/* Orbiting dots */}
+        {[0, 120, 240].map((deg, i) => (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.15 }}
-          >
-            <div className="bg-card border border-border/50 rounded-lg px-4 py-2.5 shadow-lg text-center max-w-xs">
-              <p className="text-sm font-semibold text-foreground">
-                {BRAIN_SEGMENTS.find(s => s.id === hoveredSegment)?.label}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {BRAIN_SEGMENTS.find(s => s.id === hoveredSegment)?.subtitle}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Segment buttons */}
-      <div className="flex flex-wrap justify-center gap-3">
-        {BRAIN_SEGMENTS.map((seg) => (
-          <button
-            key={seg.id}
-            onMouseEnter={() => onHover(seg.id)}
-            onMouseLeave={() => onHover(null)}
-            onClick={() => onClick(seg.id)}
-            className={cn(
-              "px-4 py-2 rounded-lg border text-sm font-medium transition-all",
-              "bg-card/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/20 hover:bg-primary/5"
-            )}
-          >
-            {seg.label}
-          </button>
+            key={i}
+            className="absolute h-2.5 w-2.5 rounded-full"
+            style={{
+              background: i === 0 ? "hsl(263 70% 58%)" : i === 1 ? "hsl(199 89% 48%)" : "hsl(160 84% 39%)",
+              top: "50%",
+              left: "50%",
+            }}
+            animate={{
+              x: [
+                Math.cos(((deg) * Math.PI) / 180) * 76,
+                Math.cos(((deg + 360) * Math.PI) / 180) * 76,
+              ],
+              y: [
+                Math.sin(((deg) * Math.PI) / 180) * 76,
+                Math.sin(((deg + 360) * Math.PI) / 180) * 76,
+              ],
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          />
         ))}
       </div>
 
-      <p className="text-xs text-muted-foreground/60 italic">
-        {totalEntries > 0
-          ? `${totalEntries} total insights across your business brain`
-          : "Click a node to explore or add insights"}
-      </p>
+      <p className="text-sm text-muted-foreground animate-pulse">Business brain setting up...</p>
     </div>
   );
 }
@@ -478,7 +315,6 @@ export function BusinessDNAView() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isCategorizing, setIsCategorizing] = useState(false);
-  const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
   const [activeSegment, setActiveSegment] = useState<string | null>(null);
   const [showWebsiteDialog, setShowWebsiteDialog] = useState(false);
   const { toast } = useToast();
@@ -578,71 +414,114 @@ export function BusinessDNAView() {
   };
 
   const totalInsights = Object.values(segmentEntries).reduce((sum, arr) => sum + arr.length, 0);
-  const entryCounts = Object.fromEntries(BRAIN_SEGMENTS.map(s => [s.id, segmentEntries[s.id]?.length || 0]));
-
   const activeSegmentData = BRAIN_SEGMENTS.find(s => s.id === activeSegment);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-6 pb-2">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Brain className="h-5 w-5 text-primary" />
+      <div className="px-6 pt-6 pb-4 space-y-5 border-b border-border/50">
+        {/* Business Logo & Name */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-foreground">Your Business</h1>
+              <p className="text-xs text-muted-foreground">Business DNA Brain</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Business DNA Brain</h1>
-            <p className="text-sm text-muted-foreground">Your business intelligence organized into Brand, Product & SOPs</p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8" onClick={() => setShowWebsiteDialog(true)}>
+              <Globe className="h-3.5 w-3.5" />
+              Add Website
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8" onClick={handleCategorize} disabled={isCategorizing}>
+              {isCategorizing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {isCategorizing ? "Analyzing..." : "Auto-categorize"}
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowWebsiteDialog(true)}>
-            <Globe className="h-3.5 w-3.5" />
-            Add Website
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleCategorize} disabled={isCategorizing}>
-            {isCategorizing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            {isCategorizing ? "Analyzing..." : "Auto-categorize"}
-          </Button>
-        </div>
+
+        {/* Segment Tab Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="w-full flex items-center justify-between rounded-lg border border-border bg-card/50 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2.5">
+                {activeSegmentData ? (
+                  <>
+                    <div className={cn("h-6 w-6 rounded-md flex items-center justify-center", activeSegmentData.bgAccent)}>
+                      <activeSegmentData.icon className={cn("h-3.5 w-3.5", activeSegmentData.color)} />
+                    </div>
+                    <span>{activeSegmentData.label}</span>
+                    <span className="text-xs text-muted-foreground">— {activeSegmentData.subtitle}</span>
+                  </>
+                ) : (
+                  <>
+                    <Brain className="h-4 w-4 text-primary" />
+                    <span>Select a category</span>
+                  </>
+                )}
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+            {BRAIN_SEGMENTS.map((seg) => {
+              const Icon = seg.icon;
+              const count = segmentEntries[seg.id]?.length || 0;
+              return (
+                <DropdownMenuItem
+                  key={seg.id}
+                  onClick={() => setActiveSegment(seg.id)}
+                  className="flex items-center gap-3 py-2.5 px-3 cursor-pointer"
+                >
+                  <div className={cn("h-7 w-7 rounded-md flex items-center justify-center shrink-0", seg.bgAccent)}>
+                    <Icon className={cn("h-3.5 w-3.5", seg.color)} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{seg.label}</p>
+                    <p className="text-xs text-muted-foreground">{seg.subtitle}</p>
+                  </div>
+                  {count > 0 && (
+                    <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0", seg.bgAccent, seg.color)}>
+                      {count}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <ScrollArea className="flex-1 px-6 pb-6">
         <AnimatePresence mode="wait">
           {!activeSegment ? (
-            <motion.div key="hub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
-              <BrainVisualization
-                hoveredSegment={hoveredSegment}
-                onHover={setHoveredSegment}
-                onClick={(id) => setActiveSegment(id)}
-                entryCounts={entryCounts}
-              />
-
-              {/* Summary */}
-              <div className="rounded-lg border border-border/50 bg-muted/30 px-4 py-3 mb-6">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  <span className="font-semibold text-foreground">Your Business Brain</span>{" "}
-                  accumulates all your business intelligence into three core pillars — Brand identity, Product knowledge, and Standard Operating Procedures.
-                  {totalInsights > 0 && <span className="ml-1 text-primary font-medium">• {totalInsights} insights extracted</span>}
+            <motion.div
+              key="brain-idle"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col items-center justify-center py-16"
+            >
+              <AnimatedBrainCircle />
+              {totalInsights > 0 && (
+                <p className="text-xs text-muted-foreground/60 mt-4">
+                  {totalInsights} insight{totalInsights !== 1 ? "s" : ""} across your business brain
                 </p>
-              </div>
+              )}
             </motion.div>
           ) : activeSegmentData ? (
-            <motion.div key={activeSegment} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="space-y-4 mt-4">
-              <div className="flex items-center gap-3">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setActiveSegment(null)}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", activeSegmentData.bgAccent)}>
-                  <activeSegmentData.icon className={cn("h-4.5 w-4.5", activeSegmentData.color)} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">{activeSegmentData.label}</h2>
-                  <p className="text-xs text-muted-foreground">{activeSegmentData.subtitle}</p>
-                </div>
-              </div>
-
-              <SegmentCard
+            <motion.div
+              key={activeSegment}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="pt-5"
+            >
+              <SegmentContent
                 segment={activeSegmentData}
                 entries={segmentEntries[activeSegment] || []}
                 isLoading={isLoading}
