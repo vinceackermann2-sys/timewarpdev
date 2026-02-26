@@ -321,20 +321,34 @@ export function BusinessDNAView() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 pt-6 pb-4 space-y-5 border-b border-border/50">
-        {/* Business Logo & Name */}
-      {/* Business Logo & Name */}
-        <div className="flex flex-col items-center gap-2 pt-2">
-          <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Building2 className="h-8 w-8 text-primary" />
+        {/* Business Header - left aligned with animated circle */}
+        <div className="flex items-center gap-5">
+          {/* Business Logo */}
+          <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+            <Building2 className="h-7 w-7 text-primary" />
           </div>
-          <div className="text-center">
-            <h1 className="text-xl font-semibold text-foreground">Your Business</h1>
+          {/* Text */}
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold text-foreground">Your Business</h1>
             <p className="text-xs text-muted-foreground">Business brain setting up...</p>
           </div>
+          {/* Animated gradient circle */}
+          <motion.div
+            className="h-10 w-10 rounded-full p-[2px] shrink-0"
+            style={{
+              background: "conic-gradient(from 0deg, hsl(var(--primary)), hsl(263 70% 58%), hsl(199 89% 48%), hsl(160 84% 39%), hsl(var(--primary)))",
+            }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          >
+            <div className="h-full w-full rounded-full bg-background flex items-center justify-center">
+              <Brain className="h-4 w-4 text-primary" />
+            </div>
+          </motion.div>
         </div>
 
-        {/* Segment Tabs */}
-        <div className="flex items-center gap-2">
+        {/* Segment Tabs - underline style, not full width */}
+        <div className="flex items-center gap-6">
           {BRAIN_SEGMENTS.map((seg) => {
             const Icon = seg.icon;
             const count = segmentEntries[seg.id]?.length || 0;
@@ -344,18 +358,26 @@ export function BusinessDNAView() {
                 key={seg.id}
                 onClick={() => setActiveSegment(isActive ? null : seg.id)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all",
+                  "relative flex items-center gap-1.5 pb-2 text-sm font-medium transition-colors",
                   isActive
-                    ? cn("border-primary/30 bg-primary/10 text-foreground", seg.bgAccent)
-                    : "border-border bg-card/50 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className={cn("h-4 w-4", isActive ? seg.color : "")} />
+                <Icon className={cn("h-3.5 w-3.5", isActive ? seg.color : "")} />
                 <span>{seg.label}</span>
                 {count > 0 && (
                   <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full", seg.bgAccent, seg.color)}>
                     {count}
                   </span>
+                )}
+                {isActive && (
+                  <motion.div
+                    layoutId="segment-underline"
+                    className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full"
+                    style={{ background: `hsl(${seg.hslColor})` }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
                 )}
               </button>
             );
