@@ -22,6 +22,7 @@ serve(async (req) => {
   try {
     const state = JSON.parse(atob(stateParam));
     const userId = state.userId;
+    const returnPath = state.returnPath || "/";
     if (!userId) throw new Error("No userId in state");
 
     // Exchange code for tokens
@@ -73,7 +74,7 @@ serve(async (req) => {
         metadata: { team: teamName, team_id: tokenData.team?.id },
       }, { onConflict: "user_id,provider" });
 
-    return Response.redirect(`${frontendUrl}/?oauth_success=slack`, 302);
+    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=slack`, 302);
   } catch (e) {
     console.error("Slack OAuth callback error:", e);
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);

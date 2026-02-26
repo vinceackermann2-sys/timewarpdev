@@ -23,6 +23,7 @@ serve(async (req) => {
   try {
     const state = JSON.parse(atob(stateParam));
     const userId = state.userId;
+    const returnPath = state.returnPath || "/";
 
     if (!userId) throw new Error("No userId in state");
 
@@ -82,7 +83,7 @@ serve(async (req) => {
         metadata: { email: profile.mail || profile.userPrincipalName },
       }, { onConflict: "user_id,provider" });
 
-    return Response.redirect(`${frontendUrl}/?oauth_success=microsoft`, 302);
+    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=microsoft`, 302);
   } catch (e) {
     console.error("Microsoft OAuth callback error:", e);
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);

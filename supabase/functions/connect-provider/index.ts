@@ -68,6 +68,7 @@ serve(async (req) => {
     // Action: get-auth-url - generate OAuth URL for a provider
     if (action === "get-auth-url") {
       const redirectBase = `${SUPABASE_URL}/functions/v1`;
+      const returnPath = body.returnPath || "/";
       let authUrl = "";
 
       switch (provider) {
@@ -76,7 +77,7 @@ serve(async (req) => {
           if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
           const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read";
-          const state = btoa(JSON.stringify({ userId: user.id }));
+          const state = btoa(JSON.stringify({ userId: user.id, returnPath }));
           authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&response_mode=query`;
           break;
         }
@@ -85,7 +86,7 @@ serve(async (req) => {
           if (!clientId) throw new Error("GOOGLE_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/google-oauth-callback`;
           const scopes = "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly";
-          const state = btoa(JSON.stringify({ userId: user.id }));
+          const state = btoa(JSON.stringify({ userId: user.id, returnPath }));
           authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&access_type=offline&prompt=consent`;
           break;
         }
@@ -94,7 +95,7 @@ serve(async (req) => {
           if (!clientId) throw new Error("SLACK_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/slack-oauth-callback`;
           const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read";
-          const state = btoa(JSON.stringify({ userId: user.id }));
+          const state = btoa(JSON.stringify({ userId: user.id, returnPath }));
           authUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
           break;
         }

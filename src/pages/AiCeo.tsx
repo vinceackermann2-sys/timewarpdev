@@ -16,6 +16,17 @@ const AiCeo = () => {
     searchParams.has("oauth_success") ||
     searchParams.has("oauth_error");
 
+  // If authenticated user lands on homepage with oauth params, redirect to /app with those params
+  useEffect(() => {
+    if (isOAuthReturn) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          navigate(`/app?${searchParams.toString()}`, { replace: true });
+        }
+      });
+    }
+  }, [isOAuthReturn, searchParams, navigate]);
+
   const [showChat, setShowChat] = useState(isOAuthReturn);
 
   useEffect(() => {
