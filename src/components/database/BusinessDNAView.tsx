@@ -191,7 +191,7 @@ export function BusinessDNAView() {
     brand: [], product: [], sop: []
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSegment, setActiveSegment] = useState<string | null>(null);
+  const [activeSegment, setActiveSegment] = useState<string | null>("brand");
   const { toast } = useToast();
 
   const loadEntries = useCallback(async () => {
@@ -278,33 +278,33 @@ export function BusinessDNAView() {
         {/* Business Header — like reference image */}
         <div className="flex items-start gap-4">
           {/* Business Logo */}
-          <div className="h-20 w-20 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
-            <Building2 className="h-9 w-9 text-muted-foreground/60" />
-          </div>
-          {/* Name + brain statuses */}
-          <div className="flex flex-col gap-1.5 pt-1">
-            <h1 className="text-xl font-bold text-foreground leading-tight">Your Business</h1>
-            <div className="flex items-center gap-2">
-              <SiriOrb
-                size="16px"
-                animationDuration={8}
-                colors={{
-                  bg: "transparent",
-                  c1: "oklch(70% 0.18 280)",
-                  c2: "oklch(72% 0.16 200)",
-                  c3: "oklch(68% 0.14 160)",
-                }}
-              />
-              <span className="text-sm text-muted-foreground">Business Brain</span>
-              <motion.span
-                className="text-sm font-medium text-primary"
-                animate={{ opacity: [1, 0.4, 1] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              >
-                Setting up
-              </motion.span>
-            </div>
-          </div>
+           <div className="h-24 w-24 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+             <Building2 className="h-11 w-11 text-muted-foreground/60" />
+           </div>
+           {/* Name + brain statuses */}
+           <div className="flex flex-col gap-2 pt-1">
+             <h1 className="text-2xl font-bold text-foreground leading-tight">Your Business</h1>
+             <div className="flex items-center gap-2.5">
+               <SiriOrb
+                 size="22px"
+                 animationDuration={8}
+                 colors={{
+                   bg: "transparent",
+                   c1: "oklch(70% 0.18 280)",
+                   c2: "oklch(72% 0.16 200)",
+                   c3: "oklch(68% 0.14 160)",
+                 }}
+               />
+               <span className="text-base text-muted-foreground">Business Brain</span>
+               <motion.span
+                 className="text-base font-medium text-primary"
+                 animate={{ opacity: [1, 0.4, 1] }}
+                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+               >
+                 Setting up
+               </motion.span>
+             </div>
+           </div>
         </div>
 
         {/* Segment Tabs — underline style like reference */}
