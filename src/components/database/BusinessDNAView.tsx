@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import SiriOrb from "@/components/ui/siri-orb";
 
 // ── Types ──
 interface SegmentEntry {
@@ -173,59 +174,16 @@ function SegmentContent({
 function AnimatedBrainCircle() {
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="relative">
-        {/* Outer animated gradient ring */}
-        <motion.div
-          className="h-32 w-32 rounded-full p-[3px]"
-          style={{
-            background: "conic-gradient(from 0deg, hsl(var(--primary)), hsl(263 70% 58%), hsl(199 89% 48%), hsl(160 84% 39%), hsl(var(--primary)))",
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-        >
-          <div className="h-full w-full rounded-full bg-background flex items-center justify-center">
-            {/* Inner pulsing gradient */}
-            <motion.div
-              className="h-24 w-24 rounded-full flex items-center justify-center"
-              style={{
-                background: "radial-gradient(circle, hsl(var(--primary) / 0.15) 0%, transparent 70%)",
-              }}
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.6, 1, 0.6],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Brain className="h-10 w-10 text-primary" />
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Orbiting dots */}
-        {[0, 120, 240].map((deg, i) => (
-          <motion.div
-            key={i}
-            className="absolute h-2.5 w-2.5 rounded-full"
-            style={{
-              background: i === 0 ? "hsl(263 70% 58%)" : i === 1 ? "hsl(199 89% 48%)" : "hsl(160 84% 39%)",
-              top: "50%",
-              left: "50%",
-            }}
-            animate={{
-              x: [
-                Math.cos(((deg) * Math.PI) / 180) * 76,
-                Math.cos(((deg + 360) * Math.PI) / 180) * 76,
-              ],
-              y: [
-                Math.sin(((deg) * Math.PI) / 180) * 76,
-                Math.sin(((deg + 360) * Math.PI) / 180) * 76,
-              ],
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-          />
-        ))}
-      </div>
-
+      <SiriOrb
+        size="128px"
+        animationDuration={15}
+        colors={{
+          bg: "transparent",
+          c1: "oklch(70% 0.18 280)",
+          c2: "oklch(72% 0.16 200)",
+          c3: "oklch(68% 0.14 160)",
+        }}
+      />
       <p className="text-sm text-muted-foreground animate-pulse">Business brain setting up...</p>
     </div>
   );
@@ -331,16 +289,16 @@ export function BusinessDNAView() {
           <div className="flex flex-col gap-1.5 pt-1">
             <h1 className="text-xl font-bold text-foreground leading-tight">Your Business</h1>
             <div className="flex items-center gap-2">
-              <motion.div
-                className="h-3.5 w-3.5 rounded-full shrink-0 p-[1.5px]"
-                style={{
-                  background: "conic-gradient(from 0deg, hsl(var(--primary)), hsl(263 70% 58%), hsl(199 89% 48%), hsl(160 84% 39%), hsl(var(--primary)))",
+              <SiriOrb
+                size="16px"
+                animationDuration={8}
+                colors={{
+                  bg: "transparent",
+                  c1: "oklch(70% 0.18 280)",
+                  c2: "oklch(72% 0.16 200)",
+                  c3: "oklch(68% 0.14 160)",
                 }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-              >
-                <div className="h-full w-full rounded-full bg-background" />
-              </motion.div>
+              />
               <span className="text-sm text-muted-foreground">Business Brain</span>
               <motion.span
                 className="text-sm font-medium text-primary"
