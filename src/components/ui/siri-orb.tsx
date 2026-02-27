@@ -136,12 +136,18 @@ const SiriOrb: React.FC<SiriOrbProps> = ({
           width: 100%;
           height: 100%;
           border-radius: 50%;
-          background: radial-gradient(
-            circle at 45% 55%,
-            rgba(255, 255, 255, 0.1) 0%,
-            rgba(255, 255, 255, 0.05) 30%,
-            transparent 60%
+          background: linear-gradient(
+            135deg,
+            transparent 0%,
+            transparent 30%,
+            rgba(255, 255, 255, 0.45) 45%,
+            rgba(255, 255, 255, 0.6) 50%,
+            rgba(255, 255, 255, 0.45) 55%,
+            transparent 70%,
+            transparent 100%
           );
+          background-size: 300% 300%;
+          animation: shine 3s ease-in-out infinite;
           mix-blend-mode: overlay;
         }
 
@@ -154,8 +160,21 @@ const SiriOrb: React.FC<SiriOrbProps> = ({
           }
         }
 
+        @keyframes shine {
+          0% {
+            background-position: 200% 200%;
+          }
+          50% {
+            background-position: -50% -50%;
+          }
+          100% {
+            background-position: 200% 200%;
+          }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .siri-orb::before {
+          .siri-orb::before,
+          .siri-orb::after {
             animation: none;
           }
         }
