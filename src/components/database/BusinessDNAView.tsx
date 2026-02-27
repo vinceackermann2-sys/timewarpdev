@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Brain, Palette, Package, BookOpen, Loader2, Plus, Trash2, Check, X,
-  Pencil, Building2
+  Pencil, Building2, ArrowLeft
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -186,7 +186,7 @@ function IdleState({ totalInsights }: { totalInsights: number }) {
 }
 
 // ── Main View ──
-export function BusinessDNAView() {
+export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
     brand: [], product: [], sop: []
   });
@@ -277,6 +277,11 @@ export function BusinessDNAView() {
       <div className="px-6 pt-6 pb-0 space-y-6 border-b border-border/50">
         {/* Business Header — like reference image */}
         <div className="flex items-start gap-4">
+          {onBack && (
+            <button onClick={onBack} className="mt-1.5 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
           {/* Business Logo */}
            <div className="h-24 w-24 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
              <Building2 className="h-11 w-11 text-muted-foreground/60" />
