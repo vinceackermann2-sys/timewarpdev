@@ -8,6 +8,7 @@ import { DatabaseView } from "@/components/database/DatabaseView";
 import { DataConversionView } from "@/components/database/DataConversionView";
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { BusinessDNAView } from "@/components/database/BusinessDNAView";
+import { MyBusinessesView } from "@/components/database/MyBusinessesView";
 import { Loader2 } from "lucide-react";
 
 type View = "database" | "dataconversion" | "aiceo" | "businessdna";
@@ -24,6 +25,7 @@ const Database = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>("database");
+  const [showBusinessDNA, setShowBusinessDNA] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
 
   // Check for view parameter and pending task on mount
@@ -105,7 +107,11 @@ const Database = () => {
                 onTaskConsumed={() => setPendingTask(null)}
               />
             )}
-            {currentView === "businessdna" && user && <BusinessDNAView />}
+            {currentView === "businessdna" && user && (
+              showBusinessDNA 
+                ? <BusinessDNAView onBack={() => setShowBusinessDNA(false)} />
+                : <MyBusinessesView onSelectBusiness={() => setShowBusinessDNA(true)} />
+            )}
           </main>
         </SidebarInset>
       </div>
