@@ -4,6 +4,8 @@ import {
   Pencil, Building2, ArrowLeft
 } from "lucide-react";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
+import { ValueExchangeLoop } from "@/components/database/ValueExchangeLoop";
+import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -193,6 +195,8 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
   const [isBrandingEditing, setIsBrandingEditing] = useState(false);
+  const [isValueLoopEditing, setIsValueLoopEditing] = useState(false);
+  const [activeSidebarSection, setActiveSidebarSection] = useState<string>("branding");
   const { toast } = useToast();
 
   const handleAddManual = async (segmentId: string, text: string) => {
@@ -241,7 +245,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="flex flex-col h-full items-center">
-      <div className="px-6 pt-6 pb-0 space-y-6 border-b border-border/50 w-full max-w-3xl">
+      <div className="px-6 pt-6 pb-0 space-y-6 border-b border-border/50 w-full max-w-5xl">
         {/* Business Header */}
         <div className="flex items-start gap-4">
           {onBack && (
@@ -307,7 +311,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
       </div>
 
       <ScrollArea className="flex-1 w-full">
-        <div className="max-w-3xl mx-auto px-6 pb-6">
+        <div className="max-w-5xl mx-auto px-6 pb-6">
         <AnimatePresence mode="wait">
           {!activeSegment ? (
             <motion.div
@@ -329,15 +333,37 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               transition={{ duration: 0.2 }}
               className="pt-5"
             >
-              <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
-                <BrandingEditor
-                  isEditing={isBrandingEditing}
-                  onEditToggle={() => setIsBrandingEditing(!isBrandingEditing)}
-                  onCancel={() => setIsBrandingEditing(false)}
-                  onSave={(data) => {
-                    toast({ title: "Branding saved" });
-                  }}
-                />
+              <div className="flex gap-8">
+                {/* Main content */}
+                <div className="flex-1 min-w-0 space-y-6">
+                  <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                    <BrandingEditor
+                      isEditing={isBrandingEditing}
+                      onEditToggle={() => setIsBrandingEditing(!isBrandingEditing)}
+                      onCancel={() => setIsBrandingEditing(false)}
+                      onSave={(data) => {
+                        toast({ title: "Branding saved" });
+                      }}
+                    />
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                    <ValueExchangeLoop
+                      isEditing={isValueLoopEditing}
+                      onEditToggle={() => setIsValueLoopEditing(!isValueLoopEditing)}
+                    />
+                  </div>
+                </div>
+
+                {/* Right sidebar */}
+                <div className="hidden lg:block w-52 shrink-0">
+                  <BrandPageSidebar
+                    activeSection={activeSidebarSection}
+                    onSectionClick={(id) => {
+                      setActiveSidebarSection(id);
+                      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                  />
+                </div>
               </div>
             </motion.div>
           ) : activeSegmentData ? (
