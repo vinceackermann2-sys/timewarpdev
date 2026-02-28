@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import SiriOrb from "@/components/ui/siri-orb";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 
 // ── Types ──
 interface SegmentEntry {
@@ -290,16 +290,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
            <div className="flex flex-col gap-2 pt-1">
              <h1 className="text-2xl font-bold text-foreground leading-tight">Your Business</h1>
              <div className="flex items-center gap-2.5">
-               <SiriOrb
-                 size="22px"
-                 animationDuration={8}
-                 colors={{
-                   bg: "transparent",
-                   c1: "oklch(70% 0.18 280)",
-                   c2: "oklch(72% 0.16 200)",
-                   c3: "oklch(68% 0.14 160)",
-                 }}
-               />
+                <BusinessBrainOrb size={22} />
                <span className="text-base text-muted-foreground">Business Brain</span>
                <motion.span
                  className="text-base font-medium text-primary"
