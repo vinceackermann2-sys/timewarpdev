@@ -268,9 +268,9 @@
 
 .silver-edge {
   position: absolute;
-  inset: -8px;
+  inset: -4px;
   border-radius: 48% 52% 51% 49% / 50% 48% 52% 50%;
-  border: 12px solid transparent;
+  border: 8px solid transparent;
   pointer-events: none;
 }
 
@@ -315,9 +315,9 @@
 /* Small connector trails from outside */
 .silver-connector {
   position: absolute;
-  inset: -14px;
+  inset: -8px;
   border-radius: 50%;
-  border: 6px solid transparent;
+  border: 4px solid transparent;
   pointer-events: none;
 }
 

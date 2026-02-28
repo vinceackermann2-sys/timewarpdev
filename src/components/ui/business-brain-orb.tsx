@@ -6,10 +6,10 @@ interface BusinessBrainOrbProps {
 }
 
 const BusinessBrainOrb: React.FC<BusinessBrainOrbProps> = ({ size = 22, className }) => {
-  const edgeInset = Math.max(2, size * 0.12);
-  const edgeBorder = Math.max(2, size * 0.18);
-  const connectorInset = Math.max(3, size * 0.2);
-  const connectorBorder = Math.max(1, size * 0.09);
+  const edgeInset = Math.max(1, size * 0.06);
+  const edgeBorder = Math.max(2, size * 0.12);
+  const connectorInset = Math.max(2, size * 0.12);
+  const connectorBorder = Math.max(1, size * 0.06);
   const blurAmount = Math.max(2, size * 0.12);
 
   return (
