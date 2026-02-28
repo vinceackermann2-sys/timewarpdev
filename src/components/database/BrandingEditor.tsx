@@ -260,10 +260,11 @@ export function BrandingEditor({
                 </button>
               )}
 
-              {/* No logo placeholder (read mode, no logos) */}
+              {/* No logo placeholder (both modes, no logos) */}
               {!isEditing && branding.logos.length === 0 && (
-                <div className="h-16 w-28 rounded-lg border border-dashed border-border/60 flex items-center justify-center">
-                  <span className="text-[10px] text-muted-foreground/60">No logo yet</span>
+                <div className="h-32 w-40 rounded-xl border-2 border-dashed border-border/60 flex flex-col items-center justify-center gap-1">
+                  <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
+                  <span className="text-xs text-muted-foreground/60">No logo yet</span>
                 </div>
               )}
             </div>
@@ -311,13 +312,13 @@ export function BrandingEditor({
                 />
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-x-12 gap-y-4">
                 {(Object.entries(branding.colors) as [string, string][]).map(([key, value]) => (
                   <div key={key} className="space-y-1.5">
-                    <span className="text-[11px] font-medium text-muted-foreground capitalize">{key}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="h-7 w-7 rounded-md border border-border/60 shrink-0" style={{ backgroundColor: value }} />
-                      <span className="text-[11px] font-mono text-muted-foreground">{value.toUpperCase()}</span>
+                    <span className="text-xs font-medium text-muted-foreground capitalize">{key}</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-9 w-9 rounded-lg border border-border/60 shrink-0" style={{ backgroundColor: value }} />
+                      <span className="text-xs font-mono text-muted-foreground">{value.toUpperCase()}</span>
                     </div>
                   </div>
                 ))}
@@ -387,18 +388,18 @@ export function BrandingEditor({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-muted-foreground">Font family</span>
-                  <p className="text-xs text-foreground/80">{branding.typography.fontFamily}</p>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Font family</label>
+                  <p className="text-sm text-foreground/90 h-9 flex items-center">{branding.typography.fontFamily}</p>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-muted-foreground">Style</span>
-                  <p className="text-xs text-foreground/80">{branding.typography.fontStyle}</p>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Font style description</label>
+                  <p className="text-sm text-foreground/90 h-9 flex items-center">{branding.typography.fontStyle}</p>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-muted-foreground">Weight</span>
-                  <p className="text-xs text-foreground/80">{FONT_WEIGHTS.find(fw => fw.value === branding.typography.fontWeight)?.label || branding.typography.fontWeight}</p>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Font weight</label>
+                  <p className="text-sm text-foreground/90 h-9 flex items-center">{FONT_WEIGHTS.find(fw => fw.value === branding.typography.fontWeight)?.label || branding.typography.fontWeight}</p>
                 </div>
               </div>
             )}
