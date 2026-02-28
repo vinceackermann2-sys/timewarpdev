@@ -15,9 +15,9 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
   const [search, setSearch] = useState("");
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full items-center">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-5">
+      <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-5 w-full max-w-3xl">
         <div className="flex items-center justify-between gap-4">
           {/* Tabs */}
           <div className="flex items-center gap-6">
@@ -58,7 +58,7 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-6 w-full max-w-3xl">
         {activeTab === "My Businesses" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {/* Add Business Card */}
