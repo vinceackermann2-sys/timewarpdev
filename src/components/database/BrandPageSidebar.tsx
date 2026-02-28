@@ -20,11 +20,11 @@ const BRAND_SECTIONS: SidebarSection[] = [
     id: "value-exchange",
     label: "Value Exchange Loop",
     children: [
-      { id: "attract", label: "Attract" },
-      { id: "engage", label: "Engage" },
-      { id: "convert", label: "Convert" },
-      { id: "deliver", label: "Deliver" },
-      { id: "retain", label: "Retain" },
+      { id: "problem", label: "The Problem" },
+      { id: "solution", label: "The Solution" },
+      { id: "customer", label: "The Customer" },
+      { id: "economics", label: "The Economics" },
+      { id: "formula", label: "Atomic Formula" },
     ],
   },
 ];
