@@ -186,6 +186,49 @@ function IdleState({ totalInsights }: { totalInsights: number }) {
   );
 }
 
+// ── Compact Branding Card ──
+function BrandingCard({ onEdit }: { onEdit: () => void }) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-card shadow-sm p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Palette className="h-4.5 w-4.5 text-violet-400" />
+          <h3 className="text-sm font-semibold text-foreground">Brand Identity</h3>
+        </div>
+        <Button variant="outline" size="sm" className="h-7 px-3 text-xs gap-1.5" onClick={onEdit}>
+          <Pencil className="h-3 w-3" /> Edit
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* Colors */}
+        <div className="space-y-1.5">
+          <span className="text-[11px] font-medium text-muted-foreground">Colors</span>
+          <div className="flex items-center gap-1.5">
+            {["#4A86FF", "#6B7280", "#FFFFFF", "#000000"].map((c, i) => (
+              <div key={i} className="h-6 w-6 rounded-md border border-border/60" style={{ backgroundColor: c }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Typography */}
+        <div className="space-y-1.5">
+          <span className="text-[11px] font-medium text-muted-foreground">Typography</span>
+          <p className="text-xs text-foreground/80">IBM Plex Sans · Semi-Bold</p>
+        </div>
+      </div>
+
+      {/* Logo placeholder */}
+      <div className="space-y-1.5">
+        <span className="text-[11px] font-medium text-muted-foreground">Logo</span>
+        <div className="h-16 w-28 rounded-lg border border-dashed border-border/60 flex items-center justify-center">
+          <span className="text-[10px] text-muted-foreground/60">No logo yet</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main View ──
 export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
@@ -193,6 +236,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
+  const [isBrandingEditing, setIsBrandingEditing] = useState(false);
   const { toast } = useToast();
 
   const loadEntries = useCallback(async () => {
@@ -363,14 +407,19 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               transition={{ duration: 0.2 }}
               className="pt-5"
             >
-              <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
-                <BrandingEditor
-                  onCancel={() => setActiveSegment(null)}
-                  onSave={(data) => {
-                    toast({ title: "Branding saved" });
-                  }}
-                />
-              </div>
+              {isBrandingEditing ? (
+                <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                  <BrandingEditor
+                    onCancel={() => setIsBrandingEditing(false)}
+                    onSave={(data) => {
+                      toast({ title: "Branding saved" });
+                      setIsBrandingEditing(false);
+                    }}
+                  />
+                </div>
+              ) : (
+                <BrandingCard onEdit={() => setIsBrandingEditing(true)} />
+              )}
             </motion.div>
           ) : activeSegmentData ? (
             <motion.div
