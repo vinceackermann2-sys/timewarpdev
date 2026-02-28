@@ -3,6 +3,7 @@ import {
   Brain, Palette, Package, BookOpen, Loader2, Plus, Trash2, Check, X,
   Pencil, Building2, ArrowLeft
 } from "lucide-react";
+import { BrandingEditor } from "@/components/database/BrandingEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -353,6 +354,22 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               className="flex flex-col items-center justify-center py-16"
             >
               <IdleState totalInsights={totalInsights} />
+            </motion.div>
+          ) : activeSegment === "brand" ? (
+            <motion.div
+              key="branding-editor"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="pt-0 -mx-6"
+            >
+              <BrandingEditor
+                onCancel={() => setActiveSegment(null)}
+                onSave={(data) => {
+                  toast({ title: "Branding saved" });
+                }}
+              />
             </motion.div>
           ) : activeSegmentData ? (
             <motion.div
