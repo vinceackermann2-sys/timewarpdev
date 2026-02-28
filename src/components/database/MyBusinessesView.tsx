@@ -20,13 +20,13 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
       <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-5 w-full max-w-3xl">
         <div className="flex items-center justify-between gap-4">
           {/* Tabs */}
-          <div className="flex items-center gap-1 rounded-full bg-muted/50 border border-border/40 p-1">
+          <div className="flex items-center gap-1 rounded-lg bg-muted/50 border border-border/40 p-1">
             {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "relative text-sm font-medium px-4 py-1.5 rounded-full transition-colors",
+                  "relative text-sm font-medium px-4 py-1.5 rounded-md transition-colors",
                   activeTab === tab
                     ? "bg-background text-foreground shadow-sm border border-border/50"
                     : "text-muted-foreground hover:text-foreground"
