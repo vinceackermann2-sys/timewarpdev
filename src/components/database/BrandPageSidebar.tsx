@@ -17,6 +17,18 @@ const BRAND_SECTIONS: SidebarSection[] = [
     ],
   },
   {
+    id: "extended-brand",
+    label: "Visual Identity",
+    children: [
+      { id: "moodboard", label: "Moodboard" },
+      { id: "illustrations", label: "Illustrations" },
+      { id: "image-guidelines", label: "Image Guidelines" },
+      { id: "website", label: "Website & Digital" },
+      { id: "buttons", label: "Buttons & UI" },
+      { id: "social-media", label: "Social Media" },
+    ],
+  },
+  {
     id: "value-exchange",
     label: "Value Exchange Loop",
     children: [
