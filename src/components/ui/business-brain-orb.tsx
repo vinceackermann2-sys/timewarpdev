@@ -7,9 +7,9 @@ interface BusinessBrainOrbProps {
 
 const BusinessBrainOrb: React.FC<BusinessBrainOrbProps> = ({ size = 22, className }) => {
   const edgeInset = Math.max(2, size * 0.12);
-  const edgeBorder = Math.max(2, size * 0.15);
-  const connectorInset = Math.max(3, size * 0.18);
-  const connectorBorder = Math.max(1, size * 0.08);
+  const edgeBorder = Math.max(2, size * 0.18);
+  const connectorInset = Math.max(3, size * 0.2);
+  const connectorBorder = Math.max(1, size * 0.09);
   const blurAmount = Math.max(2, size * 0.12);
 
   return (
@@ -35,6 +35,18 @@ const BusinessBrainOrb: React.FC<BusinessBrainOrbProps> = ({ size = 22, classNam
         <div
           className="silver-edge silver-edge-2"
           style={{ inset: -edgeInset, borderWidth: edgeBorder }}
+        />
+      </div>
+
+      {/* Connector trails */}
+      <div className="absolute inset-0">
+        <div
+          className="silver-connector silver-connector-1"
+          style={{ inset: -connectorInset, borderWidth: connectorBorder }}
+        />
+        <div
+          className="silver-connector silver-connector-2"
+          style={{ inset: -connectorInset, borderWidth: connectorBorder }}
         />
       </div>
 
