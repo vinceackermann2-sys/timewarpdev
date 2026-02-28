@@ -266,23 +266,51 @@
   100% { opacity: 0; clip-path: circle(0% at 50% 50%); }
 }
 
+@keyframes trail-breathe {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
 .silver-edge {
   position: absolute;
-  border-radius: 48% 52% 51% 49% / 50% 48% 52% 50%;
-  border: 12px solid transparent;
+  border-radius: 50%;
+  border: 6px solid transparent;
   pointer-events: none;
 }
 
 .silver-edge-1 {
   background: linear-gradient(white, white) padding-box,
-              conic-gradient(from 0deg, transparent 0%, rgba(180,180,200,0.3) 6%, rgba(200,200,220,0.6) 10%, rgba(220,220,240,0.9) 14%, rgba(255,255,255,1) 18%, rgba(220,220,240,0.9) 22%, rgba(200,200,220,0.6) 26%, rgba(180,180,200,0.3) 30%, transparent 34%, transparent 100%) border-box;
-  animation: edge-rotate-seamless 12s linear infinite;
+              conic-gradient(from 0deg,
+                transparent 0%,
+                rgba(200,200,230,0.2) 3%,
+                rgba(220,220,240,0.5) 5%,
+                rgba(240,240,255,0.8) 7%,
+                rgba(255,255,255,1) 9%,
+                rgba(240,240,255,0.8) 11%,
+                rgba(220,220,240,0.5) 13%,
+                rgba(200,200,230,0.2) 15%,
+                transparent 17%,
+                transparent 100%
+              ) border-box;
+  animation: edge-rotate-seamless 18s linear infinite, trail-breathe 3s ease-in-out infinite;
+  border-radius: 48% 52% 51% 49% / 50% 48% 52% 50%;
 }
 
 .silver-edge-2 {
   background: linear-gradient(white, white) padding-box,
-              conic-gradient(from 180deg, transparent 0%, rgba(180,180,200,0.3) 6%, rgba(200,200,220,0.6) 10%, rgba(220,220,240,0.9) 14%, rgba(255,255,255,1) 18%, rgba(220,220,240,0.9) 22%, rgba(200,200,220,0.6) 26%, rgba(180,180,200,0.3) 30%, transparent 34%, transparent 100%) border-box;
-  animation: edge-rotate-seamless 12s linear infinite;
+              conic-gradient(from 180deg,
+                transparent 0%,
+                rgba(200,200,230,0.2) 3%,
+                rgba(220,220,240,0.5) 5%,
+                rgba(240,240,255,0.8) 7%,
+                rgba(255,255,255,1) 9%,
+                rgba(240,240,255,0.8) 11%,
+                rgba(220,220,240,0.5) 13%,
+                rgba(200,200,230,0.2) 15%,
+                transparent 17%,
+                transparent 100%
+              ) border-box;
+  animation: edge-rotate-seamless 18s linear infinite, trail-breathe 3s ease-in-out infinite;
   border-radius: 52% 48% 49% 51% / 48% 52% 48% 52%;
 }
 
