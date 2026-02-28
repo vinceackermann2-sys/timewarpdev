@@ -6,52 +6,27 @@ interface BusinessBrainOrbProps {
 }
 
 const BusinessBrainOrb: React.FC<BusinessBrainOrbProps> = ({ size = 22, className }) => {
-  const edgeInset = Math.max(2, size * 0.12);
-  const edgeBorder = Math.max(2, size * 0.15);
-  const connectorInset = Math.max(3, size * 0.18);
-  const connectorBorder = Math.max(1, size * 0.08);
-  const blurAmount = Math.max(2, size * 0.12);
-
   return (
     <div
-      className={cn("relative flex items-center justify-center", className)}
+      className={cn("relative", className)}
       style={{ width: size, height: size }}
     >
       {/* Glow aura */}
-      <div
-        className="absolute rounded-full animate-pulse-slow"
-        style={{
-          inset: -(size * 0.25),
-          background: `radial-gradient(circle, rgba(133,176,255,0.3) 0%, transparent 70%)`,
-        }}
-      />
+      <div className="absolute inset-0 rounded-full bg-blue-400 blur-2xl opacity-20 animate-pulse-slow" />
 
-      {/* Silver rotating edges */}
+      {/* Silver edges + connectors */}
       <div className="absolute inset-0">
-        <div
-          className="silver-edge silver-edge-1"
-          style={{ inset: -edgeInset, borderWidth: edgeBorder }}
-        />
-        <div
-          className="silver-edge silver-edge-2"
-          style={{ inset: -edgeInset, borderWidth: edgeBorder }}
-        />
+        <div className="silver-edge silver-edge-1" />
+        <div className="silver-edge silver-edge-2" />
+        <div className="silver-connector silver-connector-1" />
+        <div className="silver-connector silver-connector-2" />
       </div>
 
       {/* Main orb */}
-      <div
-        className="orb-container orb-core rounded-full"
-        style={{
-          width: size,
-          height: size,
-          minWidth: size,
-          minHeight: size,
-        }}
-      >
-        <div
-          className="shine-double"
-          style={{ filter: `blur(${blurAmount}px)` }}
-        />
+      <div className="orb-container w-full h-full rounded-full shadow-inner">
+        <div className="orb-core w-full h-full rounded-full">
+          <div className="shine-double" />
+        </div>
       </div>
     </div>
   );
