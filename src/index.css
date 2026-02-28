@@ -267,14 +267,14 @@
 }
 
 @keyframes trail-breathe {
-  0%, 100% { opacity: 0.3; }
+  0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
 
 .silver-edge {
   position: absolute;
   border-radius: 50%;
-  border: 6px solid transparent;
+  border: 8px solid transparent;
   pointer-events: none;
 }
 
@@ -282,14 +282,14 @@
   background: linear-gradient(white, white) padding-box,
               conic-gradient(from 0deg,
                 transparent 0%,
-                rgba(200,200,230,0.2) 3%,
-                rgba(220,220,240,0.5) 5%,
-                rgba(240,240,255,0.8) 7%,
-                rgba(255,255,255,1) 9%,
-                rgba(240,240,255,0.8) 11%,
-                rgba(220,220,240,0.5) 13%,
-                rgba(200,200,230,0.2) 15%,
-                transparent 17%,
+                rgba(180,185,210,0.4) 2%,
+                rgba(200,205,230,0.7) 4%,
+                rgba(220,225,245,0.9) 6%,
+                rgba(245,245,255,1) 9%,
+                rgba(220,225,245,0.9) 12%,
+                rgba(200,205,230,0.7) 14%,
+                rgba(180,185,210,0.4) 16%,
+                transparent 18%,
                 transparent 100%
               ) border-box;
   animation: edge-rotate-seamless 18s linear infinite, trail-breathe 3s ease-in-out infinite;
@@ -300,14 +300,14 @@
   background: linear-gradient(white, white) padding-box,
               conic-gradient(from 180deg,
                 transparent 0%,
-                rgba(200,200,230,0.2) 3%,
-                rgba(220,220,240,0.5) 5%,
-                rgba(240,240,255,0.8) 7%,
-                rgba(255,255,255,1) 9%,
-                rgba(240,240,255,0.8) 11%,
-                rgba(220,220,240,0.5) 13%,
-                rgba(200,200,230,0.2) 15%,
-                transparent 17%,
+                rgba(180,185,210,0.4) 2%,
+                rgba(200,205,230,0.7) 4%,
+                rgba(220,225,245,0.9) 6%,
+                rgba(245,245,255,1) 9%,
+                rgba(220,225,245,0.9) 12%,
+                rgba(200,205,230,0.7) 14%,
+                rgba(180,185,210,0.4) 16%,
+                transparent 18%,
                 transparent 100%
               ) border-box;
   animation: edge-rotate-seamless 18s linear infinite, trail-breathe 3s ease-in-out infinite;
