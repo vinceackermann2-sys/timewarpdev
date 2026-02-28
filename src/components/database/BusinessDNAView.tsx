@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
 import { ValueExchangeLoop } from "@/components/database/ValueExchangeLoop";
+import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -345,6 +346,9 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
                         toast({ title: "Branding saved" });
                       }}
                     />
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden" id="extended-brand">
+                    <BrandExtendedSections />
                   </div>
                   <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                     <ValueExchangeLoop
