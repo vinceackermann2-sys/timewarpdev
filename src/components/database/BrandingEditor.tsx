@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Globe, ImageIcon, Palette, Type, Upload, X, Check, RefreshCw, Save,
+  Globe, ImageIcon, Palette, Type, Upload, X, Check, RefreshCw, Save, Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,9 +95,13 @@ function ColorField({
 export function BrandingEditor({
   onCancel,
   onSave,
+  isEditing = false,
+  onEditToggle,
 }: {
   onCancel: () => void;
   onSave?: (data: BrandingData) => void;
+  isEditing?: boolean;
+  onEditToggle?: () => void;
 }) {
   const [branding, setBranding] = useState<BrandingData>(DEFAULT_BRANDING);
   const [extractUrl, setExtractUrl] = useState("");
@@ -136,61 +140,76 @@ export function BrandingEditor({
           <h2 className="text-lg font-semibold text-foreground">Branding</h2>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCancel}
-            className="gap-1.5 text-muted-foreground"
-          >
-            <X className="h-4 w-4" /> Cancel
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => onSave?.(branding)}
-            className="gap-1.5"
-          >
-            <Save className="h-4 w-4" /> Save
-          </Button>
+          {isEditing ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onEditToggle || onCancel}
+                className="gap-1.5 text-muted-foreground"
+              >
+                <X className="h-4 w-4" /> Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => { onSave?.(branding); onEditToggle?.(); }}
+                className="gap-1.5"
+              >
+                <Save className="h-4 w-4" /> Save
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEditToggle}
+              className="gap-1.5"
+            >
+              <Pencil className="h-4 w-4" /> Edit
+            </Button>
+          )}
         </div>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="px-6 py-6 space-y-8 max-w-3xl">
-          {/* ── Extract from URL ── */}
-          <section className="rounded-xl border border-border/50 bg-muted/30 p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">
-                Extract branding from URL
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Paste a product URL to extract fresh branding (uses 7-day cache
-              for faster results)
-            </p>
-            <div className="flex gap-2">
-              <Input
-                value={extractUrl}
-                onChange={(e) => setExtractUrl(e.target.value)}
-                placeholder="https://example.com/product"
-                className="flex-1 h-9 text-sm"
-              />
-              <Button
-                size="sm"
-                onClick={handleExtract}
-                disabled={isExtracting || !extractUrl.trim()}
-                className="gap-1.5 h-9 px-4"
-              >
-                <RefreshCw
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    isExtracting && "animate-spin"
-                  )}
+          {/* ── Extract from URL (edit mode only) ── */}
+          {isEditing && (
+            <section className="rounded-xl border border-border/50 bg-muted/30 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">
+                  Extract branding from URL
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Paste a product URL to extract fresh branding (uses 7-day cache
+                for faster results)
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={extractUrl}
+                  onChange={(e) => setExtractUrl(e.target.value)}
+                  placeholder="https://example.com/product"
+                  className="flex-1 h-9 text-sm"
                 />
-                Extract
-              </Button>
-            </div>
-          </section>
+                <Button
+                  size="sm"
+                  onClick={handleExtract}
+                  disabled={isExtracting || !extractUrl.trim()}
+                  className="gap-1.5 h-9 px-4"
+                >
+                  <RefreshCw
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      isExtracting && "animate-spin"
+                    )}
+                  />
+                  Extract
+                </Button>
+              </div>
+            </section>
+          )}
 
           {/* ── Primary Logo ── */}
           <section className="space-y-3">
@@ -210,13 +229,14 @@ export function BrandingEditor({
                 <button
                   key={i}
                   onClick={() =>
-                    setBranding((p) => ({ ...p, selectedLogo: i }))
+                    isEditing && setBranding((p) => ({ ...p, selectedLogo: i }))
                   }
                   className={cn(
-                    "relative h-44 w-56 rounded-xl border-2 overflow-hidden transition-all bg-card",
+                    "relative h-32 w-40 rounded-xl border-2 overflow-hidden transition-all bg-card",
                     i === branding.selectedLogo
                       ? "border-primary shadow-glow"
-                      : "border-border/40 hover:border-border"
+                      : "border-border/40 hover:border-border",
+                    !isEditing && "cursor-default"
                   )}
                 >
                   <img
@@ -232,16 +252,27 @@ export function BrandingEditor({
                 </button>
               ))}
 
-              {/* Upload slot */}
-              <button className="h-44 w-56 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/40 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary">
-                <Upload className="h-5 w-5" />
-                <span className="text-xs font-medium">Upload</span>
-              </button>
+              {/* Upload slot (edit mode only) */}
+              {isEditing && (
+                <button className="h-32 w-40 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/40 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary">
+                  <Upload className="h-5 w-5" />
+                  <span className="text-xs font-medium">Upload</span>
+                </button>
+              )}
+
+              {/* No logo placeholder (read mode, no logos) */}
+              {!isEditing && branding.logos.length === 0 && (
+                <div className="h-16 w-28 rounded-lg border border-dashed border-border/60 flex items-center justify-center">
+                  <span className="text-[10px] text-muted-foreground/60">No logo yet</span>
+                </div>
+              )}
             </div>
 
-            <p className="text-xs text-muted-foreground/70">
-              Click a logo to select it as your primary brand logo
-            </p>
+            {isEditing && (
+              <p className="text-xs text-muted-foreground/70">
+                Click a logo to select it as your primary brand logo
+              </p>
+            )}
           </section>
 
           {/* ── Brand Colors ── */}
@@ -256,28 +287,42 @@ export function BrandingEditor({
               Core color palette used for brand consistency in generated ads
             </p>
 
-            <div className="grid grid-cols-2 gap-x-12 gap-y-4">
-              <ColorField
-                label="Primary"
-                value={branding.colors.primary}
-                onChange={(v) => updateColor("primary", v)}
-              />
-              <ColorField
-                label="Secondary"
-                value={branding.colors.secondary}
-                onChange={(v) => updateColor("secondary", v)}
-              />
-              <ColorField
-                label="Background"
-                value={branding.colors.background}
-                onChange={(v) => updateColor("background", v)}
-              />
-              <ColorField
-                label="Text"
-                value={branding.colors.text}
-                onChange={(v) => updateColor("text", v)}
-              />
-            </div>
+            {isEditing ? (
+              <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+                <ColorField
+                  label="Primary"
+                  value={branding.colors.primary}
+                  onChange={(v) => updateColor("primary", v)}
+                />
+                <ColorField
+                  label="Secondary"
+                  value={branding.colors.secondary}
+                  onChange={(v) => updateColor("secondary", v)}
+                />
+                <ColorField
+                  label="Background"
+                  value={branding.colors.background}
+                  onChange={(v) => updateColor("background", v)}
+                />
+                <ColorField
+                  label="Text"
+                  value={branding.colors.text}
+                  onChange={(v) => updateColor("text", v)}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-3">
+                {(Object.entries(branding.colors) as [string, string][]).map(([key, value]) => (
+                  <div key={key} className="space-y-1.5">
+                    <span className="text-[11px] font-medium text-muted-foreground capitalize">{key}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-md border border-border/60 shrink-0" style={{ backgroundColor: value }} />
+                      <span className="text-[11px] font-mono text-muted-foreground">{value.toUpperCase()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* ── Typography ── */}
@@ -292,54 +337,71 @@ export function BrandingEditor({
               Font settings for maintaining brand voice in text-based ads
             </p>
 
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Font family
-                </label>
-                <Input
-                  value={branding.typography.fontFamily}
-                  onChange={(e) =>
-                    updateTypography("fontFamily", e.target.value)
-                  }
-                  className="h-9 text-sm"
-                />
-              </div>
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Font family
+                  </label>
+                  <Input
+                    value={branding.typography.fontFamily}
+                    onChange={(e) =>
+                      updateTypography("fontFamily", e.target.value)
+                    }
+                    className="h-9 text-sm"
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Font style description
-                </label>
-                <Input
-                  value={branding.typography.fontStyle}
-                  onChange={(e) =>
-                    updateTypography("fontStyle", e.target.value)
-                  }
-                  className="h-9 text-sm"
-                />
-              </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Font style description
+                  </label>
+                  <Input
+                    value={branding.typography.fontStyle}
+                    onChange={(e) =>
+                      updateTypography("fontStyle", e.target.value)
+                    }
+                    className="h-9 text-sm"
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Font weight
-                </label>
-                <Select
-                  value={branding.typography.fontWeight}
-                  onValueChange={(v) => updateTypography("fontWeight", v)}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FONT_WEIGHTS.map((fw) => (
-                      <SelectItem key={fw.value} value={fw.value}>
-                        {fw.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Font weight
+                  </label>
+                  <Select
+                    value={branding.typography.fontWeight}
+                    onValueChange={(v) => updateTypography("fontWeight", v)}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FONT_WEIGHTS.map((fw) => (
+                        <SelectItem key={fw.value} value={fw.value}>
+                          {fw.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <span className="text-[11px] font-medium text-muted-foreground">Font family</span>
+                  <p className="text-xs text-foreground/80">{branding.typography.fontFamily}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-medium text-muted-foreground">Style</span>
+                  <p className="text-xs text-foreground/80">{branding.typography.fontStyle}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-medium text-muted-foreground">Weight</span>
+                  <p className="text-xs text-foreground/80">{FONT_WEIGHTS.find(fw => fw.value === branding.typography.fontWeight)?.label || branding.typography.fontWeight}</p>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* ── Confidence footer ── */}
