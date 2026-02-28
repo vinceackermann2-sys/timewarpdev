@@ -22,7 +22,7 @@ const BusinessBrainOrb: React.FC<BusinessBrainOrbProps> = ({ size = 22, classNam
         className="absolute rounded-full animate-pulse-slow"
         style={{
           inset: -(size * 0.25),
-          background: `radial-gradient(circle, rgba(133,176,255,0.3) 0%, transparent 70%)`,
+          background: `radial-gradient(circle, var(--orb-glow) 0%, transparent 70%)`,
         }}
       />
 
