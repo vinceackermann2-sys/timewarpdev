@@ -274,20 +274,18 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   const activeSegmentData = BRAIN_SEGMENTS.find(s => s.id === activeSegment);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-6 pt-6 pb-0 space-y-6 border-b border-border/50">
-        {/* Business Header — like reference image */}
+    <div className="flex flex-col h-full items-center">
+      <div className="px-6 pt-6 pb-0 space-y-6 border-b border-border/50 w-full max-w-3xl">
+        {/* Business Header */}
         <div className="flex items-start gap-4">
           {onBack && (
             <button onClick={onBack} className="mt-1.5 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          {/* Business Logo */}
            <div className="h-24 w-24 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
              <Building2 className="h-11 w-11 text-muted-foreground/60" />
            </div>
-           {/* Name + brain statuses */}
            <div className="flex flex-col gap-2 pt-1">
              <h1 className="text-2xl font-bold text-foreground leading-tight">Your Business</h1>
              <div className="flex items-center gap-2.5">
@@ -304,7 +302,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
            </div>
         </div>
 
-        {/* Segment Tabs — underline style like reference */}
+        {/* Segment Tabs */}
         <div className="flex items-center gap-8">
           {BRAIN_SEGMENTS.map((seg) => {
             const Icon = seg.icon;
@@ -342,7 +340,8 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-6 pb-6">
+      <ScrollArea className="flex-1 w-full">
+        <div className="max-w-3xl mx-auto px-6 pb-6">
         <AnimatePresence mode="wait">
           {!activeSegment ? (
             <motion.div
@@ -362,14 +361,16 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="pt-0 -mx-6"
+              className="pt-5"
             >
-              <BrandingEditor
-                onCancel={() => setActiveSegment(null)}
-                onSave={(data) => {
-                  toast({ title: "Branding saved" });
-                }}
-              />
+              <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                <BrandingEditor
+                  onCancel={() => setActiveSegment(null)}
+                  onSave={(data) => {
+                    toast({ title: "Branding saved" });
+                  }}
+                />
+              </div>
             </motion.div>
           ) : activeSegmentData ? (
             <motion.div
@@ -391,6 +392,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
             </motion.div>
           ) : null}
         </AnimatePresence>
+        </div>
       </ScrollArea>
 
       
