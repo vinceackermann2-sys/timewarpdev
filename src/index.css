@@ -266,27 +266,21 @@
   100% { opacity: 0; clip-path: circle(0% at 50% 50%); }
 }
 
-@keyframes trail-extend {
-  0% {
-    clip-path: polygon(48% 0%, 52% 0%, 52% 100%, 48% 100%);
-    opacity: 0.4;
-  }
-  25% {
-    clip-path: polygon(30% 0%, 70% 0%, 70% 100%, 30% 100%);
-    opacity: 0.8;
+@keyframes trail-grow {
+  0%, 100% {
+    --trail-spread: 3%;
+    opacity: 0.5;
   }
   50% {
-    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+    --trail-spread: 50%;
     opacity: 1;
   }
-  75% {
-    clip-path: polygon(30% 0%, 70% 0%, 70% 100%, 30% 100%);
-    opacity: 0.8;
-  }
-  100% {
-    clip-path: polygon(48% 0%, 52% 0%, 52% 100%, 48% 100%);
-    opacity: 0.4;
-  }
+}
+
+@property --trail-spread {
+  syntax: '<percentage>';
+  initial-value: 3%;
+  inherits: false;
 }
 
 .silver-edge {
@@ -300,17 +294,15 @@
   background: linear-gradient(white, white) padding-box,
               conic-gradient(from 0deg,
                 transparent 0%,
-                rgba(190,195,220,0.5) 2%,
-                rgba(210,215,240,0.8) 4%,
-                rgba(235,235,255,1) 7%,
+                rgba(210,215,240,0.4) calc(9% - var(--trail-spread)),
+                rgba(235,235,255,0.8) calc(9% - var(--trail-spread) * 0.5),
                 rgba(245,245,255,1) 9%,
-                rgba(235,235,255,1) 11%,
-                rgba(210,215,240,0.8) 14%,
-                rgba(190,195,220,0.5) 16%,
-                transparent 18%,
+                rgba(235,235,255,0.8) calc(9% + var(--trail-spread) * 0.5),
+                rgba(210,215,240,0.4) calc(9% + var(--trail-spread)),
+                transparent calc(9% + var(--trail-spread) + 1%),
                 transparent 100%
               ) border-box;
-  animation: edge-rotate-seamless 18s linear infinite, trail-extend 4s ease-in-out infinite;
+  animation: edge-rotate-seamless 18s linear infinite, trail-grow 4s ease-in-out infinite;
   border-radius: 48% 52% 51% 49% / 50% 48% 52% 50%;
 }
 
@@ -318,17 +310,15 @@
   background: linear-gradient(white, white) padding-box,
               conic-gradient(from 180deg,
                 transparent 0%,
-                rgba(190,195,220,0.5) 2%,
-                rgba(210,215,240,0.8) 4%,
-                rgba(235,235,255,1) 7%,
+                rgba(210,215,240,0.4) calc(9% - var(--trail-spread)),
+                rgba(235,235,255,0.8) calc(9% - var(--trail-spread) * 0.5),
                 rgba(245,245,255,1) 9%,
-                rgba(235,235,255,1) 11%,
-                rgba(210,215,240,0.8) 14%,
-                rgba(190,195,220,0.5) 16%,
-                transparent 18%,
+                rgba(235,235,255,0.8) calc(9% + var(--trail-spread) * 0.5),
+                rgba(210,215,240,0.4) calc(9% + var(--trail-spread)),
+                transparent calc(9% + var(--trail-spread) + 1%),
                 transparent 100%
               ) border-box;
-  animation: edge-rotate-seamless 18s linear infinite, trail-extend 4s ease-in-out infinite;
+  animation: edge-rotate-seamless 18s linear infinite, trail-grow 4s ease-in-out infinite;
   border-radius: 52% 48% 49% 51% / 48% 52% 48% 52%;
 }
 
