@@ -20,26 +20,19 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
       <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-5 w-full max-w-3xl">
         <div className="flex items-center justify-between gap-4">
           {/* Tabs */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-1 rounded-full bg-muted/50 border border-border/40 p-1">
             {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "relative text-sm font-medium pb-2 transition-colors",
+                  "relative text-sm font-medium px-4 py-1.5 rounded-full transition-colors",
                   activeTab === tab
-                    ? "text-foreground"
+                    ? "bg-background text-foreground shadow-sm border border-border/50"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {tab}
-                {activeTab === tab && (
-                  <motion.div
-                    layoutId="businesses-tab-underline"
-                    className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-primary"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
               </button>
             ))}
           </div>
@@ -60,7 +53,7 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
       {/* Content */}
       <div className="flex-1 p-6 w-full max-w-3xl">
         {activeTab === "My Businesses" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Add Business Card */}
             <motion.button
               whileHover={{ scale: 1.02 }}
