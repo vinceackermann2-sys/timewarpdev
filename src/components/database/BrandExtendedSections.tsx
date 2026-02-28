@@ -83,12 +83,6 @@ export function BrandExtendedSections() {
       >
         <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-4">
           <ImageGrid count={6} aspect="aspect-[4/3]" />
-          <div className="space-y-1">
-            <ExampleColorDots />
-            <p className="text-xs text-muted-foreground/50 italic mt-2">
-              Upload images that represent the brand's desired mood — product shots, lifestyle photos, color palettes, textures.
-            </p>
-          </div>
         </div>
       </BrandSection>
 
