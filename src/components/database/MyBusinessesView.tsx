@@ -81,8 +81,8 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
       </div>
 
       {/* Floating Footer */}
-      <div className="w-full max-w-3xl mx-auto mb-6 mt-auto px-6">
-        <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-8 py-10">
+      <div className="w-full max-w-4xl mx-auto mb-6 mt-auto px-6">
+        <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-10 py-12">
           <div className="flex flex-wrap gap-10">
             <div className="flex items-center gap-2">
               <img src="/favicon.png" alt="TimeWarp" className="h-7 w-7 rounded-md" />
