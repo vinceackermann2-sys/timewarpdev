@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProductPageSidebar } from "@/components/database/ProductPageSidebar";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 /* ── Types ── */
 export interface ProductData {
@@ -351,8 +352,8 @@ export function ProductDetailView({
             {/* Main content */}
             <div className="flex-1 min-w-0 space-y-8">
 
-              {/* ── Product overview (images) ── */}
-              <div id="product-overview" className="rounded-xl border border-border/50 bg-card shadow-sm p-6 space-y-4">
+              {/* ── Product overview card (images → target scenarios) ── */}
+              <div id="product-overview" className="rounded-xl border border-border/50 bg-card shadow-sm p-6 space-y-6">
                 <h3 className="text-base font-bold text-foreground">Product overview</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {data.images.map((img) => (
@@ -377,69 +378,68 @@ export function ProductDetailView({
                   </button>
                 )}
                 <p className="text-xs text-muted-foreground text-center">{data.images.length} product images</p>
-              </div>
 
-              {/* ── Product description ── */}
-              <div id="product-description" className="space-y-2">
-                <SectionHeading id="" title="Product description" subtitle="Summary of what your product is, its core purpose, and who it's designed for." />
-                {isEditing ? (
-                  <Textarea
-                    value={data.description}
-                    onChange={(e) => setData(prev => ({ ...prev, description: e.target.value }))}
-                    className="text-sm min-h-[100px] resize-none mt-3"
-                  />
-                ) : (
-                  <div className="mt-3">
-                    <p className={cn(
-                      "text-sm text-foreground/80 leading-relaxed",
-                      !descExpanded && "line-clamp-3"
-                    )}>
-                      {data.description}
-                    </p>
-                    <button
-                      onClick={() => setDescExpanded(!descExpanded)}
-                      className="flex items-center gap-1.5 text-sm font-medium text-foreground mt-3 mx-auto hover:text-primary transition-colors"
+                {/* Product description */}
+                <div id="product-description" className="space-y-2">
+                  <SectionHeading id="" title="Product description" subtitle="Summary of what your product is, its core purpose, and who it's designed for." />
+                  {isEditing ? (
+                    <Textarea
+                      value={data.description}
+                      onChange={(e) => setData(prev => ({ ...prev, description: e.target.value }))}
+                      className="text-sm min-h-[100px] resize-none mt-3"
+                    />
+                  ) : (
+                    <p className="text-sm text-foreground/80 leading-relaxed mt-3">{data.description}</p>
+                  )}
+                </div>
+
+                {/* More detail toggle */}
+                <button
+                  onClick={() => setDescExpanded(!descExpanded)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-foreground mx-auto hover:text-primary transition-colors"
+                >
+                  {descExpanded ? "Less detail" : "More detail"}
+                  {descExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+
+                {/* Expanded sections: key features → target scenarios */}
+                <AnimatePresence>
+                  {descExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden space-y-8"
                     >
-                      {descExpanded ? "Less detail" : "More detail"}
-                      {descExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </button>
-                  </div>
-                )}
+                      <div className="border-t border-border/30 pt-6">
+                        <SectionHeading id="key-features" title="Key features" subtitle="Core functional capabilities that define your product." />
+                        <BulletList items={data.features} icon={Sparkles} iconClass="text-amber-500" isEditing={isEditing} onChange={(f) => setData(prev => ({ ...prev, features: f }))} />
+                      </div>
+
+                      <div>
+                        <SectionHeading id="key-benefits" title="Key benefits" subtitle="Value that users gain from your product's features." />
+                        <BulletList items={data.benefits} icon={Check} iconClass="text-emerald-500" isEditing={isEditing} onChange={(b) => setData(prev => ({ ...prev, benefits: b }))} />
+                      </div>
+
+                      <div>
+                        <SectionHeading id="target-pain-points" title="Target pain points" subtitle="Specific problems your product solves for users." />
+                        <BulletList items={data.painPoints} icon={CircleAlert} iconClass="text-rose-400" isEditing={isEditing} onChange={(p) => setData(prev => ({ ...prev, painPoints: p }))} />
+                      </div>
+
+                      <div>
+                        <SectionHeading id="primary-use-cases" title="Primary use cases" subtitle="Main scenarios where users apply your product." />
+                        <BulletList items={data.useCases} icon={Check} iconClass="text-emerald-500" isEditing={isEditing} onChange={(u) => setData(prev => ({ ...prev, useCases: u }))} />
+                      </div>
+
+                      <div>
+                        <SectionHeading id="target-scenarios" title="Target scenarios" subtitle="Specific situations or triggers that lead users to need your product." />
+                        <BulletList items={data.targetScenarios} icon={Crosshair} iconClass="text-sky-400" isEditing={isEditing} onChange={(s) => setData(prev => ({ ...prev, targetScenarios: s }))} />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-
-              <div className="border-b border-border/30" />
-
-              {/* ── Key features ── */}
-              <div>
-                <SectionHeading id="key-features" title="Key features" subtitle="Core functional capabilities that define your product." />
-                <BulletList items={data.features} icon={Sparkles} iconClass="text-amber-500" isEditing={isEditing} onChange={(f) => setData(prev => ({ ...prev, features: f }))} />
-              </div>
-
-              {/* ── Key benefits ── */}
-              <div>
-                <SectionHeading id="key-benefits" title="Key benefits" subtitle="Value that users gain from your product's features." />
-                <BulletList items={data.benefits} icon={Check} iconClass="text-emerald-500" isEditing={isEditing} onChange={(b) => setData(prev => ({ ...prev, benefits: b }))} />
-              </div>
-
-              {/* ── Target pain points ── */}
-              <div>
-                <SectionHeading id="target-pain-points" title="Target pain points" subtitle="Specific problems your product solves for users." />
-                <BulletList items={data.painPoints} icon={CircleAlert} iconClass="text-rose-400" isEditing={isEditing} onChange={(p) => setData(prev => ({ ...prev, painPoints: p }))} />
-              </div>
-
-              {/* ── Primary use cases ── */}
-              <div>
-                <SectionHeading id="primary-use-cases" title="Primary use cases" subtitle="Main scenarios where users apply your product." />
-                <BulletList items={data.useCases} icon={Check} iconClass="text-emerald-500" isEditing={isEditing} onChange={(u) => setData(prev => ({ ...prev, useCases: u }))} />
-              </div>
-
-              {/* ── Target scenarios ── */}
-              <div>
-                <SectionHeading id="target-scenarios" title="Target scenarios" subtitle="Specific situations or triggers that lead users to need your product." />
-                <BulletList items={data.targetScenarios} icon={Crosshair} iconClass="text-sky-400" isEditing={isEditing} onChange={(s) => setData(prev => ({ ...prev, targetScenarios: s }))} />
-              </div>
-
-              <div className="border-b border-border/30" />
 
               {/* ── Value proposition ── */}
               <div id="value-proposition">
