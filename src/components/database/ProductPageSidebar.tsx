@@ -14,6 +14,7 @@ const PRODUCT_SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "target-pain-points", label: "Target pain points" },
   { id: "primary-use-cases", label: "Primary use cases" },
   { id: "target-scenarios", label: "Target scenarios" },
+  { id: "product-offers", label: "Offers" },
   { id: "value-proposition", label: "Value proposition" },
   { id: "positioning-statement", label: "Positioning statement", indent: true },
   { id: "unique-selling-points", label: "Unique selling points", indent: true },
