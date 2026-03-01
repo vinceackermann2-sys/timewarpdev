@@ -54,7 +54,7 @@ export function BrandPageSidebar({
   const totalHeight = BRAND_TOC_ITEMS.length * ITEM_HEIGHT + TOP_PAD * 2;
 
   return (
-    <nav className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-thin">
+    <nav className="">
       <h3 className="text-sm font-semibold text-foreground mb-3">On This Page</h3>
       <div className="relative" style={{ height: totalHeight }}>
         {/* Background vertical line */}
