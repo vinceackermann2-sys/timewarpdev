@@ -8,7 +8,7 @@ import { BrandingEditor } from "@/components/database/BrandingEditor";
 import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
 import { ProductListView } from "@/components/database/ProductListView";
-import { AudienceDetailView, DEFAULT_AUDIENCE } from "@/components/database/AudienceDetailView";
+import { AudienceListView } from "@/components/database/AudienceListView";
 import { supabase } from "@/integrations/supabase/client";
 
 import { Button } from "@/components/ui/button";
@@ -399,15 +399,9 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="pt-0 -mx-6"
+              className="pt-5"
             >
-              <AudienceDetailView
-                audience={DEFAULT_AUDIENCE}
-                onBack={() => setActiveSegment(null)}
-                onSave={(data) => {
-                  toast({ title: "Audience saved" });
-                }}
-              />
+              <AudienceListView />
             </motion.div>
           ) : activeSegment === "sop" ? (
             <motion.div
