@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import {
-  Package, Pencil, Save, X, ArrowLeft, Upload, Trash2, Plus, Lock, Tag, Gift,
+  Package, Pencil, Save, X, ArrowLeft, Upload, Trash2, Plus, Lock, Tag, Gift, Search,
   Sparkles, Check, CircleAlert, ChevronDown, ChevronUp, ImageIcon,
   Crosshair, Zap, ShieldCheck, MessageSquareWarning, Languages, ListChecks,
 } from "lucide-react";
@@ -40,7 +40,7 @@ export interface ProductData {
   uniqueSellingPoints: string[];
   competitiveAdvantages: string[];
   commonObjections: { objection: string; response: string }[];
-  proofPoints: string[];
+  proofPoints: { category: string; items: string[] }[];
   dosAndDonts: { dos: string[]; donts: string[] };
   powerPhrases: string[];
   powerWords: string[];
@@ -139,59 +139,85 @@ export const DEFAULT_PRODUCT: ProductData = {
       isPopular: false,
     },
   ],
-  positioningStatement: "The effortless at-home color solution that replaces salon touch-ups — salon-quality results in 10 minutes, with zero mess.",
+  positioningStatement: "Hairsaver Instant Dye Shampoo is a 2-in-1 color-and-cleanse hair product that helps color-conscious individuals maintain vibrant, freshly dyed hair by delivering instant color during every wash — no mixing, no mess, no extra time required.",
   uniqueSellingPoints: [
-    "10-minute application time vs. 45+ minutes for traditional dye",
-    "No mixing, developer, or tools required",
-    "365-day money-back guarantee",
-    "Gentle, ammonia-free formula for sensitive scalps",
+    "Combines hair dyeing and shampooing into a single, simultaneous step — a true 2-in-1 innovation",
+    "Instant color deposit activates during the normal wash cycle with no developer or mixing required",
+    "Eliminates all traditional dye kit accessories — no gloves, bowls, brushes, or waiting time",
+    "Designed for ongoing color maintenance use, not just one-time application",
+    "Accessible salon-quality color results achievable at home by anyone, regardless of experience",
   ],
   competitiveAdvantages: [
-    "All-in-one shampoo + color vs. multi-step kits from competitors",
-    "Significantly cheaper per-use cost than salon visits",
-    "Simplified process requires zero hair coloring experience",
+    "Dramatically faster than traditional box dyes, which require 30–60 minutes of processing time",
+    "Far less messy than conventional dye kits that risk staining skin, surfaces, and clothing",
+    "More cost-effective than repeated salon visits for color touch-ups and root maintenance",
+    "Lower barrier to use than standard at-home dyes — no mixing ratios or application tools needed",
+    "Gentler on hair with repeated use compared to harsh oxidative dye formulas",
+    "Doubles as a regular shampoo, replacing a product already in the user's routine",
   ],
   commonObjections: [
-    { objection: "Will it actually cover gray hair?", response: "Yes — our instant color deposit technology covers grays in one 10-minute wash. Results improve with repeated use." },
-    { objection: "Is it safe for sensitive scalps?", response: "Absolutely. Ammonia-free, paraben-free formula tested on sensitive skin. Backed by our 365-day guarantee." },
-    { objection: "Will it stain my shower/towels?", response: "When used as directed, staining is minimal. Rinse thoroughly and use a dark towel as a precaution." },
+    { objection: "Will it actually dye my hair the same way a real dye does?", response: "Hairsaver works as a color-depositing and refreshing system — ideal for maintaining and enhancing existing color with every wash. For a dramatic first-time color change, a full dye treatment is still recommended, after which Hairsaver keeps your color looking freshly done far longer." },
+    { objection: "Will it stain my skin, shower, or towels?", response: "The shampoo-based formula is designed to rinse cleanly from skin and surfaces. As with any color product, rinsing promptly and using a dark towel is recommended, but the risk of staining is significantly lower than with traditional dye kits." },
+    { objection: "Is it safe to use every time I wash my hair?", response: "Yes — Hairsaver is formulated for regular, repeated use as a shampoo replacement. Its gentle cleansing agents are designed to deposit color without the harsh oxidative chemicals found in traditional dyes." },
+    { objection: "Will it work on grey or resistant hair?", response: "Hairsaver is effective at toning and refreshing color on grey hair, particularly for blending and softening regrowth. For full grey coverage from scratch, combining with an initial full-color treatment will deliver the best results." },
+    { objection: "How is this different from a color-depositing conditioner?", response: "Unlike color conditioners that are applied after shampooing, Hairsaver replaces your shampoo entirely — cleansing and depositing color in one step, saving time and simplifying your routine without adding an extra product." },
   ],
   proofPoints: [
-    "365-day money-back guarantee demonstrates confidence in the product",
-    "Before/after customer photos showing gray coverage results",
-    "Dermatologically tested for sensitive scalps",
-    "Customer testimonials from repeat buyers",
+    { category: "Ease of Use", items: [
+      "No mixing, developer, or tools required",
+      "Replaces existing shampoo — zero routine disruption",
+      "Usable by anyone regardless of hair coloring experience",
+    ]},
+    { category: "Time & Convenience", items: [
+      "Full color maintenance completed within a normal shower routine",
+      "Eliminates 30–60 minute traditional dye processing sessions",
+      "No cleanup of bowls, brushes, or gloves after use",
+    ]},
+    { category: "Cost Efficiency", items: [
+      "Reduces frequency of costly salon color appointments",
+      "Replaces both shampoo and color maintenance products in one purchase",
+      "Extends the life of professional color treatments",
+    ]},
   ],
   dosAndDonts: {
     dos: [
-      "Emphasize the simplicity and speed (10 minutes)",
-      "Highlight the money-back guarantee prominently",
-      "Use before/after imagery when possible",
-      "Focus on convenience and time savings",
+      "Use simple, action-oriented language that emphasizes speed and simplicity",
+      "Highlight the 2-in-1 convenience angle in every key message",
+      "Speak to the emotional payoff of effortlessly vibrant, fresh-looking hair",
+      "Use before/after framing to contrast the old messy dye process with Hairsaver's simplicity",
+      "Emphasize routine integration — 'just swap your shampoo'",
     ],
     donts: [
-      "Don't compare directly to salon-quality permanent dye",
-      "Don't overstate coverage for very resistant grays",
-      "Don't use clinical or intimidating language",
-      "Don't forget to mention it's ammonia-free and gentle",
+      "Avoid technical chemical or colorist jargon that could intimidate non-professional users",
+      "Don't overpromise dramatic first-time color transformation — position as maintenance-first",
+      "Avoid language that implies the product is only for salon professionals",
+      "Don't use vague claims like 'revolutionary' without grounding them in a specific benefit",
+      "Avoid comparing it directly to permanent dye — it serves a different, complementary purpose",
     ],
   },
   powerPhrases: [
-    "Salon-quality color in just 10 minutes",
-    "Say goodbye to regrowth for good",
-    "Zero mess, zero stress",
-    "The easiest color routine you'll ever have",
+    "Color while you wash",
+    "Fresh color, every shower",
+    "Swap your shampoo, save your color",
+    "No mess, no mixing, no waiting",
+    "Salon-fresh hair between appointments",
+    "The easiest color maintenance routine you'll ever have",
   ],
   powerWords: [
-    "Effortless", "Instant", "Gentle", "Vibrant", "Salon-quality", "Guaranteed",
+    "Instant", "Effortless", "Vibrant", "Refresh", "Maintain", "Simple", "Convenient", "Everyday", "Fresh", "Seamless",
   ],
-  technicalLevel: "Consumer-friendly — avoid technical jargon. Speak in benefits, not chemistry. Target reading level: 6th grade.",
+  technicalLevel: "Beginner",
   refinementChecklist: [
-    "Does the copy lead with the biggest benefit?",
-    "Is the 10-minute claim prominent?",
-    "Is the guarantee mentioned within the first 3 sentences?",
-    "Are pain points addressed before introducing the solution?",
-    "Does the tone feel warm and approachable, not clinical?",
+    "Confirm product is positioned as a color maintenance and refreshing tool — not a replacement for first-time full dye treatments",
+    "Verify all application instructions specify wetting hair first and massaging from roots to ends",
+    "Ensure no content implies the product works on dry hair or outside of the shower",
+    "Check that frequency guidance (2–3x per week) is included in any tutorial or how-to content",
+    "Avoid any visuals or copy that suggest skin, face, or body application — product is for scalp and hair only",
+    "Confirm competitive comparisons do not make unsubstantiated quantitative claims without supporting data",
+    "Ensure color result expectations are set realistically — gradual build-up over multiple washes, not single-use transformation",
+    "Review all imagery to confirm hair (not face or skin) is the visual focal point",
+    "Validate that 'instant' in the product name is contextualized correctly — instant application, not necessarily instant dramatic color change",
+    "Check that any grey coverage claims are qualified appropriately (blending/toning vs. full coverage)",
   ],
   lastUpdated: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
 };
@@ -574,14 +600,12 @@ export function ProductDetailView({
                 </div>
                 <div className="px-6 py-6 space-y-8 max-w-3xl">
                   <div>
-                    <SectionHeading id="positioning-statement" title="Positioning statement" subtitle="One clear sentence that defines your market position." />
-                    <div className="mt-3 rounded-lg border border-border/40 bg-muted/20 p-4">
-                      {isEditingSection("value") ? (
-                        <Textarea value={data.positioningStatement} onChange={(e) => setData(prev => ({ ...prev, positioningStatement: e.target.value }))} className="text-sm min-h-[60px] resize-none" />
-                      ) : (
-                        <p className="text-sm text-foreground/80 leading-relaxed italic">"{data.positioningStatement}"</p>
-                      )}
-                    </div>
+                    <SectionHeading id="positioning-statement" title="Positioning statement" subtitle="" />
+                    {isEditingSection("value") ? (
+                      <Textarea value={data.positioningStatement} onChange={(e) => setData(prev => ({ ...prev, positioningStatement: e.target.value }))} className="text-sm min-h-[60px] resize-none mt-3" />
+                    ) : (
+                      <p className="text-sm text-foreground/80 leading-relaxed mt-3">{data.positioningStatement}</p>
+                    )}
                   </div>
                   <div>
                     <SectionHeading id="unique-selling-points" title="Unique selling points" subtitle="What makes your product stand out from alternatives." />
@@ -615,24 +639,21 @@ export function ProductDetailView({
                 <div className="px-6 py-6 space-y-8 max-w-3xl">
                   <div id="common-objections" className="space-y-3">
                     <SectionHeading id="" title="Common objections and responses" subtitle="Anticipated concerns and how to address them." />
-                    <div className="space-y-3 mt-3">
+                    <div className="space-y-6 mt-3">
                       {data.commonObjections.map((obj, i) => (
-                        <div key={i} className="rounded-lg border border-border/40 bg-muted/10 p-4 space-y-2">
+                        <div key={i} className="space-y-1.5">
                           {isEditingSection("objections") ? (
-                            <div className="space-y-2">
+                            <div className="space-y-2 rounded-lg border border-border/40 bg-muted/10 p-4">
                               <div className="flex gap-1.5">
-                                <Input value={obj.objection} onChange={(e) => { const next = [...data.commonObjections]; next[i] = { ...next[i], objection: e.target.value }; setData(prev => ({ ...prev, commonObjections: next })); }} placeholder="Objection" className="h-8 text-sm flex-1" />
+                                <Input value={obj.objection} onChange={(e) => { const next = [...data.commonObjections]; next[i] = { ...next[i], objection: e.target.value }; setData(prev => ({ ...prev, commonObjections: next })); }} placeholder="Objection question" className="h-8 text-sm flex-1" />
                                 <button onClick={() => setData(prev => ({ ...prev, commonObjections: prev.commonObjections.filter((_, idx) => idx !== i) }))} className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-3 w-3" /></button>
                               </div>
-                              <Input value={obj.response} onChange={(e) => { const next = [...data.commonObjections]; next[i] = { ...next[i], response: e.target.value }; setData(prev => ({ ...prev, commonObjections: next })); }} placeholder="Response" className="h-8 text-sm" />
+                              <Textarea value={obj.response} onChange={(e) => { const next = [...data.commonObjections]; next[i] = { ...next[i], response: e.target.value }; setData(prev => ({ ...prev, commonObjections: next })); }} placeholder="Response" className="text-sm min-h-[60px] resize-none" />
                             </div>
                           ) : (
                             <>
-                              <div className="flex items-start gap-2">
-                                <MessageSquareWarning className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                                <p className="text-sm font-medium text-foreground/90">"{obj.objection}"</p>
-                              </div>
-                              <p className="text-sm text-muted-foreground/80 ml-6">{obj.response}</p>
+                              <p className="text-sm font-bold text-foreground">"{obj.objection}"</p>
+                              <p className="text-sm text-muted-foreground/80 ml-4 leading-relaxed">{obj.response}</p>
                             </>
                           )}
                         </div>
@@ -642,9 +663,50 @@ export function ProductDetailView({
                       )}
                     </div>
                   </div>
-                  <div>
-                    <SectionHeading id="proof-points" title="Proof points and evidence types" subtitle="Evidence that supports your product claims." />
-                    <BulletList items={data.proofPoints} icon={ShieldCheck} iconClass="text-sky-400" isEditing={isEditingSection("objections")} onChange={(p) => setData(prev => ({ ...prev, proofPoints: p }))} />
+                  <div id="proof-points">
+                    <SectionHeading id="" title="Proof points and evidence types" subtitle="Evidence that supports your product claims." />
+                    <div className="space-y-6 mt-4">
+                      {data.proofPoints.map((group, gi) => (
+                        <div key={gi}>
+                          <h4 className="text-sm font-bold text-foreground mb-2">{group.category}</h4>
+                          <div className="space-y-2">
+                            {group.items.map((item, ii) => (
+                              <div key={ii} className="flex items-start gap-2.5">
+                                <Search className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                                {isEditingSection("objections") ? (
+                                  <div className="flex-1 flex gap-1.5">
+                                    <Input value={item} onChange={(e) => {
+                                      const next = [...data.proofPoints];
+                                      const items = [...next[gi].items];
+                                      items[ii] = e.target.value;
+                                      next[gi] = { ...next[gi], items };
+                                      setData(prev => ({ ...prev, proofPoints: next }));
+                                    }} className="h-8 text-sm flex-1" />
+                                    <button onClick={() => {
+                                      const next = [...data.proofPoints];
+                                      next[gi] = { ...next[gi], items: next[gi].items.filter((_, idx) => idx !== ii) };
+                                      setData(prev => ({ ...prev, proofPoints: next }));
+                                    }} className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-3 w-3" /></button>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-foreground/80">{item}</span>
+                                )}
+                              </div>
+                            ))}
+                            {isEditingSection("objections") && (
+                              <button onClick={() => {
+                                const next = [...data.proofPoints];
+                                next[gi] = { ...next[gi], items: [...next[gi].items, ""] };
+                                setData(prev => ({ ...prev, proofPoints: next }));
+                              }} className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 ml-6"><Plus className="h-3 w-3" /> Add item</button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {isEditingSection("objections") && (
+                        <button onClick={() => setData(prev => ({ ...prev, proofPoints: [...prev.proofPoints, { category: "New Category", items: [""] }] }))} className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80"><Plus className="h-3 w-3" /> Add category</button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -669,45 +731,45 @@ export function ProductDetailView({
                 </div>
                 <div className="px-6 py-6 space-y-8 max-w-3xl">
                   {/* Do's and Don'ts */}
-                  <div id="dos-and-donts" className="space-y-4">
-                    <SectionHeading id="" title="Do's and Don'ts" subtitle="Communication guidelines for product messaging." />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
-                        <h4 className="text-sm font-semibold text-emerald-600 flex items-center gap-1.5"><Check className="h-4 w-4" /> Do's</h4>
+                  <div id="dos-and-donts" className="space-y-6">
+                    <SectionHeading id="" title="Do's and Don'ts" subtitle="" />
+                    <div className="space-y-6 mt-3">
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-bold text-foreground">Do's</h4>
                         {data.dosAndDonts.dos.map((item, i) => (
-                          <div key={i} className="flex items-start gap-2">
-                            <Check className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                          <div key={i} className="flex items-start gap-2.5">
+                            <Check className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
                             {isEditingSection("language") ? (
                               <div className="flex-1 flex gap-1">
-                                <Input value={item} onChange={(e) => { const next = [...data.dosAndDonts.dos]; next[i] = e.target.value; setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: next } })); }} className="h-7 text-xs flex-1" />
+                                <Input value={item} onChange={(e) => { const next = [...data.dosAndDonts.dos]; next[i] = e.target.value; setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: next } })); }} className="h-8 text-sm flex-1" />
                                 <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: prev.dosAndDonts.dos.filter((_, idx) => idx !== i) } }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
                               </div>
                             ) : (
-                              <span className="text-xs text-foreground/80">{item}</span>
+                              <span className="text-sm text-foreground/80">{item}</span>
                             )}
                           </div>
                         ))}
                         {isEditingSection("language") && (
-                          <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: [...prev.dosAndDonts.dos, ""] } }))} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-1"><Plus className="h-3 w-3" /> Add</button>
+                          <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: [...prev.dosAndDonts.dos, ""] } }))} className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 ml-6"><Plus className="h-3 w-3" /> Add</button>
                         )}
                       </div>
-                      <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-4 space-y-2">
-                        <h4 className="text-sm font-semibold text-rose-600 flex items-center gap-1.5"><X className="h-4 w-4" /> Don'ts</h4>
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-bold text-foreground">Don'ts</h4>
                         {data.dosAndDonts.donts.map((item, i) => (
-                          <div key={i} className="flex items-start gap-2">
-                            <X className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
+                          <div key={i} className="flex items-start gap-2.5">
+                            <X className="h-4 w-4 text-rose-500 mt-0.5 shrink-0" />
                             {isEditingSection("language") ? (
                               <div className="flex-1 flex gap-1">
-                                <Input value={item} onChange={(e) => { const next = [...data.dosAndDonts.donts]; next[i] = e.target.value; setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: next } })); }} className="h-7 text-xs flex-1" />
+                                <Input value={item} onChange={(e) => { const next = [...data.dosAndDonts.donts]; next[i] = e.target.value; setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: next } })); }} className="h-8 text-sm flex-1" />
                                 <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: prev.dosAndDonts.donts.filter((_, idx) => idx !== i) } }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
                               </div>
                             ) : (
-                              <span className="text-xs text-foreground/80">{item}</span>
+                              <span className="text-sm text-foreground/80">{item}</span>
                             )}
                           </div>
                         ))}
                         {isEditingSection("language") && (
-                          <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: [...prev.dosAndDonts.donts, ""] } }))} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-1"><Plus className="h-3 w-3" /> Add</button>
+                          <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: [...prev.dosAndDonts.donts, ""] } }))} className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 ml-6"><Plus className="h-3 w-3" /> Add</button>
                         )}
                       </div>
                     </div>
@@ -759,12 +821,12 @@ export function ProductDetailView({
 
                   {/* Technical level */}
                   <div>
-                    <SectionHeading id="technical-level" title="Technical level" subtitle="Recommended complexity and tone for product copy." />
-                    <div className="mt-3 rounded-lg border border-border/40 bg-muted/20 p-4">
+                    <SectionHeading id="technical-level" title="Technical level" subtitle="" />
+                    <div className="mt-2">
                       {isEditingSection("language") ? (
-                        <Textarea value={data.technicalLevel} onChange={(e) => setData(prev => ({ ...prev, technicalLevel: e.target.value }))} className="text-sm min-h-[60px] resize-none" />
+                        <Input value={data.technicalLevel} onChange={(e) => setData(prev => ({ ...prev, technicalLevel: e.target.value }))} className="h-9 text-sm" />
                       ) : (
-                        <p className="text-sm text-foreground/80 leading-relaxed">{data.technicalLevel}</p>
+                        <p className="text-sm text-foreground/80">{data.technicalLevel}</p>
                       )}
                     </div>
                   </div>
