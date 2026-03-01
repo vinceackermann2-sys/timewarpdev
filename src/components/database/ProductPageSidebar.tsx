@@ -1,36 +1,38 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-interface SidebarItem {
+interface TocItem {
   id: string;
-  label: string;
-  indent?: boolean;
-  highlight?: boolean;
+  title: string;
+  level: number;
 }
 
-const PRODUCT_SIDEBAR_ITEMS: SidebarItem[] = [
-  { id: "product-overview", label: "Product overview" },
-  { id: "product-description", label: "Product description", indent: true },
-  { id: "key-features", label: "Key features", indent: true },
-  { id: "key-benefits", label: "Key benefits", indent: true },
-  { id: "target-pain-points", label: "Target pain points", indent: true },
-  { id: "primary-use-cases", label: "Primary use cases", indent: true },
-  { id: "target-scenarios", label: "Target scenarios", indent: true },
-  { id: "value-proposition", label: "Value proposition" },
-  { id: "positioning-statement", label: "Positioning statement", indent: true },
-  { id: "unique-selling-points", label: "Unique selling points", indent: true },
-  { id: "competitive-advantages", label: "Competitive advantages", indent: true },
-  { id: "objections-proof", label: "Objections & proof points" },
-  { id: "common-objections", label: "Common objections and responses", indent: true },
-  { id: "proof-points", label: "Proof points and evidence types", indent: true },
-  { id: "language-patterns", label: "Language patterns" },
-  { id: "dos-and-donts", label: "Do's and Don'ts", indent: true },
-  { id: "power-phrases", label: "Power phrases", indent: true },
-  { id: "power-words", label: "Power words", indent: true },
-  { id: "technical-level", label: "Technical level", indent: true },
-  { id: "content-refinement", label: "Content refinement" },
-  { id: "refinement-checklist", label: "Refinement checklist", indent: true },
+const PRODUCT_TOC_ITEMS: TocItem[] = [
+  { id: "product-overview", title: "Product overview", level: 1 },
+  { id: "product-description", title: "Product description", level: 2 },
+  { id: "key-features", title: "Key features", level: 2 },
+  { id: "key-benefits", title: "Key benefits", level: 2 },
+  { id: "target-pain-points", title: "Target pain points", level: 2 },
+  { id: "primary-use-cases", title: "Primary use cases", level: 2 },
+  { id: "target-scenarios", title: "Target scenarios", level: 2 },
+  { id: "value-proposition", title: "Value proposition", level: 1 },
+  { id: "positioning-statement", title: "Positioning statement", level: 2 },
+  { id: "unique-selling-points", title: "Unique selling points", level: 2 },
+  { id: "competitive-advantages", title: "Competitive advantages", level: 2 },
+  { id: "objections-proof", title: "Objections & proof points", level: 1 },
+  { id: "common-objections", title: "Common objections and responses", level: 2 },
+  { id: "proof-points", title: "Proof points and evidence types", level: 2 },
+  { id: "language-patterns", title: "Language patterns", level: 1 },
+  { id: "dos-and-donts", title: "Do's and Don'ts", level: 2 },
+  { id: "power-phrases", title: "Power phrases", level: 2 },
+  { id: "power-words", title: "Power words", level: 2 },
+  { id: "technical-level", title: "Technical level", level: 2 },
+  { id: "content-refinement", title: "Content refinement", level: 1 },
+  { id: "refinement-checklist", title: "Refinement checklist", level: 2 },
 ];
+
+const ITEM_HEIGHT = 32;
+const TOP_PAD = 12;
 
 export function ProductPageSidebar({
   activeSection,
@@ -39,47 +41,71 @@ export function ProductPageSidebar({
   activeSection?: string;
   onSectionClick?: (id: string) => void;
 }) {
-  const activeRef = useRef<HTMLButtonElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLAnchorElement>(null);
+  const [indicatorTop, setIndicatorTop] = useState(TOP_PAD);
+
+  useEffect(() => {
+    const idx = PRODUCT_TOC_ITEMS.findIndex((i) => i.id === activeSection);
+    if (idx !== -1) {
+      setIndicatorTop(TOP_PAD + idx * ITEM_HEIGHT);
+    }
+  }, [activeSection]);
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeSection]);
 
+  const totalHeight = PRODUCT_TOC_ITEMS.length * ITEM_HEIGHT + TOP_PAD * 2;
+
   return (
-    <nav className="sticky top-6 space-y-3 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-thin">
-      <h3 className="text-sm font-semibold text-foreground">On This Page</h3>
-      <div className="relative">
-        {/* Continuous vertical line */}
-        <div className="absolute left-[3px] top-2 bottom-2 w-px bg-border/60" />
-        <div className="space-y-0.5">
-          {PRODUCT_SIDEBAR_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              ref={activeSection === item.id ? activeRef : undefined}
-              onClick={() => onSectionClick?.(item.id)}
-              className={cn(
-                "flex items-center gap-3 w-full text-left py-1.5 text-sm transition-colors relative",
-                item.indent && "pl-6",
-                activeSection === item.id
-                  ? "text-primary font-medium"
-                  : item.indent
-                    ? "text-muted-foreground hover:text-foreground"
-                    : "text-foreground/80 hover:text-foreground"
-              )}
-            >
-              {!item.indent && (
-                <div
-                  className={cn(
-                    "w-[7px] h-[7px] rounded-full shrink-0 transition-colors z-10",
-                    activeSection === item.id
-                      ? "bg-primary"
-                      : "bg-border"
-                  )}
-                />
-              )}
-              {item.label}
-            </button>
-          ))}
+    <nav
+      ref={navRef}
+      className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-thin"
+    >
+      <h3 className="text-sm font-semibold text-foreground mb-3">On This Page</h3>
+      <div className="relative" style={{ height: totalHeight }}>
+        {/* Background vertical line */}
+        <div
+          className="absolute w-px bg-border/60"
+          style={{ left: 3, top: TOP_PAD, bottom: TOP_PAD }}
+        />
+
+        {/* Active indicator — animated accent line */}
+        <div
+          className="absolute w-[2px] rounded-full bg-primary transition-all duration-200 ease-out"
+          style={{ left: 2.5, top: indicatorTop, height: 20 }}
+        />
+
+        {/* Items */}
+        <div className="relative">
+          {PRODUCT_TOC_ITEMS.map((item, index) => {
+            const isActive = activeSection === item.id;
+            const paddingLeft = item.level === 1 ? 14 : 26;
+
+            return (
+              <a
+                key={item.id}
+                ref={isActive ? activeRef : undefined}
+                href={`#${item.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSectionClick?.(item.id);
+                }}
+                data-active={isActive}
+                className={cn(
+                  "relative block py-1.5 text-sm transition-colors",
+                  "hover:text-accent-foreground",
+                  isActive
+                    ? "text-primary font-medium"
+                    : "text-muted-foreground"
+                )}
+                style={{ paddingInlineStart: paddingLeft }}
+              >
+                {item.title}
+              </a>
+            );
+          })}
         </div>
       </div>
     </nav>
