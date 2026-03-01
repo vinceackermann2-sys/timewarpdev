@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Brain, Palette, Package, BookOpen, Loader2, Plus, Trash2, Check, X,
-  Pencil, Building2, ArrowLeft
+  Pencil, Building2, ArrowLeft, Users
 } from "lucide-react";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
 
 import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
 import { ProductListView } from "@/components/database/ProductListView";
+import { AudienceDetailView, DEFAULT_AUDIENCE } from "@/components/database/AudienceDetailView";
 import { supabase } from "@/integrations/supabase/client";
 
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,17 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     subtitle: "What You Build & Deliver",
     icon: Package,
     description: "Your product DNA — features, pricing, competitive advantages, user experience, roadmap, and core value proposition.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "audience",
+    label: "Audience",
+    subtitle: "Who You Serve",
+    icon: Users,
+    description: "Your audience DNA — demographics, buying triggers, messaging, engagement patterns, objections, and language guidelines.",
     color: "text-primary",
     hslColor: "var(--primary)",
     bgAccent: "bg-primary/10",
@@ -192,7 +204,7 @@ function IdleState({ totalInsights }: { totalInsights: number }) {
 // ── Main View ──
 export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
-    brand: [], product: [], sop: []
+    brand: [], product: [], audience: [], sop: []
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
@@ -379,6 +391,23 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               className="pt-5"
             >
               <ProductListView />
+            </motion.div>
+          ) : activeSegment === "audience" ? (
+            <motion.div
+              key="audience-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="pt-0 -mx-6"
+            >
+              <AudienceDetailView
+                audience={DEFAULT_AUDIENCE}
+                onBack={() => setActiveSegment(null)}
+                onSave={(data) => {
+                  toast({ title: "Audience saved" });
+                }}
+              />
             </motion.div>
           ) : activeSegment === "sop" ? (
             <motion.div
