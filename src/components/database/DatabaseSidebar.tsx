@@ -35,6 +35,7 @@ import {
   Sparkles,
   Settings,
   MessageSquare,
+  Users,
   ChevronUp,
   User,
   Inbox,
@@ -47,6 +48,7 @@ import { useTheme } from "next-themes";
 import { WhatsNewDropdown } from "./WhatsNewDropdown";
 import { SettingsDialog } from "./SettingsDialog";
 import { FeedbackDialog } from "./FeedbackDialog";
+import { WorkspaceDialog } from "./WorkspaceDialog";
 
 type View = "database" | "dataconversion" | "aiceo" | "businessdna";
 
@@ -71,6 +73,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
   }, [currentView, setOpen]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -233,6 +236,13 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => setWorkspaceOpen(true)}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Workspace
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs text-muted-foreground font-normal py-1">Appearance</DropdownMenuLabel>
               <div className="flex gap-1 px-2 pb-2">
@@ -287,6 +297,11 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
       <FeedbackDialog 
         open={feedbackOpen} 
         onOpenChange={setFeedbackOpen}
+      />
+      <WorkspaceDialog
+        open={workspaceOpen}
+        onOpenChange={setWorkspaceOpen}
+        userEmail={userEmail}
       />
     </>
   );
