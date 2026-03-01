@@ -133,7 +133,7 @@ export const DEFAULT_AUDIENCE: AudienceData = {
   powerWords: [
     "Finally", "Effortless", "Proven", "Trusted", "Real", "Simple", "Backed", "Noticed",
   ],
-  technicalLevel: "Beginner / Non-technical\n\nThe audience doesn't want science lectures — they want outcomes. Use plain, conversational language. If you mention an ingredient or process, immediately explain what it does for them in one simple sentence. No jargon, no acronyms, no medical terminology without a plain-English translation.\n\nExample in practice:\n❌ \"Contains retinol with 0.3% concentration for cellular turnover acceleration\"\n✅ \"Has retinol — the ingredient derms swear by for smoother, younger-looking skin\"",
+  technicalLevel: "Beginner / Non-technical",
   refinementChecklist: [
     "Does the hook stop the scroll in the first 2 seconds?",
     "Is the core benefit stated in the first line (not buried)?",
