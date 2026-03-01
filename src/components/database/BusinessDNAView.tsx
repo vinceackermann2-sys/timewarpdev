@@ -196,6 +196,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
   const [isBrandingEditing, setIsBrandingEditing] = useState(false);
+  const [isVisualIdentityEditing, setIsVisualIdentityEditing] = useState(false);
   const [isValueLoopEditing, setIsValueLoopEditing] = useState(false);
   const [activeSidebarSection, setActiveSidebarSection] = useState<string>("branding");
   const { toast } = useToast();
@@ -348,7 +349,10 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
                     />
                   </div>
                   <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden" id="extended-brand">
-                    <BrandExtendedSections />
+                    <BrandExtendedSections
+                      isEditing={isVisualIdentityEditing}
+                      onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)}
+                    />
                   </div>
                   <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                     <ValueExchangeLoop
