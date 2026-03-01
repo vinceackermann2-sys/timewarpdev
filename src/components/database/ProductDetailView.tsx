@@ -329,19 +329,21 @@ export function ProductDetailView({
   onBack: () => void;
   onSave: (product: ProductData) => void;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [editingSection, setEditingSection] = useState<string | null>(null);
   const [data, setData] = useState<ProductData>(product);
   const [descExpanded, setDescExpanded] = useState(false);
   const [activeSidebarSection, setActiveSidebarSection] = useState("product-overview");
 
+  const isEditingSection = (section: string) => editingSection === section;
+
   const handleSave = () => {
     onSave(data);
-    setIsEditing(false);
+    setEditingSection(null);
   };
 
   const handleCancel = () => {
     setData(product);
-    setIsEditing(false);
+    setEditingSection(null);
   };
 
   const handleImageUpload = (id: string, file: File) => {
@@ -353,7 +355,7 @@ export function ProductDetailView({
     setData(prev => ({ ...prev, images: prev.images.map(img => img.id === id ? { ...img, url: null } : img) }));
   };
 
-  return (
+   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-border/50">
@@ -363,15 +365,7 @@ export function ProductDetailView({
               <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              {isEditing ? (
-                <Input
-                  value={data.name}
-                  onChange={(e) => setData(prev => ({ ...prev, name: e.target.value }))}
-                  className="text-xl font-bold h-auto py-1 px-2 border-border/60"
-                />
-              ) : (
-                <h1 className="text-xl font-bold text-foreground truncate">{data.name}</h1>
-              )}
+              <h1 className="text-xl font-bold text-foreground truncate">{data.name}</h1>
             </div>
             <div className="flex items-center gap-3 mt-1.5 ml-10">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -380,22 +374,6 @@ export function ProductDetailView({
               <span className="text-xs text-muted-foreground/60">|</span>
               <span className="text-xs text-muted-foreground">Last updated: {data.lastUpdated}</span>
             </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {isEditing ? (
-              <>
-                <Button variant="ghost" size="sm" onClick={handleCancel} className="gap-1.5 text-muted-foreground">
-                  <X className="h-4 w-4" /> Cancel
-                </Button>
-                <Button size="sm" onClick={handleSave} className="gap-1.5">
-                  <Save className="h-4 w-4" /> Save
-                </Button>
-              </>
-            ) : (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="gap-1.5">
-                <Pencil className="h-4 w-4" /> Edit
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -406,93 +384,78 @@ export function ProductDetailView({
             {/* Main content */}
             <div className="flex-1 min-w-0 space-y-8">
 
-              {/* ── Product overview card (images → target scenarios) ── */}
-              <div id="product-overview" className="rounded-xl border border-border/50 bg-card shadow-sm p-6 space-y-6">
-                <h3 className="text-base font-bold text-foreground">Product overview</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {data.images.map((img) => (
-                    <ProductImageSlot
-                      key={img.id}
-                      slot={img}
-                      isEditing={isEditing}
-                      onUpload={handleImageUpload}
-                      onRemove={handleImageRemove}
-                    />
-                  ))}
+              {/* ── Product overview card ── */}
+              <div id="product-overview" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <Package className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Product overview</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isEditingSection("overview") ? (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
+                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setEditingSection("overview")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
+                    )}
+                  </div>
                 </div>
-                {isEditing && (
-                  <button
-                    onClick={() => setData(prev => ({
-                      ...prev,
-                      images: [...prev.images, { id: `img-${Date.now()}`, url: null, label: `Product Image ${prev.images.length + 1}` }],
-                    }))}
-                    className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
-                  >
-                    <Plus className="h-3 w-3" /> Add image slot
+                <div className="px-6 py-6 space-y-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {data.images.map((img) => (
+                      <ProductImageSlot key={img.id} slot={img} isEditing={isEditingSection("overview")} onUpload={handleImageUpload} onRemove={handleImageRemove} />
+                    ))}
+                  </div>
+                  {isEditingSection("overview") && (
+                    <button onClick={() => setData(prev => ({ ...prev, images: [...prev.images, { id: `img-${Date.now()}`, url: null, label: `Product Image ${prev.images.length + 1}` }] }))} className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors">
+                      <Plus className="h-3 w-3" /> Add image slot
+                    </button>
+                  )}
+                  <p className="text-xs text-muted-foreground text-center">{data.images.length} product images</p>
+
+                  <div id="product-description" className="space-y-2">
+                    <SectionHeading id="" title="Product description" subtitle="Summary of what your product is, its core purpose, and who it's designed for." />
+                    {isEditingSection("overview") ? (
+                      <Textarea value={data.description} onChange={(e) => setData(prev => ({ ...prev, description: e.target.value }))} className="text-sm min-h-[100px] resize-none mt-3" />
+                    ) : (
+                      <p className="text-sm text-foreground/80 leading-relaxed mt-3">{data.description}</p>
+                    )}
+                  </div>
+
+                  <button onClick={() => setDescExpanded(!descExpanded)} className="flex items-center gap-1.5 text-sm font-medium text-foreground mx-auto hover:text-primary transition-colors">
+                    {descExpanded ? "Less detail" : "More detail"}
+                    {descExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </button>
-                )}
-                <p className="text-xs text-muted-foreground text-center">{data.images.length} product images</p>
 
-                {/* Product description */}
-                <div id="product-description" className="space-y-2">
-                  <SectionHeading id="" title="Product description" subtitle="Summary of what your product is, its core purpose, and who it's designed for." />
-                  {isEditing ? (
-                    <Textarea
-                      value={data.description}
-                      onChange={(e) => setData(prev => ({ ...prev, description: e.target.value }))}
-                      className="text-sm min-h-[100px] resize-none mt-3"
-                    />
-                  ) : (
-                    <p className="text-sm text-foreground/80 leading-relaxed mt-3">{data.description}</p>
-                  )}
+                  <AnimatePresence>
+                    {descExpanded && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden space-y-8">
+                        <div className="border-t border-border/30 pt-6">
+                          <SectionHeading id="key-features" title="Key features" subtitle="Core functional capabilities that define your product." />
+                          <BulletList items={data.features} icon={Sparkles} iconClass="text-amber-500" isEditing={isEditingSection("overview")} onChange={(f) => setData(prev => ({ ...prev, features: f }))} />
+                        </div>
+                        <div>
+                          <SectionHeading id="key-benefits" title="Key benefits" subtitle="Value that users gain from your product's features." />
+                          <BulletList items={data.benefits} icon={Check} iconClass="text-emerald-500" isEditing={isEditingSection("overview")} onChange={(b) => setData(prev => ({ ...prev, benefits: b }))} />
+                        </div>
+                        <div>
+                          <SectionHeading id="target-pain-points" title="Target pain points" subtitle="Specific problems your product solves for users." />
+                          <BulletList items={data.painPoints} icon={CircleAlert} iconClass="text-rose-400" isEditing={isEditingSection("overview")} onChange={(p) => setData(prev => ({ ...prev, painPoints: p }))} />
+                        </div>
+                        <div>
+                          <SectionHeading id="primary-use-cases" title="Primary use cases" subtitle="Main scenarios where users apply your product." />
+                          <BulletList items={data.useCases} icon={Check} iconClass="text-emerald-500" isEditing={isEditingSection("overview")} onChange={(u) => setData(prev => ({ ...prev, useCases: u }))} />
+                        </div>
+                        <div>
+                          <SectionHeading id="target-scenarios" title="Target scenarios" subtitle="Specific situations or triggers that lead users to need your product." />
+                          <BulletList items={data.targetScenarios} icon={Crosshair} iconClass="text-sky-400" isEditing={isEditingSection("overview")} onChange={(s) => setData(prev => ({ ...prev, targetScenarios: s }))} />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-
-                {/* More detail toggle */}
-                <button
-                  onClick={() => setDescExpanded(!descExpanded)}
-                  className="flex items-center gap-1.5 text-sm font-medium text-foreground mx-auto hover:text-primary transition-colors"
-                >
-                  {descExpanded ? "Less detail" : "More detail"}
-                  {descExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
-
-                {/* Expanded sections: key features → target scenarios */}
-                <AnimatePresence>
-                  {descExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden space-y-8"
-                    >
-                      <div className="border-t border-border/30 pt-6">
-                        <SectionHeading id="key-features" title="Key features" subtitle="Core functional capabilities that define your product." />
-                        <BulletList items={data.features} icon={Sparkles} iconClass="text-amber-500" isEditing={isEditing} onChange={(f) => setData(prev => ({ ...prev, features: f }))} />
-                      </div>
-
-                      <div>
-                        <SectionHeading id="key-benefits" title="Key benefits" subtitle="Value that users gain from your product's features." />
-                        <BulletList items={data.benefits} icon={Check} iconClass="text-emerald-500" isEditing={isEditing} onChange={(b) => setData(prev => ({ ...prev, benefits: b }))} />
-                      </div>
-
-                      <div>
-                        <SectionHeading id="target-pain-points" title="Target pain points" subtitle="Specific problems your product solves for users." />
-                        <BulletList items={data.painPoints} icon={CircleAlert} iconClass="text-rose-400" isEditing={isEditing} onChange={(p) => setData(prev => ({ ...prev, painPoints: p }))} />
-                      </div>
-
-                      <div>
-                        <SectionHeading id="primary-use-cases" title="Primary use cases" subtitle="Main scenarios where users apply your product." />
-                        <BulletList items={data.useCases} icon={Check} iconClass="text-emerald-500" isEditing={isEditing} onChange={(u) => setData(prev => ({ ...prev, useCases: u }))} />
-                      </div>
-
-                      <div>
-                        <SectionHeading id="target-scenarios" title="Target scenarios" subtitle="Specific situations or triggers that lead users to need your product." />
-                        <BulletList items={data.targetScenarios} icon={Crosshair} iconClass="text-sky-400" isEditing={isEditing} onChange={(s) => setData(prev => ({ ...prev, targetScenarios: s }))} />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               {/* ── Offers ── */}
@@ -502,134 +465,59 @@ export function ProductDetailView({
                     <Tag className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Offers</h2>
                   </div>
+                  <div className="flex items-center gap-2">
+                    {isEditingSection("offers") ? (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
+                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setEditingSection("offers")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
+                    )}
+                  </div>
                 </div>
                 <div className="px-6 py-6 space-y-4">
                   {data.offers.map((offer, i) => (
                     <div key={offer.id} className="rounded-xl border border-border/40 bg-muted/20 p-5 space-y-2 relative">
-                      {isEditing ? (
+                      {isEditingSection("offers") ? (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-medium text-muted-foreground">Offer Title</label>
-                            <button
-                              onClick={() => setData(prev => ({ ...prev, offers: prev.offers.filter((_, idx) => idx !== i) }))}
-                              className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            <button onClick={() => setData(prev => ({ ...prev, offers: prev.offers.filter((_, idx) => idx !== i) }))} className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-4 w-4" /></button>
                           </div>
-                          <Input
-                            value={offer.title}
-                            onChange={(e) => {
-                              const next = [...data.offers];
-                              next[i] = { ...next[i], title: e.target.value };
-                              setData(prev => ({ ...prev, offers: next }));
-                            }}
-                            className="h-9 text-sm"
-                          />
+                          <Input value={offer.title} onChange={(e) => { const next = [...data.offers]; next[i] = { ...next[i], title: e.target.value }; setData(prev => ({ ...prev, offers: next })); }} className="h-9 text-sm" />
                           <div className="grid grid-cols-3 gap-3">
                             <div className="space-y-1">
                               <label className="text-xs font-medium text-muted-foreground">Original Price</label>
-                              <Input
-                                value={offer.originalPrice}
-                                onChange={(e) => {
-                                  const next = [...data.offers];
-                                  next[i] = { ...next[i], originalPrice: e.target.value };
-                                  setData(prev => ({ ...prev, offers: next }));
-                                }}
-                                placeholder="e.g., €69.90"
-                                className="h-9 text-sm"
-                              />
+                              <Input value={offer.originalPrice} onChange={(e) => { const next = [...data.offers]; next[i] = { ...next[i], originalPrice: e.target.value }; setData(prev => ({ ...prev, offers: next })); }} placeholder="e.g., €69.90" className="h-9 text-sm" />
                             </div>
                             <div className="space-y-1">
                               <label className="text-xs font-medium text-muted-foreground">Sale Price</label>
-                              <Input
-                                value={offer.salePrice}
-                                onChange={(e) => {
-                                  const next = [...data.offers];
-                                  next[i] = { ...next[i], salePrice: e.target.value };
-                                  setData(prev => ({ ...prev, offers: next }));
-                                }}
-                                placeholder="e.g., €24.95"
-                                className="h-9 text-sm"
-                              />
+                              <Input value={offer.salePrice} onChange={(e) => { const next = [...data.offers]; next[i] = { ...next[i], salePrice: e.target.value }; setData(prev => ({ ...prev, offers: next })); }} placeholder="e.g., €24.95" className="h-9 text-sm" />
                             </div>
                             <div className="space-y-1">
                               <label className="text-xs font-medium text-muted-foreground">Discount</label>
-                              <Input
-                                value={offer.discount}
-                                onChange={(e) => {
-                                  const next = [...data.offers];
-                                  next[i] = { ...next[i], discount: e.target.value };
-                                  setData(prev => ({ ...prev, offers: next }));
-                                }}
-                                placeholder="e.g., 65% OFF"
-                                className="h-9 text-sm"
-                              />
+                              <Input value={offer.discount} onChange={(e) => { const next = [...data.offers]; next[i] = { ...next[i], discount: e.target.value }; setData(prev => ({ ...prev, offers: next })); }} placeholder="e.g., 65% OFF" className="h-9 text-sm" />
                             </div>
                           </div>
                           <div className="space-y-1">
                             <label className="text-xs font-medium text-muted-foreground">Bundle Details</label>
-                            <Input
-                              value={offer.bundleDetails}
-                              onChange={(e) => {
-                                const next = [...data.offers];
-                                next[i] = { ...next[i], bundleDetails: e.target.value };
-                                setData(prev => ({ ...prev, offers: next }));
-                              }}
-                              className="h-9 text-sm"
-                            />
+                            <Input value={offer.bundleDetails} onChange={(e) => { const next = [...data.offers]; next[i] = { ...next[i], bundleDetails: e.target.value }; setData(prev => ({ ...prev, offers: next })); }} className="h-9 text-sm" />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                              <Gift className="h-3.5 w-3.5" /> Free Gifts
-                            </label>
+                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5"><Gift className="h-3.5 w-3.5" /> Free Gifts</label>
                             {offer.freeGifts.map((gift, gi) => (
                               <div key={gi} className="flex gap-1.5">
-                                <Input
-                                  value={gift}
-                                  onChange={(e) => {
-                                    const next = [...data.offers];
-                                    const gifts = [...next[i].freeGifts];
-                                    gifts[gi] = e.target.value;
-                                    next[i] = { ...next[i], freeGifts: gifts };
-                                    setData(prev => ({ ...prev, offers: next }));
-                                  }}
-                                  className="h-8 text-sm flex-1"
-                                />
-                                <button
-                                  onClick={() => {
-                                    const next = [...data.offers];
-                                    next[i] = { ...next[i], freeGifts: next[i].freeGifts.filter((_, idx) => idx !== gi) };
-                                    setData(prev => ({ ...prev, offers: next }));
-                                  }}
-                                  className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
+                                <Input value={gift} onChange={(e) => { const next = [...data.offers]; const gifts = [...next[i].freeGifts]; gifts[gi] = e.target.value; next[i] = { ...next[i], freeGifts: gifts }; setData(prev => ({ ...prev, offers: next })); }} className="h-8 text-sm flex-1" />
+                                <button onClick={() => { const next = [...data.offers]; next[i] = { ...next[i], freeGifts: next[i].freeGifts.filter((_, idx) => idx !== gi) }; setData(prev => ({ ...prev, offers: next })); }} className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-3 w-3" /></button>
                               </div>
                             ))}
-                            <button
-                              onClick={() => {
-                                const next = [...data.offers];
-                                next[i] = { ...next[i], freeGifts: [...next[i].freeGifts, ""] };
-                                setData(prev => ({ ...prev, offers: next }));
-                              }}
-                              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full justify-center py-2 rounded-lg border border-dashed border-border/50 hover:border-border"
-                            >
+                            <button onClick={() => { const next = [...data.offers]; next[i] = { ...next[i], freeGifts: [...next[i].freeGifts, ""] }; setData(prev => ({ ...prev, offers: next })); }} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full justify-center py-2 rounded-lg border border-dashed border-border/50 hover:border-border">
                               <Plus className="h-3.5 w-3.5" /> Add Free Gift
                             </button>
                           </div>
                           <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={offer.isPopular}
-                              onChange={(e) => {
-                                const next = [...data.offers];
-                                next[i] = { ...next[i], isPopular: e.target.checked };
-                                setData(prev => ({ ...prev, offers: next }));
-                              }}
-                              className="rounded border-border"
-                            />
+                            <input type="checkbox" checked={offer.isPopular} onChange={(e) => { const next = [...data.offers]; next[i] = { ...next[i], isPopular: e.target.checked }; setData(prev => ({ ...prev, offers: next })); }} className="rounded border-border" />
                             <span className="text-sm text-muted-foreground">Mark as popular/bestseller</span>
                           </label>
                         </div>
@@ -637,33 +525,20 @@ export function ProductDetailView({
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-2.5">
                             <h4 className="text-base font-semibold text-foreground">{offer.title}</h4>
-                            {offer.isPopular && (
-                              <span className="text-xs px-2 py-0.5 rounded-md bg-muted border border-border/50 text-muted-foreground font-medium">Popular</span>
-                            )}
+                            {offer.isPopular && <span className="text-xs px-2 py-0.5 rounded-md bg-muted border border-border/50 text-muted-foreground font-medium">Popular</span>}
                           </div>
                           {(offer.originalPrice || offer.salePrice) && (
                             <div className="flex items-center gap-2">
-                              {offer.originalPrice && (
-                                <span className="text-sm text-muted-foreground line-through">{offer.originalPrice}</span>
-                              )}
-                              {offer.salePrice && (
-                                <span className="text-base font-semibold text-foreground">{offer.salePrice}</span>
-                              )}
-                              {offer.discount && (
-                                <span className="text-xs px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 font-medium">{offer.discount}</span>
-                              )}
+                              {offer.originalPrice && <span className="text-sm text-muted-foreground line-through">{offer.originalPrice}</span>}
+                              {offer.salePrice && <span className="text-base font-semibold text-foreground">{offer.salePrice}</span>}
+                              {offer.discount && <span className="text-xs px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 font-medium">{offer.discount}</span>}
                             </div>
                           )}
-                          {offer.bundleDetails && (
-                            <p className="text-sm text-muted-foreground">Includes: {offer.bundleDetails}</p>
-                          )}
+                          {offer.bundleDetails && <p className="text-sm text-muted-foreground">Includes: {offer.bundleDetails}</p>}
                           {offer.freeGifts.length > 0 && (
                             <div className="space-y-1">
                               {offer.freeGifts.map((gift, gi) => (
-                                <div key={gi} className="flex items-center gap-1.5 text-sm text-foreground">
-                                  <Gift className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span>{gift}</span>
-                                </div>
+                                <div key={gi} className="flex items-center gap-1.5 text-sm text-foreground"><Gift className="h-3.5 w-3.5 text-muted-foreground" /><span>{gift}</span></div>
                               ))}
                             </div>
                           )}
@@ -671,23 +546,8 @@ export function ProductDetailView({
                       )}
                     </div>
                   ))}
-                  {isEditing && (
-                    <button
-                      onClick={() => setData(prev => ({
-                        ...prev,
-                        offers: [...prev.offers, {
-                          id: `offer-${Date.now()}`,
-                          title: "",
-                          originalPrice: "",
-                          salePrice: "",
-                          discount: "",
-                          bundleDetails: "",
-                          freeGifts: [],
-                          isPopular: false,
-                        }],
-                      }))}
-                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-full justify-center py-3 rounded-xl border border-dashed border-border/50 hover:border-border"
-                    >
+                  {isEditingSection("offers") && (
+                    <button onClick={() => setData(prev => ({ ...prev, offers: [...prev.offers, { id: `offer-${Date.now()}`, title: "", originalPrice: "", salePrice: "", discount: "", bundleDetails: "", freeGifts: [], isPopular: false }] }))} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-full justify-center py-3 rounded-xl border border-dashed border-border/50 hover:border-border">
                       <Plus className="h-4 w-4" /> Add Another Offer
                     </button>
                   )}
@@ -695,258 +555,244 @@ export function ProductDetailView({
               </div>
 
               {/* ── Value proposition ── */}
-              <div id="value-proposition">
-                <h3 className="text-base font-bold text-foreground">Value proposition</h3>
-              </div>
-
-              {/* Positioning statement */}
-              <div>
-                <SectionHeading id="positioning-statement" title="Positioning statement" subtitle="One clear sentence that defines your market position." />
-                <div className="mt-3 rounded-lg border border-border/40 bg-muted/20 p-4">
-                  {isEditing ? (
-                    <Textarea
-                      value={data.positioningStatement}
-                      onChange={(e) => setData(prev => ({ ...prev, positioningStatement: e.target.value }))}
-                      className="text-sm min-h-[60px] resize-none"
-                    />
-                  ) : (
-                    <p className="text-sm text-foreground/80 leading-relaxed italic">"{data.positioningStatement}"</p>
-                  )}
+              <div id="value-proposition" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <Zap className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Value proposition</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isEditingSection("value") ? (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
+                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setEditingSection("value")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
+                    )}
+                  </div>
+                </div>
+                <div className="px-6 py-6 space-y-8 max-w-3xl">
+                  <div>
+                    <SectionHeading id="positioning-statement" title="Positioning statement" subtitle="One clear sentence that defines your market position." />
+                    <div className="mt-3 rounded-lg border border-border/40 bg-muted/20 p-4">
+                      {isEditingSection("value") ? (
+                        <Textarea value={data.positioningStatement} onChange={(e) => setData(prev => ({ ...prev, positioningStatement: e.target.value }))} className="text-sm min-h-[60px] resize-none" />
+                      ) : (
+                        <p className="text-sm text-foreground/80 leading-relaxed italic">"{data.positioningStatement}"</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <SectionHeading id="unique-selling-points" title="Unique selling points" subtitle="What makes your product stand out from alternatives." />
+                    <BulletList items={data.uniqueSellingPoints} icon={Zap} iconClass="text-amber-500" isEditing={isEditingSection("value")} onChange={(u) => setData(prev => ({ ...prev, uniqueSellingPoints: u }))} />
+                  </div>
+                  <div>
+                    <SectionHeading id="competitive-advantages" title="Competitive advantages" subtitle="Structural advantages over competitors." />
+                    <BulletList items={data.competitiveAdvantages} icon={ShieldCheck} iconClass="text-emerald-500" isEditing={isEditingSection("value")} onChange={(c) => setData(prev => ({ ...prev, competitiveAdvantages: c }))} />
+                  </div>
                 </div>
               </div>
-
-              {/* Unique selling points */}
-              <div>
-                <SectionHeading id="unique-selling-points" title="Unique selling points" subtitle="What makes your product stand out from alternatives." />
-                <BulletList items={data.uniqueSellingPoints} icon={Zap} iconClass="text-amber-500" isEditing={isEditing} onChange={(u) => setData(prev => ({ ...prev, uniqueSellingPoints: u }))} />
-              </div>
-
-              {/* Competitive advantages */}
-              <div>
-                <SectionHeading id="competitive-advantages" title="Competitive advantages" subtitle="Structural advantages over competitors." />
-                <BulletList items={data.competitiveAdvantages} icon={ShieldCheck} iconClass="text-emerald-500" isEditing={isEditing} onChange={(c) => setData(prev => ({ ...prev, competitiveAdvantages: c }))} />
-              </div>
-
-              <div className="border-b border-border/30" />
 
               {/* ── Objections & proof points ── */}
-              <div id="objections-proof">
-                <h3 className="text-base font-bold text-foreground">Objections & proof points</h3>
-              </div>
-
-              {/* Common objections */}
-              <div id="common-objections" className="space-y-3">
-                <SectionHeading id="" title="Common objections and responses" subtitle="Anticipated concerns and how to address them." />
-                <div className="space-y-3 mt-3">
-                  {data.commonObjections.map((obj, i) => (
-                    <div key={i} className="rounded-lg border border-border/40 bg-muted/10 p-4 space-y-2">
-                      {isEditing ? (
-                        <div className="space-y-2">
-                          <div className="flex gap-1.5">
-                            <Input
-                              value={obj.objection}
-                              onChange={(e) => {
-                                const next = [...data.commonObjections];
-                                next[i] = { ...next[i], objection: e.target.value };
-                                setData(prev => ({ ...prev, commonObjections: next }));
-                              }}
-                              placeholder="Objection"
-                              className="h-8 text-sm flex-1"
-                            />
-                            <button
-                              onClick={() => setData(prev => ({ ...prev, commonObjections: prev.commonObjections.filter((_, idx) => idx !== i) }))}
-                              className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                          <Input
-                            value={obj.response}
-                            onChange={(e) => {
-                              const next = [...data.commonObjections];
-                              next[i] = { ...next[i], response: e.target.value };
-                              setData(prev => ({ ...prev, commonObjections: next }));
-                            }}
-                            placeholder="Response"
-                            className="h-8 text-sm"
-                          />
+              <div id="objections-proof" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <MessageSquareWarning className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Objections & proof points</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isEditingSection("objections") ? (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
+                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setEditingSection("objections")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
+                    )}
+                  </div>
+                </div>
+                <div className="px-6 py-6 space-y-8 max-w-3xl">
+                  <div id="common-objections" className="space-y-3">
+                    <SectionHeading id="" title="Common objections and responses" subtitle="Anticipated concerns and how to address them." />
+                    <div className="space-y-3 mt-3">
+                      {data.commonObjections.map((obj, i) => (
+                        <div key={i} className="rounded-lg border border-border/40 bg-muted/10 p-4 space-y-2">
+                          {isEditingSection("objections") ? (
+                            <div className="space-y-2">
+                              <div className="flex gap-1.5">
+                                <Input value={obj.objection} onChange={(e) => { const next = [...data.commonObjections]; next[i] = { ...next[i], objection: e.target.value }; setData(prev => ({ ...prev, commonObjections: next })); }} placeholder="Objection" className="h-8 text-sm flex-1" />
+                                <button onClick={() => setData(prev => ({ ...prev, commonObjections: prev.commonObjections.filter((_, idx) => idx !== i) }))} className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-3 w-3" /></button>
+                              </div>
+                              <Input value={obj.response} onChange={(e) => { const next = [...data.commonObjections]; next[i] = { ...next[i], response: e.target.value }; setData(prev => ({ ...prev, commonObjections: next })); }} placeholder="Response" className="h-8 text-sm" />
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-start gap-2">
+                                <MessageSquareWarning className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                                <p className="text-sm font-medium text-foreground/90">"{obj.objection}"</p>
+                              </div>
+                              <p className="text-sm text-muted-foreground/80 ml-6">{obj.response}</p>
+                            </>
+                          )}
                         </div>
-                      ) : (
-                        <>
-                          <div className="flex items-start gap-2">
-                            <MessageSquareWarning className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                            <p className="text-sm font-medium text-foreground/90">"{obj.objection}"</p>
-                          </div>
-                          <p className="text-sm text-muted-foreground/80 ml-6">{obj.response}</p>
-                        </>
+                      ))}
+                      {isEditingSection("objections") && (
+                        <button onClick={() => setData(prev => ({ ...prev, commonObjections: [...prev.commonObjections, { objection: "", response: "" }] }))} className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"><Plus className="h-3 w-3" /> Add objection</button>
                       )}
                     </div>
-                  ))}
-                  {isEditing && (
-                    <button
-                      onClick={() => setData(prev => ({ ...prev, commonObjections: [...prev.commonObjections, { objection: "", response: "" }] }))}
-                      className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
-                    >
-                      <Plus className="h-3 w-3" /> Add objection
-                    </button>
-                  )}
+                  </div>
+                  <div>
+                    <SectionHeading id="proof-points" title="Proof points and evidence types" subtitle="Evidence that supports your product claims." />
+                    <BulletList items={data.proofPoints} icon={ShieldCheck} iconClass="text-sky-400" isEditing={isEditingSection("objections")} onChange={(p) => setData(prev => ({ ...prev, proofPoints: p }))} />
+                  </div>
                 </div>
               </div>
-
-              {/* Proof points */}
-              <div>
-                <SectionHeading id="proof-points" title="Proof points and evidence types" subtitle="Evidence that supports your product claims." />
-                <BulletList items={data.proofPoints} icon={ShieldCheck} iconClass="text-sky-400" isEditing={isEditing} onChange={(p) => setData(prev => ({ ...prev, proofPoints: p }))} />
-              </div>
-
-              <div className="border-b border-border/30" />
 
               {/* ── Language patterns ── */}
-              <div id="language-patterns">
-                <h3 className="text-base font-bold text-foreground">Language patterns</h3>
-              </div>
-
-              {/* Do's and Don'ts */}
-              <div id="dos-and-donts" className="space-y-4">
-                <SectionHeading id="" title="Do's and Don'ts" subtitle="Communication guidelines for product messaging." />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
-                    <h4 className="text-sm font-semibold text-emerald-600 flex items-center gap-1.5"><Check className="h-4 w-4" /> Do's</h4>
-                    {data.dosAndDonts.dos.map((item, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <Check className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                        {isEditing ? (
-                          <div className="flex-1 flex gap-1">
-                            <Input value={item} onChange={(e) => {
-                              const next = [...data.dosAndDonts.dos];
-                              next[i] = e.target.value;
-                              setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: next } }));
-                            }} className="h-7 text-xs flex-1" />
-                            <button onClick={() => {
-                              setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: prev.dosAndDonts.dos.filter((_, idx) => idx !== i) } }));
-                            }} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-foreground/80">{item}</span>
-                        )}
-                      </div>
-                    ))}
-                    {isEditing && (
-                      <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: [...prev.dosAndDonts.dos, ""] } }))}
-                        className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-1"><Plus className="h-3 w-3" /> Add</button>
-                    )}
+              <div id="language-patterns" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <Languages className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Language patterns</h2>
                   </div>
-                  <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-4 space-y-2">
-                    <h4 className="text-sm font-semibold text-rose-600 flex items-center gap-1.5"><X className="h-4 w-4" /> Don'ts</h4>
-                    {data.dosAndDonts.donts.map((item, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <X className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
-                        {isEditing ? (
-                          <div className="flex-1 flex gap-1">
-                            <Input value={item} onChange={(e) => {
-                              const next = [...data.dosAndDonts.donts];
-                              next[i] = e.target.value;
-                              setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: next } }));
-                            }} className="h-7 text-xs flex-1" />
-                            <button onClick={() => {
-                              setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: prev.dosAndDonts.donts.filter((_, idx) => idx !== i) } }));
-                            }} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-foreground/80">{item}</span>
-                        )}
-                      </div>
-                    ))}
-                    {isEditing && (
-                      <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: [...prev.dosAndDonts.donts, ""] } }))}
-                        className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-1"><Plus className="h-3 w-3" /> Add</button>
+                  <div className="flex items-center gap-2">
+                    {isEditingSection("language") ? (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
+                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setEditingSection("language")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
                     )}
                   </div>
                 </div>
-              </div>
+                <div className="px-6 py-6 space-y-8 max-w-3xl">
+                  {/* Do's and Don'ts */}
+                  <div id="dos-and-donts" className="space-y-4">
+                    <SectionHeading id="" title="Do's and Don'ts" subtitle="Communication guidelines for product messaging." />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
+                        <h4 className="text-sm font-semibold text-emerald-600 flex items-center gap-1.5"><Check className="h-4 w-4" /> Do's</h4>
+                        {data.dosAndDonts.dos.map((item, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <Check className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                            {isEditingSection("language") ? (
+                              <div className="flex-1 flex gap-1">
+                                <Input value={item} onChange={(e) => { const next = [...data.dosAndDonts.dos]; next[i] = e.target.value; setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: next } })); }} className="h-7 text-xs flex-1" />
+                                <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: prev.dosAndDonts.dos.filter((_, idx) => idx !== i) } }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-foreground/80">{item}</span>
+                            )}
+                          </div>
+                        ))}
+                        {isEditingSection("language") && (
+                          <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, dos: [...prev.dosAndDonts.dos, ""] } }))} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-1"><Plus className="h-3 w-3" /> Add</button>
+                        )}
+                      </div>
+                      <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-4 space-y-2">
+                        <h4 className="text-sm font-semibold text-rose-600 flex items-center gap-1.5"><X className="h-4 w-4" /> Don'ts</h4>
+                        {data.dosAndDonts.donts.map((item, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <X className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
+                            {isEditingSection("language") ? (
+                              <div className="flex-1 flex gap-1">
+                                <Input value={item} onChange={(e) => { const next = [...data.dosAndDonts.donts]; next[i] = e.target.value; setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: next } })); }} className="h-7 text-xs flex-1" />
+                                <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: prev.dosAndDonts.donts.filter((_, idx) => idx !== i) } }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-foreground/80">{item}</span>
+                            )}
+                          </div>
+                        ))}
+                        {isEditingSection("language") && (
+                          <button onClick={() => setData(prev => ({ ...prev, dosAndDonts: { ...prev.dosAndDonts, donts: [...prev.dosAndDonts.donts, ""] } }))} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-1"><Plus className="h-3 w-3" /> Add</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Power phrases */}
-              <div>
-                <SectionHeading id="power-phrases" title="Power phrases" subtitle="High-impact phrases to use in marketing copy." />
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {data.powerPhrases.map((phrase, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      {isEditing ? (
-                        <div className="flex gap-1">
-                          <Input value={phrase} onChange={(e) => {
-                            const next = [...data.powerPhrases];
-                            next[i] = e.target.value;
-                            setData(prev => ({ ...prev, powerPhrases: next }));
-                          }} className="h-7 text-xs w-52" />
-                          <button onClick={() => setData(prev => ({ ...prev, powerPhrases: prev.powerPhrases.filter((_, idx) => idx !== i) }))}
-                            className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  {/* Power phrases */}
+                  <div>
+                    <SectionHeading id="power-phrases" title="Power phrases" subtitle="High-impact phrases to use in marketing copy." />
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {data.powerPhrases.map((phrase, i) => (
+                        <div key={i} className="flex items-center gap-1.5">
+                          {isEditingSection("language") ? (
+                            <div className="flex gap-1">
+                              <Input value={phrase} onChange={(e) => { const next = [...data.powerPhrases]; next[i] = e.target.value; setData(prev => ({ ...prev, powerPhrases: next })); }} className="h-7 text-xs w-52" />
+                              <button onClick={() => setData(prev => ({ ...prev, powerPhrases: prev.powerPhrases.filter((_, idx) => idx !== i) }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                            </div>
+                          ) : (
+                            <span className="text-sm px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">"{phrase}"</span>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-sm px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">"{phrase}"</span>
+                      ))}
+                      {isEditingSection("language") && (
+                        <button onClick={() => setData(prev => ({ ...prev, powerPhrases: [...prev.powerPhrases, ""] }))} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"><Plus className="h-3 w-3" /> Add</button>
                       )}
                     </div>
-                  ))}
-                  {isEditing && (
-                    <button onClick={() => setData(prev => ({ ...prev, powerPhrases: [...prev.powerPhrases, ""] }))}
-                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"><Plus className="h-3 w-3" /> Add</button>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              {/* Power words */}
-              <div>
-                <SectionHeading id="power-words" title="Power words" subtitle="Single words that resonate with your audience." />
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {data.powerWords.map((word, i) => (
-                    <div key={i}>
-                      {isEditing ? (
-                        <div className="flex gap-1">
-                          <Input value={word} onChange={(e) => {
-                            const next = [...data.powerWords];
-                            next[i] = e.target.value;
-                            setData(prev => ({ ...prev, powerWords: next }));
-                          }} className="h-7 text-xs w-28" />
-                          <button onClick={() => setData(prev => ({ ...prev, powerWords: prev.powerWords.filter((_, idx) => idx !== i) }))}
-                            className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  {/* Power words */}
+                  <div>
+                    <SectionHeading id="power-words" title="Power words" subtitle="Single words that resonate with your audience." />
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {data.powerWords.map((word, i) => (
+                        <div key={i}>
+                          {isEditingSection("language") ? (
+                            <div className="flex gap-1">
+                              <Input value={word} onChange={(e) => { const next = [...data.powerWords]; next[i] = e.target.value; setData(prev => ({ ...prev, powerWords: next })); }} className="h-7 text-xs w-28" />
+                              <button onClick={() => setData(prev => ({ ...prev, powerWords: prev.powerWords.filter((_, idx) => idx !== i) }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                            </div>
+                          ) : (
+                            <span className="text-sm px-3 py-1 rounded-md bg-muted/50 border border-border/40 text-foreground/80">{word}</span>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-sm px-3 py-1 rounded-md bg-muted/50 border border-border/40 text-foreground/80">{word}</span>
+                      ))}
+                      {isEditingSection("language") && (
+                        <button onClick={() => setData(prev => ({ ...prev, powerWords: [...prev.powerWords, ""] }))} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"><Plus className="h-3 w-3" /> Add</button>
                       )}
                     </div>
-                  ))}
-                  {isEditing && (
-                    <button onClick={() => setData(prev => ({ ...prev, powerWords: [...prev.powerWords, ""] }))}
-                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"><Plus className="h-3 w-3" /> Add</button>
-                  )}
+                  </div>
+
+                  {/* Technical level */}
+                  <div>
+                    <SectionHeading id="technical-level" title="Technical level" subtitle="Recommended complexity and tone for product copy." />
+                    <div className="mt-3 rounded-lg border border-border/40 bg-muted/20 p-4">
+                      {isEditingSection("language") ? (
+                        <Textarea value={data.technicalLevel} onChange={(e) => setData(prev => ({ ...prev, technicalLevel: e.target.value }))} className="text-sm min-h-[60px] resize-none" />
+                      ) : (
+                        <p className="text-sm text-foreground/80 leading-relaxed">{data.technicalLevel}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {/* Technical level */}
-              <div>
-                <SectionHeading id="technical-level" title="Technical level" subtitle="Recommended complexity and tone for product copy." />
-                <div className="mt-3 rounded-lg border border-border/40 bg-muted/20 p-4">
-                  {isEditing ? (
-                    <Textarea
-                      value={data.technicalLevel}
-                      onChange={(e) => setData(prev => ({ ...prev, technicalLevel: e.target.value }))}
-                      className="text-sm min-h-[60px] resize-none"
-                    />
-                  ) : (
-                    <p className="text-sm text-foreground/80 leading-relaxed">{data.technicalLevel}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="border-b border-border/30" />
 
               {/* ── Content refinement ── */}
-              <div>
-                <SectionHeading id="content-refinement" title="Content refinement" subtitle="Quality assurance for product messaging." />
-              </div>
-
-              <div>
-                <SectionHeading id="refinement-checklist" title="Refinement checklist" subtitle="Review these before publishing any product copy." />
-                <BulletList items={data.refinementChecklist} icon={ListChecks} iconClass="text-primary" isEditing={isEditing} onChange={(r) => setData(prev => ({ ...prev, refinementChecklist: r }))} />
+              <div id="content-refinement" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <ListChecks className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Content refinement</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isEditingSection("refinement") ? (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
+                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setEditingSection("refinement")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
+                    )}
+                  </div>
+                </div>
+                <div className="px-6 py-6 max-w-3xl">
+                  <SectionHeading id="refinement-checklist" title="Refinement checklist" subtitle="Review these before publishing any product copy." />
+                  <BulletList items={data.refinementChecklist} icon={ListChecks} iconClass="text-primary" isEditing={isEditingSection("refinement")} onChange={(r) => setData(prev => ({ ...prev, refinementChecklist: r }))} />
+                </div>
               </div>
 
               <div className="h-8" />
