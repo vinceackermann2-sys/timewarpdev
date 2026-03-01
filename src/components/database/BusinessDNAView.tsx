@@ -46,10 +46,10 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     subtitle: "Identity & Perception",
     icon: Palette,
     description: "Your brand DNA — mission, vision, values, voice, visual identity, positioning, and how the world perceives you.",
-    color: "text-violet-400",
-    hslColor: "263 70% 58%",
-    bgAccent: "bg-violet-500/10",
-    borderAccent: "border-violet-500/20",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
   },
   {
     id: "product",
@@ -57,10 +57,10 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     subtitle: "What You Build & Deliver",
     icon: Package,
     description: "Your product DNA — features, pricing, competitive advantages, user experience, roadmap, and core value proposition.",
-    color: "text-sky-400",
-    hslColor: "199 89% 48%",
-    bgAccent: "bg-sky-500/10",
-    borderAccent: "border-sky-500/20",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
   },
   {
     id: "sop",
@@ -68,10 +68,10 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     subtitle: "Standard Operating Procedures",
     icon: BookOpen,
     description: "Your operational DNA — processes, workflows, playbooks, team structures, and repeatable systems.",
-    color: "text-emerald-400",
-    hslColor: "160 84% 39%",
-    bgAccent: "bg-emerald-500/10",
-    borderAccent: "border-emerald-500/20",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
   },
 ];
 
@@ -395,8 +395,8 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               transition={{ duration: 0.2 }}
               className="flex flex-col items-center justify-center py-24 text-center"
             >
-              <div className="h-14 w-14 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-                <BookOpen className="h-7 w-7 text-emerald-400" />
+              <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                <BookOpen className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-1">Coming Soon</h3>
               <p className="text-sm text-muted-foreground max-w-sm">Standard Operating Procedures will be available in a future update.</p>
