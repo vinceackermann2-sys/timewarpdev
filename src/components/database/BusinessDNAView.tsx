@@ -3,10 +3,7 @@ import {
   Brain, Palette, Package, BookOpen, Loader2, Plus, Trash2, Check, X,
   Pencil, Building2, ArrowLeft, Users
 } from "lucide-react";
-import { BrandingEditor } from "@/components/database/BrandingEditor";
-
-import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
-import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
+import { BrandListView } from "@/components/database/BrandListView";
 import { ProductListView } from "@/components/database/ProductListView";
 import { AudienceListView } from "@/components/database/AudienceListView";
 import { supabase } from "@/integrations/supabase/client";
@@ -208,10 +205,6 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
-  const [isBrandingEditing, setIsBrandingEditing] = useState(false);
-  const [isVisualIdentityEditing, setIsVisualIdentityEditing] = useState(false);
-  
-  const [activeSidebarSection, setActiveSidebarSection] = useState<string>("branding");
   const { toast } = useToast();
 
   const handleAddManual = async (segmentId: string, text: string) => {
@@ -341,45 +334,14 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
             </motion.div>
           ) : activeSegment === "brand" ? (
             <motion.div
-              key="branding-editor"
+              key="brand-view"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
               className="pt-5"
             >
-              <div className="flex gap-8">
-                {/* Main content */}
-                <div className="flex-1 min-w-0 space-y-6">
-                  <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
-                    <BrandingEditor
-                      isEditing={isBrandingEditing}
-                      onEditToggle={() => setIsBrandingEditing(!isBrandingEditing)}
-                      onCancel={() => setIsBrandingEditing(false)}
-                      onSave={(data) => {
-                        toast({ title: "Branding saved" });
-                      }}
-                    />
-                  </div>
-                  <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden" id="extended-brand">
-                    <BrandExtendedSections
-                      isEditing={isVisualIdentityEditing}
-                      onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)}
-                    />
-                  </div>
-                </div>
-
-                {/* Right sidebar */}
-                <div className="hidden lg:block w-52 shrink-0 self-start">
-                  <BrandPageSidebar
-                    activeSection={activeSidebarSection}
-                    onSectionClick={(id) => {
-                      setActiveSidebarSection(id);
-                      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }}
-                  />
-                </div>
-              </div>
+              <BrandListView />
             </motion.div>
           ) : activeSegment === "product" ? (
             <motion.div
