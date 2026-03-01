@@ -9,7 +9,13 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export function ProductListView() {
   const [products, setProducts] = useState<ProductData[]>([
-    { ...DEFAULT_PRODUCT, id: "example-1", name: "AI Analytics Platform", category: "SaaS" },
+    {
+      ...DEFAULT_PRODUCT,
+      id: "example-1",
+      name: "FlawSkin Hairsaver Instant Dye Shampoo",
+      category: "Consumer Product",
+      lastUpdated: "Feb 28, 2026",
+    },
   ]);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -23,6 +29,7 @@ export function ProductListView() {
       ...DEFAULT_PRODUCT,
       id: `product-${Date.now()}`,
       name: newName.trim(),
+      lastUpdated: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
     };
     setProducts(prev => [...prev, newProduct]);
     setNewName("");
@@ -50,7 +57,6 @@ export function ProductListView() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-foreground">My Products</h3>
@@ -63,7 +69,6 @@ export function ProductListView() {
         </Button>
       </div>
 
-      {/* Create form */}
       <AnimatePresence>
         {isCreating && (
           <motion.div
@@ -91,7 +96,6 @@ export function ProductListView() {
         )}
       </AnimatePresence>
 
-      {/* Product list */}
       {products.length > 0 ? (
         <div className="space-y-2">
           {products.map((product) => (
@@ -105,7 +109,7 @@ export function ProductListView() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">{product.category}</p>
+                  <p className="text-xs text-muted-foreground">{product.category} · Updated {product.lastUpdated}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
