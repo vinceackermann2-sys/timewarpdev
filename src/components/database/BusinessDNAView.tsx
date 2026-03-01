@@ -319,9 +319,9 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
           {!activeSegment ? (
             <motion.div
               key="brain-idle"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.25 }}
               className="flex flex-col items-center justify-center py-16"
             >
@@ -330,9 +330,9 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
           ) : activeSegment === "brand" ? (
             <motion.div
               key="branding-editor"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
               className="pt-5"
             >
@@ -378,9 +378,9 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
           ) : activeSegment === "product" ? (
             <motion.div
               key="product-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
               className="pt-5"
             >
@@ -389,9 +389,9 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
           ) : activeSegment === "sop" ? (
             <motion.div
               key="sop-coming-soon"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
               className="flex flex-col items-center justify-center py-24 text-center"
             >
@@ -404,9 +404,9 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
           ) : activeSegmentData ? (
             <motion.div
               key={activeSegment}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
               className="pt-5"
             >

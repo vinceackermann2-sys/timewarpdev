@@ -61,7 +61,7 @@ export function ProductPageSidebar({
   return (
     <nav
       ref={navRef}
-      className="sticky top-6 max-h-[calc(100vh-1.5rem)] overflow-y-auto pr-1"
+      className="sticky top-6"
     >
       <h3 className="text-sm font-semibold text-foreground mb-3">On This Page</h3>
       <div className="relative" style={{ height: totalHeight }}>
