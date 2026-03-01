@@ -404,11 +404,11 @@ export function ProductDetailView({
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        <ScrollArea className="flex-1">
-          <div className="max-w-5xl mx-auto px-6 py-6">
+      <ScrollArea className="flex-1">
+        <div className="max-w-5xl mx-auto px-6 py-6">
+          <div className="flex gap-8">
             {/* Main content */}
-            <div className="space-y-8">
+            <div className="flex-1 min-w-0 space-y-8">
 
               {/* ── Product overview card ── */}
               <div id="product-overview" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
@@ -859,20 +859,20 @@ export function ProductDetailView({
 
               <div className="h-8" />
             </div>
-          </div>
-        </ScrollArea>
 
-        {/* Right sidebar - outside ScrollArea for proper sticky */}
-        <div className="hidden lg:block w-52 shrink-0 overflow-y-auto py-6 pr-6">
-          <ProductPageSidebar
-            activeSection={activeSidebarSection}
-            onSectionClick={(id) => {
-              setActiveSidebarSection(id);
-              document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-          />
+            {/* Right sidebar */}
+            <div className="hidden lg:block w-52 shrink-0">
+              <ProductPageSidebar
+                activeSection={activeSidebarSection}
+                onSectionClick={(id) => {
+                  setActiveSidebarSection(id);
+                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 }

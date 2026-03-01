@@ -39,31 +39,32 @@ export function ProductPageSidebar({
   onSectionClick?: (id: string) => void;
 }) {
   return (
-    <nav className="sticky top-6 self-start space-y-3">
+    <nav className="sticky top-6 space-y-3">
       <h3 className="text-sm font-semibold text-foreground">On This Page</h3>
       <div className="relative">
         {/* Continuous vertical line */}
-        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-border/40 rounded-full" />
+        <div className="absolute left-[3px] top-2 bottom-2 w-px bg-border/60" />
         <div className="space-y-0.5">
           {PRODUCT_SIDEBAR_ITEMS.map((item) => (
             <button
               key={item.id}
               onClick={() => onSectionClick?.(item.id)}
               className={cn(
-                "flex items-center w-full text-left py-1.5 text-sm transition-colors relative",
-                item.indent ? "pl-5 ml-0" : "pl-3",
+                "flex items-center gap-3 w-full text-left py-1.5 text-sm transition-colors relative",
+                item.indent && "pl-6",
                 activeSection === item.id
                   ? "text-primary font-medium"
-                  : item.indent
-                    ? "text-muted-foreground hover:text-foreground"
-                    : "text-foreground/80 hover:text-foreground"
+                  : item.highlight
+                    ? "text-primary/80 hover:text-primary"
+                    : item.indent
+                      ? "text-muted-foreground hover:text-foreground"
+                      : "text-foreground/80 hover:text-foreground"
               )}
             >
-              {/* Line bump indicator for parent items */}
               {!item.indent && (
                 <div
                   className={cn(
-                    "absolute left-[-3px] top-1/2 -translate-y-1/2 w-[8px] h-[2px] rounded-r-full transition-colors z-10",
+                    "w-[7px] h-[7px] rounded-full shrink-0 transition-colors z-10",
                     activeSection === item.id
                       ? "bg-primary"
                       : "bg-border"
