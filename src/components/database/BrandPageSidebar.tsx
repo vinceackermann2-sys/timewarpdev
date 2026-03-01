@@ -19,12 +19,6 @@ const BRAND_TOC_ITEMS: TocItem[] = [
   { id: "website", title: "Website & Digital", level: 2 },
   { id: "buttons", title: "Buttons & UI", level: 2 },
   { id: "social-media", title: "Social Media", level: 2 },
-  { id: "value-exchange", title: "Value Exchange Loop", level: 1 },
-  { id: "problem", title: "The Problem", level: 2 },
-  { id: "solution", title: "The Solution", level: 2 },
-  { id: "customer", title: "The Customer", level: 2 },
-  { id: "economics", title: "The Economics", level: 2 },
-  { id: "formula", title: "Atomic Formula", level: 2 },
 ];
 
 const ITEM_HEIGHT = 32;
