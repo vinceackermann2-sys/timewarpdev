@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Palette, Plus, Trash2, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Palette, Plus, Trash2, ChevronRight, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
@@ -17,6 +18,16 @@ interface BrandEntry {
 }
 
 export function BrandListView() {
+  const [userName, setUserName] = useState("Unknown");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Unknown");
+      }
+    });
+  }, []);
+
   const [brands, setBrands] = useState<BrandEntry[]>([
     {
       id: "example-1",
@@ -155,6 +166,13 @@ export function BrandListView() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{brand.name}</p>
                   <p className="text-xs text-muted-foreground">{brand.category} · Updated {brand.lastUpdated}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70"><Lock className="h-2.5 w-2.5" />Private</span>
+                    <span className="text-[10px] text-muted-foreground/40">·</span>
+                    <span className="text-[10px] text-muted-foreground/70">Last updated: {brand.lastUpdated}</span>
+                    <span className="text-[10px] text-muted-foreground/40">·</span>
+                    <span className="text-[10px] text-muted-foreground/70">Added by: {userName}</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
