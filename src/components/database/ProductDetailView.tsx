@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import {
-  Package, Pencil, Save, X, ArrowLeft, Upload, Trash2, Plus, Lock,
+  Package, Pencil, Save, X, ArrowLeft, Upload, Trash2, Plus, Lock, Tag, Gift,
   Sparkles, Check, CircleAlert, ChevronDown, ChevronUp, ImageIcon,
   Crosshair, Zap, ShieldCheck, MessageSquareWarning, Languages, ListChecks,
 } from "lucide-react";
@@ -13,6 +13,17 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 /* ── Types ── */
+export interface ProductOffer {
+  id: string;
+  title: string;
+  originalPrice: string;
+  salePrice: string;
+  discount: string;
+  bundleDetails: string;
+  freeGifts: string[];
+  isPopular: boolean;
+}
+
 export interface ProductData {
   id: string;
   name: string;
@@ -24,6 +35,7 @@ export interface ProductData {
   painPoints: string[];
   useCases: string[];
   targetScenarios: string[];
+  offers: ProductOffer[];
   positioningStatement: string;
   uniqueSellingPoints: string[];
   competitiveAdvantages: string[];
@@ -84,6 +96,48 @@ export const DEFAULT_PRODUCT: ProductData = {
     "When users want to experiment with or maintain hair color without committing to a full dye process",
     "When traveling and maintaining hair color routine without packing bulky dye kits",
     "When grey roots begin showing between full color treatments and a quick fix is needed",
+  ],
+  offers: [
+    {
+      id: "offer-1",
+      title: "1 Month Supply",
+      originalPrice: "€43,95",
+      salePrice: "€25,95",
+      discount: "Sale",
+      bundleDetails: "1 Instant Dye Shampoo - 4 Month Supply",
+      freeGifts: [],
+      isPopular: false,
+    },
+    {
+      id: "offer-2",
+      title: "Buy 2 - Always Carry a Backup",
+      originalPrice: "€43,95",
+      salePrice: "€25,95",
+      discount: "Sale",
+      bundleDetails: "2 units - Always carry a backup",
+      freeGifts: ["+ FREE 10$ Gift Card"],
+      isPopular: true,
+    },
+    {
+      id: "offer-3",
+      title: "Buy 3 Get 4",
+      originalPrice: "",
+      salePrice: "",
+      discount: "",
+      bundleDetails: "3 units - For your girlies",
+      freeGifts: ["+ FREE Gift"],
+      isPopular: false,
+    },
+    {
+      id: "offer-4",
+      title: "Healing Spray Upsell",
+      originalPrice: "€30,95",
+      salePrice: "€21,95",
+      discount: "Sale",
+      bundleDetails: "Healing Spray - Leave-In Hair Serum (cart upsell add-on)",
+      freeGifts: [],
+      isPopular: false,
+    },
   ],
   positioningStatement: "The effortless at-home color solution that replaces salon touch-ups — salon-quality results in 10 minutes, with zero mess.",
   uniqueSellingPoints: [
@@ -439,6 +493,205 @@ export function ProductDetailView({
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+
+              {/* ── Offers ── */}
+              <div id="product-offers" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <Tag className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Offers</h2>
+                  </div>
+                </div>
+                <div className="px-6 py-6 space-y-4">
+                  {data.offers.map((offer, i) => (
+                    <div key={offer.id} className="rounded-xl border border-border/40 bg-muted/20 p-5 space-y-2 relative">
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-medium text-muted-foreground">Offer Title</label>
+                            <button
+                              onClick={() => setData(prev => ({ ...prev, offers: prev.offers.filter((_, idx) => idx !== i) }))}
+                              className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <Input
+                            value={offer.title}
+                            onChange={(e) => {
+                              const next = [...data.offers];
+                              next[i] = { ...next[i], title: e.target.value };
+                              setData(prev => ({ ...prev, offers: next }));
+                            }}
+                            className="h-9 text-sm"
+                          />
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">Original Price</label>
+                              <Input
+                                value={offer.originalPrice}
+                                onChange={(e) => {
+                                  const next = [...data.offers];
+                                  next[i] = { ...next[i], originalPrice: e.target.value };
+                                  setData(prev => ({ ...prev, offers: next }));
+                                }}
+                                placeholder="e.g., €69.90"
+                                className="h-9 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">Sale Price</label>
+                              <Input
+                                value={offer.salePrice}
+                                onChange={(e) => {
+                                  const next = [...data.offers];
+                                  next[i] = { ...next[i], salePrice: e.target.value };
+                                  setData(prev => ({ ...prev, offers: next }));
+                                }}
+                                placeholder="e.g., €24.95"
+                                className="h-9 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">Discount</label>
+                              <Input
+                                value={offer.discount}
+                                onChange={(e) => {
+                                  const next = [...data.offers];
+                                  next[i] = { ...next[i], discount: e.target.value };
+                                  setData(prev => ({ ...prev, offers: next }));
+                                }}
+                                placeholder="e.g., 65% OFF"
+                                className="h-9 text-sm"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground">Bundle Details</label>
+                            <Input
+                              value={offer.bundleDetails}
+                              onChange={(e) => {
+                                const next = [...data.offers];
+                                next[i] = { ...next[i], bundleDetails: e.target.value };
+                                setData(prev => ({ ...prev, offers: next }));
+                              }}
+                              className="h-9 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                              <Gift className="h-3.5 w-3.5" /> Free Gifts
+                            </label>
+                            {offer.freeGifts.map((gift, gi) => (
+                              <div key={gi} className="flex gap-1.5">
+                                <Input
+                                  value={gift}
+                                  onChange={(e) => {
+                                    const next = [...data.offers];
+                                    const gifts = [...next[i].freeGifts];
+                                    gifts[gi] = e.target.value;
+                                    next[i] = { ...next[i], freeGifts: gifts };
+                                    setData(prev => ({ ...prev, offers: next }));
+                                  }}
+                                  className="h-8 text-sm flex-1"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const next = [...data.offers];
+                                    next[i] = { ...next[i], freeGifts: next[i].freeGifts.filter((_, idx) => idx !== gi) };
+                                    setData(prev => ({ ...prev, offers: next }));
+                                  }}
+                                  className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => {
+                                const next = [...data.offers];
+                                next[i] = { ...next[i], freeGifts: [...next[i].freeGifts, ""] };
+                                setData(prev => ({ ...prev, offers: next }));
+                              }}
+                              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full justify-center py-2 rounded-lg border border-dashed border-border/50 hover:border-border"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Add Free Gift
+                            </button>
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={offer.isPopular}
+                              onChange={(e) => {
+                                const next = [...data.offers];
+                                next[i] = { ...next[i], isPopular: e.target.checked };
+                                setData(prev => ({ ...prev, offers: next }));
+                              }}
+                              className="rounded border-border"
+                            />
+                            <span className="text-sm text-muted-foreground">Mark as popular/bestseller</span>
+                          </label>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2.5">
+                            <h4 className="text-base font-semibold text-foreground">{offer.title}</h4>
+                            {offer.isPopular && (
+                              <span className="text-xs px-2 py-0.5 rounded-md bg-muted border border-border/50 text-muted-foreground font-medium">Popular</span>
+                            )}
+                          </div>
+                          {(offer.originalPrice || offer.salePrice) && (
+                            <div className="flex items-center gap-2">
+                              {offer.originalPrice && (
+                                <span className="text-sm text-muted-foreground line-through">{offer.originalPrice}</span>
+                              )}
+                              {offer.salePrice && (
+                                <span className="text-base font-semibold text-foreground">{offer.salePrice}</span>
+                              )}
+                              {offer.discount && (
+                                <span className="text-xs px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 font-medium">{offer.discount}</span>
+                              )}
+                            </div>
+                          )}
+                          {offer.bundleDetails && (
+                            <p className="text-sm text-muted-foreground">Includes: {offer.bundleDetails}</p>
+                          )}
+                          {offer.freeGifts.length > 0 && (
+                            <div className="space-y-1">
+                              {offer.freeGifts.map((gift, gi) => (
+                                <div key={gi} className="flex items-center gap-1.5 text-sm text-foreground">
+                                  <Gift className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span>{gift}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {isEditing && (
+                    <button
+                      onClick={() => setData(prev => ({
+                        ...prev,
+                        offers: [...prev.offers, {
+                          id: `offer-${Date.now()}`,
+                          title: "",
+                          originalPrice: "",
+                          salePrice: "",
+                          discount: "",
+                          bundleDetails: "",
+                          freeGifts: [],
+                          isPopular: false,
+                        }],
+                      }))}
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-full justify-center py-3 rounded-xl border border-dashed border-border/50 hover:border-border"
+                    >
+                      <Plus className="h-4 w-4" /> Add Another Offer
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* ── Value proposition ── */}
