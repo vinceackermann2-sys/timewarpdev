@@ -386,6 +386,21 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
             >
               <ProductListView />
             </motion.div>
+          ) : activeSegment === "sop" ? (
+            <motion.div
+              key="sop-coming-soon"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col items-center justify-center py-24 text-center"
+            >
+              <div className="h-14 w-14 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
+                <BookOpen className="h-7 w-7 text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">Coming Soon</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">Standard Operating Procedures will be available in a future update.</p>
+            </motion.div>
           ) : activeSegmentData ? (
             <motion.div
               key={activeSegment}
