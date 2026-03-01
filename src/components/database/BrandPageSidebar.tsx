@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface SidebarSection {
@@ -50,6 +51,12 @@ export function BrandPageSidebar({
   activeSection?: string;
   onSectionClick?: (id: string) => void;
 }) {
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeSection]);
+
   return (
     <nav className="sticky top-6 space-y-3 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-thin">
       <h3 className="text-sm font-semibold text-foreground">On This Page</h3>
@@ -61,6 +68,7 @@ export function BrandPageSidebar({
             <div key={section.id}>
               {/* Parent item */}
               <button
+                ref={activeSection === section.id ? activeRef : undefined}
                 onClick={() => onSectionClick?.(section.id)}
                 className={cn(
                   "flex items-center gap-3 w-full text-left py-1.5 text-sm transition-colors relative",
@@ -86,6 +94,7 @@ export function BrandPageSidebar({
                   {section.children.map((child) => (
                     <button
                       key={child.id}
+                      ref={activeSection === child.id ? activeRef : undefined}
                       onClick={() => onSectionClick?.(child.id)}
                       className={cn(
                         "block w-full text-left py-1.5 text-sm transition-colors",

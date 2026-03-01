@@ -1,10 +1,11 @@
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface SidebarItem {
   id: string;
   label: string;
   indent?: boolean;
-  highlight?: boolean; // primary colored parent
+  highlight?: boolean;
 }
 
 const PRODUCT_SIDEBAR_ITEMS: SidebarItem[] = [
@@ -22,13 +23,13 @@ const PRODUCT_SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "objections-proof", label: "Objections & proof points" },
   { id: "common-objections", label: "Common objections and responses", indent: true },
   { id: "proof-points", label: "Proof points and evidence types", indent: true },
-  { id: "language-patterns", label: "Language patterns", highlight: true },
-  { id: "dos-and-donts", label: "Do's and Don'ts", indent: true, highlight: true },
-  { id: "power-phrases", label: "Power phrases", indent: true, highlight: true },
-  { id: "power-words", label: "Power words", indent: true, highlight: true },
+  { id: "language-patterns", label: "Language patterns" },
+  { id: "dos-and-donts", label: "Do's and Don'ts", indent: true },
+  { id: "power-phrases", label: "Power phrases", indent: true },
+  { id: "power-words", label: "Power words", indent: true },
   { id: "technical-level", label: "Technical level", indent: true },
-  { id: "content-refinement", label: "Content refinement", highlight: true },
-  { id: "refinement-checklist", label: "Refinement checklist", indent: true, highlight: true },
+  { id: "content-refinement", label: "Content refinement" },
+  { id: "refinement-checklist", label: "Refinement checklist", indent: true },
 ];
 
 export function ProductPageSidebar({
@@ -38,6 +39,12 @@ export function ProductPageSidebar({
   activeSection?: string;
   onSectionClick?: (id: string) => void;
 }) {
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeSection]);
+
   return (
     <nav className="sticky top-6 space-y-3 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-thin">
       <h3 className="text-sm font-semibold text-foreground">On This Page</h3>
@@ -48,6 +55,7 @@ export function ProductPageSidebar({
           {PRODUCT_SIDEBAR_ITEMS.map((item) => (
             <button
               key={item.id}
+              ref={activeSection === item.id ? activeRef : undefined}
               onClick={() => onSectionClick?.(item.id)}
               className={cn(
                 "flex items-center gap-3 w-full text-left py-1.5 text-sm transition-colors relative",
