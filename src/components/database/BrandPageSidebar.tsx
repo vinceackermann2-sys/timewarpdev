@@ -1,48 +1,34 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-interface SidebarSection {
+interface TocItem {
   id: string;
-  label: string;
-  highlight?: boolean;
-  children?: { id: string; label: string; highlight?: boolean }[];
+  title: string;
+  level: number;
 }
 
-const BRAND_SECTIONS: SidebarSection[] = [
-  {
-    id: "branding",
-    label: "Branding",
-    children: [
-      { id: "logo", label: "Primary logo" },
-      { id: "colors", label: "Brand colors" },
-      { id: "typography", label: "Typography" },
-    ],
-  },
-  {
-    id: "extended-brand",
-    label: "Visual Identity",
-    children: [
-      { id: "moodboard", label: "Moodboard" },
-      { id: "illustrations", label: "Illustrations" },
-      { id: "image-guidelines", label: "Image Guidelines" },
-      { id: "website", label: "Website & Digital" },
-      { id: "buttons", label: "Buttons & UI" },
-      { id: "social-media", label: "Social Media" },
-    ],
-  },
-  {
-    id: "value-exchange",
-    label: "Value Exchange Loop",
-    highlight: true,
-    children: [
-      { id: "problem", label: "The Problem", highlight: true },
-      { id: "solution", label: "The Solution", highlight: true },
-      { id: "customer", label: "The Customer", highlight: true },
-      { id: "economics", label: "The Economics", highlight: true },
-      { id: "formula", label: "Atomic Formula", highlight: true },
-    ],
-  },
+const BRAND_TOC_ITEMS: TocItem[] = [
+  { id: "branding", title: "Branding", level: 1 },
+  { id: "logo", title: "Primary logo", level: 2 },
+  { id: "colors", title: "Brand colors", level: 2 },
+  { id: "typography", title: "Typography", level: 2 },
+  { id: "extended-brand", title: "Visual Identity", level: 1 },
+  { id: "moodboard", title: "Moodboard", level: 2 },
+  { id: "illustrations", title: "Illustrations", level: 2 },
+  { id: "image-guidelines", title: "Image Guidelines", level: 2 },
+  { id: "website", title: "Website & Digital", level: 2 },
+  { id: "buttons", title: "Buttons & UI", level: 2 },
+  { id: "social-media", title: "Social Media", level: 2 },
+  { id: "value-exchange", title: "Value Exchange Loop", level: 1 },
+  { id: "problem", title: "The Problem", level: 2 },
+  { id: "solution", title: "The Solution", level: 2 },
+  { id: "customer", title: "The Customer", level: 2 },
+  { id: "economics", title: "The Economics", level: 2 },
+  { id: "formula", title: "Atomic Formula", level: 2 },
 ];
+
+const ITEM_HEIGHT = 32;
+const TOP_PAD = 12;
 
 export function BrandPageSidebar({
   activeSection,
@@ -51,65 +37,67 @@ export function BrandPageSidebar({
   activeSection?: string;
   onSectionClick?: (id: string) => void;
 }) {
-  const activeRef = useRef<HTMLButtonElement>(null);
+  const activeRef = useRef<HTMLAnchorElement>(null);
+  const [indicatorTop, setIndicatorTop] = useState(TOP_PAD);
+
+  useEffect(() => {
+    const idx = BRAND_TOC_ITEMS.findIndex((i) => i.id === activeSection);
+    if (idx !== -1) {
+      setIndicatorTop(TOP_PAD + idx * ITEM_HEIGHT);
+    }
+  }, [activeSection]);
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeSection]);
 
-  return (
-    <nav className="sticky top-6 space-y-3 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-thin">
-      <h3 className="text-sm font-semibold text-foreground">On This Page</h3>
-      <div className="relative">
-        {/* Continuous vertical line */}
-        <div className="absolute left-[3px] top-2 bottom-2 w-px bg-border/60" />
-        <div className="space-y-0.5">
-          {BRAND_SECTIONS.map((section) => (
-            <div key={section.id}>
-              {/* Parent item */}
-              <button
-                ref={activeSection === section.id ? activeRef : undefined}
-                onClick={() => onSectionClick?.(section.id)}
-                className={cn(
-                  "flex items-center gap-3 w-full text-left py-1.5 text-sm transition-colors relative",
-                  activeSection === section.id
-                    ? "text-primary font-medium"
-                    : "text-foreground/80 hover:text-foreground"
-                )}
-              >
-                <div
-                  className={cn(
-                    "w-[7px] h-[7px] rounded-full shrink-0 transition-colors z-10",
-                    activeSection === section.id
-                      ? "bg-primary"
-                      : "bg-border"
-                  )}
-                />
-                {section.label}
-              </button>
+  const totalHeight = BRAND_TOC_ITEMS.length * ITEM_HEIGHT + TOP_PAD * 2;
 
-              {/* Children */}
-              {section.children && (
-                <div className="pl-6 space-y-0.5">
-                  {section.children.map((child) => (
-                    <button
-                      key={child.id}
-                      ref={activeSection === child.id ? activeRef : undefined}
-                      onClick={() => onSectionClick?.(child.id)}
-                      className={cn(
-                        "block w-full text-left py-1.5 text-sm transition-colors",
-                        activeSection === child.id
-                          ? "text-primary font-medium"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {child.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+  return (
+    <nav className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-thin">
+      <h3 className="text-sm font-semibold text-foreground mb-3">On This Page</h3>
+      <div className="relative" style={{ height: totalHeight }}>
+        {/* Background vertical line */}
+        <div
+          className="absolute w-px bg-border/60"
+          style={{ left: 3, top: TOP_PAD, bottom: TOP_PAD }}
+        />
+
+        {/* Active indicator */}
+        <div
+          className="absolute w-[2px] rounded-full bg-primary transition-all duration-200 ease-out"
+          style={{ left: 2.5, top: indicatorTop, height: 20 }}
+        />
+
+        {/* Items */}
+        <div className="relative">
+          {BRAND_TOC_ITEMS.map((item) => {
+            const isActive = activeSection === item.id;
+            const paddingLeft = item.level === 1 ? 14 : 26;
+
+            return (
+              <a
+                key={item.id}
+                ref={isActive ? activeRef : undefined}
+                href={`#${item.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSectionClick?.(item.id);
+                }}
+                data-active={isActive}
+                className={cn(
+                  "relative block py-1.5 text-sm transition-colors",
+                  "hover:text-accent-foreground",
+                  isActive
+                    ? "text-primary font-medium"
+                    : "text-muted-foreground"
+                )}
+                style={{ paddingInlineStart: paddingLeft }}
+              >
+                {item.title}
+              </a>
+            );
+          })}
         </div>
       </div>
     </nav>
