@@ -81,13 +81,13 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
       </div>
 
       {/* Floating Footer */}
-      <div className="w-full max-w-4xl mx-auto mb-6 mt-auto px-6">
-        <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-10 py-12">
-          <div className="flex flex-wrap gap-10">
-            <div className="flex items-center gap-2">
-              <img src="/favicon.png" alt="TimeWarp" className="h-7 w-7 rounded-md" />
-              <span className="font-semibold text-foreground">TimeWarp</span>
-            </div>
+      <div className="w-full max-w-5xl mx-auto mb-6 mt-auto px-6">
+        <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-12 py-14">
+          <div className="flex items-center gap-2 mb-8">
+            <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-md" />
+            <span className="font-semibold text-lg text-foreground">TimeWarp</span>
+          </div>
+          <div className="flex flex-wrap gap-14">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-foreground">Product</h4>
               <ul className="space-y-1.5">
@@ -115,7 +115,7 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
               </ul>
             </div>
           </div>
-          <div className="flex items-center justify-between mt-8 pt-4 border-t border-border/30">
+          <div className="flex items-center justify-between mt-10 pt-5 border-t border-border/30">
             <p className="text-xs text-muted-foreground">© 2026 Nxtrinity AB, All rights reserved</p>
             <p className="text-xs text-muted-foreground">🇸🇪 Made in Sweden</p>
           </div>
