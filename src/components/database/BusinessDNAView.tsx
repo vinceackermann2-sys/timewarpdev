@@ -9,7 +9,7 @@ import { BrandExtendedSections } from "@/components/database/BrandExtendedSectio
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
 import { ProductListView } from "@/components/database/ProductListView";
 import { supabase } from "@/integrations/supabase/client";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -313,7 +313,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 w-full">
+      <div className="flex-1 w-full overflow-y-auto">
         <div className="max-w-5xl mx-auto px-6 pb-6">
         <AnimatePresence mode="wait">
           {!activeSegment ? (
@@ -422,7 +422,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
           ) : null}
         </AnimatePresence>
         </div>
-      </ScrollArea>
+      </div>
 
       
     </div>
