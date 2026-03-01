@@ -1,46 +1,33 @@
 import { cn } from "@/lib/utils";
 
-interface SidebarSection {
+interface SidebarItem {
   id: string;
   label: string;
-  children?: { id: string; label: string }[];
+  indent?: boolean;
 }
 
-const PRODUCT_SECTIONS: SidebarSection[] = [
-  {
-    id: "product-overview",
-    label: "Overview",
-    children: [
-      { id: "product-name", label: "Name & Category" },
-      { id: "product-description", label: "Description" },
-      { id: "product-pricing", label: "Pricing" },
-    ],
-  },
-  {
-    id: "product-features",
-    label: "Features & Benefits",
-    children: [
-      { id: "key-features", label: "Key Features" },
-      { id: "unique-benefits", label: "Unique Benefits" },
-    ],
-  },
-  {
-    id: "product-audience",
-    label: "Target Audience",
-    children: [
-      { id: "ideal-customer", label: "Ideal Customer" },
-      { id: "pain-points", label: "Pain Points" },
-      { id: "use-cases", label: "Use Cases" },
-    ],
-  },
-  {
-    id: "product-competitive",
-    label: "Competitive Edge",
-    children: [
-      { id: "differentiators", label: "Differentiators" },
-      { id: "competitors", label: "Competitors" },
-    ],
-  },
+const PRODUCT_SIDEBAR_ITEMS: SidebarItem[] = [
+  { id: "product-overview", label: "Product overview" },
+  { id: "product-description", label: "Product description", indent: true },
+  { id: "key-features", label: "Key features" },
+  { id: "key-benefits", label: "Key benefits" },
+  { id: "target-pain-points", label: "Target pain points" },
+  { id: "primary-use-cases", label: "Primary use cases" },
+  { id: "target-scenarios", label: "Target scenarios" },
+  { id: "value-proposition", label: "Value proposition" },
+  { id: "positioning-statement", label: "Positioning statement", indent: true },
+  { id: "unique-selling-points", label: "Unique selling points", indent: true },
+  { id: "competitive-advantages", label: "Competitive advantages", indent: true },
+  { id: "objections-proof", label: "Objections & proof points" },
+  { id: "common-objections", label: "Common objections and responses", indent: true },
+  { id: "proof-points", label: "Proof points and evidence types", indent: true },
+  { id: "language-patterns", label: "Language patterns" },
+  { id: "dos-and-donts", label: "Do's and Don'ts", indent: true },
+  { id: "power-phrases", label: "Power phrases", indent: true },
+  { id: "power-words", label: "Power words", indent: true },
+  { id: "technical-level", label: "Technical level", indent: true },
+  { id: "content-refinement", label: "Content refinement" },
+  { id: "refinement-checklist", label: "Refinement checklist", indent: true },
 ];
 
 export function ProductPageSidebar({
@@ -51,46 +38,33 @@ export function ProductPageSidebar({
   onSectionClick?: (id: string) => void;
 }) {
   return (
-    <nav className="sticky top-6 space-y-5">
+    <nav className="sticky top-6 space-y-3">
       <h3 className="text-sm font-semibold text-foreground">On This Page</h3>
-      <div className="space-y-1">
-        {PRODUCT_SECTIONS.map((section) => (
-          <div key={section.id}>
-            <button
-              onClick={() => onSectionClick?.(section.id)}
-              className={cn(
-                "flex items-center gap-2 w-full text-left py-1.5 text-sm transition-colors",
-                activeSection === section.id
-                  ? "text-primary font-medium"
+      <div className="space-y-0.5">
+        {PRODUCT_SIDEBAR_ITEMS.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => onSectionClick?.(item.id)}
+            className={cn(
+              "flex items-center gap-2 w-full text-left py-1.5 text-sm transition-colors",
+              item.indent && "pl-4",
+              activeSection === item.id
+                ? "text-primary font-medium"
+                : item.indent
+                  ? "text-muted-foreground hover:text-foreground"
                   : "text-foreground/80 hover:text-foreground"
-              )}
-            >
-              <div className={cn(
-                "w-0.5 h-5 rounded-full transition-colors shrink-0",
-                activeSection === section.id ? "bg-primary" : "bg-transparent"
-              )} />
-              {section.label}
-            </button>
-
-            {section.children && (
-              <div className="ml-3 border-l border-border/40 pl-3 space-y-0.5">
-                {section.children.map((child) => (
-                  <button
-                    key={child.id}
-                    onClick={() => onSectionClick?.(child.id)}
-                    className={cn(
-                      "block w-full text-left py-1.5 text-sm transition-colors",
-                      activeSection === child.id
-                        ? "text-primary font-medium"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {child.label}
-                  </button>
-                ))}
-              </div>
             )}
-          </div>
+          >
+            {!item.indent && (
+              <div
+                className={cn(
+                  "w-0.5 h-5 rounded-full transition-colors shrink-0",
+                  activeSection === item.id ? "bg-primary" : "bg-transparent"
+                )}
+              />
+            )}
+            {item.label}
+          </button>
         ))}
       </div>
     </nav>
