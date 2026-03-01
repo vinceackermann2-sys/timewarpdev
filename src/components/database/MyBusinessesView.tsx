@@ -83,36 +83,38 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
       {/* Floating Footer */}
       <div className="w-full max-w-5xl mx-auto mb-6 mt-auto px-6">
         <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-12 py-14">
-          <div className="flex items-center gap-2 mb-8">
-            <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-md" />
-            <span className="font-semibold text-lg text-foreground">TimeWarp</span>
-          </div>
-          <div className="flex flex-wrap gap-14">
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Product</h4>
-              <ul className="space-y-1.5">
-                <li><a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
-                <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Changelog</a></li>
-              </ul>
+          <div className="flex gap-14">
+            <div className="flex items-start gap-2 shrink-0">
+              <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-md" />
+              <span className="font-semibold text-lg text-foreground">TimeWarp</span>
             </div>
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Resources</h4>
-              <ul className="space-y-1.5">
-                <li><a href="mailto:support@nxtrinity.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Support</a></li>
-              </ul>
-            </div>
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Legal</h4>
-              <ul className="space-y-1.5">
-                <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
-                <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
-              </ul>
-            </div>
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Community</h4>
-              <ul className="space-y-1.5">
-                <li><a href="https://discord.gg" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Discord</a></li>
-              </ul>
+            <div className="flex flex-wrap gap-14 flex-1">
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-foreground">Product</h4>
+                <ul className="space-y-1.5">
+                  <li><a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
+                  <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Changelog</a></li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-foreground">Resources</h4>
+                <ul className="space-y-1.5">
+                  <li><a href="mailto:support@nxtrinity.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Support</a></li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-foreground">Legal</h4>
+                <ul className="space-y-1.5">
+                  <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
+                  <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-foreground">Community</h4>
+                <ul className="space-y-1.5">
+                  <li><a href="https://discord.gg" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Discord</a></li>
+                </ul>
+              </div>
             </div>
           </div>
           <div className="flex items-center justify-between mt-10 pt-5 border-t border-border/30">
