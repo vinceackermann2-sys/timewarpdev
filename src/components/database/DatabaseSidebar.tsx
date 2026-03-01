@@ -175,29 +175,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
           {/* What's New Section */}
           <WhatsNewDropdown isCollapsed={isCollapsed} />
 
-          {/* Privacy & Terms links */}
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => navigate("/privacy")}
-                tooltip="Privacy Policy"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <FileText className="h-4 w-4" />
-                {!isCollapsed && <span className="text-xs">Privacy Policy</span>}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => navigate("/terms")}
-                tooltip="Terms of Service"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <FileText className="h-4 w-4" />
-                {!isCollapsed && <span className="text-xs">Terms of Service</span>}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
 
           {/* User Dropdown */}
           <DropdownMenu>
