@@ -66,9 +66,7 @@ export function BrandPageSidebar({
                   "flex items-center gap-3 w-full text-left py-1.5 text-sm transition-colors relative",
                   activeSection === section.id
                     ? "text-primary font-medium"
-                    : section.highlight
-                      ? "text-primary/80 hover:text-primary"
-                      : "text-foreground/80 hover:text-foreground"
+                    : "text-foreground/80 hover:text-foreground"
                 )}
               >
                 <div
@@ -93,9 +91,7 @@ export function BrandPageSidebar({
                         "block w-full text-left py-1.5 text-sm transition-colors",
                         activeSection === child.id
                           ? "text-primary font-medium"
-                          : child.highlight
-                            ? "text-primary/80 hover:text-primary"
-                            : "text-muted-foreground hover:text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {child.label}
