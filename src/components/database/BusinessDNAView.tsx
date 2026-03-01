@@ -4,7 +4,7 @@ import {
   Pencil, Building2, ArrowLeft
 } from "lucide-react";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
-import { ValueExchangeLoop } from "@/components/database/ValueExchangeLoop";
+
 import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
 import { ProductListView } from "@/components/database/ProductListView";
@@ -198,7 +198,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
   const [isBrandingEditing, setIsBrandingEditing] = useState(false);
   const [isVisualIdentityEditing, setIsVisualIdentityEditing] = useState(false);
-  const [isValueLoopEditing, setIsValueLoopEditing] = useState(false);
+  
   const [activeSidebarSection, setActiveSidebarSection] = useState<string>("branding");
   const { toast } = useToast();
 
@@ -353,12 +353,6 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
                     <BrandExtendedSections
                       isEditing={isVisualIdentityEditing}
                       onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)}
-                    />
-                  </div>
-                  <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
-                    <ValueExchangeLoop
-                      isEditing={isValueLoopEditing}
-                      onEditToggle={() => setIsValueLoopEditing(!isValueLoopEditing)}
                     />
                   </div>
                 </div>
