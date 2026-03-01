@@ -39,7 +39,7 @@ export function ProductPageSidebar({
   onSectionClick?: (id: string) => void;
 }) {
   return (
-    <nav className="sticky top-6 space-y-3 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    <nav className="sticky top-6 self-start space-y-3">
       <h3 className="text-sm font-semibold text-foreground">On This Page</h3>
       <div className="relative">
         {/* Continuous vertical line */}
@@ -54,11 +54,9 @@ export function ProductPageSidebar({
                 item.indent ? "pl-5 ml-0" : "pl-3",
                 activeSection === item.id
                   ? "text-primary font-medium"
-                  : item.highlight
-                    ? "text-primary/80 hover:text-primary"
-                    : item.indent
-                      ? "text-muted-foreground hover:text-foreground"
-                      : "text-foreground/80 hover:text-foreground"
+                  : item.indent
+                    ? "text-muted-foreground hover:text-foreground"
+                    : "text-foreground/80 hover:text-foreground"
               )}
             >
               {/* Line bump indicator for parent items */}

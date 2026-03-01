@@ -51,7 +51,7 @@ export function BrandPageSidebar({
   onSectionClick?: (id: string) => void;
 }) {
   return (
-    <nav className="sticky top-6 space-y-3 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    <nav className="sticky top-6 self-start space-y-3">
       <h3 className="text-sm font-semibold text-foreground">On This Page</h3>
       <div className="relative">
         {/* Continuous vertical line */}
@@ -66,9 +66,7 @@ export function BrandPageSidebar({
                   "flex items-center w-full text-left py-1.5 text-sm transition-colors relative pl-3",
                   activeSection === section.id
                     ? "text-primary font-medium"
-                    : section.highlight
-                      ? "text-primary/80 hover:text-primary"
-                      : "text-foreground/80 hover:text-foreground"
+                    : "text-foreground/80 hover:text-foreground"
                 )}
               >
                 {/* Line bump indicator */}
@@ -94,9 +92,7 @@ export function BrandPageSidebar({
                         "block w-full text-left py-1.5 text-sm transition-colors",
                         activeSection === child.id
                           ? "text-primary font-medium"
-                          : child.highlight
-                            ? "text-primary/80 hover:text-primary"
-                            : "text-muted-foreground hover:text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {child.label}
