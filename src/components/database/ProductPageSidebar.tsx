@@ -54,11 +54,9 @@ export function ProductPageSidebar({
                 item.indent && "pl-6",
                 activeSection === item.id
                   ? "text-primary font-medium"
-                  : item.highlight
-                    ? "text-primary/80 hover:text-primary"
-                    : item.indent
-                      ? "text-muted-foreground hover:text-foreground"
-                      : "text-foreground/80 hover:text-foreground"
+                  : item.indent
+                    ? "text-muted-foreground hover:text-foreground"
+                    : "text-foreground/80 hover:text-foreground"
               )}
             >
               {!item.indent && (
