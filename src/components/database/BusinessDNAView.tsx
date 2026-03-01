@@ -418,7 +418,58 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
         </div>
       </div>
 
-      
+      {/* Floating Footer */}
+      <div className="w-full border-t border-border/50 bg-muted/30 backdrop-blur-sm mt-auto">
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          <div className="flex flex-wrap gap-12">
+            {/* Brand */}
+            <div className="flex items-center gap-2">
+              <img src="/favicon.png" alt="TimeWarp" className="h-7 w-7 rounded-md" />
+              <span className="font-semibold text-foreground">TimeWarp</span>
+            </div>
+
+            {/* Product */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Product</h4>
+              <ul className="space-y-1.5">
+                <li><a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
+                <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Changelog</a></li>
+              </ul>
+            </div>
+
+            {/* Resources */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Resources</h4>
+              <ul className="space-y-1.5">
+                <li><a href="mailto:support@nxtrinity.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Support</a></li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Legal</h4>
+              <ul className="space-y-1.5">
+                <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
+                <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
+              </ul>
+            </div>
+
+            {/* Community */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Community</h4>
+              <ul className="space-y-1.5">
+                <li><a href="https://discord.gg" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Discord</a></li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/30">
+            <p className="text-xs text-muted-foreground">© 2026 Nxtrinity AB, All rights reserved</p>
+            <p className="text-xs text-muted-foreground">🇸🇪 Made in Sweden</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
