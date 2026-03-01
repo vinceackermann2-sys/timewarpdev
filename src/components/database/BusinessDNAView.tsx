@@ -7,6 +7,7 @@ import { BrandingEditor } from "@/components/database/BrandingEditor";
 import { ValueExchangeLoop } from "@/components/database/ValueExchangeLoop";
 import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
+import { ProductListView } from "@/components/database/ProductListView";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -373,6 +374,17 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
                   />
                 </div>
               </div>
+            </motion.div>
+          ) : activeSegment === "product" ? (
+            <motion.div
+              key="product-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="pt-5"
+            >
+              <ProductListView />
             </motion.div>
           ) : activeSegmentData ? (
             <motion.div
