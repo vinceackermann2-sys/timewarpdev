@@ -313,32 +313,31 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 w-full">
-        <div className="max-w-5xl mx-auto px-6 pb-6">
-        <AnimatePresence mode="wait">
-          {!activeSegment ? (
-            <motion.div
-              key="brain-idle"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="flex flex-col items-center justify-center py-16"
-            >
-              <IdleState totalInsights={totalInsights} />
-            </motion.div>
-          ) : activeSegment === "brand" ? (
-            <motion.div
-              key="branding-editor"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="pt-5"
-            >
-              <div className="flex gap-8">
-                {/* Main content */}
-                <div className="flex-1 min-w-0 space-y-6">
+      <div className="flex-1 flex overflow-hidden">
+        <ScrollArea className="flex-1 w-full">
+          <div className="max-w-5xl mx-auto px-6 pb-6">
+          <AnimatePresence mode="wait">
+            {!activeSegment ? (
+              <motion.div
+                key="brain-idle"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col items-center justify-center py-16"
+              >
+                <IdleState totalInsights={totalInsights} />
+              </motion.div>
+            ) : activeSegment === "brand" ? (
+              <motion.div
+                key="branding-editor"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="pt-5"
+              >
+                <div className="space-y-6">
                   <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                     <BrandingEditor
                       isEditing={isBrandingEditing}
@@ -362,67 +361,69 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
                     />
                   </div>
                 </div>
-
-                {/* Right sidebar */}
-                <div className="hidden lg:block w-52 shrink-0">
-                  <BrandPageSidebar
-                    activeSection={activeSidebarSection}
-                    onSectionClick={(id) => {
-                      setActiveSidebarSection(id);
-                      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }}
-                  />
+              </motion.div>
+            ) : activeSegment === "product" ? (
+              <motion.div
+                key="product-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="pt-5"
+              >
+                <ProductListView />
+              </motion.div>
+            ) : activeSegment === "sop" ? (
+              <motion.div
+                key="sop-coming-soon"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col items-center justify-center py-24 text-center"
+              >
+                <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                  <BookOpen className="h-7 w-7 text-primary" />
                 </div>
-              </div>
-            </motion.div>
-          ) : activeSegment === "product" ? (
-            <motion.div
-              key="product-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="pt-5"
-            >
-              <ProductListView />
-            </motion.div>
-          ) : activeSegment === "sop" ? (
-            <motion.div
-              key="sop-coming-soon"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-col items-center justify-center py-24 text-center"
-            >
-              <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                <BookOpen className="h-7 w-7 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">Coming Soon</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">Standard Operating Procedures will be available in a future update.</p>
-            </motion.div>
-          ) : activeSegmentData ? (
-            <motion.div
-              key={activeSegment}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="pt-5"
-            >
-              <SegmentContent
-                segment={activeSegmentData}
-                entries={segmentEntries[activeSegment] || []}
-                isLoading={isLoading}
-                onAddManual={handleAddManual}
-                onDeleteEntry={handleDeleteEntry}
-                onEditEntry={handleEditEntry}
-              />
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-        </div>
-      </ScrollArea>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Coming Soon</h3>
+                <p className="text-sm text-muted-foreground max-w-sm">Standard Operating Procedures will be available in a future update.</p>
+              </motion.div>
+            ) : activeSegmentData ? (
+              <motion.div
+                key={activeSegment}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="pt-5"
+              >
+                <SegmentContent
+                  segment={activeSegmentData}
+                  entries={segmentEntries[activeSegment] || []}
+                  isLoading={isLoading}
+                  onAddManual={handleAddManual}
+                  onDeleteEntry={handleDeleteEntry}
+                  onEditEntry={handleEditEntry}
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+          </div>
+        </ScrollArea>
+
+        {/* Right sidebar - outside ScrollArea for proper sticky */}
+        {activeSegment === "brand" && (
+          <div className="hidden lg:block w-52 shrink-0 overflow-y-auto py-6 pr-6">
+            <BrandPageSidebar
+              activeSection={activeSidebarSection}
+              onSectionClick={(id) => {
+                setActiveSidebarSection(id);
+                document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
+          </div>
+        )}
+      </div>
 
       
     </div>
