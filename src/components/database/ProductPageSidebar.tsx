@@ -39,7 +39,7 @@ export function ProductPageSidebar({
   onSectionClick?: (id: string) => void;
 }) {
   return (
-    <nav className="sticky top-6 space-y-3">
+    <nav className="sticky top-6 space-y-3 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-thin">
       <h3 className="text-sm font-semibold text-foreground">On This Page</h3>
       <div className="relative">
         {/* Continuous vertical line */}
