@@ -59,27 +59,44 @@ export function AddProductURLView({ onBack, onComplete }: AddProductURLViewProps
       }
 
       // Create product
+      const p = extracted.product || {};
       const newProduct: ProductEntry = {
         ...DEFAULT_PRODUCT,
         id: productId,
-        name: extracted.product?.name || "Imported Product",
-        category: extracted.product?.category || "Consumer Product",
-        description: extracted.product?.description || "",
-        features: extracted.product?.features || [],
-        benefits: extracted.product?.benefits || [],
-        painPoints: extracted.product?.painPoints || [],
-        useCases: extracted.product?.useCases || [],
-        positioningStatement: extracted.product?.positioningStatement || "",
-        uniqueSellingPoints: extracted.product?.uniqueSellingPoints || [],
-        images: extracted.product?.images?.length
-          ? extracted.product.images.map((imgUrl: string, i: number) => ({
+        name: p.name || "Imported Product",
+        category: p.category || "Consumer Product",
+        description: p.description || "",
+        features: p.features || [],
+        benefits: p.benefits || [],
+        painPoints: p.painPoints || [],
+        useCases: p.useCases || [],
+        targetScenarios: p.targetScenarios || [],
+        positioningStatement: p.positioningStatement || "",
+        uniqueSellingPoints: p.uniqueSellingPoints || [],
+        competitiveAdvantages: p.competitiveAdvantages || [],
+        commonObjections: p.commonObjections?.length
+          ? p.commonObjections.map((o: any) => ({ objection: o.objection || "", response: o.response || "" }))
+          : [],
+        proofPoints: p.proofPoints?.length
+          ? p.proofPoints.map((pp: any) => ({ category: pp.category || "", items: pp.items || [] }))
+          : [],
+        dosAndDonts: {
+          dos: p.dosAndDonts?.dos || [],
+          donts: p.dosAndDonts?.donts || [],
+        },
+        powerPhrases: p.powerPhrases || [],
+        powerWords: p.powerWords || [],
+        technicalLevel: p.technicalLevel || "",
+        refinementChecklist: p.refinementChecklist || [],
+        images: p.images?.length
+          ? p.images.map((imgUrl: string, i: number) => ({
               id: `img-${i + 1}`,
               url: imgUrl,
               label: `Product Image ${i + 1}`,
             }))
           : DEFAULT_PRODUCT.images,
-        offers: extracted.product?.offers?.length
-          ? extracted.product.offers.map((o: any, i: number) => ({
+        offers: p.offers?.length
+          ? p.offers.map((o: any, i: number) => ({
               id: `offer-${i + 1}`,
               title: o.title || `Offer ${i + 1}`,
               originalPrice: o.originalPrice || "",
@@ -97,15 +114,34 @@ export function AddProductURLView({ onBack, onComplete }: AddProductURLViewProps
 
       // Create audience
       if (extracted.audience?.name) {
+        const a = extracted.audience;
         const newAudience: AudienceEntry = {
           ...DEFAULT_AUDIENCE,
           id: audienceId,
-          name: extracted.audience.name,
-          description: extracted.audience.description || "",
-          buyingTriggers: extracted.audience.buyingTriggers || [],
-          valuePropositions: extracted.audience.valuePropositions || [],
-          engagementTriggers: extracted.audience.engagementTriggers || [],
-          attentionHooks: extracted.audience.attentionHooks || [],
+          name: a.name,
+          description: a.description || "",
+          buyingTriggers: a.buyingTriggers || [],
+          useCaseRequirements: a.useCaseRequirements || [],
+          keySuccessIndicators: a.keySuccessIndicators || [],
+          additionalCharacteristics: a.additionalCharacteristics || "",
+          positioningStatement: a.positioningStatement || "",
+          valuePropositions: a.valuePropositions || [],
+          engagementTriggers: a.engagementTriggers || [],
+          attentionHooks: a.attentionHooks || [],
+          commonObjections: a.commonObjections?.length
+            ? a.commonObjections.map((o: any) => ({ objection: o.objection || "", response: o.response || "" }))
+            : [],
+          proofPoints: a.proofPoints?.length
+            ? a.proofPoints.map((pp: any) => ({ category: pp.category || "", items: pp.items || [] }))
+            : [],
+          dosAndDonts: {
+            dos: a.dosAndDonts?.dos || [],
+            donts: a.dosAndDonts?.donts || [],
+          },
+          powerPhrases: a.powerPhrases || [],
+          powerWords: a.powerWords || [],
+          technicalLevel: a.technicalLevel || "",
+          refinementChecklist: a.refinementChecklist || [],
           lastUpdated: now,
           productIds: [productId],
         };

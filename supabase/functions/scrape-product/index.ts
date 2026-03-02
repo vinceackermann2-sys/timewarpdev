@@ -73,56 +73,105 @@ serve(async (req) => {
     console.log("Scraped content length:", markdown.length);
 
     // Step 2: Extract structured data with AI
-    const extractionPrompt = `You are analyzing a product page. Extract the following structured data from the page content.
-Return ONLY valid JSON, no markdown wrapping.
+    const extractionPrompt = `You are analyzing a product/business page. Extract ALL of the following structured data.
+Return ONLY valid JSON, no markdown wrapping. If you cannot find data for a field, leave it as "" for strings or [] for arrays. Never omit a field.
 
-The JSON should have this structure:
+Use these formulas to guide extraction:
+
+PRODUCT DNA:
+- description: [WHAT IT IS] + [NEW MECHANISM] + [OUTCOME] + [HOW IT WORKS] + [GUARANTEE]
+- features: [OBSERVABLE THING ABOUT THE PRODUCT] — just the facts, no spin
+- benefits: [FEATURE] → [WHAT IT MEANS FOR THE CUSTOMER]
+- painPoints: [FRUSTRATION] + [SPECIFIC MOMENT] + [CONSEQUENCE] the product solves
+- useCases: [SPECIFIC SITUATION] + [WHO IS IN IT] + [WHAT THIS PRODUCT REPLACES]
+- targetScenarios: [DAY IN THE LIFE MOMENT] where the customer reaches for this product
+- positioningStatement: "For [TARGET], [PRODUCT] is the [CATEGORY] that [KEY BENEFIT] because [REASON TO BELIEVE]"
+- uniqueSellingPoints: [ONLY WE] + [CLAIM] + [MECHANISM] + [OUTCOME]
+- competitiveAdvantages: [COMPETITOR APPROACH] vs [THIS PRODUCT'S APPROACH] + [WHY THIS WINS]
+- commonObjections: [OBJECTION] → [REFRAME] → [PROOF]
+- proofPoints: [CLAIM] + [TYPE OF PROOF] + [HOW TO USE]
+- dosAndDonts: [WHAT TO SAY] vs [WHAT KILLS CONVERSION]
+- powerPhrases: Full phrases that work as standalone hooks, CTAs, or body copy lines
+- powerWords: Single words that trigger emotion, urgency, or trust
+- technicalLevel: "Beginner", "Intermediate", or "Advanced" — how much jargon can the audience handle?
+- refinementChecklist: Quality gates to run every ad/copy through before publishing
+
+AUDIENCE DNA:
+- description: [WHO] + [VALUES] + [CORE PAIN] + [DREAM OUTCOME] + [BUYING SIGNAL]
+- buyingTriggers: [EMOTIONAL STATE] + [SPECIFIC MOMENT] + [WHAT PUSHES THEM OVER THE LINE]
+- useCaseRequirements: [WHAT THE PRODUCT MUST DO] for this audience to consider it a success
+- keySuccessIndicators: [HOW THE CUSTOMER KNOWS IT WORKED] — their definition of success
+- additionalCharacteristics: [BEHAVIOURAL PATTERNS] that affect how and when they buy
+- positioningStatement: "For [TARGET], [PRODUCT] is the [CATEGORY] that [BENEFIT] because [REASON TO BELIEVE]"
+- valuePropositions: [SPECIFIC OUTCOME] + [TIME/EFFORT SAVED] + [RISK REMOVED] + [UNIQUE MECHANISM]
+- engagementTriggers: [CONTENT TYPE] + [EMOTIONAL RESPONSE IT CREATES] + [ACTION IT DRIVES]
+- attentionHooks: [SCROLL STOPPER] + [CURIOSITY GAP] + [BENEFIT PROMISE] — by awareness stage if possible
+- commonObjections: [OBJECTION] → [EMOTIONAL REFRAME] → [LOGICAL PROOF]
+- proofPoints: [WHAT THIS AUDIENCE TRUSTS MOST] → [HOW TO DELIVER IT]
+- dosAndDonts: [WHAT RESONATES] vs [WHAT REPELS] for this specific audience
+- powerPhrases: Phrases that resonate with this audience specifically
+- powerWords: Words that trigger this audience's emotions
+- technicalLevel: How much jargon can this audience handle?
+- refinementChecklist: Quality checks specific to content targeting this audience
+
+JSON structure:
 {
   "product": {
-    "name": "product name",
-    "category": "product category (e.g. Consumer Product, SaaS, Digital Product)",
-    "description": "detailed product description",
-    "features": ["feature 1", "feature 2", ...],
-    "benefits": ["benefit 1", "benefit 2", ...],
-    "painPoints": ["pain point the product solves 1", ...],
-    "useCases": ["use case 1", ...],
-    "positioningStatement": "one sentence positioning",
-    "uniqueSellingPoints": ["usp 1", ...],
-    "images": ["image url 1", ...],
-    "offers": [
-      {
-        "title": "offer name",
-        "originalPrice": "original price",
-        "salePrice": "sale price if any",
-        "discount": "discount label",
-        "bundleDetails": "details",
-        "freeGifts": [],
-        "isPopular": false
-      }
-    ]
+    "name": "",
+    "category": "",
+    "description": "",
+    "features": [],
+    "benefits": [],
+    "painPoints": [],
+    "useCases": [],
+    "targetScenarios": [],
+    "positioningStatement": "",
+    "uniqueSellingPoints": [],
+    "competitiveAdvantages": [],
+    "commonObjections": [{"objection": "", "response": ""}],
+    "proofPoints": [{"category": "", "items": []}],
+    "dosAndDonts": {"dos": [], "donts": []},
+    "powerPhrases": [],
+    "powerWords": [],
+    "technicalLevel": "",
+    "refinementChecklist": [],
+    "images": [],
+    "offers": [{"title": "", "originalPrice": "", "salePrice": "", "discount": "", "bundleDetails": "", "freeGifts": [], "isPopular": false}]
   },
   "brand": {
-    "name": "brand name extracted from the page",
-    "category": "industry category"
+    "name": "",
+    "category": ""
   },
   "audience": {
-    "name": "target audience segment name (e.g. 'Health-Conscious Women 25-40')",
-    "description": "description of who this product targets based on the page content",
-    "buyingTriggers": ["trigger 1", ...],
-    "valuePropositions": ["value prop 1", ...],
-    "engagementTriggers": ["engagement trigger 1", ...],
-    "attentionHooks": ["hook 1", ...]
+    "name": "",
+    "description": "",
+    "buyingTriggers": [],
+    "useCaseRequirements": [],
+    "keySuccessIndicators": [],
+    "additionalCharacteristics": "",
+    "positioningStatement": "",
+    "valuePropositions": [],
+    "engagementTriggers": [],
+    "attentionHooks": [],
+    "commonObjections": [{"objection": "", "response": ""}],
+    "proofPoints": [{"category": "", "items": []}],
+    "dosAndDonts": {"dos": [], "donts": []},
+    "powerPhrases": [],
+    "powerWords": [],
+    "technicalLevel": "",
+    "refinementChecklist": []
   }
 }
 
 Rules:
-- Only include data you can confidently extract from the page
-- Leave arrays empty [] if you can't find relevant data
-- Leave strings empty "" if you can't find the data
-- For audience, infer from the product's marketing language who they're targeting
+- Only include data you can confidently extract or intelligently infer from the page
+- For audience fields, infer from the product's marketing language, tone, and who they're clearly targeting
 - For brand, look for the company/brand name in the page
 - Extract real image URLs if visible in the content
-- Be thorough with features, benefits, and pain points
+- Be thorough — fill as many fields as possible with quality data
+- For commonObjections, think about what a skeptical buyer would ask
+- For proofPoints, look for testimonials, guarantees, stats, certifications
+- For dosAndDonts, infer from the brand's tone what communication style works
 
 Page URL: ${formattedUrl}
 Page title: ${metadata.title || "Unknown"}
