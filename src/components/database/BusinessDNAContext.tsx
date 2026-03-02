@@ -3,11 +3,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_PRODUCT, ProductData } from "@/components/database/ProductDetailView";
 import { DEFAULT_AUDIENCE, AudienceData } from "@/components/database/AudienceDetailView";
 
+export interface BrandColors {
+  primary: string;
+  secondary: string;
+  background: string;
+  text: string;
+}
+
+export interface BrandTypography {
+  fontFamily: string;
+  fontStyle: string;
+  fontWeight: string;
+}
+
 export interface BrandEntry {
   id: string;
   name: string;
   category: string;
   lastUpdated: string;
+  colors?: BrandColors;
+  typography?: BrandTypography;
+  logoUrls?: string[];
+  selectedLogo?: number;
 }
 
 export interface ProductEntry extends ProductData {

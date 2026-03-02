@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 
 export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
-  const { brands } = useBusinessDNA();
+  const { brands, setBrands } = useBusinessDNA();
   const [isBrandingEditing, setIsBrandingEditing] = useState(false);
   const [isVisualIdentityEditing, setIsVisualIdentityEditing] = useState(false);
   const [activeSidebarSection, setActiveSidebarSection] = useState<string>("branding");
@@ -21,7 +21,26 @@ export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
         <div className="flex gap-8">
           <div className="flex-1 min-w-0 space-y-6">
             <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
-              <BrandingEditor isEditing={isBrandingEditing} onEditToggle={() => setIsBrandingEditing(!isBrandingEditing)} onCancel={() => setIsBrandingEditing(false)} onSave={() => { toast({ title: "Branding saved" }); }} />
+              <BrandingEditor
+                isEditing={isBrandingEditing}
+                onEditToggle={() => setIsBrandingEditing(!isBrandingEditing)}
+                onCancel={() => setIsBrandingEditing(false)}
+                onSave={(data) => {
+                  // Persist branding back to context
+                   setBrands(prev => prev.map(b => b.id === activeBrandId ? {
+                    ...b,
+                    colors: data.colors,
+                    typography: data.typography,
+                    logoUrls: data.logos,
+                    selectedLogo: data.selectedLogo,
+                  } : b));
+                  toast({ title: "Branding saved" });
+                }}
+                initialColors={selectedBrand.colors}
+                initialTypography={selectedBrand.typography}
+                initialLogos={selectedBrand.logoUrls}
+                initialSelectedLogo={selectedBrand.selectedLogo}
+              />
             </div>
             <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden" id="extended-brand">
               <BrandExtendedSections isEditing={isVisualIdentityEditing} onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)} />

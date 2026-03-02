@@ -293,7 +293,19 @@ JSON structure to return:
   },
   "brand": {
     "name": "",
-    "category": ""
+    "category": "",
+    "colors": {
+      "primary": "#hex",
+      "secondary": "#hex",
+      "background": "#hex",
+      "text": "#hex"
+    },
+    "typography": {
+      "fontFamily": "",
+      "fontStyle": "",
+      "fontWeight": "400"
+    },
+    "logoUrls": []
   },
   "audience": {
     "name": "",
@@ -322,6 +334,9 @@ IMPORTANT RULES:
 - For audience fields, infer from the product's marketing language, tone, and who they're clearly targeting
 - Extract real image URLs if visible in the content
 - Be thorough — fill as many fields as possible with quality data
+- For brand colors: extract the dominant primary, secondary, background, and text colors visible on the page (use hex format)
+- For brand typography: identify the main font family, describe the style, and estimate the dominant weight (300-700)
+- For brand logoUrls: extract any logo image URLs found on the page
 
 Page URL: ${formattedUrl}
 Page title: ${metadata.title || "Unknown"}

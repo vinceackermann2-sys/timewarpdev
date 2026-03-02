@@ -50,11 +50,16 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
 
       // Create brand
       if (extracted.brand?.name) {
+        const b = extracted.brand;
         const newBrand: BrandEntry = {
           id: brandId,
-          name: extracted.brand.name,
-          category: extracted.brand.category || "Brand",
+          name: b.name,
+          category: b.category || "Brand",
           lastUpdated: now,
+          colors: b.colors || undefined,
+          typography: b.typography || undefined,
+          logoUrls: Array.isArray(b.logoUrls) ? b.logoUrls : [],
+          selectedLogo: 0,
         };
         setBrands(prev => [...prev, newBrand]);
       }
