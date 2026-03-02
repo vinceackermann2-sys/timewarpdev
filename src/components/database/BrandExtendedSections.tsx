@@ -35,6 +35,10 @@ interface VisualIdentityInitial {
   websiteRules?: string[];
   buttonRules?: string[];
   socialMediaRules?: string[];
+  moodboardUrls?: string[];
+  illustrationUrls?: string[];
+  websiteScreenshot?: string;
+  guidelineImageUrls?: string[];
 }
 
 const DEFAULT_DATA: VisualIdentityData = {
@@ -186,16 +190,29 @@ function EditableRulesList({
 
 /* ── Editable guidelines ── */
 function EditableGuidelines({
-  guidelines, isEditing, onChange,
+  guidelines, isEditing, onChange, guidelineImageUrls,
 }: {
-  guidelines: GuidelineRule[]; isEditing: boolean; onChange: (g: GuidelineRule[]) => void;
+  guidelines: GuidelineRule[]; isEditing: boolean; onChange: (g: GuidelineRule[]) => void; guidelineImageUrls?: string[];
 }) {
   return (
     <div className="space-y-3">
+      {guidelineImageUrls && guidelineImageUrls.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {guidelineImageUrls.map((url, i) => (
+            <div key={i} className="aspect-[4/3] rounded-lg overflow-hidden border border-border/50">
+              <img src={url} alt={`Brand guideline ${i + 1}`} className="w-full h-full object-cover" />
+            </div>
+          ))}
+        </div>
+      )}
       {guidelines.map((item, i) => (
         <div key={item.id} className="flex gap-3">
-          <div className="h-16 w-20 rounded-lg border-2 border-dashed border-border/50 bg-muted/10 flex items-center justify-center shrink-0">
-            <ImageIcon className="h-4 w-4 text-muted-foreground/30" />
+          <div className="h-16 w-20 rounded-lg border-2 border-dashed border-border/50 bg-muted/10 flex items-center justify-center shrink-0 overflow-hidden">
+            {guidelineImageUrls && guidelineImageUrls[i] ? (
+              <img src={guidelineImageUrls[i]} alt="Guideline" className="w-full h-full object-cover" />
+            ) : (
+              <ImageIcon className="h-4 w-4 text-muted-foreground/30" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             {isEditing ? (
@@ -275,6 +292,28 @@ export function BrandExtendedSections({
       if (initialData.websiteRules?.length) base.websiteRules = initialData.websiteRules;
       if (initialData.buttonRules?.length) base.buttonRules = initialData.buttonRules;
       if (initialData.socialMediaRules?.length) base.socialMediaRules = initialData.socialMediaRules;
+      // Pre-populate moodboard from extracted URLs
+      if (initialData.moodboardUrls?.length) {
+        base.moodboard = initialData.moodboardUrls.map((url, i) => ({
+          id: `mood-${i}`,
+          url,
+        }));
+        // Pad remaining slots to at least 6
+        while (base.moodboard.length < 6) {
+          base.moodboard.push({ id: `mood-${base.moodboard.length}`, url: null });
+        }
+      }
+      // Pre-populate illustrations from extracted URLs
+      if (initialData.illustrationUrls?.length) {
+        base.illustrations = initialData.illustrationUrls.map((url, i) => ({
+          id: `illust-${i}`,
+          url,
+          label: `Illustration ${i + 1}`,
+        }));
+        if (base.illustrations.length < 2) {
+          base.illustrations.push({ id: `illust-${base.illustrations.length}`, url: null, label: "Add illustration" });
+        }
+      }
     }
     return base;
   });
@@ -329,6 +368,10 @@ export function BrandExtendedSections({
                   websiteRules: data.websiteRules,
                   buttonRules: data.buttonRules,
                   socialMediaRules: data.socialMediaRules,
+                  moodboardUrls: data.moodboard.filter(s => s.url).map(s => s.url!),
+                  illustrationUrls: data.illustrations.filter(s => s.url).map(s => s.url!),
+                  websiteScreenshot: initialData?.websiteScreenshot,
+                  guidelineImageUrls: initialData?.guidelineImageUrls,
                 });
                 onEditToggle?.();
               }} className="gap-1.5">
@@ -406,6 +449,7 @@ export function BrandExtendedSections({
               guidelines={data.imageGuidelines}
               isEditing={isEditing}
               onChange={(g) => setData((prev) => ({ ...prev, imageGuidelines: g }))}
+              guidelineImageUrls={initialData?.guidelineImageUrls}
             />
           </div>
         </BrandSection>
@@ -417,17 +461,30 @@ export function BrandExtendedSections({
         >
           <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              {["Desktop layout", "Mobile layout"].map((label, i) => (
-                <div
-                  key={i}
-                  className={`rounded-lg border-2 border-dashed border-border/50 bg-muted/10 flex flex-col items-center justify-center gap-2 ${
-                    i === 0 ? "aspect-video" : "aspect-[9/16] max-h-40"
-                  }`}
-                >
-                  <MonitorSmartphone className="h-5 w-5 text-muted-foreground/30" />
-                  <span className="text-[11px] text-muted-foreground/50">{label}</span>
-                </div>
-              ))}
+              {initialData?.websiteScreenshot ? (
+                <>
+                  <div className="aspect-video rounded-lg border border-border/50 overflow-hidden relative">
+                    <img src={initialData.websiteScreenshot} alt="Desktop layout" className="absolute inset-0 w-full h-full object-cover object-top" />
+                    <span className="absolute bottom-1 left-2 text-[10px] text-white/80 bg-black/40 px-1.5 py-0.5 rounded">Desktop</span>
+                  </div>
+                  <div className="aspect-[9/16] max-h-40 rounded-lg border border-border/50 overflow-hidden relative">
+                    <img src={initialData.websiteScreenshot} alt="Mobile layout" className="absolute inset-0 w-full h-full object-cover object-top" />
+                    <span className="absolute bottom-1 left-2 text-[10px] text-white/80 bg-black/40 px-1.5 py-0.5 rounded">Mobile</span>
+                  </div>
+                </>
+              ) : (
+                ["Desktop layout", "Mobile layout"].map((label, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-lg border-2 border-dashed border-border/50 bg-muted/10 flex flex-col items-center justify-center gap-2 ${
+                      i === 0 ? "aspect-video" : "aspect-[9/16] max-h-40"
+                    }`}
+                  >
+                    <MonitorSmartphone className="h-5 w-5 text-muted-foreground/30" />
+                    <span className="text-[11px] text-muted-foreground/50">{label}</span>
+                  </div>
+                ))
+              )}
             </div>
             <EditableRulesList
               rules={data.websiteRules}

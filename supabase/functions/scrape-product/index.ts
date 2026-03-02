@@ -53,7 +53,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         url: formattedUrl,
-        formats: ["markdown", "links", "branding"],
+        formats: ["markdown", "links", "branding", "screenshot"],
         onlyMainContent: false,
       }),
     });
@@ -70,8 +70,9 @@ serve(async (req) => {
     const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
     const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
     const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
+    const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
 
-    console.log("Scraped content length:", markdown.length);
+    console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot);
     if (firecrawlBranding) console.log("Firecrawl branding data found:", JSON.stringify(firecrawlBranding).slice(0, 200));
 
     // Step 2: Extract structured data with AI
@@ -481,6 +482,85 @@ ${markdown.slice(0, 15000)}`;
           };
         }
       }
+    }
+
+    // Extract image URLs from markdown for moodboard/illustrations
+    const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)|src=["'](https?:\/\/[^\s"']+)["']/gi;
+    const pageImages: string[] = [];
+    let imgMatch;
+    while ((imgMatch = imageUrlRegex.exec(markdown)) !== null) {
+      const imgUrl = imgMatch[1] || imgMatch[2];
+      if (imgUrl && !imgUrl.includes('favicon') && !imgUrl.includes('icon') && !imgUrl.includes('tracking') && !imgUrl.includes('pixel')) {
+        pageImages.push(imgUrl);
+      }
+    }
+    // Also grab images from Firecrawl branding
+    if (firecrawlBranding?.images) {
+      const bi = firecrawlBranding.images;
+      if (bi.ogImage) pageImages.push(bi.ogImage);
+    }
+    const uniqueImages = [...new Set(pageImages)].slice(0, 12);
+    console.log("Found page images:", uniqueImages.length);
+
+    // Add visual assets to brand data
+    if (extracted.brand) {
+      if (!extracted.brand.visualIdentity) {
+        extracted.brand.visualIdentity = {};
+      }
+      // Moodboard: first 6 page images
+      extracted.brand.visualIdentity.moodboardUrls = uniqueImages.slice(0, 6);
+      // Illustrations: images that look decorative (remaining)
+      extracted.brand.visualIdentity.illustrationUrls = uniqueImages.slice(6, 10);
+      // Website screenshot
+      if (websiteScreenshot) {
+        // Firecrawl returns base64 screenshot as data URL
+        extracted.brand.visualIdentity.websiteScreenshot = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
+          ? websiteScreenshot
+          : `data:image/png;base64,${websiteScreenshot}`;
+      }
+    }
+
+    // Generate guideline images using AI image generation
+    try {
+      const brandName = extracted.brand?.name || "the brand";
+      const brandColors = extracted.brand?.colors || {};
+      const guidelines = extracted.brand?.visualIdentity?.imageGuidelines || [];
+      
+      if (guidelines.length > 0) {
+        const guidelinePrompt = `Create a simple brand photography mood reference image for "${brandName}". 
+Style: ${guidelines.map((g: any) => g.rule).join('. ')}
+Brand colors: primary ${brandColors.primary || '#000'}, secondary ${brandColors.secondary || '#666'}.
+Create a clean, professional mood image that demonstrates these photography guidelines. No text overlays.`;
+
+        console.log("Generating guideline image...");
+        const imgResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image",
+            messages: [{ role: "user", content: guidelinePrompt }],
+            modalities: ["image", "text"],
+          }),
+        });
+
+        if (imgResponse.ok) {
+          const imgData = await imgResponse.json();
+          const generatedImages = imgData.choices?.[0]?.message?.images || [];
+          if (generatedImages.length > 0) {
+            extracted.brand.visualIdentity.guidelineImageUrls = generatedImages.map(
+              (img: any) => img.image_url?.url || img.url || ""
+            ).filter(Boolean);
+            console.log("Generated", extracted.brand.visualIdentity.guidelineImageUrls.length, "guideline images");
+          }
+        } else {
+          console.warn("Image generation failed:", imgResponse.status);
+        }
+      }
+    } catch (imgErr) {
+      console.warn("Image generation error (non-fatal):", imgErr);
     }
 
     console.log("Extraction successful:", extracted.product?.name, "logos:", extracted.brand?.logoUrls?.length || 0);
