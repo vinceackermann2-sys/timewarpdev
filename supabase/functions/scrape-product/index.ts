@@ -307,7 +307,13 @@ JSON structure to return:
       "fontStyle": "",
       "fontWeight": "400"
     },
-    "logoUrls": []
+    "logoUrls": [],
+    "visualIdentity": {
+      "imageGuidelines": [{"rule": "", "example": ""}],
+      "websiteRules": [],
+      "buttonRules": [],
+      "socialMediaRules": []
+    }
   },
   "audience": {
     "name": "",
@@ -339,6 +345,13 @@ IMPORTANT RULES:
 - For brand colors: extract the dominant primary, secondary, background, and text colors visible on the page (use hex format)
 - For brand typography: identify the main font family, describe the style, and estimate the dominant weight (300-700)
 - For brand logoUrls: extract any logo image URLs found on the page
+- For brand visualIdentity: infer image guidelines (photography rules & examples), website design rules, button/UI rules (corner radius, styles), and social media content rules based on what you observe on the page. Be specific and actionable — not generic.
+
+VISUAL IDENTITY EXTRACTION RULES:
+- imageGuidelines: Describe the photography style, composition, and imagery approach used on the page. Each rule should have a concrete example.
+- websiteRules: Layout patterns, spacing, color usage, header/footer styling, responsive hints visible on the page.
+- buttonRules: Corner radius, fill styles, hover patterns, sizing conventions observed.
+- socialMediaRules: Infer from the brand's tone, imagery style, and content approach what their social media presence should look like.
 
 Page URL: ${formattedUrl}
 Page title: ${metadata.title || "Unknown"}

@@ -40,10 +40,27 @@ export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
                 initialTypography={selectedBrand.typography}
                 initialLogos={selectedBrand.logoUrls}
                 initialSelectedLogo={selectedBrand.selectedLogo}
+                onVisualIdentityExtracted={(vi) => {
+                  setBrands(prev => prev.map(b => b.id === activeBrandId ? {
+                    ...b,
+                    visualIdentity: { ...b.visualIdentity, ...vi },
+                  } : b));
+                }}
               />
             </div>
             <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden" id="extended-brand">
-              <BrandExtendedSections isEditing={isVisualIdentityEditing} onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)} />
+              <BrandExtendedSections
+                isEditing={isVisualIdentityEditing}
+                onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)}
+                initialData={selectedBrand.visualIdentity}
+                onSave={(viData) => {
+                  setBrands(prev => prev.map(b => b.id === activeBrandId ? {
+                    ...b,
+                    visualIdentity: viData,
+                  } : b));
+                  toast({ title: "Visual identity saved" });
+                }}
+              />
             </div>
           </div>
           <div className="hidden lg:block w-52 shrink-0 self-start">

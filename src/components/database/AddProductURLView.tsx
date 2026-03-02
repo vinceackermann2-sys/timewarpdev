@@ -60,6 +60,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
           typography: b.typography || undefined,
           logoUrls: Array.isArray(b.logoUrls) ? b.logoUrls : [],
           selectedLogo: 0,
+          visualIdentity: b.visualIdentity || undefined,
         };
         setBrands(prev => [...prev, newBrand]);
       }

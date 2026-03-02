@@ -95,6 +95,7 @@ export function BrandingEditor({
   initialTypography,
   initialLogos,
   initialSelectedLogo,
+  onVisualIdentityExtracted,
 }: {
   onCancel: () => void;
   onSave?: (data: BrandingData) => void;
@@ -104,6 +105,7 @@ export function BrandingEditor({
   initialTypography?: BrandTypography;
   initialLogos?: string[];
   initialSelectedLogo?: number;
+  onVisualIdentityExtracted?: (vi: any) => void;
 }) {
   const [branding, setBranding] = useState<BrandingData>(() => ({
     ...DEFAULT_BRANDING,
@@ -138,6 +140,12 @@ export function BrandingEditor({
           source: extractUrl.trim(),
         }));
         toast({ title: "Branding extracted", description: `Found colors, typography and logos from ${b.name || "the URL"}.` });
+
+        // Also pass visual identity data if extracted
+        const vi = b.visualIdentity;
+        if (vi && onVisualIdentityExtracted) {
+          onVisualIdentityExtracted(vi);
+        }
       } else {
         toast({ title: "No branding found", description: "Could not extract brand data from that URL.", variant: "destructive" });
       }
