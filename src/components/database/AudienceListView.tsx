@@ -7,9 +7,7 @@ import { DEFAULT_AUDIENCE } from "@/components/database/AudienceDetailView";
 import { AudienceDetailView } from "@/components/database/AudienceDetailView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusinessDNA, AudienceEntry } from "@/components/database/BusinessDNAContext";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { ConnectionDialog } from "@/components/database/ConnectionDialog";
 
 export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
   const { userName, products, audiences, setAudiences } = useBusinessDNA();
@@ -21,7 +19,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
   const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
   const brandAudiences = audiences.filter(a => a.productIds?.some(pid => brandProductIds.includes(pid)));
   const selectedAudience = brandAudiences.find(a => a.id === selectedAudienceId);
-  const connectAudience = audiences.find(a => a.id === connectAudienceId);
+  
 
   const handleCreate = () => {
     if (!newName.trim()) return;
@@ -46,15 +44,8 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
     setAudiences(prev => prev.map(a => a.id === updated.id ? updated : a));
   };
 
-  const toggleProductConnection = (productId: string) => {
-    if (!connectAudienceId) return;
-    setAudiences(prev => prev.map(a => {
-      if (a.id !== connectAudienceId) return a;
-      const current = a.productIds || [];
-      const has = current.includes(productId);
-      return { ...a, productIds: has ? current.filter(id => id !== productId) : [...current, productId] };
-    }));
-  };
+
+
 
   if (selectedAudience) {
     return (
@@ -144,39 +135,11 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
       )}
 
       {/* Connection Dialog */}
-      <Dialog open={!!connectAudienceId} onOpenChange={(open) => { if (!open) setConnectAudienceId(null); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <Link2 className="h-4 w-4 text-primary" />
-              Connect to {connectAudience?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Package className="h-3 w-3" /> Products
-              </p>
-              {products.length > 0 ? (
-                <div className="space-y-1.5">
-                  {products.map(p => {
-                    const isConnected = connectAudience?.productIds?.includes(p.id) ?? false;
-                    return (
-                      <button key={p.id} onClick={() => toggleProductConnection(p.id)} className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors text-sm", isConnected ? "bg-primary/10 border-primary/30 text-foreground" : "bg-muted/20 border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground")}>
-                        <Package className={cn("h-4 w-4 shrink-0", isConnected ? "text-primary" : "")} />
-                        <span className="flex-1 truncate">{p.name}</span>
-                        {isConnected && <span className="text-primary text-xs font-medium">Connected</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground/60 py-2">No products created yet</p>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConnectionDialog
+        open={!!connectAudienceId}
+        onOpenChange={(open) => { if (!open) setConnectAudienceId(null); }}
+        focusEntityId={connectAudienceId}
+      />
     </div>
   );
 }
