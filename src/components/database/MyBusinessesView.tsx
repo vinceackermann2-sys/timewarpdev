@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2 } from "lucide-react";
+import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,7 +19,19 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("My Businesses");
   const [search, setSearch] = useState("");
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
-  const { brands, isLoading } = useBusinessDNA();
+  const { brands, setBrands, products, setProducts, audiences, setAudiences, isLoading } = useBusinessDNA();
+
+  const handleDeleteBusiness = (e: React.MouseEvent, brandId: string) => {
+    e.stopPropagation();
+    // Get product IDs connected to this brand
+    const brandProductIds = products.filter(p => p.brandId === brandId).map(p => p.id);
+    // Remove audiences connected to those products
+    setAudiences(prev => prev.filter(a => !a.productIds?.some(pid => brandProductIds.includes(pid))));
+    // Remove products connected to this brand
+    setProducts(prev => prev.filter(p => p.brandId !== brandId));
+    // Remove the brand itself
+    setBrands(prev => prev.filter(b => b.id !== brandId));
+  };
 
   const filteredBrands = brands.filter(b =>
     b.name.toLowerCase().includes(search.toLowerCase())
@@ -94,8 +106,16 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onOpenBusiness?.(brand.id)}
-                className="group flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-6 min-h-[200px] transition-colors cursor-pointer text-left"
+                className="group relative flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-6 min-h-[200px] transition-colors cursor-pointer text-left"
               >
+                {/* Delete button */}
+                <button
+                  onClick={(e) => handleDeleteBusiness(e, brand.id)}
+                  className="absolute top-3 right-3 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                  title="Delete business"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
                 <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <Building2 className="h-6 w-6 text-primary/70" />
                 </div>
