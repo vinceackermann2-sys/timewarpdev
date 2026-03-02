@@ -11,14 +11,15 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 
-export function ProductListView() {
+export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
   const { userName, brands, products, setProducts, audiences, setAudiences } = useBusinessDNA();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [connectProductId, setConnectProductId] = useState<string | null>(null);
-
-  const selectedProduct = products.find(p => p.id === selectedProductId);
+  // Filter products to only show those belonging to the active brand
+  const brandProducts = products.filter(p => p.brandId === activeBrandId);
+  const selectedProduct = brandProducts.find(p => p.id === selectedProductId);
   const connectProduct = products.find(p => p.id === connectProductId);
 
   const handleCreate = () => {
@@ -28,6 +29,7 @@ export function ProductListView() {
       id: `product-${Date.now()}`,
       name: newName.trim(),
       lastUpdated: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+      brandId: activeBrandId, // Auto-connect to active brand
     };
     setProducts(prev => [...prev, newProduct]);
     setNewName("");
@@ -75,8 +77,8 @@ export function ProductListView() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold text-foreground">My Products</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{products.length} product{products.length !== 1 ? "s" : ""}</p>
+         <h3 className="text-base font-semibold text-foreground">Products</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{brandProducts.length} product{brandProducts.length !== 1 ? "s" : ""}</p>
         </div>
         <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => setIsCreating(!isCreating)}>
           {isCreating ? <span>Cancel</span> : <><Plus className="h-3.5 w-3.5" /> New Product</>}
@@ -97,9 +99,9 @@ export function ProductListView() {
         )}
       </AnimatePresence>
 
-      {products.length > 0 ? (
+      {brandProducts.length > 0 ? (
         <div className="space-y-2">
-          {products.map((product) => {
+          {brandProducts.map((product) => {
             const connectedBrand = brands.find(b => b.id === product.brandId);
             const connectedAudiences = audiences.filter(a => a.productIds?.includes(product.id));
             const totalConnections = (connectedBrand ? 1 : 0) + connectedAudiences.length;

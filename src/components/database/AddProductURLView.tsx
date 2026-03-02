@@ -12,10 +12,11 @@ import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
 
 interface AddProductURLViewProps {
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (newBrandId?: string) => void;
+  activeBrandId?: string | null;
 }
 
-export function AddProductURLView({ onBack, onComplete }: AddProductURLViewProps) {
+export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProductURLViewProps) {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState("");
@@ -108,9 +109,12 @@ export function AddProductURLView({ onBack, onComplete }: AddProductURLViewProps
             }))
           : DEFAULT_PRODUCT.offers,
         lastUpdated: now,
-        brandId: extracted.brand?.name ? brandId : undefined,
+        brandId: activeBrandId || (extracted.brand?.name ? brandId : undefined),
       };
       setProducts(prev => [...prev, newProduct]);
+
+      // If we created a new brand, use its id for the callback
+      const finalBrandId = activeBrandId || (extracted.brand?.name ? brandId : undefined);
 
       // Create audience
       if (extracted.audience?.name) {
@@ -155,7 +159,7 @@ export function AddProductURLView({ onBack, onComplete }: AddProductURLViewProps
         description: `${extracted.product?.name || "Product"} has been added to your Business DNA.`,
       });
 
-      setTimeout(() => onComplete(), 1500);
+      setTimeout(() => onComplete(finalBrandId || undefined), 1500);
     } catch (err: any) {
       console.error("Scrape error:", err);
       toast({

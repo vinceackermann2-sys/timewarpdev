@@ -11,14 +11,16 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 
-export function AudienceListView() {
+export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
   const { userName, products, audiences, setAudiences } = useBusinessDNA();
   const [selectedAudienceId, setSelectedAudienceId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [connectAudienceId, setConnectAudienceId] = useState<string | null>(null);
-
-  const selectedAudience = audiences.find(a => a.id === selectedAudienceId);
+  // Filter audiences to only show those connected to this brand's products
+  const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
+  const brandAudiences = audiences.filter(a => a.productIds?.some(pid => brandProductIds.includes(pid)));
+  const selectedAudience = brandAudiences.find(a => a.id === selectedAudienceId);
   const connectAudience = audiences.find(a => a.id === connectAudienceId);
 
   const handleCreate = () => {
@@ -28,6 +30,7 @@ export function AudienceListView() {
       id: `audience-${Date.now()}`,
       name: newName.trim(),
       lastUpdated: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+      productIds: brandProductIds, // Auto-connect to this brand's products
     };
     setAudiences(prev => [...prev, newAudience]);
     setNewName("");
@@ -69,8 +72,8 @@ export function AudienceListView() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold text-foreground">My Audiences</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{audiences.length} audience{audiences.length !== 1 ? "s" : ""}</p>
+          <h3 className="text-base font-semibold text-foreground">Audiences</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{brandAudiences.length} audience{brandAudiences.length !== 1 ? "s" : ""}</p>
         </div>
         <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => setIsCreating(!isCreating)}>
           {isCreating ? <span>Cancel</span> : <><Plus className="h-3.5 w-3.5" /> New Audience</>}
@@ -91,9 +94,9 @@ export function AudienceListView() {
         )}
       </AnimatePresence>
 
-      {audiences.length > 0 ? (
+      {brandAudiences.length > 0 ? (
         <div className="space-y-2">
-          {audiences.map((audience) => {
+          {brandAudiences.map((audience) => {
             const connectedProducts = products.filter(p => audience.productIds?.includes(p.id));
             return (
               <div key={audience.id} className="group rounded-xl border border-border/40 bg-card/50 hover:bg-card transition-colors cursor-pointer">

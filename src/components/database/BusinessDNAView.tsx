@@ -6,7 +6,7 @@ import {
 import { BrandListView } from "@/components/database/BrandListView";
 import { ProductListView } from "@/components/database/ProductListView";
 import { AudienceListView } from "@/components/database/AudienceListView";
-import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
+import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 import { supabase } from "@/integrations/supabase/client";
 
 import { Button } from "@/components/ui/button";
@@ -200,7 +200,7 @@ function IdleState({ totalInsights }: { totalInsights: number }) {
   );
 }
 // ── Main View ──
-export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
+export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void; activeBrandId: string }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
     brand: [], product: [], audience: [], sop: []
   });
@@ -249,6 +249,19 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
     });
   };
 
+  const { brands, products, audiences } = useBusinessDNA();
+  const activeBrand = brands.find(b => b.id === activeBrandId);
+  const brandProductCount = products.filter(p => p.brandId === activeBrandId).length;
+  const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
+  const brandAudienceCount = audiences.filter(a => a.productIds?.some(pid => brandProductIds.includes(pid))).length;
+
+  const getSegmentCount = (segId: string) => {
+    if (segId === "brand") return activeBrand ? 1 : 0;
+    if (segId === "product") return brandProductCount;
+    if (segId === "audience") return brandAudienceCount;
+    return segmentEntries[segId]?.length || 0;
+  };
+
   const totalInsights = Object.values(segmentEntries).reduce((sum, arr) => sum + arr.length, 0);
   const activeSegmentData = BRAIN_SEGMENTS.find(s => s.id === activeSegment);
 
@@ -266,7 +279,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
              <Building2 className="h-11 w-11 text-muted-foreground/60" />
            </div>
            <div className="flex flex-col gap-2 pt-1">
-             <h1 className="text-2xl font-bold text-foreground leading-tight">Your Business</h1>
+             <h1 className="text-2xl font-bold text-foreground leading-tight">{activeBrand?.name || "Your Business"}</h1>
              <div className="flex items-center gap-2.5">
                 <BusinessBrainOrb size={22} />
                <span className="text-base text-muted-foreground">Business Brain</span>
@@ -285,7 +298,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
         <div className="flex items-center gap-8">
           {BRAIN_SEGMENTS.map((seg) => {
             const Icon = seg.icon;
-            const count = segmentEntries[seg.id]?.length || 0;
+            const count = getSegmentCount(seg.id);
             const isActive = activeSegment === seg.id;
             return (
               <button
@@ -342,7 +355,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               transition={{ duration: 0.2 }}
               className="pt-5"
             >
-              <BrandListView />
+              <BrandListView activeBrandId={activeBrandId} />
             </motion.div>
           ) : activeSegment === "product" ? (
             <motion.div
@@ -353,7 +366,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               transition={{ duration: 0.2 }}
               className="pt-5"
             >
-              <ProductListView />
+              <ProductListView activeBrandId={activeBrandId} />
             </motion.div>
           ) : activeSegment === "audience" ? (
             <motion.div
@@ -364,7 +377,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
               transition={{ duration: 0.2 }}
               className="pt-5"
             >
-              <AudienceListView />
+              <AudienceListView activeBrandId={activeBrandId} />
             </motion.div>
           ) : activeSegment === "sop" ? (
             <motion.div
