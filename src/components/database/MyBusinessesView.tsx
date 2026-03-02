@@ -145,8 +145,8 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
               </div>
               <div className="relative">
                 <img src={addBusinessBg} alt="" className="w-full h-52 object-cover" />
-                <div className="absolute bottom-3 left-3 h-10 w-10 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center">
-                  <Rocket className="h-5 w-5 text-muted-foreground" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Rocket className="h-8 w-8 text-white drop-shadow-lg" />
                 </div>
               </div>
               <div className="p-4">
@@ -167,8 +167,8 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
             >
               <div className="relative">
                 <img src={startBusinessBg} alt="" className="w-full h-52 object-cover" />
-                <div className="absolute bottom-3 left-3 h-10 w-10 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center">
-                  <FolderOpenDot className="h-5 w-5 text-muted-foreground" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <FolderOpenDot className="h-8 w-8 text-white drop-shadow-lg" />
                 </div>
               </div>
               <div className="p-4">
