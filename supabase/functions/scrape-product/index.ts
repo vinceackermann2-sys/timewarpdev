@@ -36,7 +36,6 @@ serve(async (req) => {
       );
     }
 
-    // Format URL
     let formattedUrl = url.trim();
     if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
       formattedUrl = `https://${formattedUrl}`;
@@ -44,7 +43,7 @@ serve(async (req) => {
 
     console.log("Scraping URL:", formattedUrl);
 
-    // Step 1: Scrape with Firecrawl
+    // Step 1: Scrape with Firecrawl (desktop + branding)
     const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: {
@@ -74,6 +73,37 @@ serve(async (req) => {
 
     console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot);
     if (firecrawlBranding) console.log("Firecrawl branding data found:", JSON.stringify(firecrawlBranding).slice(0, 200));
+
+    // Step 1b: Mobile screenshot (parallel)
+    const mobileScreenshotPromise = (async () => {
+      try {
+        console.log("Fetching mobile screenshot...");
+        const mobileRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: formattedUrl,
+            formats: ["screenshot"],
+            mobile: true,
+          }),
+        });
+        if (mobileRes.ok) {
+          const mobileData = await mobileRes.json();
+          const mobileSS = mobileData.data?.screenshot || mobileData.screenshot;
+          if (mobileSS) {
+            return typeof mobileSS === 'string' && mobileSS.startsWith('http')
+              ? mobileSS
+              : `data:image/png;base64,${mobileSS}`;
+          }
+        }
+      } catch (e) {
+        console.warn("Mobile screenshot error (non-fatal):", e);
+      }
+      return null;
+    })();
 
     // Step 2: Extract structured data with AI
     const extractionPrompt = `You are a Product & Audience DNA analyst. Your job is to extract structured data from a product page using the exact formulas and output style below. Study the formulas and example outputs carefully — they define the TONE, DEPTH, and FORMAT of your answers.
@@ -345,7 +375,7 @@ IMPORTANT RULES:
 - Be thorough — fill as many fields as possible with quality data
 - For brand colors: extract the dominant primary, secondary, background, and text colors visible on the page (use hex format)
 - For brand typography: identify the main font family, describe the style, and estimate the dominant weight (300-700)
-- For brand logoUrls: extract any logo image URLs found on the page
+- For brand logoUrls: extract ONLY actual logo image URLs (not product photos). Look for images with 'logo' in the URL or alt text.
 - For brand visualIdentity: infer image guidelines (photography rules & examples), website design rules, button/UI rules (corner radius, styles), and social media content rules based on what you observe on the page. Be specific and actionable — not generic.
 
 VISUAL IDENTITY EXTRACTION RULES:
@@ -389,10 +419,8 @@ ${markdown.slice(0, 15000)}`;
     const aiData = await aiResponse.json();
     const rawContent = aiData.choices?.[0]?.message?.content || "";
 
-    // Parse JSON from the response
     let extracted;
     try {
-      // Try to find JSON in the response
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         extracted = JSON.parse(jsonMatch[0]);
@@ -407,25 +435,26 @@ ${markdown.slice(0, 15000)}`;
       );
     }
 
-    // Merge Firecrawl branding data into AI result (AI often misses logos)
+    // ══════════════════════════════════════════════════
+    // POST-EXTRACTION: Merge branding + generate assets
+    // ══════════════════════════════════════════════════
+
     if (firecrawlBranding && extracted.brand) {
-      // Logos: collect from Firecrawl branding fields
+      // ── Logos: ONLY actual logos, not product photos ──
       const fcLogos: string[] = [];
       if (firecrawlBranding.logo) fcLogos.push(firecrawlBranding.logo);
       if (firecrawlBranding.images?.logo && firecrawlBranding.images.logo !== firecrawlBranding.logo) {
         fcLogos.push(firecrawlBranding.images.logo);
       }
-      if (firecrawlBranding.images?.favicon) fcLogos.push(firecrawlBranding.images.favicon);
-      if (firecrawlBranding.images?.ogImage) fcLogos.push(firecrawlBranding.images.ogImage);
-
-      // Merge logos: prefer Firecrawl logos, then add any AI-found ones
-      const aiLogos = Array.isArray(extracted.brand.logoUrls) ? extracted.brand.logoUrls : [];
-      const allLogos = [...new Set([...fcLogos, ...aiLogos])].filter(Boolean);
-      if (allLogos.length > 0) {
-        extracted.brand.logoUrls = allLogos;
+      if (fcLogos.length === 0 && firecrawlBranding.images?.favicon) {
+        fcLogos.push(firecrawlBranding.images.favicon);
       }
+      // Filter AI logos to only those that look like actual logos
+      const aiLogos = (Array.isArray(extracted.brand.logoUrls) ? extracted.brand.logoUrls : [])
+        .filter((u: string) => u && (u.toLowerCase().includes('logo') || u.toLowerCase().includes('brand') || u.endsWith('.svg')));
+      extracted.brand.logoUrls = [...new Set([...fcLogos, ...aiLogos])].filter(Boolean);
 
-      // Colors: use Firecrawl colors as fallback if AI returned empty/default
+      // ── Colors fallback ──
       if (firecrawlBranding.colors) {
         const fc = firecrawlBranding.colors;
         if (!extracted.brand.colors || extracted.brand.colors.primary === "#hex" || !extracted.brand.colors.primary) {
@@ -438,7 +467,7 @@ ${markdown.slice(0, 15000)}`;
         }
       }
 
-      // Typography: use Firecrawl fonts as fallback
+      // ── Typography fallback ──
       if (firecrawlBranding.typography?.fontFamilies) {
         const fcFonts = firecrawlBranding.typography.fontFamilies;
         if (!extracted.brand.typography?.fontFamily || extracted.brand.typography.fontFamily === "") {
@@ -449,15 +478,9 @@ ${markdown.slice(0, 15000)}`;
         }
       }
 
-      // Visual identity: ensure it's not empty
-      if (!extracted.brand.visualIdentity || 
-          (!extracted.brand.visualIdentity.imageGuidelines?.length &&
-           !extracted.brand.visualIdentity.websiteRules?.length &&
-           !extracted.brand.visualIdentity.buttonRules?.length &&
-           !extracted.brand.visualIdentity.socialMediaRules?.length)) {
-        // Build from Firecrawl component/spacing data
+      // ── Visual identity from Firecrawl components ──
+      if (!extracted.brand.visualIdentity?.buttonRules?.length && !extracted.brand.visualIdentity?.websiteRules?.length) {
         const vi: any = { imageGuidelines: [], websiteRules: [], buttonRules: [], socialMediaRules: [] };
-        
         if (firecrawlBranding.components?.buttonPrimary) {
           const btn = firecrawlBranding.components.buttonPrimary;
           vi.buttonRules.push(`Primary buttons: ${btn.borderRadius || '8px'} radius, ${btn.background || 'brand color'} fill, ${btn.textColor || 'white'} text`);
@@ -470,98 +493,149 @@ ${markdown.slice(0, 15000)}`;
           vi.websiteRules.push(`Base spacing unit: ${firecrawlBranding.spacing.baseUnit || 8}px`);
           vi.websiteRules.push(`Border radius: ${firecrawlBranding.spacing.borderRadius || '8px'}`);
         }
-        if (firecrawlBranding.colorScheme) {
-          vi.websiteRules.push(`Color scheme: ${firecrawlBranding.colorScheme}`);
-        }
-        
-        // Only override if we built something
         if (vi.buttonRules.length || vi.websiteRules.length) {
-          extracted.brand.visualIdentity = {
-            ...extracted.brand.visualIdentity,
-            ...vi,
-          };
+          extracted.brand.visualIdentity = { ...extracted.brand.visualIdentity, ...vi };
         }
       }
     }
 
-    // Extract image URLs from markdown for moodboard/illustrations
+    // ── Moodboard images from page ──
     const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)|src=["'](https?:\/\/[^\s"']+)["']/gi;
     const pageImages: string[] = [];
     let imgMatch;
     while ((imgMatch = imageUrlRegex.exec(markdown)) !== null) {
       const imgUrl = imgMatch[1] || imgMatch[2];
-      if (imgUrl && !imgUrl.includes('favicon') && !imgUrl.includes('icon') && !imgUrl.includes('tracking') && !imgUrl.includes('pixel')) {
+      if (imgUrl && !imgUrl.includes('favicon') && !imgUrl.includes('tracking') && !imgUrl.includes('pixel')) {
         pageImages.push(imgUrl);
       }
     }
-    // Also grab images from Firecrawl branding
-    if (firecrawlBranding?.images) {
-      const bi = firecrawlBranding.images;
-      if (bi.ogImage) pageImages.push(bi.ogImage);
-    }
-    const uniqueImages = [...new Set(pageImages)].slice(0, 12);
-    console.log("Found page images:", uniqueImages.length);
+    if (firecrawlBranding?.images?.ogImage) pageImages.push(firecrawlBranding.images.ogImage);
+    const uniqueImages = [...new Set(pageImages)].slice(0, 6);
 
-    // Add visual assets to brand data
-    if (extracted.brand) {
-      if (!extracted.brand.visualIdentity) {
-        extracted.brand.visualIdentity = {};
-      }
-      // Moodboard: first 6 page images
-      extracted.brand.visualIdentity.moodboardUrls = uniqueImages.slice(0, 6);
-      // Illustrations: images that look decorative (remaining)
-      extracted.brand.visualIdentity.illustrationUrls = uniqueImages.slice(6, 10);
-      // Website screenshot
-      if (websiteScreenshot) {
-        // Firecrawl returns base64 screenshot as data URL
-        extracted.brand.visualIdentity.websiteScreenshot = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
-          ? websiteScreenshot
-          : `data:image/png;base64,${websiteScreenshot}`;
-      }
+    if (!extracted.brand) extracted.brand = {};
+    if (!extracted.brand.visualIdentity) extracted.brand.visualIdentity = {};
+    extracted.brand.visualIdentity.moodboardUrls = uniqueImages;
+
+    // ── Desktop screenshot ──
+    if (websiteScreenshot) {
+      extracted.brand.visualIdentity.websiteScreenshot = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
+        ? websiteScreenshot
+        : `data:image/png;base64,${websiteScreenshot}`;
     }
 
-    // Generate guideline images using AI image generation
-    try {
-      const brandName = extracted.brand?.name || "the brand";
-      const brandColors = extracted.brand?.colors || {};
-      const guidelines = extracted.brand?.visualIdentity?.imageGuidelines || [];
-      
-      if (guidelines.length > 0) {
-        const guidelinePrompt = `Create a simple brand photography mood reference image for "${brandName}". 
-Style: ${guidelines.map((g: any) => g.rule).join('. ')}
-Brand colors: primary ${brandColors.primary || '#000'}, secondary ${brandColors.secondary || '#666'}.
-Create a clean, professional mood image that demonstrates these photography guidelines. No text overlays.`;
+    // ── Wait for mobile screenshot ──
+    const mobileScreenshot = await mobileScreenshotPromise;
+    if (mobileScreenshot) {
+      extracted.brand.visualIdentity.mobileScreenshot = mobileScreenshot;
+      console.log("Mobile screenshot captured");
+    }
 
-        console.log("Generating guideline image...");
-        const imgResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // ══════════════════════════════════════════════
+    // AI IMAGE GENERATION (logo, illustrations, guideline images)
+    // ══════════════════════════════════════════════
+
+    const brandName = extracted.brand?.name || "the brand";
+    const brandColors = extracted.brand?.colors || {};
+    const brandCategory = extracted.brand?.category || "general";
+    const audienceDesc = extracted.audience?.description || "general consumers";
+    const guidelines = extracted.brand?.visualIdentity?.imageGuidelines || [];
+
+    const aiImagePromises: Promise<void>[] = [];
+
+    // ── Generate logo if none found (text logo) ──
+    if (!extracted.brand.logoUrls || extracted.brand.logoUrls.length === 0) {
+      aiImagePromises.push((async () => {
+        try {
+          console.log("No logo URLs found, generating logo for:", brandName);
+          const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-image",
+              messages: [{ role: "user", content: `Generate a clean, professional logo for "${brandName}". Primary color: ${brandColors.primary || '#333'}. Modern, simple logo mark on white background. No extra text or taglines beyond the brand name.` }],
+              modalities: ["image", "text"],
+            }),
+          });
+          if (res.ok) {
+            const d = await res.json();
+            const logoImg = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+            if (logoImg) {
+              extracted.brand.logoUrls = [logoImg];
+              console.log("Generated logo image");
+            }
+          }
+        } catch (e) { console.warn("Logo gen error:", e); }
+      })());
+    }
+
+    // ── Generate illustrations based on audience + brand ──
+    aiImagePromises.push((async () => {
+      try {
+        console.log("Generating brand illustrations...");
+        const prompt = `Generate a custom brand illustration for "${brandName}". 
+Target audience: ${audienceDesc}
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
+Brand category: ${brandCategory}.
+Create a modern, on-brand decorative illustration that could be used as a mascot, pattern, or decorative asset. It should reflect the brand personality and appeal to the target audience. No text. Clean, professional style.`;
+        
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
-            messages: [{ role: "user", content: guidelinePrompt }],
+            messages: [{ role: "user", content: prompt }],
             modalities: ["image", "text"],
           }),
         });
-
-        if (imgResponse.ok) {
-          const imgData = await imgResponse.json();
-          const generatedImages = imgData.choices?.[0]?.message?.images || [];
-          if (generatedImages.length > 0) {
-            extracted.brand.visualIdentity.guidelineImageUrls = generatedImages.map(
-              (img: any) => img.image_url?.url || img.url || ""
-            ).filter(Boolean);
-            console.log("Generated", extracted.brand.visualIdentity.guidelineImageUrls.length, "guideline images");
+        if (res.ok) {
+          const d = await res.json();
+          const imgs = (d.choices?.[0]?.message?.images || [])
+            .map((img: any) => img.image_url?.url || "").filter(Boolean);
+          if (imgs.length > 0) {
+            extracted.brand.visualIdentity.illustrationUrls = imgs;
+            console.log("Generated", imgs.length, "illustrations");
           }
-        } else {
-          console.warn("Image generation failed:", imgResponse.status);
         }
-      }
-    } catch (imgErr) {
-      console.warn("Image generation error (non-fatal):", imgErr);
+      } catch (e) { console.warn("Illustration gen error:", e); }
+    })());
+
+    // ── Generate per-guideline images ──
+    if (guidelines.length > 0) {
+      aiImagePromises.push((async () => {
+        try {
+          console.log("Generating per-guideline images for", guidelines.length, "guidelines...");
+          const results: string[] = [];
+          for (const g of guidelines.slice(0, 4)) {
+            const prompt = `Create a brand photography reference image for "${brandName}".
+Guideline: "${g.rule}"${g.example ? ` — Example: "${g.example}"` : ''}
+Target audience: ${audienceDesc}
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
+Create a clean, professional mood/reference photo that demonstrates this specific photography guideline. No text overlays. Authentic and on-brand.`;
+            
+            const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-image",
+                messages: [{ role: "user", content: prompt }],
+                modalities: ["image", "text"],
+              }),
+            });
+            if (res.ok) {
+              const d = await res.json();
+              const imgUrl = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+              if (imgUrl) results.push(imgUrl);
+            }
+          }
+          if (results.length > 0) {
+            extracted.brand.visualIdentity.guidelineImageUrls = results;
+            console.log("Generated", results.length, "guideline images");
+          }
+        } catch (e) { console.warn("Guideline image gen error:", e); }
+      })());
     }
+
+    await Promise.all(aiImagePromises);
 
     console.log("Extraction successful:", extracted.product?.name, "logos:", extracted.brand?.logoUrls?.length || 0);
 

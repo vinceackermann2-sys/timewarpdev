@@ -38,6 +38,7 @@ interface VisualIdentityInitial {
   moodboardUrls?: string[];
   illustrationUrls?: string[];
   websiteScreenshot?: string;
+  mobileScreenshot?: string;
   guidelineImageUrls?: string[];
 }
 
@@ -371,6 +372,7 @@ export function BrandExtendedSections({
                   moodboardUrls: data.moodboard.filter(s => s.url).map(s => s.url!),
                   illustrationUrls: data.illustrations.filter(s => s.url).map(s => s.url!),
                   websiteScreenshot: initialData?.websiteScreenshot,
+                  mobileScreenshot: initialData?.mobileScreenshot,
                   guidelineImageUrls: initialData?.guidelineImageUrls,
                 });
                 onEditToggle?.();
@@ -468,7 +470,11 @@ export function BrandExtendedSections({
                     <span className="absolute bottom-1 left-2 text-[10px] text-white/80 bg-black/40 px-1.5 py-0.5 rounded">Desktop</span>
                   </div>
                   <div className="aspect-[9/16] max-h-40 rounded-lg border border-border/50 overflow-hidden relative">
-                    <img src={initialData.websiteScreenshot} alt="Mobile layout" className="absolute inset-0 w-full h-full object-cover object-top" />
+                    {initialData?.mobileScreenshot ? (
+                      <img src={initialData.mobileScreenshot} alt="Mobile layout" className="absolute inset-0 w-full h-full object-cover object-top" />
+                    ) : (
+                      <img src={initialData.websiteScreenshot} alt="Mobile layout" className="absolute inset-0 w-full h-full object-cover object-top" />
+                    )}
                     <span className="absolute bottom-1 left-2 text-[10px] text-white/80 bg-black/40 px-1.5 py-0.5 rounded">Mobile</span>
                   </div>
                 </>
