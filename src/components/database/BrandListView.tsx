@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Palette, Plus, Trash2, ChevronRight, Lock, Package, Users } from "lucide-react";
+import { Palette, Plus, Trash2, ChevronRight, Lock, Package, Users, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
@@ -9,12 +9,16 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessDNA, BrandEntry } from "@/components/database/BusinessDNAContext";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 export function BrandListView() {
-  const { userName, brands, setBrands, products, audiences } = useBusinessDNA();
+  const { userName, brands, setBrands, products, setProducts, audiences, setAudiences } = useBusinessDNA();
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [connectBrandId, setConnectBrandId] = useState<string | null>(null);
 
   const [isBrandingEditing, setIsBrandingEditing] = useState(false);
   const [isVisualIdentityEditing, setIsVisualIdentityEditing] = useState(false);
@@ -22,6 +26,7 @@ export function BrandListView() {
   const { toast } = useToast();
 
   const selectedBrand = brands.find(b => b.id === selectedBrandId);
+  const connectBrand = brands.find(b => b.id === connectBrandId);
 
   const handleCreate = () => {
     if (!newName.trim()) return;
@@ -41,6 +46,30 @@ export function BrandListView() {
     if (selectedBrandId === id) setSelectedBrandId(null);
   };
 
+  const toggleProductConnection = (productId: string) => {
+    if (!connectBrandId) return;
+    setProducts(prev => prev.map(p => {
+      if (p.id !== productId) return p;
+      return { ...p, brandId: p.brandId === connectBrandId ? undefined : connectBrandId };
+    }));
+  };
+
+  const toggleAudienceConnection = (audienceId: string) => {
+    if (!connectBrandId) return;
+    const brandProductIds = products.filter(p => p.brandId === connectBrandId).map(p => p.id);
+    // For audiences, we toggle all brand's products
+    setAudiences(prev => prev.map(a => {
+      if (a.id !== audienceId) return a;
+      const current = a.productIds || [];
+      const hasAny = brandProductIds.some(pid => current.includes(pid));
+      if (hasAny) {
+        return { ...a, productIds: current.filter(pid => !brandProductIds.includes(pid)) };
+      } else {
+        return { ...a, productIds: [...current, ...brandProductIds] };
+      }
+    }));
+  };
+
   const getConnectedProducts = (brandId: string) => products.filter(p => p.brandId === brandId);
   const getConnectedAudiences = (brandId: string) => {
     const productIds = getConnectedProducts(brandId).map(p => p.id);
@@ -48,65 +77,25 @@ export function BrandListView() {
   };
 
   if (selectedBrand) {
-    const connectedProducts = getConnectedProducts(selectedBrand.id);
-    const connectedAudiences = getConnectedAudiences(selectedBrand.id);
-
     return (
       <div className="space-y-0">
         <div className="flex items-center gap-2 mb-5">
-          <button
-            onClick={() => setSelectedBrandId(null)}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          >
+          <button onClick={() => setSelectedBrandId(null)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
             <ChevronRight className="h-4 w-4 rotate-180" />
           </button>
           <h3 className="text-base font-semibold text-foreground">{selectedBrand.name}</h3>
         </div>
-
-        {/* Connected items summary */}
-        {(connectedProducts.length > 0 || connectedAudiences.length > 0) && (
-          <div className="mb-5 rounded-xl border border-border/50 bg-muted/20 p-4 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Connected to this brand</p>
-            <div className="flex flex-wrap gap-2">
-              {connectedProducts.map(p => (
-                <span key={p.id} className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
-                  <Package className="h-3 w-3" /> {p.name}
-                </span>
-              ))}
-              {connectedAudiences.map(a => (
-                <span key={a.id} className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
-                  <Users className="h-3 w-3" /> {a.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="flex gap-8">
           <div className="flex-1 min-w-0 space-y-6">
             <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
-              <BrandingEditor
-                isEditing={isBrandingEditing}
-                onEditToggle={() => setIsBrandingEditing(!isBrandingEditing)}
-                onCancel={() => setIsBrandingEditing(false)}
-                onSave={() => { toast({ title: "Branding saved" }); }}
-              />
+              <BrandingEditor isEditing={isBrandingEditing} onEditToggle={() => setIsBrandingEditing(!isBrandingEditing)} onCancel={() => setIsBrandingEditing(false)} onSave={() => { toast({ title: "Branding saved" }); }} />
             </div>
             <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden" id="extended-brand">
-              <BrandExtendedSections
-                isEditing={isVisualIdentityEditing}
-                onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)}
-              />
+              <BrandExtendedSections isEditing={isVisualIdentityEditing} onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)} />
             </div>
           </div>
           <div className="hidden lg:block w-52 shrink-0 self-start">
-            <BrandPageSidebar
-              activeSection={activeSidebarSection}
-              onSectionClick={(id) => {
-                setActiveSidebarSection(id);
-                document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-            />
+            <BrandPageSidebar activeSection={activeSidebarSection} onSectionClick={(id) => { setActiveSidebarSection(id); document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
           </div>
         </div>
       </div>
@@ -118,9 +107,7 @@ export function BrandListView() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-foreground">My Brands</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {brands.length} brand{brands.length !== 1 ? "s" : ""}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">{brands.length} brand{brands.length !== 1 ? "s" : ""}</p>
         </div>
         <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => setIsCreating(!isCreating)}>
           {isCreating ? <span>Cancel</span> : <><Plus className="h-3.5 w-3.5" /> New Brand</>}
@@ -144,8 +131,9 @@ export function BrandListView() {
       {brands.length > 0 ? (
         <div className="space-y-2">
           {brands.map((brand) => {
-            const connectedProducts = getConnectedProducts(brand.id);
-            const connectedAudiences = getConnectedAudiences(brand.id);
+            const connProducts = getConnectedProducts(brand.id);
+            const connAudiences = getConnectedAudiences(brand.id);
+            const totalConnections = connProducts.length + connAudiences.length;
             return (
               <div key={brand.id} className="group rounded-xl border border-border/40 bg-card/50 hover:bg-card transition-colors cursor-pointer">
                 <div className="flex items-center gap-3 px-4 py-3.5" onClick={() => setSelectedBrandId(brand.id)}>
@@ -161,23 +149,22 @@ export function BrandListView() {
                       <span className="text-[10px] text-muted-foreground/70">Last updated: {brand.lastUpdated}</span>
                       <span className="text-[10px] text-muted-foreground/40">·</span>
                       <span className="text-[10px] text-muted-foreground/70">Added by: {userName}</span>
+                      {totalConnections > 0 && (
+                        <>
+                          <span className="text-[10px] text-muted-foreground/40">·</span>
+                          <span className="text-[10px] text-primary">{totalConnections} connection{totalConnections !== 1 ? "s" : ""}</span>
+                        </>
+                      )}
                     </div>
-                    {(connectedProducts.length > 0 || connectedAudiences.length > 0) && (
-                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        {connectedProducts.map(p => (
-                          <span key={p.id} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                            <Package className="h-2.5 w-2.5" /> {p.name}
-                          </span>
-                        ))}
-                        {connectedAudiences.map(a => (
-                          <span key={a.id} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                            <Users className="h-2.5 w-2.5" /> {a.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConnectBrandId(brand.id); }}
+                      className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
+                      title="Manage connections"
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                    </button>
                     <button onClick={(e) => { e.stopPropagation(); handleDelete(brand.id); }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -190,13 +177,85 @@ export function BrandListView() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-            <Palette className="h-6 w-6 text-primary" />
-          </div>
+          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3"><Palette className="h-6 w-6 text-primary" /></div>
           <p className="text-sm text-muted-foreground">No brands yet</p>
           <p className="text-xs text-muted-foreground/60 mt-1">Create your first brand to get started</p>
         </div>
       )}
+
+      {/* Connection Dialog */}
+      <Dialog open={!!connectBrandId} onOpenChange={(open) => { if (!open) setConnectBrandId(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Link2 className="h-4 w-4 text-primary" />
+              Connect to {connectBrand?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {/* Products */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Package className="h-3 w-3" /> Products
+              </p>
+              {products.length > 0 ? (
+                <div className="space-y-1.5">
+                  {products.map(p => {
+                    const isConnected = p.brandId === connectBrandId;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => toggleProductConnection(p.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors text-sm",
+                          isConnected ? "bg-primary/10 border-primary/30 text-foreground" : "bg-muted/20 border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                        )}
+                      >
+                        <Package className={cn("h-4 w-4 shrink-0", isConnected ? "text-primary" : "")} />
+                        <span className="flex-1 truncate">{p.name}</span>
+                        {isConnected && <span className="text-primary text-xs font-medium">Connected</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground/60 py-2">No products created yet</p>
+              )}
+            </div>
+
+            {/* Audiences */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="h-3 w-3" /> Audiences
+              </p>
+              {audiences.length > 0 ? (
+                <div className="space-y-1.5">
+                  {audiences.map(a => {
+                    const brandProductIds = products.filter(p => p.brandId === connectBrandId).map(p => p.id);
+                    const isConnected = brandProductIds.some(pid => a.productIds?.includes(pid));
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => toggleAudienceConnection(a.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors text-sm",
+                          isConnected ? "bg-primary/10 border-primary/30 text-foreground" : "bg-muted/20 border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                        )}
+                      >
+                        <Users className={cn("h-4 w-4 shrink-0", isConnected ? "text-primary" : "")} />
+                        <span className="flex-1 truncate">{a.name}</span>
+                        {isConnected && <span className="text-primary text-xs font-medium">Connected</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground/60 py-2">No audiences created yet</p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
