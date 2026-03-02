@@ -45,6 +45,24 @@ const BG_COLORS: Record<EntityType, string> = {
   audience: "bg-emerald-500/10 border-emerald-500/30",
 };
 
+const PORT_COLORS: Record<EntityType, string> = {
+  brand: "border-violet-400/60 hover:border-violet-400 hover:bg-violet-400/20",
+  product: "border-blue-400/60 hover:border-blue-400 hover:bg-blue-400/20",
+  audience: "border-emerald-400/60 hover:border-emerald-400 hover:bg-emerald-400/20",
+};
+
+const LINE_COLORS: Record<string, string> = {
+  "brand-product": "hsl(263, 70%, 60%)",
+  "product-audience": "hsl(160, 60%, 45%)",
+};
+
+/* Which ports each entity type shows */
+const PORTS: Record<EntityType, ("left" | "right")[]> = {
+  brand: ["right"],
+  product: ["left", "right"],
+  audience: ["left"],
+};
+
 /* ── Helpers ── */
 function getConnections(
   brands: BrandEntry[],
@@ -85,9 +103,10 @@ function DragPort({
     <div
       ref={(el) => portRef(el, `${entityId}-${side}`)}
       className={cn(
-        "absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full border-2 cursor-crosshair z-10 transition-all hover:scale-150",
-        side === "left" ? "-left-[7px]" : "-right-[7px]",
-        "bg-muted border-primary/50 hover:border-primary hover:bg-primary/20"
+        "absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 cursor-crosshair z-10 transition-all hover:scale-150",
+        side === "left" ? "-left-[8px]" : "-right-[8px]",
+        "bg-muted/80",
+        PORT_COLORS[entityType]
       )}
       onMouseDown={(e) => {
         e.preventDefault();
@@ -103,53 +122,67 @@ function DragPort({
 function EntityCard({
   entity,
   highlighted,
+  connectedCount,
   onDragStart,
   onDragEnd,
   portRef,
 }: {
   entity: EntityItem;
   highlighted: boolean;
+  connectedCount: number;
   onDragStart: (id: string, type: EntityType, e: React.MouseEvent) => void;
   onDragEnd: (id: string, type: EntityType) => void;
   portRef: (el: HTMLDivElement | null, id: string) => void;
 }) {
   const Icon = ICONS[entity.type];
+  const ports = PORTS[entity.type];
   return (
     <div
       className={cn(
-        "relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all select-none",
+        "relative flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 transition-all select-none",
         highlighted
           ? BG_COLORS[entity.type]
-          : "bg-card/60 border-border/40 hover:border-border/60"
+          : "bg-card/60 border-border/30 hover:border-border/50"
       )}
     >
-      <DragPort
-        entityId={entity.id}
-        entityType={entity.type}
-        side="left"
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        portRef={portRef}
-      />
+      {ports.includes("left") && (
+        <DragPort
+          entityId={entity.id}
+          entityType={entity.type}
+          side="left"
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          portRef={portRef}
+        />
+      )}
       <div
         className={cn(
-          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+          "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
           BG_COLORS[entity.type]
         )}
       >
-        <Icon className={cn("h-4 w-4", COLORS[entity.type])} />
+        <Icon className={cn("h-4.5 w-4.5", COLORS[entity.type])} />
       </div>
-      <span className="text-sm font-medium text-foreground truncate flex-1">
-        {entity.name}
-      </span>
-      <DragPort
-        entityId={entity.id}
-        entityType={entity.type}
-        side="right"
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        portRef={portRef}
-      />
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium text-foreground truncate block">
+          {entity.name}
+        </span>
+        {connectedCount > 0 && (
+          <span className={cn("text-[10px]", COLORS[entity.type])}>
+            {connectedCount} connection{connectedCount !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+      {ports.includes("right") && (
+        <DragPort
+          entityId={entity.id}
+          entityType={entity.type}
+          side="right"
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          portRef={portRef}
+        />
+      )}
     </div>
   );
 }
@@ -360,15 +393,17 @@ export function ConnectionDialog({
         focusConnected.has(conn.toId);
 
       const midX = (from.x + to.x) / 2;
+      const lineColorKey = [conn.fromType, conn.toType].sort().join("-");
+      const lineColor = LINE_COLORS[lineColorKey] || "hsl(var(--primary))";
 
       return (
         <g key={i}>
           <path
             d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
-            stroke="hsl(var(--primary))"
-            strokeWidth={2}
+            stroke={lineColor}
+            strokeWidth={2.5}
             fill="none"
-            opacity={isFocused ? 0.6 : 0.15}
+            opacity={isFocused ? 0.7 : 0.15}
             className="transition-opacity"
           />
           {/* Delete hitbox */}
@@ -461,6 +496,7 @@ export function ConnectionDialog({
                   key={e.id}
                   entity={e}
                   highlighted={focusConnected.size > 0 ? focusConnected.has(e.id) : false}
+                  connectedCount={connections.filter(c => c.fromId === e.id || c.toId === e.id).length}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                   portRef={setPortRef}
@@ -484,6 +520,7 @@ export function ConnectionDialog({
                   key={e.id}
                   entity={e}
                   highlighted={focusConnected.size > 0 ? focusConnected.has(e.id) : false}
+                  connectedCount={connections.filter(c => c.fromId === e.id || c.toId === e.id).length}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                   portRef={setPortRef}
@@ -507,6 +544,7 @@ export function ConnectionDialog({
                   key={e.id}
                   entity={e}
                   highlighted={focusConnected.size > 0 ? focusConnected.has(e.id) : false}
+                  connectedCount={connections.filter(c => c.fromId === e.id || c.toId === e.id).length}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                   portRef={setPortRef}
