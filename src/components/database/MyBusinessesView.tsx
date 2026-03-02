@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Plus, Search, Building2 } from "lucide-react";
+import { Plus, Search, Building2, Rocket, Upload, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import startBusinessBg from "@/assets/start-business-bg.png";
+import addBusinessBg from "@/assets/add-business-bg.png";
 
 interface MyBusinessesViewProps {
   onSelectBusiness: () => void;
@@ -13,6 +16,7 @@ const TABS = ["My Businesses", "Shared with me"] as const;
 export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("My Businesses");
   const [search, setSearch] = useState("");
+  const [showOptionsDialog, setShowOptionsDialog] = useState(false);
 
   return (
     <div className="flex flex-col h-full items-center">
@@ -58,7 +62,7 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={onSelectBusiness}
+              onClick={() => setShowOptionsDialog(true)}
               className="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/40 bg-card/30 hover:bg-card/60 p-8 min-h-[200px] transition-colors cursor-pointer"
             >
               <div className="h-14 w-14 rounded-xl bg-muted/60 group-hover:bg-primary/10 border border-border/40 group-hover:border-primary/30 flex items-center justify-center transition-colors">
@@ -123,6 +127,56 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Options Dialog */}
+      <Dialog open={showOptionsDialog} onOpenChange={setShowOptionsDialog}>
+        <DialogContent className="sm:max-w-xl p-0 overflow-hidden bg-background border-border/50">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="text-lg">How would you like to get started?</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 p-6 pt-2">
+            {/* Start Business - Coming Soon */}
+            <div className="relative group rounded-xl overflow-hidden border border-border/50 opacity-80 cursor-not-allowed">
+              <img src={startBusinessBg} alt="" className="w-full h-40 object-cover" />
+              <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px]" />
+              <div className="absolute top-2 right-2">
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground border border-border/50">
+                  <Lock className="h-2.5 w-2.5" />
+                  Coming Soon
+                </span>
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                <div className="h-12 w-12 rounded-xl bg-background/80 border border-border/50 flex items-center justify-center mb-3">
+                  <Rocket className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Start Business</h3>
+                <p className="text-xs text-muted-foreground mt-1">Launch a new business from scratch with AI guidance</p>
+              </div>
+            </div>
+
+            {/* Add Business */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                setShowOptionsDialog(false);
+                onSelectBusiness();
+              }}
+              className="relative group rounded-xl overflow-hidden border border-border/50 hover:border-primary/40 transition-colors text-left cursor-pointer"
+            >
+              <img src={addBusinessBg} alt="" className="w-full h-40 object-cover" />
+              <div className="absolute inset-0 bg-background/50 group-hover:bg-background/40 transition-colors" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                <div className="h-12 w-12 rounded-xl bg-background/80 border border-border/50 group-hover:border-primary/30 flex items-center justify-center mb-3 transition-colors">
+                  <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Add Business</h3>
+                <p className="text-xs text-muted-foreground mt-1">Import an existing business and connect your data</p>
+              </div>
+            </motion.button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
