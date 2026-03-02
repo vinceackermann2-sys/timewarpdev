@@ -7,12 +7,10 @@ import { DEFAULT_PRODUCT } from "@/components/database/ProductDetailView";
 import { ProductDetailView } from "@/components/database/ProductDetailView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusinessDNA, ProductEntry } from "@/components/database/BusinessDNAContext";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { ConnectionDialog } from "@/components/database/ConnectionDialog";
 
 export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
-  const { userName, brands, products, setProducts, audiences, setAudiences } = useBusinessDNA();
+  const { userName, brands, products, setProducts, audiences } = useBusinessDNA();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -20,7 +18,7 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
   // Filter products to only show those belonging to the active brand
   const brandProducts = products.filter(p => p.brandId === activeBrandId);
   const selectedProduct = brandProducts.find(p => p.id === selectedProductId);
-  const connectProduct = products.find(p => p.id === connectProductId);
+  
 
   const handleCreate = () => {
     if (!newName.trim()) return;
@@ -45,23 +43,8 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
     setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
   };
 
-  const handleSetBrand = (brandId: string) => {
-    if (!connectProductId) return;
-    setProducts(prev => prev.map(p => {
-      if (p.id !== connectProductId) return p;
-      return { ...p, brandId: p.brandId === brandId ? undefined : brandId };
-    }));
-  };
 
-  const toggleAudienceConnection = (audienceId: string) => {
-    if (!connectProductId) return;
-    setAudiences(prev => prev.map(a => {
-      if (a.id !== audienceId) return a;
-      const current = a.productIds || [];
-      const has = current.includes(connectProductId);
-      return { ...a, productIds: has ? current.filter(id => id !== connectProductId) : [...current, connectProductId] };
-    }));
-  };
+
 
   if (selectedProduct) {
     return (
@@ -151,63 +134,11 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
       )}
 
       {/* Connection Dialog */}
-      <Dialog open={!!connectProductId} onOpenChange={(open) => { if (!open) setConnectProductId(null); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <Link2 className="h-4 w-4 text-primary" />
-              Connect to {connectProduct?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            {/* Brand */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Palette className="h-3 w-3" /> Brand
-              </p>
-              {brands.length > 0 ? (
-                <div className="space-y-1.5">
-                  {brands.map(b => {
-                    const isConnected = connectProduct?.brandId === b.id;
-                    return (
-                      <button key={b.id} onClick={() => handleSetBrand(b.id)} className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors text-sm", isConnected ? "bg-primary/10 border-primary/30 text-foreground" : "bg-muted/20 border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground")}>
-                        <Palette className={cn("h-4 w-4 shrink-0", isConnected ? "text-primary" : "")} />
-                        <span className="flex-1 truncate">{b.name}</span>
-                        {isConnected && <span className="text-primary text-xs font-medium">Connected</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground/60 py-2">No brands created yet</p>
-              )}
-            </div>
-
-            {/* Audiences */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Users className="h-3 w-3" /> Audiences
-              </p>
-              {audiences.length > 0 ? (
-                <div className="space-y-1.5">
-                  {audiences.map(a => {
-                    const isConnected = connectProductId ? a.productIds?.includes(connectProductId) : false;
-                    return (
-                      <button key={a.id} onClick={() => toggleAudienceConnection(a.id)} className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors text-sm", isConnected ? "bg-primary/10 border-primary/30 text-foreground" : "bg-muted/20 border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground")}>
-                        <Users className={cn("h-4 w-4 shrink-0", isConnected ? "text-primary" : "")} />
-                        <span className="flex-1 truncate">{a.name}</span>
-                        {isConnected && <span className="text-primary text-xs font-medium">Connected</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground/60 py-2">No audiences created yet</p>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConnectionDialog
+        open={!!connectProductId}
+        onOpenChange={(open) => { if (!open) setConnectProductId(null); }}
+        focusEntityId={connectProductId}
+      />
     </div>
   );
 }
