@@ -24,6 +24,7 @@ export interface VisualIdentityData {
   moodboardUrls?: string[];
   illustrationUrls?: string[];
   websiteScreenshot?: string;
+  mobileScreenshot?: string;
   guidelineImageUrls?: string[];
 }
 
