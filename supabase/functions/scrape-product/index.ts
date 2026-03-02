@@ -406,7 +406,84 @@ ${markdown.slice(0, 15000)}`;
       );
     }
 
-    console.log("Extraction successful:", extracted.product?.name);
+    // Merge Firecrawl branding data into AI result (AI often misses logos)
+    if (firecrawlBranding && extracted.brand) {
+      // Logos: collect from Firecrawl branding fields
+      const fcLogos: string[] = [];
+      if (firecrawlBranding.logo) fcLogos.push(firecrawlBranding.logo);
+      if (firecrawlBranding.images?.logo && firecrawlBranding.images.logo !== firecrawlBranding.logo) {
+        fcLogos.push(firecrawlBranding.images.logo);
+      }
+      if (firecrawlBranding.images?.favicon) fcLogos.push(firecrawlBranding.images.favicon);
+      if (firecrawlBranding.images?.ogImage) fcLogos.push(firecrawlBranding.images.ogImage);
+
+      // Merge logos: prefer Firecrawl logos, then add any AI-found ones
+      const aiLogos = Array.isArray(extracted.brand.logoUrls) ? extracted.brand.logoUrls : [];
+      const allLogos = [...new Set([...fcLogos, ...aiLogos])].filter(Boolean);
+      if (allLogos.length > 0) {
+        extracted.brand.logoUrls = allLogos;
+      }
+
+      // Colors: use Firecrawl colors as fallback if AI returned empty/default
+      if (firecrawlBranding.colors) {
+        const fc = firecrawlBranding.colors;
+        if (!extracted.brand.colors || extracted.brand.colors.primary === "#hex" || !extracted.brand.colors.primary) {
+          extracted.brand.colors = {
+            primary: fc.primary || fc.accent || "#4A86FF",
+            secondary: fc.secondary || "#6B7280",
+            background: fc.background || "#FFFFFF",
+            text: fc.textPrimary || fc.textSecondary || "#000000",
+          };
+        }
+      }
+
+      // Typography: use Firecrawl fonts as fallback
+      if (firecrawlBranding.typography?.fontFamilies) {
+        const fcFonts = firecrawlBranding.typography.fontFamilies;
+        if (!extracted.brand.typography?.fontFamily || extracted.brand.typography.fontFamily === "") {
+          extracted.brand.typography = {
+            ...extracted.brand.typography,
+            fontFamily: fcFonts.primary || fcFonts.heading || "Sans-serif",
+          };
+        }
+      }
+
+      // Visual identity: ensure it's not empty
+      if (!extracted.brand.visualIdentity || 
+          (!extracted.brand.visualIdentity.imageGuidelines?.length &&
+           !extracted.brand.visualIdentity.websiteRules?.length &&
+           !extracted.brand.visualIdentity.buttonRules?.length &&
+           !extracted.brand.visualIdentity.socialMediaRules?.length)) {
+        // Build from Firecrawl component/spacing data
+        const vi: any = { imageGuidelines: [], websiteRules: [], buttonRules: [], socialMediaRules: [] };
+        
+        if (firecrawlBranding.components?.buttonPrimary) {
+          const btn = firecrawlBranding.components.buttonPrimary;
+          vi.buttonRules.push(`Primary buttons: ${btn.borderRadius || '8px'} radius, ${btn.background || 'brand color'} fill, ${btn.textColor || 'white'} text`);
+        }
+        if (firecrawlBranding.components?.buttonSecondary) {
+          const btn = firecrawlBranding.components.buttonSecondary;
+          vi.buttonRules.push(`Secondary buttons: ${btn.borderRadius || '8px'} radius, ${btn.background || 'transparent'} fill`);
+        }
+        if (firecrawlBranding.spacing) {
+          vi.websiteRules.push(`Base spacing unit: ${firecrawlBranding.spacing.baseUnit || 8}px`);
+          vi.websiteRules.push(`Border radius: ${firecrawlBranding.spacing.borderRadius || '8px'}`);
+        }
+        if (firecrawlBranding.colorScheme) {
+          vi.websiteRules.push(`Color scheme: ${firecrawlBranding.colorScheme}`);
+        }
+        
+        // Only override if we built something
+        if (vi.buttonRules.length || vi.websiteRules.length) {
+          extracted.brand.visualIdentity = {
+            ...extracted.brand.visualIdentity,
+            ...vi,
+          };
+        }
+      }
+    }
+
+    console.log("Extraction successful:", extracted.product?.name, "logos:", extracted.brand?.logoUrls?.length || 0);
 
     return new Response(
       JSON.stringify({ success: true, extracted }),
