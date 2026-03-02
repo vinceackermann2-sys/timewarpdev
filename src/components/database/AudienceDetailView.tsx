@@ -199,7 +199,22 @@ export function AudienceDetailView({
   onSave: (audience: AudienceData) => void;
 }) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [data, setData] = useState<AudienceData>(audience);
+  const [data, setData] = useState<AudienceData>({
+    ...DEFAULT_AUDIENCE,
+    ...audience,
+    buyingTriggers: audience.buyingTriggers || [],
+    useCaseRequirements: audience.useCaseRequirements || [],
+    keySuccessIndicators: audience.keySuccessIndicators || [],
+    valuePropositions: audience.valuePropositions || [],
+    engagementTriggers: audience.engagementTriggers || [],
+    attentionHooks: audience.attentionHooks || [],
+    commonObjections: audience.commonObjections || [],
+    proofPoints: audience.proofPoints || [],
+    dosAndDonts: audience.dosAndDonts || { dos: [], donts: [] },
+    powerPhrases: audience.powerPhrases || [],
+    powerWords: audience.powerWords || [],
+    refinementChecklist: audience.refinementChecklist || [],
+  });
   const [descExpanded, setDescExpanded] = useState(false);
   const [activeSidebarSection, setActiveSidebarSection] = useState("audience-overview");
 
