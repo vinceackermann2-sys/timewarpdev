@@ -53,7 +53,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         url: formattedUrl,
-        formats: ["markdown", "links"],
+        formats: ["markdown", "links", "branding"],
         onlyMainContent: false,
       }),
     });
@@ -69,8 +69,10 @@ serve(async (req) => {
 
     const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
     const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
+    const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
 
     console.log("Scraped content length:", markdown.length);
+    if (firecrawlBranding) console.log("Firecrawl branding data found:", JSON.stringify(firecrawlBranding).slice(0, 200));
 
     // Step 2: Extract structured data with AI
     const extractionPrompt = `You are a Product & Audience DNA analyst. Your job is to extract structured data from a product page using the exact formulas and output style below. Study the formulas and example outputs carefully — they define the TONE, DEPTH, and FORMAT of your answers.
@@ -341,7 +343,10 @@ IMPORTANT RULES:
 Page URL: ${formattedUrl}
 Page title: ${metadata.title || "Unknown"}
 
-Page content:
+${firecrawlBranding ? `Firecrawl extracted branding data (use this as primary source for brand colors, fonts, and logos):
+${JSON.stringify(firecrawlBranding, null, 2)}
+
+` : ""}Page content:
 ${markdown.slice(0, 15000)}`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

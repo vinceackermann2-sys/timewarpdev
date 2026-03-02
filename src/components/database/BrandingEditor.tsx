@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   Globe, ImageIcon, Palette, Type, Upload, X, Check, RefreshCw, Save, Pencil,
 } from "lucide-react";
@@ -113,11 +115,38 @@ export function BrandingEditor({
   const [extractUrl, setExtractUrl] = useState("");
   const [isExtracting, setIsExtracting] = useState(false);
 
+  const { toast } = useToast();
+
   const handleExtract = async () => {
     if (!extractUrl.trim()) return;
     setIsExtracting(true);
-    // TODO: integrate with Firecrawl branding extraction
-    setTimeout(() => setIsExtracting(false), 1500);
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-product", {
+        body: { url: extractUrl.trim() },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Extraction failed");
+
+      const b = data.extracted?.brand;
+      if (b) {
+        setBranding((prev) => ({
+          ...prev,
+          colors: b.colors ? { ...prev.colors, ...b.colors } : prev.colors,
+          typography: b.typography ? { ...prev.typography, ...b.typography } : prev.typography,
+          logos: Array.isArray(b.logoUrls) && b.logoUrls.length > 0 ? b.logoUrls : prev.logos,
+          confidence: 85,
+          source: extractUrl.trim(),
+        }));
+        toast({ title: "Branding extracted", description: `Found colors, typography and logos from ${b.name || "the URL"}.` });
+      } else {
+        toast({ title: "No branding found", description: "Could not extract brand data from that URL.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      console.error("Brand extraction error:", err);
+      toast({ title: "Extraction failed", description: err.message || "Could not extract branding.", variant: "destructive" });
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const updateColor = (key: keyof BrandingData["colors"], value: string) => {
