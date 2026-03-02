@@ -28,6 +28,7 @@ const Database = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>("database");
   const [showBusinessDNA, setShowBusinessDNA] = useState(false);
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
 
@@ -115,13 +116,21 @@ const Database = () => {
                 {showAddProduct
                   ? <AddProductURLView 
                       onBack={() => setShowAddProduct(false)} 
-                      onComplete={() => { setShowAddProduct(false); setShowBusinessDNA(true); }} 
+                      onComplete={(newBrandId?: string) => { 
+                        setShowAddProduct(false); 
+                        setActiveBrandId(newBrandId || activeBrandId);
+                        setShowBusinessDNA(true); 
+                      }}
+                      activeBrandId={activeBrandId}
                     />
-                  : showBusinessDNA 
-                    ? <BusinessDNAView onBack={() => setShowBusinessDNA(false)} />
+                  : showBusinessDNA && activeBrandId
+                    ? <BusinessDNAView 
+                        activeBrandId={activeBrandId} 
+                        onBack={() => { setShowBusinessDNA(false); setActiveBrandId(null); }} 
+                      />
                     : <MyBusinessesView 
                         onSelectBusiness={() => setShowAddProduct(true)} 
-                        onOpenBusiness={() => setShowBusinessDNA(true)}
+                        onOpenBusiness={(brandId) => { setActiveBrandId(brandId); setShowBusinessDNA(true); }}
                       />
                 }
               </BusinessDNAProvider>
