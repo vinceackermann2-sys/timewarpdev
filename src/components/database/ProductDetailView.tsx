@@ -356,7 +356,7 @@ export function ProductDetailView({
   onSave: (product: ProductData) => void;
 }) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [data, setData] = useState<ProductData>({
+  const safeProduct: ProductData = {
     ...DEFAULT_PRODUCT,
     ...product,
     features: product.features || [],
@@ -366,15 +366,29 @@ export function ProductDetailView({
     targetScenarios: product.targetScenarios || [],
     uniqueSellingPoints: product.uniqueSellingPoints || [],
     competitiveAdvantages: product.competitiveAdvantages || [],
-    commonObjections: product.commonObjections || [],
-    proofPoints: product.proofPoints || [],
-    dosAndDonts: product.dosAndDonts || { dos: [], donts: [] },
+    commonObjections: (product.commonObjections || []).map(o => ({
+      objection: o?.objection || "",
+      response: o?.response || "",
+    })),
+    proofPoints: (product.proofPoints || []).map(pp => ({
+      category: pp?.category || "General",
+      items: pp?.items || [],
+    })),
+    dosAndDonts: {
+      dos: product.dosAndDonts?.dos || [],
+      donts: product.dosAndDonts?.donts || [],
+    },
     powerPhrases: product.powerPhrases || [],
     powerWords: product.powerWords || [],
+    technicalLevel: product.technicalLevel || "",
     refinementChecklist: product.refinementChecklist || [],
     images: product.images || [],
-    offers: product.offers || [],
-  });
+    offers: (product.offers || []).map(o => ({
+      ...o,
+      freeGifts: o?.freeGifts || [],
+    })),
+  };
+  const [data, setData] = useState<ProductData>(safeProduct);
   const [descExpanded, setDescExpanded] = useState(false);
   const [activeSidebarSection, setActiveSidebarSection] = useState("product-overview");
 
@@ -386,7 +400,7 @@ export function ProductDetailView({
   };
 
   const handleCancel = () => {
-    setData(product);
+    setData(safeProduct);
     setEditingSection(null);
   };
 
