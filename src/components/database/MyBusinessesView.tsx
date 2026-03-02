@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Building2, Rocket, Upload, Lock } from "lucide-react";
+import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -130,7 +130,7 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
 
       {/* Options Dialog */}
       <Dialog open={showOptionsDialog} onOpenChange={setShowOptionsDialog}>
-        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-background border-border/50">
+        <DialogContent className="sm:max-w-3xl p-0 overflow-hidden bg-background border-border/50">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle className="text-lg">How would you like to get started?</DialogTitle>
           </DialogHeader>
@@ -143,12 +143,14 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
                   Coming Soon
                 </span>
               </div>
-              <img src={addBusinessBg} alt="" className="w-full h-44 object-cover" />
+              <div className="relative">
+                <img src={addBusinessBg} alt="" className="w-full h-52 object-cover" />
+                <div className="absolute bottom-3 left-3 h-10 w-10 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center">
+                  <Rocket className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </div>
               <div className="p-4">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Rocket className="h-4 w-4 text-muted-foreground" />
-                  From Scratch
-                </h3>
+                <h3 className="text-sm font-semibold text-foreground">From Scratch</h3>
                 <p className="text-xs text-muted-foreground mt-1">Create from scratch with AI</p>
               </div>
             </div>
@@ -163,12 +165,14 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
               }}
               className="rounded-xl border border-border/50 hover:border-primary/40 bg-card overflow-hidden transition-colors text-left cursor-pointer"
             >
-              <img src={startBusinessBg} alt="" className="w-full h-44 object-cover" />
+              <div className="relative">
+                <img src={startBusinessBg} alt="" className="w-full h-52 object-cover" />
+                <div className="absolute bottom-3 left-3 h-10 w-10 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center">
+                  <FolderOpenDot className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </div>
               <div className="p-4">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-muted-foreground" />
-                  From Existing
-                </h3>
+                <h3 className="text-sm font-semibold text-foreground">From Existing</h3>
                 <p className="text-xs text-muted-foreground mt-1">Create from existing business</p>
               </div>
             </motion.button>
