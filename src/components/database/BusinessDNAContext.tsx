@@ -21,6 +21,10 @@ export interface VisualIdentityData {
   websiteRules?: string[];
   buttonRules?: string[];
   socialMediaRules?: string[];
+  moodboardUrls?: string[];
+  illustrationUrls?: string[];
+  websiteScreenshot?: string;
+  guidelineImageUrls?: string[];
 }
 
 export interface BrandEntry {
