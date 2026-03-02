@@ -9,6 +9,7 @@ import { DataConversionView } from "@/components/database/DataConversionView";
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { BusinessDNAView } from "@/components/database/BusinessDNAView";
 import { MyBusinessesView } from "@/components/database/MyBusinessesView";
+import { AddProductURLView } from "@/components/database/AddProductURLView";
 import { Loader2 } from "lucide-react";
 
 type View = "database" | "dataconversion" | "aiceo" | "businessdna";
@@ -26,6 +27,7 @@ const Database = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>("database");
   const [showBusinessDNA, setShowBusinessDNA] = useState(false);
+  const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
 
   // Check for view parameter and pending task on mount
@@ -108,9 +110,14 @@ const Database = () => {
               />
             )}
             {currentView === "businessdna" && user && (
-              showBusinessDNA 
-                ? <BusinessDNAView onBack={() => setShowBusinessDNA(false)} />
-                : <MyBusinessesView onSelectBusiness={() => setShowBusinessDNA(true)} />
+              showAddProduct
+                ? <AddProductURLView 
+                    onBack={() => setShowAddProduct(false)} 
+                    onComplete={() => { setShowAddProduct(false); setShowBusinessDNA(true); }} 
+                  />
+                : showBusinessDNA 
+                  ? <BusinessDNAView onBack={() => setShowBusinessDNA(false)} />
+                  : <MyBusinessesView onSelectBusiness={() => setShowAddProduct(true)} />
             )}
           </main>
         </SidebarInset>
