@@ -1,22 +1,29 @@
 import { useState } from "react";
-import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock } from "lucide-react";
+import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import startBusinessBg from "@/assets/start-business-bg.png";
 import addBusinessBg from "@/assets/add-business-bg.png";
+import { useBusinessDNA } from "./BusinessDNAContext";
 
 interface MyBusinessesViewProps {
   onSelectBusiness: () => void;
+  onOpenBusiness?: (brandId: string) => void;
 }
 
 const TABS = ["My Businesses", "Shared with me"] as const;
 
-export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
+export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusinessesViewProps) {
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("My Businesses");
   const [search, setSearch] = useState("");
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
+  const { brands, isLoading } = useBusinessDNA();
+
+  const filteredBrands = brands.filter(b =>
+    b.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col h-full items-center">
@@ -72,6 +79,33 @@ export function MyBusinessesView({ onSelectBusiness }: MyBusinessesViewProps) {
                 Add Business
               </span>
             </motion.button>
+
+            {/* Loading state */}
+            {isLoading && (
+              <div className="flex items-center justify-center min-h-[200px] rounded-xl border border-border/30 bg-card/20">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {/* Existing Business Cards */}
+            {filteredBrands.map((brand) => (
+              <motion.button
+                key={brand.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onOpenBusiness?.(brand.id)}
+                className="group flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-6 min-h-[200px] transition-colors cursor-pointer text-left"
+              >
+                <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Building2 className="h-6 w-6 text-primary/70" />
+                </div>
+                <div className="mt-auto space-y-1">
+                  <h3 className="text-base font-semibold text-foreground">{brand.name}</h3>
+                  <p className="text-xs text-muted-foreground">{brand.category}</p>
+                  <p className="text-xs text-muted-foreground/60">Updated {brand.lastUpdated}</p>
+                </div>
+              </motion.button>
+            ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">

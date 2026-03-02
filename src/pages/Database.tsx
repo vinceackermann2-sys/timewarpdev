@@ -119,7 +119,10 @@ const Database = () => {
                     />
                   : showBusinessDNA 
                     ? <BusinessDNAView onBack={() => setShowBusinessDNA(false)} />
-                    : <MyBusinessesView onSelectBusiness={() => setShowAddProduct(true)} />
+                    : <MyBusinessesView 
+                        onSelectBusiness={() => setShowAddProduct(true)} 
+                        onOpenBusiness={() => setShowBusinessDNA(true)}
+                      />
                 }
               </BusinessDNAProvider>
             )}
