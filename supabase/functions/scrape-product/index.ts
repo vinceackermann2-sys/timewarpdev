@@ -499,22 +499,72 @@ ${markdown.slice(0, 15000)}`;
       }
     }
 
-    // ── Moodboard: Search Pinterest for audience-related aesthetic terms ──
+    // ── Moodboard: Scrape Pinterest search page for audience-related aesthetic images ──
     const moodboardPromise = (async () => {
       try {
         const audienceDesc = extracted.audience?.description || "";
         const brandCategory = extracted.brand?.category || "";
-        const brandName = extracted.brand?.name || "";
+        const audienceShort = audienceDesc.split('.')[0].replace(/[^a-zA-Z0-9 ]/g, '').trim();
         
-        // Build aesthetic search terms from audience + brand data
-        const searchTerms = [
-          `${brandCategory} aesthetic moodboard`,
-          `${audienceDesc.split('.')[0]} lifestyle aesthetic`,
-          `${brandName} brand aesthetic`
-        ].filter(t => t.trim().length > 10);
+        const searchQuery = audienceShort 
+          ? `${audienceShort} ${brandCategory} aesthetic`.trim()
+          : `${brandCategory} lifestyle aesthetic moodboard`;
         
-        const pinterestQuery = searchTerms[0] || `${brandCategory} brand moodboard`;
-        console.log("Searching Pinterest for moodboard:", pinterestQuery);
+        const pinterestUrl = `https://pinterest.com/search/pins/?q=${encodeURIComponent(searchQuery)}`;
+        console.log("Scraping Pinterest for moodboard:", pinterestUrl);
+        
+        const pinRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: pinterestUrl,
+            formats: ["links", "markdown"],
+            waitFor: 3000,
+            onlyMainContent: true,
+          }),
+        });
+        
+        if (pinRes.ok) {
+          const pinData = await pinRes.json();
+          const pinMarkdown = pinData.data?.markdown || pinData.markdown || "";
+          const pinLinks = pinData.data?.links || pinData.links || [];
+          
+          const pinterestImages: string[] = [];
+          
+          // Extract pinimg URLs from markdown and links
+          const pinimgPattern = /(https?:\/\/i\.pinimg\.com\/[^\s"')]+)/gi;
+          let match;
+          while ((match = pinimgPattern.exec(pinMarkdown)) !== null) {
+            pinterestImages.push(match[1]);
+          }
+          for (const link of pinLinks) {
+            if (typeof link === 'string' && link.includes('pinimg.com')) {
+              pinterestImages.push(link);
+            }
+          }
+          
+          const uniqueMoodboard = [...new Set(pinterestImages)]
+            .filter(u => u && !u.includes('75x75') && !u.includes('favicon'))
+            .slice(0, 6);
+          
+          if (uniqueMoodboard.length > 0) {
+            extracted.brand.visualIdentity.moodboardUrls = uniqueMoodboard;
+            console.log("Found", uniqueMoodboard.length, "Pinterest moodboard images");
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Pinterest moodboard scrape error (non-fatal):", e);
+      }
+      
+      // Fallback: web search for aesthetic images
+      try {
+        const audienceDesc = extracted.audience?.description || "";
+        const brandCategory = extracted.brand?.category || "";
+        const query = `${brandCategory} ${audienceDesc.split('.')[0]} aesthetic moodboard`;
         
         const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
           method: "POST",
@@ -522,53 +572,41 @@ ${markdown.slice(0, 15000)}`;
             Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            query: `site:pinterest.com ${pinterestQuery}`,
-            limit: 8,
-          }),
+          body: JSON.stringify({ query, limit: 10 }),
         });
         
         if (searchRes.ok) {
           const searchData = await searchRes.json();
           const results = searchData.data || [];
-          // Extract image URLs from Pinterest results
-          const pinterestImages: string[] = [];
-          for (const result of results) {
-            // Look for og:image or image URLs in metadata/content
-            if (result.metadata?.ogImage) pinterestImages.push(result.metadata.ogImage);
-            // Also try scraping individual pins for their images
-            const imgMatches = (result.markdown || "").match(/!\[.*?\]\((https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|webp)[^\s)]*)\)/gi);
-            if (imgMatches) {
-              for (const m of imgMatches) {
-                const urlMatch = m.match(/\((https?:\/\/[^\s)]+)\)/);
-                if (urlMatch) pinterestImages.push(urlMatch[1]);
-              }
-            }
+          const imageUrls: string[] = [];
+          for (const r of results) {
+            if (r.metadata?.ogImage) imageUrls.push(r.metadata.ogImage);
+            const imgs = (r.markdown || "").match(/(https?:\/\/[^\s)"']+\.(?:jpg|jpeg|png|webp))/gi);
+            if (imgs) imageUrls.push(...imgs);
           }
-          const uniqueMoodboard = [...new Set(pinterestImages)].filter(u => u && !u.includes('favicon')).slice(0, 6);
-          if (uniqueMoodboard.length > 0) {
-            extracted.brand.visualIdentity.moodboardUrls = uniqueMoodboard;
-            console.log("Found", uniqueMoodboard.length, "Pinterest moodboard images");
+          const unique = [...new Set(imageUrls)].filter(u => !u.includes('favicon')).slice(0, 6);
+          if (unique.length > 0) {
+            extracted.brand.visualIdentity.moodboardUrls = unique;
+            console.log("Fallback: found", unique.length, "moodboard images from web search");
+            return;
           }
         }
       } catch (e) {
-        console.warn("Pinterest moodboard search error (non-fatal):", e);
+        console.warn("Fallback moodboard error:", e);
       }
       
-      // Fallback: use page images if Pinterest didn't return enough
-      if (!extracted.brand.visualIdentity.moodboardUrls?.length) {
-        const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)|src=["'](https?:\/\/[^\s"']+)["']/gi;
-        const pageImages: string[] = [];
-        let imgMatch;
-        while ((imgMatch = imageUrlRegex.exec(markdown)) !== null) {
-          const imgUrl = imgMatch[1] || imgMatch[2];
-          if (imgUrl && !imgUrl.includes('favicon') && !imgUrl.includes('tracking') && !imgUrl.includes('pixel')) {
-            pageImages.push(imgUrl);
-          }
+      // Final fallback: page images
+      const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)|src=["'](https?:\/\/[^\s"']+)["']/gi;
+      const pageImages: string[] = [];
+      let imgMatch;
+      while ((imgMatch = imageUrlRegex.exec(markdown)) !== null) {
+        const imgUrl = imgMatch[1] || imgMatch[2];
+        if (imgUrl && !imgUrl.includes('favicon') && !imgUrl.includes('tracking') && !imgUrl.includes('pixel')) {
+          pageImages.push(imgUrl);
         }
-        if (firecrawlBranding?.images?.ogImage) pageImages.push(firecrawlBranding.images.ogImage);
-        extracted.brand.visualIdentity.moodboardUrls = [...new Set(pageImages)].slice(0, 6);
       }
+      if (firecrawlBranding?.images?.ogImage) pageImages.push(firecrawlBranding.images.ogImage);
+      extracted.brand.visualIdentity.moodboardUrls = [...new Set(pageImages)].slice(0, 6);
     })();
 
     // ── Desktop screenshot ──
@@ -598,58 +636,17 @@ ${markdown.slice(0, 15000)}`;
 
     const aiImagePromises: Promise<void>[] = [];
 
-    // ── Logo: use found URLs, or screenshot the logo area if text-only ──
+    // ── Logo: use found URLs, or use screenshot of the logo area (no AI recreation) ──
     if (!extracted.brand.logoUrls || extracted.brand.logoUrls.length === 0) {
-      aiImagePromises.push((async () => {
-        try {
-          console.log("No logo image found, screenshotting logo area for:", brandName);
-          // Use Firecrawl to screenshot just the top of the page where logos typically are
-          const logoScrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              url: formattedUrl,
-              formats: ["screenshot"],
-              onlyMainContent: false,
-              waitFor: 1000,
-            }),
-          });
-          if (logoScrapeRes.ok) {
-            const logoData = await logoScrapeRes.json();
-            const ss = logoData.data?.screenshot || logoData.screenshot;
-            if (ss) {
-              const logoScreenshot = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
-              // Use AI to crop/extract just the logo from the screenshot
-              const cropRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-flash-image",
-                  messages: [{
-                    role: "user",
-                    content: [
-                      { type: "text", text: `Extract and recreate ONLY the logo from this website screenshot. The brand is "${brandName}". Output a clean version of the logo on a transparent/white background. If it's a text logo, recreate it faithfully with the same style, font, and colors. No extra elements.` },
-                      { type: "image_url", image_url: { url: logoScreenshot } }
-                    ]
-                  }],
-                  modalities: ["image", "text"],
-                }),
-              });
-              if (cropRes.ok) {
-                const d = await cropRes.json();
-                const logoImg = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-                if (logoImg) {
-                  extracted.brand.logoUrls = [logoImg];
-                  console.log("Extracted logo from screenshot");
-                }
-              }
-            }
-          }
-        } catch (e) { console.warn("Logo screenshot error:", e); }
-      })());
+      // We already have the full page screenshot — use it as the logo reference
+      // The screenshot captures the header/logo area naturally
+      if (websiteScreenshot) {
+        const ssUrl = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
+          ? websiteScreenshot
+          : `data:image/png;base64,${websiteScreenshot}`;
+        extracted.brand.logoUrls = [ssUrl];
+        console.log("Using page screenshot as logo (text logo detected)");
+      }
     }
 
     // ── Generate patterns + mascots based on audience + brand ──
