@@ -199,33 +199,35 @@ export function AudienceDetailView({
   onSave: (audience: AudienceData) => void;
 }) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
+  const toArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value as T[] : []);
+
   const safeAudience: AudienceData = {
     ...DEFAULT_AUDIENCE,
     ...audience,
-    buyingTriggers: audience.buyingTriggers || [],
-    useCaseRequirements: audience.useCaseRequirements || [],
-    keySuccessIndicators: audience.keySuccessIndicators || [],
+    buyingTriggers: toArray<string>(audience.buyingTriggers),
+    useCaseRequirements: toArray<string>(audience.useCaseRequirements),
+    keySuccessIndicators: toArray<string>(audience.keySuccessIndicators),
     additionalCharacteristics: audience.additionalCharacteristics || "",
     positioningStatement: audience.positioningStatement || "",
-    valuePropositions: audience.valuePropositions || [],
-    engagementTriggers: audience.engagementTriggers || [],
-    attentionHooks: audience.attentionHooks || [],
-    commonObjections: (audience.commonObjections || []).map(o => ({
-      objection: o?.objection || "",
-      response: o?.response || "",
+    valuePropositions: toArray<string>(audience.valuePropositions),
+    engagementTriggers: toArray<string>(audience.engagementTriggers),
+    attentionHooks: toArray<string>(audience.attentionHooks),
+    commonObjections: toArray<any>(audience.commonObjections).map(o => ({
+      objection: typeof o?.objection === "string" ? o.objection : "",
+      response: typeof o?.response === "string" ? o.response : "",
     })),
-    proofPoints: (audience.proofPoints || []).map(pp => ({
-      category: pp?.category || "General",
-      items: pp?.items || [],
+    proofPoints: toArray<any>(audience.proofPoints).map(pp => ({
+      category: typeof pp?.category === "string" ? pp.category : "General",
+      items: toArray<string>(pp?.items),
     })),
     dosAndDonts: {
-      dos: audience.dosAndDonts?.dos || [],
-      donts: audience.dosAndDonts?.donts || [],
+      dos: toArray<string>(audience.dosAndDonts?.dos),
+      donts: toArray<string>(audience.dosAndDonts?.donts),
     },
-    powerPhrases: audience.powerPhrases || [],
-    powerWords: audience.powerWords || [],
+    powerPhrases: toArray<string>(audience.powerPhrases),
+    powerWords: toArray<string>(audience.powerWords),
     technicalLevel: audience.technicalLevel || "",
-    refinementChecklist: audience.refinementChecklist || [],
+    refinementChecklist: toArray<string>(audience.refinementChecklist),
   };
   const [data, setData] = useState<AudienceData>(safeAudience);
   const [descExpanded, setDescExpanded] = useState(false);
