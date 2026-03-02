@@ -30,6 +30,13 @@ interface VisualIdentityData {
   socialMediaRules: string[];
 }
 
+interface VisualIdentityInitial {
+  imageGuidelines?: { rule: string; example?: string }[];
+  websiteRules?: string[];
+  buttonRules?: string[];
+  socialMediaRules?: string[];
+}
+
 const DEFAULT_DATA: VisualIdentityData = {
   moodboard: Array.from({ length: 6 }, (_, i) => ({ id: `mood-${i}`, url: null })),
   illustrations: [
@@ -247,11 +254,30 @@ function EditableGuidelines({
 export function BrandExtendedSections({
   isEditing: externalEditing,
   onEditToggle,
+  onSave,
+  initialData,
 }: {
   isEditing?: boolean;
   onEditToggle?: () => void;
+  onSave?: (data: VisualIdentityInitial) => void;
+  initialData?: VisualIdentityInitial;
 }) {
-  const [data, setData] = useState<VisualIdentityData>(DEFAULT_DATA);
+  const [data, setData] = useState<VisualIdentityData>(() => {
+    const base = { ...DEFAULT_DATA };
+    if (initialData) {
+      if (initialData.imageGuidelines?.length) {
+        base.imageGuidelines = initialData.imageGuidelines.map((g, i) => ({
+          id: `ig-${i}`,
+          rule: g.rule,
+          example: g.example,
+        }));
+      }
+      if (initialData.websiteRules?.length) base.websiteRules = initialData.websiteRules;
+      if (initialData.buttonRules?.length) base.buttonRules = initialData.buttonRules;
+      if (initialData.socialMediaRules?.length) base.socialMediaRules = initialData.socialMediaRules;
+    }
+    return base;
+  });
   const isEditing = externalEditing ?? false;
 
   const handleImageUpload = (slotId: string, file: File, section: "moodboard" | "illustrations") => {
@@ -297,7 +323,15 @@ export function BrandExtendedSections({
               <Button variant="ghost" size="sm" onClick={onEditToggle} className="gap-1.5 text-muted-foreground">
                 <X className="h-4 w-4" /> Cancel
               </Button>
-              <Button size="sm" onClick={onEditToggle} className="gap-1.5">
+              <Button size="sm" onClick={() => {
+                onSave?.({
+                  imageGuidelines: data.imageGuidelines.map(g => ({ rule: g.rule, example: g.example })),
+                  websiteRules: data.websiteRules,
+                  buttonRules: data.buttonRules,
+                  socialMediaRules: data.socialMediaRules,
+                });
+                onEditToggle?.();
+              }} className="gap-1.5">
                 <Save className="h-4 w-4" /> Save
               </Button>
             </>

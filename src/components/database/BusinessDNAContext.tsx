@@ -16,6 +16,13 @@ export interface BrandTypography {
   fontWeight: string;
 }
 
+export interface VisualIdentityData {
+  imageGuidelines?: { rule: string; example?: string }[];
+  websiteRules?: string[];
+  buttonRules?: string[];
+  socialMediaRules?: string[];
+}
+
 export interface BrandEntry {
   id: string;
   name: string;
@@ -25,6 +32,7 @@ export interface BrandEntry {
   typography?: BrandTypography;
   logoUrls?: string[];
   selectedLogo?: number;
+  visualIdentity?: VisualIdentityData;
 }
 
 export interface ProductEntry extends ProductData {
