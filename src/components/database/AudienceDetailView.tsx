@@ -199,28 +199,41 @@ export function AudienceDetailView({
   onSave: (audience: AudienceData) => void;
 }) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [data, setData] = useState<AudienceData>({
+  const safeAudience: AudienceData = {
     ...DEFAULT_AUDIENCE,
     ...audience,
     buyingTriggers: audience.buyingTriggers || [],
     useCaseRequirements: audience.useCaseRequirements || [],
     keySuccessIndicators: audience.keySuccessIndicators || [],
+    additionalCharacteristics: audience.additionalCharacteristics || "",
+    positioningStatement: audience.positioningStatement || "",
     valuePropositions: audience.valuePropositions || [],
     engagementTriggers: audience.engagementTriggers || [],
     attentionHooks: audience.attentionHooks || [],
-    commonObjections: audience.commonObjections || [],
-    proofPoints: audience.proofPoints || [],
-    dosAndDonts: audience.dosAndDonts || { dos: [], donts: [] },
+    commonObjections: (audience.commonObjections || []).map(o => ({
+      objection: o?.objection || "",
+      response: o?.response || "",
+    })),
+    proofPoints: (audience.proofPoints || []).map(pp => ({
+      category: pp?.category || "General",
+      items: pp?.items || [],
+    })),
+    dosAndDonts: {
+      dos: audience.dosAndDonts?.dos || [],
+      donts: audience.dosAndDonts?.donts || [],
+    },
     powerPhrases: audience.powerPhrases || [],
     powerWords: audience.powerWords || [],
+    technicalLevel: audience.technicalLevel || "",
     refinementChecklist: audience.refinementChecklist || [],
-  });
+  };
+  const [data, setData] = useState<AudienceData>(safeAudience);
   const [descExpanded, setDescExpanded] = useState(false);
   const [activeSidebarSection, setActiveSidebarSection] = useState("audience-overview");
 
   const isEditingSection = (section: string) => editingSection === section;
   const handleSave = () => { onSave(data); setEditingSection(null); };
-  const handleCancel = () => { setData(audience); setEditingSection(null); };
+  const handleCancel = () => { setData(safeAudience); setEditingSection(null); };
 
   function EditControls({ section }: { section: string }) {
     return isEditingSection(section) ? (
