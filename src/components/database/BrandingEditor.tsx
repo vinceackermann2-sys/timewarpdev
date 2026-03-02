@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Globe, ImageIcon, Palette, Type, Upload, X, Check, RefreshCw, Save, Pencil,
 } from "lucide-react";
@@ -13,21 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BrandColors, BrandTypography } from "@/components/database/BusinessDNAContext";
 
-interface BrandingData {
+export interface BrandingData {
   logos: string[];
   selectedLogo: number;
-  colors: {
-    primary: string;
-    secondary: string;
-    background: string;
-    text: string;
-  };
-  typography: {
-    fontFamily: string;
-    fontStyle: string;
-    fontWeight: string;
-  };
+  colors: BrandColors;
+  typography: BrandTypography;
   confidence: number;
   source: string;
 }
@@ -97,13 +89,27 @@ export function BrandingEditor({
   onSave,
   isEditing = false,
   onEditToggle,
+  initialColors,
+  initialTypography,
+  initialLogos,
+  initialSelectedLogo,
 }: {
   onCancel: () => void;
   onSave?: (data: BrandingData) => void;
   isEditing?: boolean;
   onEditToggle?: () => void;
+  initialColors?: BrandColors;
+  initialTypography?: BrandTypography;
+  initialLogos?: string[];
+  initialSelectedLogo?: number;
 }) {
-  const [branding, setBranding] = useState<BrandingData>(DEFAULT_BRANDING);
+  const [branding, setBranding] = useState<BrandingData>(() => ({
+    ...DEFAULT_BRANDING,
+    colors: initialColors || DEFAULT_BRANDING.colors,
+    typography: initialTypography || DEFAULT_BRANDING.typography,
+    logos: initialLogos || DEFAULT_BRANDING.logos,
+    selectedLogo: initialSelectedLogo ?? DEFAULT_BRANDING.selectedLogo,
+  }));
   const [extractUrl, setExtractUrl] = useState("");
   const [isExtracting, setIsExtracting] = useState(false);
 
