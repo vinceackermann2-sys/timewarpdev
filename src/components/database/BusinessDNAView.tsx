@@ -6,6 +6,7 @@ import {
 import { BrandListView } from "@/components/database/BrandListView";
 import { ProductListView } from "@/components/database/ProductListView";
 import { AudienceListView } from "@/components/database/AudienceListView";
+import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { supabase } from "@/integrations/supabase/client";
 
 import { Button } from "@/components/ui/button";
@@ -252,6 +253,7 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
   const activeSegmentData = BRAIN_SEGMENTS.find(s => s.id === activeSegment);
 
   return (
+    <BusinessDNAProvider>
     <div className="flex flex-col h-full items-center">
       <div className="px-6 pt-6 pb-0 space-y-6 border-b border-border/50 w-full max-w-5xl">
         {/* Business Header */}
@@ -404,5 +406,6 @@ export function BusinessDNAView({ onBack }: { onBack?: () => void }) {
       </div>
 
     </div>
+    </BusinessDNAProvider>
   );
 }
