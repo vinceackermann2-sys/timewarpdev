@@ -356,7 +356,25 @@ export function ProductDetailView({
   onSave: (product: ProductData) => void;
 }) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [data, setData] = useState<ProductData>(product);
+  const [data, setData] = useState<ProductData>({
+    ...DEFAULT_PRODUCT,
+    ...product,
+    features: product.features || [],
+    benefits: product.benefits || [],
+    painPoints: product.painPoints || [],
+    useCases: product.useCases || [],
+    targetScenarios: product.targetScenarios || [],
+    uniqueSellingPoints: product.uniqueSellingPoints || [],
+    competitiveAdvantages: product.competitiveAdvantages || [],
+    commonObjections: product.commonObjections || [],
+    proofPoints: product.proofPoints || [],
+    dosAndDonts: product.dosAndDonts || { dos: [], donts: [] },
+    powerPhrases: product.powerPhrases || [],
+    powerWords: product.powerWords || [],
+    refinementChecklist: product.refinementChecklist || [],
+    images: product.images || [],
+    offers: product.offers || [],
+  });
   const [descExpanded, setDescExpanded] = useState(false);
   const [activeSidebarSection, setActiveSidebarSection] = useState("product-overview");
 
