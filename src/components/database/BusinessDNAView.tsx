@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Brain, Palette, Package, BookOpen, Loader2, Plus, Trash2, Check, X,
-  Pencil, Building2, ArrowLeft, Users
+  Pencil, Building2, ArrowLeft, Users, Database
 } from "lucide-react";
 import { BrandListView } from "@/components/database/BrandListView";
 import { ProductListView } from "@/components/database/ProductListView";
 import { AudienceListView } from "@/components/database/AudienceListView";
+import { BusinessDataListView } from "@/components/database/BusinessDataListView";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -67,6 +68,17 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     subtitle: "Who You Serve",
     icon: Users,
     description: "Your audience DNA — demographics, buying triggers, messaging, engagement patterns, objections, and language guidelines.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "database",
+    label: "Database",
+    subtitle: "Connected Business Data",
+    icon: Database,
+    description: "All your connected and imported business data — documents, websites, text, images, and more.",
     color: "text-primary",
     hslColor: "var(--primary)",
     bgAccent: "bg-primary/10",
@@ -202,7 +214,7 @@ function IdleState({ totalInsights }: { totalInsights: number }) {
 // ── Main View ──
 export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void; activeBrandId: string }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
-    brand: [], product: [], audience: [], sop: []
+    brand: [], product: [], audience: [], database: [], sop: []
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
@@ -378,6 +390,17 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
               className="pt-5"
             >
               <AudienceListView activeBrandId={activeBrandId} />
+            </motion.div>
+          ) : activeSegment === "database" ? (
+            <motion.div
+              key="database-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="pt-5"
+            >
+              <BusinessDataListView />
             </motion.div>
           ) : activeSegment === "sop" ? (
             <motion.div
