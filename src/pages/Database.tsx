@@ -10,6 +10,7 @@ import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { BusinessDNAView } from "@/components/database/BusinessDNAView";
 import { MyBusinessesView } from "@/components/database/MyBusinessesView";
 import { AddProductURLView } from "@/components/database/AddProductURLView";
+import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2 } from "lucide-react";
 
 type View = "database" | "dataconversion" | "aiceo" | "businessdna";
@@ -110,14 +111,17 @@ const Database = () => {
               />
             )}
             {currentView === "businessdna" && user && (
-              showAddProduct
-                ? <AddProductURLView 
-                    onBack={() => setShowAddProduct(false)} 
-                    onComplete={() => { setShowAddProduct(false); setShowBusinessDNA(true); }} 
-                  />
-                : showBusinessDNA 
-                  ? <BusinessDNAView onBack={() => setShowBusinessDNA(false)} />
-                  : <MyBusinessesView onSelectBusiness={() => setShowAddProduct(true)} />
+              <BusinessDNAProvider>
+                {showAddProduct
+                  ? <AddProductURLView 
+                      onBack={() => setShowAddProduct(false)} 
+                      onComplete={() => { setShowAddProduct(false); setShowBusinessDNA(true); }} 
+                    />
+                  : showBusinessDNA 
+                    ? <BusinessDNAView onBack={() => setShowBusinessDNA(false)} />
+                    : <MyBusinessesView onSelectBusiness={() => setShowAddProduct(true)} />
+                }
+              </BusinessDNAProvider>
             )}
           </main>
         </SidebarInset>
