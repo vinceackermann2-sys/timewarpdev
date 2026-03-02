@@ -499,22 +499,77 @@ ${markdown.slice(0, 15000)}`;
       }
     }
 
-    // ── Moodboard images from page ──
-    const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)|src=["'](https?:\/\/[^\s"']+)["']/gi;
-    const pageImages: string[] = [];
-    let imgMatch;
-    while ((imgMatch = imageUrlRegex.exec(markdown)) !== null) {
-      const imgUrl = imgMatch[1] || imgMatch[2];
-      if (imgUrl && !imgUrl.includes('favicon') && !imgUrl.includes('tracking') && !imgUrl.includes('pixel')) {
-        pageImages.push(imgUrl);
+    // ── Moodboard: Search Pinterest for audience-related aesthetic terms ──
+    const moodboardPromise = (async () => {
+      try {
+        const audienceDesc = extracted.audience?.description || "";
+        const brandCategory = extracted.brand?.category || "";
+        const brandName = extracted.brand?.name || "";
+        
+        // Build aesthetic search terms from audience + brand data
+        const searchTerms = [
+          `${brandCategory} aesthetic moodboard`,
+          `${audienceDesc.split('.')[0]} lifestyle aesthetic`,
+          `${brandName} brand aesthetic`
+        ].filter(t => t.trim().length > 10);
+        
+        const pinterestQuery = searchTerms[0] || `${brandCategory} brand moodboard`;
+        console.log("Searching Pinterest for moodboard:", pinterestQuery);
+        
+        const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: `site:pinterest.com ${pinterestQuery}`,
+            limit: 8,
+          }),
+        });
+        
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          const results = searchData.data || [];
+          // Extract image URLs from Pinterest results
+          const pinterestImages: string[] = [];
+          for (const result of results) {
+            // Look for og:image or image URLs in metadata/content
+            if (result.metadata?.ogImage) pinterestImages.push(result.metadata.ogImage);
+            // Also try scraping individual pins for their images
+            const imgMatches = (result.markdown || "").match(/!\[.*?\]\((https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|webp)[^\s)]*)\)/gi);
+            if (imgMatches) {
+              for (const m of imgMatches) {
+                const urlMatch = m.match(/\((https?:\/\/[^\s)]+)\)/);
+                if (urlMatch) pinterestImages.push(urlMatch[1]);
+              }
+            }
+          }
+          const uniqueMoodboard = [...new Set(pinterestImages)].filter(u => u && !u.includes('favicon')).slice(0, 6);
+          if (uniqueMoodboard.length > 0) {
+            extracted.brand.visualIdentity.moodboardUrls = uniqueMoodboard;
+            console.log("Found", uniqueMoodboard.length, "Pinterest moodboard images");
+          }
+        }
+      } catch (e) {
+        console.warn("Pinterest moodboard search error (non-fatal):", e);
       }
-    }
-    if (firecrawlBranding?.images?.ogImage) pageImages.push(firecrawlBranding.images.ogImage);
-    const uniqueImages = [...new Set(pageImages)].slice(0, 6);
-
-    if (!extracted.brand) extracted.brand = {};
-    if (!extracted.brand.visualIdentity) extracted.brand.visualIdentity = {};
-    extracted.brand.visualIdentity.moodboardUrls = uniqueImages;
+      
+      // Fallback: use page images if Pinterest didn't return enough
+      if (!extracted.brand.visualIdentity.moodboardUrls?.length) {
+        const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)|src=["'](https?:\/\/[^\s"']+)["']/gi;
+        const pageImages: string[] = [];
+        let imgMatch;
+        while ((imgMatch = imageUrlRegex.exec(markdown)) !== null) {
+          const imgUrl = imgMatch[1] || imgMatch[2];
+          if (imgUrl && !imgUrl.includes('favicon') && !imgUrl.includes('tracking') && !imgUrl.includes('pixel')) {
+            pageImages.push(imgUrl);
+          }
+        }
+        if (firecrawlBranding?.images?.ogImage) pageImages.push(firecrawlBranding.images.ogImage);
+        extracted.brand.visualIdentity.moodboardUrls = [...new Set(pageImages)].slice(0, 6);
+      }
+    })();
 
     // ── Desktop screenshot ──
     if (websiteScreenshot) {
@@ -531,7 +586,7 @@ ${markdown.slice(0, 15000)}`;
     }
 
     // ══════════════════════════════════════════════
-    // AI IMAGE GENERATION (logo, illustrations, guideline images)
+    // AI IMAGE GENERATION (logo screenshot, illustrations, guideline images)
     // ══════════════════════════════════════════════
 
     const brandName = extracted.brand?.name || "the brand";
@@ -539,85 +594,160 @@ ${markdown.slice(0, 15000)}`;
     const brandCategory = extracted.brand?.category || "general";
     const audienceDesc = extracted.audience?.description || "general consumers";
     const guidelines = extracted.brand?.visualIdentity?.imageGuidelines || [];
+    const productImages = extracted.product?.images || [];
 
     const aiImagePromises: Promise<void>[] = [];
 
-    // ── Generate logo if none found (text logo) ──
+    // ── Logo: use found URLs, or screenshot the logo area if text-only ──
     if (!extracted.brand.logoUrls || extracted.brand.logoUrls.length === 0) {
       aiImagePromises.push((async () => {
         try {
-          console.log("No logo URLs found, generating logo for:", brandName);
-          const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          console.log("No logo image found, screenshotting logo area for:", brandName);
+          // Use Firecrawl to screenshot just the top of the page where logos typically are
+          const logoScrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
             method: "POST",
-            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            headers: {
+              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash-image",
-              messages: [{ role: "user", content: `Generate a clean, professional logo for "${brandName}". Primary color: ${brandColors.primary || '#333'}. Modern, simple logo mark on white background. No extra text or taglines beyond the brand name.` }],
-              modalities: ["image", "text"],
+              url: formattedUrl,
+              formats: ["screenshot"],
+              onlyMainContent: false,
+              waitFor: 1000,
             }),
           });
-          if (res.ok) {
-            const d = await res.json();
-            const logoImg = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-            if (logoImg) {
-              extracted.brand.logoUrls = [logoImg];
-              console.log("Generated logo image");
+          if (logoScrapeRes.ok) {
+            const logoData = await logoScrapeRes.json();
+            const ss = logoData.data?.screenshot || logoData.screenshot;
+            if (ss) {
+              const logoScreenshot = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
+              // Use AI to crop/extract just the logo from the screenshot
+              const cropRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash-image",
+                  messages: [{
+                    role: "user",
+                    content: [
+                      { type: "text", text: `Extract and recreate ONLY the logo from this website screenshot. The brand is "${brandName}". Output a clean version of the logo on a transparent/white background. If it's a text logo, recreate it faithfully with the same style, font, and colors. No extra elements.` },
+                      { type: "image_url", image_url: { url: logoScreenshot } }
+                    ]
+                  }],
+                  modalities: ["image", "text"],
+                }),
+              });
+              if (cropRes.ok) {
+                const d = await cropRes.json();
+                const logoImg = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+                if (logoImg) {
+                  extracted.brand.logoUrls = [logoImg];
+                  console.log("Extracted logo from screenshot");
+                }
+              }
             }
           }
-        } catch (e) { console.warn("Logo gen error:", e); }
+        } catch (e) { console.warn("Logo screenshot error:", e); }
       })());
     }
 
-    // ── Generate illustrations based on audience + brand ──
+    // ── Generate patterns + mascots based on audience + brand ──
     aiImagePromises.push((async () => {
       try {
-        console.log("Generating brand illustrations...");
-        const prompt = `Generate a custom brand illustration for "${brandName}". 
-Target audience: ${audienceDesc}
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
-Brand category: ${brandCategory}.
-Create a modern, on-brand decorative illustration that could be used as a mascot, pattern, or decorative asset. It should reflect the brand personality and appeal to the target audience. No text. Clean, professional style.`;
+        console.log("Generating brand patterns and mascots...");
+        const illustrationUrls: string[] = [];
         
-        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        // Pattern
+        const patternPrompt = `Generate a seamless brand pattern for "${brandName}". 
+Brand category: ${brandCategory}. Target audience: ${audienceDesc}.
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
+Create a repeating decorative pattern that reflects the brand identity. Use brand colors. No text. Clean, professional design suitable for packaging, backgrounds, and social media.`;
+        
+        const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
-            messages: [{ role: "user", content: prompt }],
+            messages: [{ role: "user", content: patternPrompt }],
             modalities: ["image", "text"],
           }),
         });
-        if (res.ok) {
-          const d = await res.json();
-          const imgs = (d.choices?.[0]?.message?.images || [])
-            .map((img: any) => img.image_url?.url || "").filter(Boolean);
-          if (imgs.length > 0) {
-            extracted.brand.visualIdentity.illustrationUrls = imgs;
-            console.log("Generated", imgs.length, "illustrations");
-          }
+        if (patternRes.ok) {
+          const d = await patternRes.json();
+          const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          if (img) illustrationUrls.push(img);
+        }
+
+        // Mascot
+        const mascotPrompt = `Generate a brand mascot character for "${brandName}".
+Brand category: ${brandCategory}. Target audience: ${audienceDesc}.
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
+Create a friendly, memorable mascot character that appeals to the target audience and represents the brand personality. Modern illustration style. No text. White/clean background.`;
+
+        const mascotRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image",
+            messages: [{ role: "user", content: mascotPrompt }],
+            modalities: ["image", "text"],
+          }),
+        });
+        if (mascotRes.ok) {
+          const d = await mascotRes.json();
+          const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          if (img) illustrationUrls.push(img);
+        }
+
+        if (illustrationUrls.length > 0) {
+          extracted.brand.visualIdentity.illustrationUrls = illustrationUrls;
+          console.log("Generated", illustrationUrls.length, "illustrations (pattern + mascot)");
         }
       } catch (e) { console.warn("Illustration gen error:", e); }
     })());
 
-    // ── Generate per-guideline images ──
+    // ── Generate per-guideline images using product images when relevant ──
     if (guidelines.length > 0) {
       aiImagePromises.push((async () => {
         try {
           console.log("Generating per-guideline images for", guidelines.length, "guidelines...");
           const results: string[] = [];
+          const productImageUrl = productImages.length > 0 ? productImages[0] : null;
+          
           for (const g of guidelines.slice(0, 4)) {
-            const prompt = `Create a brand photography reference image for "${brandName}".
+            const ruleText = `${g.rule} ${g.example || ''}`.toLowerCase();
+            const mentionsProduct = ruleText.includes('product') || ruleText.includes('unboxing') || ruleText.includes('packaging') || ruleText.includes('in-hand') || ruleText.includes('close-up');
+            
+            let messages: any[];
+            if (mentionsProduct && productImageUrl) {
+              // Use the product image as input for product-related guidelines
+              messages = [{
+                role: "user",
+                content: [
+                  { type: "text", text: `Create a brand photography reference image for "${brandName}".
 Guideline: "${g.rule}"${g.example ? ` — Example: "${g.example}"` : ''}
 Target audience: ${audienceDesc}
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
-Create a clean, professional mood/reference photo that demonstrates this specific photography guideline. No text overlays. Authentic and on-brand.`;
+Use the product shown in this image as the subject. Place it in a scene that demonstrates this specific photography guideline. Professional, authentic, on-brand. No text overlays.` },
+                  { type: "image_url", image_url: { url: productImageUrl } }
+                ]
+              }];
+            } else {
+              messages = [{ role: "user", content: `Create a brand photography reference image for "${brandName}".
+Guideline: "${g.rule}"${g.example ? ` — Example: "${g.example}"` : ''}
+Target audience: ${audienceDesc}
+Brand category: ${brandCategory}.
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
+Create a clean, professional mood/reference photo that demonstrates this specific photography guideline for this audience. No text overlays. Authentic and on-brand.` }];
+            }
             
             const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-2.5-flash-image",
-                messages: [{ role: "user", content: prompt }],
+                messages,
                 modalities: ["image", "text"],
               }),
             });
@@ -635,7 +765,8 @@ Create a clean, professional mood/reference photo that demonstrates this specifi
       })());
     }
 
-    await Promise.all(aiImagePromises);
+    // Wait for moodboard + all AI image generation
+    await Promise.all([moodboardPromise, ...aiImagePromises]);
 
     console.log("Extraction successful:", extracted.product?.name, "logos:", extracted.brand?.logoUrls?.length || 0);
 
