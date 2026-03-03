@@ -51,7 +51,15 @@ export function useWorkspace() {
         await supabase
           .from("workspace_members")
           .insert({ workspace_id: ws.id, user_id: session.user.id, role: "owner" });
+        // Set state and reload to pick up the new member
         setWorkspaceId(ws.id);
+        setMembers([{
+          id: "self",
+          userId: session.user.id,
+          email: "you",
+          role: "owner",
+          joinedAt: new Date().toISOString(),
+        }]);
       }
       setIsLoading(false);
       return;
