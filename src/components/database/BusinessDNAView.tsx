@@ -290,7 +290,15 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
             </button>
           )}
            <div className="h-24 w-24 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
-             <Building2 className="h-11 w-11 text-muted-foreground/60" />
+             {activeBrand?.logoUrls && activeBrand.logoUrls.length > 0 ? (
+               <img
+                 src={activeBrand.logoUrls[activeBrand.selectedLogo ?? 0]}
+                 alt={activeBrand.name}
+                 className="h-full w-full object-contain p-2"
+               />
+             ) : (
+               <Building2 className="h-11 w-11 text-muted-foreground/60" />
+             )}
            </div>
            <div className="flex flex-col gap-2 pt-1">
              <h1 className="text-2xl font-bold text-foreground leading-tight">{activeBrand?.name || "Your Business"}</h1>
