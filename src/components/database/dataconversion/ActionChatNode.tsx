@@ -401,7 +401,7 @@ export function ActionChatNode({
       {!isFullscreen && (
         <div
           className={cn(
-            "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-accent cursor-crosshair transition-all z-20 hover:scale-125"
+            "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
           )}
           onMouseDown={(e) => {
             e.stopPropagation();
@@ -415,7 +415,7 @@ export function ActionChatNode({
       {!isFullscreen && (
         <div
           className={cn(
-            "absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-accent cursor-crosshair transition-all z-20 hover:scale-125"
+            "absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full border-2 border-border bg-primary cursor-crosshair transition-all z-20 hover:scale-125"
           )}
           onMouseDown={(e) => {
             e.stopPropagation();
