@@ -738,24 +738,32 @@ No explanation, just the JSON array.`
       }
     }
 
-    // ── Generate patterns + mascots based on audience + brand ──
+    // ── Generate patterns + icons based on website's existing visual style ──
     aiImagePromises.push((async () => {
       try {
-        console.log("Generating brand patterns and mascots...");
+        console.log("Generating brand patterns and icons based on website...");
         const illustrationUrls: string[] = [];
-        
-        // Pattern 1: Brand-specific icons and symbols set
-        const iconsPrompt = `Generate a set of brand-specific icons and symbols for "${brandName}".
-Brand category: ${brandCategory}. Target audience: ${audienceDesc}.
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
-Create a collection of 9-12 small iconographic elements arranged in a grid on a clean white background. The icons should be related to the product category and audience lifestyle. Flat, minimal style using only the brand colors. Each icon should be simple, recognizable, and suitable for website UI, packaging, and marketing materials. No text labels.`;
-        
+        const ssUrl = websiteScreenshot
+          ? (typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
+              ? websiteScreenshot
+              : `data:image/png;base64,${websiteScreenshot}`)
+          : null;
+
+        // Pattern 1: Brand-specific icons and symbols set — reference the actual website
+        const iconsMessages: any[] = [{
+          role: "user",
+          content: ssUrl ? [
+            { type: "text", text: `Study this website screenshot carefully. Identify the icons, symbols, decorative elements, and visual motifs already used on this site. Then generate a set of 9-12 brand-specific icons and symbols in the SAME visual style — matching the line weight, color palette, and aesthetic of the existing site icons. Brand: "${brandName}", category: ${brandCategory}, audience: ${audienceDesc}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Arrange the icons in a grid on a clean white background. Flat, consistent style matching the website's existing iconography. No text labels.` },
+            { type: "image_url", image_url: { url: ssUrl } }
+          ] : `Generate a set of brand-specific icons and symbols for "${brandName}". Brand category: ${brandCategory}. Target audience: ${audienceDesc}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Create a collection of 9-12 small iconographic elements arranged in a grid on a clean white background. Flat, minimal style using only the brand colors. No text labels.`
+        }];
+
         const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
-            messages: [{ role: "user", content: iconsPrompt }],
+            messages: iconsMessages,
             modalities: ["image", "text"],
           }),
         });
@@ -765,18 +773,21 @@ Create a collection of 9-12 small iconographic elements arranged in a grid on a 
           if (img) illustrationUrls.push(img);
         }
 
-        // Pattern 2: Website pattern/texture using brand symbols
-        const patternTexturePrompt = `Generate a seamless repeating website pattern/texture for "${brandName}".
-Brand category: ${brandCategory}. Target audience: ${audienceDesc}.
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}.
-Create a subtle, tileable pattern using small symbols and icons related to ${brandCategory}. The symbols should be arranged in a repeating layout suitable for website section backgrounds, hero overlays, and digital interfaces. Use brand colors at low opacity on a clean background. Professional, modern, not overwhelming. No text.`;
+        // Pattern 2: Website pattern/texture — based on existing site patterns
+        const textureMessages: any[] = [{
+          role: "user",
+          content: ssUrl ? [
+            { type: "text", text: `Study this website screenshot. Identify any patterns, textures, background elements, or decorative motifs used on the site. Then generate a seamless repeating website pattern/texture that matches the site's existing visual language. Use the same colors, shapes, and design approach visible on the site. Brand: "${brandName}", colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Create a subtle, tileable pattern suitable for website section backgrounds and hero overlays. Professional, not overwhelming. No text.` },
+            { type: "image_url", image_url: { url: ssUrl } }
+          ] : `Generate a seamless repeating website pattern/texture for "${brandName}". Brand category: ${brandCategory}. Target audience: ${audienceDesc}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Create a subtle, tileable pattern using small symbols related to ${brandCategory}. Professional, modern. No text.`
+        }];
 
         const textureRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
-            messages: [{ role: "user", content: patternTexturePrompt }],
+            messages: textureMessages,
             modalities: ["image", "text"],
           }),
         });
@@ -788,7 +799,7 @@ Create a subtle, tileable pattern using small symbols and icons related to ${bra
 
         if (illustrationUrls.length > 0) {
           extracted.brand.visualIdentity.illustrationUrls = illustrationUrls;
-          console.log("Generated", illustrationUrls.length, "illustrations, URL lengths:", illustrationUrls.map(u => u.length));
+          console.log("Generated", illustrationUrls.length, "illustrations based on website style");
         } else {
           console.warn("No illustrations generated - both AI calls returned no images");
         }
