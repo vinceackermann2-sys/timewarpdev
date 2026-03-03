@@ -37,6 +37,7 @@ interface BrainSegment {
   hslColor: string;
   bgAccent: string;
   borderAccent: string;
+  beta?: boolean;
 }
 
 const BRAIN_SEGMENTS: BrainSegment[] = [
@@ -50,6 +51,7 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     hslColor: "var(--primary)",
     bgAccent: "bg-primary/10",
     borderAccent: "border-primary/20",
+    beta: true,
   },
   {
     id: "product",
@@ -325,6 +327,11 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
               >
                 <Icon className={cn("h-4 w-4", isActive ? seg.color : "")} />
                 <span>{seg.label}</span>
+                {seg.beta && (
+                  <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/20">
+                    Beta
+                  </span>
+                )}
                 {count > 0 && (
                   <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full", seg.bgAccent, seg.color)}>
                     {count}
