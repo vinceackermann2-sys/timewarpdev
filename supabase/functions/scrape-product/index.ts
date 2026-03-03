@@ -499,72 +499,71 @@ ${markdown.slice(0, 15000)}`;
       }
     }
 
-    // ── Moodboard: Scrape Pinterest search page for audience-related aesthetic images ──
+    // ── Moodboard: Search Pinterest via Firecrawl search API for audience-related images ──
     const moodboardPromise = (async () => {
       try {
         const audienceDesc = extracted.audience?.description || "";
         const brandCategory = extracted.brand?.category || "";
         const audienceShort = audienceDesc.split('.')[0].replace(/[^a-zA-Z0-9 ]/g, '').trim();
         
-        const searchQuery = audienceShort 
-          ? `${audienceShort} ${brandCategory} aesthetic`.trim()
-          : `${brandCategory} lifestyle aesthetic moodboard`;
+        // Build multiple specific aesthetic search queries for Pinterest
+        const searchTerms = [
+          `site:pinterest.com ${audienceShort} ${brandCategory} aesthetic`,
+          `site:pinterest.com ${brandCategory} lifestyle moodboard inspiration`,
+        ];
         
-        const pinterestUrl = `https://pinterest.com/search/pins/?q=${encodeURIComponent(searchQuery)}`;
-        console.log("Scraping Pinterest for moodboard:", pinterestUrl);
+        const allPinterestImages: string[] = [];
         
-        const pinRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: pinterestUrl,
-            formats: ["links", "markdown"],
-            waitFor: 3000,
-            onlyMainContent: true,
-          }),
-        });
-        
-        if (pinRes.ok) {
-          const pinData = await pinRes.json();
-          const pinMarkdown = pinData.data?.markdown || pinData.markdown || "";
-          const pinLinks = pinData.data?.links || pinData.links || [];
+        for (const query of searchTerms) {
+          if (allPinterestImages.length >= 6) break;
+          console.log("Searching Pinterest moodboard:", query);
           
-          const pinterestImages: string[] = [];
+          const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ query, limit: 8 }),
+          });
           
-          // Extract pinimg URLs from markdown and links
-          const pinimgPattern = /(https?:\/\/i\.pinimg\.com\/[^\s"')]+)/gi;
-          let match;
-          while ((match = pinimgPattern.exec(pinMarkdown)) !== null) {
-            pinterestImages.push(match[1]);
-          }
-          for (const link of pinLinks) {
-            if (typeof link === 'string' && link.includes('pinimg.com')) {
-              pinterestImages.push(link);
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            const results = searchData.data || [];
+            for (const r of results) {
+              // Extract pinimg URLs from metadata and markdown
+              if (r.metadata?.ogImage && r.metadata.ogImage.includes('pinimg.com')) {
+                allPinterestImages.push(r.metadata.ogImage);
+              }
+              const md = r.markdown || r.description || "";
+              const pinimgMatches = md.match(/(https?:\/\/i\.pinimg\.com\/[^\s"')]+)/gi);
+              if (pinimgMatches) allPinterestImages.push(...pinimgMatches);
+              // Also grab og:image even if not pinimg (Pinterest pages often have these)
+              if (r.metadata?.ogImage && !allPinterestImages.includes(r.metadata.ogImage)) {
+                allPinterestImages.push(r.metadata.ogImage);
+              }
             }
           }
-          
-          const uniqueMoodboard = [...new Set(pinterestImages)]
-            .filter(u => u && !u.includes('75x75') && !u.includes('favicon'))
-            .slice(0, 6);
-          
-          if (uniqueMoodboard.length > 0) {
-            extracted.brand.visualIdentity.moodboardUrls = uniqueMoodboard;
-            console.log("Found", uniqueMoodboard.length, "Pinterest moodboard images");
-            return;
-          }
+        }
+        
+        const uniqueMoodboard = [...new Set(allPinterestImages)]
+          .filter(u => u && !u.includes('75x75') && !u.includes('favicon') && !u.includes('profile'))
+          .slice(0, 6);
+        
+        if (uniqueMoodboard.length > 0) {
+          extracted.brand.visualIdentity.moodboardUrls = uniqueMoodboard;
+          console.log("Found", uniqueMoodboard.length, "Pinterest moodboard images via search");
+          return;
         }
       } catch (e) {
-        console.warn("Pinterest moodboard scrape error (non-fatal):", e);
+        console.warn("Pinterest search error (non-fatal):", e);
       }
       
-      // Fallback: web search for aesthetic images
+      // Fallback: general image search
       try {
         const audienceDesc = extracted.audience?.description || "";
         const brandCategory = extracted.brand?.category || "";
-        const query = `${brandCategory} ${audienceDesc.split('.')[0]} aesthetic moodboard`;
+        const query = `${brandCategory} ${audienceDesc.split('.')[0]} aesthetic moodboard inspiration`;
         
         const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
           method: "POST",
@@ -587,7 +586,7 @@ ${markdown.slice(0, 15000)}`;
           const unique = [...new Set(imageUrls)].filter(u => !u.includes('favicon')).slice(0, 6);
           if (unique.length > 0) {
             extracted.brand.visualIdentity.moodboardUrls = unique;
-            console.log("Fallback: found", unique.length, "moodboard images from web search");
+            console.log("Fallback: found", unique.length, "moodboard images");
             return;
           }
         }
@@ -595,18 +594,7 @@ ${markdown.slice(0, 15000)}`;
         console.warn("Fallback moodboard error:", e);
       }
       
-      // Final fallback: page images
-      const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)|src=["'](https?:\/\/[^\s"']+)["']/gi;
-      const pageImages: string[] = [];
-      let imgMatch;
-      while ((imgMatch = imageUrlRegex.exec(markdown)) !== null) {
-        const imgUrl = imgMatch[1] || imgMatch[2];
-        if (imgUrl && !imgUrl.includes('favicon') && !imgUrl.includes('tracking') && !imgUrl.includes('pixel')) {
-          pageImages.push(imgUrl);
-        }
-      }
-      if (firecrawlBranding?.images?.ogImage) pageImages.push(firecrawlBranding.images.ogImage);
-      extracted.brand.visualIdentity.moodboardUrls = [...new Set(pageImages)].slice(0, 6);
+      extracted.brand.visualIdentity.moodboardUrls = [];
     })();
 
     // ── Desktop screenshot ──
@@ -636,16 +624,41 @@ ${markdown.slice(0, 15000)}`;
 
     const aiImagePromises: Promise<void>[] = [];
 
-    // ── Logo: use found URLs, or use screenshot of the logo area (no AI recreation) ──
+    // ── Logo: use found image URLs, or AI-recreate the logo ──
     if (!extracted.brand.logoUrls || extracted.brand.logoUrls.length === 0) {
-      // We already have the full page screenshot — use it as the logo reference
-      // The screenshot captures the header/logo area naturally
+      // No logo image found — recreate it with AI using the screenshot as reference
       if (websiteScreenshot) {
-        const ssUrl = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
-          ? websiteScreenshot
-          : `data:image/png;base64,${websiteScreenshot}`;
-        extracted.brand.logoUrls = [ssUrl];
-        console.log("Using page screenshot as logo (text logo detected)");
+        aiImagePromises.push((async () => {
+          try {
+            console.log("Recreating logo with AI from screenshot...");
+            const ssUrl = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
+              ? websiteScreenshot
+              : `data:image/png;base64,${websiteScreenshot}`;
+            const logoRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-image",
+                messages: [{
+                  role: "user",
+                  content: [
+                    { type: "text", text: `Extract and recreate the logo visible in the top/header area of this website screenshot. Recreate it as a clean, isolated logo on a transparent/white background. Match the exact colors, typography, and design of the original logo. Output only the logo, nothing else.` },
+                    { type: "image_url", image_url: { url: ssUrl } }
+                  ]
+                }],
+                modalities: ["image", "text"],
+              }),
+            });
+            if (logoRes.ok) {
+              const d = await logoRes.json();
+              const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+              if (img) {
+                extracted.brand.logoUrls = [img];
+                console.log("AI-recreated logo from screenshot");
+              }
+            }
+          } catch (e) { console.warn("Logo recreation error:", e); }
+        })());
       }
     }
 
@@ -676,11 +689,11 @@ Create a repeating decorative pattern that reflects the brand identity. Use bran
           if (img) illustrationUrls.push(img);
         }
 
-        // Mascot
-        const mascotPrompt = `Generate a brand mascot character for "${brandName}".
+        // Second pattern (website/decorative pattern)
+        const mascotPrompt = `Generate a decorative website pattern for "${brandName}".
 Brand category: ${brandCategory}. Target audience: ${audienceDesc}.
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
-Create a friendly, memorable mascot character that appeals to the target audience and represents the brand personality. Modern illustration style. No text. White/clean background.`;
+Create a subtle, elegant decorative pattern suitable for website backgrounds, section dividers, and digital interfaces. Use brand colors. Geometric or organic shapes that reflect the brand's personality. Seamless, tileable design. No text. Clean background.`;
 
         const mascotRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
