@@ -439,6 +439,10 @@ ${markdown.slice(0, 15000)}`;
     // POST-EXTRACTION: Merge branding + generate assets
     // ══════════════════════════════════════════════════
 
+    // Ensure visualIdentity always exists before async promises write to it
+    if (!extracted.brand) extracted.brand = {};
+    if (!extracted.brand.visualIdentity) extracted.brand.visualIdentity = {};
+
     if (firecrawlBranding && extracted.brand) {
       // ── Logos: ONLY actual logos, not product photos ──
       const fcLogos: string[] = [];
@@ -499,24 +503,24 @@ ${markdown.slice(0, 15000)}`;
       }
     }
 
-    // ── Moodboard: Search Pinterest via Firecrawl search API for audience-related images ──
+    // ── Moodboard: Search for audience-related aesthetic images, prefer Pinterest ──
     const moodboardPromise = (async () => {
       try {
         const audienceDesc = extracted.audience?.description || "";
         const brandCategory = extracted.brand?.category || "";
-        const audienceShort = audienceDesc.split('.')[0].replace(/[^a-zA-Z0-9 ]/g, '').trim();
+        const audienceShort = audienceDesc.split('.')[0].replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 80);
         
-        // Build multiple specific aesthetic search queries for Pinterest
+        // Search with Pinterest in query (not site: prefix) + broader aesthetic terms
         const searchTerms = [
-          `site:pinterest.com ${audienceShort} ${brandCategory} aesthetic`,
-          `site:pinterest.com ${brandCategory} lifestyle moodboard inspiration`,
+          `${brandCategory} ${audienceShort} pinterest moodboard aesthetic`,
+          `${brandCategory} lifestyle aesthetic inspiration moodboard`,
         ];
         
-        const allPinterestImages: string[] = [];
+        const allImages: string[] = [];
         
         for (const query of searchTerms) {
-          if (allPinterestImages.length >= 6) break;
-          console.log("Searching Pinterest moodboard:", query);
+          if (allImages.length >= 6) break;
+          console.log("Searching moodboard:", query);
           
           const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
             method: "POST",
@@ -524,46 +528,73 @@ ${markdown.slice(0, 15000)}`;
               Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ query, limit: 8 }),
+            body: JSON.stringify({
+              query,
+              limit: 10,
+              scrapeOptions: { formats: ["markdown", "links"] },
+            }),
           });
           
           if (searchRes.ok) {
             const searchData = await searchRes.json();
             const results = searchData.data || [];
+            console.log("Moodboard search returned", results.length, "results");
+            
             for (const r of results) {
-              // Extract pinimg URLs from metadata and markdown
-              if (r.metadata?.ogImage && r.metadata.ogImage.includes('pinimg.com')) {
-                allPinterestImages.push(r.metadata.ogImage);
-              }
+              // 1. Extract pinimg.com URLs from markdown content
               const md = r.markdown || r.description || "";
               const pinimgMatches = md.match(/(https?:\/\/i\.pinimg\.com\/[^\s"')]+)/gi);
-              if (pinimgMatches) allPinterestImages.push(...pinimgMatches);
-              // Also grab og:image even if not pinimg (Pinterest pages often have these)
-              if (r.metadata?.ogImage && !allPinterestImages.includes(r.metadata.ogImage)) {
-                allPinterestImages.push(r.metadata.ogImage);
+              if (pinimgMatches) allImages.push(...pinimgMatches);
+              
+              // 2. Extract image URLs from links array
+              const links = r.links || [];
+              for (const link of links) {
+                const linkUrl = typeof link === 'string' ? link : link?.url || link?.href || '';
+                if (linkUrl && /\.(jpg|jpeg|png|webp)(\?|$)/i.test(linkUrl)) {
+                  allImages.push(linkUrl);
+                }
+                // Also catch pinimg URLs in links
+                if (linkUrl && linkUrl.includes('pinimg.com')) {
+                  allImages.push(linkUrl);
+                }
               }
+              
+              // 3. Extract from metadata ogImage
+              if (r.metadata?.ogImage) allImages.push(r.metadata.ogImage);
+              
+              // 4. Extract any image field directly on the result
+              if (r.image) allImages.push(r.image);
+              
+              // 5. Extract all image URLs from markdown (not just pinimg)
+              const imgMatches = md.match(/(https?:\/\/[^\s"')]+\.(?:jpg|jpeg|png|webp))/gi);
+              if (imgMatches) allImages.push(...imgMatches);
             }
+          } else {
+            console.warn("Moodboard search failed:", searchRes.status);
           }
         }
         
-        const uniqueMoodboard = [...new Set(allPinterestImages)]
-          .filter(u => u && !u.includes('75x75') && !u.includes('favicon') && !u.includes('profile'))
+        // Deduplicate and filter
+        const uniqueMoodboard = [...new Set(allImages)]
+          .filter(u => u && !u.includes('75x75') && !u.includes('favicon') && !u.includes('profile') && !u.includes('logo') && u.startsWith('http'))
           .slice(0, 6);
         
         if (uniqueMoodboard.length > 0) {
           extracted.brand.visualIdentity.moodboardUrls = uniqueMoodboard;
-          console.log("Found", uniqueMoodboard.length, "Pinterest moodboard images via search");
+          console.log("Found", uniqueMoodboard.length, "moodboard images");
           return;
         }
+        
+        console.log("No moodboard images found from search, trying fallback...");
       } catch (e) {
-        console.warn("Pinterest search error (non-fatal):", e);
+        console.error("Moodboard search error:", e);
       }
       
-      // Fallback: general image search
+      // Fallback: general aesthetic image search
       try {
-        const audienceDesc = extracted.audience?.description || "";
         const brandCategory = extracted.brand?.category || "";
-        const query = `${brandCategory} ${audienceDesc.split('.')[0]} aesthetic moodboard inspiration`;
+        const query = `${brandCategory} aesthetic lifestyle photography inspiration`;
+        console.log("Fallback moodboard search:", query);
         
         const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
           method: "POST",
@@ -571,7 +602,11 @@ ${markdown.slice(0, 15000)}`;
             Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ query, limit: 10 }),
+          body: JSON.stringify({
+            query,
+            limit: 10,
+            scrapeOptions: { formats: ["markdown", "links"] },
+          }),
         });
         
         if (searchRes.ok) {
@@ -580,10 +615,18 @@ ${markdown.slice(0, 15000)}`;
           const imageUrls: string[] = [];
           for (const r of results) {
             if (r.metadata?.ogImage) imageUrls.push(r.metadata.ogImage);
+            if (r.image) imageUrls.push(r.image);
+            const links = r.links || [];
+            for (const link of links) {
+              const linkUrl = typeof link === 'string' ? link : link?.url || link?.href || '';
+              if (linkUrl && /\.(jpg|jpeg|png|webp)(\?|$)/i.test(linkUrl)) {
+                imageUrls.push(linkUrl);
+              }
+            }
             const imgs = (r.markdown || "").match(/(https?:\/\/[^\s)"']+\.(?:jpg|jpeg|png|webp))/gi);
             if (imgs) imageUrls.push(...imgs);
           }
-          const unique = [...new Set(imageUrls)].filter(u => !u.includes('favicon')).slice(0, 6);
+          const unique = [...new Set(imageUrls)].filter(u => !u.includes('favicon') && !u.includes('logo') && u.startsWith('http')).slice(0, 6);
           if (unique.length > 0) {
             extracted.brand.visualIdentity.moodboardUrls = unique;
             console.log("Fallback: found", unique.length, "moodboard images");
@@ -591,9 +634,10 @@ ${markdown.slice(0, 15000)}`;
           }
         }
       } catch (e) {
-        console.warn("Fallback moodboard error:", e);
+        console.error("Fallback moodboard error:", e);
       }
       
+      console.log("No moodboard images found at all");
       extracted.brand.visualIdentity.moodboardUrls = [];
     })();
 
@@ -712,9 +756,11 @@ Create a subtle, elegant decorative pattern suitable for website backgrounds, se
 
         if (illustrationUrls.length > 0) {
           extracted.brand.visualIdentity.illustrationUrls = illustrationUrls;
-          console.log("Generated", illustrationUrls.length, "illustrations (pattern + mascot)");
+          console.log("Generated", illustrationUrls.length, "illustrations, URL lengths:", illustrationUrls.map(u => u.length));
+        } else {
+          console.warn("No illustrations generated - both AI calls returned no images");
         }
-      } catch (e) { console.warn("Illustration gen error:", e); }
+      } catch (e) { console.error("Illustration gen error:", e); }
     })());
 
     // ── Generate per-guideline images using product images when relevant ──
