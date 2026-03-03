@@ -771,7 +771,7 @@ No explanation, just the JSON array.`
       aiImagePromises.push((async () => {
         try {
           console.log("Generating per-guideline images for", guidelines.length, "guidelines...");
-          const results: string[] = [];
+          
           const productImageUrl = productImages.length > 0 ? productImages[0] : null;
           
           const guidelineResults = await Promise.allSettled(
