@@ -294,18 +294,18 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   const getPortPosition = (node: CanvasNode, port: "input" | "output") => {
     // Get actual dimensions based on node type
     const nodeHeights: Record<string, number> = {
-      "research": 336,
-      "action": 336,
-      "business-db": 180,
+      "research": 480,
+      "action": 480,
+      "business-db": 360,
       "text": 220,
       "document": 200,
       "image": 220,
       "website": 200,
     };
     const nodeWidths: Record<string, number> = {
-      "research": 460,
-      "action": 460,
-      "business-db": 280,
+      "research": 540,
+      "action": 540,
+      "business-db": 320,
       "text": 280,
       "document": 260,
       "image": 260,
@@ -368,7 +368,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
         />
         {/* Transformed container */}
         <div 
-          className="absolute inset-0"
+          className={cn("absolute inset-0", draggingNodeId && "is-dragging")}
           style={{ 
             transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom / 100})`,
             transformOrigin: "top left",
@@ -602,7 +602,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
               <div
                 key={node.id}
                 className={cn(
-                  "absolute bg-card border rounded-lg shadow-lg",
+                  "absolute bg-card border rounded-lg shadow-lg canvas-node-smooth",
                   tool === "select" ? "cursor-move" : "cursor-default",
                   isSelected ? "border-primary ring-2 ring-primary/30 shadow-xl" : "border-border hover:border-primary/50",
                   draggingNodeId === node.id && "shadow-2xl"
