@@ -555,115 +555,75 @@ No explanation, just the JSON array.`
         }
         console.log("Moodboard terms:", aestheticTerms);
 
-        // Step 2: For each term, search Pinterest, scrape screenshot of first pin
-        const moodboardUrls: string[] = [];
-
-        for (const term of aestheticTerms.slice(0, 6)) {
-          try {
-            console.log(`Searching Pinterest for: ${term}`);
-            const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                query: `site:pinterest.com ${term}`,
-                limit: 3,
-              }),
-            });
-
-            let pinUrl = "";
-            if (searchRes.ok) {
-              const searchData = await searchRes.json();
-              const results = searchData.data || [];
-              // Find a proper pin URL (individual pin page)
-              for (const r of results) {
-                const u = r.url || "";
-                if (u.includes("pinterest.com/pin/") || u.includes("pinterest.com")) {
-                  pinUrl = u;
-                  break;
-                }
-              }
-            }
-
-            if (pinUrl) {
-              console.log(`Scraping pin screenshot: ${pinUrl}`);
-              const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  url: pinUrl,
-                  formats: ["screenshot"],
-                }),
-              });
-
-              if (scrapeRes.ok) {
-                const scrapeData = await scrapeRes.json();
-                const screenshot = scrapeData.data?.screenshot || scrapeData.screenshot;
-                if (screenshot) {
-                  const imgUrl = typeof screenshot === 'string' && screenshot.startsWith('http')
-                    ? screenshot
-                    : `data:image/png;base64,${screenshot}`;
-                  moodboardUrls.push(imgUrl);
-                  console.log(`✓ Got Pinterest screenshot for "${term}"`);
-                  continue;
-                }
-              }
-            }
-
-            // Fallback: try broader Pinterest search without site: filter
-            console.log(`Pinterest site: search failed for "${term}", trying broader search...`);
+        // Step 2: For each term, search in parallel with screenshot scrapeOptions
+        const moodboardResults = await Promise.allSettled(
+          aestheticTerms.slice(0, 6).map(async (term) => {
             try {
-              const broadRes = await fetch("https://api.firecrawl.dev/v1/search", {
+              console.log(`Searching moodboard for: ${term}`);
+              // Try Firecrawl search with screenshot scrapeOptions (captures visuals inline)
+              const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
                   Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `pinterest ${term} aesthetic`,
-                  limit: 5,
+                  query: `${term} aesthetic inspiration`,
+                  limit: 3,
+                  scrapeOptions: { formats: ["screenshot"] },
                 }),
               });
-              if (broadRes.ok) {
-                const broadData = await broadRes.json();
-                const broadResults = broadData.data || [];
-                for (const r of broadResults) {
-                  const u = r.url || "";
-                  if (u.includes("pinterest.com/pin/")) {
-                    console.log(`Found pin via broad search: ${u}`);
-                    const retryRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-                      method: "POST",
-                      headers: {
-                        Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({ url: u, formats: ["screenshot"] }),
-                    });
-                    if (retryRes.ok) {
-                      const retryData = await retryRes.json();
-                      const ss = retryData.data?.screenshot || retryData.screenshot;
-                      if (ss) {
-                        const imgUrl = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
-                        moodboardUrls.push(imgUrl);
-                        console.log(`✓ Got Pinterest screenshot (broad) for "${term}"`);
-                        break;
-                      }
-                    }
+
+              if (searchRes.ok) {
+                const searchData = await searchRes.json();
+                const results = searchData.data || [];
+                for (const r of results) {
+                  const ss = r.screenshot;
+                  if (ss) {
+                    const imgUrl = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
+                    console.log(`✓ Got moodboard screenshot for "${term}"`);
+                    return imgUrl;
                   }
                 }
               }
-            } catch (broadErr) {
-              console.warn(`Broad Pinterest search also failed for "${term}":`, broadErr);
+
+              // Fallback: search Unsplash/Pexels for visual content
+              console.log(`Primary search failed for "${term}", trying image sites...`);
+              const fallbackRes = await fetch("https://api.firecrawl.dev/v1/search", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  query: `site:unsplash.com OR site:pexels.com ${term}`,
+                  limit: 3,
+                  scrapeOptions: { formats: ["screenshot"] },
+                }),
+              });
+              if (fallbackRes.ok) {
+                const fbData = await fallbackRes.json();
+                for (const r of (fbData.data || [])) {
+                  const ss = r.screenshot;
+                  if (ss) {
+                    const imgUrl = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
+                    console.log(`✓ Got moodboard screenshot (fallback) for "${term}"`);
+                    return imgUrl;
+                  }
+                }
+              }
+
+              return null;
+            } catch (e) {
+              console.warn(`Moodboard error for "${term}":`, e);
+              return null;
             }
-          } catch (e) {
-            console.warn(`Moodboard error for "${term}":`, e);
-          }
-        }
+          })
+        );
+
+        const moodboardUrls = moodboardResults
+          .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
+          .map(r => r.value);
 
         extracted.brand.visualIdentity.moodboardUrls = moodboardUrls;
         console.log("Final moodboard count:", moodboardUrls.length);
@@ -814,48 +774,52 @@ No explanation, just the JSON array.`
           const results: string[] = [];
           const productImageUrl = productImages.length > 0 ? productImages[0] : null;
           
-          for (const g of guidelines.slice(0, 4)) {
-            const ruleText = `${g.rule} ${g.example || ''}`.toLowerCase();
-            const mentionsProduct = ruleText.includes('product') || ruleText.includes('unboxing') || ruleText.includes('packaging') || ruleText.includes('in-hand') || ruleText.includes('close-up');
-            
-            let messages: any[];
-            if (mentionsProduct && productImageUrl) {
-              // Use the product image as input for product-related guidelines
-              messages = [{
-                role: "user",
-                content: [
-                  { type: "text", text: `Create a brand photography reference image for "${brandName}".
+          const guidelineResults = await Promise.allSettled(
+            guidelines.slice(0, 3).map(async (g: any) => {
+              const ruleText = `${g.rule} ${g.example || ''}`.toLowerCase();
+              const mentionsProduct = ruleText.includes('product') || ruleText.includes('unboxing') || ruleText.includes('packaging') || ruleText.includes('in-hand') || ruleText.includes('close-up');
+              
+              let messages: any[];
+              if (mentionsProduct && productImageUrl) {
+                messages = [{
+                  role: "user",
+                  content: [
+                    { type: "text", text: `Create a brand photography reference image for "${brandName}".
 Guideline: "${g.rule}"${g.example ? ` — Example: "${g.example}"` : ''}
 Target audience: ${audienceDesc}
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
 Use the product shown in this image as the subject. Place it in a scene that demonstrates this specific photography guideline. Professional, authentic, on-brand. No text overlays.` },
-                  { type: "image_url", image_url: { url: productImageUrl } }
-                ]
-              }];
-            } else {
-              messages = [{ role: "user", content: `Create a brand photography reference image for "${brandName}".
+                    { type: "image_url", image_url: { url: productImageUrl } }
+                  ]
+                }];
+              } else {
+                messages = [{ role: "user", content: `Create a brand photography reference image for "${brandName}".
 Guideline: "${g.rule}"${g.example ? ` — Example: "${g.example}"` : ''}
 Target audience: ${audienceDesc}
 Brand category: ${brandCategory}.
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
 Create a clean, professional mood/reference photo that demonstrates this specific photography guideline for this audience. No text overlays. Authentic and on-brand.` }];
-            }
-            
-            const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash-image",
-                messages,
-                modalities: ["image", "text"],
-              }),
-            });
-            if (res.ok) {
-              const d = await res.json();
-              const imgUrl = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-              if (imgUrl) results.push(imgUrl);
-            }
-          }
+              }
+              
+              const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash-image",
+                  messages,
+                  modalities: ["image", "text"],
+                }),
+              });
+              if (res.ok) {
+                const d = await res.json();
+                return d.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
+              }
+              return null;
+            })
+          );
+          const results = guidelineResults
+            .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
+            .map(r => r.value);
           if (results.length > 0) {
             extracted.brand.visualIdentity.guidelineImageUrls = results;
             console.log("Generated", results.length, "guideline images");
@@ -869,44 +833,44 @@ Create a clean, professional mood/reference photo that demonstrates this specifi
     if (productImgUrls.length > 0) {
       aiImagePromises.push((async () => {
         try {
-          console.log("Removing backgrounds from", productImgUrls.length, "product images...");
-          const cleanImages: string[] = [];
+          const imagesToProcess = productImgUrls.slice(0, 4).filter((u: string) => u && typeof u === 'string');
+          console.log("Removing backgrounds from", imagesToProcess.length, "product images (parallel)...");
 
-          for (const imgUrl of productImgUrls.slice(0, 6)) {
-            try {
-              if (!imgUrl || typeof imgUrl !== 'string') continue;
-              const bgRemoveRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-flash-image",
-                  messages: [{
-                    role: "user",
-                    content: [
-                      { type: "text", text: "Remove the background from this product image completely. Keep ONLY the product itself with a clean, pure white background. No shadows, no floor, no props — just the isolated product on white. Maintain the exact product appearance, colors, and details." },
-                      { type: "image_url", image_url: { url: imgUrl } }
-                    ]
-                  }],
-                  modalities: ["image", "text"],
-                }),
-              });
-              if (bgRemoveRes.ok) {
-                const d = await bgRemoveRes.json();
-                const cleanImg = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-                if (cleanImg) {
-                  cleanImages.push(cleanImg);
-                  console.log(`✓ Background removed for product image ${cleanImages.length}`);
-                } else {
-                  cleanImages.push(imgUrl); // keep original if AI returned no image
+          const bgResults = await Promise.allSettled(
+            imagesToProcess.map(async (imgUrl: string, idx: number) => {
+              try {
+                const bgRemoveRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    model: "google/gemini-2.5-flash-image",
+                    messages: [{
+                      role: "user",
+                      content: [
+                        { type: "text", text: "Remove the background from this product image completely. Keep ONLY the product itself with a clean, pure white background. No shadows, no floor, no props — just the isolated product on white. Maintain the exact product appearance, colors, and details." },
+                        { type: "image_url", image_url: { url: imgUrl } }
+                      ]
+                    }],
+                    modalities: ["image", "text"],
+                  }),
+                });
+                if (bgRemoveRes.ok) {
+                  const d = await bgRemoveRes.json();
+                  const cleanImg = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+                  if (cleanImg) {
+                    console.log(`✓ Background removed for product image ${idx + 1}`);
+                    return cleanImg;
+                  }
                 }
-              } else {
-                cleanImages.push(imgUrl);
+                return imgUrl; // fallback to original
+              } catch (e) {
+                console.warn("BG removal error for image:", e);
+                return imgUrl;
               }
-            } catch (e) {
-              console.warn("BG removal error for image:", e);
-              cleanImages.push(imgUrl);
-            }
-          }
+            })
+          );
+
+          const cleanImages = bgResults.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean) as string[];
 
           if (cleanImages.length > 0) {
             extracted.product.images = cleanImages;
