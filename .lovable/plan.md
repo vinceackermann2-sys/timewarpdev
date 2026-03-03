@@ -1,34 +1,34 @@
 
 
-## Issues and Fixes
+## Problem
 
-### 1. Logo Recreation — Better AI Prompt
-The current prompt says "Extract and recreate the logo" which produces a loose interpretation. Change to a more precise prompt that instructs the AI to faithfully reproduce the exact logo — matching letterforms, icon, colors, and proportions exactly as seen in the screenshot. Use `google/gemini-3-pro-image-preview` for higher quality.
+The moodboard search isn't working because:
+1. Firecrawl search with Pinterest-related queries returns page metadata/links, but Pinterest lazy-loads images — so `pinimg.com` URLs never appear in markdown or metadata
+2. The fallback AI-generated moodboard images are generic and not from Pinterest
+3. The user wants real Pinterest aesthetic images, one per search term
 
-### 2. Moodboard Not Showing
-Logs show 6 images found, but they're likely generic image URLs from search results (ogImage, random .jpg links) — not aesthetic Pinterest images. The Firecrawl search API doesn't return actual Pinterest CDN images because Pinterest blocks scraping.
+## Solution
 
-**Fix**: Use Firecrawl search with `scrapeOptions: { formats: ["screenshot"] }` to get screenshots of the search result pages (which will include visual content). Also try searching for image-heavy sites like Unsplash, Pexels with audience-related terms. Additionally, use AI image generation as a guaranteed fallback — generate 6 moodboard images with Gemini based on audience aesthetic description.
+Replace the entire moodboard logic with a two-step approach:
 
-### 3. Illustrations — Change to Website Patterns, Symbols, and Icons
-Current prompts generate "seamless brand patterns" and "decorative website patterns." Change to generate:
-- **Pattern 1**: A set of brand-specific icons and symbols (small iconographic elements related to the product category and audience)
-- **Pattern 2**: A website pattern/texture using those symbols arranged in a repeating layout
+### Step 1: Generate aesthetic search terms from audience/brand data
+Use the extracted audience description, brand category, and colors to produce 5-6 specific aesthetic terms (e.g., "Muted botanical motifs", "Sun-drenched linen texture", "Earthy pastel palette").
 
-### 4. Image Guidelines — Per-Row Only, Remove Top Grid
-Currently `EditableGuidelines` renders a big 3-column grid of `guidelineImageUrls` at the top (lines 200-208), then also shows per-row thumbnails (lines 211-216). User wants images only next to each text row, not in the big grid above.
+### Step 2: For each term, scrape a Pinterest pin page screenshot
+- Search Pinterest via Firecrawl search (`site:pinterest.com {term}`) to find individual pin URLs
+- For each pin URL found, use Firecrawl scrape with `formats: ["screenshot"]` to capture the pin's image visually
+- This gives us one real Pinterest-sourced image per aesthetic term
+- If pin scraping fails for a term, fall back to AI-generating that specific moodboard image
 
-**Fix** in `BrandExtendedSections.tsx`: Remove the top `guidelineImageUrls` grid (lines 200-208) so images only appear as thumbnails next to each guideline row.
+### Edge function changes (`supabase/functions/scrape-product/index.ts`):
 
----
+Replace the moodboard promise (lines ~507-688) with:
 
-## Changes
+1. **Generate search terms** using the AI — ask Gemini to produce 6 short aesthetic phrases based on `audienceDesc`, `brandCategory`, and `brandColors`
+2. **For each term**, run Firecrawl search `site:pinterest.com {term}` (limit: 3) to find pin URLs
+3. **Scrape the first pin URL** with `formats: ["screenshot"]` to get a visual capture of the actual Pinterest pin
+4. **Collect screenshots** as base64 data URLs into `moodboardUrls`
+5. **Fallback per term**: if no pin URL found or scrape fails, generate an AI image for that term using Gemini
 
-### Edge function (`supabase/functions/scrape-product/index.ts`):
-1. **Logo prompt**: Use more precise wording — "Faithfully reproduce this exact logo. Match every detail: letterforms, icon, colors, proportions. Isolated on white/transparent background." Use `google/gemini-3-pro-image-preview` for better quality.
-2. **Moodboard**: After Firecrawl search, if results don't yield good image URLs, fall back to AI-generating 6 moodboard reference images using Gemini with audience aesthetic terms.
-3. **Illustrations**: Change prompts to generate brand symbols/icons set and a website pattern using those symbols.
-
-### Frontend (`src/components/database/BrandExtendedSections.tsx`):
-4. Remove the top 3-column grid display of guideline images (lines 200-208). Keep only the per-row thumbnail display.
+This approach guarantees 6 moodboard images — each tied to a specific aesthetic term, sourced from Pinterest when possible, AI-generated when not.
 
