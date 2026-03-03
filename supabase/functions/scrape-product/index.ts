@@ -615,24 +615,50 @@ No explanation, just the JSON array.`
               }
             }
 
-            // Fallback: AI-generate this specific moodboard image
-            console.log(`Pinterest failed for "${term}", generating with AI...`);
-            const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash-image",
-                messages: [{ role: "user", content: `A beautiful Pinterest moodboard aesthetic photograph showing: ${term}. Brand colors: ${brandColors.primary || 'warm tones'}, ${brandColors.secondary || 'neutral'}. Editorial quality, aspirational, magazine style. Ultra high resolution.` }],
-                modalities: ["image", "text"],
-              }),
-            });
-            if (aiRes.ok) {
-              const d = await aiRes.json();
-              const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-              if (img) {
-                moodboardUrls.push(img);
-                console.log(`✓ AI-generated moodboard for "${term}"`);
+            // Fallback: try broader Pinterest search without site: filter
+            console.log(`Pinterest site: search failed for "${term}", trying broader search...`);
+            try {
+              const broadRes = await fetch("https://api.firecrawl.dev/v1/search", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  query: `pinterest ${term} aesthetic`,
+                  limit: 5,
+                }),
+              });
+              if (broadRes.ok) {
+                const broadData = await broadRes.json();
+                const broadResults = broadData.data || [];
+                for (const r of broadResults) {
+                  const u = r.url || "";
+                  if (u.includes("pinterest.com/pin/")) {
+                    console.log(`Found pin via broad search: ${u}`);
+                    const retryRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+                      method: "POST",
+                      headers: {
+                        Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({ url: u, formats: ["screenshot"] }),
+                    });
+                    if (retryRes.ok) {
+                      const retryData = await retryRes.json();
+                      const ss = retryData.data?.screenshot || retryData.screenshot;
+                      if (ss) {
+                        const imgUrl = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
+                        moodboardUrls.push(imgUrl);
+                        console.log(`✓ Got Pinterest screenshot (broad) for "${term}"`);
+                        break;
+                      }
+                    }
+                  }
+                }
               }
+            } catch (broadErr) {
+              console.warn(`Broad Pinterest search also failed for "${term}":`, broadErr);
             }
           } catch (e) {
             console.warn(`Moodboard error for "${term}":`, e);
