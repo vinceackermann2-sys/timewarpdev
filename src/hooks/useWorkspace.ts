@@ -41,26 +41,36 @@ export function useWorkspace() {
 
     if (!memberRow) {
       // Create workspace if trigger didn't fire (existing users)
-      const { data: ws } = await supabase
+      const newWorkspaceId = crypto.randomUUID();
+      const { error: wsError } = await supabase
         .from("workspaces")
-        .insert({ name: "My Workspace", created_by: session.user.id })
-        .select()
-        .single();
+        .insert({ id: newWorkspaceId, name: "My Workspace", created_by: session.user.id });
 
-      if (ws) {
-        await supabase
-          .from("workspace_members")
-          .insert({ workspace_id: ws.id, user_id: session.user.id, role: "owner" });
-        // Set state and reload to pick up the new member
-        setWorkspaceId(ws.id);
-        setMembers([{
-          id: "self",
-          userId: session.user.id,
-          email: "you",
-          role: "owner",
-          joinedAt: new Date().toISOString(),
-        }]);
+      if (wsError) {
+        console.error("workspace create failed", wsError);
+        setIsLoading(false);
+        return;
       }
+
+      const { error: memberError } = await supabase
+        .from("workspace_members")
+        .insert({ workspace_id: newWorkspaceId, user_id: session.user.id, role: "owner" });
+
+      if (memberError) {
+        console.error("workspace member create failed", memberError);
+        setIsLoading(false);
+        return;
+      }
+
+      setWorkspaceId(newWorkspaceId);
+      setMembers([{
+        id: "self",
+        userId: session.user.id,
+        email: "you",
+        role: "owner",
+        joinedAt: new Date().toISOString(),
+      }]);
+      setInvitations([]);
       setIsLoading(false);
       return;
     }
