@@ -644,3 +644,12 @@
     transform: translateY(-2px);
   }
 }
+
+/* Whiteboard smooth node transitions */
+.canvas-node-smooth {
+  transition: left 0.14s ease-out, top 0.14s ease-out;
+}
+
+.is-dragging .canvas-node-smooth {
+  transition: none;
+}

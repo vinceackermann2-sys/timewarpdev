@@ -282,7 +282,7 @@ export function DocumentNode({
 
   return (
     <div
-      className="absolute"
+      className="absolute canvas-node-smooth"
       style={{
         left: node.x,
         top: node.y,

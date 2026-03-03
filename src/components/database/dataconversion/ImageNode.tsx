@@ -167,7 +167,7 @@ export function ImageNode({
 
   return (
     <div
-      className="absolute"
+      className="absolute canvas-node-smooth"
       style={{
         left: node.x,
         top: node.y,
