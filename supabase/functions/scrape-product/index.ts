@@ -637,8 +637,54 @@ ${markdown.slice(0, 15000)}`;
         console.error("Fallback moodboard error:", e);
       }
       
-      console.log("No moodboard images found at all");
-      extracted.brand.visualIdentity.moodboardUrls = [];
+      // AI fallback: generate 6 moodboard images with Gemini
+      console.log("No moodboard images from search — generating with AI...");
+      try {
+        const audienceDesc = extracted.audience?.description || "general consumers";
+        const brandCategory = extracted.brand?.category || "lifestyle";
+        const brandColors = extracted.brand?.colors || {};
+        const moodboardAiUrls: string[] = [];
+        
+        const moodPrompts = [
+          `A moody aesthetic ${brandCategory} lifestyle flat lay photograph. Colors: ${brandColors.primary || 'warm tones'}. Styled for Pinterest moodboard. Ultra high resolution.`,
+          `A ${brandCategory} aesthetic environment photograph showing texture, light and shadow. Colors inspired by ${brandColors.primary || 'earth tones'}. Pinterest moodboard style. Ultra high resolution.`,
+          `Close-up product styling photograph in ${brandCategory} aesthetic. Soft natural light, editorial quality. Color palette: ${brandColors.primary || 'neutral'}, ${brandColors.secondary || 'warm'}. Ultra high resolution.`,
+          `A dreamy ${brandCategory} lifestyle scene that evokes the feeling of ${audienceDesc.split('.')[0]}. Aspirational, magazine quality. Ultra high resolution.`,
+          `Minimalist ${brandCategory} still life with brand-relevant objects. Color palette: ${brandColors.primary || '#333'}, ${brandColors.background || '#fff'}. Pinterest aesthetic. Ultra high resolution.`,
+          `${brandCategory} aesthetic workspace/environment mood photograph. Warm, inviting, editorial quality. Colors: ${brandColors.primary || 'soft tones'}. Ultra high resolution.`,
+        ];
+        
+        for (const prompt of moodPrompts) {
+          if (moodboardAiUrls.length >= 6) break;
+          try {
+            const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-image",
+                messages: [{ role: "user", content: prompt }],
+                modalities: ["image", "text"],
+              }),
+            });
+            if (res.ok) {
+              const d = await res.json();
+              const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+              if (img) moodboardAiUrls.push(img);
+            }
+          } catch (e) { console.warn("Moodboard AI gen error:", e); }
+        }
+        
+        if (moodboardAiUrls.length > 0) {
+          extracted.brand.visualIdentity.moodboardUrls = moodboardAiUrls;
+          console.log("AI-generated", moodboardAiUrls.length, "moodboard images");
+        } else {
+          extracted.brand.visualIdentity.moodboardUrls = [];
+          console.log("AI moodboard generation also failed");
+        }
+      } catch (e) {
+        console.error("AI moodboard fallback error:", e);
+        extracted.brand.visualIdentity.moodboardUrls = [];
+      }
     })();
 
     // ── Desktop screenshot ──
@@ -682,11 +728,11 @@ ${markdown.slice(0, 15000)}`;
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: "google/gemini-2.5-flash-image",
+                model: "google/gemini-3-pro-image-preview",
                 messages: [{
                   role: "user",
                   content: [
-                    { type: "text", text: `Extract and recreate the logo visible in the top/header area of this website screenshot. Recreate it as a clean, isolated logo on a transparent/white background. Match the exact colors, typography, and design of the original logo. Output only the logo, nothing else.` },
+                    { type: "text", text: `Faithfully reproduce this exact logo visible in the top/header area of this website screenshot. Match every detail precisely: letterforms, icon/symbol, colors, proportions, and spacing. The reproduction must be pixel-accurate to the original. Output the logo isolated on a clean white background. No extra elements, no interpretation — just the exact logo as it appears.` },
                     { type: "image_url", image_url: { url: ssUrl } }
                   ]
                 }],
@@ -712,18 +758,18 @@ ${markdown.slice(0, 15000)}`;
         console.log("Generating brand patterns and mascots...");
         const illustrationUrls: string[] = [];
         
-        // Pattern
-        const patternPrompt = `Generate a seamless brand pattern for "${brandName}". 
+        // Pattern 1: Brand-specific icons and symbols set
+        const iconsPrompt = `Generate a set of brand-specific icons and symbols for "${brandName}".
 Brand category: ${brandCategory}. Target audience: ${audienceDesc}.
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
-Create a repeating decorative pattern that reflects the brand identity. Use brand colors. No text. Clean, professional design suitable for packaging, backgrounds, and social media.`;
+Create a collection of 9-12 small iconographic elements arranged in a grid on a clean white background. The icons should be related to the product category and audience lifestyle. Flat, minimal style using only the brand colors. Each icon should be simple, recognizable, and suitable for website UI, packaging, and marketing materials. No text labels.`;
         
         const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
-            messages: [{ role: "user", content: patternPrompt }],
+            messages: [{ role: "user", content: iconsPrompt }],
             modalities: ["image", "text"],
           }),
         });
@@ -733,23 +779,23 @@ Create a repeating decorative pattern that reflects the brand identity. Use bran
           if (img) illustrationUrls.push(img);
         }
 
-        // Second pattern (website/decorative pattern)
-        const mascotPrompt = `Generate a decorative website pattern for "${brandName}".
+        // Pattern 2: Website pattern/texture using brand symbols
+        const patternTexturePrompt = `Generate a seamless repeating website pattern/texture for "${brandName}".
 Brand category: ${brandCategory}. Target audience: ${audienceDesc}.
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
-Create a subtle, elegant decorative pattern suitable for website backgrounds, section dividers, and digital interfaces. Use brand colors. Geometric or organic shapes that reflect the brand's personality. Seamless, tileable design. No text. Clean background.`;
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}.
+Create a subtle, tileable pattern using small symbols and icons related to ${brandCategory}. The symbols should be arranged in a repeating layout suitable for website section backgrounds, hero overlays, and digital interfaces. Use brand colors at low opacity on a clean background. Professional, modern, not overwhelming. No text.`;
 
-        const mascotRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const textureRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
-            messages: [{ role: "user", content: mascotPrompt }],
+            messages: [{ role: "user", content: patternTexturePrompt }],
             modalities: ["image", "text"],
           }),
         });
-        if (mascotRes.ok) {
-          const d = await mascotRes.json();
+        if (textureRes.ok) {
+          const d = await textureRes.json();
           const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
           if (img) illustrationUrls.push(img);
         }

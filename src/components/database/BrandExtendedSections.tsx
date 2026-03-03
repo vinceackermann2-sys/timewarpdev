@@ -45,8 +45,8 @@ interface VisualIdentityInitial {
 const DEFAULT_DATA: VisualIdentityData = {
   moodboard: Array.from({ length: 6 }, (_, i) => ({ id: `mood-${i}`, url: null })),
   illustrations: [
-    { id: "illust-0", url: null, label: "Primary mascot / character" },
-    { id: "illust-1", url: null, label: "Pattern or decorative element" },
+    { id: "illust-0", url: null, label: "Brand icons & symbols set" },
+    { id: "illust-1", url: null, label: "Website pattern / texture" },
   ],
   imageGuidelines: [
     { id: "ig-0", rule: "Use natural settings with bright, colorful backgrounds", example: "Product in nature, lifestyle shots with children" },
@@ -197,15 +197,6 @@ function EditableGuidelines({
 }) {
   return (
     <div className="space-y-3">
-      {guidelineImageUrls && guidelineImageUrls.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          {guidelineImageUrls.map((url, i) => (
-            <div key={i} className="aspect-[4/3] rounded-lg overflow-hidden border border-border/50">
-              <img src={url} alt={`Brand guideline ${i + 1}`} className="w-full h-full object-cover" />
-            </div>
-          ))}
-        </div>
-      )}
       {guidelines.map((item, i) => (
         <div key={item.id} className="flex gap-3">
           <div className="h-16 w-20 rounded-lg border-2 border-dashed border-border/50 bg-muted/10 flex items-center justify-center shrink-0 overflow-hidden">
