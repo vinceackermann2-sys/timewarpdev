@@ -328,7 +328,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
                 <Icon className={cn("h-4 w-4", isActive ? seg.color : "")} />
                 <span>{seg.label}</span>
                 {seg.beta && (
-                  <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/20">
+                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
                     Beta
                   </span>
                 )}
