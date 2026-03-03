@@ -1,8 +1,3 @@
-import { useState } from "react";
-import { 
-  Zap,
-  ChevronDown
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { nodeIconMap, type NodeItem } from "./types";
@@ -98,8 +93,6 @@ interface NodePaletteProps {
 }
 
 export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
-  const [quickAccessOpen, setQuickAccessOpen] = useState(true);
-
   return (
     <div className="w-[260px] border-r border-border bg-card/30 flex flex-col h-full">
       <div className="p-3 border-b border-border">
@@ -110,34 +103,23 @@ export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
       <ScrollArea className="flex-1">
         {/* Quick Access Section */}
         <div className="border-b border-border/50">
-          <button
-            onClick={() => setQuickAccessOpen(!quickAccessOpen)}
-            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent/50 transition-colors"
-          >
-            <Zap className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs font-medium flex-1 text-left">Quick Access</span>
-            <ChevronDown className={cn(
-              "h-3 w-3 text-muted-foreground transition-transform",
-              !quickAccessOpen && "-rotate-90"
-            )} />
-          </button>
-          
-          {quickAccessOpen && (
-            <div className="px-3 pb-3 grid grid-cols-2 gap-2 animate-fade-in">
-              {quickAccessNodes.map((item) => (
-                <NodeItemCard 
-                  key={item.id} 
-                  item={item} 
-                  onDragStart={onNodeDragStart}
-                />
-              ))}
-            </div>
-          )}
+          <div className="px-3 py-2">
+            <span className="text-sm font-semibold">Quick Access</span>
+          </div>
+          <div className="px-3 pb-3 grid grid-cols-2 gap-2">
+            {quickAccessNodes.map((item) => (
+              <NodeItemCard 
+                key={item.id} 
+                item={item} 
+                onDragStart={onNodeDragStart}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Research & Action Side by Side */}
         <div className="p-3">
-          <p className="text-xs font-medium text-muted-foreground mb-2">AI Chats</p>
+          <p className="text-sm font-semibold mb-2">AI Chats</p>
           <div className="flex gap-2">
             <MainNodeCard 
               item={researchNode} 
