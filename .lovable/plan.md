@@ -1,46 +1,34 @@
 
 
-## Problems Identified
+## Issues and Fixes
 
-### 1. Missing `visualIdentity` initialization
-The moodboard and illustration promises write to `extracted.brand.visualIdentity.moodboardUrls` and `.illustrationUrls`, but `visualIdentity` may not exist on the extracted object. The AI sometimes returns it, sometimes doesn't. These writes fail silently inside try/catch blocks.
+### 1. Logo Recreation — Better AI Prompt
+The current prompt says "Extract and recreate the logo" which produces a loose interpretation. Change to a more precise prompt that instructs the AI to faithfully reproduce the exact logo — matching letterforms, icon, colors, and proportions exactly as seen in the screenshot. Use `google/gemini-3-pro-image-preview` for higher quality.
 
-**Fix**: Add an explicit initialization of `extracted.brand.visualIdentity` right after JSON parsing (before all the async promises start), ensuring it always exists as an object:
-```typescript
-if (!extracted.brand) extracted.brand = {};
-if (!extracted.brand.visualIdentity) extracted.brand.visualIdentity = {};
-```
+### 2. Moodboard Not Showing
+Logs show 6 images found, but they're likely generic image URLs from search results (ogImage, random .jpg links) — not aesthetic Pinterest images. The Firecrawl search API doesn't return actual Pinterest CDN images because Pinterest blocks scraping.
 
-### 2. Moodboard Pinterest search not returning images
-The Firecrawl search API with `site:pinterest.com` returns search result pages, but the response metadata (`ogImage`) and markdown don't contain `pinimg.com` CDN URLs — those are lazy-loaded on Pinterest. The regex match for `i.pinimg.com` in markdown content finds nothing.
+**Fix**: Use Firecrawl search with `scrapeOptions: { formats: ["screenshot"] }` to get screenshots of the search result pages (which will include visual content). Also try searching for image-heavy sites like Unsplash, Pexels with audience-related terms. Additionally, use AI image generation as a guaranteed fallback — generate 6 moodboard images with Gemini based on audience aesthetic description.
 
-**Fix**: Instead of searching `site:pinterest.com`, search for aesthetic terms directly (e.g., `"Beauty lifestyle moodboard aesthetic inspiration"`). Then use `scrapeOptions` in the Firecrawl search to get the actual page screenshots or images from the result pages. Also extract images from `links` array in search results that point to image files.
+### 3. Illustrations — Change to Website Patterns, Symbols, and Icons
+Current prompts generate "seamless brand patterns" and "decorative website patterns." Change to generate:
+- **Pattern 1**: A set of brand-specific icons and symbols (small iconographic elements related to the product category and audience)
+- **Pattern 2**: A website pattern/texture using those symbols arranged in a repeating layout
 
-### 3. Illustrations log success but don't appear
-The logs show "Generated 2 illustrations" — meaning the AI image generation succeeds and the base64 data URLs are created. But the issue is likely either:
-- The `visualIdentity` object doesn't exist when the illustration promise runs (same as #1)
-- The base64 URLs are enormous and might be getting truncated in JSON serialization or exceeding response limits
+### 4. Image Guidelines — Per-Row Only, Remove Top Grid
+Currently `EditableGuidelines` renders a big 3-column grid of `guidelineImageUrls` at the top (lines 200-208), then also shows per-row thumbnails (lines 211-216). User wants images only next to each text row, not in the big grid above.
 
-**Fix**: Same initialization fix as #1. Also add logging of URL length to confirm data is being passed correctly.
+**Fix** in `BrandExtendedSections.tsx`: Remove the top `guidelineImageUrls` grid (lines 200-208) so images only appear as thumbnails next to each guideline row.
 
-## Plan
+---
 
-### Edge function changes (`supabase/functions/scrape-product/index.ts`):
+## Changes
 
-1. **Add `visualIdentity` initialization** right after the `extracted` JSON is parsed (after line 436), before any async promises:
-   ```typescript
-   if (!extracted.brand) extracted.brand = {};
-   if (!extracted.brand.visualIdentity) extracted.brand.visualIdentity = {};
-   ```
+### Edge function (`supabase/functions/scrape-product/index.ts`):
+1. **Logo prompt**: Use more precise wording — "Faithfully reproduce this exact logo. Match every detail: letterforms, icon, colors, proportions. Isolated on white/transparent background." Use `google/gemini-3-pro-image-preview` for better quality.
+2. **Moodboard**: After Firecrawl search, if results don't yield good image URLs, fall back to AI-generating 6 moodboard reference images using Gemini with audience aesthetic terms.
+3. **Illustrations**: Change prompts to generate brand symbols/icons set and a website pattern using those symbols.
 
-2. **Fix moodboard Pinterest flow**:
-   - Change search queries to remove `site:pinterest.com` prefix and use broader aesthetic terms with audience data
-   - Add `scrapeOptions: { formats: ["links", "markdown"] }` to the Firecrawl search call to get actual page content
-   - Extract image URLs from result `links` arrays (look for `.jpg`, `.png`, `.webp` extensions)
-   - Also try extracting from `metadata.ogImage` and any `image` field in results
-   - Keep Pinterest-preferred approach: first try with `pinterest moodboard` in query, then fallback to general aesthetic search
-
-3. **Add error logging** for illustration and moodboard promise failures to surface silent errors
-
-4. **Redeploy** the edge function
+### Frontend (`src/components/database/BrandExtendedSections.tsx`):
+4. Remove the top 3-column grid display of guideline images (lines 200-208). Keep only the per-row thumbnail display.
 
