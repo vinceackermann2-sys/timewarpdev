@@ -104,7 +104,11 @@ const Database = () => {
         <SidebarInset className="flex flex-col flex-1">
           <main className="flex-1 overflow-hidden">
             {currentView === "database" && <DatabaseView />}
-            {currentView === "dataconversion" && user && <DataConversionView />}
+            {currentView === "dataconversion" && user && (
+              <BusinessDNAProvider>
+                <DataConversionView />
+              </BusinessDNAProvider>
+            )}
             {currentView === "aiceo" && user && (
               <TimeWarpAIView 
                 initialTask={pendingTask}

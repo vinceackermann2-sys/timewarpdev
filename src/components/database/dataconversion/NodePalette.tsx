@@ -1,6 +1,10 @@
+import { useState } from "react";
+import { Building2, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 import { nodeIconMap, type NodeItem } from "./types";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 const quickAccessNodes: NodeItem[] = [
   { id: "business-db", label: "Business Database", description: "Synced business data" },
@@ -93,6 +97,12 @@ interface NodePaletteProps {
 }
 
 export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
+  const { brands } = useBusinessDNA();
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const selectedBrand = brands.find(b => b.id === selectedBrandId);
+
   return (
     <div className="w-[260px] border-r border-border bg-card/30 flex flex-col h-full">
       <div className="p-3 border-b border-border">
@@ -118,7 +128,7 @@ export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
         </div>
 
         {/* Research & Action Side by Side */}
-        <div className="p-3">
+        <div className="p-3 border-b border-border/50">
           <p className="text-sm font-semibold mb-2">AI Chats</p>
           <div className="flex gap-2">
             <MainNodeCard 
@@ -132,6 +142,81 @@ export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
               variant="action"
             />
           </div>
+        </div>
+
+        {/* Business Selector */}
+        <div className="p-3">
+          <p className="text-sm font-semibold mb-2">Workspace</p>
+          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-border",
+                  "bg-card/50 hover:bg-card hover:border-primary/50 transition-all duration-200 text-left"
+                )}
+              >
+                <div className="h-8 w-8 rounded-md bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+                  {selectedBrand?.logoUrls && selectedBrand.logoUrls.length > 0 ? (
+                    <img
+                      src={selectedBrand.logoUrls[selectedBrand.selectedLogo ?? 0]}
+                      alt={selectedBrand.name}
+                      className="h-full w-full object-contain p-1"
+                    />
+                  ) : (
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">
+                    {selectedBrand ? selectedBrand.name : "Select business"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {selectedBrand ? selectedBrand.category || "Business" : "No business selected"}
+                  </p>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[232px] p-1" sideOffset={4}>
+              {brands.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3">No businesses added yet</p>
+              ) : (
+                <div className="max-h-[200px] overflow-y-auto">
+                  {brands.map(brand => (
+                    <button
+                      key={brand.id}
+                      onClick={() => {
+                        setSelectedBrandId(brand.id);
+                        setPopoverOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-2 py-2 rounded-md text-left transition-colors",
+                        selectedBrandId === brand.id
+                          ? "bg-primary/10 text-primary"
+                          : "hover:bg-accent/50"
+                      )}
+                    >
+                      <div className="h-6 w-6 rounded bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+                        {brand.logoUrls && brand.logoUrls.length > 0 ? (
+                          <img
+                            src={brand.logoUrls[brand.selectedLogo ?? 0]}
+                            alt={brand.name}
+                            className="h-full w-full object-contain p-0.5"
+                          />
+                        ) : (
+                          <Building2 className="h-3 w-3 text-muted-foreground" />
+                        )}
+                      </div>
+                      <span className="text-xs font-medium truncate flex-1">{brand.name}</span>
+                      {selectedBrandId === brand.id && (
+                        <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
       </ScrollArea>
     </div>
