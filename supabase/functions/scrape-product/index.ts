@@ -864,6 +864,58 @@ Create a clean, professional mood/reference photo that demonstrates this specifi
       })());
     }
 
+    // ── Product images: remove backgrounds to get clean product shots ──
+    const productImgUrls = extracted.product?.images || [];
+    if (productImgUrls.length > 0) {
+      aiImagePromises.push((async () => {
+        try {
+          console.log("Removing backgrounds from", productImgUrls.length, "product images...");
+          const cleanImages: string[] = [];
+
+          for (const imgUrl of productImgUrls.slice(0, 6)) {
+            try {
+              if (!imgUrl || typeof imgUrl !== 'string') continue;
+              const bgRemoveRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash-image",
+                  messages: [{
+                    role: "user",
+                    content: [
+                      { type: "text", text: "Remove the background from this product image completely. Keep ONLY the product itself with a clean, pure white background. No shadows, no floor, no props — just the isolated product on white. Maintain the exact product appearance, colors, and details." },
+                      { type: "image_url", image_url: { url: imgUrl } }
+                    ]
+                  }],
+                  modalities: ["image", "text"],
+                }),
+              });
+              if (bgRemoveRes.ok) {
+                const d = await bgRemoveRes.json();
+                const cleanImg = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+                if (cleanImg) {
+                  cleanImages.push(cleanImg);
+                  console.log(`✓ Background removed for product image ${cleanImages.length}`);
+                } else {
+                  cleanImages.push(imgUrl); // keep original if AI returned no image
+                }
+              } else {
+                cleanImages.push(imgUrl);
+              }
+            } catch (e) {
+              console.warn("BG removal error for image:", e);
+              cleanImages.push(imgUrl);
+            }
+          }
+
+          if (cleanImages.length > 0) {
+            extracted.product.images = cleanImages;
+            console.log("Product images updated with", cleanImages.length, "clean images");
+          }
+        } catch (e) { console.error("Product BG removal pipeline error:", e); }
+      })());
+    }
+
     // Wait for moodboard + all AI image generation
     await Promise.all([moodboardPromise, ...aiImagePromises]);
 
