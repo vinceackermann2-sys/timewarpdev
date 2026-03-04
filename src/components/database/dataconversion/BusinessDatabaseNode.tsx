@@ -66,12 +66,22 @@ export function BusinessDatabaseNode({
           return;
         }
 
-        const { data, error } = await (supabase as any)
+        // Use workspace_id to show shared workspace data (not just user's own)
+        const workspaceId = localStorage.getItem("preferred_workspace_id");
+
+        let query = (supabase as any)
           .from('user_business_data')
           .select('id, data_type, source, title, content, analyzed_content, is_analyzed, created_at')
-          .eq('user_id', session.user.id)
           .order('created_at', { ascending: false })
           .limit(100);
+
+        if (workspaceId) {
+          query = query.eq('workspace_id', workspaceId);
+        } else {
+          query = query.eq('user_id', session.user.id);
+        }
+
+        const { data, error } = await query;
 
         if (!error && data) {
           setItems(data);
