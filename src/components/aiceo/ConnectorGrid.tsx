@@ -4,8 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
-import logoGoogle from "@/assets/logo-google.png";
-import logoSlack from "@/assets/logo-slack.png";
 import logoWordpress from "@/assets/logo-wordpress.png";
 
 interface ConnectorDef {
@@ -18,8 +16,6 @@ interface ConnectorDef {
 
 const connectors: ConnectorDef[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar", logo: logoMicrosoft, authType: "oauth" },
-  { id: "google", name: "Google", description: "Gmail, Drive, Calendar", logo: logoGoogle, authType: "oauth" },
-  { id: "slack", name: "Slack", description: "Messages, Channels, Files", logo: logoSlack, authType: "oauth" },
   { id: "wordpress", name: "WordPress", description: "Posts, Pages, Media", logo: logoWordpress, authType: "credentials" },
 ];
 
@@ -218,9 +214,9 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(2, 1fr)",
             gap: isMobile ? 12 : 20,
-            maxWidth: 700,
+            maxWidth: 440,
             width: "100%",
             padding: "0 16px",
           }}

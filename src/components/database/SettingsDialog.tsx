@@ -12,17 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Mail, Lock, Unplug, Loader2, Sun, Moon, Monitor, Plug, Globe } from "lucide-react";
+import { User, Mail, Lock, Unplug, Loader2, Sun, Moon, Monitor, Plug, Globe, MailPlus } from "lucide-react";
 import { useTheme } from "next-themes";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
-import logoGoogle from "@/assets/logo-google.png";
-import logoSlack from "@/assets/logo-slack.png";
 import logoWordpress from "@/assets/logo-wordpress.png";
 
 const integrations = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" as const },
-  { id: "google", name: "Google", description: "Gmail, Drive, Calendar, Sheets", logo: logoGoogle, authType: "oauth" as const },
-  { id: "slack", name: "Slack", description: "Messages, Channels, Files", logo: logoSlack, authType: "oauth" as const },
   { id: "wordpress", name: "WordPress", description: "Posts, Pages, Media", logo: logoWordpress, authType: "credentials" as const },
 ];
 
@@ -350,6 +346,15 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                 );
               })}
             </div>
+
+            {/* Request Integration */}
+            <a
+              href="mailto:support@timewarp.ai?subject=Integration%20Request&body=Hi%2C%20I%20would%20like%20to%20request%20an%20integration%20with%3A%20"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors mt-2"
+            >
+              <MailPlus className="h-3.5 w-3.5" />
+              Request an integration
+            </a>
 
             {/* WordPress Credentials Form */}
             {showWpForm && !connectedProviders.includes("wordpress") && (
