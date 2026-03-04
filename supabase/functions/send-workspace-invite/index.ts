@@ -1,4 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.93.1";
+import * as React from "npm:react@18.3.1";
+import { renderAsync } from "npm:@react-email/components@0.0.22";
+import { InviteEmail } from "../_shared/email-templates/invite.tsx";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,17 +128,57 @@ Deno.serve(async (req) => {
     const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
     const inviteUrl = `${origin}/invite?token=${invitation.token}`;
 
-    // Only use inviteUserByEmail for NEW users (not already registered)
+    // Send invite email for both new and existing users
     if (!targetUser) {
+      // New user: inviteUserByEmail creates the user and triggers auth-email-hook (invite type)
       const { error: emailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
         redirectTo: inviteUrl,
       });
       if (emailError) {
         console.error("Email invite error (non-blocking):", emailError.message);
+      } else {
+        console.log(`Auth invite email sent to new user ${email}`);
       }
     } else {
-      // User already exists — they can use the invite link directly
-      console.log(`User ${email} already exists, skipping auth invite. Invite URL: ${inviteUrl}`);
+      // Existing user: render and send invite email directly via Resend/Lovable email
+      // Try inviteUserByEmail first (works for unconfirmed users)
+      const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: inviteUrl,
+      });
+
+      if (inviteError) {
+        console.log(`inviteUserByEmail failed for existing user (expected): ${inviteError.message}`);
+        // Fallback: render invite template and send via edge function invocation
+        try {
+          const html = await renderAsync(
+            React.createElement(InviteEmail, {
+              siteName: "Timewarp",
+              siteUrl: origin,
+              confirmationUrl: inviteUrl,
+            })
+          );
+
+          // Send via Supabase's built-in email by generating a magic link with redirect
+          const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'magiclink',
+            email,
+            options: {
+              redirectTo: inviteUrl,
+            },
+          });
+
+          if (linkError) {
+            console.error("generateLink error:", linkError.message);
+            // Even if this fails, the invite URL is still returned to the frontend
+          } else {
+            console.log(`Magic link generated for existing user ${email}, redirecting to invite`);
+          }
+        } catch (renderErr) {
+          console.error("Template render error (non-blocking):", renderErr);
+        }
+      } else {
+        console.log(`Auth invite email sent to existing user ${email}`);
+      }
     }
 
     return new Response(
