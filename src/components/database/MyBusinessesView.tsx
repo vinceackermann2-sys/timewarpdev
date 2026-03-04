@@ -311,7 +311,7 @@ function WorkspaceFooter() {
           </div>
         </div>
         <div className="flex items-center justify-between mt-10 pt-5 border-t border-border/30">
-          <p className="text-xs text-muted-foreground">© 2026 Nxtrinity AB, All rights reserved</p>
+          <p className="text-xs text-muted-foreground">© 2026 Vincent Ackermann, All rights reserved</p>
           <p className="text-xs text-muted-foreground">🇸🇪 Made in Sweden</p>
         </div>
       </div>
