@@ -58,27 +58,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if already invited
+    // Resolve user first so we can return consistent response shape
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const targetUser = existingUsers?.users?.find(
+      (u) => (u.email || "").toLowerCase() === email
+    );
+
+    // If there is already a pending invitation, return it as success (idempotent)
     const { data: existing } = await supabaseAdmin
       .from("workspace_invitations")
-      .select("id")
+      .select("id, token, role")
       .eq("workspace_id", workspaceId)
       .eq("email", email)
       .eq("status", "pending")
       .maybeSingle();
 
     if (existing) {
-      return new Response(JSON.stringify({ error: "Already invited" }), {
-        status: 409,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
+      const inviteUrl = `${origin}/invite?token=${existing.token}`;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          alreadyInvited: true,
+          existingUser: Boolean(targetUser),
+          invitation: { id: existing.id, email, role: existing.role, token: existing.token },
+          inviteUrl,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Check if already a member
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const targetUser = existingUsers?.users?.find(
-      (u) => (u.email || "").toLowerCase() === email
-    );
     if (targetUser) {
       const { data: isMember } = await supabaseAdmin.rpc("is_workspace_member", {
         _user_id: targetUser.id,
