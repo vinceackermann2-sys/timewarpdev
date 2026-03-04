@@ -1,0 +1,176 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Check, X, ArrowLeft } from "lucide-react";
+
+type BillingPeriod = "monthly" | "quarterly" | "annually";
+
+const PRICES: Record<BillingPeriod, { co_founder: number; aristotle: number; timewarp_og: number }> = {
+  monthly: { co_founder: 69, aristotle: 109, timewarp_og: 999 },
+  quarterly: { co_founder: 62, aristotle: 98, timewarp_og: 899 },
+  annually: { co_founder: 55, aristotle: 87, timewarp_og: 799 },
+};
+
+interface Feature {
+  name: string;
+  co_founder: string | boolean;
+  aristotle: string | boolean;
+  timewarp_og: string | boolean;
+}
+
+const features: Feature[] = [
+  { name: "Team members", co_founder: "Unlimited", aristotle: "Unlimited", timewarp_og: "Unlimited" },
+  { name: "Connected data", co_founder: "5GB", aristotle: "10GB", timewarp_og: "Unlimited" },
+  { name: "Actions / month", co_founder: "100", aristotle: "1,000", timewarp_og: "Unlimited" },
+  { name: "AI CEO", co_founder: true, aristotle: true, timewarp_og: true },
+  { name: "Business Brain", co_founder: true, aristotle: true, timewarp_og: true },
+  { name: "Developer Line", co_founder: false, aristotle: true, timewarp_og: true },
+  { name: "Scale assistance", co_founder: false, aristotle: false, timewarp_og: true },
+];
+
+function FeatureValue({ value }: { value: string | boolean }) {
+  if (typeof value === "string") {
+    return <span className="text-sm font-medium text-foreground">{value}</span>;
+  }
+  return value ? (
+    <Check className="h-5 w-5 text-blue-500" />
+  ) : (
+    <X className="h-5 w-5 text-muted-foreground/40" />
+  );
+}
+
+export default function PricingPage() {
+  const [billing, setBilling] = useState<BillingPeriod>("monthly");
+  const prices = PRICES[billing];
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="container mx-auto px-4 pt-8 pb-4">
+        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
+      </div>
+
+      <div className="container mx-auto px-4 pb-20">
+        {/* Title */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Choose Your Plan</h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Scale your business with AI-powered intelligence. All plans include unlimited team members.
+          </p>
+        </div>
+
+        {/* Billing Toggle */}
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex items-center rounded-full bg-muted p-1 gap-1">
+            {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
+              <button
+                key={period}
+                onClick={() => setBilling(period)}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all capitalize ${
+                  billing === period
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {period}
+                {period === "annually" && (
+                  <span className="ml-1.5 text-xs text-blue-500 font-semibold">-20%</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Plan Cards */}
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Co Founder */}
+          <div className="relative rounded-2xl border-2 border-border/60 bg-card p-7 flex flex-col">
+            <div className="mb-4">
+              <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+                Launching next month
+              </Badge>
+            </div>
+            <h3 className="text-xl font-bold mb-1">Co Founder</h3>
+            <p className="text-muted-foreground text-sm mb-5">For early-stage founders getting started</p>
+            <div className="mb-6">
+              <span className="text-4xl font-bold">${prices.co_founder}</span>
+              <span className="text-muted-foreground text-sm"> / mo</span>
+            </div>
+            <div className="space-y-3.5 flex-1 mb-6">
+              {features.map((f) => (
+                <div key={f.name} className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{f.name}</span>
+                  <FeatureValue value={f.co_founder} />
+                </div>
+              ))}
+            </div>
+            <Button variant="outline" disabled className="w-full opacity-50">
+              Coming Soon
+            </Button>
+          </div>
+
+          {/* Aristotle */}
+          <div className="relative rounded-2xl border-2 border-blue-500 bg-card p-7 flex flex-col shadow-lg shadow-blue-500/10 scale-[1.02] z-10">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+              <Badge className="bg-blue-500 text-white border-blue-500 px-4 py-1 text-xs">
+                Most Popular
+              </Badge>
+            </div>
+            <div className="mb-4">
+              <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs">
+                Access today
+              </Badge>
+            </div>
+            <h3 className="text-xl font-bold mb-1">Aristotle</h3>
+            <p className="text-muted-foreground text-sm mb-5">For growing businesses scaling operations</p>
+            <div className="mb-6">
+              <span className="text-4xl font-bold">${prices.aristotle}</span>
+              <span className="text-muted-foreground text-sm"> / mo</span>
+            </div>
+            <div className="space-y-3.5 flex-1 mb-6">
+              {features.map((f) => (
+                <div key={f.name} className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{f.name}</span>
+                  <FeatureValue value={f.aristotle} />
+                </div>
+              ))}
+            </div>
+            <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white" asChild>
+              <Link to="/auth?mode=signup">Get Started</Link>
+            </Button>
+          </div>
+
+          {/* TimeWarp OG */}
+          <div className="relative rounded-2xl border-2 border-border/60 bg-card p-7 flex flex-col">
+            <div className="mb-4">
+              <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs">
+                Access today
+              </Badge>
+            </div>
+            <h3 className="text-xl font-bold mb-1">TimeWarp OG</h3>
+            <p className="text-muted-foreground text-sm mb-5">Unlimited power for serious operators</p>
+            <div className="mb-6">
+              <span className="text-4xl font-bold">${prices.timewarp_og}</span>
+              <span className="text-muted-foreground text-sm"> / mo</span>
+            </div>
+            <div className="space-y-3.5 flex-1 mb-6">
+              {features.map((f) => (
+                <div key={f.name} className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{f.name}</span>
+                  <FeatureValue value={f.timewarp_og} />
+                </div>
+              ))}
+            </div>
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/auth?mode=signup">Get Started</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -163,6 +163,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          actions_used: number
+          billing_period: Database["public"]["Enums"]["billing_period"]
+          created_at: string
+          data_used_bytes: number
+          id: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actions_used?: number
+          billing_period?: Database["public"]["Enums"]["billing_period"]
+          created_at?: string
+          data_used_bytes?: number
+          id?: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actions_used?: number
+          billing_period?: Database["public"]["Enums"]["billing_period"]
+          created_at?: string
+          data_used_bytes?: number
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       workspace_invitations: {
         Row: {
           created_at: string
@@ -277,6 +313,10 @@ export type Database = {
         Args: { _data_owner: string; _requesting_user: string }
         Returns: boolean
       }
+      get_user_plan: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["subscription_plan"]
+      }
       get_user_workspaces: {
         Args: { _user_id: string }
         Returns: {
@@ -315,6 +355,9 @@ export type Database = {
       }
     }
     Enums: {
+      billing_period: "monthly" | "quarterly" | "annually"
+      subscription_plan: "co_founder" | "aristotle" | "timewarp_og"
+      subscription_status: "active" | "cancelled" | "past_due" | "trialing"
       workspace_role: "owner" | "admin" | "editor"
     }
     CompositeTypes: {
@@ -443,6 +486,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      billing_period: ["monthly", "quarterly", "annually"],
+      subscription_plan: ["co_founder", "aristotle", "timewarp_og"],
+      subscription_status: ["active", "cancelled", "past_due", "trialing"],
       workspace_role: ["owner", "admin", "editor"],
     },
   },
