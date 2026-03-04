@@ -27,9 +27,9 @@ export function Header() {
             <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
               How It Works
             </a>
-            <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
               Pricing
-            </a>
+            </Link>
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
@@ -69,13 +69,13 @@ export function Header() {
               >
                 How It Works
               </a>
-              <a
-                href="#pricing"
+              <Link
+                to="/pricing"
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Pricing
-              </a>
+              </Link>
               <div className="flex flex-col gap-2 pt-4">
                 <Button variant="ghost" asChild className="w-full">
                   <Link to="/auth">Log in</Link>

@@ -39,7 +39,7 @@ export function CTA() {
                 asChild 
                 className="text-base text-primary-foreground hover:text-primary-foreground hover:bg-white/10"
               >
-                <a href="#pricing">View Pricing</a>
+                <Link to="/pricing">View Pricing</Link>
               </Button>
             </div>
           </div>
