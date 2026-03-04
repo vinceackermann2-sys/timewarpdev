@@ -1,12 +1,14 @@
-import { useState } from "react";
-import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import startBusinessBg from "@/assets/start-business-bg.png";
 import addBusinessBg from "@/assets/add-business-bg.png";
-import { useBusinessDNA } from "./BusinessDNAContext";
+import { useBusinessDNA, BrandEntry } from "./BusinessDNAContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 interface MyBusinessesViewProps {
   onSelectBusiness: () => void;
@@ -15,11 +17,68 @@ interface MyBusinessesViewProps {
 
 const TABS = ["My Businesses", "Shared with me"] as const;
 
+interface SharedBrand extends BrandEntry {
+  ownerEmail: string;
+}
+
 export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusinessesViewProps) {
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("My Businesses");
   const [search, setSearch] = useState("");
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
   const { brands, setBrands, products, setProducts, audiences, setAudiences, isLoading } = useBusinessDNA();
+  const { workspaceId, members } = useWorkspace();
+  const [sharedBrands, setSharedBrands] = useState<SharedBrand[]>([]);
+  const [sharedLoading, setSharedLoading] = useState(false);
+
+  // Load shared businesses from workspace members
+  useEffect(() => {
+    async function loadShared() {
+      if (!workspaceId) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      setSharedLoading(true);
+      // Get other workspace members' user IDs
+      const otherMemberIds = members
+        .filter(m => m.userId !== session.user.id)
+        .map(m => m.userId);
+
+      if (otherMemberIds.length === 0) {
+        setSharedBrands([]);
+        setSharedLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("user_business_data")
+        .select("*")
+        .in("user_id", otherMemberIds)
+        .eq("data_type", "brand")
+        .eq("source", "business-dna");
+
+      if (error || !data) {
+        setSharedBrands([]);
+        setSharedLoading(false);
+        return;
+      }
+
+      const parsed: SharedBrand[] = data.map((row) => {
+        try {
+          const brand = JSON.parse(row.content || "{}") as BrandEntry;
+          const member = members.find(m => m.userId === row.user_id);
+          return { ...brand, _rowId: row.id, ownerEmail: member?.email || row.user_id } as SharedBrand;
+        } catch {
+          return null;
+        }
+      }).filter(Boolean) as SharedBrand[];
+
+      setSharedBrands(parsed);
+      setSharedLoading(false);
+    }
+    if (activeTab === "Shared with me") {
+      loadShared();
+    }
+  }, [activeTab, workspaceId, members]);
 
   const handleDeleteBusiness = (e: React.MouseEvent, brandId: string) => {
     e.stopPropagation();
@@ -128,12 +187,45 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Building2 className="h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm text-muted-foreground">No shared businesses yet</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">
-              Businesses shared with you will appear here
-            </p>
+          <div className="space-y-4">
+            {sharedLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : sharedBrands.filter(b => b.name.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Users className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                <p className="text-sm text-muted-foreground">No shared businesses yet</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">
+                  Businesses from your workspace members will appear here
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {sharedBrands
+                  .filter(b => b.name.toLowerCase().includes(search.toLowerCase()))
+                  .map((brand) => (
+                  <motion.button
+                    key={brand.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => onOpenBusiness?.(brand.id)}
+                    className="group relative flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-6 min-h-[200px] transition-colors cursor-pointer text-left"
+                  >
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                      <Building2 className="h-6 w-6 text-primary/70" />
+                    </div>
+                    <div className="mt-auto space-y-1">
+                      <h3 className="text-base font-semibold text-foreground">{brand.name}</h3>
+                      <p className="text-xs text-muted-foreground">{brand.category}</p>
+                      <p className="text-xs text-muted-foreground/60">
+                        Shared by {brand.ownerEmail.includes("@") ? brand.ownerEmail.split("@")[0] : "teammate"}
+                      </p>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
