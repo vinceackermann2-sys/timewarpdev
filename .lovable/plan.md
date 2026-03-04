@@ -1,22 +1,55 @@
 
 
-## Problem
+## Pricing Page Plan
 
-The `accept_workspace_invitation` database function updates the invitation's status from `'pending'` to `'accepted'`, but the table has a unique constraint on `(workspace_id, email, status)`. If the user was previously invited and accepted (an old `'accepted'` row exists), a second invite+accept cycle hits the constraint because there would be two rows with `(workspace_id, email, 'accepted')`.
+### What to Build
 
-## Fix
+A dedicated `/pricing` page matching the reference image design with three plans: **Co Founder** ($69/mo), **Aristotle** ($109/mo, most popular), and **TimeWarp OG** ($999/mo). The page includes a billing toggle (monthly/quarterly/annually) and a warm beige card style. A database table will store user subscriptions to enforce plan permissions.
 
-**Database migration** — modify the `accept_workspace_invitation` function to delete any prior accepted/expired invitations for the same `(workspace_id, email)` before updating the current one to `'accepted'`. This is a single-line addition before the `UPDATE` statement:
+### Plans & Features (from image)
 
-```sql
-DELETE FROM public.workspace_invitations
-WHERE workspace_id = inv.workspace_id
-  AND lower(email) = lower(inv.email)
-  AND id != inv.id;
-```
+| Feature | Co Founder ($69) | Aristotle ($109) | TimeWarp OG ($999) |
+|---|---|---|---|
+| Team members | Unlimited | Unlimited | Unlimited |
+| Connected data | 5GB | 10GB | Unlimited |
+| Actions/month | 100 | 1,000 | Unlimited |
+| AI CEO | Yes | Yes | Yes |
+| Business Brain | Yes | Yes | Yes |
+| Developer Line | No | Yes | Yes |
+| Scale assistance | No | No | Yes |
 
-This clears stale invitation rows (accepted, expired, or duplicate pending) so the status update never conflicts with the unique constraint. No schema change needed — just the function body update via migration.
+- Co Founder: "Launching next month" badge, disabled Get Started button
+- Aristotle: "Access today" badge, blue Get Started button, "Most Popular" label
+- TimeWarp OG: "Access today" badge
 
-**Files changed:**
-- New database migration (alter `accept_workspace_invitation` function)
+### Billing Periods
+- Monthly: $69 / $109 / $999
+- Quarterly: ~10% discount
+- Annually: ~20% discount
+
+### Technical Changes
+
+1. **Database migration** -- Create `user_subscriptions` table:
+   - `id`, `user_id`, `plan` (enum: co_founder, aristotle, timewarp_og), `billing_period`, `status`, `actions_used`, `data_used_bytes`, `created_at`, `updated_at`
+   - RLS policies for users to read their own subscription
+   - Default free users to no subscription (treated as no access / trial)
+
+2. **New file: `src/pages/PricingPage.tsx`** -- Standalone pricing page with:
+   - Billing toggle tabs (monthly/quarterly/annually)
+   - Three plan cards matching the beige/warm style from the image
+   - Check/X marks for features
+   - "Get Started" buttons linking to `/auth?mode=signup`
+   - Co Founder card shows "Launching next month" with disabled button
+
+3. **Update `src/components/landing/Pricing.tsx`** -- Replace current plans data with the new three plans to match the image
+
+4. **Update `src/App.tsx`** -- Add `/pricing` route
+
+5. **Update footer links** -- Change `/#pricing` to `/pricing` in:
+   - `src/components/database/MyBusinessesView.tsx`
+   - `src/components/landing/Footer.tsx`
+   - `src/components/landing/Header.tsx`
+   - `src/components/landing/CTA.tsx`
+
+6. **Create `src/hooks/useSubscription.ts`** -- Hook to fetch user's current plan and expose permission checks like `canUseDevLine`, `getActionLimit`, `getDataLimit` for use across the app.
 
