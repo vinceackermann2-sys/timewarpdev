@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
-import logoWordpress from "@/assets/logo-wordpress.png";
 
 interface ConnectorDef {
   id: string;
@@ -16,7 +15,6 @@ interface ConnectorDef {
 
 const connectors: ConnectorDef[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar", logo: logoMicrosoft, authType: "oauth" },
-  { id: "wordpress", name: "WordPress", description: "Posts, Pages, Media", logo: logoWordpress, authType: "credentials" },
 ];
 
 interface ConnectorGridProps {
@@ -28,10 +26,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   const navigate = useNavigate();
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
-  const [showWpForm, setShowWpForm] = useState(false);
-  const [wpSiteUrl, setWpSiteUrl] = useState("");
-  const [wpUsername, setWpUsername] = useState("");
-  const [wpAppPassword, setWpAppPassword] = useState("");
 
   // Check for OAuth return
   useEffect(() => {
@@ -86,11 +80,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
   }, []);
 
   const handleConnect = async (connector: ConnectorDef) => {
-    if (connector.authType === "credentials") {
-      setShowWpForm(true);
-      return;
-    }
-
     setConnectingProvider(connector.id);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -126,53 +115,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setConnectingProvider(null);
   };
 
-  const handleWordPressConnect = async () => {
-    if (!wpSiteUrl || !wpUsername || !wpAppPassword) {
-      toast.error("Please fill in all WordPress fields");
-      return;
-    }
-
-    setConnectingProvider("wordpress");
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error("Please log in first");
-        setConnectingProvider(null);
-        return;
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            provider: "wordpress",
-            action: "save-credentials",
-            siteUrl: wpSiteUrl,
-            username: wpUsername,
-            appPassword: wpAppPassword,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("WordPress connected!");
-        navigate("/app", { replace: true });
-      } else {
-        toast.error(data.error || "Failed to connect WordPress");
-      }
-    } catch (err) {
-      console.error("WordPress connect error:", err);
-      toast.error("Failed to connect WordPress");
-    }
-    setConnectingProvider(null);
-  };
 
   const isMobile = window.innerWidth < 640;
 
@@ -214,9 +156,9 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(2, 1fr)",
-            gap: isMobile ? 12 : 20,
-            maxWidth: 440,
+            gridTemplateColumns: "1fr",
+            gap: 20,
+            maxWidth: 280,
             width: "100%",
             padding: "0 16px",
           }}
@@ -303,132 +245,6 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         </div>
       </div>
 
-      {/* WordPress credentials modal */}
-      {showWpForm && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0, 0, 0, 0.7)",
-            backdropFilter: "blur(8px)",
-            animation: "fadeSlideUp 0.3s ease-out forwards",
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowWpForm(false);
-          }}
-        >
-          <div
-            style={{
-              width: "min(90vw, 400px)",
-              background: "rgba(15, 18, 35, 0.98)",
-              border: "1px solid rgba(99, 102, 241, 0.3)",
-              borderRadius: 20,
-              padding: "32px 28px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 16,
-            }}
-          >
-            <h3
-              style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 20,
-                fontWeight: 800,
-                color: "#fff",
-                textAlign: "center",
-                margin: 0,
-              }}
-            >
-              Connect WordPress
-            </h3>
-            <p
-              style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 13,
-                color: "rgba(255,255,255,0.4)",
-                textAlign: "center",
-                margin: 0,
-              }}
-            >
-              Use an Application Password for secure access
-            </p>
-            <input
-              type="url"
-              placeholder="Site URL (https://yoursite.com)"
-              value={wpSiteUrl}
-              onChange={(e) => setWpSiteUrl(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.06)",
-                color: "#fff",
-                fontSize: 14,
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                outline: "none",
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Username"
-              value={wpUsername}
-              onChange={(e) => setWpUsername(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.06)",
-                color: "#fff",
-                fontSize: 14,
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                outline: "none",
-              }}
-            />
-            <input
-              type="password"
-              placeholder="Application Password"
-              value={wpAppPassword}
-              onChange={(e) => setWpAppPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.06)",
-                color: "#fff",
-                fontSize: 14,
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                outline: "none",
-              }}
-            />
-            <button
-              onClick={handleWordPressConnect}
-              disabled={connectingProvider === "wordpress"}
-              style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 15,
-                fontWeight: 700,
-                color: "#fff",
-                background: "hsl(var(--primary))",
-                border: "none",
-                borderRadius: 12,
-                padding: "12px 24px",
-                cursor: connectingProvider === "wordpress" ? "not-allowed" : "pointer",
-                opacity: connectingProvider === "wordpress" ? 0.7 : 1,
-                transition: "all 0.2s ease",
-              }}
-            >
-              {connectingProvider === "wordpress" ? "Connecting..." : "Connect WordPress"}
-            </button>
-          </div>
-        </div>
-      )}
 
       <style>{`
         @keyframes fadeSlideUp {

@@ -15,11 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Mail, Lock, Unplug, Loader2, Sun, Moon, Monitor, Plug, Globe, MailPlus } from "lucide-react";
 import { useTheme } from "next-themes";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
-import logoWordpress from "@/assets/logo-wordpress.png";
 
 const integrations = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" as const },
-  { id: "wordpress", name: "WordPress", description: "Posts, Pages, Media", logo: logoWordpress, authType: "credentials" as const },
 ];
 
 interface SettingsDialogProps {
@@ -39,10 +37,6 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
   const [actionProvider, setActionProvider] = useState<string | null>(null);
-  const [showWpForm, setShowWpForm] = useState(false);
-  const [wpSiteUrl, setWpSiteUrl] = useState("");
-  const [wpUsername, setWpUsername] = useState("");
-  const [wpAppPassword, setWpAppPassword] = useState("");
 
   const checkConnections = useCallback(async () => {
     try {
@@ -76,14 +70,6 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   }, [open, checkConnections]);
 
   const handleConnect = async (providerId: string) => {
-    const integration = integrations.find((i) => i.id === providerId);
-    if (!integration) return;
-
-    if (integration.authType === "credentials") {
-      setShowWpForm(true);
-      return;
-    }
-
     setActionProvider(providerId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -146,52 +132,6 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
     setActionProvider(null);
   };
 
-  const handleWordPressConnect = async () => {
-    if (!wpSiteUrl || !wpUsername || !wpAppPassword) {
-      toast({ title: "Missing fields", description: "Please fill in all WordPress fields.", variant: "destructive" });
-      return;
-    }
-
-    setActionProvider("wordpress");
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            provider: "wordpress",
-            action: "save-credentials",
-            siteUrl: wpSiteUrl,
-            username: wpUsername,
-            appPassword: wpAppPassword,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        toast({ title: "Connected", description: "WordPress connected successfully!" });
-        setShowWpForm(false);
-        setWpSiteUrl("");
-        setWpUsername("");
-        setWpAppPassword("");
-        checkConnections();
-      } else {
-        toast({ title: "Error", description: data.error || "Failed to connect WordPress", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to connect WordPress", variant: "destructive" });
-    }
-    setActionProvider(null);
-  };
 
   // ... keep existing code (handleUpdateName, handleUpdatePassword)
   const handleUpdateName = async () => {
@@ -356,24 +296,6 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
               Request an integration
             </a>
 
-            {/* WordPress Credentials Form */}
-            {showWpForm && !connectedProviders.includes("wordpress") && (
-              <div className="mt-3 border border-border rounded-lg p-3 space-y-2">
-                <p className="text-xs font-medium flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5" /> WordPress Credentials
-                </p>
-                <Input placeholder="https://yoursite.com" value={wpSiteUrl} onChange={(e) => setWpSiteUrl(e.target.value)} className="h-8 text-xs" />
-                <Input placeholder="Username" value={wpUsername} onChange={(e) => setWpUsername(e.target.value)} className="h-8 text-xs" />
-                <Input placeholder="Application password" type="password" value={wpAppPassword} onChange={(e) => setWpAppPassword(e.target.value)} className="h-8 text-xs" />
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowWpForm(false)}>Cancel</Button>
-                  <Button size="sm" className="h-7 text-xs" onClick={handleWordPressConnect} disabled={actionProvider === "wordpress"}>
-                    {actionProvider === "wordpress" ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                    Connect
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </DialogContent>
