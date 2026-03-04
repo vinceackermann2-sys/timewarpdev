@@ -1,15 +1,21 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2, Users, ArrowLeft, Settings, ChevronRight, Crown, Pencil, Eye } from "lucide-react";
+import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2, Settings, ChevronsUpDown, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import startBusinessBg from "@/assets/start-business-bg.png";
 import addBusinessBg from "@/assets/add-business-bg.png";
 import { useBusinessDNA, BrandEntry } from "./BusinessDNAContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useWorkspace, WorkspaceInfo } from "@/hooks/useWorkspace";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 
 interface MyBusinessesViewProps {
@@ -17,24 +23,19 @@ interface MyBusinessesViewProps {
   onOpenBusiness?: (brandId: string) => void;
 }
 
-const ROLE_ICONS: Record<string, typeof Crown> = { owner: Crown, editor: Pencil, viewer: Eye };
-const ROLE_COLORS: Record<string, string> = { owner: "text-amber-500", editor: "text-emerald-500", viewer: "text-muted-foreground" };
-
 export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusinessesViewProps) {
   const [search, setSearch] = useState("");
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
-  const [showCreateWs, setShowCreateWs] = useState(false);
-  const [newWsName, setNewWsName] = useState("");
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
   const { brands, setBrands, products, setProducts, audiences, setAudiences, isLoading: dnaLoading } = useBusinessDNA();
   const {
-    workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace, createWorkspace,
-    members, isLoading: wsLoading, sendInvite,
+    workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace,
+    members, isLoading: wsLoading,
   } = useWorkspace();
   const [wsBusinesses, setWsBusinesses] = useState<BrandEntry[]>([]);
   const [loadingBiz, setLoadingBiz] = useState(false);
 
-  // When inside a workspace, load businesses for that workspace
+  // Load businesses for the active workspace
   useEffect(() => {
     if (!activeWorkspaceId) { setWsBusinesses([]); return; }
 
@@ -58,7 +59,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
       setLoadingBiz(false);
     }
     load();
-  }, [activeWorkspaceId, brands]); // re-run when brands change (new business added)
+  }, [activeWorkspaceId, brands]);
 
   const handleDeleteBusiness = (e: React.MouseEvent, brandId: string) => {
     e.stopPropagation();
@@ -68,107 +69,18 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
     setBrands(prev => prev.filter(b => b.id !== brandId));
   };
 
-  const handleCreateWorkspace = async () => {
-    if (!newWsName.trim()) return;
-    try {
-      const id = await createWorkspace(newWsName.trim());
-      selectWorkspace(id);
-      setShowCreateWs(false);
-      setNewWsName("");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const isOwner = activeWorkspace?.role === "owner";
-  const canEdit = activeWorkspace?.role === "owner" || activeWorkspace?.role === "editor";
-  const currentUserId = members.find(m => m.role === "owner")?.userId;
+  const isLoading = wsLoading || (!activeWorkspaceId && workspaces.length === 0);
 
-  // ── Workspace List View ──
-  if (!activeWorkspaceId) {
-    const ownedWs = workspaces.filter(w => w.role === "owner");
-    const sharedWs = workspaces.filter(w => w.role !== "owner");
-
+  // Show loader while workspace is being auto-selected
+  if (isLoading) {
     return (
-      <div className="flex flex-col h-full items-center">
-        <div className="px-6 pt-6 pb-4 border-b border-border/50 w-full max-w-3xl">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-foreground">Workspaces</h1>
-            <Button size="sm" onClick={() => setShowCreateWs(true)} className="gap-1.5">
-              <Plus className="h-4 w-4" /> New Workspace
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex-1 p-6 w-full max-w-3xl space-y-6 overflow-auto">
-          {wsLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <>
-              {/* Owned workspaces */}
-              {ownedWs.length > 0 && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">My Workspaces</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {ownedWs.map(ws => (
-                      <WorkspaceCard key={ws.workspaceId} ws={ws} onClick={() => selectWorkspace(ws.workspaceId)} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Shared workspaces */}
-              {sharedWs.length > 0 && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Shared with me</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {sharedWs.map(ws => (
-                      <WorkspaceCard key={ws.workspaceId} ws={ws} onClick={() => selectWorkspace(ws.workspaceId)} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {workspaces.length === 0 && (
-                <div className="text-center py-16 text-muted-foreground text-sm">
-                  No workspaces yet. Create one to get started.
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        <WorkspaceFooter />
-
-        {/* Create Workspace Dialog */}
-        <Dialog open={showCreateWs} onOpenChange={setShowCreateWs}>
-          <DialogContent className="sm:max-w-md bg-background border-border">
-            <DialogHeader>
-              <DialogTitle>Create Workspace</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <Input
-                placeholder="Workspace name"
-                value={newWsName}
-                onChange={e => setNewWsName(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleCreateWorkspace()}
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowCreateWs(false)}>Cancel</Button>
-                <Button onClick={handleCreateWorkspace} disabled={!newWsName.trim()}>Create</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  // ── Inside Workspace View ──
   const filteredBrands = wsBusinesses.filter(b =>
     b.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -178,20 +90,38 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-4 w-full max-w-3xl">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => selectWorkspace(null)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-foreground truncate">{activeWorkspace?.workspaceName}</h1>
-            <p className="text-xs text-muted-foreground">
-              {activeWorkspace?.memberCount} {activeWorkspace?.memberCount === 1 ? "member" : "members"}
-              {!isOwner && (
-                <span className={cn("ml-2 font-medium", ROLE_COLORS[activeWorkspace?.role || "viewer"])}>
-                  • {activeWorkspace?.role === "editor" ? "Editor" : "Viewer"}
-                </span>
-              )}
-            </p>
-          </div>
+          {/* Workspace Switcher */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="gap-2 px-3 h-9 max-w-[220px]">
+                <Building2 className="h-4 w-4 text-primary shrink-0" />
+                <span className="truncate text-sm font-semibold">{activeWorkspace?.workspaceName || "Workspace"}</span>
+                <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {workspaces.map(ws => (
+                <DropdownMenuItem
+                  key={ws.workspaceId}
+                  onClick={() => selectWorkspace(ws.workspaceId)}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="truncate text-sm">{ws.workspaceName}</span>
+                    <span className="text-[10px] text-muted-foreground capitalize shrink-0">{ws.role}</span>
+                  </div>
+                  {ws.workspaceId === activeWorkspaceId && (
+                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="flex-1" />
+
+          {/* Manage button - owners only */}
           {isOwner && (
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowWorkspaceSettings(true)}>
               <Settings className="h-3.5 w-3.5" /> Manage
@@ -239,39 +169,34 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
           )}
 
           {/* Business cards */}
-          {filteredBrands.map((brand) => {
-            const isOwnBrand = (brand as any)._ownerId === members.find(m => m.role === "owner")?.userId;
-            const ownerMember = members.find(m => m.userId === (brand as any)._ownerId);
-
-            return (
-              <motion.button
-                key={brand.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onOpenBusiness?.(brand.id)}
-                className="group relative flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-6 min-h-[200px] transition-colors cursor-pointer text-left"
-              >
-                {/* Delete only for owners of the business */}
-                {isOwner && (
-                  <button
-                    onClick={(e) => handleDeleteBusiness(e, brand.id)}
-                    className="absolute top-3 right-3 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
-                    title="Delete business"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-                <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-primary/70" />
-                </div>
-                <div className="mt-auto space-y-1">
-                  <h3 className="text-base font-semibold text-foreground">{brand.name}</h3>
-                  <p className="text-xs text-muted-foreground">{brand.category}</p>
-                  <p className="text-xs text-muted-foreground/60">Updated {brand.lastUpdated}</p>
-                </div>
-              </motion.button>
-            );
-          })}
+          {filteredBrands.map((brand) => (
+            <motion.button
+              key={brand.id}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onOpenBusiness?.(brand.id)}
+              className="group relative flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-6 min-h-[200px] transition-colors cursor-pointer text-left"
+            >
+              {/* Delete only for owners */}
+              {isOwner && (
+                <button
+                  onClick={(e) => handleDeleteBusiness(e, brand.id)}
+                  className="absolute top-3 right-3 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                  title="Delete business"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+              <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Building2 className="h-6 w-6 text-primary/70" />
+              </div>
+              <div className="mt-auto space-y-1">
+                <h3 className="text-base font-semibold text-foreground">{brand.name}</h3>
+                <p className="text-xs text-muted-foreground">{brand.category}</p>
+                <p className="text-xs text-muted-foreground/60">Updated {brand.lastUpdated}</p>
+              </div>
+            </motion.button>
+          ))}
 
           {!loadingBiz && filteredBrands.length === 0 && !isOwner && (
             <div className="col-span-2 text-center py-16 text-sm text-muted-foreground">
@@ -336,35 +261,6 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
         userEmail={members.find(m => m.role === "owner")?.email || ""}
       />
     </div>
-  );
-}
-
-function WorkspaceCard({ ws, onClick }: { ws: WorkspaceInfo; onClick: () => void }) {
-  const RoleIcon = ROLE_ICONS[ws.role] || Eye;
-  return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="group flex items-center gap-4 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-5 transition-colors cursor-pointer text-left w-full"
-    >
-      <div className="h-11 w-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-        <Building2 className="h-5 w-5 text-primary/70" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-semibold text-foreground truncate">{ws.workspaceName}</h3>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className={cn("flex items-center gap-1 text-xs font-medium", ROLE_COLORS[ws.role])}>
-            <RoleIcon className="h-3 w-3" />
-            {ws.role.charAt(0).toUpperCase() + ws.role.slice(1)}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            · {ws.memberCount} {ws.memberCount === 1 ? "member" : "members"}
-          </span>
-        </div>
-      </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-    </motion.button>
   );
 }
 
