@@ -23,7 +23,6 @@ import {
   Clock,
   X,
   Plus,
-  Building2,
   ChevronRight,
   ArrowLeft,
 } from "lucide-react";
@@ -55,7 +54,7 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
   const { toast } = useToast();
   const {
     workspaces, createWorkspace, sendInvite, removeMember, updateMemberRole,
-    cancelInvitation, loadMembersForWorkspace, isLoading: wsLoading,
+    cancelInvitation, renameWorkspace, loadMembersForWorkspace, isLoading: wsLoading,
   } = useWorkspace();
 
   const [selectedWsId, setSelectedWsId] = useState<string | null>(null);
@@ -66,6 +65,8 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
   const [isSending, setIsSending] = useState(false);
   const [showCreateWs, setShowCreateWs] = useState(false);
   const [newWsName, setNewWsName] = useState("");
+  const [editingName, setEditingName] = useState(false);
+  const [editName, setEditName] = useState("");
 
   // When opening the dialog, reset to list view
   useEffect(() => {
@@ -158,11 +159,44 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedWsId(null)}>
+           <DialogTitle className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedWsId(null); setEditingName(false); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              {selectedWs.workspaceName}
+              {editingName ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <Input
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    onKeyDown={async e => {
+                      if (e.key === "Enter" && editName.trim()) {
+                        await renameWorkspace(selectedWsId!, editName.trim());
+                        setEditingName(false);
+                        toast({ title: "Workspace renamed" });
+                      }
+                      if (e.key === "Escape") setEditingName(false);
+                    }}
+                    className="h-7 text-sm"
+                    autoFocus
+                  />
+                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={async () => {
+                    if (editName.trim()) {
+                      await renameWorkspace(selectedWsId!, editName.trim());
+                      setEditingName(false);
+                      toast({ title: "Workspace renamed" });
+                    }
+                  }}>Save</Button>
+                </div>
+              ) : (
+                <>
+                  {selectedWs.workspaceName}
+                  {isOwnerOfSelected && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditName(selectedWs.workspaceName); setEditingName(true); }}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  )}
+                </>
+              )}
               <span className={cn("text-xs font-medium ml-1", ROLE_CONFIG[selectedWs.role].color)}>
                 ({ROLE_CONFIG[selectedWs.role].label})
               </span>
@@ -434,7 +468,7 @@ function WorkspaceListItem({ ws, onClick }: { ws: { workspaceId: string; workspa
       className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors text-left"
     >
       <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-        <Building2 className="h-4 w-4 text-primary/70" />
+        <Users className="h-4 w-4 text-primary/70" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{ws.workspaceName}</p>
