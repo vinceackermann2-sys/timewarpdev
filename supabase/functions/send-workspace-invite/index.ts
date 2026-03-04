@@ -70,8 +70,25 @@ Deno.serve(async (req) => {
       (u) => (u.email || "").toLowerCase() === email
     );
 
+    // Check if already a member
+    if (targetUser) {
+      const { data: isMember } = await supabaseAdmin.rpc("is_workspace_member", {
+        _user_id: targetUser.id,
+        _workspace_id: workspaceId,
+      });
+      if (isMember) {
+        return new Response(JSON.stringify({ error: "Already a member" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const sendWorkspaceInviteEmail = async (inviteUrl: string, isExistingUser: boolean) => {
       if (isExistingUser) {
+        // For existing users, send OTP magic link that redirects to invite URL.
+        // The auth-email-hook detects the /invite?token= in redirect_to and
+        // remaps the email to the branded "Invite" template.
         const { error: otpError } = await supabaseAuthClient.auth.signInWithOtp({
           email,
           options: {
@@ -88,6 +105,7 @@ Deno.serve(async (req) => {
         return;
       }
 
+      // For new users, use admin invite which triggers the "invite" action_type directly.
       const { error: inviteEmailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
         redirectTo: inviteUrl,
       });
@@ -99,48 +117,9 @@ Deno.serve(async (req) => {
       }
     };
 
-    // If there is already a pending invitation, return it as success (idempotent)
-    const { data: existing } = await supabaseAdmin
-      .from("workspace_invitations")
-      .select("id, token, role")
-      .eq("workspace_id", workspaceId)
-      .eq("email", email)
-      .eq("status", "pending")
-      .maybeSingle();
+    // ---- Idempotent insert: try insert first, handle duplicate gracefully ----
+    const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
 
-    if (existing) {
-      const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
-      const inviteUrl = `${origin}/invite?token=${existing.token}`;
-
-      await sendWorkspaceInviteEmail(inviteUrl, Boolean(targetUser));
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          alreadyInvited: true,
-          existingUser: Boolean(targetUser),
-          invitation: { id: existing.id, email, role: existing.role, token: existing.token },
-          inviteUrl,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check if already a member
-    if (targetUser) {
-      const { data: isMember } = await supabaseAdmin.rpc("is_workspace_member", {
-        _user_id: targetUser.id,
-        _workspace_id: workspaceId,
-      });
-      if (isMember) {
-        return new Response(JSON.stringify({ error: "Already a member" }), {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
-    // Create invitation
     const { data: invitation, error: invError } = await supabaseAdmin
       .from("workspace_invitations")
       .insert({
@@ -153,15 +132,42 @@ Deno.serve(async (req) => {
       .single();
 
     if (invError) {
+      // Handle duplicate key (unique constraint on workspace_id, email, status)
+      if (invError.code === "23505") {
+        // Fetch existing pending invitation and return success
+        const { data: existing } = await supabaseAdmin
+          .from("workspace_invitations")
+          .select("id, token, role")
+          .eq("workspace_id", workspaceId)
+          .eq("email", email)
+          .eq("status", "pending")
+          .maybeSingle();
+
+        if (existing) {
+          const inviteUrl = `${origin}/invite?token=${existing.token}`;
+          await sendWorkspaceInviteEmail(inviteUrl, Boolean(targetUser));
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              alreadyInvited: true,
+              existingUser: Boolean(targetUser),
+              invitation: { id: existing.id, email, role: existing.role, token: existing.token },
+              inviteUrl,
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // Genuine error
       return new Response(JSON.stringify({ error: invError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
     const inviteUrl = `${origin}/invite?token=${invitation.token}`;
-
     await sendWorkspaceInviteEmail(inviteUrl, Boolean(targetUser));
 
     return new Response(
