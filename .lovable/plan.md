@@ -2,32 +2,21 @@
 
 ## Problem
 
-The invite email's "Accept Invitation" button links directly to `/invite?token=...` (the workspace invite URL), **bypassing Supabase's auth verification endpoint**. This means:
-
-1. The user clicks the button and lands on `/invite?token=...` without an authenticated session
-2. `InviteAccept` calls `supabase.auth.getSession()` — no session exists
-3. It shows "Please sign in" instead of accepting, OR if the user happens to already be signed in, the RPC call may work but the flow is broken for new/logged-out users
-
-The root cause is in `auth-email-hook/index.ts` line 265:
-```
-confirmationUrl: isWorkspaceInvite ? workspaceInviteUrl! : payload.data.url
-```
-
-This replaces the Supabase auth verification URL (`payload.data.url`) with the raw workspace invite URL. The auth verification URL is what establishes the session — it goes through `/auth/v1/verify?...&redirect_to=/invite?token=...`, verifies the token, creates a session, then redirects to the invite page.
+The `accept_workspace_invitation` database function updates the invitation's status from `'pending'` to `'accepted'`, but the table has a unique constraint on `(workspace_id, email, status)`. If the user was previously invited and accepted (an old `'accepted'` row exists), a second invite+accept cycle hits the constraint because there would be two rows with `(workspace_id, email, 'accepted')`.
 
 ## Fix
 
-**File: `supabase/functions/auth-email-hook/index.ts`**
+**Database migration** — modify the `accept_workspace_invitation` function to delete any prior accepted/expired invitations for the same `(workspace_id, email)` before updating the current one to `'accepted'`. This is a single-line addition before the `UPDATE` statement:
 
-Change `confirmationUrl` to always use `payload.data.url` (the Supabase auth verification URL). This ensures:
-- User clicks "Accept Invitation" → Supabase verifies the magic link/invite token → session is established → user is redirected to `/invite?token=...` → `InviteAccept` finds a valid session → RPC `accept_workspace_invitation` succeeds → user is added to workspace
-
-Single line change:
-```typescript
-confirmationUrl: payload.data.url,  // Always use the auth verification URL
+```sql
+DELETE FROM public.workspace_invitations
+WHERE workspace_id = inv.workspace_id
+  AND lower(email) = lower(inv.email)
+  AND id != inv.id;
 ```
 
-The `redirect_to` parameter inside that URL already points to `/invite?token=...`, so after auth verification the user lands on the correct page with an active session.
+This clears stale invitation rows (accepted, expired, or duplicate pending) so the status update never conflicts with the unique constraint. No schema change needed — just the function body update via migration.
 
-**Redeploy**: `auth-email-hook` edge function.
+**Files changed:**
+- New database migration (alter `accept_workspace_invitation` function)
 
