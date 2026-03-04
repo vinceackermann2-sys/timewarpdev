@@ -266,6 +266,16 @@ export type Database = {
         Args: { _data_owner: string; _requesting_user: string }
         Returns: boolean
       }
+      get_workspace_members: {
+        Args: { _workspace_id: string }
+        Returns: {
+          email: string
+          id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["workspace_role"]
+          user_id: string
+        }[]
+      }
       has_workspace_role: {
         Args: {
           _role: Database["public"]["Enums"]["workspace_role"]

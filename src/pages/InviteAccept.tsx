@@ -41,6 +41,10 @@ const InviteAccept = () => {
         setStatus("error");
         setMessage(result.error);
       } else {
+        // Store the workspace they joined so useWorkspace picks it
+        if (result?.workspace_id) {
+          localStorage.setItem("preferred_workspace_id", result.workspace_id);
+        }
         setStatus("success");
         setMessage("You've been added to the workspace!");
       }
