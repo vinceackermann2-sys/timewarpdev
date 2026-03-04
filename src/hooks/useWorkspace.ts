@@ -35,6 +35,11 @@ export function useWorkspace() {
   const [invitations, setInvitations] = useState<WorkspaceInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const normalizeWorkspaceRole = (role: string): WorkspaceRole => {
+    if (role === "owner" || role === "editor" || role === "viewer") return role;
+    return "viewer";
+  };
+
   const loadWorkspaces = useCallback(async () => {
     setIsLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
@@ -74,7 +79,7 @@ export function useWorkspace() {
     const mapped: WorkspaceInfo[] = (wsData as any[]).map((w) => ({
       workspaceId: w.workspace_id,
       workspaceName: w.workspace_name,
-      role: w.role as WorkspaceRole,
+      role: normalizeWorkspaceRole(w.role),
       memberCount: Number(w.member_count),
       createdAt: w.created_at,
     }));
@@ -95,20 +100,41 @@ export function useWorkspace() {
     setIsLoading(false);
   }, []);
 
-  // Load members for a specific workspace
-  const loadMembers = useCallback(async (wsId: string) => {
-    const { data: membersData } = await supabase.rpc("get_workspace_members", {
+  const fetchWorkspaceMembersData = useCallback(async (wsId: string) => {
+    const { data: membersData, error: membersError } = await supabase.rpc("get_workspace_members", {
       _workspace_id: wsId,
     });
 
-    if (membersData) {
-      setMembers((membersData as any[]).map((m) => ({
-        id: m.id,
-        userId: m.user_id,
-        email: m.email || "unknown",
-        role: m.role as WorkspaceRole,
-        joinedAt: m.joined_at,
-      })));
+    let mappedMembers: WorkspaceMember[] = membersData
+      ? (membersData as any[]).map((m) => ({
+          id: m.id,
+          userId: m.user_id,
+          email: m.email || "unknown",
+          role: normalizeWorkspaceRole(m.role),
+          joinedAt: m.joined_at,
+        }))
+      : [];
+
+    // Fallback for cases where RPC returns empty due session/RPC edge cases
+    if (mappedMembers.length === 0) {
+      const { data: fallbackMembers, error: fallbackError } = await supabase
+        .from("workspace_members")
+        .select("id, user_id, role, joined_at")
+        .eq("workspace_id", wsId);
+
+      if (!fallbackError && fallbackMembers?.length) {
+        mappedMembers = fallbackMembers.map((m: any) => ({
+          id: m.id,
+          userId: m.user_id,
+          email: "unknown",
+          role: normalizeWorkspaceRole(m.role),
+          joinedAt: m.joined_at,
+        }));
+      }
+    }
+
+    if (membersError) {
+      console.warn("Failed to load workspace members via RPC:", membersError.message);
     }
 
     const { data: invData } = await supabase
@@ -117,44 +143,31 @@ export function useWorkspace() {
       .eq("workspace_id", wsId)
       .eq("status", "pending");
 
-    if (invData) {
-      setInvitations(invData.map((inv: any) => ({
-        id: inv.id,
-        email: inv.email,
-        role: inv.role,
-        status: inv.status,
-        createdAt: inv.created_at,
-        token: inv.token,
-      })));
-    }
+    const mappedInvitations: WorkspaceInvitation[] = invData
+      ? invData.map((inv: any) => ({
+          id: inv.id,
+          email: inv.email,
+          role: normalizeWorkspaceRole(inv.role),
+          status: inv.status,
+          createdAt: inv.created_at,
+          token: inv.token,
+        }))
+      : [];
+
+    return { members: mappedMembers, invitations: mappedInvitations };
   }, []);
+
+  // Load members for a specific workspace
+  const loadMembers = useCallback(async (wsId: string) => {
+    const data = await fetchWorkspaceMembersData(wsId);
+    setMembers(data.members);
+    setInvitations(data.invitations);
+  }, [fetchWorkspaceMembersData]);
 
   // Load members for a given workspace without changing global state (for dialog)
   const loadMembersForWorkspace = useCallback(async (wsId: string) => {
-    const { data: membersData } = await supabase.rpc("get_workspace_members", {
-      _workspace_id: wsId,
-    });
-    const mems: WorkspaceMember[] = membersData
-      ? (membersData as any[]).map((m) => ({
-          id: m.id, userId: m.user_id, email: m.email || "unknown",
-          role: m.role as WorkspaceRole, joinedAt: m.joined_at,
-        }))
-      : [];
-
-    const { data: invData } = await supabase
-      .from("workspace_invitations")
-      .select("id, email, role, status, created_at, token")
-      .eq("workspace_id", wsId)
-      .eq("status", "pending");
-    const invs: WorkspaceInvitation[] = invData
-      ? invData.map((inv: any) => ({
-          id: inv.id, email: inv.email, role: inv.role,
-          status: inv.status, createdAt: inv.created_at, token: inv.token,
-        }))
-      : [];
-
-    return { members: mems, invitations: invs };
-  }, []);
+    return fetchWorkspaceMembersData(wsId);
+  }, [fetchWorkspaceMembersData]);
 
   useEffect(() => { loadWorkspaces(); }, [loadWorkspaces]);
 
