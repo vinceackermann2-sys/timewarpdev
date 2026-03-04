@@ -76,15 +76,32 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
     }
   }, [open]);
 
-  // Load members when a workspace is selected
+  // Load members when a workspace is selected + keep it fresh while dialog is open
   useEffect(() => {
-    if (!selectedWsId) return;
-    setLoadingMembers(true);
-    loadMembersForWorkspace(selectedWsId).then(data => {
-      setWsMemberData(data);
-      setLoadingMembers(false);
-    });
-  }, [selectedWsId, loadMembersForWorkspace]);
+    if (!selectedWsId || !open) return;
+
+    let isMounted = true;
+
+    const refreshMembers = async () => {
+      setLoadingMembers(true);
+      const data = await loadMembersForWorkspace(selectedWsId);
+      if (isMounted) {
+        setWsMemberData(data);
+        setLoadingMembers(false);
+      }
+    };
+
+    void refreshMembers();
+
+    const interval = setInterval(() => {
+      void refreshMembers();
+    }, 10000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [selectedWsId, open, loadMembersForWorkspace]);
 
   const selectedWs = workspaces.find(w => w.workspaceId === selectedWsId);
   const isOwnerOfSelected = selectedWs?.role === "owner";
