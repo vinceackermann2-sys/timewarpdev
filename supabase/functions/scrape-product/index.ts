@@ -509,8 +509,14 @@ ${markdown.slice(0, 15000)}`;
         const audienceDesc = extracted.audience?.description || "general consumers";
         const brandCategory = extracted.brand?.category || "lifestyle";
         const brandColors = extracted.brand?.colors || {};
+        const brandName = extracted.brand?.name || "the brand";
+        const audiencePainPoints = (extracted.product?.painPoints || []).slice(0, 3).join('; ');
+        const audiencePowerPhrases = (extracted.audience?.powerPhrases || []).slice(0, 3).join('; ');
+        const brandPositioning = extracted.brand?.visualIdentity?.imageGuidelines?.map((g: any) => g.rule).slice(0, 2).join('; ') || '';
+        const productDescription = (extracted.product?.description || '').slice(0, 200);
+        const audienceAttentionHooks = (extracted.audience?.attentionHooks || []).slice(0, 2).join('; ');
 
-        // Step 1: Generate 6 aesthetic search terms using AI
+        // Step 1: Generate 6 aesthetic search terms using AI — grounded in audience & brand messaging
         console.log("Generating moodboard aesthetic terms...");
         const termsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -519,14 +525,19 @@ ${markdown.slice(0, 15000)}`;
             model: "google/gemini-2.5-flash-lite",
             messages: [{
               role: "user",
-              content: `Generate exactly 6 short aesthetic/visual search terms for a Pinterest moodboard. These should describe textures, colors, moods, and visual styles that match this brand and audience.
+              content: `Generate exactly 6 short aesthetic/visual search terms for a Pinterest moodboard. These should describe textures, colors, moods, and visual styles that match the AUDIENCE's emotional world and the BRAND's messaging — NOT the brand's visual identity or logo.
 
-Brand category: ${brandCategory}
-Brand colors: primary ${brandColors.primary || 'neutral'}, secondary ${brandColors.secondary || 'warm'}
-Target audience: ${audienceDesc.split('.').slice(0, 2).join('.')}
+Brand: "${brandName}" (${brandCategory})
+Product: ${productDescription}
+Target audience: ${audienceDesc.split('.').slice(0, 3).join('.')}
+Audience pain points: ${audiencePainPoints || 'general consumer frustrations'}
+Audience power phrases: ${audiencePowerPhrases || 'convenience, quality, trust'}
+Audience attention hooks: ${audienceAttentionHooks || 'problem-aware hooks'}
+
+The moodboard should evoke the FEELINGS the audience experiences — their lifestyle, aspirations, frustrations, and the transformation the product offers. Think about what this audience's ideal world looks like visually.
 
 Return ONLY a JSON array of 6 short phrases (3-5 words each). Example:
-["Muted botanical motifs", "Sun-drenched linen texture", "Soft rounded edges", "Natural wood tones", "Earthy pastel palette", "Warm golden hour light"]
+["Morning routine calm simplicity", "Frustrated parent messy home", "Relief after solving problem", "Aspirational lifestyle outdoors", "Cozy evening self-care ritual", "Empowered confident daily life"]
 
 No explanation, just the JSON array.`
             }],
@@ -639,7 +650,7 @@ No explanation, just the JSON array.`
                   messages: [{
                     role: "user",
                     content: [
-                      { type: "text", text: `Study this screenshot of a moodboard/aesthetic image. Recreate the same visual concept, mood, colors, textures, and composition as a brand-new original image. Match the aesthetic feel precisely — same color palette, same mood, same style — but make it a completely original creation, not a copy. Output a clean, high-quality image with no text or watermarks.` },
+                      { type: "text", text: `Study this screenshot of a moodboard/aesthetic image. Recreate the same visual concept, mood, colors, textures, and composition as a brand-new original image. This moodboard is for a brand targeting: ${audienceDesc.split('.').slice(0, 2).join('.')}. The mood should reflect their lifestyle and aspirations. Match the aesthetic feel precisely — same mood, same style — but make it a completely original creation, not a copy. Output a clean, high-quality image with no text or watermarks.` },
                       { type: "image_url", image_url: { url: ssUrl } }
                     ]
                   }],
@@ -750,23 +761,28 @@ No explanation, just the JSON array.`
               : `data:image/png;base64,${websiteScreenshot}`)
           : null;
 
-        // Image 1: Icon list — individual icons in a 3x4 or 4x3 grid, each distinct and separated
+        // Image 1: Icon list — grounded in audience needs & brand messaging, not visual identity
+        const audienceBuyingTriggers = (extracted.audience?.buyingTriggers || []).slice(0, 3).join('; ');
+        const productBenefits = (extracted.product?.benefits || []).slice(0, 4).join('; ');
+        const productUseCases = (extracted.product?.useCases || []).slice(0, 3).join('; ');
         const iconsMessages: any[] = [{
           role: "user",
           content: ssUrl ? [
-            { type: "text", text: `Study this website screenshot carefully. Create a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
+            { type: "text", text: `Study this website screenshot for visual style reference only. Create a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
 
-Each icon must be:
-- A distinct, recognizable symbol (star, heart, checkmark, gear, target, people, phone, location pin, DNA helix, flower, etc.)
-- Drawn in the same visual style, line weight, and color palette as the website's existing design elements
-- Well-separated from neighboring icons with generous spacing
-- A mix of outlined and filled styles for variety (some with color fills like the brand's primary color)
+The icons must represent concepts from the AUDIENCE's world and the PRODUCT's benefits — NOT the brand's visual identity:
+- Product benefits: ${productBenefits || 'quality, convenience, value'}
+- Audience needs: ${audienceBuyingTriggers || 'ease of use, time saving, reliability'}
+- Use cases: ${productUseCases || 'daily use, convenience'}
 
-Brand: "${brandName}", category: ${brandCategory}
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
-Style: Clean, professional iconography. Each icon should be individually usable. No text labels. White background.` },
+Each icon should symbolize a benefit, pain point, or use case (e.g., clock for speed, shield for protection, heart for care, target for precision, thumbs-up for ease).
+- Drawn in a clean style using the brand's color palette: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
+- Well-separated with generous spacing
+- Mix of outlined and filled styles
+- No text labels. White background.
+Brand: "${brandName}", category: ${brandCategory}` },
             { type: "image_url", image_url: { url: ssUrl } }
-          ] : `Generate a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background. Each icon should be a distinct symbol (star, heart, checkmark, gear, target, people, phone, location pin, DNA helix, flower, etc.). Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. No text labels.`
+          ] : `Generate a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background. Icons should represent: ${productBenefits || 'quality, convenience, value'} and audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}. Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. No text labels.`
         }];
 
         const iconsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -787,24 +803,30 @@ Style: Clean, professional iconography. Each icon should be individually usable.
           }
         }
 
-        // Image 2: Pattern list — organic/geometric patterns and background elements
+        // Image 2: Pattern list — grounded in audience emotion & brand messaging
+        const audiencePowerWords = (extracted.audience?.powerWords || []).slice(0, 5).join(', ');
         const patternMessages: any[] = [{
           role: "user",
           content: ssUrl ? [
-            { type: "text", text: `Study this website screenshot. Create a pattern reference sheet showing 2-3 distinct decorative patterns/backgrounds stacked vertically on the image.
+            { type: "text", text: `Study this website screenshot for color reference. Create a pattern reference sheet showing 2-3 distinct decorative patterns/backgrounds stacked vertically.
+
+These patterns should evoke the EMOTIONAL WORLD of the target audience, not just match the website's visual identity:
+- Audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}
+- Emotional keywords: ${audiencePowerWords || 'trust, comfort, confidence'}
+- Brand tone: ${extracted.product?.positioningStatement?.slice(0, 150) || brandCategory}
 
 Include:
-1. A flowing, organic wave/curve pattern using the brand's color palette (gradients from primary to lighter tints)
-2. A geometric/abstract section showing rounded shapes, blobs, or decorative elements in the brand colors
+1. A flowing, organic wave/curve pattern using the brand's color palette — evoking the audience's aspirational feelings
+2. A geometric/abstract section showing rounded shapes or decorative elements that feel approachable and on-brand
 3. A subtle tileable texture suitable for website section backgrounds
 
-Brand: "${brandName}", colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}.
-Each pattern should be clearly separated. Show how the colors flow and blend. Professional quality. No text. These should feel cohesive with the website's existing visual language.` },
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}.
+Each pattern clearly separated. Professional quality. No text.` },
             { type: "image_url", image_url: { url: ssUrl } }
-          ] : `Generate a pattern reference sheet for "${brandName}" showing 2-3 distinct decorative patterns stacked vertically:
-1. A flowing organic wave/curve pattern with gradients in brand colors
-2. A geometric/abstract section with rounded shapes and blobs
-3. A subtle tileable texture for website backgrounds
+          ] : `Generate a pattern reference sheet for "${brandName}" targeting audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}. Emotional keywords: ${audiencePowerWords || 'trust, comfort'}. Show 2-3 distinct patterns stacked vertically:
+1. Flowing organic wave/curve pattern with gradients in brand colors
+2. Geometric/abstract section with rounded shapes
+3. Subtle tileable texture for backgrounds
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Professional, modern. No text.`
         }];
 
