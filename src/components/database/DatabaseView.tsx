@@ -177,12 +177,21 @@ export function DatabaseView() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return [];
 
-    const { data: bizData, error } = await (supabase as any)
+    const workspaceId = localStorage.getItem("preferred_workspace_id");
+
+    let query = (supabase as any)
       .from('user_business_data')
       .select('data_type, title, content, analyzed_content, metadata, is_analyzed')
-      .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
       .limit(50);
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    } else {
+      query = query.eq('user_id', session.user.id);
+    }
+
+    const { data: bizData, error } = await query;
 
     if (!error && bizData && bizData.length > 0) {
       return [{

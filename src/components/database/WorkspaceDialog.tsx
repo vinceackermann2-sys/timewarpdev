@@ -281,8 +281,8 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
               )}
             </div>
 
-            {/* Pending Invitations */}
-            {wsMemberData.invitations.length > 0 && (
+            {/* Pending Invitations - owners only */}
+            {isOwnerOfSelected && wsMemberData.invitations.length > 0 && (
               <>
                 <Separator />
                 <div className="space-y-3">
