@@ -621,7 +621,48 @@ No explanation, just the JSON array.`
           })
         );
 
-        const moodboardUrls = moodboardResults
+        const rawScreenshots = moodboardResults
+          .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
+          .map(r => r.value);
+
+        console.log("Got", rawScreenshots.length, "moodboard screenshots, now AI-recreating...");
+
+        // Step 3: AI-recreate each screenshot as an original image
+        const recreateResults = await Promise.allSettled(
+          rawScreenshots.slice(0, 6).map(async (ssUrl, idx) => {
+            try {
+              const recreateRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash-image",
+                  messages: [{
+                    role: "user",
+                    content: [
+                      { type: "text", text: `Study this screenshot of a moodboard/aesthetic image. Recreate the same visual concept, mood, colors, textures, and composition as a brand-new original image. Match the aesthetic feel precisely — same color palette, same mood, same style — but make it a completely original creation, not a copy. Output a clean, high-quality image with no text or watermarks.` },
+                      { type: "image_url", image_url: { url: ssUrl } }
+                    ]
+                  }],
+                  modalities: ["image", "text"],
+                }),
+              });
+              if (recreateRes.ok) {
+                const d = await recreateRes.json();
+                const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+                if (img) {
+                  console.log(`✓ AI-recreated moodboard image ${idx + 1}`);
+                  return img;
+                }
+              }
+              return ssUrl; // fallback to original screenshot
+            } catch (e) {
+              console.warn(`Moodboard recreate error ${idx}:`, e);
+              return ssUrl;
+            }
+          })
+        );
+
+        const moodboardUrls = recreateResults
           .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
           .map(r => r.value);
 
@@ -698,10 +739,10 @@ No explanation, just the JSON array.`
       }
     }
 
-    // ── Generate patterns + icons based on website's existing visual style ──
+    // ── Generate icon list + pattern list based on website's existing visual style ──
     aiImagePromises.push((async () => {
       try {
-        console.log("Generating brand patterns and icons based on website...");
+        console.log("Generating brand icon list and pattern list based on website...");
         const illustrationUrls: string[] = [];
         const ssUrl = websiteScreenshot
           ? (typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
@@ -709,16 +750,26 @@ No explanation, just the JSON array.`
               : `data:image/png;base64,${websiteScreenshot}`)
           : null;
 
-        // Pattern 1: Brand-specific icons and symbols set — reference the actual website
+        // Image 1: Icon list — individual icons in a 3x4 or 4x3 grid, each distinct and separated
         const iconsMessages: any[] = [{
           role: "user",
           content: ssUrl ? [
-            { type: "text", text: `Study this website screenshot carefully. Identify the icons, symbols, decorative elements, and visual motifs already used on this site. Then generate a set of 9-12 brand-specific icons and symbols in the SAME visual style — matching the line weight, color palette, and aesthetic of the existing site icons. Brand: "${brandName}", category: ${brandCategory}, audience: ${audienceDesc}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Arrange the icons in a grid on a clean white background. Flat, consistent style matching the website's existing iconography. No text labels.` },
+            { type: "text", text: `Study this website screenshot carefully. Create a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
+
+Each icon must be:
+- A distinct, recognizable symbol (star, heart, checkmark, gear, target, people, phone, location pin, DNA helix, flower, etc.)
+- Drawn in the same visual style, line weight, and color palette as the website's existing design elements
+- Well-separated from neighboring icons with generous spacing
+- A mix of outlined and filled styles for variety (some with color fills like the brand's primary color)
+
+Brand: "${brandName}", category: ${brandCategory}
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
+Style: Clean, professional iconography. Each icon should be individually usable. No text labels. White background.` },
             { type: "image_url", image_url: { url: ssUrl } }
-          ] : `Generate a set of brand-specific icons and symbols for "${brandName}". Brand category: ${brandCategory}. Target audience: ${audienceDesc}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Create a collection of 9-12 small iconographic elements arranged in a grid on a clean white background. Flat, minimal style using only the brand colors. No text labels.`
+          ] : `Generate a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background. Each icon should be a distinct symbol (star, heart, checkmark, gear, target, people, phone, location pin, DNA helix, flower, etc.). Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. No text labels.`
         }];
 
-        const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const iconsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -727,41 +778,59 @@ No explanation, just the JSON array.`
             modalities: ["image", "text"],
           }),
         });
-        if (patternRes.ok) {
-          const d = await patternRes.json();
+        if (iconsRes.ok) {
+          const d = await iconsRes.json();
           const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (img) illustrationUrls.push(img);
+          if (img) {
+            illustrationUrls.push(img);
+            console.log("✓ Generated icon list");
+          }
         }
 
-        // Pattern 2: Website pattern/texture — based on existing site patterns
-        const textureMessages: any[] = [{
+        // Image 2: Pattern list — organic/geometric patterns and background elements
+        const patternMessages: any[] = [{
           role: "user",
           content: ssUrl ? [
-            { type: "text", text: `Study this website screenshot. Identify any patterns, textures, background elements, or decorative motifs used on the site. Then generate a seamless repeating website pattern/texture that matches the site's existing visual language. Use the same colors, shapes, and design approach visible on the site. Brand: "${brandName}", colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Create a subtle, tileable pattern suitable for website section backgrounds and hero overlays. Professional, not overwhelming. No text.` },
+            { type: "text", text: `Study this website screenshot. Create a pattern reference sheet showing 2-3 distinct decorative patterns/backgrounds stacked vertically on the image.
+
+Include:
+1. A flowing, organic wave/curve pattern using the brand's color palette (gradients from primary to lighter tints)
+2. A geometric/abstract section showing rounded shapes, blobs, or decorative elements in the brand colors
+3. A subtle tileable texture suitable for website section backgrounds
+
+Brand: "${brandName}", colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}.
+Each pattern should be clearly separated. Show how the colors flow and blend. Professional quality. No text. These should feel cohesive with the website's existing visual language.` },
             { type: "image_url", image_url: { url: ssUrl } }
-          ] : `Generate a seamless repeating website pattern/texture for "${brandName}". Brand category: ${brandCategory}. Target audience: ${audienceDesc}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Create a subtle, tileable pattern using small symbols related to ${brandCategory}. Professional, modern. No text.`
+          ] : `Generate a pattern reference sheet for "${brandName}" showing 2-3 distinct decorative patterns stacked vertically:
+1. A flowing organic wave/curve pattern with gradients in brand colors
+2. A geometric/abstract section with rounded shapes and blobs
+3. A subtle tileable texture for website backgrounds
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Professional, modern. No text.`
         }];
 
-        const textureRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
-            messages: textureMessages,
+            messages: patternMessages,
             modalities: ["image", "text"],
           }),
         });
-        if (textureRes.ok) {
-          const d = await textureRes.json();
+        if (patternRes.ok) {
+          const d = await patternRes.json();
           const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (img) illustrationUrls.push(img);
+          if (img) {
+            illustrationUrls.push(img);
+            console.log("✓ Generated pattern list");
+          }
         }
 
         if (illustrationUrls.length > 0) {
           extracted.brand.visualIdentity.illustrationUrls = illustrationUrls;
-          console.log("Generated", illustrationUrls.length, "illustrations based on website style");
+          console.log("Generated", illustrationUrls.length, "illustrations (icon list + pattern list)");
         } else {
-          console.warn("No illustrations generated - both AI calls returned no images");
+          console.warn("No illustrations generated");
         }
       } catch (e) { console.error("Illustration gen error:", e); }
     })());
@@ -788,6 +857,9 @@ No explanation, just the JSON array.`
 Guideline: "${g.rule}"${g.example ? ` — Example: "${g.example}"` : ''}
 Target audience: ${audienceDesc}
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
+
+CRITICAL RULE: The product in this image must NOT be altered, modified, redesigned, or changed in ANY way. Keep the product EXACTLY as it appears — same shape, same colors, same details, same proportions. You may ONLY change the product's position, angle, or placement within the scene. The product itself is sacred and untouchable.
+
 Use the product shown in this image as the subject. Place it in a scene that demonstrates this specific photography guideline. Professional, authentic, on-brand. No text overlays.` },
                     { type: "image_url", image_url: { url: productImageUrl } }
                   ]
