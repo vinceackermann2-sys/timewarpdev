@@ -220,6 +220,12 @@ export function useWorkspace() {
     if (targetWsId) await loadMembers(targetWsId);
   }, [activeWorkspaceId, loadMembers]);
 
+  const renameWorkspace = useCallback(async (wsId: string, newName: string) => {
+    const { error } = await supabase.from("workspaces").update({ name: newName }).eq("id", wsId);
+    if (error) throw error;
+    await loadWorkspaces();
+  }, [loadWorkspaces]);
+
   const activeWorkspace = workspaces.find(w => w.workspaceId === activeWorkspaceId) || null;
 
   return {
@@ -235,6 +241,7 @@ export function useWorkspace() {
     removeMember,
     updateMemberRole,
     cancelInvitation,
+    renameWorkspace,
     loadMembersForWorkspace,
     reload: loadWorkspaces,
   };
