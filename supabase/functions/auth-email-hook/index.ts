@@ -205,16 +205,44 @@ async function handleWebhook(req: Request): Promise<Response> {
   // The email action type is in payload.data.action_type (e.g., "signup", "recovery")
   // payload.type is the hook event type ("auth")
   const rawEmailType = payload.data.action_type
-  const isWorkspaceInviteMagicLink =
-    rawEmailType === 'magiclink' &&
-    typeof payload.data.url === 'string' &&
-    payload.data.url.includes('/invite?token=')
 
-  // Existing users receive magic links for workspace invites; remap to invite template/subject
-  const emailType = isWorkspaceInviteMagicLink ? 'invite' : rawEmailType
+  // --- Workspace-invite detection (works for direct URLs and encoded redirect_to) ---
+  let workspaceInviteUrl: string | null = null
+  if (typeof payload.data.url === 'string') {
+    try {
+      const parsed = new URL(payload.data.url)
+      // Check the direct URL path
+      if (parsed.pathname.includes('/invite') && parsed.searchParams.has('token')) {
+        workspaceInviteUrl = payload.data.url
+      }
+      // Check redirect_to param (Supabase often wraps the real destination here)
+      if (!workspaceInviteUrl) {
+        const redirectTo = parsed.searchParams.get('redirect_to') || parsed.hash?.replace('#', '')
+        if (redirectTo) {
+          const decoded = decodeURIComponent(redirectTo)
+          if (decoded.includes('/invite?token=') || decoded.includes('/invite&token=')) {
+            workspaceInviteUrl = decoded
+          } else {
+            try {
+              const redirectParsed = new URL(decoded)
+              if (redirectParsed.pathname.includes('/invite') && redirectParsed.searchParams.has('token')) {
+                workspaceInviteUrl = decoded
+              }
+            } catch { /* not a valid URL, skip */ }
+          }
+        }
+      }
+    } catch { /* URL parse failed, skip */ }
+  }
+
+  const isWorkspaceInvite = workspaceInviteUrl !== null
+  // Remap to invite template when workspace invite is detected (even if rawEmailType is magiclink/recovery)
+  const emailType = isWorkspaceInvite ? 'invite' : rawEmailType
   console.log('Received auth event', {
     rawEmailType,
     emailType,
+    isWorkspaceInvite,
+    workspaceInviteUrl,
     email: payload.data.email,
     run_id,
   })
@@ -229,11 +257,12 @@ async function handleWebhook(req: Request): Promise<Response> {
   }
 
   // Build template props from payload.data (HookData structure)
+  // For workspace invites, override confirmationUrl to point directly to the invite acceptance page
   const templateProps = {
     siteName: SITE_NAME,
     siteUrl: `https://${ROOT_DOMAIN}`,
     recipient: payload.data.email,
-    confirmationUrl: payload.data.url,
+    confirmationUrl: isWorkspaceInvite ? workspaceInviteUrl! : payload.data.url,
     token: payload.data.token,
     email: payload.data.email,
     newEmail: payload.data.new_email,

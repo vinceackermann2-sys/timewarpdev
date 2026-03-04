@@ -210,7 +210,14 @@ export function useWorkspace() {
       body: { email, role, workspaceId: targetWsId },
     });
     if (error) throw error;
-    if (data?.error) throw new Error(data.error);
+    // Treat "already invited" as success, not an error
+    if (data?.error && data?.error !== "Already a member") throw new Error(data.error);
+    if (data?.alreadyInvited) {
+      // Return data normally — caller can check alreadyInvited flag for messaging
+      if (targetWsId === activeWorkspaceId) await loadMembers(activeWorkspaceId);
+      return data;
+    }
+    if (data?.error === "Already a member") throw new Error(data.error);
     if (targetWsId === activeWorkspaceId) await loadMembers(activeWorkspaceId);
     return data;
   }, [activeWorkspaceId, loadMembers]);
