@@ -38,6 +38,25 @@ import { useWorkspace, WorkspaceMember, WorkspaceInvitation } from "@/hooks/useW
 
 type Role = "owner" | "editor" | "viewer";
 
+const RANDOM_NAMES = [
+  "Cosmic Panda", "Stellar Fox", "Neon Tiger", "Pixel Wolf", "Turbo Owl",
+  "Cyber Lynx", "Astro Bear", "Quantum Hawk", "Nova Otter", "Solar Raven",
+  "Lunar Cat", "Plasma Drake", "Zenith Crane", "Prism Falcon", "Volt Badger",
+];
+
+function getDisplayName(email: string): string {
+  if (!email || email === "unknown") {
+    // Deterministic random name from hash
+    const hash = Array.from(email || "x").reduce((a, c) => a + c.charCodeAt(0), 0);
+    return RANDOM_NAMES[hash % RANDOM_NAMES.length];
+  }
+  const local = email.split("@")[0];
+  // Capitalize and replace dots/underscores with spaces
+  return local
+    .replace(/[._-]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 const ROLE_CONFIG: Record<Role, { label: string; icon: typeof Crown; color: string }> = {
   owner: { label: "Owner", icon: Crown, color: "text-amber-500" },
   editor: { label: "Editor", icon: Pencil, color: "text-emerald-500" },
@@ -305,9 +324,9 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">
-                              {isCurrentUser ? "You" : member.email.split("@")[0]}
+                              {isCurrentUser ? "You" : getDisplayName(member.email)}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                            <p className="text-xs text-muted-foreground truncate">{member.email !== "unknown" ? member.email : "No email set"}</p>
                           </div>
                         </div>
 
