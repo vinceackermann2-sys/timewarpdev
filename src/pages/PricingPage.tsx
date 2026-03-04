@@ -59,7 +59,7 @@ export default function PricingPage() {
         <div className="text-center mb-10">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Choose Your Plan</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Scale your business with AI-powered intelligence. All plans include unlimited team members.
+            Select the perfect plan for your needs. All plans include full access to our platform.
           </p>
         </div>
 
@@ -108,13 +108,13 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" disabled className="w-full opacity-50">
-              Coming Soon
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/auth?mode=signup">Pre-order</Link>
             </Button>
           </div>
 
           {/* Aristotle */}
-          <div className="relative rounded-2xl border-2 border-blue-500 bg-card p-7 flex flex-col shadow-lg shadow-blue-500/10 scale-[1.02] z-10">
+          <div className="relative rounded-2xl border-2 border-blue-500 bg-card p-7 flex flex-col scale-[1.02] z-10">
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
               <Badge className="bg-blue-500 text-white border-blue-500 px-4 py-1 text-xs">
                 Most Popular
