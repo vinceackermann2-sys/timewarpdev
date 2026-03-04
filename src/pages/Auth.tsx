@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
+import authBg from "@/assets/auth-bg.png";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -22,13 +22,11 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // Get quiz data from navigation state
   const quizDataFromNav = (location.state as any)?.quizData;
   const quizData =
     quizDataFromNav ??
     (() => {
       try {
-        // Try localStorage first (more reliable across OAuth redirects)
         const raw = localStorage.getItem("quizData") || sessionStorage.getItem("quizData");
         return raw ? JSON.parse(raw) : null;
       } catch {
@@ -37,45 +35,26 @@ const Auth = () => {
     })();
 
   useEffect(() => {
-    // Persist quiz data in case the user refreshes during the OAuth redirect flow
-    // Use both storage types for reliability
     if (quizData) {
       localStorage.setItem("quizData", JSON.stringify(quizData));
       sessionStorage.setItem("quizData", JSON.stringify(quizData));
     }
 
-    // Check if user is already logged in
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const redirect = searchParams.get("redirect");
-        if (redirect) {
-          navigate(redirect);
-          return;
-        }
-        if (!quizData) {
-          navigateToDashboard();
-          return;
-        }
-
-         // With quiz data, user is signed in but needs to connect Google Workspace
-         // The UI will show "Connect Google Workspace" button
-         // Don't auto-redirect - let them click the button
+        if (redirect) { navigate(redirect); return; }
+        if (!quizData) { navigateToDashboard(); return; }
       }
     };
     checkSession();
 
-    // Listen for auth changes
-     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         const redirect = searchParams.get("redirect");
-        if (redirect) {
-          navigate(redirect);
-          return;
-        }
-         if (!quizData) {
-          navigateToDashboard();
-        }
+        if (redirect) { navigate(redirect); return; }
+        if (!quizData) { navigateToDashboard(); }
       }
     });
 
@@ -88,184 +67,98 @@ const Auth = () => {
 
   const validateForm = () => {
     if (!email || !password) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
+      toast({ title: "Missing fields", description: "Please fill in all required fields.", variant: "destructive" });
       return false;
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
-      });
+      toast({ title: "Invalid email", description: "Please enter a valid email address.", variant: "destructive" });
       return false;
     }
-
     if (password.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters.",
-        variant: "destructive",
-      });
+      toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
       return false;
     }
-
     if (isSignUp && password !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive",
-      });
+      toast({ title: "Passwords don't match", description: "Please make sure your passwords match.", variant: "destructive" });
       return false;
     }
-
     return true;
   };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-       
-       // Get the current user to pass in state
-       const { data: { session } } = await supabase.auth.getSession();
-       
-       // If no session and quiz flow, use Supabase OAuth for initial sign-in
-       // After sign-in, user will be redirected back and can connect Workspace
-       if (!session?.user && quizData) {
-         const { error } = await supabase.auth.signInWithOAuth({
-           provider: "google",
-           options: {
-             redirectTo: `${window.location.origin}/auth`,
-           },
-         });
-         if (error) throw error;
-         return;
-       }
-       
-       // If no session and no quiz, just do basic sign-in
-       if (!session?.user) {
-         const { error } = await supabase.auth.signInWithOAuth({
-           provider: "google",
-           options: {
-             redirectTo: `${window.location.origin}/`,
-           },
-         });
-         if (error) throw error;
-         return;
-       }
-       
-       // User is logged in - now connect Google Workspace with full scopes
-        const scopes = quizData ? [
-         "https://www.googleapis.com/auth/gmail.send",
-         "https://www.googleapis.com/auth/gmail.compose",
-         "https://www.googleapis.com/auth/gmail.readonly",
-         "https://www.googleapis.com/auth/drive",
-         "https://www.googleapis.com/auth/calendar",
-         "https://www.googleapis.com/auth/spreadsheets",
-         "https://www.googleapis.com/auth/documents",
-         "https://www.googleapis.com/auth/forms.body.readonly",
-          "openid",
-          "email", 
-          "profile",
-        ].join(" ") : "openid email profile";
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user && quizData) {
+        const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth` } });
+        if (error) throw error;
+        return;
+      }
+      if (!session?.user) {
+        const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/` } });
+        if (error) throw error;
+        return;
+      }
+      
+      const scopes = quizData ? [
+        "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/documents",
+        "https://www.googleapis.com/auth/forms.body.readonly",
+        "openid", "email", "profile",
+      ].join(" ") : "openid email profile";
 
-       // Call edge function to get OAuth URL (keeps client ID server-side)
-       const response = await fetch(`${SUPABASE_URL}/functions/v1/initiate-google-oauth`, {
-         method: "POST",
-         headers: {
-           "Content-Type": "application/json",
-           "Authorization": `Bearer ${session.access_token}`,
-         },
-         body: JSON.stringify({
-           user_id: session.user.id,
-           scopes,
-           origin: window.location.origin,
-         }),
-       });
-       
-       if (!response.ok) {
-         const errorData = await response.json().catch(() => ({}));
-         throw new Error(errorData.error || "Failed to initiate Google OAuth");
-       }
-       
-       const { url } = await response.json();
-       
-       // Redirect to Google OAuth
-       window.location.href = url;
-     } catch (error: any) {
-       toast({
-         title: "Google sign-in failed",
-         description: error.message || "Could not connect to Google. Please try again.",
-         variant: "destructive",
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/initiate-google-oauth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
+        body: JSON.stringify({ user_id: session.user.id, scopes, origin: window.location.origin }),
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to initiate Google OAuth");
+      }
+      
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error: any) {
+      toast({ title: "Google sign-in failed", description: error.message || "Could not connect to Google. Please try again.", variant: "destructive" });
       setIsGoogleLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-
     setIsLoading(true);
 
     try {
       if (isSignUp) {
-        const redirectUrl = `${window.location.origin}/`;
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: redirectUrl,
-          },
-        });
-
+        const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/` } });
         if (error) {
           if (error.message.includes("already registered")) {
-            toast({
-              title: "Account exists",
-              description: "This email is already registered. Please log in instead.",
-              variant: "destructive",
-            });
-          } else {
-            throw error;
-          }
+            toast({ title: "Account exists", description: "This email is already registered. Please log in instead.", variant: "destructive" });
+          } else throw error;
         } else {
-          toast({
-            title: "Account created!",
-            description: "You're now signed in. Welcome to TimeWarp!",
-          });
+          toast({ title: "Account created!", description: "You're now signed in. Welcome to TimeWarp!" });
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
-            toast({
-              title: "Invalid credentials",
-              description: "Please check your email and password.",
-              variant: "destructive",
-            });
-          } else {
-            throw error;
-          }
+            toast({ title: "Invalid credentials", description: "Please check your email and password.", variant: "destructive" });
+          } else throw error;
         }
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -273,43 +166,38 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="p-4 sm:p-6">
+      <header className="p-4 sm:p-6 absolute top-0 left-0 z-10">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Back to home
         </Link>
       </header>
 
-      {/* Main content */}
       <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border-border/50 shadow-lg">
-          <CardHeader className="text-center">
-            <Link to="/" className="flex items-center justify-center gap-2 mb-4">
-              <img 
-                src="/favicon.png" 
-                alt="TimeWarp" 
-                className="h-10 w-10 rounded-xl object-cover"
-              />
-            </Link>
-            <CardTitle className="text-2xl">
+        <div className="w-full max-w-4xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 bg-card">
+          {/* Left – Form */}
+          <div className="p-8 sm:p-10 flex flex-col justify-center">
+            <div className="flex items-center gap-2 mb-8">
+              <img src="/favicon.png" alt="TimeWarp" className="h-9 w-9 rounded-lg object-cover" />
+              <span className="font-semibold text-lg text-foreground">TimeWarp</span>
+            </div>
+
+            <h1 className="text-2xl font-bold text-foreground mb-1">
               {quizData ? "Connect your Google account" : isSignUp ? "Create your account" : "Welcome back"}
-            </CardTitle>
-            <CardDescription>
-              {quizData 
+            </h1>
+            <p className="text-sm text-muted-foreground mb-6">
+              {quizData
                 ? "Sign in with Google to let TimeWarp access your Docs, Sheets, and Gmail"
-                : isSignUp 
-                  ? "Start your 14-day free trial of TimeWarp" 
-                  : "Log in to your TimeWarp account"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Google Sign In Button - Primary for quiz flow */}
-            <Button 
-              type="button" 
+                : isSignUp
+                  ? "Start your 14-day free trial of TimeWarp"
+                  : "Log in to your TimeWarp account"}
+            </p>
+
+            {/* Google */}
+            <Button
+              type="button"
               variant={quizData ? "default" : "outline"}
-              className="w-full gap-3" 
+              className="w-full gap-3 mb-4"
               onClick={handleGoogleSignIn}
               disabled={isGoogleLoading}
             >
@@ -328,7 +216,7 @@ const Auth = () => {
 
             {!quizData && (
               <>
-                <div className="relative">
+                <div className="relative my-4">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-border" />
                   </div>
@@ -340,34 +228,14 @@ const Auth = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isLoading}
-                      required
-                    />
+                    <Input id="email" type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={isLoading}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
+                      <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
@@ -376,15 +244,7 @@ const Auth = () => {
                   {isSignUp && (
                     <div className="space-y-2">
                       <Label htmlFor="confirmPassword">Confirm Password</Label>
-                      <Input
-                        id="confirmPassword"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Confirm your password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={isLoading}
-                        required
-                      />
+                      <Input id="confirmPassword" type={showPassword ? "text" : "password"} placeholder="Confirm your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isLoading} required />
                     </div>
                   )}
 
@@ -394,39 +254,28 @@ const Auth = () => {
                   </Button>
                 </form>
 
-                <div className="text-center text-sm">
+                <div className="text-center text-sm mt-4">
                   {isSignUp ? (
-                    <>
-                      Already have an account?{" "}
-                      <button
-                        onClick={() => setIsSignUp(false)}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Log in
-                      </button>
-                    </>
+                    <>Already have an account?{" "}<button onClick={() => setIsSignUp(false)} className="text-primary hover:underline font-medium">Log in</button></>
                   ) : (
-                    <>
-                      Don't have an account?{" "}
-                      <button
-                        onClick={() => setIsSignUp(true)}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Sign up
-                      </button>
-                    </>
+                    <>Don't have an account?{" "}<button onClick={() => setIsSignUp(true)} className="text-primary hover:underline font-medium">Sign up</button></>
                   )}
                 </div>
               </>
             )}
 
             {quizData && (
-              <p className="text-center text-sm text-muted-foreground">
+              <p className="text-center text-sm text-muted-foreground mt-4">
                 By connecting, you allow TimeWarp to read your Google Workspace data to provide insights and generate content.
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* Right – Image */}
+          <div className="hidden md:block relative">
+            <img src={authBg} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          </div>
+        </div>
       </div>
     </div>
   );
