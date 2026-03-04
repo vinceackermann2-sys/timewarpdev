@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2, Users } from "lucide-react";
+import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2, Users, ArrowLeft, Settings, ChevronRight, Crown, Pencil, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,135 +9,213 @@ import startBusinessBg from "@/assets/start-business-bg.png";
 import addBusinessBg from "@/assets/add-business-bg.png";
 import { useBusinessDNA, BrandEntry } from "./BusinessDNAContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspace, WorkspaceInfo } from "@/hooks/useWorkspace";
+import { WorkspaceDialog } from "./WorkspaceDialog";
 
 interface MyBusinessesViewProps {
   onSelectBusiness: () => void;
   onOpenBusiness?: (brandId: string) => void;
 }
 
-const TABS = ["My Businesses", "Shared with me"] as const;
-
-interface SharedBrand extends BrandEntry {
-  ownerEmail: string;
-}
+const ROLE_ICONS: Record<string, typeof Crown> = { owner: Crown, editor: Pencil, viewer: Eye };
+const ROLE_COLORS: Record<string, string> = { owner: "text-amber-500", editor: "text-emerald-500", viewer: "text-muted-foreground" };
 
 export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusinessesViewProps) {
-  const [activeTab, setActiveTab] = useState<typeof TABS[number]>("My Businesses");
   const [search, setSearch] = useState("");
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
-  const { brands, setBrands, products, setProducts, audiences, setAudiences, isLoading } = useBusinessDNA();
-  const { workspaceId, members } = useWorkspace();
-  const [sharedBrands, setSharedBrands] = useState<SharedBrand[]>([]);
-  const [sharedLoading, setSharedLoading] = useState(false);
+  const [showCreateWs, setShowCreateWs] = useState(false);
+  const [newWsName, setNewWsName] = useState("");
+  const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
+  const { brands, setBrands, products, setProducts, audiences, setAudiences, isLoading: dnaLoading } = useBusinessDNA();
+  const {
+    workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace, createWorkspace,
+    members, isLoading: wsLoading, sendInvite,
+  } = useWorkspace();
+  const [wsBusinesses, setWsBusinesses] = useState<BrandEntry[]>([]);
+  const [loadingBiz, setLoadingBiz] = useState(false);
 
-  // Load shared businesses from workspace members
+  // When inside a workspace, load businesses for that workspace
   useEffect(() => {
-    async function loadShared() {
-      if (!workspaceId) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
+    if (!activeWorkspaceId) { setWsBusinesses([]); return; }
 
-      setSharedLoading(true);
-      // Get other workspace members' user IDs
-      const otherMemberIds = members
-        .filter(m => m.userId !== session.user.id)
-        .map(m => m.userId);
-
-      if (otherMemberIds.length === 0) {
-        setSharedBrands([]);
-        setSharedLoading(false);
-        return;
-      }
-
+    async function load() {
+      setLoadingBiz(true);
       const { data, error } = await supabase
         .from("user_business_data")
         .select("*")
-        .in("user_id", otherMemberIds)
+        .eq("workspace_id", activeWorkspaceId!)
         .eq("data_type", "brand")
         .eq("source", "business-dna");
 
-      if (error || !data) {
-        setSharedBrands([]);
-        setSharedLoading(false);
-        return;
+      if (!error && data) {
+        const parsed = data.map((row) => {
+          try {
+            return { ...JSON.parse(row.content || "{}"), _rowId: row.id, _ownerId: row.user_id } as BrandEntry & { _ownerId: string };
+          } catch { return null; }
+        }).filter(Boolean) as (BrandEntry & { _ownerId: string })[];
+        setWsBusinesses(parsed);
       }
-
-      const parsed: SharedBrand[] = data.map((row) => {
-        try {
-          const brand = JSON.parse(row.content || "{}") as BrandEntry;
-          const member = members.find(m => m.userId === row.user_id);
-          return { ...brand, _rowId: row.id, ownerEmail: member?.email || row.user_id } as SharedBrand;
-        } catch {
-          return null;
-        }
-      }).filter(Boolean) as SharedBrand[];
-
-      setSharedBrands(parsed);
-      setSharedLoading(false);
+      setLoadingBiz(false);
     }
-    if (activeTab === "Shared with me") {
-      loadShared();
-    }
-  }, [activeTab, workspaceId, members]);
+    load();
+  }, [activeWorkspaceId, brands]); // re-run when brands change (new business added)
 
   const handleDeleteBusiness = (e: React.MouseEvent, brandId: string) => {
     e.stopPropagation();
-    // Get product IDs connected to this brand
     const brandProductIds = products.filter(p => p.brandId === brandId).map(p => p.id);
-    // Remove audiences connected to those products
     setAudiences(prev => prev.filter(a => !a.productIds?.some(pid => brandProductIds.includes(pid))));
-    // Remove products connected to this brand
     setProducts(prev => prev.filter(p => p.brandId !== brandId));
-    // Remove the brand itself
     setBrands(prev => prev.filter(b => b.id !== brandId));
   };
 
-  const filteredBrands = brands.filter(b =>
+  const handleCreateWorkspace = async () => {
+    if (!newWsName.trim()) return;
+    try {
+      const id = await createWorkspace(newWsName.trim());
+      selectWorkspace(id);
+      setShowCreateWs(false);
+      setNewWsName("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const isOwner = activeWorkspace?.role === "owner";
+  const canEdit = activeWorkspace?.role === "owner" || activeWorkspace?.role === "editor";
+  const currentUserId = members.find(m => m.role === "owner")?.userId;
+
+  // ── Workspace List View ──
+  if (!activeWorkspaceId) {
+    const ownedWs = workspaces.filter(w => w.role === "owner");
+    const sharedWs = workspaces.filter(w => w.role !== "owner");
+
+    return (
+      <div className="flex flex-col h-full items-center">
+        <div className="px-6 pt-6 pb-4 border-b border-border/50 w-full max-w-3xl">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-foreground">Workspaces</h1>
+            <Button size="sm" onClick={() => setShowCreateWs(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" /> New Workspace
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-1 p-6 w-full max-w-3xl space-y-6 overflow-auto">
+          {wsLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              {/* Owned workspaces */}
+              {ownedWs.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">My Workspaces</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {ownedWs.map(ws => (
+                      <WorkspaceCard key={ws.workspaceId} ws={ws} onClick={() => selectWorkspace(ws.workspaceId)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Shared workspaces */}
+              {sharedWs.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Shared with me</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {sharedWs.map(ws => (
+                      <WorkspaceCard key={ws.workspaceId} ws={ws} onClick={() => selectWorkspace(ws.workspaceId)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {workspaces.length === 0 && (
+                <div className="text-center py-16 text-muted-foreground text-sm">
+                  No workspaces yet. Create one to get started.
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <WorkspaceFooter />
+
+        {/* Create Workspace Dialog */}
+        <Dialog open={showCreateWs} onOpenChange={setShowCreateWs}>
+          <DialogContent className="sm:max-w-md bg-background border-border">
+            <DialogHeader>
+              <DialogTitle>Create Workspace</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <Input
+                placeholder="Workspace name"
+                value={newWsName}
+                onChange={e => setNewWsName(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleCreateWorkspace()}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowCreateWs(false)}>Cancel</Button>
+                <Button onClick={handleCreateWorkspace} disabled={!newWsName.trim()}>Create</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // ── Inside Workspace View ──
+  const filteredBrands = wsBusinesses.filter(b =>
     b.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="flex flex-col h-full items-center">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-5 w-full max-w-3xl">
-        <div className="flex items-center justify-between gap-4">
-          {/* Tabs */}
-          <div className="flex items-center gap-1 rounded-lg bg-muted/50 border border-border/40 p-1">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "relative text-sm font-medium px-4 py-1.5 rounded-md transition-colors",
-                  activeTab === tab
-                    ? "bg-background text-foreground shadow-sm border border-border/50"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {tab}
-              </button>
-            ))}
+      <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-4 w-full max-w-3xl">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => selectWorkspace(null)}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-foreground truncate">{activeWorkspace?.workspaceName}</h1>
+            <p className="text-xs text-muted-foreground">
+              {activeWorkspace?.memberCount} {activeWorkspace?.memberCount === 1 ? "member" : "members"}
+              {!isOwner && (
+                <span className={cn("ml-2 font-medium", ROLE_COLORS[activeWorkspace?.role || "viewer"])}>
+                  • {activeWorkspace?.role === "editor" ? "Editor" : "Viewer"}
+                </span>
+              )}
+            </p>
           </div>
+          {isOwner && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowWorkspaceSettings(true)}>
+              <Settings className="h-3.5 w-3.5" /> Manage
+            </Button>
+          )}
+        </div>
 
-          {/* Search */}
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search businesses..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 text-sm bg-muted/30 border-border/40"
-            />
-          </div>
+        {/* Search */}
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search businesses..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 text-sm bg-muted/30 border-border/40"
+          />
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-6 w-full max-w-3xl">
-        {activeTab === "My Businesses" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Add Business Card */}
+      <div className="flex-1 p-6 w-full max-w-3xl overflow-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Add Business Card - only for owners */}
+          {isOwner && (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -150,16 +229,21 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
                 Add Business
               </span>
             </motion.button>
+          )}
 
-            {/* Loading state */}
-            {isLoading && (
-              <div className="flex items-center justify-center min-h-[200px] rounded-xl border border-border/30 bg-card/20">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            )}
+          {/* Loading */}
+          {loadingBiz && (
+            <div className="flex items-center justify-center min-h-[200px] rounded-xl border border-border/30 bg-card/20">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
 
-            {/* Existing Business Cards */}
-            {filteredBrands.map((brand) => (
+          {/* Business cards */}
+          {filteredBrands.map((brand) => {
+            const isOwnBrand = (brand as any)._ownerId === members.find(m => m.role === "owner")?.userId;
+            const ownerMember = members.find(m => m.userId === (brand as any)._ownerId);
+
+            return (
               <motion.button
                 key={brand.id}
                 whileHover={{ scale: 1.02 }}
@@ -167,14 +251,16 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
                 onClick={() => onOpenBusiness?.(brand.id)}
                 className="group relative flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-6 min-h-[200px] transition-colors cursor-pointer text-left"
               >
-                {/* Delete button */}
-                <button
-                  onClick={(e) => handleDeleteBusiness(e, brand.id)}
-                  className="absolute top-3 right-3 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
-                  title="Delete business"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {/* Delete only for owners of the business */}
+                {isOwner && (
+                  <button
+                    onClick={(e) => handleDeleteBusiness(e, brand.id)}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                    title="Delete business"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
                 <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <Building2 className="h-6 w-6 text-primary/70" />
                 </div>
@@ -184,95 +270,19 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
                   <p className="text-xs text-muted-foreground/60">Updated {brand.lastUpdated}</p>
                 </div>
               </motion.button>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {sharedLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : sharedBrands.filter(b => b.name.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Users className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                <p className="text-sm text-muted-foreground">No shared businesses yet</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  Businesses from your workspace members will appear here
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {sharedBrands
-                  .filter(b => b.name.toLowerCase().includes(search.toLowerCase()))
-                  .map((brand) => (
-                  <motion.button
-                    key={brand.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => onOpenBusiness?.(brand.id)}
-                    className="group relative flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-6 min-h-[200px] transition-colors cursor-pointer text-left"
-                  >
-                    <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                      <Building2 className="h-6 w-6 text-primary/70" />
-                    </div>
-                    <div className="mt-auto space-y-1">
-                      <h3 className="text-base font-semibold text-foreground">{brand.name}</h3>
-                      <p className="text-xs text-muted-foreground">{brand.category}</p>
-                      <p className="text-xs text-muted-foreground/60">
-                        Shared by {brand.ownerEmail.includes("@") ? brand.ownerEmail.split("@")[0] : "teammate"}
-                      </p>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+            );
+          })}
 
-      {/* Floating Footer */}
-      <div className="w-full max-w-5xl mx-auto mb-6 mt-auto px-6">
-        <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-12 py-14">
-          <div className="flex gap-14">
-            <div className="flex items-start gap-2 shrink-0">
-              <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-md" />
-              <span className="font-semibold text-lg text-foreground">TimeWarp</span>
+          {!loadingBiz && filteredBrands.length === 0 && !isOwner && (
+            <div className="col-span-2 text-center py-16 text-sm text-muted-foreground">
+              No businesses in this workspace yet.
             </div>
-            <div className="flex flex-wrap gap-14 flex-1">
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Product</h4>
-                <ul className="space-y-1.5">
-                  <li><a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
-                  <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Changelog</a></li>
-                </ul>
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Resources</h4>
-                <ul className="space-y-1.5">
-                  <li><a href="mailto:support@nxtrinity.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Support</a></li>
-                </ul>
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Legal</h4>
-                <ul className="space-y-1.5">
-                  <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
-                  <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
-                </ul>
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Community</h4>
-                <ul className="space-y-1.5">
-                  <li><a href="https://discord.gg" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Discord</a></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mt-10 pt-5 border-t border-border/30">
-            <p className="text-xs text-muted-foreground">© 2026 Nxtrinity AB, All rights reserved</p>
-            <p className="text-xs text-muted-foreground">🇸🇪 Made in Sweden</p>
-          </div>
+          )}
         </div>
       </div>
+
+      {/* Footer */}
+      <WorkspaceFooter />
 
       {/* Options Dialog */}
       <Dialog open={showOptionsDialog} onOpenChange={setShowOptionsDialog}>
@@ -281,12 +291,10 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             <DialogTitle className="text-lg">How would you like to get started?</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-6 p-8 pt-4">
-            {/* Start Business - Coming Soon */}
             <div className="relative rounded-xl border border-border/50 bg-card overflow-hidden opacity-75 cursor-not-allowed">
               <div className="absolute top-3 right-3 z-10">
                 <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted/90 text-muted-foreground border border-border/50">
-                  <Lock className="h-2.5 w-2.5" />
-                  Coming Soon
+                  <Lock className="h-2.5 w-2.5" /> Coming Soon
                 </span>
               </div>
               <div className="relative">
@@ -300,15 +308,10 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
                 <p className="text-xs text-muted-foreground mt-1">Create from scratch with AI</p>
               </div>
             </div>
-
-            {/* Add Business */}
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setShowOptionsDialog(false);
-                onSelectBusiness();
-              }}
+              onClick={() => { setShowOptionsDialog(false); onSelectBusiness(); }}
               className="rounded-xl border border-border/50 hover:border-primary/40 bg-card overflow-hidden transition-colors text-left cursor-pointer"
             >
               <div className="relative">
@@ -325,6 +328,89 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Workspace Settings */}
+      <WorkspaceDialog
+        open={showWorkspaceSettings}
+        onOpenChange={setShowWorkspaceSettings}
+        userEmail={members.find(m => m.role === "owner")?.email || ""}
+      />
+    </div>
+  );
+}
+
+function WorkspaceCard({ ws, onClick }: { ws: WorkspaceInfo; onClick: () => void }) {
+  const RoleIcon = ROLE_ICONS[ws.role] || Eye;
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className="group flex items-center gap-4 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-5 transition-colors cursor-pointer text-left w-full"
+    >
+      <div className="h-11 w-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+        <Building2 className="h-5 w-5 text-primary/70" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="text-sm font-semibold text-foreground truncate">{ws.workspaceName}</h3>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className={cn("flex items-center gap-1 text-xs font-medium", ROLE_COLORS[ws.role])}>
+            <RoleIcon className="h-3 w-3" />
+            {ws.role.charAt(0).toUpperCase() + ws.role.slice(1)}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            · {ws.memberCount} {ws.memberCount === 1 ? "member" : "members"}
+          </span>
+        </div>
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+    </motion.button>
+  );
+}
+
+function WorkspaceFooter() {
+  return (
+    <div className="w-full max-w-5xl mx-auto mb-6 mt-auto px-6">
+      <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-12 py-14">
+        <div className="flex gap-14">
+          <div className="flex items-start gap-2 shrink-0">
+            <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-md" />
+            <span className="font-semibold text-lg text-foreground">TimeWarp</span>
+          </div>
+          <div className="flex flex-wrap gap-14 flex-1">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Product</h4>
+              <ul className="space-y-1.5">
+                <li><a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
+                <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Changelog</a></li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Resources</h4>
+              <ul className="space-y-1.5">
+                <li><a href="mailto:support@nxtrinity.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Support</a></li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Legal</h4>
+              <ul className="space-y-1.5">
+                <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
+                <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Community</h4>
+              <ul className="space-y-1.5">
+                <li><a href="https://discord.gg" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Discord</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-10 pt-5 border-t border-border/30">
+          <p className="text-xs text-muted-foreground">© 2026 Nxtrinity AB, All rights reserved</p>
+          <p className="text-xs text-muted-foreground">🇸🇪 Made in Sweden</p>
+        </div>
+      </div>
     </div>
   );
 }

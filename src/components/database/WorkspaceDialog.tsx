@@ -36,11 +36,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-type Role = "owner" | "admin" | "editor" | "viewer";
+type Role = "owner" | "editor" | "viewer";
 
 const ROLE_CONFIG: Record<Role, { label: string; icon: typeof Crown; color: string }> = {
   owner: { label: "Owner", icon: Crown, color: "text-amber-500" },
-  admin: { label: "Admin", icon: Shield, color: "text-primary" }, // legacy, hidden from UI
   editor: { label: "Editor", icon: Pencil, color: "text-emerald-500" },
   viewer: { label: "Viewer", icon: Eye, color: "text-muted-foreground" },
 };
