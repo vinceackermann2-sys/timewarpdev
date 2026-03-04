@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_PRODUCT, ProductData } from "@/components/database/ProductDetailView";
 import { DEFAULT_AUDIENCE, AudienceData } from "@/components/database/AudienceDetailView";
@@ -57,6 +57,8 @@ interface BusinessDNAContextType {
   audiences: AudienceEntry[];
   setAudiences: React.Dispatch<React.SetStateAction<AudienceEntry[]>>;
   isLoading: boolean;
+  activeWorkspaceId: string | null;
+  setActiveWorkspaceId: (id: string | null) => void;
 }
 
 const BusinessDNAContext = createContext<BusinessDNAContextType | null>(null);
@@ -67,17 +69,23 @@ export function useBusinessDNA() {
   return ctx;
 }
 
-async function loadEntities<T>(dataType: string): Promise<T[]> {
+async function loadEntities<T>(dataType: string, workspaceId?: string | null): Promise<T[]> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) return [];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("user_business_data")
     .select("*")
-    .eq("user_id", session.user.id)
     .eq("data_type", dataType)
     .eq("source", "business-dna");
 
+  if (workspaceId) {
+    query = query.eq("workspace_id", workspaceId);
+  } else {
+    query = query.eq("user_id", session.user.id);
+  }
+
+  const { data, error } = await query;
   if (error || !data) return [];
 
   return data.map((row) => {
@@ -89,11 +97,11 @@ async function loadEntities<T>(dataType: string): Promise<T[]> {
   }).filter(Boolean) as T[];
 }
 
-async function saveEntity(dataType: string, entity: any, existingRowId?: string) {
+async function saveEntity(dataType: string, entity: any, existingRowId?: string, workspaceId?: string | null) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) return;
 
-  const payload = {
+  const payload: any = {
     user_id: session.user.id,
     data_type: dataType,
     source: "business-dna",
@@ -101,6 +109,10 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string)
     content: JSON.stringify(entity),
     is_analyzed: true,
   };
+
+  if (workspaceId) {
+    payload.workspace_id = workspaceId;
+  }
 
   if (existingRowId) {
     await supabase.from("user_business_data").update(payload).eq("id", existingRowId);
@@ -122,6 +134,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const [prevBrands, setPrevBrands] = useState<BrandEntry[]>([]);
   const [prevProducts, setPrevProducts] = useState<ProductEntry[]>([]);
   const [prevAudiences, setPrevAudiences] = useState<AudienceEntry[]>([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
+    localStorage.getItem("preferred_workspace_id")
+  );
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -131,14 +146,14 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Load from DB on mount
+  // Load from DB on mount or when workspace changes
   useEffect(() => {
     async function load() {
       setIsLoading(true);
       const [b, p, a] = await Promise.all([
-        loadEntities<BrandEntry>("brand"),
-        loadEntities<ProductEntry>("product"),
-        loadEntities<AudienceEntry>("audience"),
+        loadEntities<BrandEntry>("brand", activeWorkspaceId),
+        loadEntities<ProductEntry>("product", activeWorkspaceId),
+        loadEntities<AudienceEntry>("audience", activeWorkspaceId),
       ]);
       setBrandsState(b);
       setProductsState(p);
@@ -149,7 +164,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
     load();
-  }, []);
+  }, [activeWorkspaceId]);
 
   // Sync brands to DB
   useEffect(() => {
@@ -161,9 +176,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       return prev && JSON.stringify(prev) !== JSON.stringify(b);
     });
 
-    added.forEach(b => saveEntity("brand", b));
+    added.forEach(b => saveEntity("brand", b, undefined, activeWorkspaceId));
     removed.forEach(b => { if ((b as any)._rowId) deleteEntity((b as any)._rowId); });
-    updated.forEach(b => { if ((b as any)._rowId) saveEntity("brand", b, (b as any)._rowId); });
+    updated.forEach(b => { if ((b as any)._rowId) saveEntity("brand", b, (b as any)._rowId, activeWorkspaceId); });
 
     setPrevBrands(brands);
   }, [brands]);
@@ -178,9 +193,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       return prev && JSON.stringify(prev) !== JSON.stringify(p);
     });
 
-    added.forEach(p => saveEntity("product", p));
+    added.forEach(p => saveEntity("product", p, undefined, activeWorkspaceId));
     removed.forEach(p => { if ((p as any)._rowId) deleteEntity((p as any)._rowId); });
-    updated.forEach(p => { if ((p as any)._rowId) saveEntity("product", p, (p as any)._rowId); });
+    updated.forEach(p => { if ((p as any)._rowId) saveEntity("product", p, (p as any)._rowId, activeWorkspaceId); });
 
     setPrevProducts(products);
   }, [products]);
@@ -195,9 +210,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       return prev && JSON.stringify(prev) !== JSON.stringify(a);
     });
 
-    added.forEach(a => saveEntity("audience", a));
+    added.forEach(a => saveEntity("audience", a, undefined, activeWorkspaceId));
     removed.forEach(a => { if ((a as any)._rowId) deleteEntity((a as any)._rowId); });
-    updated.forEach(a => { if ((a as any)._rowId) saveEntity("audience", a, (a as any)._rowId); });
+    updated.forEach(a => { if ((a as any)._rowId) saveEntity("audience", a, (a as any)._rowId, activeWorkspaceId); });
 
     setPrevAudiences(audiences);
   }, [audiences]);
@@ -209,6 +224,8 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       products, setProducts: setProductsState,
       audiences, setAudiences: setAudiencesState,
       isLoading,
+      activeWorkspaceId,
+      setActiveWorkspaceId,
     }}>
       {children}
     </BusinessDNAContext.Provider>

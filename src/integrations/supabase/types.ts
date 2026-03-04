@@ -54,6 +54,7 @@ export type Database = {
           source: string
           title: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           analyzed_content?: string | null
@@ -67,6 +68,7 @@ export type Database = {
           source?: string
           title: string
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           analyzed_content?: string | null
@@ -80,8 +82,17 @@ export type Database = {
           source?: string
           title?: string
           user_id?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_business_data_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_connections: {
         Row: {
@@ -265,6 +276,16 @@ export type Database = {
       can_edit_user_data: {
         Args: { _data_owner: string; _requesting_user: string }
         Returns: boolean
+      }
+      get_user_workspaces: {
+        Args: { _user_id: string }
+        Returns: {
+          created_at: string
+          member_count: number
+          role: Database["public"]["Enums"]["workspace_role"]
+          workspace_id: string
+          workspace_name: string
+        }[]
       }
       get_workspace_members: {
         Args: { _workspace_id: string }
