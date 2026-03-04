@@ -204,8 +204,20 @@ async function handleWebhook(req: Request): Promise<Response> {
 
   // The email action type is in payload.data.action_type (e.g., "signup", "recovery")
   // payload.type is the hook event type ("auth")
-  const emailType = payload.data.action_type
-  console.log('Received auth event', { emailType, email: payload.data.email, run_id })
+  const rawEmailType = payload.data.action_type
+  const isWorkspaceInviteMagicLink =
+    rawEmailType === 'magiclink' &&
+    typeof payload.data.url === 'string' &&
+    payload.data.url.includes('/invite?token=')
+
+  // Existing users receive magic links for workspace invites; remap to invite template/subject
+  const emailType = isWorkspaceInviteMagicLink ? 'invite' : rawEmailType
+  console.log('Received auth event', {
+    rawEmailType,
+    emailType,
+    email: payload.data.email,
+    run_id,
+  })
 
   const EmailTemplate = EMAIL_TEMPLATES[emailType]
   if (!EmailTemplate) {

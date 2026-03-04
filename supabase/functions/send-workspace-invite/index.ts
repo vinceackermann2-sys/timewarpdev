@@ -70,6 +70,35 @@ Deno.serve(async (req) => {
       (u) => (u.email || "").toLowerCase() === email
     );
 
+    const sendWorkspaceInviteEmail = async (inviteUrl: string, isExistingUser: boolean) => {
+      if (isExistingUser) {
+        const { error: otpError } = await supabaseAuthClient.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: inviteUrl,
+            shouldCreateUser: false,
+          },
+        });
+
+        if (otpError) {
+          console.error("Existing user workspace invite email error (non-blocking):", otpError.message);
+        } else {
+          console.log(`Workspace invite email sent to existing user ${email}`);
+        }
+        return;
+      }
+
+      const { error: inviteEmailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: inviteUrl,
+      });
+
+      if (inviteEmailError) {
+        console.error("Invite email error (non-blocking):", inviteEmailError.message);
+      } else {
+        console.log(`Invite email sent to new user ${email}`);
+      }
+    };
+
     // If there is already a pending invitation, return it as success (idempotent)
     const { data: existing } = await supabaseAdmin
       .from("workspace_invitations")
@@ -83,13 +112,7 @@ Deno.serve(async (req) => {
       const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
       const inviteUrl = `${origin}/invite?token=${existing.token}`;
 
-      // Re-send invite email for pending invite
-      const { error: resendError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-        redirectTo: inviteUrl,
-      });
-      if (resendError) {
-        console.error("Invite resend error (non-blocking):", resendError.message);
-      }
+      await sendWorkspaceInviteEmail(inviteUrl, Boolean(targetUser));
 
       return new Response(
         JSON.stringify({
@@ -139,18 +162,7 @@ Deno.serve(async (req) => {
     const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
     const inviteUrl = `${origin}/invite?token=${invitation.token}`;
 
-    // Send invite email via inviteUserByEmail for ALL users (triggers the "invite" template in auth-email-hook)
-    const { error: inviteEmailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: inviteUrl,
-    });
-
-    if (inviteEmailError) {
-      console.error("Invite email error (non-blocking):", inviteEmailError.message);
-      // For already-confirmed users, inviteUserByEmail may fail.
-      // The invite record is still created — the user can use the copy-link fallback in the UI.
-    } else {
-      console.log(`Invite email sent to ${email} (existing: ${Boolean(targetUser)})`);
-    }
+    await sendWorkspaceInviteEmail(inviteUrl, Boolean(targetUser));
 
     return new Response(
       JSON.stringify({
