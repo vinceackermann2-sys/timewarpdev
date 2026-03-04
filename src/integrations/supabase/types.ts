@@ -258,6 +258,14 @@ export type Database = {
     }
     Functions: {
       accept_workspace_invitation: { Args: { _token: string }; Returns: Json }
+      can_access_user_data: {
+        Args: { _data_owner: string; _requesting_user: string }
+        Returns: boolean
+      }
+      can_edit_user_data: {
+        Args: { _data_owner: string; _requesting_user: string }
+        Returns: boolean
+      }
       has_workspace_role: {
         Args: {
           _role: Database["public"]["Enums"]["workspace_role"]

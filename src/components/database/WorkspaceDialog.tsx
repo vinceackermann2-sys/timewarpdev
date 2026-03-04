@@ -40,7 +40,7 @@ type Role = "owner" | "admin" | "editor" | "viewer";
 
 const ROLE_CONFIG: Record<Role, { label: string; icon: typeof Crown; color: string }> = {
   owner: { label: "Owner", icon: Crown, color: "text-amber-500" },
-  admin: { label: "Admin", icon: Shield, color: "text-primary" },
+  admin: { label: "Admin", icon: Shield, color: "text-primary" }, // legacy, hidden from UI
   editor: { label: "Editor", icon: Pencil, color: "text-emerald-500" },
   viewer: { label: "Viewer", icon: Eye, color: "text-muted-foreground" },
 };
@@ -60,7 +60,7 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
   const [copiedLink, setCopiedLink] = useState(false);
 
   const currentUserMember = members.find(m => m.email === userEmail || m.email === "you");
-  const isAdmin = currentUserMember?.role === "owner" || currentUserMember?.role === "admin";
+  const isAdmin = currentUserMember?.role === "owner";
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
@@ -155,7 +155,6 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="editor">Editor</SelectItem>
                       <SelectItem value="viewer">Viewer</SelectItem>
                     </SelectContent>
@@ -222,7 +221,6 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="admin">Admin</SelectItem>
                               <SelectItem value="editor">Editor</SelectItem>
                               <SelectItem value="viewer">Viewer</SelectItem>
                             </SelectContent>
@@ -300,7 +298,9 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground font-medium">Role Permissions</Label>
             <div className="grid grid-cols-2 gap-2">
-              {Object.entries(ROLE_CONFIG).map(([key, config]) => {
+              {Object.entries(ROLE_CONFIG)
+                .filter(([key]) => key !== "admin")
+                .map(([key, config]) => {
                 const Icon = config.icon;
                 return (
                   <div key={key} className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -308,8 +308,7 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
                     <span>
                       <span className="font-medium text-foreground">{config.label}</span>
                       {key === "owner" && " — Full control"}
-                      {key === "admin" && " — Manage & edit"}
-                      {key === "editor" && " — Edit content"}
+                      {key === "editor" && " — Edit Business DNA"}
                       {key === "viewer" && " — View only"}
                     </span>
                   </div>
