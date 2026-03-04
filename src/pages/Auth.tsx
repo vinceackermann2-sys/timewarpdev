@@ -174,7 +174,7 @@ const Auth = () => {
       </header>
 
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-6xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-[1fr_1.4fr] bg-card">
+        <div className="w-full max-w-5xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 bg-card">
           {/* Left – Form */}
           <div className="p-8 sm:p-10 flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-8">
