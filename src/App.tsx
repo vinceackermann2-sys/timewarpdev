@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import TimewarpOG from "./pages/TimewarpOG";
 import Auth from "./pages/Auth";
-
 import Database from "./pages/Database";
 import AiCeo from "./pages/AiCeo";
 import NotFound from "./pages/NotFound";
