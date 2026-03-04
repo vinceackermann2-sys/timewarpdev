@@ -138,6 +138,17 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     localStorage.getItem("preferred_workspace_id")
   );
 
+  // Keep in sync with localStorage changes from useWorkspace hook
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const stored = localStorage.getItem("preferred_workspace_id");
+      if (stored !== activeWorkspaceId) {
+        setActiveWorkspaceId(stored);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [activeWorkspaceId]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
