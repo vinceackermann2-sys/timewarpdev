@@ -35,7 +35,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, role, workspaceId } = await req.json();
+    const { email: rawEmail, role, workspaceId } = await req.json();
+    const email = String(rawEmail || "").trim().toLowerCase();
 
     if (!email || !role || !workspaceId) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -75,7 +76,9 @@ Deno.serve(async (req) => {
 
     // Check if already a member
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const targetUser = existingUsers?.users?.find(u => u.email === email);
+    const targetUser = existingUsers?.users?.find(
+      (u) => (u.email || "").toLowerCase() === email
+    );
     if (targetUser) {
       const { data: isMember } = await supabaseAdmin.rpc("is_workspace_member", {
         _user_id: targetUser.id,
@@ -127,6 +130,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        existingUser: Boolean(targetUser),
         invitation: { id: invitation.id, email, role, token: invitation.token },
         inviteUrl,
       }),
