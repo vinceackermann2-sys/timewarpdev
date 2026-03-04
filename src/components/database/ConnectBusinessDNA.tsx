@@ -7,7 +7,6 @@ import { BgGradient } from "@/components/ui/bg-gradient";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
-import logoWordpress from "@/assets/logo-wordpress.png";
 
 interface Integration {
   id: string;
@@ -19,7 +18,6 @@ interface Integration {
 
 const integrations: Integration[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" },
-  { id: "wordpress", name: "WordPress", description: "Posts, Pages, Media", logo: logoWordpress, authType: "credentials" },
 ];
 
 interface ConnectedProvider {
@@ -36,10 +34,6 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
-  const [showWpForm, setShowWpForm] = useState(false);
-  const [wpSiteUrl, setWpSiteUrl] = useState("");
-  const [wpUsername, setWpUsername] = useState("");
-  const [wpAppPassword, setWpAppPassword] = useState("");
 
   const checkConnections = useCallback(async () => {
     try {
@@ -87,14 +81,6 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
   }, [checkConnections]);
 
   const handleConnect = async (providerId: string) => {
-    const integration = integrations.find((i) => i.id === providerId);
-    if (!integration) return;
-
-    if (integration.authType === "credentials") {
-      setShowWpForm(true);
-      return;
-    }
-
     setConnectingProvider(providerId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -126,54 +112,6 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
     setConnectingProvider(null);
   };
 
-  const handleWordPressConnect = async () => {
-    if (!wpSiteUrl || !wpUsername || !wpAppPassword) {
-      toast.error("Please fill in all WordPress fields");
-      return;
-    }
-
-    setConnectingProvider("wordpress");
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast.error("Please log in first"); setConnectingProvider(null); return; }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            provider: "wordpress",
-            action: "save-credentials",
-            siteUrl: wpSiteUrl,
-            username: wpUsername,
-            appPassword: wpAppPassword,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("WordPress connected successfully!");
-        setShowWpForm(false);
-        setWpSiteUrl("");
-        setWpUsername("");
-        setWpAppPassword("");
-        checkConnections();
-        syncProviderData("wordpress");
-      } else {
-        toast.error(data.error || "Failed to connect WordPress");
-      }
-    } catch (err) {
-      console.error("WordPress connect error:", err);
-      toast.error("Failed to connect WordPress");
-    }
-    setConnectingProvider(null);
-  };
 
   const syncProviderData = async (provider: string) => {
     setSyncingProvider(provider);
@@ -313,34 +251,6 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
               Request an integration
             </a>
           </div>
-          {showWpForm && !isProviderConnected("wordpress") && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="border border-border rounded-xl p-4 mb-4 space-y-3"
-            >
-              <p className="text-sm font-medium flex items-center gap-2">
-                <Globe className="h-4 w-4" /> WordPress Connection
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Use an{" "}
-                <a href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/" target="_blank" rel="noopener noreferrer" className="underline">
-                  Application Password
-                </a>{" "}
-                from your WordPress admin → Users → Profile.
-              </p>
-              <Input placeholder="https://yoursite.com" value={wpSiteUrl} onChange={(e) => setWpSiteUrl(e.target.value)} className="h-9 text-sm" />
-              <Input placeholder="WordPress username" value={wpUsername} onChange={(e) => setWpUsername(e.target.value)} className="h-9 text-sm" />
-              <Input placeholder="Application password" type="password" value={wpAppPassword} onChange={(e) => setWpAppPassword(e.target.value)} className="h-9 text-sm" />
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setShowWpForm(false)}>Cancel</Button>
-                <Button size="sm" onClick={handleWordPressConnect} disabled={connectingProvider === "wordpress"}>
-                  {connectingProvider === "wordpress" ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : null}
-                  Connect WordPress
-                </Button>
-              </div>
-            </motion.div>
-          )}
 
           {/* Actions */}
           <div className="flex items-center justify-center gap-3 mt-4">
