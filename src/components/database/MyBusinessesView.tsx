@@ -187,9 +187,17 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
                   <Trash2 className="h-4 w-4" />
                 </button>
               )}
-              <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-primary/70" />
-              </div>
+              {brand.logoUrls && brand.logoUrls.length > 0 ? (
+                <img
+                  src={brand.logoUrls[brand.selectedLogo ?? 0]}
+                  alt={brand.name}
+                  className="h-12 w-12 rounded-xl object-contain border border-border/30 bg-white"
+                />
+              ) : (
+                <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Building2 className="h-6 w-6 text-primary/70" />
+                </div>
+              )}
               <div className="mt-auto space-y-1">
                 <h3 className="text-base font-semibold text-foreground">{brand.name}</h3>
                 <p className="text-xs text-muted-foreground">{brand.category}</p>
