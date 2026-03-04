@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-type WorkspaceRole = "owner" | "editor" | "viewer";
+type WorkspaceRole = "owner" | "editor";
 
 export interface WorkspaceInfo {
   workspaceId: string;
@@ -36,8 +36,8 @@ export function useWorkspace() {
   const [isLoading, setIsLoading] = useState(true);
 
   const normalizeWorkspaceRole = (role: string): WorkspaceRole => {
-    if (role === "owner" || role === "editor" || role === "viewer") return role;
-    return "viewer";
+    if (role === "owner" || role === "editor") return role;
+    return "editor";
   };
 
   const loadWorkspaces = useCallback(async () => {

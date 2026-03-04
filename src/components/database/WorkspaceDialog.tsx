@@ -17,7 +17,6 @@ import {
   Mail,
   Crown,
   Pencil,
-  Eye,
   Trash2,
   Loader2,
   Clock,
@@ -36,7 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useWorkspace, WorkspaceMember, WorkspaceInvitation } from "@/hooks/useWorkspace";
 
-type Role = "owner" | "editor" | "viewer";
+type Role = "owner" | "editor";
 
 const RANDOM_NAMES = [
   "Cosmic Panda", "Stellar Fox", "Neon Tiger", "Pixel Wolf", "Turbo Owl",
@@ -60,7 +59,6 @@ function getDisplayName(email: string): string {
 const ROLE_CONFIG: Record<Role, { label: string; icon: typeof Crown; color: string }> = {
   owner: { label: "Owner", icon: Crown, color: "text-amber-500" },
   editor: { label: "Editor", icon: Pencil, color: "text-emerald-500" },
-  viewer: { label: "Viewer", icon: Eye, color: "text-muted-foreground" },
 };
 
 interface WorkspaceDialogProps {
@@ -280,7 +278,6 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="editor">Editor</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button onClick={handleInvite} disabled={isSending}>
@@ -343,7 +340,6 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="editor">Editor</SelectItem>
-                                <SelectItem value="viewer">Viewer</SelectItem>
                               </SelectContent>
                             </Select>
                           ) : (
@@ -414,7 +410,6 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
                         <span className="font-medium text-foreground">{config.label}</span>
                         {key === "owner" && " — Full control"}
                         {key === "editor" && " — Edit Business DNA"}
-                        {key === "viewer" && " — View only"}
                       </span>
                     </div>
                   );
