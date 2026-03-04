@@ -97,8 +97,20 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
     }
     setIsSending(true);
     try {
-      await sendInvite(inviteEmail, inviteRole, selectedWsId);
-      toast({ title: "Invitation sent", description: `Invited ${inviteEmail} as ${ROLE_CONFIG[inviteRole].label}.` });
+      const result = await sendInvite(inviteEmail, inviteRole, selectedWsId);
+      const existingUser = Boolean(result?.existingUser);
+
+      if (existingUser && result?.inviteUrl && navigator?.clipboard) {
+        await navigator.clipboard.writeText(result.inviteUrl);
+      }
+
+      toast({
+        title: "Invitation sent",
+        description: existingUser
+          ? `Invited ${inviteEmail} as ${ROLE_CONFIG[inviteRole].label}. Invite link copied to clipboard for sharing.`
+          : `Invited ${inviteEmail} as ${ROLE_CONFIG[inviteRole].label}.`,
+      });
+
       setInviteEmail("");
       // Refresh members
       const data = await loadMembersForWorkspace(selectedWsId);
