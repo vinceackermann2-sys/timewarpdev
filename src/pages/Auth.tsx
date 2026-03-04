@@ -174,7 +174,7 @@ const Auth = () => {
       </header>
 
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 bg-card">
+        <div className="w-full max-w-6xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-[1fr_1.4fr] bg-card">
           {/* Left – Form */}
           <div className="p-8 sm:p-10 flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-8">
@@ -248,7 +248,7 @@ const Auth = () => {
                     </div>
                   )}
 
-                  <Button type="submit" variant="outline" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isSignUp ? "Create Account" : "Log In"}
                   </Button>
