@@ -31,13 +31,35 @@ export function useWorkspace() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) { setIsLoading(false); return; }
 
-    // Get user's workspace (they should have one from the trigger)
-    const { data: memberRow } = await supabase
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("user_id", session.user.id)
-      .limit(1)
-      .maybeSingle();
+    // Check if there's a preferred workspace (set after accepting an invite)
+    const preferredWsId = localStorage.getItem("preferred_workspace_id");
+
+    let memberRow: { workspace_id: string } | null = null;
+
+    if (preferredWsId) {
+      // Try to load the preferred workspace first
+      const { data } = await supabase
+        .from("workspace_members")
+        .select("workspace_id")
+        .eq("user_id", session.user.id)
+        .eq("workspace_id", preferredWsId)
+        .maybeSingle();
+      memberRow = data;
+    }
+
+    if (!memberRow) {
+      // Fallback: prefer workspaces where user is NOT owner (i.e., shared workspaces)
+      const { data: allMemberships } = await supabase
+        .from("workspace_members")
+        .select("workspace_id, role")
+        .eq("user_id", session.user.id);
+
+      if (allMemberships && allMemberships.length > 0) {
+        // Prefer non-owner workspace (shared), fallback to any
+        const shared = allMemberships.find(m => m.role !== "owner");
+        memberRow = shared || allMemberships[0];
+      }
+    }
 
     if (!memberRow) {
       // Create workspace if trigger didn't fire (existing users)
@@ -77,19 +99,16 @@ export function useWorkspace() {
 
     setWorkspaceId(memberRow.workspace_id);
 
-    // Load members
-    const { data: membersData } = await supabase
-      .from("workspace_members")
-      .select("id, user_id, role, joined_at")
-      .eq("workspace_id", memberRow.workspace_id);
+    // Load members with emails using security definer function
+    const { data: membersData } = await supabase.rpc("get_workspace_members", {
+      _workspace_id: memberRow.workspace_id,
+    });
 
     if (membersData) {
-      // Get emails for members via auth - we use current user email and show others as user IDs
-      const { data: { session: sess } } = await supabase.auth.getSession();
-      const mapped: WorkspaceMember[] = membersData.map((m: any) => ({
+      const mapped: WorkspaceMember[] = (membersData as any[]).map((m) => ({
         id: m.id,
         userId: m.user_id,
-        email: m.user_id === sess?.user?.id ? (sess.user.email || "you") : m.user_id,
+        email: m.email || "unknown",
         role: m.role,
         joinedAt: m.joined_at,
       }));
