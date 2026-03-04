@@ -83,18 +83,12 @@ Deno.serve(async (req) => {
       const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
       const inviteUrl = `${origin}/invite?token=${existing.token}`;
 
-      // Re-send login email for existing users when invite is already pending
-      if (targetUser) {
-        const { error: otpError } = await supabaseAuthClient.auth.signInWithOtp({
-          email,
-          options: {
-            emailRedirectTo: inviteUrl,
-            shouldCreateUser: false,
-          },
-        });
-        if (otpError) {
-          console.error("OTP resend for existing pending invite failed:", otpError.message);
-        }
+      // Re-send invite email for pending invite
+      const { error: resendError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: inviteUrl,
+      });
+      if (resendError) {
+        console.error("Invite resend error (non-blocking):", resendError.message);
       }
 
       return new Response(
@@ -145,32 +139,17 @@ Deno.serve(async (req) => {
     const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
     const inviteUrl = `${origin}/invite?token=${invitation.token}`;
 
-    // Send invite email for both new and existing users
-    if (!targetUser) {
-      // New user: inviteUserByEmail creates user and triggers invite email template
-      const { error: emailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-        redirectTo: inviteUrl,
-      });
-      if (emailError) {
-        console.error("Email invite error (non-blocking):", emailError.message);
-      } else {
-        console.log(`Auth invite email sent to new user ${email}`);
-      }
-    } else {
-      // Existing user: send login magic link email that redirects to invite acceptance
-      const { error: otpError } = await supabaseAuthClient.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: inviteUrl,
-          shouldCreateUser: false,
-        },
-      });
+    // Send invite email via inviteUserByEmail for ALL users (triggers the "invite" template in auth-email-hook)
+    const { error: inviteEmailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: inviteUrl,
+    });
 
-      if (otpError) {
-        console.error("Existing user invite email error (non-blocking):", otpError.message);
-      } else {
-        console.log(`Magic link invite email sent to existing user ${email}`);
-      }
+    if (inviteEmailError) {
+      console.error("Invite email error (non-blocking):", inviteEmailError.message);
+      // For already-confirmed users, inviteUserByEmail may fail.
+      // The invite record is still created — the user can use the copy-link fallback in the UI.
+    } else {
+      console.log(`Invite email sent to ${email} (existing: ${Boolean(targetUser)})`);
     }
 
     return new Response(
