@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 type BillingPeriod = "monthly" | "quarterly" | "annually";
 
@@ -42,7 +43,23 @@ function FeatureValue({ value }: { value: string | boolean }) {
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
   const prices = PRICES[billing];
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+  }, []);
+
+  const handleGetStarted = (plan: string) => {
+    if (isLoggedIn) {
+      navigate("/app");
+    } else {
+      navigate("/auth?mode=signup");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,8 +125,8 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full" asChild>
-              <Link to="/auth?mode=signup">Pre-order</Link>
+            <Button variant="outline" className="w-full" onClick={() => handleGetStarted("co_founder")}>
+              Pre-order
             </Button>
           </div>
 
@@ -139,8 +156,8 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white" asChild>
-              <Link to="/auth?mode=signup">Get Started</Link>
+            <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white" onClick={() => handleGetStarted("aristotle")}>
+              Get Started
             </Button>
           </div>
 
@@ -165,8 +182,8 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full" asChild>
-              <Link to="/auth?mode=signup">Get Started</Link>
+            <Button variant="outline" className="w-full" onClick={() => handleGetStarted("timewarp_og")}>
+              Get Started
             </Button>
           </div>
         </div>
