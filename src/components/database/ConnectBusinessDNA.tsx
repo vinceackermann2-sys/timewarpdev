@@ -1,14 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Briefcase, Loader2, Plug, CheckCircle2, RefreshCw, Globe } from "lucide-react";
+import { ArrowRight, Briefcase, Loader2, Plug, CheckCircle2, RefreshCw, Globe, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BgGradient } from "@/components/ui/bg-gradient";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
-import logoGoogle from "@/assets/logo-google.png";
-import logoSlack from "@/assets/logo-slack.png";
 import logoWordpress from "@/assets/logo-wordpress.png";
 
 interface Integration {
@@ -21,8 +19,6 @@ interface Integration {
 
 const integrations: Integration[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" },
-  { id: "google", name: "Google", description: "Gmail, Drive, Calendar, Sheets", logo: logoGoogle, authType: "oauth" },
-  { id: "slack", name: "Slack", description: "Messages, Channels, Files", logo: logoSlack, authType: "oauth" },
   { id: "wordpress", name: "WordPress", description: "Posts, Pages, Media", logo: logoWordpress, authType: "credentials" },
 ];
 
@@ -260,8 +256,7 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
             </p>
           </div>
 
-          {/* Integration Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4" style={{ maxWidth: "28rem", margin: "0 auto 1rem" }}>
             {integrations.map((integration, index) => {
               const connected = isProviderConnected(integration.id);
               const email = getProviderEmail(integration.id);
@@ -308,7 +303,16 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
             })}
           </div>
 
-          {/* WordPress Credentials Form */}
+          {/* Request Integration */}
+          <div className="text-center mb-4">
+            <a
+              href="mailto:support@timewarp.ai?subject=Integration%20Request&body=Hi%2C%20I%20would%20like%20to%20request%20an%20integration%20with%3A%20"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Request an integration
+            </a>
+          </div>
           {showWpForm && !isProviderConnected("wordpress") && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
