@@ -108,20 +108,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send invite email via Supabase Auth magic link
-    // The user will sign up/login and be redirected to accept the invite
     const origin = req.headers.get("origin") || "https://digital-guide-genie.lovable.app";
     const inviteUrl = `${origin}/invite?token=${invitation.token}`;
 
-    // Use Supabase Auth to send an invite email
-    const { error: emailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: inviteUrl,
-    });
-
-    // If user already exists, the invite email won't send but that's ok
-    // They can still use the invite link
-    if (emailError && !emailError.message.includes("already")) {
-      console.error("Email invite error (non-blocking):", emailError.message);
+    // Only use inviteUserByEmail for NEW users (not already registered)
+    if (!targetUser) {
+      const { error: emailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: inviteUrl,
+      });
+      if (emailError) {
+        console.error("Email invite error (non-blocking):", emailError.message);
+      }
+    } else {
+      // User already exists — they can use the invite link directly
+      console.log(`User ${email} already exists, skipping auth invite. Invite URL: ${inviteUrl}`);
     }
 
     return new Response(
