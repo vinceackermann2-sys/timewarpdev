@@ -312,21 +312,23 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
                   {wsMemberData.members.map((member) => {
                     const roleConfig = ROLE_CONFIG[member.role];
                     const RoleIcon = roleConfig.icon;
-                    const isCurrentUser = member.email === userEmail;
+                    // Match current user by email or by owner role if email is missing
+                    const isCurrentUser = member.email === userEmail || (member.email === "unknown" && member.role === "owner");
+                    const displayEmail = isCurrentUser ? userEmail : (member.email !== "unknown" ? member.email : null);
+                    const displayName = isCurrentUser ? "You" : getDisplayName(member.email);
+                    const avatarLetter = (displayEmail || displayName).charAt(0).toUpperCase();
 
                     return (
                       <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                             <span className="text-sm font-semibold text-primary">
-                              {member.email.charAt(0).toUpperCase()}
+                              {avatarLetter}
                             </span>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {isCurrentUser ? "You" : getDisplayName(member.email)}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">{member.email !== "unknown" ? member.email : "No email set"}</p>
+                            <p className="text-sm font-medium truncate">{displayName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{displayEmail || "No email available"}</p>
                           </div>
                         </div>
 
