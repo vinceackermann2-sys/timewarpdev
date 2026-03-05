@@ -124,18 +124,25 @@ export function DatabaseView() {
           return;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+        const session = await Promise.race([
+          supabase.auth.getSession().then(({ data: { session } }) => session),
+          timeout,
+        ]);
         if (!session?.user) {
           setIsCheckingConnection(false);
           return;
         }
 
-        const { data, error } = await (supabase as any)
-          .from('user_connections')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .eq('status', 'connected')
-          .limit(1);
+        const { data, error } = await Promise.race([
+          (supabase as any)
+            .from('user_connections')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('status', 'connected')
+            .limit(1),
+          new Promise<{ data: null; error: true }>((resolve) => setTimeout(() => resolve({ data: null, error: true }), 5000)),
+        ]);
 
         // Don't auto-skip — let user explicitly dismiss
       } catch (err) {
