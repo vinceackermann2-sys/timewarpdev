@@ -64,11 +64,7 @@ const Database = () => {
       }
     );
 
-    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
-    Promise.race([
-      supabase.auth.getSession().then(({ data: { session } }) => session),
-      timeout,
-    ]).then((session) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setIsLoading(false);
     });
