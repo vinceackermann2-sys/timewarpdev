@@ -130,22 +130,12 @@ export function DatabaseView() {
           return;
         }
 
-        const queryPromise = (supabase as any)
+        const { data, error } = await (supabase as any)
           .from('user_connections')
           .select('id')
           .eq('user_id', session.user.id)
           .eq('status', 'connected')
           .limit(1);
-
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Connection check timed out')), 6000)
-        );
-
-        try {
-          await Promise.race([queryPromise, timeoutPromise]);
-        } catch {
-          // Timeout or query error — continue to onboarding
-        }
 
         // Don't auto-skip — let user explicitly dismiss
       } catch (err) {
