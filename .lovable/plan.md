@@ -1,55 +1,26 @@
 
 
-## Pricing Page Plan
+## Problem Analysis
 
-### What to Build
+The app gets stuck on loading spinners because both `AiCeo.tsx` (route `/`) and `Database.tsx` (route `/app`) call `supabase.auth.getSession()` and show a `<Loader2>` spinner until it resolves. If the backend is slow or the token refresh hangs, the app stays on the spinner forever with no fallback.
 
-A dedicated `/pricing` page matching the reference image design with three plans: **Co Founder** ($69/mo), **Aristotle** ($109/mo, most popular), and **TimeWarp OG** ($999/mo). The page includes a billing toggle (monthly/quarterly/annually) and a warm beige card style. A database table will store user subscriptions to enforce plan permissions.
+The backend is currently experiencing connection timeouts (confirmed by the metadata fetch failures), which means `getSession()` calls that need to refresh an expired token will hang indefinitely.
 
-### Plans & Features (from image)
+## Plan
 
-| Feature | Co Founder ($69) | Aristotle ($109) | TimeWarp OG ($999) |
-|---|---|---|---|
-| Team members | Unlimited | Unlimited | Unlimited |
-| Connected data | 5GB | 10GB | Unlimited |
-| Actions/month | 100 | 1,000 | Unlimited |
-| AI CEO | Yes | Yes | Yes |
-| Business Brain | Yes | Yes | Yes |
-| Developer Line | No | Yes | Yes |
-| Scale assistance | No | No | Yes |
+### 1. Add timeout to auth check in `AiCeo.tsx`
+- Wrap the `getSession()` call with a `Promise.race` against a 5-second timeout
+- If it times out, set `isLoading = false` and show the landing page (HeroSection) instead of the spinner
+- This ensures unauthenticated users can still see the landing page even if the backend is slow
 
-- Co Founder: "Launching next month" badge, disabled Get Started button
-- Aristotle: "Access today" badge, blue Get Started button, "Most Popular" label
-- TimeWarp OG: "Access today" badge
+### 2. Add timeout to auth check in `Database.tsx`
+- Same timeout pattern for the `getSession()` call
+- If it times out, redirect to `/` (landing) rather than showing a spinner forever
+- This prevents authenticated users from being stuck on a blank loading screen
 
-### Billing Periods
-- Monthly: $69 / $109 / $999
-- Quarterly: ~10% discount
-- Annually: ~20% discount
+### 3. Add timeout to `BusinessDNAContext.tsx` data loading
+- The `loadEntities` function queries `user_business_data` which can also hang
+- Add a timeout so that if data loading takes too long, it stops loading and shows empty state rather than infinite spinner
 
-### Technical Changes
-
-1. **Database migration** -- Create `user_subscriptions` table:
-   - `id`, `user_id`, `plan` (enum: co_founder, aristotle, timewarp_og), `billing_period`, `status`, `actions_used`, `data_used_bytes`, `created_at`, `updated_at`
-   - RLS policies for users to read their own subscription
-   - Default free users to no subscription (treated as no access / trial)
-
-2. **New file: `src/pages/PricingPage.tsx`** -- Standalone pricing page with:
-   - Billing toggle tabs (monthly/quarterly/annually)
-   - Three plan cards matching the beige/warm style from the image
-   - Check/X marks for features
-   - "Get Started" buttons linking to `/auth?mode=signup`
-   - Co Founder card shows "Launching next month" with disabled button
-
-3. **Update `src/components/landing/Pricing.tsx`** -- Replace current plans data with the new three plans to match the image
-
-4. **Update `src/App.tsx`** -- Add `/pricing` route
-
-5. **Update footer links** -- Change `/#pricing` to `/pricing` in:
-   - `src/components/database/MyBusinessesView.tsx`
-   - `src/components/landing/Footer.tsx`
-   - `src/components/landing/Header.tsx`
-   - `src/components/landing/CTA.tsx`
-
-6. **Create `src/hooks/useSubscription.ts`** -- Hook to fetch user's current plan and expose permission checks like `canUseDevLine`, `getActionLimit`, `getDataLimit` for use across the app.
+These changes ensure the app remains usable even when the backend is temporarily slow or unreachable.
 
