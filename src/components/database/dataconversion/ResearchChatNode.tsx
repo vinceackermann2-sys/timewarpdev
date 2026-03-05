@@ -329,9 +329,9 @@ export function ResearchChatNode({
         className={cn(
           "bg-card border rounded-xl shadow-xl flex flex-col select-none transition-all duration-200",
           isSelected && !isFullscreen ? "border-primary ring-2 ring-primary/30" : "border-border",
-          isFullscreen ? "fixed inset-4 z-[101] max-w-4xl mx-auto" : "absolute canvas-node-smooth"
+          isFullscreen ? "fixed inset-0 z-[101] rounded-none" : "absolute canvas-node-smooth"
         )}
-        style={isFullscreen ? { height: 'calc(100vh - 32px)' } : {
+        style={isFullscreen ? {} : {
           left: node.x,
           top: node.y,
           width: 540,
