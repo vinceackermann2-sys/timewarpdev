@@ -40,7 +40,7 @@ serve(async (req) => {
     const tokenData = await tokenResponse.json();
 
     if (!tokenData.ok || !tokenData.access_token) {
-      console.error("Slack token error:", tokenData);
+      console.error("Slack token exchange failed");
       return Response.redirect(`${frontendUrl}/?oauth_error=token_exchange_failed`, 302);
     }
 
@@ -76,7 +76,7 @@ serve(async (req) => {
 
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=slack`, 302);
   } catch (e) {
-    console.error("Slack OAuth callback error:", e);
+    console.error("Slack OAuth callback error occurred");
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);
   }
 });

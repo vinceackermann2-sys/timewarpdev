@@ -132,9 +132,8 @@ For multi-step tasks, return an array of actions:
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const errText = await response.text();
-      console.error("AI gateway error:", status, errText);
-      throw new Error(`AI gateway returned ${status}`);
+      console.error("AI gateway error: status", status);
+      throw new Error("AI service unavailable");
     }
 
     // Save chat to timewarp_chats
@@ -149,8 +148,8 @@ For multi-step tasks, return an array of actions:
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
-    console.error("browser-agent error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    console.error("browser-agent error occurred");
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

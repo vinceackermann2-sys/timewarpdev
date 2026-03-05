@@ -59,7 +59,7 @@ serve(async (req) => {
 
     const scrapeData = await scrapeResponse.json();
     if (!scrapeResponse.ok) {
-      console.error("Firecrawl error:", scrapeData);
+      console.error("Firecrawl scrape failed: status", scrapeResponse.status);
       return new Response(
         JSON.stringify({ success: false, error: "Failed to scrape page" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -72,7 +72,7 @@ serve(async (req) => {
     const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
 
     console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot);
-    if (firecrawlBranding) console.log("Firecrawl branding data found:", JSON.stringify(firecrawlBranding).slice(0, 200));
+    if (firecrawlBranding) console.log("Firecrawl branding data found");
 
     // Step 1b: Mobile screenshot (parallel)
     const mobileScreenshotPromise = (async () => {
@@ -408,8 +408,7 @@ ${markdown.slice(0, 15000)}`;
     });
 
     if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
+      console.error("AI extraction error: status", aiResponse.status);
       return new Response(
         JSON.stringify({ success: false, error: "AI extraction failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -428,7 +427,7 @@ ${markdown.slice(0, 15000)}`;
         throw new Error("No JSON found in AI response");
       }
     } catch (parseErr) {
-      console.error("JSON parse error:", parseErr, "Raw:", rawContent.slice(0, 500));
+      console.error("JSON parse error in AI response");
       return new Response(
         JSON.stringify({ success: false, error: "Failed to parse extracted data" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -37,7 +37,7 @@ async function updateBucketContext(supabaseAdmin: any, userId: string) {
         contentType: "application/json",
       });
   } catch (e) {
-    console.error("Failed to update bucket context:", e);
+    console.error("Failed to update bucket context");
   }
 }
 
@@ -202,7 +202,7 @@ Format your response with these sections:
               .slice(0, 15000);
           }
         } catch (fetchErr) {
-          console.error("Failed to fetch website:", fetchErr);
+          console.error("Failed to fetch website");
         }
 
         extractedText = websiteContent;
@@ -262,9 +262,8 @@ Format your response with these sections:
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const errText = await response.text();
-      console.error("AI gateway error:", status, errText);
-      throw new Error(`AI gateway returned ${status}`);
+      console.error("AI gateway error: status", status);
+      throw new Error("AI service unavailable");
     }
 
     const data = await response.json();
@@ -297,8 +296,8 @@ Format your response with these sections:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("analyze-content error:", e);
-    return new Response(JSON.stringify({ success: false, error: e instanceof Error ? e.message : "Unknown error" }), {
+    console.error("analyze-content error occurred");
+    return new Response(JSON.stringify({ success: false, error: "An internal error occurred" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
