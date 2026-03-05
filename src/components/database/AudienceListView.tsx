@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Plus, Trash2, ChevronRight, Lock, Package, Link2 } from "lucide-react";
+import { Users, Plus, Trash2, ChevronRight, Lock, Package, Link2, Globe, ArrowRight, Sparkles, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -8,31 +8,102 @@ import { AudienceDetailView } from "@/components/database/AudienceDetailView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusinessDNA, AudienceEntry } from "@/components/database/BusinessDNAContext";
 import { ConnectionDialog } from "@/components/database/ConnectionDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
   const { userName, products, audiences, setAudiences } = useBusinessDNA();
   const [selectedAudienceId, setSelectedAudienceId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [newName, setNewName] = useState("");
+  const [url, setUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState("");
+  const [isDone, setIsDone] = useState(false);
   const [connectAudienceId, setConnectAudienceId] = useState<string | null>(null);
+  const { toast } = useToast();
   // Filter audiences to only show those connected to this brand's products
   const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
   const brandAudiences = audiences.filter(a => a.productIds?.some(pid => brandProductIds.includes(pid)));
   const selectedAudience = brandAudiences.find(a => a.id === selectedAudienceId);
   
 
-  const handleCreate = () => {
-    if (!newName.trim()) return;
-    const newAudience: AudienceEntry = {
-      ...DEFAULT_AUDIENCE,
-      id: `audience-${Date.now()}`,
-      name: newName.trim(),
-      lastUpdated: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-      productIds: brandProductIds, // Auto-connect to this brand's products
-    };
-    setAudiences(prev => [...prev, newAudience]);
-    setNewName("");
-    setIsCreating(false);
+  const handleExtract = async () => {
+    if (!url.trim()) return;
+    setIsLoading(true);
+    setStatus("Scraping page for audience data...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-product", {
+        body: { url: url.trim() },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to extract audience data");
+
+      setStatus("Creating audience...");
+
+      const now = new Date().toLocaleDateString("en-US", {
+        year: "numeric", month: "short", day: "numeric",
+      });
+      const audienceId = `audience-${Date.now()}`;
+      const a = data.extracted?.audience || {};
+
+      const newAudience: AudienceEntry = {
+        ...DEFAULT_AUDIENCE,
+        id: audienceId,
+        name: a.name || "Imported Audience",
+        description: a.description || "",
+        buyingTriggers: a.buyingTriggers || [],
+        useCaseRequirements: a.useCaseRequirements || [],
+        keySuccessIndicators: a.keySuccessIndicators || [],
+        additionalCharacteristics: a.additionalCharacteristics || "",
+        positioningStatement: a.positioningStatement || "",
+        valuePropositions: a.valuePropositions || [],
+        engagementTriggers: a.engagementTriggers || [],
+        attentionHooks: a.attentionHooks || [],
+        commonObjections: a.commonObjections?.length
+          ? a.commonObjections.map((o: any) => ({ objection: o.objection || "", response: o.response || "" }))
+          : [],
+        proofPoints: a.proofPoints?.length
+          ? a.proofPoints.map((pp: any) => ({ category: pp.category || "", items: pp.items || [] }))
+          : [],
+        dosAndDonts: {
+          dos: a.dosAndDonts?.dos || [],
+          donts: a.dosAndDonts?.donts || [],
+        },
+        powerPhrases: a.powerPhrases || [],
+        powerWords: a.powerWords || [],
+        technicalLevel: a.technicalLevel || "",
+        refinementChecklist: a.refinementChecklist || [],
+        lastUpdated: now,
+        productIds: brandProductIds,
+      };
+      setAudiences(prev => [...prev, newAudience]);
+
+      setIsDone(true);
+      setStatus("Audience imported!");
+      toast({
+        title: "Audience imported",
+        description: `${a.name || "Audience"} has been added.`,
+      });
+
+      setTimeout(() => {
+        setIsCreating(false);
+        setUrl("");
+        setStatus("");
+        setIsDone(false);
+      }, 1500);
+    } catch (err: any) {
+      console.error("Scrape error:", err);
+      toast({
+        title: "Import failed",
+        description: err.message || "Could not extract audience data.",
+        variant: "destructive",
+      });
+      setStatus("");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -75,11 +146,23 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
         {isCreating && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
             <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
-              <label className="text-xs font-medium text-muted-foreground">Audience Name</label>
-              <div className="flex gap-2">
-                <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Young Professionals 25-35" className="h-9 text-sm flex-1" onKeyDown={(e) => e.key === "Enter" && handleCreate()} />
-                <Button size="sm" className="h-9" onClick={handleCreate} disabled={!newName.trim()}>Create</Button>
+              <label className="text-xs font-medium text-muted-foreground">Product / Landing Page URL</label>
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Globe className="h-4 w-4 text-primary/70" />
+                </div>
+                <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="yourstore.com/product-page" className="h-9 text-sm flex-1" disabled={isLoading} onKeyDown={(e) => e.key === "Enter" && handleExtract()} />
+                <Button size="sm" className="h-9 gap-1.5" onClick={handleExtract} disabled={!url.trim() || isLoading}>
+                  {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isDone ? <Check className="h-3.5 w-3.5" /> : <><Sparkles className="h-3.5 w-3.5" /> Extract</>}
+                </Button>
               </div>
+              {status && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {isDone && <Check className="h-3 w-3 text-primary" />}
+                  {status}
+                </div>
+              )}
             </div>
           </motion.div>
         )}

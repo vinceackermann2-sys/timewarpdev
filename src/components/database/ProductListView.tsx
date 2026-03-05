@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Package, Plus, Trash2, ChevronRight, Lock, Palette, Users, Link2 } from "lucide-react";
+import { Package, Plus, Trash2, ChevronRight, Lock, Palette, Users, Link2, Globe, ArrowRight, Sparkles, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -8,30 +8,121 @@ import { ProductDetailView } from "@/components/database/ProductDetailView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusinessDNA, ProductEntry } from "@/components/database/BusinessDNAContext";
 import { ConnectionDialog } from "@/components/database/ConnectionDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
   const { userName, brands, products, setProducts, audiences } = useBusinessDNA();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [newName, setNewName] = useState("");
+  const [url, setUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState("");
+  const [isDone, setIsDone] = useState(false);
   const [connectProductId, setConnectProductId] = useState<string | null>(null);
+  const { toast } = useToast();
   // Filter products to only show those belonging to the active brand
   const brandProducts = products.filter(p => p.brandId === activeBrandId);
   const selectedProduct = brandProducts.find(p => p.id === selectedProductId);
   
 
-  const handleCreate = () => {
-    if (!newName.trim()) return;
-    const newProduct: ProductEntry = {
-      ...DEFAULT_PRODUCT,
-      id: `product-${Date.now()}`,
-      name: newName.trim(),
-      lastUpdated: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-      brandId: activeBrandId, // Auto-connect to active brand
-    };
-    setProducts(prev => [...prev, newProduct]);
-    setNewName("");
-    setIsCreating(false);
+  const handleExtract = async () => {
+    if (!url.trim()) return;
+    setIsLoading(true);
+    setStatus("Scraping product page...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-product", {
+        body: { url: url.trim() },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to extract product data");
+
+      setStatus("Creating product...");
+
+      const now = new Date().toLocaleDateString("en-US", {
+        year: "numeric", month: "short", day: "numeric",
+      });
+      const productId = `product-${Date.now()}`;
+      const p = data.extracted?.product || {};
+
+      const newProduct: ProductEntry = {
+        ...DEFAULT_PRODUCT,
+        id: productId,
+        name: p.name || "Imported Product",
+        category: p.category || "Consumer Product",
+        description: p.description || "",
+        features: p.features || [],
+        benefits: p.benefits || [],
+        painPoints: p.painPoints || [],
+        useCases: p.useCases || [],
+        targetScenarios: p.targetScenarios || [],
+        positioningStatement: p.positioningStatement || "",
+        uniqueSellingPoints: p.uniqueSellingPoints || [],
+        competitiveAdvantages: p.competitiveAdvantages || [],
+        commonObjections: p.commonObjections?.length
+          ? p.commonObjections.map((o: any) => ({ objection: o.objection || "", response: o.response || "" }))
+          : [],
+        proofPoints: p.proofPoints?.length
+          ? p.proofPoints.map((pp: any) => ({ category: pp.category || "", items: pp.items || [] }))
+          : [],
+        dosAndDonts: {
+          dos: p.dosAndDonts?.dos || [],
+          donts: p.dosAndDonts?.donts || [],
+        },
+        powerPhrases: p.powerPhrases || [],
+        powerWords: p.powerWords || [],
+        technicalLevel: p.technicalLevel || "",
+        refinementChecklist: p.refinementChecklist || [],
+        images: p.images?.length
+          ? p.images.map((imgUrl: string, i: number) => ({
+              id: `img-${i + 1}`,
+              url: imgUrl,
+              label: `Product Image ${i + 1}`,
+            }))
+          : DEFAULT_PRODUCT.images,
+        offers: p.offers?.length
+          ? p.offers.map((o: any, i: number) => ({
+              id: `offer-${i + 1}`,
+              title: o.title || `Offer ${i + 1}`,
+              originalPrice: o.originalPrice || "",
+              salePrice: o.salePrice || "",
+              discount: o.discount || "",
+              bundleDetails: o.bundleDetails || "",
+              freeGifts: o.freeGifts || [],
+              isPopular: o.isPopular || false,
+            }))
+          : DEFAULT_PRODUCT.offers,
+        lastUpdated: now,
+        brandId: activeBrandId,
+      };
+      setProducts(prev => [...prev, newProduct]);
+
+      setIsDone(true);
+      setStatus("Product imported!");
+      toast({
+        title: "Product imported",
+        description: `${p.name || "Product"} has been added.`,
+      });
+
+      setTimeout(() => {
+        setIsCreating(false);
+        setUrl("");
+        setStatus("");
+        setIsDone(false);
+      }, 1500);
+    } catch (err: any) {
+      console.error("Scrape error:", err);
+      toast({
+        title: "Import failed",
+        description: err.message || "Could not extract product data.",
+        variant: "destructive",
+      });
+      setStatus("");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -72,11 +163,23 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
         {isCreating && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
             <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
-              <label className="text-xs font-medium text-muted-foreground">Product Name</label>
-              <div className="flex gap-2">
-                <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. AI Marketing Suite" className="h-9 text-sm flex-1" onKeyDown={(e) => e.key === "Enter" && handleCreate()} />
-                <Button size="sm" className="h-9" onClick={handleCreate} disabled={!newName.trim()}>Create</Button>
+              <label className="text-xs font-medium text-muted-foreground">Product URL</label>
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Globe className="h-4 w-4 text-primary/70" />
+                </div>
+                <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="yourstore.com/product-page" className="h-9 text-sm flex-1" disabled={isLoading} onKeyDown={(e) => e.key === "Enter" && handleExtract()} />
+                <Button size="sm" className="h-9 gap-1.5" onClick={handleExtract} disabled={!url.trim() || isLoading}>
+                  {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isDone ? <Check className="h-3.5 w-3.5" /> : <><Sparkles className="h-3.5 w-3.5" /> Extract</>}
+                </Button>
               </div>
+              {status && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {isDone && <Check className="h-3 w-3 text-primary" />}
+                  {status}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
