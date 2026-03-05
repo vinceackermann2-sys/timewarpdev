@@ -177,6 +177,42 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     load();
   }, [activeWorkspaceId]);
 
+  // Realtime: subscribe to changes from other workspace members
+  useEffect(() => {
+    if (!activeWorkspaceId) return;
+
+    const channel = supabase
+      .channel(`business-dna-${activeWorkspaceId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_business_data",
+          filter: `workspace_id=eq.${activeWorkspaceId}`,
+        },
+        async () => {
+          // Reload all entities when any change happens from another member
+          const [b, p, a] = await Promise.all([
+            loadEntities<BrandEntry>("brand", activeWorkspaceId),
+            loadEntities<ProductEntry>("product", activeWorkspaceId),
+            loadEntities<AudienceEntry>("audience", activeWorkspaceId),
+          ]);
+          setBrandsState(b);
+          setProductsState(p);
+          setAudiencesState(a);
+          setPrevBrands(b);
+          setPrevProducts(p);
+          setPrevAudiences(a);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeWorkspaceId]);
+
   // Sync brands to DB
   useEffect(() => {
     if (isLoading) return;
