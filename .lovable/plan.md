@@ -2,53 +2,49 @@
 
 ## Problem
 
-Two issues prevent smooth multi-member workspace collaboration:
+The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
 
-1. **Research and Generation chat ignore workspace context**: The `research-chat` and `action-chat` edge functions fetch business data using only the calling user's `user_id`. Team members in a shared workspace see AI responses grounded only in their own (likely empty) data, not the shared workspace data.
-
-2. **Team members cannot insert shared data**: The `user_business_data` INSERT RLS policy only allows `user_id = auth.uid()`, so team members cannot create new brands, products, audiences, or canvas nodes in a shared workspace.
-
-3. **Team members cannot delete shared data**: The DELETE policy also only allows `user_id = auth.uid()`.
+The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
 
 ## Plan
 
-### 1. Update edge functions to accept and use `workspaceId`
+### 1. Add context size limiting in both edge functions
 
 **Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
 
-- Accept an optional `workspaceId` field from the request body
-- When `workspaceId` is provided, fetch business data scoped to that workspace (using service role, so RLS is bypassed) instead of by `user_id` only
-- Verify the calling user is actually a member of the workspace before serving data (security check via `workspace_members` table)
-- Fallback to user-only data when no `workspaceId` is provided
+In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
 
-The `fetchUserBusinessContext` function changes from:
-```sql
-.eq("user_id", userId)
+```typescript
+function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+  // ... group by source as before ...
+  for (const item of sourceItems) {
+    const itemText = /* build item string */;
+    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+    context += itemText;
+    totalChars += itemText.length;
+  }
+  return context;
+}
 ```
-to also supporting:
-```sql
-.eq("workspace_id", workspaceId)
+
+### 2. Add better error logging for debugging
+
+Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+
+```typescript
+if (!response.ok) {
+  const errorBody = await response.text().catch(() => "");
+  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+  // ... existing status-specific handling ...
+}
 ```
 
-### 2. Pass `workspaceId` from frontend chat callers
+### 3. Truncate individual item content
 
-**Files**: `src/components/database/DatabaseView.tsx`, `src/components/database/dataconversion/ResearchChatNode.tsx`, `src/components/database/dataconversion/ActionChatNode.tsx`
+Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
 
-- Read `preferred_workspace_id` from localStorage
-- Include `workspaceId` in the request body sent to the edge functions
-
-### 3. Update RLS policies for INSERT and DELETE on `user_business_data`
-
-**Database migration**:
-
-- **INSERT**: Allow if `user_id = auth.uid()` OR if the user is a workspace member (owner/editor) of the target `workspace_id`
-- **DELETE**: Allow if `user_id = auth.uid()` OR if the user is a workspace owner/editor for the record's `workspace_id`
-
-### 4. Allow team members to save entities in BusinessDNAContext
-
-**File**: `src/components/database/BusinessDNAContext.tsx`
-
-- In `saveEntity`, when a workspace member creates data, set `user_id` to the current user's ID (satisfying the updated INSERT policy) while keeping `workspace_id` set correctly for sharing
-
-This ensures all workspace members can create, read, update, and delete shared business data, and that the AI chat functions are grounded in the full shared workspace context.
+This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
 
