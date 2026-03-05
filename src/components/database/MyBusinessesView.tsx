@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2, Settings, ChevronsUpDown, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -285,7 +286,7 @@ function WorkspaceFooter() {
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-foreground">Product</h4>
               <ul className="space-y-1.5">
-                <li><a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
+                <li><Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link></li>
                 <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Changelog</a></li>
               </ul>
             </div>
@@ -298,8 +299,8 @@ function WorkspaceFooter() {
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-foreground">Legal</h4>
               <ul className="space-y-1.5">
-                <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
-                <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
+                <li><Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link></li>
+                <li><Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link></li>
               </ul>
             </div>
             <div className="space-y-2">
