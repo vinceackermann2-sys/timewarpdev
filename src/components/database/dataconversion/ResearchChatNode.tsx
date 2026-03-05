@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Telescope, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -316,7 +317,7 @@ export function ResearchChatNode({
   // Get the last assistant message for suggestions
   const lastAssistantMessage = messages.filter(m => m.role === "assistant").slice(-1)[0];
 
-  return (
+  const chatContent = (
     <>
       {/* Fullscreen backdrop */}
       {isFullscreen && (
@@ -521,4 +522,10 @@ export function ResearchChatNode({
     </div>
     </>
   );
+
+  if (isFullscreen) {
+    return createPortal(chatContent, document.body);
+  }
+
+  return chatContent;
 }
