@@ -30,9 +30,12 @@ const AiCeo = () => {
   const [showChat, setShowChat] = useState(isOAuthReturn);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+    Promise.race([
+      supabase.auth.getSession().then(({ data: { session } }) => session),
+      timeout,
+    ]).then((session) => {
       if (session?.user && !isOAuthReturn) {
-        // Already logged in and not returning from OAuth → go to app
         navigate("/app", { replace: true });
       } else {
         setIsLoading(false);

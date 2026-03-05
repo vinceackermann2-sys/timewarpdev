@@ -70,8 +70,12 @@ export function useBusinessDNA() {
 }
 
 async function loadEntities<T>(dataType: string, workspaceId?: string | null): Promise<T[]> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return [];
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000));
+  const sessionResult = await Promise.race([
+    supabase.auth.getSession().then(({ data: { session } }) => session),
+    timeout,
+  ]);
+  if (!sessionResult?.user) return [];
 
   let query = supabase
     .from("user_business_data")
@@ -82,13 +86,17 @@ async function loadEntities<T>(dataType: string, workspaceId?: string | null): P
   if (workspaceId) {
     query = query.eq("workspace_id", workspaceId);
   } else {
-    query = query.eq("user_id", session.user.id);
+    query = query.eq("user_id", sessionResult.user.id);
   }
 
-  const { data, error } = await query;
+  const queryResult = await Promise.race([
+    query,
+    new Promise<{ data: null; error: true }>((resolve) => setTimeout(() => resolve({ data: null, error: true }), 8000)),
+  ]);
+  const { data, error } = queryResult;
   if (error || !data) return [];
 
-  return data.map((row) => {
+  return data.map((row: any) => {
     try {
       return { ...JSON.parse(row.content || "{}"), _rowId: row.id } as T;
     } catch {
