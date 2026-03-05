@@ -3,23 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type PlanType = "co_founder" | "aristotle" | "timewarp_og" | null;
 
-interface Subscription {
+interface SubscriptionData {
+  subscribed: boolean;
   plan: PlanType;
-  billing_period: string;
-  status: string;
-  actions_used: number;
-  data_used_bytes: number;
+  product_id: string | null;
+  subscription_end: string | null;
 }
 
 const PLAN_LIMITS = {
   co_founder: {
-    dataBytes: 5 * 1024 * 1024 * 1024, // 5GB
+    dataBytes: 5 * 1024 * 1024 * 1024,
     actionsPerMonth: 100,
     devLine: false,
     scaleAssistance: false,
   },
   aristotle: {
-    dataBytes: 10 * 1024 * 1024 * 1024, // 10GB
+    dataBytes: 10 * 1024 * 1024 * 1024,
     actionsPerMonth: 1000,
     devLine: true,
     scaleAssistance: false,
@@ -33,22 +32,17 @@ const PLAN_LIMITS = {
 } as const;
 
 export function useSubscription() {
-  const { data: subscription, isLoading } = useQuery({
+  const { data: subscription, isLoading, refetch } = useQuery({
     queryKey: ["user-subscription"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+    queryFn: async (): Promise<SubscriptionData | null> => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
 
-      const { data, error } = await supabase
-        .from("user_subscriptions")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .maybeSingle();
-
+      const { data, error } = await supabase.functions.invoke("check-subscription");
       if (error) throw error;
-      return data as Subscription | null;
+      return data as SubscriptionData;
     },
+    refetchInterval: 60000, // refresh every minute
   });
 
   const plan = subscription?.plan ?? null;
@@ -58,22 +52,12 @@ export function useSubscription() {
     subscription,
     plan,
     isLoading,
-    hasActivePlan: !!plan,
+    refetch,
+    hasActivePlan: subscription?.subscribed ?? false,
+    subscriptionEnd: subscription?.subscription_end ?? null,
     canUseDevLine: limits?.devLine ?? false,
     canUseScaleAssistance: limits?.scaleAssistance ?? false,
     getActionLimit: () => limits?.actionsPerMonth ?? 0,
     getDataLimit: () => limits?.dataBytes ?? 0,
-    actionsUsed: subscription?.actions_used ?? 0,
-    dataUsed: subscription?.data_used_bytes ?? 0,
-    isOverActionLimit: () => {
-      if (!limits) return true;
-      if (limits.actionsPerMonth === Infinity) return false;
-      return (subscription?.actions_used ?? 0) >= limits.actionsPerMonth;
-    },
-    isOverDataLimit: () => {
-      if (!limits) return true;
-      if (limits.dataBytes === Infinity) return false;
-      return (subscription?.data_used_bytes ?? 0) >= limits.dataBytes;
-    },
   };
 }
