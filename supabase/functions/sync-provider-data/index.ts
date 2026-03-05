@@ -118,7 +118,7 @@ async function extractPdfText(pdfBytes: Uint8Array, fileName: string): Promise<s
       return (data.choices?.[0]?.message?.content || "").slice(0, 15000);
     }
   } catch (e) {
-    console.error(`PDF extraction failed for ${fileName}:`, e);
+    console.error("PDF extraction failed");
   }
   return "";
 }
@@ -159,7 +159,7 @@ async function extractVideoContent(videoBytes: Uint8Array, fileName: string, mim
       return (data.choices?.[0]?.message?.content || "").slice(0, 15000);
     }
   } catch (e) {
-    console.error(`Video extraction failed for ${fileName}:`, e);
+    console.error("Video extraction failed");
   }
   return "";
 }
@@ -405,11 +405,10 @@ async function fetchSlackData(accessToken: string): Promise<any> {
   const channels = await channelsRes.json();
   const team = await teamRes.json();
 
-  console.log("Slack conversations.list ok:", channels.ok, "error:", channels.error, "count:", channels.channels?.length);
-  console.log("Slack team.info ok:", team.ok, "error:", team.error);
+  console.log("Slack data fetched, channels:", channels.channels?.length || 0);
 
   if (!channels.ok) {
-    console.error("Slack conversations.list failed:", channels.error);
+    console.error("Slack conversations.list failed");
   }
 
   // Fetch recent messages from top 5 active channels
@@ -512,7 +511,7 @@ async function updateBucketContext(supabaseAdmin: any, userId: string) {
         contentType: "application/json",
       });
   } catch (e) {
-    console.error("Failed to update bucket context:", e);
+    console.error("Failed to update bucket context");
   }
 }
 
@@ -783,8 +782,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("sync-provider-data error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    console.error("sync-provider-data error occurred");
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

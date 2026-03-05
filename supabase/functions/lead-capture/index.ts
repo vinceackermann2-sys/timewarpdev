@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("Lead capture request:", { criteria, type, targetCount });
+    console.log("Lead capture request received, targetCount:", targetCount);
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
@@ -172,8 +172,7 @@ Return ONLY a valid JSON array. No markdown, no explanation, no wrapping. Each o
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error("AI API error:", response.status, errText);
+      console.error("AI API error: status", response.status);
       
       if (response.status === 429) {
         return new Response(
@@ -196,7 +195,7 @@ Return ONLY a valid JSON array. No markdown, no explanation, no wrapping. Each o
 
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content || "";
-    console.log("AI response:", content.substring(0, 500));
+    console.log("AI response received, parsing leads");
 
     let leads = [];
     try {
@@ -215,7 +214,7 @@ Return ONLY a valid JSON array. No markdown, no explanation, no wrapping. Each o
         leads.sort((a: any, b: any) => (b.leadScore || 0) - (a.leadScore || 0));
       }
     } catch (parseErr) {
-      console.error("Failed to parse leads:", parseErr);
+      console.error("Failed to parse leads response");
       leads = [];
     }
 
@@ -224,9 +223,9 @@ Return ONLY a valid JSON array. No markdown, no explanation, no wrapping. Each o
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Lead capture error:", error);
+    console.error("Lead capture error occurred");
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Internal error" }),
+      JSON.stringify({ success: false, error: "An internal error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

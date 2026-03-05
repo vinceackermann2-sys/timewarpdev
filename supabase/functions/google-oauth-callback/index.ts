@@ -41,7 +41,7 @@ serve(async (req) => {
     const tokenData = await tokenResponse.json();
 
     if (!tokenResponse.ok || !tokenData.access_token) {
-      console.error("Google token error:", tokenData);
+      console.error("Google token exchange failed");
       return Response.redirect(`${frontendUrl}/?oauth_error=token_exchange_failed`, 302);
     }
 
@@ -83,7 +83,7 @@ serve(async (req) => {
 
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=google`, 302);
   } catch (e) {
-    console.error("Google OAuth callback error:", e);
+    console.error("Google OAuth callback error occurred");
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);
   }
 });

@@ -43,7 +43,7 @@ serve(async (req) => {
     const tokenData = await tokenResponse.json();
 
     if (!tokenResponse.ok || !tokenData.access_token) {
-      console.error("Microsoft token error:", tokenData);
+      console.error("Microsoft token exchange failed");
       return Response.redirect(`${frontendUrl}/?oauth_error=token_exchange_failed`, 302);
     }
 
@@ -85,7 +85,7 @@ serve(async (req) => {
 
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=microsoft`, 302);
   } catch (e) {
-    console.error("Microsoft OAuth callback error:", e);
+    console.error("Microsoft OAuth callback error occurred");
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);
   }
 });

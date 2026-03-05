@@ -98,9 +98,9 @@ Deno.serve(async (req) => {
         });
 
         if (otpError) {
-          console.error("Existing user workspace invite email error (non-blocking):", otpError.message);
+          console.error("Workspace invite email failed for existing user");
         } else {
-          console.log(`Workspace invite email sent to existing user ${email}`);
+          console.log("Workspace invite email sent to existing user");
         }
         return;
       }
@@ -111,9 +111,9 @@ Deno.serve(async (req) => {
       });
 
       if (inviteEmailError) {
-        console.error("Invite email error (non-blocking):", inviteEmailError.message);
+        console.error("Invite email failed for new user");
       } else {
-        console.log(`Invite email sent to new user ${email}`);
+        console.log("Invite email sent to new user");
       }
     };
 
@@ -180,7 +180,8 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error("send-workspace-invite error occurred");
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

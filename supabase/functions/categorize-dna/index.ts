@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       .limit(50);
 
     if (dbError) {
-      console.error("DB error:", dbError);
+      console.error("DB error occurred");
       return new Response(JSON.stringify({ error: "Failed to fetch data" }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -93,8 +93,7 @@ Skip items that don't clearly fit any segment.`;
     });
 
     if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI error:", errText);
+      console.error("AI categorization error: status", aiResponse.status);
       return new Response(JSON.stringify({ error: "AI categorization failed" }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -107,7 +106,7 @@ Skip items that don't clearly fit any segment.`;
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawContent);
     } catch {
-      console.error("Failed to parse AI response:", rawContent);
+      console.error("Failed to parse AI categorization response");
       return new Response(JSON.stringify({ error: "Failed to parse categorization" }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -145,7 +144,7 @@ Skip items that don't clearly fit any segment.`;
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    console.error("categorize-dna error occurred");
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
