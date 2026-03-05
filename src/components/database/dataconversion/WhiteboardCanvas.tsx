@@ -84,8 +84,8 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
           id: `${item.id}-${Date.now()}`,
           type: item.id,
           label: item.label,
-          x: Math.max(0, x),
-          y: Math.max(0, y),
+          x,
+          y,
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
         };
@@ -181,7 +181,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
         
         setNodes(prev => prev.map(node => 
           selectedNodeIds.has(node.id)
-            ? { ...node, x: Math.max(0, node.x + offsetX), y: Math.max(0, node.y + offsetY) }
+            ? { ...node, x: node.x + offsetX, y: node.y + offsetY }
             : node
         ));
         
