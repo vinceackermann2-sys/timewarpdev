@@ -1,55 +1,54 @@
 
 
-## Pricing Page Plan
+## Problem
 
-### What to Build
+Two issues prevent smooth multi-member workspace collaboration:
 
-A dedicated `/pricing` page matching the reference image design with three plans: **Co Founder** ($69/mo), **Aristotle** ($109/mo, most popular), and **TimeWarp OG** ($999/mo). The page includes a billing toggle (monthly/quarterly/annually) and a warm beige card style. A database table will store user subscriptions to enforce plan permissions.
+1. **Research and Generation chat ignore workspace context**: The `research-chat` and `action-chat` edge functions fetch business data using only the calling user's `user_id`. Team members in a shared workspace see AI responses grounded only in their own (likely empty) data, not the shared workspace data.
 
-### Plans & Features (from image)
+2. **Team members cannot insert shared data**: The `user_business_data` INSERT RLS policy only allows `user_id = auth.uid()`, so team members cannot create new brands, products, audiences, or canvas nodes in a shared workspace.
 
-| Feature | Co Founder ($69) | Aristotle ($109) | TimeWarp OG ($999) |
-|---|---|---|---|
-| Team members | Unlimited | Unlimited | Unlimited |
-| Connected data | 5GB | 10GB | Unlimited |
-| Actions/month | 100 | 1,000 | Unlimited |
-| AI CEO | Yes | Yes | Yes |
-| Business Brain | Yes | Yes | Yes |
-| Developer Line | No | Yes | Yes |
-| Scale assistance | No | No | Yes |
+3. **Team members cannot delete shared data**: The DELETE policy also only allows `user_id = auth.uid()`.
 
-- Co Founder: "Launching next month" badge, disabled Get Started button
-- Aristotle: "Access today" badge, blue Get Started button, "Most Popular" label
-- TimeWarp OG: "Access today" badge
+## Plan
 
-### Billing Periods
-- Monthly: $69 / $109 / $999
-- Quarterly: ~10% discount
-- Annually: ~20% discount
+### 1. Update edge functions to accept and use `workspaceId`
 
-### Technical Changes
+**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
 
-1. **Database migration** -- Create `user_subscriptions` table:
-   - `id`, `user_id`, `plan` (enum: co_founder, aristotle, timewarp_og), `billing_period`, `status`, `actions_used`, `data_used_bytes`, `created_at`, `updated_at`
-   - RLS policies for users to read their own subscription
-   - Default free users to no subscription (treated as no access / trial)
+- Accept an optional `workspaceId` field from the request body
+- When `workspaceId` is provided, fetch business data scoped to that workspace (using service role, so RLS is bypassed) instead of by `user_id` only
+- Verify the calling user is actually a member of the workspace before serving data (security check via `workspace_members` table)
+- Fallback to user-only data when no `workspaceId` is provided
 
-2. **New file: `src/pages/PricingPage.tsx`** -- Standalone pricing page with:
-   - Billing toggle tabs (monthly/quarterly/annually)
-   - Three plan cards matching the beige/warm style from the image
-   - Check/X marks for features
-   - "Get Started" buttons linking to `/auth?mode=signup`
-   - Co Founder card shows "Launching next month" with disabled button
+The `fetchUserBusinessContext` function changes from:
+```sql
+.eq("user_id", userId)
+```
+to also supporting:
+```sql
+.eq("workspace_id", workspaceId)
+```
 
-3. **Update `src/components/landing/Pricing.tsx`** -- Replace current plans data with the new three plans to match the image
+### 2. Pass `workspaceId` from frontend chat callers
 
-4. **Update `src/App.tsx`** -- Add `/pricing` route
+**Files**: `src/components/database/DatabaseView.tsx`, `src/components/database/dataconversion/ResearchChatNode.tsx`, `src/components/database/dataconversion/ActionChatNode.tsx`
 
-5. **Update footer links** -- Change `/#pricing` to `/pricing` in:
-   - `src/components/database/MyBusinessesView.tsx`
-   - `src/components/landing/Footer.tsx`
-   - `src/components/landing/Header.tsx`
-   - `src/components/landing/CTA.tsx`
+- Read `preferred_workspace_id` from localStorage
+- Include `workspaceId` in the request body sent to the edge functions
 
-6. **Create `src/hooks/useSubscription.ts`** -- Hook to fetch user's current plan and expose permission checks like `canUseDevLine`, `getActionLimit`, `getDataLimit` for use across the app.
+### 3. Update RLS policies for INSERT and DELETE on `user_business_data`
+
+**Database migration**:
+
+- **INSERT**: Allow if `user_id = auth.uid()` OR if the user is a workspace member (owner/editor) of the target `workspace_id`
+- **DELETE**: Allow if `user_id = auth.uid()` OR if the user is a workspace owner/editor for the record's `workspace_id`
+
+### 4. Allow team members to save entities in BusinessDNAContext
+
+**File**: `src/components/database/BusinessDNAContext.tsx`
+
+- In `saveEntity`, when a workspace member creates data, set `user_id` to the current user's ID (satisfying the updated INSERT policy) while keeping `workspace_id` set correctly for sharing
+
+This ensures all workspace members can create, read, update, and delete shared business data, and that the AI chat functions are grounded in the full shared workspace context.
 
