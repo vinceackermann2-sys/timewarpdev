@@ -37,25 +37,38 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
 
   const checkConnections = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+      const session = await Promise.race([
+        supabase.auth.getSession().then(({ data: { session } }) => session),
+        timeout,
+      ]);
       if (!session?.user) { setIsLoading(false); return; }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ action: "check-status" }),
-        }
-      );
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 5000);
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ action: "check-status" }),
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(fetchTimeout);
 
-      if (response.ok) {
-        const data = await response.json();
-        setConnectedProviders(data.connected || []);
+        if (response.ok) {
+          const data = await response.json();
+          setConnectedProviders(data.connected || []);
+        }
+      } catch (fetchErr) {
+        clearTimeout(fetchTimeout);
+        console.warn("Connection check timed out or failed:", fetchErr);
       }
     } catch (err) {
       console.error("Failed to check connections:", err);

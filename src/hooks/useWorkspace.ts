@@ -42,12 +42,18 @@ export function useWorkspace() {
 
   const loadWorkspaces = useCallback(async () => {
     setIsLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+    const session = await Promise.race([
+      supabase.auth.getSession().then(({ data: { session } }) => session),
+      timeout,
+    ]);
     if (!session?.user) { setIsLoading(false); return; }
 
-    const { data: wsData, error } = await supabase.rpc("get_user_workspaces", {
-      _user_id: session.user.id,
-    });
+    const rpcResult = await Promise.race([
+      supabase.rpc("get_user_workspaces", { _user_id: session.user.id }),
+      new Promise<{ data: null; error: true }>((resolve) => setTimeout(() => resolve({ data: null, error: true }), 5000)),
+    ]);
+    const { data: wsData, error } = rpcResult;
 
     if (error || !wsData || (wsData as any[]).length === 0) {
       // Create default workspace if none exist
