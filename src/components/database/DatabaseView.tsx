@@ -248,6 +248,7 @@ export function DatabaseView() {
               content: m.content,
             })),
             connectedContexts,
+            workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
           }),
         }
       );

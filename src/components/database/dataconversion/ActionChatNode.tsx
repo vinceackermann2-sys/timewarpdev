@@ -143,10 +143,16 @@ export function ActionChatNode({
             case "business-db": {
               const { data: { session } } = await supabase.auth.getSession();
               if (session?.user) {
-                const { data: bizData, error } = await (supabase as any)
+              const wsId = localStorage.getItem("preferred_workspace_id");
+                let query = (supabase as any)
                   .from('user_business_data')
-                  .select('data_type, title, content, analyzed_content, metadata, is_analyzed')
-                  .eq('user_id', session.user.id)
+                  .select('data_type, title, content, analyzed_content, metadata, is_analyzed');
+                if (wsId) {
+                  query = query.eq('workspace_id', wsId);
+                } else {
+                  query = query.eq('user_id', session.user.id);
+                }
+                const { data: bizData, error } = await query
                   .order('created_at', { ascending: false })
                   .limit(50);
 
@@ -272,6 +278,7 @@ export function ActionChatNode({
           body: JSON.stringify({
             messages: [...messages, { role: "user", content: messageToSend }],
             connectedContexts,
+            workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
           }),
         }
       );
