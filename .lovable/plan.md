@@ -1,26 +1,32 @@
 
 
-## Problem Analysis
+## Problem
 
-The app gets stuck on loading spinners because both `AiCeo.tsx` (route `/`) and `Database.tsx` (route `/app`) call `supabase.auth.getSession()` and show a `<Loader2>` spinner until it resolves. If the backend is slow or the token refresh hangs, the app stays on the spinner forever with no fallback.
+The app hangs because several components make backend calls (auth, queries, RPCs) **without timeouts**. When the backend is slow or timing out (as confirmed by the connection timeout errors), these calls never resolve and the UI stays on loading spinners forever.
 
-The backend is currently experiencing connection timeouts (confirmed by the metadata fetch failures), which means `getSession()` calls that need to refresh an expired token will hang indefinitely.
+The timeouts we added to `AiCeo.tsx`, `Database.tsx`, and `BusinessDNAContext.tsx` were good, but there are still **three unprotected locations**:
+
+### Unprotected calls causing infinite loading:
+
+1. **`DatabaseView.tsx` (lines 127-138)** — `isCheckingConnection` blocks the entire Database view. It calls `getSession()` then queries `user_connections` with no timeout. This is likely the main culprit since Database view is the default view.
+
+2. **`ConnectBusinessDNA.tsx` (line 40-55)** — `isLoading` blocks the connect screen. Calls `getSession()` then an edge function with no timeout.
+
+3. **`useWorkspace.ts` (lines 45-50)** — `isLoading` blocks workspace operations. Calls `getSession()` then `supabase.rpc("get_user_workspaces")` with no timeout. While this doesn't directly block page render, it can cause workspace-dependent features to hang.
 
 ## Plan
 
-### 1. Add timeout to auth check in `AiCeo.tsx`
-- Wrap the `getSession()` call with a `Promise.race` against a 5-second timeout
-- If it times out, set `isLoading = false` and show the landing page (HeroSection) instead of the spinner
-- This ensures unauthenticated users can still see the landing page even if the backend is slow
+### 1. Add timeout to `DatabaseView.tsx` connection check
+- Wrap the `getSession()` call and `user_connections` query in `Promise.race` with 5-second timeouts
+- On timeout, set `isCheckingConnection = false` and proceed (assume not connected)
 
-### 2. Add timeout to auth check in `Database.tsx`
-- Same timeout pattern for the `getSession()` call
-- If it times out, redirect to `/` (landing) rather than showing a spinner forever
-- This prevents authenticated users from being stuck on a blank loading screen
+### 2. Add timeout to `ConnectBusinessDNA.tsx` 
+- Wrap `getSession()` and the edge function fetch with timeouts
+- On timeout, set `isLoading = false` so the UI renders
 
-### 3. Add timeout to `BusinessDNAContext.tsx` data loading
-- The `loadEntities` function queries `user_business_data` which can also hang
-- Add a timeout so that if data loading takes too long, it stops loading and shows empty state rather than infinite spinner
+### 3. Add timeout to `useWorkspace.ts` loadWorkspaces
+- Wrap `getSession()` and `supabase.rpc("get_user_workspaces")` with timeouts
+- On timeout, set `isLoading = false` and return empty workspace list
 
-These changes ensure the app remains usable even when the backend is temporarily slow or unreachable.
+All timeouts will use the same `Promise.race` pattern already established in the codebase (5-8 second timeouts).
 
