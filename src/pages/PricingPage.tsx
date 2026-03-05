@@ -2,12 +2,32 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, ArrowLeft } from "lucide-react";
+import { Check, X, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 type BillingPeriod = "monthly" | "quarterly" | "annually";
+type PlanKey = "co_founder" | "aristotle" | "timewarp_og";
 
-const PRICES: Record<BillingPeriod, { co_founder: number; aristotle: number; timewarp_og: number }> = {
+const STRIPE_PRICES: Record<BillingPeriod, Record<PlanKey, string>> = {
+  monthly: {
+    co_founder: "price_1T7WhZGKbzbe9CQL2XgsQJ1i",
+    aristotle: "price_1T7WjHGKbzbe9CQLopjmOrkg",
+    timewarp_og: "price_1T7WkLGKbzbe9CQLd7zjQtl7",
+  },
+  quarterly: {
+    co_founder: "price_1T7WicGKbzbe9CQLJc2YAgFa",
+    aristotle: "price_1T7WjhGKbzbe9CQLt570pbGz",
+    timewarp_og: "price_1T7WkqGKbzbe9CQLtJEqLbQv",
+  },
+  annually: {
+    co_founder: "price_1T7WirGKbzbe9CQLlNxy4zyK",
+    aristotle: "price_1T7Wk6GKbzbe9CQLzECMgYMt",
+    timewarp_og: "price_1T7WltGKbzbe9CQLhNXfJ2Tf",
+  },
+};
+
+const PRICES: Record<BillingPeriod, Record<PlanKey, number>> = {
   monthly: { co_founder: 69, aristotle: 109, timewarp_og: 999 },
   quarterly: { co_founder: 62, aristotle: 98, timewarp_og: 899 },
   annually: { co_founder: 55, aristotle: 87, timewarp_og: 799 },
@@ -44,26 +64,88 @@ function FeatureValue({ value }: { value: string | boolean }) {
 export default function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
   const prices = PRICES[billing];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session);
+      if (session) {
+        checkSubscription();
+      }
     });
   }, []);
 
-  const handleGetStarted = (plan: string) => {
-    if (isLoggedIn) {
-      navigate("/app");
-    } else {
-      navigate("/auth?mode=signup");
+  const checkSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (error) throw error;
+      if (data?.plan) setCurrentPlan(data.plan);
+    } catch (e) {
+      console.error("Failed to check subscription:", e);
     }
+  };
+
+  const handleGetStarted = async (plan: PlanKey) => {
+    if (!isLoggedIn) {
+      navigate("/auth?mode=signup");
+      return;
+    }
+
+    if (currentPlan === plan) {
+      // Already on this plan, open customer portal
+      handleManageSubscription();
+      return;
+    }
+
+    setLoadingPlan(plan);
+    try {
+      const priceId = STRIPE_PRICES[billing][plan];
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { priceId },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (e: any) {
+      toast({
+        title: "Error",
+        description: e.message || "Failed to create checkout session",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (e: any) {
+      toast({
+        title: "Error",
+        description: e.message || "Failed to open subscription management",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getPlanButtonLabel = (plan: PlanKey) => {
+    if (currentPlan === plan) return "Manage Plan";
+    if (plan === "co_founder") return "Pre-order";
+    return "Get Started";
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="container mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" />
@@ -72,7 +154,6 @@ export default function PricingPage() {
       </div>
 
       <div className="container mx-auto px-4 pb-20">
-        {/* Title */}
         <div className="text-center mb-10">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Choose Your Plan</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -80,7 +161,6 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Billing Toggle */}
         <div className="flex justify-center mb-12">
           <div className="inline-flex items-center rounded-full bg-muted p-1 gap-1">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
@@ -102,10 +182,14 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Plan Cards */}
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {/* Co Founder */}
-          <div className="relative rounded-2xl border-2 border-border/60 bg-card p-7 flex flex-col">
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "co_founder" ? "border-green-500" : "border-border/60"} bg-card p-7 flex flex-col`}>
+            {currentPlan === "co_founder" && (
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <Badge className="bg-green-500 text-white border-green-500 px-4 py-1 text-xs">Your Plan</Badge>
+              </div>
+            )}
             <div className="mb-4">
               <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
                 Launching next month
@@ -125,18 +209,27 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full" onClick={() => handleGetStarted("co_founder")}>
-              Pre-order
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => handleGetStarted("co_founder")}
+              disabled={loadingPlan === "co_founder"}
+            >
+              {loadingPlan === "co_founder" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("co_founder")}
             </Button>
           </div>
 
           {/* Aristotle */}
-          <div className="relative rounded-2xl border-2 border-blue-500 bg-card p-7 flex flex-col scale-[1.02] z-10">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-              <Badge className="bg-blue-500 text-white border-blue-500 px-4 py-1 text-xs">
-                Most Popular
-              </Badge>
-            </div>
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-green-500" : "border-blue-500"} bg-card p-7 flex flex-col scale-[1.02] z-10`}>
+            {currentPlan === "aristotle" ? (
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <Badge className="bg-green-500 text-white border-green-500 px-4 py-1 text-xs">Your Plan</Badge>
+              </div>
+            ) : (
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <Badge className="bg-blue-500 text-white border-blue-500 px-4 py-1 text-xs">Most Popular</Badge>
+              </div>
+            )}
             <div className="mb-4">
               <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs">
                 Access today
@@ -156,13 +249,22 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white" onClick={() => handleGetStarted("aristotle")}>
-              Get Started
+            <Button
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+              onClick={() => handleGetStarted("aristotle")}
+              disabled={loadingPlan === "aristotle"}
+            >
+              {loadingPlan === "aristotle" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("aristotle")}
             </Button>
           </div>
 
           {/* TimeWarp OG */}
-          <div className="relative rounded-2xl border-2 border-border/60 bg-card p-7 flex flex-col">
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "timewarp_og" ? "border-green-500" : "border-border/60"} bg-card p-7 flex flex-col`}>
+            {currentPlan === "timewarp_og" && (
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <Badge className="bg-green-500 text-white border-green-500 px-4 py-1 text-xs">Your Plan</Badge>
+              </div>
+            )}
             <div className="mb-4">
               <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs">
                 Access today
@@ -182,8 +284,13 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full" onClick={() => handleGetStarted("timewarp_og")}>
-              Get Started
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => handleGetStarted("timewarp_og")}
+              disabled={loadingPlan === "timewarp_og"}
+            >
+              {loadingPlan === "timewarp_og" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("timewarp_og")}
             </Button>
           </div>
         </div>
