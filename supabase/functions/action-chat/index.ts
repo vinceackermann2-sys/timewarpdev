@@ -65,31 +65,50 @@ async function fetchUserBusinessContext(userId: string, workspaceId?: string): P
   return "";
 }
 
+function truncate(text: string, max: number): string {
+  if (!text || text.length <= max) return text;
+  return text.slice(0, max) + "... [truncated]";
+}
+
 function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  const MAX_ITEM_CHARS = 2000;
   let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+
   const bySource: Record<string, any[]> = {};
   for (const item of items) {
     const src = item.source || "unknown";
     if (!bySource[src]) bySource[src] = [];
     bySource[src].push(item);
   }
+
   for (const [source, sourceItems] of Object.entries(bySource)) {
-    context += `### Source: ${source} (${sourceItems.length} items)\n`;
+    const header = `### Source: ${source} (${sourceItems.length} items)\n`;
+    if (totalChars + header.length > MAX_CONTEXT_CHARS) break;
+    context += header;
+    totalChars += header.length;
+
     for (const item of sourceItems) {
-      context += `- **${item.title}** (${item.data_type})\n`;
+      let itemText = `- **${item.title}** (${item.data_type})\n`;
       if (item.analyzed_content) {
-        context += `  **Full Analysis:**\n${item.analyzed_content}\n\n`;
+        itemText += `  **Full Analysis:**\n${truncate(item.analyzed_content, MAX_ITEM_CHARS)}\n\n`;
       }
       if (item.content) {
-        context += `  **Full Content:**\n${item.content}\n\n`;
+        itemText += `  **Full Content:**\n${truncate(item.content, MAX_ITEM_CHARS)}\n\n`;
       }
       if (item.metadata) {
         const meta = typeof item.metadata === "string" ? item.metadata : JSON.stringify(item.metadata);
-        context += `  Metadata: ${meta.slice(0, 500)}\n`;
+        itemText += `  Metadata: ${meta.slice(0, 500)}\n`;
       }
+      if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+      context += itemText;
+      totalChars += itemText.length;
     }
     context += "\n";
+    totalChars += 1;
   }
+
   return context;
 }
 
@@ -185,6 +204,8 @@ When generating content, use real numbers, names, and details from the business 
 
     if (!response.ok) {
       const status = response.status;
+      const errorBody = await response.text().catch(() => "");
+      console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
