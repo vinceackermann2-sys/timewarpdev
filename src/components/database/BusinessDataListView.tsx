@@ -341,10 +341,30 @@ export function BusinessDataListView() {
         <p className="text-sm text-muted-foreground">
           All your connected business data in one place.
         </p>
-        <span className="text-xs text-primary flex items-center gap-1.5 font-medium">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          {items.length} items
-        </span>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".txt,.csv,.json,.md,.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+            Upload
+          </Button>
+          <span className="text-xs text-primary flex items-center gap-1.5 font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {items.length} items
+          </span>
+        </div>
       </div>
 
       {items.length === 0 ? (
