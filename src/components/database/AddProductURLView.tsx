@@ -196,7 +196,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6">
+    <div className="flex flex-col items-center justify-center h-full px-6 min-h-0">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
