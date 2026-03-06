@@ -10,9 +10,10 @@ const InviteAccept = () => {
   const [status, setStatus] = useState<"loading" | "success" | "error" | "auth">("loading");
   const [message, setMessage] = useState("");
   const token = searchParams.get("token");
+  const refCode = searchParams.get("ref");
 
   useEffect(() => {
-    if (!token) {
+    if (!token && !refCode) {
       setStatus("error");
       setMessage("Invalid invite link.");
       return;
@@ -26,32 +27,60 @@ const InviteAccept = () => {
         return;
       }
 
-      const { data, error } = await supabase.rpc("accept_workspace_invitation", {
-        _token: token,
-      });
+      // Handle workspace invitation
+      if (token) {
+        const { data, error } = await supabase.rpc("accept_workspace_invitation", {
+          _token: token,
+        });
 
-      if (error) {
-        setStatus("error");
-        setMessage(error.message);
-        return;
+        if (error) {
+          setStatus("error");
+          setMessage(error.message);
+          return;
+        }
+
+        const result = data as any;
+        if (result?.error) {
+          setStatus("error");
+          setMessage(result.error);
+        } else {
+          if (result?.workspace_id) {
+            localStorage.setItem("preferred_workspace_id", result.workspace_id);
+          }
+          setStatus("success");
+          setMessage("You've been added to the workspace!");
+        }
       }
 
-      const result = data as any;
-      if (result?.error) {
-        setStatus("error");
-        setMessage(result.error);
-      } else {
-        // Store the workspace they joined so useWorkspace picks it
-        if (result?.workspace_id) {
-          localStorage.setItem("preferred_workspace_id", result.workspace_id);
+      // Handle referral code (can coexist with invite)
+      if (refCode) {
+        try {
+          const { data: refResult } = await supabase.rpc("complete_referral", {
+            _referral_code: refCode,
+            _referred_user_id: session.user.id,
+          });
+          const rr = refResult as any;
+          if (rr?.success) {
+            if (!token) {
+              setStatus("success");
+              setMessage("Welcome! You've received 125 bonus Actions!");
+            }
+          } else if (rr?.error && !token) {
+            setStatus("error");
+            setMessage(rr.error);
+          }
+        } catch {
+          // Referral processing failed silently if invite succeeded
+          if (!token) {
+            setStatus("error");
+            setMessage("Failed to process referral.");
+          }
         }
-        setStatus("success");
-        setMessage("You've been added to the workspace!");
       }
     };
 
     accept();
-  }, [token]);
+  }, [token, refCode]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -59,7 +88,7 @@ const InviteAccept = () => {
         {status === "loading" && (
           <>
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <p className="text-muted-foreground">Accepting invitation...</p>
+            <p className="text-muted-foreground">Processing...</p>
           </>
         )}
         {status === "success" && (
@@ -72,7 +101,7 @@ const InviteAccept = () => {
         {status === "error" && (
           <>
             <XCircle className="h-12 w-12 text-destructive mx-auto" />
-            <h1 className="text-xl font-semibold">Invitation Failed</h1>
+            <h1 className="text-xl font-semibold">Something went wrong</h1>
             <p className="text-muted-foreground">{message}</p>
             <Button variant="outline" onClick={() => navigate("/")}>Go Home</Button>
           </>
@@ -80,7 +109,12 @@ const InviteAccept = () => {
         {status === "auth" && (
           <>
             <h1 className="text-xl font-semibold">{message}</h1>
-            <Button onClick={() => navigate(`/auth?redirect=/invite?token=${token}`)}>
+            <Button onClick={() => {
+              const params = new URLSearchParams();
+              if (token) params.set("redirect", `/invite?token=${token}`);
+              if (refCode) params.set("ref", refCode);
+              navigate(`/auth?${params.toString()}`);
+            }}>
               Sign In
             </Button>
           </>

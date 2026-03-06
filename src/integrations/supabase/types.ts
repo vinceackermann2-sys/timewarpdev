@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      referrals: {
+        Row: {
+          actions_granted: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_email: string
+          referred_user_id: string | null
+          referrer_id: string
+          status: string
+        }
+        Insert: {
+          actions_granted?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_email: string
+          referred_user_id?: string | null
+          referrer_id: string
+          status?: string
+        }
+        Update: {
+          actions_granted?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_email?: string
+          referred_user_id?: string | null
+          referrer_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       timewarp_chats: {
         Row: {
           ai_reply: string | null
@@ -313,6 +349,10 @@ export type Database = {
         Args: { _data_owner: string; _requesting_user: string }
         Returns: boolean
       }
+      complete_referral: {
+        Args: { _referral_code: string; _referred_user_id: string }
+        Returns: Json
+      }
       get_user_plan: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["subscription_plan"]
@@ -345,6 +385,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_actions_used: { Args: { _user_id: string }; Returns: Json }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean

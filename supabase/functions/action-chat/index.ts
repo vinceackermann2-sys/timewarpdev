@@ -122,17 +122,28 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
+
     // Fetch user's stored business data server-side
     let userContext = "";
+    let userId: string | null = null;
     if (authHeader) {
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false },
-      });
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user) {
+        userId = user.id;
+        // Check and increment action usage
+        const { data: actionResult } = await supabase.rpc("increment_actions_used", { _user_id: user.id });
+        const result = actionResult as any;
+        if (result && !result.allowed) {
+          return new Response(JSON.stringify({ error: result.reason || "Action limit reached. Upgrade your plan." }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         userContext = await fetchUserBusinessContext(user.id, workspaceId);
       }
     }

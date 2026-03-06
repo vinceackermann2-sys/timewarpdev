@@ -59,6 +59,18 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
     refetchInterval: 30000,
   });
 
+  // Fetch or create referral code
+  const { data: referralCode } = useQuery({
+    queryKey: ["referral-code"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("create-referral");
+      if (error) throw error;
+      return data?.referral_code as string;
+    },
+    enabled: open && activeTab === "refer",
+    staleTime: Infinity,
+  });
+
   const limit = plan ? ACTION_LIMITS[plan] ?? FREE_LIMIT : FREE_LIMIT;
   const isUnlimited = limit === Infinity;
   const remaining = isUnlimited ? Infinity : Math.max(0, limit - actionsUsed);
@@ -70,9 +82,9 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
     }
   }, [workspaces, selectedWsId]);
 
-  // Generate referral link based on selected workspace
-  const referralLink = selectedWsId
-    ? `${window.location.origin}/invite?ws=${selectedWsId}`
+  // Generate referral link using referral code
+  const referralLink = referralCode
+    ? `${window.location.origin}/auth?ref=${referralCode}`
     : "";
 
   const handleCopyLink = async () => {
