@@ -190,11 +190,7 @@ export default function PricingPage() {
                 <Badge className="bg-green-500 text-white border-green-500 px-4 py-1 text-xs">Your Plan</Badge>
               </div>
             )}
-            <div className="mb-4">
-              <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
-                Launching next month
-              </Badge>
-            </div>
+            <div className="mb-4" />
             <h3 className="text-xl font-bold mb-1">Co Founder</h3>
             <p className="text-muted-foreground text-sm mb-5">For early-stage founders getting started</p>
             <div className="mb-6">
@@ -230,11 +226,7 @@ export default function PricingPage() {
                 <Badge className="bg-blue-500 text-white border-blue-500 px-4 py-1 text-xs">Most Popular</Badge>
               </div>
             )}
-            <div className="mb-4">
-              <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs">
-                Access today
-              </Badge>
-            </div>
+            <div className="mb-4" />
             <h3 className="text-xl font-bold mb-1">Aristotle</h3>
             <p className="text-muted-foreground text-sm mb-5">For growing businesses scaling operations</p>
             <div className="mb-6">
@@ -265,9 +257,12 @@ export default function PricingPage() {
                 <Badge className="bg-green-500 text-white border-green-500 px-4 py-1 text-xs">Your Plan</Badge>
               </div>
             )}
-            <div className="mb-4">
-              <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs">
-                Access today
+            <div className="mb-4 flex gap-2">
+              <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+                Only 20 spots
+              </Badge>
+              <Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200 text-xs">
+                Ends April 1st
               </Badge>
             </div>
             <h3 className="text-xl font-bold mb-1">TimeWarp OG</h3>
