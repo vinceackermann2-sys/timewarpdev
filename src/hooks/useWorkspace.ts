@@ -30,7 +30,10 @@ export interface WorkspaceInvitation {
 
 export function useWorkspace() {
   const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([]);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  // Initialize from localStorage immediately to avoid waiting for RPC
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
+    () => localStorage.getItem("preferred_workspace_id")
+  );
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [invitations, setInvitations] = useState<WorkspaceInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
