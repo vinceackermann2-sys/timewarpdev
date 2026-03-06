@@ -13,7 +13,7 @@ import { AddProductURLView } from "@/components/database/AddProductURLView";
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2 } from "lucide-react";
 
-type View = "database" | "dataconversion" | "aiceo" | "businessdna";
+type View = "dataconversion" | "aiceo" | "businessdna";
 
 interface PendingTask {
   role: string;
@@ -26,7 +26,7 @@ const Database = () => {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentView, setCurrentView] = useState<View>("database");
+  const [currentView, setCurrentView] = useState<View>("businessdna");
   const [showBusinessDNA, setShowBusinessDNA] = useState(false);
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -86,7 +86,7 @@ const Database = () => {
   }
 
   const handleViewChange = (view: View) => {
-    if (!user && view !== "database") {
+    if (!user) {
       navigate("/auth?redirect=/app");
       return;
     }
@@ -103,7 +103,6 @@ const Database = () => {
         />
         <SidebarInset className="flex flex-col flex-1">
           <main className="flex-1 overflow-hidden">
-            {currentView === "database" && <DatabaseView />}
             {currentView === "dataconversion" && user && (
               <BusinessDNAProvider>
                 <DataConversionView />
