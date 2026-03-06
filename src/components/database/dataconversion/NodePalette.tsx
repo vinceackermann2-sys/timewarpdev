@@ -9,7 +9,6 @@ import { nodeIconMap, type NodeItem } from "./types";
 
 const quickAccessNodes: NodeItem[] = [
   { id: "business-db", label: "Business Database", description: "Synced business data" },
-  { id: "leads", label: "Leads", description: "Lead generation" },
   { id: "text", label: "Text", description: "Text input" },
   { id: "document", label: "Document", description: "Documents" },
   { id: "image", label: "Image", description: "Visual assets" },
