@@ -46,7 +46,8 @@ import {
   Sun,
   Moon,
   Monitor,
-  Globe,
+  Palette,
+  CreditCard,
   Check
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -222,13 +223,13 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   }, 100);
                 }}
               >
-                <Sparkles className="h-4 w-4 mr-2" />
+                <CreditCard className="h-4 w-4 mr-2" />
                 Plans & Billing
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="cursor-pointer">
-                  <Globe className="h-4 w-4 mr-2" />
+                  <Palette className="h-4 w-4 mr-2" />
                   Appearance
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
@@ -249,7 +250,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuSeparator />
+              
               <DropdownMenuItem 
                 className="cursor-pointer"
                 onClick={() => setFeedbackOpen(true)}
