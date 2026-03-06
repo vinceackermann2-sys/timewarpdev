@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import adEvoIcon from "@/assets/ad-evo-icon.svg";
+import { SvgPathLoader } from "@/components/ui/svg-path-loader";
 
 export interface InsightCard {
   icon: string;
@@ -95,7 +96,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
       {/* Name label with icon */}
       <div className="px-2 pt-2 pb-0.5 flex items-center gap-2">
         <div className={cn(
-            "relative h-8 w-8 flex-shrink-0",
+            "relative h-10 w-10 flex-shrink-0",
             isStreaming && !content ? "icon-thinking" : "",
             isStreaming && content ? "icon-streaming" : "",
             !isStreaming && content ? "icon-done" : ""
@@ -103,7 +104,13 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
           <img 
             src={adEvoIcon} 
             alt="" 
-            className="h-8 w-8"
+            className="h-10 w-10"
+          />
+          <SvgPathLoader 
+            size={44}
+            strokeWidth={2}
+            state={isStreaming && !content ? 'thinking' : isStreaming && content ? 'streaming' : !isStreaming && content ? 'done' : 'idle'}
+            className="text-primary"
           />
         </div>
         <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-widest">TimeWarp AI</span>
@@ -251,7 +258,6 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
       {/* Loading state */}
       {!content && !insightCards?.length && isStreaming && (
         <div className="px-4 py-4 flex items-center gap-2.5">
-          <img src={adEvoIcon} alt="" className="h-7 w-7 icon-thinking" />
           <span className="text-muted-foreground text-sm">Analyzing your data...</span>
         </div>
       )}
