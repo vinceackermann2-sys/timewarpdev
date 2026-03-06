@@ -7,6 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import adEvoIcon from "@/assets/ad-evo-icon.svg";
 
 export interface InsightCard {
   icon: string;
@@ -91,8 +92,18 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
   return (
     <div className="mr-4 rounded-xl overflow-hidden text-sm group/msg relative">
-      {/* Name label */}
-      <div className="px-2 pt-2 pb-0.5">
+      {/* Name label with icon */}
+      <div className="px-2 pt-2 pb-0.5 flex items-center gap-1.5">
+        <img 
+          src={adEvoIcon} 
+          alt="" 
+          className={cn(
+            "h-4 w-4 transition-all",
+            isStreaming && content ? "animate-spin" : "",
+            !isStreaming && content ? "opacity-100" : "",
+            isStreaming && !content ? "animate-spin opacity-30" : ""
+          )} 
+        />
         <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-widest">TimeWarp AI</span>
       </div>
       {/* Copy button */}
@@ -236,7 +247,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
       {/* Loading state */}
       {!content && !insightCards?.length && isStreaming && (
         <div className="px-4 py-4 flex items-center gap-2.5">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <img src={adEvoIcon} alt="" className="h-5 w-5 animate-spin opacity-30" />
           <span className="text-muted-foreground text-sm">Analyzing your data...</span>
         </div>
       )}
