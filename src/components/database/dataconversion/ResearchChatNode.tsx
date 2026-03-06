@@ -438,6 +438,7 @@ export function ResearchChatNode({
 
       {/* Chat messages */}
       <ScrollArea className="flex-1 p-3" ref={scrollRef}>
+        <div className={cn(isFullscreen && "max-w-3xl mx-auto")}>
         {isLoadingData ? (
           <div className="text-center text-muted-foreground py-8">
             <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin opacity-50" />
@@ -490,11 +491,12 @@ export function ResearchChatNode({
             </AnimatePresence>
           </div>
         )}
+        </div>
       </ScrollArea>
 
       {/* Input area */}
-      <div className="p-3 border-t border-border">
-        <div className="flex gap-2">
+      <div className={cn("p-3 border-t border-border", isFullscreen && "flex justify-center")}>
+        <div className={cn("flex gap-2", isFullscreen && "max-w-3xl w-full")}>
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
