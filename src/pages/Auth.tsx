@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import authBg from "@/assets/auth-bg.png";
+import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -21,6 +22,8 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationReason, setCelebrationReason] = useState<"referral" | "referred">("referred");
 
   const quizDataFromNav = (location.state as any)?.quizData;
   const quizData =
@@ -53,11 +56,15 @@ const Auth = () => {
       const storedRef = localStorage.getItem("referral_code");
       if (storedRef) {
         try {
-          await supabase.rpc("complete_referral", {
+          const { data } = await supabase.rpc("complete_referral", {
             _referral_code: storedRef,
             _referred_user_id: userId,
           });
           localStorage.removeItem("referral_code");
+          if (data && (data as any).success) {
+            setCelebrationReason("referred");
+            setShowCelebration(true);
+          }
         } catch { /* ignore referral errors */ }
       }
     };
@@ -213,7 +220,7 @@ const Auth = () => {
               {quizData
                 ? "Sign in with Google to let TimeWarp access your Docs, Sheets, and Gmail"
                 : isSignUp
-                  ? "Start your 14-day free trial of TimeWarp"
+                  ? "Get started with TimeWarp for free"
                   : "Log in to your TimeWarp account"}
             </p>
 
@@ -301,6 +308,15 @@ const Auth = () => {
           </div>
         </div>
       </div>
+      <ActionsCelebration
+        open={showCelebration}
+        onOpenChange={(open) => {
+          setShowCelebration(open);
+          if (!open) navigateToDashboard();
+        }}
+        actionsGranted={125}
+        reason={celebrationReason}
+      />
     </div>
   );
 };
