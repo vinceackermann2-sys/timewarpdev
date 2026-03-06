@@ -6,6 +6,7 @@ import {
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { extractSuggestions } from "@/lib/parseSuggestions";
+import adEvoIcon from "@/assets/ad-evo-icon.svg";
 
 export interface InsightCard {
   icon: string;
@@ -191,7 +192,7 @@ export function DatabaseChatMessage({ role, content, insightCards, isStreaming }
       {/* Loading state */}
       {!content && !insightCards?.length && isStreaming && (
         <div className="px-4 py-4 flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <img src={adEvoIcon} alt="" className="h-5 w-5 animate-spin opacity-30" />
           <span className="text-muted-foreground">Analyzing your data...</span>
         </div>
       )}
