@@ -394,7 +394,7 @@ export function BusinessDataListView() {
                     <div
                       key={item.id}
                       className={cn(
-                        "rounded-lg border border-border/40 transition-all cursor-pointer hover:border-primary/30",
+                        "group rounded-lg border border-border/40 transition-all cursor-pointer hover:border-primary/30",
                         isExpanded && "border-primary/40 bg-muted/30"
                       )}
                       onClick={() => setExpandedId(isExpanded ? null : item.id)}
@@ -408,9 +408,16 @@ export function BusinessDataListView() {
                           {item.is_analyzed && (
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500" title="Analyzed" />
                           )}
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                             {item.data_type}
                           </span>
+                          <button
+                            onClick={(e) => handleDeleteItem(e, item.id)}
+                            className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                            title="Delete"
+                          >
+                            {deletingId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          </button>
                           {isExpanded ? (
                             <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
                           ) : (
