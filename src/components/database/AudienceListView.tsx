@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
-  const { userName, products, audiences, setAudiences } = useBusinessDNA();
+  const { userName, products, audiences, setAudiences, deleteAudience } = useBusinessDNA();
   const [selectedAudienceId, setSelectedAudienceId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [url, setUrl] = useState("");
@@ -106,8 +106,8 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
     }
   };
 
-  const handleDelete = (id: string) => {
-    setAudiences(prev => prev.filter(a => a.id !== id));
+  const handleDelete = async (id: string) => {
+    await deleteAudience(id);
     if (selectedAudienceId === id) setSelectedAudienceId(null);
   };
 
