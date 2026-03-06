@@ -309,7 +309,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl h-[85vh] p-0 gap-0 bg-background border-border overflow-hidden">
+      <DialogContent className="sm:max-w-5xl h-[75vh] p-0 gap-0 bg-background border-border overflow-hidden">
         <div className="flex h-full">
           {/* Sidebar */}
           <div className="w-60 border-r border-border p-4 flex flex-col gap-1 shrink-0">
@@ -400,15 +400,6 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                           {isUpdatingPassword ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Updating...</> : "Update Password"}
                         </Button>
                       </div>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div>
-                    <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><Sun className="h-4 w-4" /> Appearance</h3>
-                    <div className="flex gap-2">
-                      <Button variant={theme === "light" ? "default" : "outline"} size="sm" onClick={() => setTheme("light")} className="flex-1 gap-2"><Sun className="h-4 w-4" /> Light</Button>
-                      <Button variant={theme === "dark" ? "default" : "outline"} size="sm" onClick={() => setTheme("dark")} className="flex-1 gap-2"><Moon className="h-4 w-4" /> Dark</Button>
-                      <Button variant={theme === "system" ? "default" : "outline"} size="sm" onClick={() => setTheme("system")} className="flex-1 gap-2"><Monitor className="h-4 w-4" /> System</Button>
                     </div>
                   </div>
                 </div>
