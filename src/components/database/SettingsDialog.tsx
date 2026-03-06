@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useWorkspace, WorkspaceMember, WorkspaceInvitation } from "@/hooks/useWorkspace";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Badge } from "@/components/ui/badge";
+import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 import {
   Select,
   SelectContent,
