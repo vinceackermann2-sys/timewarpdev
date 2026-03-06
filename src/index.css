@@ -286,6 +286,36 @@
   animation: stream-reveal 0.25s ease-out both;
 }
 
+/* AD_EVO icon color fill animation */
+@keyframes icon-color-fill {
+  0% {
+    filter: grayscale(1) brightness(0.4);
+    opacity: 0.3;
+  }
+  5% {
+    filter: grayscale(0.2) brightness(0.75);
+    opacity: 0.8;
+  }
+  100% {
+    filter: grayscale(0) brightness(1);
+    opacity: 1;
+  }
+}
+
+.icon-thinking {
+  animation: icon-color-fill 10s ease-out forwards;
+}
+
+.icon-streaming {
+  filter: grayscale(0) brightness(1);
+  opacity: 1;
+}
+
+.icon-done {
+  filter: grayscale(0) brightness(1);
+  opacity: 1;
+}
+
 
 @keyframes connector-extend-seamless {
   0% { opacity: 0; clip-path: circle(0% at 50% 50%); }

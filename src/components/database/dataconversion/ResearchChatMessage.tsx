@@ -98,9 +98,10 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
           src={adEvoIcon} 
           alt="" 
           className={cn(
-            "h-6 w-6 transition-all",
-            isStreaming ? "animate-spin" : "",
-            isStreaming && !content ? "opacity-30" : "opacity-100"
+            "h-8 w-8 transition-all",
+            isStreaming && !content ? "icon-thinking" : "",
+            isStreaming && content ? "icon-streaming" : "",
+            !isStreaming && content ? "icon-done" : ""
           )} 
         />
         <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-widest">TimeWarp AI</span>
@@ -248,7 +249,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
       {/* Loading state */}
       {!content && !insightCards?.length && isStreaming && (
         <div className="px-4 py-4 flex items-center gap-2.5">
-          <img src={adEvoIcon} alt="" className="h-5 w-5 animate-spin opacity-30" />
+          <img src={adEvoIcon} alt="" className="h-7 w-7 icon-thinking" />
           <span className="text-muted-foreground text-sm">Analyzing your data...</span>
         </div>
       )}
