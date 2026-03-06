@@ -4,7 +4,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sparkles, Inbox, Bell } from "lucide-react";
+import { Inbox, Bell } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -29,7 +29,7 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
           }`}
         >
           <div className="relative">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Inbox className="h-4 w-4 text-primary" />
             {unreadCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-primary text-[10px] font-medium rounded-full flex items-center justify-center text-primary-foreground">
                 {unreadCount}
