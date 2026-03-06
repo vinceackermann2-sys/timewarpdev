@@ -36,13 +36,15 @@ import {
   Settings,
   MessageSquare,
   Users,
-  ChevronUp,
+  ChevronsUpDown,
   User,
   Inbox,
   Bell,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  Globe,
+  Check
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { WhatsNewDropdown } from "./WhatsNewDropdown";
@@ -182,7 +184,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                       <p className="text-sm font-medium truncate">{userEmail}</p>
                       
                     </div>
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
                   </>
                 )}
               </button>
@@ -208,36 +210,42 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               </DropdownMenuItem>
               <DropdownMenuItem 
                 className="cursor-pointer"
-                onClick={() => setWorkspaceOpen(true)}
+                onClick={() => {
+                  setSettingsOpen(true);
+                  // Open to Plans & Billing tab
+                  setTimeout(() => {
+                    const event = new CustomEvent('settings-tab', { detail: 'billing' });
+                    window.dispatchEvent(event);
+                  }, 100);
+                }}
               >
-                <Users className="h-4 w-4 mr-2" />
-                Workspace
+                <Sparkles className="h-4 w-4 mr-2" />
+                Plans & Billing
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal py-1">Appearance</DropdownMenuLabel>
-              <div className="flex gap-1 px-2 pb-2">
-                <button
-                  onClick={() => setTheme("light")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors ${theme === "light" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-                >
-                  <Sun className="h-3.5 w-3.5" />
-                  Light
-                </button>
-                <button
-                  onClick={() => setTheme("dark")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors ${theme === "dark" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-                >
-                  <Moon className="h-3.5 w-3.5" />
-                  Dark
-                </button>
-                <button
-                  onClick={() => setTheme("system")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors ${theme === "system" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-                >
-                  <Monitor className="h-3.5 w-3.5" />
-                  Auto
-                </button>
-              </div>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                  <Globe className="h-4 w-4 mr-2" />
+                  Appearance
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer">
+                    <Sun className="h-4 w-4 mr-2" />
+                    Light
+                    {theme === "light" && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer">
+                    <Moon className="h-4 w-4 mr-2" />
+                    Dark
+                    {theme === "dark" && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer">
+                    <Monitor className="h-4 w-4 mr-2" />
+                    System theme
+                    {theme === "system" && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer"
