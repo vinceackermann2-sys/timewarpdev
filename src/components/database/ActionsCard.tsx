@@ -43,7 +43,7 @@ export function ActionsCard({ isCollapsed }: { isCollapsed: boolean }) {
         className="flex justify-center p-2 rounded-md hover:bg-accent transition-colors"
         title={isUnlimited ? "Unlimited actions" : `${remaining} actions remaining`}
       >
-        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
           <WandSparkles className="h-4 w-4 text-primary-foreground" />
         </div>
       </Link>
@@ -64,7 +64,7 @@ export function ActionsCard({ isCollapsed }: { isCollapsed: boolean }) {
               : `${remaining} actions remaining`}
           </p>
         </div>
-        <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0">
           <WandSparkles className="h-4.5 w-4.5 text-primary-foreground" />
         </div>
       </div>
