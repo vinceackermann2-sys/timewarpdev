@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      integration_requests: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          integration_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          integration_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          integration_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           actions_granted: boolean
