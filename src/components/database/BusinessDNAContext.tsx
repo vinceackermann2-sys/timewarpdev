@@ -59,6 +59,9 @@ interface BusinessDNAContextType {
   isLoading: boolean;
   activeWorkspaceId: string | null;
   setActiveWorkspaceId: (id: string | null) => void;
+  deleteBrand: (brandId: string) => Promise<void>;
+  deleteProduct: (productId: string) => Promise<void>;
+  deleteAudience: (audienceId: string) => Promise<void>;
 }
 
 const BusinessDNAContext = createContext<BusinessDNAContextType | null>(null);
@@ -177,6 +180,51 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     load();
   }, [activeWorkspaceId]);
 
+  // Direct delete functions that await DB deletion before updating state
+  const deleteBrand = async (brandId: string) => {
+    const brand = brands.find(b => b.id === brandId);
+    const brandProductIds = products.filter(p => p.brandId === brandId).map(p => p.id);
+    const affectedAudiences = audiences.filter(a => a.productIds?.some(pid => brandProductIds.includes(pid)));
+    const affectedProducts = products.filter(p => p.brandId === brandId);
+
+    // Delete from DB first (await all)
+    const deletePromises: Promise<any>[] = [];
+    if ((brand as any)?._rowId) deletePromises.push(deleteEntity((brand as any)._rowId));
+    affectedProducts.forEach(p => { if ((p as any)._rowId) deletePromises.push(deleteEntity((p as any)._rowId)); });
+    affectedAudiences.forEach(a => { if ((a as any)._rowId) deletePromises.push(deleteEntity((a as any)._rowId)); });
+    await Promise.all(deletePromises);
+
+    // Then update local state
+    const newAudiences = audiences.filter(a => !a.productIds?.some(pid => brandProductIds.includes(pid)));
+    const newProducts = products.filter(p => p.brandId !== brandId);
+    const newBrands = brands.filter(b => b.id !== brandId);
+    
+    setAudiencesState(newAudiences);
+    setPrevAudiences(newAudiences);
+    setProductsState(newProducts);
+    setPrevProducts(newProducts);
+    setBrandsState(newBrands);
+    setPrevBrands(newBrands);
+  };
+
+  const deleteProduct = async (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if ((product as any)?._rowId) await deleteEntity((product as any)._rowId);
+    
+    const newProducts = products.filter(p => p.id !== productId);
+    setProductsState(newProducts);
+    setPrevProducts(newProducts);
+  };
+
+  const deleteAudience = async (audienceId: string) => {
+    const audience = audiences.find(a => a.id === audienceId);
+    if ((audience as any)?._rowId) await deleteEntity((audience as any)._rowId);
+    
+    const newAudiences = audiences.filter(a => a.id !== audienceId);
+    setAudiencesState(newAudiences);
+    setPrevAudiences(newAudiences);
+  };
+
   // Sync brands to DB
   useEffect(() => {
     if (isLoading) return;
@@ -237,6 +285,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       isLoading,
       activeWorkspaceId,
       setActiveWorkspaceId,
+      deleteBrand,
+      deleteProduct,
+      deleteAudience,
     }}>
       {children}
     </BusinessDNAContext.Provider>

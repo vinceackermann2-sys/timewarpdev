@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Database, Loader2, CheckCircle2, FileText, Image, Globe, Type,
-  Mail, Video, Music, Table2, ChevronDown, ChevronUp, Plug, RefreshCw, HardDrive
+  Mail, Video, Music, Table2, ChevronDown, ChevronUp, Plug, RefreshCw, HardDrive,
+  Trash2, Upload, Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,9 @@ export function BusinessDataListView() {
   const [items, setItems] = useState<DataItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
   const [connectingProvider, setConnectingProvider] = useState(false);
@@ -172,6 +176,67 @@ export function BusinessDataListView() {
     setSyncingProvider(false);
   };
 
+  const handleDeleteItem = async (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    setDeletingId(itemId);
+    try {
+      await supabase.from("user_business_data").delete().eq("id", itemId);
+      setItems(prev => prev.filter(i => i.id !== itemId));
+      if (expandedId === itemId) setExpandedId(null);
+      toast.success("Data item deleted");
+    } catch {
+      toast.error("Failed to delete item");
+    }
+    setDeletingId(null);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) { toast.error("Please log in first"); setIsUploading(false); return; }
+
+      for (const file of Array.from(files)) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast.error(`${file.name} exceeds 10MB limit`);
+          continue;
+        }
+
+        const content = await file.text().catch(() => null);
+        const dataType = file.type.startsWith("image/") ? "image" 
+          : file.type === "application/pdf" ? "document"
+          : file.type.includes("spreadsheet") || file.type.includes("csv") ? "spreadsheet"
+          : "text";
+
+        const { data, error } = await supabase
+          .from("user_business_data")
+          .insert({
+            user_id: session.user.id,
+            title: file.name,
+            content: content || `[File: ${file.name}, Size: ${file.size} bytes]`,
+            data_type: dataType,
+            source: "upload",
+            is_analyzed: false,
+            workspace_id: localStorage.getItem("preferred_workspace_id"),
+          })
+          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+          .single();
+
+        if (!error && data) {
+          setItems(prev => [data, ...prev]);
+        }
+      }
+      toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
+    } catch {
+      toast.error("Upload failed");
+    }
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   // Calculate data usage
   const totalBytes = items.reduce((sum, item) => {
     return sum + (item.content?.length || 0) + (item.analyzed_content?.length || 0) + (item.title?.length || 0);
@@ -276,10 +341,30 @@ export function BusinessDataListView() {
         <p className="text-sm text-muted-foreground">
           All your connected business data in one place.
         </p>
-        <span className="text-xs text-primary flex items-center gap-1.5 font-medium">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          {items.length} items
-        </span>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".txt,.csv,.json,.md,.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+            Upload
+          </Button>
+          <span className="text-xs text-primary flex items-center gap-1.5 font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {items.length} items
+          </span>
+        </div>
       </div>
 
       {items.length === 0 ? (
@@ -309,7 +394,7 @@ export function BusinessDataListView() {
                     <div
                       key={item.id}
                       className={cn(
-                        "rounded-lg border border-border/40 transition-all cursor-pointer hover:border-primary/30",
+                        "group rounded-lg border border-border/40 transition-all cursor-pointer hover:border-primary/30",
                         isExpanded && "border-primary/40 bg-muted/30"
                       )}
                       onClick={() => setExpandedId(isExpanded ? null : item.id)}
@@ -323,9 +408,16 @@ export function BusinessDataListView() {
                           {item.is_analyzed && (
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500" title="Analyzed" />
                           )}
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                             {item.data_type}
                           </span>
+                          <button
+                            onClick={(e) => handleDeleteItem(e, item.id)}
+                            className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                            title="Delete"
+                          >
+                            {deletingId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          </button>
                           {isExpanded ? (
                             <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
                           ) : (

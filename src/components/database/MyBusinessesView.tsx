@@ -31,7 +31,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
   const [wsPopoverOpen, setWsPopoverOpen] = useState(false);
   const [showNewWsInput, setShowNewWsInput] = useState(false);
   const [newWsName, setNewWsName] = useState("");
-  const { brands, setBrands, products, setProducts, audiences, setAudiences, isLoading: dnaLoading } = useBusinessDNA();
+  const { brands, setBrands, products, setProducts, audiences, setAudiences, deleteBrand, isLoading: dnaLoading } = useBusinessDNA();
   const {
     workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace, createWorkspace,
     members, isLoading: wsLoading,
@@ -68,12 +68,9 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
     return () => { cancelled = true; };
   }, [activeWorkspaceId, brands]);
 
-  const handleDeleteBusiness = (e: React.MouseEvent, brandId: string) => {
+  const handleDeleteBusiness = async (e: React.MouseEvent, brandId: string) => {
     e.stopPropagation();
-    const brandProductIds = products.filter(p => p.brandId === brandId).map(p => p.id);
-    setAudiences(prev => prev.filter(a => !a.productIds?.some(pid => brandProductIds.includes(pid))));
-    setProducts(prev => prev.filter(p => p.brandId !== brandId));
-    setBrands(prev => prev.filter(b => b.id !== brandId));
+    await deleteBrand(brandId);
   };
 
   const isOwner = activeWorkspace?.role === "owner";

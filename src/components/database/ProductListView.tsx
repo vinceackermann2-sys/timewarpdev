@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
-  const { userName, brands, products, setProducts, audiences } = useBusinessDNA();
+  const { userName, brands, products, setProducts, audiences, deleteProduct } = useBusinessDNA();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [url, setUrl] = useState("");
@@ -125,8 +125,8 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
     }
   };
 
-  const handleDelete = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
+  const handleDelete = async (id: string) => {
+    await deleteProduct(id);
     if (selectedProductId === id) setSelectedProductId(null);
   };
 
