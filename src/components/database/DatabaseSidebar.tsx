@@ -51,7 +51,7 @@ import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 
-type View = "database" | "dataconversion" | "aiceo" | "businessdna";
+type View = "dataconversion" | "aiceo" | "businessdna";
 
 interface DatabaseSidebarProps {
   currentView: View;
@@ -119,17 +119,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
             {!isCollapsed && <SidebarGroupLabel>Workspace</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    isActive={currentView === "database"}
-                    onClick={() => onViewChange("database")}
-                    tooltip="Database"
-                    className={currentView === "database" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
-                  >
-                    <Database className="h-4 w-4" />
-                    {!isCollapsed && <span>Database</span>}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     isActive={currentView === "dataconversion"}
