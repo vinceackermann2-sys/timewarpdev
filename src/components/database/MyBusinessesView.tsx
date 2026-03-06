@@ -7,11 +7,10 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import startBusinessBg from "@/assets/start-business-bg.png";
 import addBusinessBg from "@/assets/add-business-bg.png";
 import { useBusinessDNA, BrandEntry } from "./BusinessDNAContext";
@@ -28,27 +27,33 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
   const [search, setSearch] = useState("");
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
+  const [wsSearch, setWsSearch] = useState("");
+  const [wsPopoverOpen, setWsPopoverOpen] = useState(false);
+  const [showNewWsInput, setShowNewWsInput] = useState(false);
+  const [newWsName, setNewWsName] = useState("");
   const { brands, setBrands, products, setProducts, audiences, setAudiences, isLoading: dnaLoading } = useBusinessDNA();
   const {
-    workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace,
+    workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace, createWorkspace,
     members, isLoading: wsLoading,
   } = useWorkspace();
   const [wsBusinesses, setWsBusinesses] = useState<BrandEntry[]>([]);
   const [loadingBiz, setLoadingBiz] = useState(false);
 
-  // Load businesses for the active workspace
+  // Load businesses for the active workspace — start immediately with cached ID
   useEffect(() => {
     if (!activeWorkspaceId) { setWsBusinesses([]); return; }
 
+    let cancelled = false;
     async function load() {
       setLoadingBiz(true);
       const { data, error } = await supabase
         .from("user_business_data")
-        .select("*")
+        .select("id, content, user_id")
         .eq("workspace_id", activeWorkspaceId!)
         .eq("data_type", "brand")
         .eq("source", "business-dna");
 
+      if (cancelled) return;
       if (!error && data) {
         const parsed = data.map((row) => {
           try {
@@ -60,6 +65,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
       setLoadingBiz(false);
     }
     load();
+    return () => { cancelled = true; };
   }, [activeWorkspaceId, brands]);
 
   const handleDeleteBusiness = (e: React.MouseEvent, brandId: string) => {
@@ -71,7 +77,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
   };
 
   const isOwner = activeWorkspace?.role === "owner";
-  const isLoading = wsLoading || (!activeWorkspaceId && workspaces.length === 0);
+  const isLoading = wsLoading && !activeWorkspaceId;
 
   // Show loader while workspace is being auto-selected
   if (isLoading) {
@@ -92,33 +98,99 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
       <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-4 w-full max-w-3xl">
         <div className="flex items-center gap-3">
           {/* Workspace Switcher */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <Popover open={wsPopoverOpen} onOpenChange={setWsPopoverOpen}>
+            <PopoverTrigger asChild>
               <Button variant="ghost" className="gap-2 px-3 h-9 max-w-[220px]">
-                <Building2 className="h-4 w-4 text-primary shrink-0" />
+                <div className="h-6 w-6 rounded-md bg-foreground flex items-center justify-center flex-shrink-0">
+                  <span className="text-[10px] font-bold text-background">
+                    {(activeWorkspace?.workspaceName || "W").charAt(0).toUpperCase()}
+                  </span>
+                </div>
                 <span className="truncate text-sm font-semibold">{activeWorkspace?.workspaceName || "Workspace"}</span>
                 <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              {workspaces.map(ws => (
-                <DropdownMenuItem
-                  key={ws.workspaceId}
-                  onClick={() => selectWorkspace(ws.workspaceId)}
-                  className="flex items-center justify-between"
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64 p-0">
+              {/* Search */}
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50">
+                <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Find workspace..."
+                  value={wsSearch}
+                  onChange={(e) => setWsSearch(e.target.value)}
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+
+              {/* Workspace list */}
+              <div className="py-1.5 max-h-[200px] overflow-y-auto">
+                {workspaces
+                  .filter(ws => ws.workspaceName.toLowerCase().includes(wsSearch.toLowerCase()))
+                  .map(ws => (
+                    <button
+                      key={ws.workspaceId}
+                      onClick={() => { selectWorkspace(ws.workspaceId); setWsPopoverOpen(false); setWsSearch(""); }}
+                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="h-8 w-8 rounded-md bg-foreground flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-background">
+                          {ws.workspaceName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-sm font-medium truncate">{ws.workspaceName}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {ws.memberCount > 1 ? "Team workspace" : "Personal workspace"}
+                        </p>
+                      </div>
+                      {ws.workspaceId === activeWorkspaceId && (
+                        <Check className="h-4 w-4 text-foreground shrink-0" />
+                      )}
+                    </button>
+                  ))}
+              </div>
+
+              {/* Footer actions */}
+              <div className="border-t border-border/50 py-1.5">
+                <button
+                  onClick={() => { setWsPopoverOpen(false); setShowWorkspaceSettings(true); }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors text-foreground"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="truncate text-sm">{ws.workspaceName}</span>
-                    <span className="text-[10px] text-muted-foreground capitalize shrink-0">{ws.role}</span>
+                  See all workspaces
+                </button>
+                {showNewWsInput ? (
+                  <div className="px-3 py-2 flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Workspace name"
+                      value={newWsName}
+                      onChange={(e) => setNewWsName(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter" && newWsName.trim()) {
+                          const id = await createWorkspace(newWsName.trim());
+                          selectWorkspace(id);
+                          setNewWsName("");
+                          setShowNewWsInput(false);
+                          setWsPopoverOpen(false);
+                        }
+                      }}
+                      autoFocus
+                      className="flex-1 bg-transparent text-sm outline-none border-b border-border pb-0.5 placeholder:text-muted-foreground"
+                    />
                   </div>
-                  {ws.workspaceId === activeWorkspaceId && (
-                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                ) : (
+                  <button
+                    onClick={() => setShowNewWsInput(true)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors text-foreground flex items-center gap-1.5"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add new workspace
+                  </button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
 
           <div className="flex-1" />
 
