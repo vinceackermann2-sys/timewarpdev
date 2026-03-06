@@ -243,13 +243,7 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
 
           {/* Request Integration */}
           <div className="text-center mb-4">
-            <a
-              href="mailto:support@timewarp.ai?subject=Integration%20Request&body=Hi%2C%20I%20would%20like%20to%20request%20an%20integration%20with%3A%20"
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Mail className="h-3.5 w-3.5" />
-              Request an integration
-            </a>
+            <IntegrationRequestDialog />
           </div>
 
           {/* Actions */}

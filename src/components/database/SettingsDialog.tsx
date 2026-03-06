@@ -662,9 +662,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                       );
                     })}
                   </div>
-                  <a href="mailto:support@timewarp.ai?subject=Integration%20Request" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                    <MailPlus className="h-3.5 w-3.5" /> Request an integration
-                  </a>
+                  <IntegrationRequestDialog />
                 </div>
               )}
             </div>
