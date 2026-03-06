@@ -286,34 +286,45 @@
   animation: stream-reveal 0.25s ease-out both;
 }
 
-/* AD_EVO icon color fill animation */
+/* AD_EVO icon color fill animation — path style */
 @keyframes icon-color-fill {
   0% {
-    filter: grayscale(1) brightness(0.4);
-    opacity: 0.3;
+    filter: grayscale(1) brightness(0.3);
+    opacity: 0.4;
+    clip-path: inset(100% 0 0 0);
   }
-  5% {
-    filter: grayscale(0.2) brightness(0.75);
+  3% {
+    clip-path: inset(20% 0 0 0);
+    filter: grayscale(0.3) brightness(0.7);
     opacity: 0.8;
+  }
+  8% {
+    clip-path: inset(0 0 0 0);
+    filter: grayscale(0.2) brightness(0.8);
+    opacity: 0.85;
   }
   100% {
     filter: grayscale(0) brightness(1);
     opacity: 1;
+    clip-path: inset(0 0 0 0);
   }
 }
 
 .icon-thinking {
-  animation: icon-color-fill 10s ease-out forwards;
+  animation: icon-color-fill 12s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
 }
 
 .icon-streaming {
   filter: grayscale(0) brightness(1);
   opacity: 1;
+  clip-path: inset(0 0 0 0);
+  transition: filter 0.4s ease, opacity 0.4s ease;
 }
 
 .icon-done {
   filter: grayscale(0) brightness(1);
   opacity: 1;
+  clip-path: inset(0 0 0 0);
 }
 
 

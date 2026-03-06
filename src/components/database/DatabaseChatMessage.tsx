@@ -70,7 +70,7 @@ const iconMap: Record<string, React.ReactNode> = {
 export function DatabaseChatMessage({ role, content, insightCards, isStreaming }: DatabaseChatMessageProps) {
   if (role === "user") {
     return (
-      <div className="bg-primary text-primary-foreground ml-auto max-w-[70%] rounded-2xl rounded-br-md px-4 py-2 text-xs">
+      <div className="bg-primary text-primary-foreground ml-auto max-w-[60%] rounded-full px-3 py-1 text-[11px]">
         {content}
       </div>
     );
