@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Globe, ArrowRight, Sparkles, Loader2, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
+
+const URL_EXAMPLES = [
+  "nike.com/air-max-90",
+  "apple.com/iphone-16-pro",
+  "tesla.com/model-3",
+  "dyson.com/airwrap",
+  "allbirds.com/tree-runners",
+  "glossier.com/boy-brow",
+  "notion.so/product",
+  "figma.com/pricing",
+];
 
 interface AddProductURLViewProps {
   onBack: () => void;
@@ -21,8 +32,17 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [isDone, setIsDone] = useState(false);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const { toast } = useToast();
   const { setBrands, setProducts, setAudiences } = useBusinessDNA();
+
+  useEffect(() => {
+    if (url || isLoading) return;
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % URL_EXAMPLES.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [url, isLoading]);
 
   const handleContinue = async () => {
     if (!url.trim()) return;
@@ -48,7 +68,6 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
 
       const extracted = data.extracted;
 
-      // Create brand
       if (extracted.brand?.name) {
         const b = extracted.brand;
         const newBrand: BrandEntry = {
@@ -65,7 +84,6 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
         setBrands(prev => [...prev, newBrand]);
       }
 
-      // Create product
       const p = extracted.product || {};
       const newProduct: ProductEntry = {
         ...DEFAULT_PRODUCT,
@@ -119,10 +137,8 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
       };
       setProducts(prev => [...prev, newProduct]);
 
-      // If we created a new brand, use its id for the callback
       const finalBrandId = activeBrandId || (extracted.brand?.name ? brandId : undefined);
 
-      // Create audience
       if (extracted.audience?.name) {
         const a = extracted.audience;
         const newAudience: AudienceEntry = {
@@ -184,7 +200,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl text-center space-y-6"
+        className="w-full max-w-2xl text-center space-y-8"
       >
         {/* Back button */}
         <div className="flex justify-start w-full">
@@ -194,31 +210,63 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
           </Button>
         </div>
 
-        {/* Title */}
-        <div className="space-y-2">
+        {/* Title — centered with more space */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="space-y-3 py-4"
+        >
+          <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
+            <Globe className="h-7 w-7 text-primary" />
+          </div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
             Add a new product
           </h1>
-          <p className="text-muted-foreground">
-            Paste your product page URL above to find and research it.
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Paste your product page URL and we'll extract everything automatically.
           </p>
-        </div>
+        </motion.div>
 
         {/* URL Input Card */}
-        <div className="rounded-2xl bg-muted/40 border border-border/40 p-3">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          className="rounded-2xl bg-muted/40 border border-border/40 p-3"
+        >
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <Globe className="h-6 w-6 text-primary/70" />
             </div>
-            <Input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="yourstore.com/blue-hoodie"
-              className="flex-1 h-12 text-base border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50"
-              disabled={isLoading}
-              onKeyDown={(e) => e.key === "Enter" && handleContinue()}
-            />
+            <div className="relative flex-1">
+              <Input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder=" "
+                className="flex-1 h-12 text-base border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                disabled={isLoading}
+                onKeyDown={(e) => e.key === "Enter" && handleContinue()}
+              />
+              {/* Animated placeholder */}
+              {!url && (
+                <div className="absolute inset-0 flex items-center pointer-events-none pl-3">
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={placeholderIndex}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 0.4, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-base text-muted-foreground"
+                    >
+                      {URL_EXAMPLES[placeholderIndex]}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              )}
+            </div>
             <Button
               onClick={handleContinue}
               disabled={!url.trim() || isLoading}
@@ -242,7 +290,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
               Link to a specific product for faster results
             </span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Status */}
         <AnimatePresence>
