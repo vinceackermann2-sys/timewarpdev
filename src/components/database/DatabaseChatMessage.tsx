@@ -70,7 +70,7 @@ const iconMap: Record<string, React.ReactNode> = {
 export function DatabaseChatMessage({ role, content, insightCards, isStreaming }: DatabaseChatMessageProps) {
   if (role === "user") {
     return (
-      <div className="bg-primary text-primary-foreground ml-auto max-w-[60%] rounded-full px-3 py-1 text-[11px]">
+      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] rounded-lg px-3 py-1.5 text-[12px] font-medium">
         {content}
       </div>
     );
@@ -92,16 +92,18 @@ export function DatabaseChatMessage({ role, content, insightCards, isStreaming }
     <div className="bg-card/80 backdrop-blur border border-border/50 max-w-[80%] rounded-2xl rounded-bl-md overflow-hidden text-sm">
       {/* Name label with icon */}
       <div className="px-4 pt-3 pb-0.5 flex items-center gap-2">
-        <img 
-          src={adEvoIcon} 
-          alt="" 
-          className={cn(
-            "h-8 w-8 transition-all",
+        <div className={cn(
+            "relative h-8 w-8 flex-shrink-0",
             isStreaming && !content ? "icon-thinking" : "",
             isStreaming && content ? "icon-streaming" : "",
             !isStreaming && content ? "icon-done" : ""
-          )} 
-        />
+          )}>
+          <img 
+            src={adEvoIcon} 
+            alt="" 
+            className="h-8 w-8"
+          />
+        </div>
         <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-widest">TimeWarp AI</span>
       </div>
       {/* Insight Cards Grid */}
