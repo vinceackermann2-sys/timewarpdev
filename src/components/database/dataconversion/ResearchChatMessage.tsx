@@ -65,7 +65,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
   if (role === "user") {
     return (
-      <div className="bg-primary text-primary-foreground ml-8 rounded-lg px-3 py-2 text-sm">
+      <div className="bg-primary text-primary-foreground ml-12 rounded-lg px-3 py-1.5 text-xs">
         {content}
       </div>
     );
@@ -93,15 +93,14 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
   return (
     <div className="mr-4 rounded-xl overflow-hidden text-sm group/msg relative">
       {/* Name label with icon */}
-      <div className="px-2 pt-2 pb-0.5 flex items-center gap-1.5">
+      <div className="px-2 pt-2 pb-0.5 flex items-center gap-2">
         <img 
           src={adEvoIcon} 
           alt="" 
           className={cn(
-            "h-4 w-4 transition-all",
-            isStreaming && content ? "animate-spin" : "",
-            !isStreaming && content ? "opacity-100" : "",
-            isStreaming && !content ? "animate-spin opacity-30" : ""
+            "h-6 w-6 transition-all",
+            isStreaming ? "animate-spin" : "",
+            isStreaming && !content ? "opacity-30" : "opacity-100"
           )} 
         />
         <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-widest">TimeWarp AI</span>
