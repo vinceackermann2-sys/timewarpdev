@@ -37,17 +37,7 @@ export function ActionsCard({ isCollapsed }: { isCollapsed: boolean }) {
   const isLow = !isUnlimited && remaining <= Math.ceil(limit * 0.2);
 
   if (isCollapsed) {
-    return (
-      <Link
-        to="/pricing"
-        className="flex justify-center p-2 rounded-md hover:bg-accent transition-colors"
-        title={isUnlimited ? "Unlimited actions" : `${remaining} actions remaining`}
-      >
-        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-          <WandSparkles className="h-4 w-4 text-primary-foreground" />
-        </div>
-      </Link>
-    );
+    return null;
   }
 
   return (
