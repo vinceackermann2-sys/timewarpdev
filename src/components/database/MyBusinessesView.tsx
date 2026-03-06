@@ -292,7 +292,7 @@ function WorkspaceFooter() {
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-foreground">Resources</h4>
               <ul className="space-y-1.5">
-                <li><a href="mailto:support@nxtrinity.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Support</a></li>
+                <li><Link to="/support" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Support</Link></li>
               </ul>
             </div>
             <div className="space-y-2">
