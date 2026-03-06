@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { useEffect } from "react";
 import TimewarpOG from "./pages/TimewarpOG";
 import Auth from "./pages/Auth";
 import Database from "./pages/Database";
@@ -14,6 +15,20 @@ import TermsOfPurchase from "./pages/TermsOfPurchase";
 import InviteAccept from "./pages/InviteAccept";
 import PricingPage from "./pages/PricingPage";
 import Support from "./pages/Support";
+
+// Preload key images so they're cached before navigation
+import authBg from "@/assets/auth-bg.png";
+import startBusinessBg from "@/assets/start-business-bg.png";
+import addBusinessBg from "@/assets/add-business-bg.png";
+
+function usePreloadImages(srcs: string[]) {
+  useEffect(() => {
+    srcs.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
+}
 
 const queryClient = new QueryClient();
 
