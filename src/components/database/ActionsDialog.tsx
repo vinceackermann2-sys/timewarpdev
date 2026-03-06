@@ -197,7 +197,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
             <div className="space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <p className="text-sm text-muted-foreground">
-                  Give 125 Actions and earn 125 Actions for each new referral who signs up and joins your workspace.
+                  Give 125 Actions and earn 125 Actions for each new referral who signs up. Actions are personal and tied to your account.
                 </p>
                 <span className="shrink-0 text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
                   +125 Actions
@@ -206,24 +206,6 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
               <p className="text-xs text-muted-foreground">
                 (Free accounts can have up to 250 Actions at once)
               </p>
-
-              {workspaces.length > 1 && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Organization</label>
-                  <Select value={selectedWsId} onValueChange={setSelectedWsId}>
-                    <SelectTrigger className="bg-muted/30">
-                      <SelectValue placeholder="Select an organization" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {workspaces.map((ws) => (
-                        <SelectItem key={ws.workspaceId} value={ws.workspaceId}>
-                          {ws.workspaceName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
               <div className="flex gap-2">
                 <Input
@@ -272,11 +254,8 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
 
               <div className="flex items-start justify-between gap-4">
                 <p className="text-sm text-muted-foreground">
-                  Give 125 Actions and earn 125 Actions for each new referral who signs up and joins your workspace.
+                  Invite team members to collaborate. Each member has their own individual Actions balance.
                 </p>
-                <span className="shrink-0 text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
-                  +125 Actions
-                </span>
               </div>
 
               <p className="text-xs text-muted-foreground">
