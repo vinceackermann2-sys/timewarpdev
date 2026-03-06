@@ -286,23 +286,24 @@
   animation: stream-reveal 0.25s ease-out both;
 }
 
-/* AD_EVO icon states */
-.icon-thinking {
-  filter: grayscale(0.5) brightness(0.7);
-  opacity: 0.8;
-  transition: filter 0.4s ease, opacity 0.4s ease;
+/* Shimmer text animation for loading state */
+@keyframes textShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
-.icon-streaming {
-  filter: grayscale(0) brightness(1);
-  opacity: 1;
-  transition: filter 0.4s ease, opacity 0.4s ease;
-}
-
-.icon-done {
-  filter: grayscale(0) brightness(1);
-  opacity: 1;
-  transition: filter 0.3s ease, opacity 0.3s ease;
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary) / 0.4) 0%,
+    hsl(var(--primary)) 50%,
+    hsl(var(--primary) / 0.4) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 2s linear infinite;
 }
 
 
