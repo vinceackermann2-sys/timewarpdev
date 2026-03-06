@@ -65,7 +65,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
   if (role === "user") {
     return (
-      <div className="bg-primary text-primary-foreground ml-12 rounded-lg px-3 py-1.5 text-xs">
+      <div className="bg-primary text-primary-foreground ml-auto max-w-[60%] rounded-full px-3 py-1 text-[11px]">
         {content}
       </div>
     );
