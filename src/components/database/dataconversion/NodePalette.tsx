@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Building2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { nodeIconMap, type NodeItem } from "./types";
@@ -97,8 +98,8 @@ interface NodePaletteProps {
 }
 
 export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
-  const { brands } = useBusinessDNA();
-  const { workspaces, activeWorkspaceId, selectWorkspace } = useWorkspace();
+  const { brands, isLoading: brandsLoading } = useBusinessDNA();
+  const { workspaces, activeWorkspaceId, selectWorkspace, isLoading: workspacesLoading } = useWorkspace();
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
 
   return (
@@ -148,38 +149,51 @@ export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
           <div>
             <p className="text-sm font-semibold mb-2">Workspace</p>
             <div className="space-y-1">
-              {workspaces.map(ws => (
-                <button
-                  key={ws.workspaceId}
-                  onClick={() => selectWorkspace(ws.workspaceId)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150",
-                    activeWorkspaceId === ws.workspaceId
-                      ? "bg-primary/10 border border-primary/30"
-                      : "hover:bg-accent/50 border border-transparent"
-                  )}
-                >
-                  <div className={cn(
-                    "h-7 w-7 rounded-md flex items-center justify-center shrink-0 text-xs font-bold",
-                    activeWorkspaceId === ws.workspaceId
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  )}>
-                    {ws.workspaceName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{ws.workspaceName}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {ws.role === "owner" ? "Owner" : "Member"} · {ws.memberCount} {ws.memberCount === 1 ? "member" : "members"}
-                    </p>
-                  </div>
-                  {activeWorkspaceId === ws.workspaceId && (
-                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                  )}
-                </button>
-              ))}
-              {workspaces.length === 0 && (
+              {workspacesLoading ? (
+                <>
+                  {[1, 2].map(i => (
+                    <div key={i} className="flex items-center gap-2.5 px-2.5 py-2">
+                      <Skeleton className="h-7 w-7 rounded-md" />
+                      <div className="flex-1 space-y-1">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-2.5 w-16" />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : workspaces.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">No workspaces</p>
+              ) : (
+                workspaces.map(ws => (
+                  <button
+                    key={ws.workspaceId}
+                    onClick={() => selectWorkspace(ws.workspaceId)}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150",
+                      activeWorkspaceId === ws.workspaceId
+                        ? "bg-primary/10 border border-primary/30"
+                        : "hover:bg-accent/50 border border-transparent"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-7 w-7 rounded-md flex items-center justify-center shrink-0 text-xs font-bold",
+                      activeWorkspaceId === ws.workspaceId
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    )}>
+                      {ws.workspaceName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{ws.workspaceName}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {ws.role === "owner" ? "Owner" : "Member"} · {ws.memberCount} {ws.memberCount === 1 ? "member" : "members"}
+                      </p>
+                    </div>
+                    {activeWorkspaceId === ws.workspaceId && (
+                      <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                    )}
+                  </button>
+                ))
               )}
             </div>
           </div>
@@ -188,7 +202,19 @@ export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
           <div>
             <p className="text-sm font-semibold mb-2">Business</p>
             <div className="space-y-1">
-              {brands.length === 0 ? (
+              {brandsLoading ? (
+                <>
+                  {[1, 2].map(i => (
+                    <div key={i} className="flex items-center gap-2.5 px-2.5 py-2">
+                      <Skeleton className="h-7 w-7 rounded-md" />
+                      <div className="flex-1 space-y-1">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-2.5 w-14" />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : brands.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">No businesses added yet</p>
               ) : (
                 brands.map(brand => (
