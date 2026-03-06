@@ -59,6 +59,9 @@ interface BusinessDNAContextType {
   isLoading: boolean;
   activeWorkspaceId: string | null;
   setActiveWorkspaceId: (id: string | null) => void;
+  deleteBrand: (brandId: string) => Promise<void>;
+  deleteProduct: (productId: string) => Promise<void>;
+  deleteAudience: (audienceId: string) => Promise<void>;
 }
 
 const BusinessDNAContext = createContext<BusinessDNAContextType | null>(null);
