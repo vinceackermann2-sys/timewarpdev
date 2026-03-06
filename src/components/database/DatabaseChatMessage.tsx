@@ -124,14 +124,16 @@ export function DatabaseChatMessage({ role, content, insightCards, isStreaming }
 
       {/* Main Content with Markdown */}
       {content && (
-        <div className="px-4 py-3 leading-relaxed prose prose-sm prose-invert max-w-none 
-          prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-2
-          prose-h3:text-sm prose-h3:flex prose-h3:items-center prose-h3:gap-2
-          prose-p:text-foreground/90 prose-p:my-2
-          prose-strong:text-primary prose-strong:font-semibold
-          prose-ul:my-2 prose-ul:pl-0 prose-ul:list-none
-          prose-li:text-foreground/90 prose-li:my-1 prose-li:pl-0
-        ">
+        <div className={cn(
+          "px-4 py-3 leading-relaxed prose prose-sm prose-invert max-w-none",
+          "prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-2",
+          "prose-h3:text-sm prose-h3:flex prose-h3:items-center prose-h3:gap-2",
+          "prose-p:text-foreground/90 prose-p:my-2",
+          "prose-strong:text-primary prose-strong:font-semibold",
+          "prose-ul:my-2 prose-ul:pl-0 prose-ul:list-none",
+          "prose-li:text-foreground/90 prose-li:my-1 prose-li:pl-0",
+          isStreaming && "streaming-text"
+        )}>
           <ReactMarkdown
             components={{
               h1: ({ children }) => (
