@@ -34,15 +34,38 @@ const Auth = () => {
       }
     })();
 
+  // Store referral code from URL
+  const refCode = searchParams.get("ref");
+  useEffect(() => {
+    if (refCode) {
+      localStorage.setItem("referral_code", refCode);
+      setIsSignUp(true); // Default to sign up for referred users
+    }
+  }, [refCode]);
+
   useEffect(() => {
     if (quizData) {
       localStorage.setItem("quizData", JSON.stringify(quizData));
       sessionStorage.setItem("quizData", JSON.stringify(quizData));
     }
 
+    const processReferral = async (userId: string) => {
+      const storedRef = localStorage.getItem("referral_code");
+      if (storedRef) {
+        try {
+          await supabase.rpc("complete_referral", {
+            _referral_code: storedRef,
+            _referred_user_id: userId,
+          });
+          localStorage.removeItem("referral_code");
+        } catch { /* ignore referral errors */ }
+      }
+    };
+
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        await processReferral(session.user.id);
         const redirect = searchParams.get("redirect");
         if (redirect) { navigate(redirect); return; }
         if (!quizData) { navigateToDashboard(); return; }
@@ -50,8 +73,9 @@ const Auth = () => {
     };
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
+        await processReferral(session.user.id);
         const redirect = searchParams.get("redirect");
         if (redirect) { navigate(redirect); return; }
         if (!quizData) { navigateToDashboard(); }

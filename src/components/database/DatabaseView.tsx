@@ -253,7 +253,13 @@ export function DatabaseView() {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to get response");
+      if (!response.ok) {
+        if (response.status === 403) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || "Action limit reached. Upgrade your plan for more Actions.");
+        }
+        throw new Error("Failed to get response");
+      }
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No response body");

@@ -285,6 +285,10 @@ export function ActionChatNode({
       );
 
       if (!response.ok) {
+        if (response.status === 403) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || "Action limit reached. Upgrade your plan for more Actions.");
+        }
         throw new Error("Failed to get response");
       }
 
