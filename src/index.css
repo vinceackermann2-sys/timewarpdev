@@ -286,27 +286,11 @@
   animation: stream-reveal 0.25s ease-out both;
 }
 
-/* AD_EVO icon loading animation — circular progress ring */
+/* AD_EVO icon states */
 .icon-thinking {
-  position: relative;
-  filter: grayscale(0.6) brightness(0.6);
-  opacity: 0.7;
-  transition: filter 0.5s ease, opacity 0.5s ease;
-}
-
-.icon-thinking::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  border-top-color: hsl(var(--primary));
-  border-right-color: hsl(var(--primary) / 0.3);
-  animation: icon-spin 1s linear infinite;
-}
-
-@keyframes icon-spin {
-  to { transform: rotate(360deg); }
+  filter: grayscale(0.5) brightness(0.7);
+  opacity: 0.8;
+  transition: filter 0.4s ease, opacity 0.4s ease;
 }
 
 .icon-streaming {
@@ -315,24 +299,10 @@
   transition: filter 0.4s ease, opacity 0.4s ease;
 }
 
-.icon-streaming::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  border: 2px solid hsl(var(--primary) / 0.2);
-  border-top-color: hsl(var(--primary));
-  animation: icon-spin 0.8s linear infinite;
-}
-
 .icon-done {
   filter: grayscale(0) brightness(1);
   opacity: 1;
   transition: filter 0.3s ease, opacity 0.3s ease;
-}
-
-.icon-done::after {
-  content: none;
 }
 
 
