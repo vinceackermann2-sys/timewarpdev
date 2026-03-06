@@ -196,19 +196,20 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6">
+    <div className="relative flex flex-col items-center justify-center h-full px-6">
+      {/* Back button — absolute so it doesn't affect centering */}
+      <div className="absolute top-4 left-4">
+        <Button variant="ghost" size="sm" onClick={onBack} disabled={isLoading}>
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-2xl text-center space-y-8"
       >
-        {/* Back button */}
-        <div className="flex justify-start w-full">
-          <Button variant="ghost" size="sm" onClick={onBack} disabled={isLoading}>
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-        </div>
 
         {/* Title — centered with more space */}
         <motion.div
