@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Building2, ChevronDown, Check } from "lucide-react";
+import { Building2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { nodeIconMap, type NodeItem } from "./types";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 const quickAccessNodes: NodeItem[] = [
   { id: "business-db", label: "Business Database", description: "Synced business data" },
@@ -98,10 +98,8 @@ interface NodePaletteProps {
 
 export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
   const { brands } = useBusinessDNA();
+  const { workspaces, activeWorkspaceId, selectWorkspace } = useWorkspace();
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
-  const [popoverOpen, setPopoverOpen] = useState(false);
-
-  const selectedBrand = brands.find(b => b.id === selectedBrandId);
 
   return (
     <div className="w-[260px] border-r border-border bg-card/30 flex flex-col h-full">
@@ -144,79 +142,91 @@ export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
           </div>
         </div>
 
-        {/* Business Selector */}
-        <div className="p-3">
-          <p className="text-sm font-semibold mb-2">Workspace</p>
-          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-            <PopoverTrigger asChild>
-              <button
-                className={cn(
-                  "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-border",
-                  "bg-card/50 hover:bg-card hover:border-primary/50 transition-all duration-200 text-left"
-                )}
-              >
-                <div className="h-8 w-8 rounded-md bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
-                  {selectedBrand?.logoUrls && selectedBrand.logoUrls.length > 0 ? (
-                    <img
-                      src={selectedBrand.logoUrls[selectedBrand.selectedLogo ?? 0]}
-                      alt={selectedBrand.name}
-                      className="h-full w-full object-contain p-1"
-                    />
-                  ) : (
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
+        {/* Workspace & Business Selector */}
+        <div className="p-3 space-y-3">
+          {/* Workspace List */}
+          <div>
+            <p className="text-sm font-semibold mb-2">Workspace</p>
+            <div className="space-y-1">
+              {workspaces.map(ws => (
+                <button
+                  key={ws.workspaceId}
+                  onClick={() => selectWorkspace(ws.workspaceId)}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150",
+                    activeWorkspaceId === ws.workspaceId
+                      ? "bg-primary/10 border border-primary/30"
+                      : "hover:bg-accent/50 border border-transparent"
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">
-                    {selectedBrand ? selectedBrand.name : "Select business"}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {selectedBrand ? selectedBrand.category || "Business" : "No business selected"}
-                  </p>
-                </div>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-[232px] p-1" sideOffset={4}>
-              {brands.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-3">No businesses added yet</p>
-              ) : (
-                <div className="max-h-[200px] overflow-y-auto">
-                  {brands.map(brand => (
-                    <button
-                      key={brand.id}
-                      onClick={() => {
-                        setSelectedBrandId(brand.id);
-                        setPopoverOpen(false);
-                      }}
-                      className={cn(
-                        "w-full flex items-center gap-2 px-2 py-2 rounded-md text-left transition-colors",
-                        selectedBrandId === brand.id
-                          ? "bg-primary/10 text-primary"
-                          : "hover:bg-accent/50"
-                      )}
-                    >
-                      <div className="h-6 w-6 rounded bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
-                        {brand.logoUrls && brand.logoUrls.length > 0 ? (
-                          <img
-                            src={brand.logoUrls[brand.selectedLogo ?? 0]}
-                            alt={brand.name}
-                            className="h-full w-full object-contain p-0.5"
-                          />
-                        ) : (
-                          <Building2 className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </div>
-                      <span className="text-xs font-medium truncate flex-1">{brand.name}</span>
-                      {selectedBrandId === brand.id && (
-                        <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                >
+                  <div className={cn(
+                    "h-7 w-7 rounded-md flex items-center justify-center shrink-0 text-xs font-bold",
+                    activeWorkspaceId === ws.workspaceId
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  )}>
+                    {ws.workspaceName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{ws.workspaceName}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {ws.role === "owner" ? "Owner" : "Member"} · {ws.memberCount} {ws.memberCount === 1 ? "member" : "members"}
+                    </p>
+                  </div>
+                  {activeWorkspaceId === ws.workspaceId && (
+                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                  )}
+                </button>
+              ))}
+              {workspaces.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">No workspaces</p>
               )}
-            </PopoverContent>
-          </Popover>
+            </div>
+          </div>
+
+          {/* Business List */}
+          <div>
+            <p className="text-sm font-semibold mb-2">Business</p>
+            <div className="space-y-1">
+              {brands.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No businesses added yet</p>
+              ) : (
+                brands.map(brand => (
+                  <button
+                    key={brand.id}
+                    onClick={() => setSelectedBrandId(brand.id)}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150",
+                      selectedBrandId === brand.id
+                        ? "bg-primary/10 border border-primary/30"
+                        : "hover:bg-accent/50 border border-transparent"
+                    )}
+                  >
+                    <div className="h-7 w-7 rounded-md bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+                      {brand.logoUrls && brand.logoUrls.length > 0 ? (
+                        <img
+                          src={brand.logoUrls[brand.selectedLogo ?? 0]}
+                          alt={brand.name}
+                          className="h-full w-full object-contain p-0.5"
+                        />
+                      ) : (
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{brand.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {brand.category || "Business"}
+                      </p>
+                    </div>
+                    {selectedBrandId === brand.id && (
+                      <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </ScrollArea>
     </div>
