@@ -180,7 +180,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   <>
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-medium truncate">{userEmail}</p>
-                      <p className="text-xs text-sidebar-foreground/60">Free Trial</p>
+                      
                     </div>
                     <ChevronUp className="h-4 w-4 text-muted-foreground" />
                   </>
@@ -195,7 +195,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">{userEmail}</p>
-                  <p className="text-xs text-muted-foreground">Free Trial · 14 days left</p>
+                  
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
