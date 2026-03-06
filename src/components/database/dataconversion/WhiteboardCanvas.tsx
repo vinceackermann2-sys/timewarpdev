@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
   MousePointer2, 
@@ -37,8 +37,27 @@ interface WhiteboardCanvasProps {
 
 export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes] = useState<CanvasNode[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
+  const [nodes, setNodes] = useState<CanvasNode[]>(() => {
+    try {
+      const saved = localStorage.getItem("canvas_nodes");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [connections, setConnections] = useState<Connection[]>(() => {
+    try {
+      const saved = localStorage.getItem("canvas_connections");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  // Persist nodes and connections to localStorage
+  useEffect(() => {
+    localStorage.setItem("canvas_nodes", JSON.stringify(nodes));
+  }, [nodes]);
+
+  useEffect(() => {
+    localStorage.setItem("canvas_connections", JSON.stringify(connections));
+  }, [connections]);
   const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [zoom, setZoom] = useState(100);
