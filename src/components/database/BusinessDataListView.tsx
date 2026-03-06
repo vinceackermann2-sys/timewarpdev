@@ -176,6 +176,67 @@ export function BusinessDataListView() {
     setSyncingProvider(false);
   };
 
+  const handleDeleteItem = async (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    setDeletingId(itemId);
+    try {
+      await supabase.from("user_business_data").delete().eq("id", itemId);
+      setItems(prev => prev.filter(i => i.id !== itemId));
+      if (expandedId === itemId) setExpandedId(null);
+      toast.success("Data item deleted");
+    } catch {
+      toast.error("Failed to delete item");
+    }
+    setDeletingId(null);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) { toast.error("Please log in first"); setIsUploading(false); return; }
+
+      for (const file of Array.from(files)) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast.error(`${file.name} exceeds 10MB limit`);
+          continue;
+        }
+
+        const content = await file.text().catch(() => null);
+        const dataType = file.type.startsWith("image/") ? "image" 
+          : file.type === "application/pdf" ? "document"
+          : file.type.includes("spreadsheet") || file.type.includes("csv") ? "spreadsheet"
+          : "text";
+
+        const { data, error } = await supabase
+          .from("user_business_data")
+          .insert({
+            user_id: session.user.id,
+            title: file.name,
+            content: content || `[File: ${file.name}, Size: ${file.size} bytes]`,
+            data_type: dataType,
+            source: "upload",
+            is_analyzed: false,
+            workspace_id: localStorage.getItem("preferred_workspace_id"),
+          })
+          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+          .single();
+
+        if (!error && data) {
+          setItems(prev => [data, ...prev]);
+        }
+      }
+      toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
+    } catch {
+      toast.error("Upload failed");
+    }
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   // Calculate data usage
   const totalBytes = items.reduce((sum, item) => {
     return sum + (item.content?.length || 0) + (item.analyzed_content?.length || 0) + (item.title?.length || 0);
