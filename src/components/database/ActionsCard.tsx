@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Zap } from "lucide-react";
+import { WandSparkles } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +44,7 @@ export function ActionsCard({ isCollapsed }: { isCollapsed: boolean }) {
         title={isUnlimited ? "Unlimited actions" : `${remaining} actions remaining`}
       >
         <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-          <Zap className="h-4 w-4 text-primary-foreground" />
+          <WandSparkles className="h-4 w-4 text-primary-foreground" />
         </div>
       </Link>
     );
@@ -65,17 +65,9 @@ export function ActionsCard({ isCollapsed }: { isCollapsed: boolean }) {
           </p>
         </div>
         <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-          <Zap className="h-4.5 w-4.5 text-primary-foreground" />
+          <WandSparkles className="h-4.5 w-4.5 text-primary-foreground" />
         </div>
       </div>
-      {!isUnlimited && (
-        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${isLow ? "bg-destructive" : "bg-primary"}`}
-            style={{ width: `${100 - percentage}%` }}
-          />
-        </div>
-      )}
     </Link>
   );
 }
