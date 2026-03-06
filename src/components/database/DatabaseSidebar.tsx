@@ -49,6 +49,7 @@ import { WhatsNewDropdown } from "./WhatsNewDropdown";
 import { SettingsDialog } from "./SettingsDialog";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
+import { ActionsCard } from "./ActionsCard";
 
 type View = "database" | "dataconversion" | "aiceo" | "businessdna";
 
@@ -171,7 +172,10 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border p-2">
+        <SidebarFooter className="border-t border-sidebar-border p-2 space-y-2">
+          {/* Actions Card */}
+          <ActionsCard isCollapsed={isCollapsed} />
+
           {/* What's New Section */}
           <WhatsNewDropdown isCollapsed={isCollapsed} />
 

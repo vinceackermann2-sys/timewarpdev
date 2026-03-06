@@ -10,6 +10,13 @@ interface SubscriptionData {
   subscription_end: string | null;
 }
 
+const FREE_LIMITS = {
+  dataBytes: 1 * 1024 * 1024 * 1024,
+  actionsPerMonth: 20,
+  devLine: false,
+  scaleAssistance: false,
+} as const;
+
 const PLAN_LIMITS = {
   co_founder: {
     dataBytes: 5 * 1024 * 1024 * 1024,
@@ -46,7 +53,7 @@ export function useSubscription() {
   });
 
   const plan = subscription?.plan ?? null;
-  const limits = plan ? PLAN_LIMITS[plan] : null;
+  const limits = plan ? PLAN_LIMITS[plan] : FREE_LIMITS;
 
   return {
     subscription,
@@ -55,9 +62,9 @@ export function useSubscription() {
     refetch,
     hasActivePlan: subscription?.subscribed ?? false,
     subscriptionEnd: subscription?.subscription_end ?? null,
-    canUseDevLine: limits?.devLine ?? false,
-    canUseScaleAssistance: limits?.scaleAssistance ?? false,
-    getActionLimit: () => limits?.actionsPerMonth ?? 0,
-    getDataLimit: () => limits?.dataBytes ?? 0,
+    canUseDevLine: limits.devLine,
+    canUseScaleAssistance: limits.scaleAssistance,
+    getActionLimit: () => limits.actionsPerMonth,
+    getDataLimit: () => limits.dataBytes,
   };
 }
