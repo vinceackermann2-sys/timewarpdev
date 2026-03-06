@@ -602,10 +602,10 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
               <div
                 key={node.id}
                 className={cn(
-                  "absolute bg-card border rounded-lg shadow-sm canvas-node-smooth",
+                  "absolute bg-card border rounded-lg canvas-node-smooth",
                   tool === "select" ? "cursor-move" : "cursor-default",
-                  isSelected ? "border-primary ring-2 ring-primary/30 shadow" : "border-border hover:border-primary/50",
-                  draggingNodeId === node.id && "shadow-md"
+                  isSelected ? "border-primary ring-2 ring-primary/30 shadow-sm" : "border-border hover:border-primary/50",
+                  draggingNodeId === node.id && "shadow-sm"
                 )}
                 style={{ 
                   left: node.x, 
