@@ -151,14 +151,16 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
       {/* Main Content with Markdown */}
       {content && (
-        <div className="px-2 py-3 leading-[1.8] prose prose-sm prose-invert max-w-none
-          prose-headings:text-foreground prose-headings:font-extrabold prose-headings:tracking-tight
-          prose-p:text-foreground/80 prose-p:my-2.5 prose-p:text-[13.5px]
-          prose-strong:text-foreground prose-strong:font-bold
-          prose-ul:my-2 prose-ul:pl-0 prose-ul:list-none
-          prose-li:text-foreground/80 prose-li:my-1.5 prose-li:text-[13.5px]
-          [&_ul_li]:flex [&_ul_li]:items-start
-        ">
+        <div className={cn(
+          "px-2 py-3 leading-[1.8] prose prose-sm prose-invert max-w-none",
+          "prose-headings:text-foreground prose-headings:font-extrabold prose-headings:tracking-tight",
+          "prose-p:text-foreground/80 prose-p:my-2.5 prose-p:text-[13.5px]",
+          "prose-strong:text-foreground prose-strong:font-bold",
+          "prose-ul:my-2 prose-ul:pl-0 prose-ul:list-none",
+          "prose-li:text-foreground/80 prose-li:my-1.5 prose-li:text-[13.5px]",
+          "[&_ul_li]:flex [&_ul_li]:items-start",
+          isStreaming && "streaming-text"
+        )}>
           <ReactMarkdown
             components={{
               h1: ({ children }) => (
