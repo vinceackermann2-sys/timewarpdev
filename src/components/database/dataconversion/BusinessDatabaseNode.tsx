@@ -136,7 +136,6 @@ export function BusinessDatabaseNode({
           {isLoading && (
             <span className="text-xs text-primary flex items-center gap-1">
               Loading...
-              <Loader2 className="h-3 w-3 animate-spin" />
             </span>
           )}
           {!isLoading && items.length > 0 && (
