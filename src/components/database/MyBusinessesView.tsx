@@ -39,6 +39,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
   } = useWorkspace();
   const [wsBusinesses, setWsBusinesses] = useState<BrandEntry[]>([]);
   const [loadingBiz, setLoadingBiz] = useState(false);
+  const lastKnownCount = useRef(0);
 
   // Load businesses for the active workspace — start immediately with cached ID
   useEffect(() => {
