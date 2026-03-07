@@ -306,13 +306,13 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
              <div className="flex items-center gap-2.5">
                 <BusinessBrainOrb size={22} />
                <span className="text-base text-muted-foreground">Business Brain</span>
-               <motion.span
-                 className="text-base font-medium text-primary"
-                 animate={{ opacity: [1, 0.4, 1] }}
-                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-               >
-                 Setting up
-               </motion.span>
+                <motion.span
+                  className="text-base font-medium text-primary"
+                  animate={{ opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {isBrainLearning ? "Learning" : "Setting up"}
+                </motion.span>
              </div>
            </div>
         </div>
