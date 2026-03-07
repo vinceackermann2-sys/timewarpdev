@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2, Settings, ChevronsUpDown, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -231,12 +232,17 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             </motion.button>
           )}
 
-          {/* Loading */}
-          {loadingBiz && (
-            <div className="flex items-center justify-center min-h-[200px] rounded-xl border border-border/30 bg-card/20">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          {/* Loading skeletons */}
+          {loadingBiz && Array.from({ length: 3 }).map((_, i) => (
+            <div key={`skel-${i}`} className="flex flex-col items-start gap-3 rounded-xl border border-border/50 bg-card/50 p-6 min-h-[200px]">
+              <Skeleton className="h-12 w-12 rounded-xl" />
+              <div className="mt-auto space-y-2 w-full">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/3" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
             </div>
-          )}
+          ))}
 
           {/* Business cards */}
           {filteredBrands.map((brand) => (
