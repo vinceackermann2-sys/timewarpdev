@@ -42,8 +42,10 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
 
   // Load businesses for the active workspace — start immediately with cached ID
   useEffect(() => {
-    if (!activeWorkspaceId) { setWsBusinesses([]); return; }
+    if (!activeWorkspaceId) { setWsBusinesses([]); setLoadingBiz(false); return; }
 
+    // Clear stale data immediately when workspace changes
+    setWsBusinesses([]);
     let cancelled = false;
     async function load() {
       setLoadingBiz(true);
