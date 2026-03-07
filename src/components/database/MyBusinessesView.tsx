@@ -236,9 +236,9 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             </motion.button>
           )}
 
-          {/* Loading skeleton — single placeholder */}
-          {loadingBiz && (
-            <div className="flex flex-col items-start gap-3 rounded-xl border border-border/50 bg-card/50 p-6 min-h-[200px]">
+          {/* Loading skeletons — match last known business count */}
+          {loadingBiz && lastKnownCount.current > 0 && Array.from({ length: lastKnownCount.current }).map((_, i) => (
+            <div key={`skel-${i}`} className="flex flex-col items-start gap-3 rounded-xl border border-border/50 bg-card/50 p-6 min-h-[200px]">
               <Skeleton className="h-12 w-12 rounded-xl" />
               <div className="mt-auto space-y-2 w-full">
                 <Skeleton className="h-4 w-2/3" />
@@ -246,7 +246,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
                 <Skeleton className="h-3 w-1/2" />
               </div>
             </div>
-          )}
+          ))}
 
           {/* Business cards */}
           {filteredBrands.map((brand) => (
