@@ -268,6 +268,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
   const brandProductCount = products.filter(p => p.brandId === activeBrandId).length;
   const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
   const brandAudienceCount = audiences.filter(a => a.productIds?.some(pid => brandProductIds.includes(pid))).length;
+  const isBrainLearning = !!activeBrand && brandProductCount > 0 && brandAudienceCount > 0;
 
   const getSegmentCount = (segId: string) => {
     if (segId === "brand") return activeBrand ? 1 : 0;
@@ -305,13 +306,13 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
              <div className="flex items-center gap-2.5">
                 <BusinessBrainOrb size={22} />
                <span className="text-base text-muted-foreground">Business Brain</span>
-               <motion.span
-                 className="text-base font-medium text-primary"
-                 animate={{ opacity: [1, 0.4, 1] }}
-                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-               >
-                 Setting up
-               </motion.span>
+                <motion.span
+                  className="text-base font-medium text-primary"
+                  animate={{ opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {isBrainLearning ? "Learning" : "Setting up"}
+                </motion.span>
              </div>
            </div>
         </div>
