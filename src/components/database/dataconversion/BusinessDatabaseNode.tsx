@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Database, Loader2, CheckCircle2, FileText, Image, Globe, Type, Mail, Video, Music, Table2, ChevronDown, ChevronUp } from "lucide-react";
+import { Database, CheckCircle2, FileText, Image, Globe, Type, Mail, Video, Music, Table2, ChevronDown, ChevronUp } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -135,7 +136,6 @@ export function BusinessDatabaseNode({
           {isLoading && (
             <span className="text-xs text-primary flex items-center gap-1">
               Loading...
-              <Loader2 className="h-3 w-3 animate-spin" />
             </span>
           )}
           {!isLoading && items.length > 0 && (
@@ -154,9 +154,25 @@ export function BusinessDatabaseNode({
       <ScrollArea className="h-[calc(100%-44px)]" onWheel={(e) => e.stopPropagation()}>
         <div className="p-2">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-              <p className="text-xs text-muted-foreground">Loading business data...</p>
+            <div className="space-y-3 p-1">
+              {/* Source group skeleton */}
+              {Array.from({ length: 2 }).map((_, gi) => (
+                <div key={gi}>
+                  <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                    <Skeleton className="h-2.5 w-14" />
+                    <Skeleton className="h-2.5 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    {Array.from({ length: gi === 0 ? 3 : 2 }).map((_, i) => (
+                      <div key={i} className="rounded-lg border border-border/40 px-2.5 py-2 flex items-center gap-2">
+                        <Skeleton className="h-3.5 w-3.5 rounded" />
+                        <Skeleton className="h-3 flex-1" />
+                        <Skeleton className="h-1.5 w-1.5 rounded-full" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : items.length > 0 ? (
             <div className="space-y-3">
