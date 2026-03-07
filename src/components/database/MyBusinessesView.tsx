@@ -64,6 +64,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             return { ...JSON.parse(row.content || "{}"), _rowId: row.id, _ownerId: row.user_id } as BrandEntry & { _ownerId: string };
           } catch { return null; }
         }).filter(Boolean) as (BrandEntry & { _ownerId: string })[];
+        lastKnownCount.current = parsed.length;
         setWsBusinesses(parsed);
       }
       setLoadingBiz(false);
