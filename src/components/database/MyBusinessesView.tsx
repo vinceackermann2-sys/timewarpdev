@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2, Settings, ChevronsUpDown, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
