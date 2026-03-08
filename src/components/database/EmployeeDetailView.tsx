@@ -239,7 +239,9 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         if (safetyBlock) {
           setSafetyAlert(safetyBlock);
           setIsPaused(true);
+          isPausedRef.current = true;
           setIsManualMode(true);
+          isManualModeRef.current = true;
           await logStep("running", `Step ${step + 1} ⚠️`, `SAFETY: ${safetyBlock}`);
 
           // Wait for user to handle manually and return control
