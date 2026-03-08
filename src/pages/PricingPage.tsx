@@ -152,7 +152,7 @@ export default function PricingPage() {
         </Link>
       </div>
 
-      <div className="container mx-auto px-4 pb-20">
+      <div className="max-w-[1900px] mx-auto px-4 pb-20">
         <div className="text-center mb-10">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Choose Your Plan</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">

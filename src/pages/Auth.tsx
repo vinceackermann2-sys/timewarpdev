@@ -200,7 +200,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[1300px] max-w-[1900px] mx-auto bg-background flex flex-col">
       <header className="p-4 sm:p-6 absolute top-0 left-0 z-10">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" />
