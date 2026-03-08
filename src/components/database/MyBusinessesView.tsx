@@ -44,19 +44,18 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
 
   // Load businesses for the active workspace
   useEffect(() => {
-    if (!activeWorkspaceId) { setWsBusinesses([]); setLoadingBiz(false); return; }
-
-    // Always show loading when workspace changes
-    const isNewWorkspace = prevWorkspaceId.current !== activeWorkspaceId;
-    if (isNewWorkspace) {
+    if (!activeWorkspaceId) {
       setWsBusinesses([]);
-      setLoadingBiz(true);
-      prevWorkspaceId.current = activeWorkspaceId;
+      if (!wsLoading) setLoadingBiz(false);
+      return;
     }
+
+    setWsBusinesses([]);
+    setLoadingBiz(true);
+    prevWorkspaceId.current = activeWorkspaceId;
 
     let cancelled = false;
     async function load() {
-      if (!isNewWorkspace) setLoadingBiz(true);
       const { data, error } = await supabase
         .from("user_business_data")
         .select("id, content, user_id")
@@ -78,7 +77,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
     }
     load();
     return () => { cancelled = true; };
-  }, [activeWorkspaceId, brands]);
+  }, [activeWorkspaceId, brands, wsLoading]);
 
   const handleDeleteBusiness = async (e: React.MouseEvent, brandId: string) => {
     e.stopPropagation();
