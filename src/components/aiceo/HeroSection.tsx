@@ -194,7 +194,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
               Analyze →
             </button>
             <div className="hero-hint" style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease", flexWrap: "wrap" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13A5 5 0 0015 8V6A5 5 0 005 6V8A5 5 0 0010 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11A5 5 0 009 16V18A5 5 0 0019 18V16A5 5 0 0014 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <Link2 size={14} style={{ flexShrink: 0 }} />
               Link to a specific product (like "nike.com/shoes/air-max") for 10x faster results
             </div>
           </div>
