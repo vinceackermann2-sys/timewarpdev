@@ -237,6 +237,59 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             display: none !important;
           }
         }
+        @media (max-width: 640px) {
+          .hero-navbar {
+            padding: 1rem 0.75rem !important;
+          }
+          .hero-logo {
+            height: 36px !important;
+          }
+          .hero-nav-actions {
+            gap: 0.75rem !important;
+          }
+          .hero-cta-btn {
+            padding: 0.5rem 0.9rem !important;
+            font-size: 0.85rem !important;
+          }
+          .hero-main-flex {
+            padding: 1.5rem 1rem !important;
+          }
+          .hero-heading {
+            font-size: clamp(1.8rem, 8vw, 2.4rem) !important;
+            margin-bottom: 1.25rem !important;
+          }
+          .hero-subtitle {
+            font-size: 1rem !important;
+            margin-bottom: 2rem !important;
+            max-width: 100% !important;
+          }
+          .hero-input-bar {
+            height: 52px !important;
+            border-radius: 12px !important;
+            padding: 0.4rem 0.4rem 0.4rem 0.75rem !important;
+          }
+          .hero-input-bar input {
+            font-size: 0.9rem !important;
+          }
+          .hero-analyze-btn {
+            padding: 0 1rem !important;
+            font-size: 0.9rem !important;
+            border-radius: 8px !important;
+          }
+          .hero-hint {
+            font-size: 0.75rem !important;
+          }
+          .hero-badges {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+            justify-content: center !important;
+            margin-top: 1.5rem !important;
+          }
+          .hero-badges span {
+            font-size: 0.78rem !important;
+            padding: 0.4rem 0.8rem !important;
+          }
+        }
       `}</style>
     </div>
   );
