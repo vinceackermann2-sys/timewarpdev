@@ -44,17 +44,17 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
   const [inviteEmail, setInviteEmail] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  const { data: actionsUsed = 0 } = useQuery({
+  const { data: subData } = useQuery({
     queryKey: ["actions-used"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return 0;
+      if (!session) return { actions_used: 0, bonus_actions: 0 };
       const { data } = await supabase
         .from("user_subscriptions")
-        .select("actions_used")
+        .select("actions_used, bonus_actions")
         .eq("user_id", session.user.id)
         .maybeSingle();
-      return data?.actions_used ?? 0;
+      return { actions_used: data?.actions_used ?? 0, bonus_actions: (data as any)?.bonus_actions ?? 0 };
     },
     refetchInterval: 30000,
   });
@@ -71,9 +71,11 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
     staleTime: Infinity,
   });
 
+  const actionsUsed = subData?.actions_used ?? 0;
+  const bonusActions = subData?.bonus_actions ?? 0;
   const limit = plan ? ACTION_LIMITS[plan] ?? FREE_LIMIT : FREE_LIMIT;
   const isUnlimited = limit === Infinity;
-  const remaining = isUnlimited ? Infinity : Math.max(0, limit - actionsUsed);
+  const remaining = isUnlimited ? Infinity : Math.max(0, limit + bonusActions - actionsUsed);
 
   // Auto-select first workspace
   useEffect(() => {

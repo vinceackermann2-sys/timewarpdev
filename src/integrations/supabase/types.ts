@@ -349,6 +349,7 @@ export type Database = {
         Row: {
           actions_used: number
           billing_period: Database["public"]["Enums"]["billing_period"]
+          bonus_actions: number
           created_at: string
           data_used_bytes: number
           id: string
@@ -360,6 +361,7 @@ export type Database = {
         Insert: {
           actions_used?: number
           billing_period?: Database["public"]["Enums"]["billing_period"]
+          bonus_actions?: number
           created_at?: string
           data_used_bytes?: number
           id?: string
@@ -371,6 +373,7 @@ export type Database = {
         Update: {
           actions_used?: number
           billing_period?: Database["public"]["Enums"]["billing_period"]
+          bonus_actions?: number
           created_at?: string
           data_used_bytes?: number
           id?: string
