@@ -171,7 +171,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
           {/* URL Input */}
           <div style={{ marginBottom: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", background: "#fff", borderRadius: 14, padding: "0.5rem 0.5rem 0.5rem 1rem", boxShadow: "0 4px 15px rgba(0,0,0,0.08)", border: "1px solid rgba(0,0,0,0.05)", height: 64, transition: "box-shadow 0.2s" }}>
+            <div style={{ display: "flex", alignItems: "center", background: t.inputBg, borderRadius: 14, padding: "0.5rem 0.5rem 0.5rem 1rem", boxShadow: t.inputShadow, border: `1px solid ${t.inputBorder}`, height: 64, transition: "all 0.3s ease" }}>
               <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} />
               <input
                 type="text"
@@ -179,7 +179,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: "#000", outline: "none" }}
+                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: t.text, outline: "none", transition: "color 0.3s ease" }}
               />
               <button
                 onClick={handleAnalyze}
