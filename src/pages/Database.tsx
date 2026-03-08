@@ -12,6 +12,7 @@ import { MyBusinessesView } from "@/components/database/MyBusinessesView";
 import { AddProductURLView } from "@/components/database/AddProductURLView";
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2 } from "lucide-react";
+import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 
 type View = "dataconversion" | "aiceo" | "businessdna";
 
