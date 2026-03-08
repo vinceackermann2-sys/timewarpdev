@@ -620,7 +620,7 @@ export function ProductDetailView({
               <div id="value-proposition" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <Zap className="h-5 w-5 text-primary" />
+                    <Zap className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Value proposition</h2>
                   </div>
                   <div className="flex items-center gap-2">
@@ -645,11 +645,11 @@ export function ProductDetailView({
                   </div>
                   <div>
                     <SectionHeading id="unique-selling-points" title="Unique selling points" subtitle="What makes your product stand out from alternatives." />
-                    <BulletList items={data.uniqueSellingPoints} icon={Zap} iconClass="text-amber-500" isEditing={isEditingSection("value")} onChange={(u) => setData(prev => ({ ...prev, uniqueSellingPoints: u }))} />
+                    <BulletList items={data.uniqueSellingPoints} icon={Zap} iconClass="text-muted-foreground" isEditing={isEditingSection("value")} onChange={(u) => setData(prev => ({ ...prev, uniqueSellingPoints: u }))} />
                   </div>
                   <div>
                     <SectionHeading id="competitive-advantages" title="Competitive advantages" subtitle="Structural advantages over competitors." />
-                    <BulletList items={data.competitiveAdvantages} icon={ShieldCheck} iconClass="text-emerald-500" isEditing={isEditingSection("value")} onChange={(c) => setData(prev => ({ ...prev, competitiveAdvantages: c }))} />
+                    <BulletList items={data.competitiveAdvantages} icon={ShieldCheck} iconClass="text-muted-foreground" isEditing={isEditingSection("value")} onChange={(c) => setData(prev => ({ ...prev, competitiveAdvantages: c }))} />
                   </div>
                 </div>
               </div>
