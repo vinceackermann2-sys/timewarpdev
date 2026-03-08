@@ -602,7 +602,6 @@ export function ActionChatNode({
         </div>
       </div>
     </div>
-      <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
     </>
   );
 

@@ -542,7 +542,6 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           </div>
         </div>
       )}
-      <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
     </div>
   );
 }
