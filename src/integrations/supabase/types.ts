@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_employees: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          orb_colors: Json | null
+          role: string
+          sop_definitions: Json | null
+          sop_documentation: string | null
+          sop_materials: Json | null
+          sop_procedure: Json | null
+          sop_purpose: string | null
+          sop_responsibilities: Json | null
+          sop_revision_history: Json | null
+          sop_safety_notes: string | null
+          sop_scope: string | null
+          sop_title: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          orb_colors?: Json | null
+          role: string
+          sop_definitions?: Json | null
+          sop_documentation?: string | null
+          sop_materials?: Json | null
+          sop_procedure?: Json | null
+          sop_purpose?: string | null
+          sop_responsibilities?: Json | null
+          sop_revision_history?: Json | null
+          sop_safety_notes?: string | null
+          sop_scope?: string | null
+          sop_title?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          orb_colors?: Json | null
+          role?: string
+          sop_definitions?: Json | null
+          sop_documentation?: string | null
+          sop_materials?: Json | null
+          sop_procedure?: Json | null
+          sop_purpose?: string | null
+          sop_responsibilities?: Json | null
+          sop_revision_history?: Json | null
+          sop_safety_notes?: string | null
+          sop_scope?: string | null
+          sop_title?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_employees_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_requests: {
         Row: {
           created_at: string
