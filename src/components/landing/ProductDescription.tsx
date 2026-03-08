@@ -307,7 +307,7 @@ export function ProductDescription() {
           <PersonaCard
             icon={Building2}
             title="Efficiency-First Enterprises"
-            description="Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO."
+            description={'Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO.'}
           />
         </div>
       </Section>
