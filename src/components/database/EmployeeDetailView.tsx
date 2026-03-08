@@ -189,6 +189,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     isManualModeRef.current = false;
     setSafetyAlert(null);
     setCurrentStep("Preparing tab group…");
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep: "Preparing tab group…", isPaused: false, isManualMode: false });
     await signalStart(employee.id, employee.name);
     setCurrentStep("");
 
