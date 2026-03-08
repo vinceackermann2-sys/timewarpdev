@@ -342,7 +342,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             display: flex !important;
           }
           .hero-hint {
-            font-size: 0.72rem !important;
+            font-size: 0.65rem !important;
             margin-top: 0.75rem !important;
             justify-content: flex-start !important;
             text-align: left !important;
