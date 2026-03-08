@@ -26,6 +26,7 @@ export interface VisualIdentityData {
   websiteScreenshot?: string;
   mobileScreenshot?: string;
   guidelineImageUrls?: string[];
+  socialMediaUrls?: string[];
 }
 
 export interface BrandEntry {

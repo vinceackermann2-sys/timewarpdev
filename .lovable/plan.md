@@ -1,72 +1,50 @@
 
 
-# Visual Identity Pipeline Overhaul
+## Problem
 
-## Summary of Changes
+The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
 
-Five changes to the `scrape-product` edge function and one to the `BrandExtendedSections` frontend component.
+The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
 
----
+## Plan
 
-## 1. Moodboard: Download from Pinterest (no AI generation)
+### 1. Add context size limiting in both edge functions
 
-**Current**: Search web → screenshot results → AI-recreate each image.
-**New**: Search Pinterest specifically → download pin image URLs directly. No AI recreation step.
+**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
 
-- Change Firecrawl search queries to `site:pinterest.com {term} aesthetic`
-- Extract the actual pin image URL from the scraped page links/metadata instead of screenshots
-- Remove the entire "Step 3: AI-recreate" loop — use the Pinterest image URLs directly as moodboard images
-- Fallback: if Pinterest fails, try `site:unsplash.com` for direct image URLs
+In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
 
-## 2. Illustrations: Icons only (no text), grounded in brand + audience
+```typescript
+function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+  // ... group by source as before ...
+  for (const item of sourceItems) {
+    const itemText = /* build item string */;
+    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+    context += itemText;
+    totalChars += itemText.length;
+  }
+  return context;
+}
+```
 
-**Current**: Generates icon grid + pattern sheet as two separate images.
-**New**: 
-- **Icon grid**: Keep the 3×4 grid approach but strengthen the prompt to explicitly forbid any text, labels, or words. Emphasize icons must represent brand/audience concepts.
-- **Pattern sheet**: Keep generating patterns but add explicit "NO TEXT of any kind" instruction. Patterns should be abstract visual patterns only.
+### 2. Add better error logging for debugging
 
-## 3. Website & Digital: Screenshot base URL, not product page
+Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
 
-**Current**: Screenshots `formattedUrl` (the product page URL the user entered).
-**New**: Extract base URL (`new URL(formattedUrl).origin`) and screenshot that instead for both desktop and mobile. This captures the brand's homepage rather than a specific product page.
+```typescript
+if (!response.ok) {
+  const errorBody = await response.text().catch(() => "");
+  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+  // ... existing status-specific handling ...
+}
+```
 
-## 4. Buttons & UI: Style with brand colors
+### 3. Truncate individual item content
 
-**Current**: Hardcoded Tailwind classes (`bg-primary`, `border-border`, `bg-muted`).
-**New**: Apply inline styles from `initialData` brand colors:
-- Primary Button: `background: colors.primary`, `color: colors.text` (or white)
-- Secondary Button: `border: 1px solid colors.primary`, `color: colors.primary`, transparent bg
-- Muted Button: `background: colors.secondary` with reduced opacity, `color: colors.text`
-- Keep the rounded-[20px] and font styling
+Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
 
-This change is in `BrandExtendedSections.tsx`, reading colors from the brand context.
-
-## 5. Social Media: Generate UGC product images
-
-**Current**: Empty placeholder slots ("Feed post", "Story", "Reel") with no generated content.
-**New**: Add three AI image generation calls in `scrape-product/index.ts` that create UGC-style product images:
-- **Feed post** (1:1): Product in lifestyle/UGC setting based on audience data
-- **Story** (9:16): Vertical UGC-style product shot
-- **Reel** (1:1): Product-in-use action shot
-
-Each prompt grounded in audience description, brand colors, and product images. Store as `socialMediaUrls: string[]` in `visualIdentity`.
-
-Update `BrandExtendedSections.tsx` to display these generated images instead of empty placeholders. Update `BusinessDNAContext.tsx` to add `socialMediaUrls` to the interface.
-
----
-
-## Technical Details
-
-### Edge function changes (`supabase/functions/scrape-product/index.ts`)
-- **Moodboard section** (lines ~505-684): Replace AI recreation with direct Pinterest image download
-- **Screenshot section** (lines ~46-106): Change `formattedUrl` to `baseUrl` for both desktop and mobile Firecrawl scrape calls
-- **Illustrations section** (lines ~752-857): Add "NO TEXT" constraints to both icon and pattern prompts
-- **New social media section**: Add 3 parallel AI image gen calls after guideline images, store in `socialMediaUrls`
-
-### Frontend changes
-- **`BusinessDNAContext.tsx`**: Add `socialMediaUrls?: string[]` to `VisualIdentityData`
-- **`BrandExtendedSections.tsx`**: 
-  - Buttons section: apply brand colors via inline styles
-  - Social media section: render generated UGC images from `socialMediaUrls`
-  - Accept brand colors prop for button styling
+This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
 

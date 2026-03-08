@@ -40,6 +40,14 @@ interface VisualIdentityInitial {
   websiteScreenshot?: string;
   mobileScreenshot?: string;
   guidelineImageUrls?: string[];
+  socialMediaUrls?: string[];
+}
+
+interface BrandColorsProps {
+  primary?: string;
+  secondary?: string;
+  background?: string;
+  text?: string;
 }
 
 const DEFAULT_DATA: VisualIdentityData = {
@@ -265,11 +273,13 @@ export function BrandExtendedSections({
   onEditToggle,
   onSave,
   initialData,
+  brandColors,
 }: {
   isEditing?: boolean;
   onEditToggle?: () => void;
   onSave?: (data: VisualIdentityInitial) => void;
   initialData?: VisualIdentityInitial;
+  brandColors?: BrandColorsProps;
 }) {
   const [data, setData] = useState<VisualIdentityData>(() => {
     const base = { ...DEFAULT_DATA };
@@ -365,6 +375,7 @@ export function BrandExtendedSections({
                   websiteScreenshot: initialData?.websiteScreenshot,
                   mobileScreenshot: initialData?.mobileScreenshot,
                   guidelineImageUrls: initialData?.guidelineImageUrls,
+                  socialMediaUrls: initialData?.socialMediaUrls,
                 });
                 onEditToggle?.();
               }} className="gap-1.5">
@@ -498,9 +509,19 @@ export function BrandExtendedSections({
         >
           <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-4">
             <div className="flex flex-wrap gap-3">
-              <div className="px-6 py-2.5 rounded-[20px] bg-primary text-primary-foreground text-sm font-medium">Primary Button</div>
-              <div className="px-6 py-2.5 rounded-[20px] border border-border bg-card text-foreground text-sm font-medium">Secondary Button</div>
-              <div className="px-6 py-2.5 rounded-[20px] bg-muted text-muted-foreground text-sm font-medium">Muted Button</div>
+              {brandColors?.primary ? (
+                <>
+                  <div className="px-6 py-2.5 rounded-[20px] text-sm font-medium" style={{ backgroundColor: brandColors.primary, color: '#FFFFFF' }}>Primary Button</div>
+                  <div className="px-6 py-2.5 rounded-[20px] text-sm font-medium" style={{ border: `2px solid ${brandColors.primary}`, color: brandColors.primary }}>Secondary Button</div>
+                  <div className="px-6 py-2.5 rounded-[20px] text-sm font-medium" style={{ backgroundColor: `${brandColors.secondary || brandColors.primary}33`, color: brandColors.text || brandColors.primary }}>Muted Button</div>
+                </>
+              ) : (
+                <>
+                  <div className="px-6 py-2.5 rounded-[20px] bg-primary text-primary-foreground text-sm font-medium">Primary Button</div>
+                  <div className="px-6 py-2.5 rounded-[20px] border border-border bg-card text-foreground text-sm font-medium">Secondary Button</div>
+                  <div className="px-6 py-2.5 rounded-[20px] bg-muted text-muted-foreground text-sm font-medium">Muted Button</div>
+                </>
+              )}
             </div>
             <EditableRulesList
               rules={data.buttonRules}
@@ -517,14 +538,27 @@ export function BrandExtendedSections({
         >
           <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              {["Feed post", "Story", "Reel"].map((label, i) => (
-                <div key={i} className={`rounded-lg border-2 border-dashed border-border/50 bg-muted/10 flex flex-col items-center justify-center gap-2 ${
-                  i === 1 ? "aspect-[9/16] max-h-32" : "aspect-square"
-                }`}>
-                  <ImageIcon className="h-4 w-4 text-muted-foreground/30" />
-                  <span className="text-[10px] text-muted-foreground/50">{label}</span>
-                </div>
-              ))}
+              {["Feed post", "Story", "Reel"].map((label, i) => {
+                const socialUrls = initialData?.socialMediaUrls || [];
+                const imgUrl = socialUrls[i];
+                return (
+                  <div key={i} className={`rounded-lg border-2 border-dashed border-border/50 bg-muted/10 flex flex-col items-center justify-center gap-2 relative overflow-hidden ${
+                    i === 1 ? "aspect-[9/16] max-h-32" : "aspect-square"
+                  }`}>
+                    {imgUrl ? (
+                      <>
+                        <img src={imgUrl} alt={label} className="absolute inset-0 w-full h-full object-cover" />
+                        <span className="absolute bottom-1 left-2 text-[10px] text-white/80 bg-black/40 px-1.5 py-0.5 rounded z-10">{label}</span>
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="h-4 w-4 text-muted-foreground/30" />
+                        <span className="text-[10px] text-muted-foreground/50">{label}</span>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <EditableRulesList
               rules={data.socialMediaRules}
