@@ -57,9 +57,28 @@ export function BusinessDatabaseNode({
   const [items, setItems] = useState<DataItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(() => {
+    return localStorage.getItem("preferred_business_id");
+  });
+
+  // Listen for business selection changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setSelectedBrandId(localStorage.getItem("preferred_business_id"));
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   useEffect(() => {
+    if (!selectedBrandId) {
+      setItems([]);
+      setIsLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
+      setIsLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
@@ -67,12 +86,13 @@ export function BusinessDatabaseNode({
           return;
         }
 
-        // Use workspace_id to show shared workspace data (not just user's own)
         const workspaceId = localStorage.getItem("preferred_workspace_id");
 
+        // Fetch products and audiences linked to the selected brand
         let query = (supabase as any)
           .from('user_business_data')
-          .select('id, data_type, source, title, content, analyzed_content, is_analyzed, created_at')
+          .select('id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata')
+          .in('data_type', ['product', 'audience'])
           .order('created_at', { ascending: false })
           .limit(100);
 
@@ -85,7 +105,25 @@ export function BusinessDatabaseNode({
         const { data, error } = await query;
 
         if (!error && data) {
-          setItems(data);
+          // Filter items that belong to the selected brand
+          const filtered = data.filter((item: any) => {
+            try {
+              const content = JSON.parse(item.content || "{}");
+              // Products have brandId, audiences have productIds which link to products
+              if (item.data_type === "product") {
+                return content.brandId === selectedBrandId;
+              }
+              if (item.data_type === "audience") {
+                // For now, include audiences linked to products of this brand
+                // or just include all audiences if needed
+                return content.brandId === selectedBrandId || content.productIds?.length > 0;
+              }
+              return false;
+            } catch {
+              return false;
+            }
+          });
+          setItems(filtered);
         }
       } catch (err) {
         console.error("Failed to fetch business data:", err);
@@ -95,7 +133,7 @@ export function BusinessDatabaseNode({
     };
 
     fetchData();
-  }, []);
+  }, [selectedBrandId]);
 
   // Group items by source
   const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
