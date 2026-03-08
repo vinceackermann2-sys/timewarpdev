@@ -38,25 +38,48 @@ const ACTION_LIMITS_SETTINGS: Record<string, number> = {
 };
 const FREE_LIMIT_SETTINGS = 20;
 
-function ActionsUsageSummary({ plan }: { plan: string | null }) {
+function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
   const { data } = useQuery({
     queryKey: ["actions-used-settings"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { actions_used: 0, bonus_actions: 0 };
+      if (!session) return { actions_used: 0, bonus_actions: 0, plan: null as string | null };
       const { data } = await supabase
         .from("user_subscriptions")
-        .select("actions_used, bonus_actions")
+        .select("actions_used, bonus_actions, plan")
         .eq("user_id", session.user.id)
         .maybeSingle();
-      return { actions_used: data?.actions_used ?? 0, bonus_actions: (data as any)?.bonus_actions ?? 0 };
+      return {
+        actions_used: data?.actions_used ?? 0,
+        bonus_actions: (data as any)?.bonus_actions ?? 0,
+        plan: (data?.plan as string) ?? null,
+      };
     },
   });
   const used = data?.actions_used ?? 0;
   const bonus = data?.bonus_actions ?? 0;
-  const limit = plan ? ACTION_LIMITS_SETTINGS[plan] ?? FREE_LIMIT_SETTINGS : FREE_LIMIT_SETTINGS;
+  const dbPlan = data?.plan ?? fallbackPlan;
+  const limit = dbPlan ? ACTION_LIMITS_SETTINGS[dbPlan] ?? FREE_LIMIT_SETTINGS : FREE_LIMIT_SETTINGS;
   const total = limit === Infinity ? "∞" : String(limit + bonus);
-  return <>{used} / {total}</>;
+  const planName = dbPlan === "co_founder" ? "Co Founder"
+    : dbPlan === "aristotle" ? "Aristotle"
+    : dbPlan === "timewarp_og" ? "TimeWarp OG"
+    : "Free";
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/30 p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
+          <p className="text-lg font-bold mt-0.5">{planName}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Actions Used</p>
+          <p className="text-lg font-bold mt-0.5">{used} / {total}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const integrations = [
@@ -584,26 +607,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
               {/* ── PLANS TAB ── */}
               {activeTab === "plans" && (
                 <div className="space-y-6">
-                  {/* Current Plan & Usage Summary */}
-                  <div className="rounded-xl border border-border bg-muted/30 p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
-                        <p className="text-lg font-bold mt-0.5">
-                          {currentPlan === "co_founder" ? "Co Founder"
-                            : currentPlan === "aristotle" ? "Aristotle"
-                            : currentPlan === "timewarp_og" ? "TimeWarp OG"
-                            : "Free"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Actions Used</p>
-                        <p className="text-lg font-bold mt-0.5">
-                          <ActionsUsageSummary plan={currentPlan} />
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <PlanUsageSummary fallbackPlan={currentPlan} />
 
                   <div className="flex justify-center">
                     <div className="inline-flex items-center rounded-full bg-muted p-1 gap-1">

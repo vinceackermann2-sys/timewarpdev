@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
-import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ActionsDialog } from "@/components/database/ActionsDialog";
@@ -25,27 +24,31 @@ const ActionGateContext = createContext<ActionGateContextType>({
 
 export function ActionGateProvider({ children }: { children: ReactNode }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const { plan } = useSubscription();
   const queryClient = useQueryClient();
 
   const { data: subData } = useQuery({
     queryKey: ["actions-used"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { actions_used: 0, bonus_actions: 0 };
+      if (!session) return { actions_used: 0, bonus_actions: 0, plan: null as string | null };
       const { data } = await supabase
         .from("user_subscriptions")
-        .select("actions_used, bonus_actions")
+        .select("actions_used, bonus_actions, plan")
         .eq("user_id", session.user.id)
         .maybeSingle();
-      return { actions_used: data?.actions_used ?? 0, bonus_actions: (data as any)?.bonus_actions ?? 0 };
+      return {
+        actions_used: data?.actions_used ?? 0,
+        bonus_actions: (data as any)?.bonus_actions ?? 0,
+        plan: (data?.plan as string) ?? null,
+      };
     },
     refetchInterval: 30000,
   });
 
   const actionsUsed = subData?.actions_used ?? 0;
   const bonusActions = subData?.bonus_actions ?? 0;
-  const limit = plan ? ACTION_LIMITS[plan] ?? FREE_LIMIT : FREE_LIMIT;
+  const dbPlan = subData?.plan ?? null;
+  const limit = dbPlan ? ACTION_LIMITS[dbPlan] ?? FREE_LIMIT : FREE_LIMIT;
   const remaining = limit === Infinity ? Infinity : Math.max(0, limit + bonusActions - actionsUsed);
 
   const checkCanUseAction = useCallback((): boolean => {
