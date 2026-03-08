@@ -209,40 +209,119 @@ Format your response with these sections:
             }
           } catch (_) { /* ignore */ }
 
-          // Fetch the watch page for description/transcript hints
-          let pageText = "";
+          // Fetch the watch page HTML to extract captions/transcript
+          let pageHtml = "";
+          let transcript = "";
+          let videoDescription = "";
           try {
             const fetchRes = await fetch(rawUrl, {
-              headers: { "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0)" },
+              headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
               redirect: "follow",
             });
             if (fetchRes.ok) {
-              const html = await fetchRes.text();
-              pageText = html
-                .replace(/<script[\s\S]*?<\/script>/gi, "")
-                .replace(/<style[\s\S]*?<\/style>/gi, "")
-                .replace(/<[^>]+>/g, " ")
-                .replace(/\s+/g, " ")
-                .trim()
-                .slice(0, 15000);
+              pageHtml = await fetchRes.text();
+
+              // Extract video description from ytInitialPlayerResponse
+              const descMatch = pageHtml.match(/"shortDescription"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+              if (descMatch) {
+                videoDescription = descMatch[1]
+                  .replace(/\\n/g, "\n")
+                  .replace(/\\"/g, '"')
+                  .replace(/\\\\/g, "\\");
+              }
+
+              // Extract captions/transcript URL from the page
+              const captionMatch = pageHtml.match(/"captionTracks"\s*:\s*(\[.*?\])/);
+              if (captionMatch) {
+                try {
+                  const captionTracks = JSON.parse(captionMatch[1]);
+                  // Prefer English, fall back to first available
+                  const enTrack = captionTracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
+                  const captionUrl = enTrack?.baseUrl || captionTracks[0]?.baseUrl;
+
+                  if (captionUrl) {
+                    const captionRes = await fetch(captionUrl);
+                    if (captionRes.ok) {
+                      const captionXml = await captionRes.text();
+                      // Parse XML captions: extract text from <text> elements
+                      transcript = captionXml
+                        .replace(/<[^>]+>/g, " ")
+                        .replace(/&amp;/g, "&")
+                        .replace(/&lt;/g, "<")
+                        .replace(/&gt;/g, ">")
+                        .replace(/&quot;/g, '"')
+                        .replace(/&#39;/g, "'")
+                        .replace(/\s+/g, " ")
+                        .trim();
+                    }
+                  }
+                } catch (_) {
+                  console.error("Failed to parse caption tracks");
+                }
+              }
             }
           } catch (_) { /* ignore */ }
 
-          extractedText = pageText;
-          userPrompt = `Analyze this YouTube video URL: ${rawUrl}
-Video title: ${videoTitle}
-${videoAuthor ? `Channel: ${videoAuthor}` : ""}
-Video ID: ${videoId}
+          // Get high-res thumbnail for visual analysis
+          const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+          let thumbnailBase64 = "";
+          if (videoId) {
+            try {
+              const thumbRes = await fetch(thumbnailUrl);
+              if (thumbRes.ok) {
+                const thumbBuf = await thumbRes.arrayBuffer();
+                const uint8 = new Uint8Array(thumbBuf);
+                let binary = "";
+                for (let i = 0; i < uint8.length; i++) {
+                  binary += String.fromCharCode(uint8[i]);
+                }
+                thumbnailBase64 = btoa(binary);
+              }
+            } catch (_) { /* ignore */ }
+          }
 
-Page content extracted:
-${pageText || "(could not fetch page content)"}
+          extractedText = transcript || videoDescription || "";
 
-Provide a structured analysis including:
-- **Video Overview**: What the video is about based on title, description, and page content
-- **Key Topics**: Main subjects covered
-- **Target Audience**: Who this content is for
-- **Business Insights**: Actionable takeaways
-- **Content Strategy Notes**: How this content fits into a broader strategy`;
+          // Build multimodal prompt if we have a thumbnail
+          if (thumbnailBase64) {
+            useMultimodal = true;
+            mediaUrl = `data:image/jpeg;base64,${thumbnailBase64}`;
+          }
+
+          userPrompt = `Analyze this YouTube video in depth.
+
+**Video URL:** ${rawUrl}
+**Title:** ${videoTitle}
+${videoAuthor ? `**Channel:** ${videoAuthor}` : ""}
+
+${videoDescription ? `**Video Description:**\n${videoDescription.slice(0, 3000)}\n` : ""}
+
+${transcript ? `**Full Transcript (auto-captions):**\n${transcript.slice(0, 30000)}\n` : "⚠️ No transcript/captions available for this video."}
+
+${thumbnailBase64 ? "I've also attached the video thumbnail for visual context.\n" : ""}
+
+Provide a comprehensive analysis:
+
+## Video Summary
+A detailed overview of what the video covers.
+
+## Key Points & Topics
+Bullet-pointed list of the main subjects, arguments, and insights discussed.
+
+## Notable Quotes
+Direct quotes from the transcript that are particularly impactful or important.
+
+## Visual Content
+${thumbnailBase64 ? "Based on the thumbnail and any visual cues from the transcript," : "Based on context clues,"} describe the visual style, presentation format (talking head, slides, screencast, etc.).
+
+## Target Audience
+Who this content is made for.
+
+## Business Insights & Takeaways
+Actionable insights and how this content could be relevant for business strategy.
+
+## Content Strategy Notes
+How this video fits into broader content patterns, what works well about it.`;
 
         } else if (isSocialMedia) {
           // Social media URL — fetch what we can
