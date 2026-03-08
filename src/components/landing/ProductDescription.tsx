@@ -211,18 +211,9 @@ export function ProductDescription() {
             <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto relative z-10">The intelligence layer that turns your company's history into a digitalized CEO.</p>
           </div>
 
-          {/* Business DNA comparison cards */}
-          <div className="grid md:grid-cols-2 gap-5 mb-24">
-            <GrainCard filterId="grain-left" seed={0}>
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>What others call "AI Automation"</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Chatbots, agents and workflows.</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>Other tools connect apps to move data. That's plumbing — not leadership.</p>
-            </GrainCard>
-            <GrainCard filterId="grain-right" seed={5} borderColor="hsl(0 0% 20%)">
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>What we mean by Business DNA</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Every decision your company has</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.</p>
-            </GrainCard>
+          {/* Business DNA scroll-swap card */}
+          <div className="mb-24 max-w-2xl mx-auto">
+            <BusinessDNACard />
           </div>
 
           {/* Evolution Title */}
@@ -230,8 +221,64 @@ export function ProductDescription() {
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Evolving manual labor.</h3>
           </div>
 
-          {/* Evolution cards with scroll animation */}
-          <EvolutionFlow />
+          {/* Evolution cards — static layout */}
+          <div className="grid md:grid-cols-2 gap-5">
+            <GrainCard filterId="grain-evo-0" seed={10}>
+              <div className="space-y-5">
+                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
+                <ul className="space-y-3">
+                  {["High churn, high cost, and human error.", 'Scaling requires more "managed" hours.', "Knowledge walks out the door when an employee leaves."].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "hsl(0 0% 35%)" }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
+                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
+                    The Ceiling: <span className="italic">You can only grow as fast as you can hire.</span>
+                  </p>
+                </div>
+              </div>
+            </GrainCard>
+            <GrainCard filterId="grain-evo-1" seed={15} borderColor="hsl(0 0% 20%)">
+              <div className="space-y-5">
+                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
+                <ul className="space-y-3">
+                  {["Infinite scale with zero headcount increase.", "The AI CEO manages specialized employees that never sleep.", "Your Business DNA is preserved and perfected forever."].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "#3399ff" }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
+                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
+                    The Reality: <span className="italic">Universal High Income (UHI) powered by autonomous productivity.</span>
+                  </p>
+                </div>
+              </div>
+            </GrainCard>
+          </div>
+
+          {/* Blue half-moon at bottom */}
+          <div className="relative flex items-center justify-center mt-20 overflow-hidden" style={{ height: 120 }}>
+            <div className="absolute" style={{
+              width: 400, height: 400, borderRadius: "50%", bottom: -280, left: "50%", transform: "translateX(-50%)",
+              background: "radial-gradient(ellipse at center, rgba(51,153,255,0.15) 0%, rgba(51,153,255,0.05) 40%, transparent 70%)",
+              boxShadow: "0 0 80px 40px rgba(51,153,255,0.08)",
+            }} />
+            <div className="absolute" style={{
+              width: 300, height: 300, borderRadius: "50%", bottom: -220, left: "50%", transform: "translateX(-50%)",
+              border: "1.5px solid rgba(51,153,255,0.2)",
+              boxShadow: "0 0 30px 10px rgba(51,153,255,0.06), inset 0 0 30px 5px rgba(51,153,255,0.04)",
+            }}>
+              <svg className="absolute inset-0 w-full h-full rounded-full overflow-hidden pointer-events-none" style={{ opacity: 0.5, mixBlendMode: "soft-light" }}>
+                <filter id="grain-halfmoon"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves={4} seed={42} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+                <rect width="100%" height="100%" filter="url(#grain-halfmoon)" />
+              </svg>
+            </div>
+          </div>
         </div>
       </section>
 
