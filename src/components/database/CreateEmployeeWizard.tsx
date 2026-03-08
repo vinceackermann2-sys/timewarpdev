@@ -285,14 +285,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               <Label className="text-base font-semibold text-foreground">Any risk considerations?</Label>
               <Input value={safetyRisks} onChange={e => setSafetyRisks(e.target.value)} placeholder="e.g. Escalation required for legal threats" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What records must be kept?</Label>
-              <Input value={docRecords} onChange={e => setDocRecords(e.target.value)} placeholder="e.g. Complaint log, resolution notes" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">Where should records be stored?</Label>
-              <Input value={docStorage} onChange={e => setDocStorage(e.target.value)} placeholder="e.g. CRM system, shared drive" />
-            </div>
           </div>
         )}
       </div>
