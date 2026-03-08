@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { EmployeeRunOverlay } from "./EmployeeRunOverlay";
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
 import { useActionGate } from "@/hooks/useActionGate";
