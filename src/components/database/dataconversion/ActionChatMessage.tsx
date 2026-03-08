@@ -69,7 +69,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       return <Loader2 className="h-3.5 w-3.5 animate-spin text-accent-foreground" />;
     }
     if (step.status === "complete") {
-      return <CheckCircle2 className="h-3.5 w-3.5 text-primary" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 text-foreground" />;
     }
     if (step.status === "error") {
       return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
