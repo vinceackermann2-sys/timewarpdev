@@ -226,6 +226,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         const pageContext = await getPageContext();
 
         setCurrentStep(`Step ${step + 1}: Thinking…`);
+        updateOverlay({ visible: true, employeeName: employee.name, currentStep: `Step ${step + 1}: Thinking…`, isPaused: false, isManualMode: false });
         await logStep("running", `Step ${step + 1}`, "Thinking…");
         const aiResponse = await callRunEmployee(session, conversationHistory, pageContext);
 
