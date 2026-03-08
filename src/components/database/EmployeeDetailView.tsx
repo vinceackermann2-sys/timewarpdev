@@ -6,6 +6,8 @@ import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
+import { useActionGate } from "@/hooks/useActionGate";
+import { ActionsDialog } from "./ActionsDialog";
 
 interface LogEntry {
   id: string;
