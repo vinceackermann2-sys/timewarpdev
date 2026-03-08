@@ -433,6 +433,8 @@ export function ProductDetailView({
               </span>
               <span className="text-xs text-muted-foreground/60">|</span>
               <span className="text-xs text-muted-foreground">Last updated: {data.lastUpdated}</span>
+              <span className="text-xs text-muted-foreground/60">|</span>
+              <span className="text-xs text-muted-foreground">Added by: {userName}</span>
             </div>
           </div>
         </div>
