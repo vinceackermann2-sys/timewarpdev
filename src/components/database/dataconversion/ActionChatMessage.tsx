@@ -252,7 +252,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
                     {doc.previewText}
                   </p>
                 )}
-                <div className="flex items-center gap-1 mt-1.5 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 mt-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                   <span>Open in Google {getDocLabel(doc.type)}</span>
                   <ArrowRight className="h-3 w-3" />
                 </div>
