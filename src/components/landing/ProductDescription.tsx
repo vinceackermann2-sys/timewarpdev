@@ -115,7 +115,7 @@ export function ProductDescription() {
         </div>
       </section>
 
-      {/* ── Business DNA intro + comparison cards ── */}
+      {/* ── Business DNA + Evolution of Labor (merged single section) ── */}
       <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
         {/* Subtle particle dots */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -135,7 +135,7 @@ export function ProductDescription() {
         </div>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          {/* Title */}
+          {/* Business DNA Title */}
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>
               This is Business DNA.
@@ -145,8 +145,8 @@ export function ProductDescription() {
             </p>
           </div>
 
-          {/* Two comparison cards */}
-          <div className="grid md:grid-cols-2 gap-5">
+          {/* Business DNA comparison cards */}
+          <div className="grid md:grid-cols-2 gap-5 mb-24">
             {/* Left card */}
             <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
@@ -185,18 +185,15 @@ export function ProductDescription() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ── Evolution of Labor ── */}
-      <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
+          {/* Evolution of Labor Title */}
           <div className="text-center mb-16">
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>
               The Evolution of Labor
             </h3>
           </div>
 
+          {/* Evolution cards */}
           <div className="grid md:grid-cols-2 gap-5">
             {/* Old way */}
             <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
@@ -205,10 +202,7 @@ export function ProductDescription() {
                 <rect width="100%" height="100%" filter="url(#grain-evo-left)" />
               </svg>
               <div className="relative z-10 space-y-5">
-                <div className="flex items-center gap-3 mb-2">
-                  <Users className="h-5 w-5" style={{ color: "hsl(0 0% 50%)" }} />
-                  <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
-                </div>
+                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
                 <ul className="space-y-3">
                   {[
                     "High churn, high cost, and human error.",
@@ -236,10 +230,7 @@ export function ProductDescription() {
                 <rect width="100%" height="100%" filter="url(#grain-evo-right)" />
               </svg>
               <div className="relative z-10 space-y-5">
-                <div className="flex items-center gap-3 mb-2">
-                  <Zap className="h-5 w-5" style={{ color: "#3399ff" }} />
-                  <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
-                </div>
+                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
                 <ul className="space-y-3">
                   {[
                     "Infinite scale with zero headcount increase.",
@@ -247,13 +238,13 @@ export function ProductDescription() {
                     "Your Business DNA is preserved and perfected forever.",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                      <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#3399ff" }} />
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "#3399ff" }} />
                       {item}
                     </li>
                   ))}
                 </ul>
                 <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                  <p className="text-sm font-semibold" style={{ color: "#3399ff" }}>
+                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
                     The Reality: Universal High Income (UHI) powered by autonomous productivity.
                   </p>
                 </div>
