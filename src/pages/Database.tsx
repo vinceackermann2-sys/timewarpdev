@@ -14,7 +14,7 @@ import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2 } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 
-type View = "dataconversion" | "aiceo" | "businessdna";
+type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
 
 interface PendingTask {
   role: string;
