@@ -377,21 +377,21 @@ export function AudienceDetailView({
                 <div className="px-6 py-6 space-y-8 max-w-3xl">
                   <div id="engagement-triggers">
                     <SectionHeading id="" title="Engagement triggers" subtitle="" />
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="grid grid-cols-2 gap-2 mt-3">
                       {data.engagementTriggers.map((trigger, i) => (
                         <div key={i}>
                           {isEditingSection("engagement") ? (
                             <div className="flex gap-1">
-                              <Input value={trigger} onChange={(e) => { const next = [...data.engagementTriggers]; next[i] = e.target.value; setData(prev => ({ ...prev, engagementTriggers: next })); }} className="h-7 text-xs w-52" />
+                              <Input value={trigger} onChange={(e) => { const next = [...data.engagementTriggers]; next[i] = e.target.value; setData(prev => ({ ...prev, engagementTriggers: next })); }} className="h-9 text-xs flex-1" />
                               <button onClick={() => setData(prev => ({ ...prev, engagementTriggers: prev.engagementTriggers.filter((_, idx) => idx !== i) }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
                             </div>
                           ) : (
-                            <span className="text-sm px-3 py-1.5 rounded-full bg-muted/50 border border-border/40 text-foreground/80">{trigger}</span>
+                            <div className="rounded-lg border border-border/40 bg-muted/30 px-4 py-3 text-sm text-foreground/80 leading-relaxed h-full flex items-center">{trigger}</div>
                           )}
                         </div>
                       ))}
                       {isEditingSection("engagement") && (
-                        <button onClick={() => setData(prev => ({ ...prev, engagementTriggers: [...prev.engagementTriggers, ""] }))} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"><Plus className="h-3 w-3" /> Add</button>
+                        <button onClick={() => setData(prev => ({ ...prev, engagementTriggers: [...prev.engagementTriggers, ""] }))} className="flex items-center justify-center gap-1.5 text-xs text-primary hover:text-primary/80 rounded-lg border border-dashed border-primary/30 px-4 py-3"><Plus className="h-3 w-3" /> Add</button>
                       )}
                     </div>
                   </div>
