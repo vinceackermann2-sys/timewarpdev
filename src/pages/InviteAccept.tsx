@@ -3,12 +3,14 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 
 const InviteAccept = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "success" | "error" | "auth">("loading");
   const [message, setMessage] = useState("");
+  const [showCelebration, setShowCelebration] = useState(false);
   const token = searchParams.get("token");
   const refCode = searchParams.get("ref");
 
@@ -61,6 +63,7 @@ const InviteAccept = () => {
           });
           const rr = refResult as any;
           if (rr?.success) {
+            setShowCelebration(true);
             if (!token) {
               setStatus("success");
               setMessage("Welcome! You've received 125 bonus Actions!");
@@ -120,6 +123,17 @@ const InviteAccept = () => {
           </>
         )}
       </div>
+      <ActionsCelebration
+        open={showCelebration}
+        onOpenChange={(open) => {
+          setShowCelebration(open);
+          if (!open && status === "success") {
+            navigate("/app");
+          }
+        }}
+        actionsGranted={125}
+        reason="referred"
+      />
     </div>
   );
 };

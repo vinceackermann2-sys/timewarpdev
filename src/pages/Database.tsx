@@ -12,6 +12,7 @@ import { MyBusinessesView } from "@/components/database/MyBusinessesView";
 import { AddProductURLView } from "@/components/database/AddProductURLView";
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2 } from "lucide-react";
+import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 
 type View = "dataconversion" | "aiceo" | "businessdna";
 
@@ -31,6 +32,7 @@ const Database = () => {
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
+  const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
 
   // Check for view parameter and pending task on mount
   useEffect(() => {
@@ -71,6 +73,29 @@ const Database = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Check for uncelebrated referral completions (referrer side)
+  useEffect(() => {
+    if (!user) return;
+    const checkReferrerRewards = async () => {
+      try {
+        const { data } = await supabase
+          .from("referrals")
+          .select("id")
+          .eq("referrer_id", user.id)
+          .eq("status", "completed")
+          .eq("actions_granted", true);
+        if (!data || data.length === 0) return;
+        const celebrated: string[] = JSON.parse(localStorage.getItem("celebrated_referral_ids") || "[]");
+        const newIds = data.filter((r) => !celebrated.includes(r.id)).map((r) => r.id);
+        if (newIds.length > 0) {
+          setShowReferrerCelebration(true);
+          localStorage.setItem("celebrated_referral_ids", JSON.stringify([...celebrated, ...newIds]));
+        }
+      } catch { /* ignore */ }
+    };
+    checkReferrerRewards();
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -139,8 +164,14 @@ const Database = () => {
               </BusinessDNAProvider>
             )}
           </main>
-        </SidebarInset>
-      </div>
+      </SidebarInset>
+      <ActionsCelebration
+        open={showReferrerCelebration}
+        onOpenChange={setShowReferrerCelebration}
+        actionsGranted={125}
+        reason="referral"
+      />
+    </div>
     </SidebarProvider>
   );
 };

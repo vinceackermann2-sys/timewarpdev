@@ -1,54 +1,50 @@
 
 
-## Fix: Referral & Invite Celebration + Actions Not Working
+## Problem
 
-### Root Causes
+The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
 
-**Bug 1 — Referred user never sees celebration:**
-In `Auth.tsx`, `processReferral` sets `showCelebration(true)`, but the calling code in `onAuthStateChange` (line 88) immediately calls `navigateToDashboard()` after awaiting it. React state (`showCelebration`) hasn't rendered yet, so the page navigates away and the dialog never appears.
+The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
 
-**Bug 2 — Referrer never sees celebration:**
-There is no code anywhere that checks for completed referrals on the referrer's side. The memory mentions "one-time celebration check tracked in localStorage" but this was never implemented.
+## Plan
 
-**Bug 3 — InviteAccept page has no celebration:**
-The `/invite` page processes referral codes but has no `ActionsCelebration` dialog — just plain text.
+### 1. Add context size limiting in both edge functions
 
-### Fix Plan
+**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
 
-**File: `src/pages/Auth.tsx`**
-- Make `processReferral` return `true` if celebration was triggered
-- In both `checkSession` and `onAuthStateChange`, skip `navigateToDashboard()` if `processReferral` returned `true` (navigation will happen when user dismisses the celebration dialog)
+In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
 
-**File: `src/pages/InviteAccept.tsx`**
-- Add `ActionsCelebration` dialog
-- When referral completes successfully, show the celebration before allowing "Go to Workspace"
-
-**File: `src/pages/Database.tsx`**
-- On mount, check for uncelebrated referral completions for the referrer:
-  - Query `referrals` table for rows where `referrer_id = current user`, `status = 'completed'`, and `actions_granted = true`
-  - Compare against a localStorage key `celebrated_referral_ids` to find new completions
-  - If found, show `ActionsCelebration` with reason `"referral"` and update localStorage
-- Add `ActionsCelebration` component + state to Database page
-
-### Technical Details
-
-```text
-Auth.tsx processReferral flow (fixed):
-  processReferral(userId) → returns boolean
-  ├── storedRef exists → rpc complete_referral
-  │   ├── success → setCelebration(true), return true
-  │   └── fail → return false
-  └── no storedRef → return false
-
-  onAuthStateChange:
-    const celebrated = await processReferral(...)
-    if (!celebrated) navigateToDashboard()
-    // else: navigation deferred to celebration onClose
-
-Database.tsx referrer check (new):
-  useEffect on mount:
-    query referrals where referrer_id=me, status=completed
-    compare ids vs localStorage celebrated_referral_ids
-    if new → show celebration, update localStorage
+```typescript
+function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+  // ... group by source as before ...
+  for (const item of sourceItems) {
+    const itemText = /* build item string */;
+    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+    context += itemText;
+    totalChars += itemText.length;
+  }
+  return context;
+}
 ```
+
+### 2. Add better error logging for debugging
+
+Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+
+```typescript
+if (!response.ok) {
+  const errorBody = await response.text().catch(() => "");
+  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+  // ... existing status-specific handling ...
+}
+```
+
+### 3. Truncate individual item content
+
+Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
+
+This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
 
