@@ -356,6 +356,7 @@ export function ProductDetailView({
   onBack: () => void;
   onSave: (product: ProductData) => void;
 }) {
+  const { userName } = useBusinessDNA();
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const safeProduct: ProductData = {
     ...DEFAULT_PRODUCT,
