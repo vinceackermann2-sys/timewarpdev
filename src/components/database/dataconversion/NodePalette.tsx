@@ -17,14 +17,14 @@ const quickAccessNodes: NodeItem[] = [
 
 const researchNode: NodeItem = {
   id: "research",
-  label: "Research",
-  description: "AI chat for data analysis",
+  label: "Research Chat",
+  description: "",
 };
 
 const actionNode: NodeItem = {
   id: "action",
-  label: "Generation",
-  description: "Execute from research",
+  label: "Generation Chat",
+  description: "",
 };
 
 interface NodeItemCardProps {
