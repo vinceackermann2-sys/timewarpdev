@@ -232,7 +232,7 @@ export function ProductDescription() {
                   What we mean by Business DNA
                 </p>
                 <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
-                  Every decision, SOP, and winning pivot your company has ever made.
+                  Every decision your company has
                 </h3>
                 <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
                   The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.
