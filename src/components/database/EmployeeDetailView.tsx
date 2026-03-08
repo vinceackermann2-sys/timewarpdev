@@ -62,6 +62,8 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const { toast } = useToast();
   const abortRef = useRef<AbortController | null>(null);
   const pauseResolverRef = useRef<(() => void) | null>(null);
+  const isPausedRef = useRef(false);
+  const isManualModeRef = useRef(false);
   const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop } = useExtensionBridge();
 
   useEffect(() => { loadLogs(); }, [employee.id]);
