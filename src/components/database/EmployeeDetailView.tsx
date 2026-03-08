@@ -166,7 +166,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         // 6. Execute the action via extension (in the active tab)
         await logStep("running", `Step ${step + 1}`, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
 
-        const result = await executeAction(action, true);
+        const result = await executeAction(action, true) || { success: false, action: action.action, error: "No response from extension" };
 
         // 7. Feed result back to AI
         const resultMsg = result.success
