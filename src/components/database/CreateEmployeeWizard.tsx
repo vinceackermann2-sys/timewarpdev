@@ -111,7 +111,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Top: Stepper bar like reference image */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-border flex justify-center">
         <div className="flex items-center gap-1 overflow-x-auto">
           {STEP_SHORT.map((label, i) => {
             const isActive = i === step;
