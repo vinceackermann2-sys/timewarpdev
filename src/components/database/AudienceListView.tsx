@@ -77,6 +77,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
         refinementChecklist: a.refinementChecklist || [],
         lastUpdated: now,
         productIds: brandProductIds,
+        avatarUrl: a.avatarUrl || undefined,
       };
       setAudiences(prev => [...prev, newAudience]);
 
