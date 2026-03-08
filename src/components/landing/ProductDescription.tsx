@@ -244,24 +244,22 @@ export function ProductDescription() {
 
           {/* Evolution cards — static layout */}
           <div className="grid md:grid-cols-2 gap-5">
-            <GrainCard filterId="grain-evo-0" seed={10}>
-              <div className="space-y-5">
-                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
-                <ul className="space-y-3">
-                  {["High churn, high cost, and human error.", 'Scaling requires more "managed" hours.', "Knowledge walks out the door when an employee leaves."].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "hsl(0 0% 35%)" }} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
-                    The Ceiling: <span className="italic">You can only grow as fast as you can hire.</span>
-                  </p>
-                </div>
+            <div className="space-y-5">
+              <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
+              <ul className="space-y-3">
+                {["High churn, high cost, and human error.", 'Scaling requires more "managed" hours.', "Knowledge walks out the door when an employee leaves."].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
+                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "hsl(0 0% 35%)" }} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
+                <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
+                  The Ceiling: <span className="italic">You can only grow as fast as you can hire.</span>
+                </p>
               </div>
-            </GrainCard>
+            </div>
             <GrainCard filterId="grain-evo-1" seed={15} borderColor="hsl(0 0% 20%)">
               <div className="space-y-5">
                 <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
