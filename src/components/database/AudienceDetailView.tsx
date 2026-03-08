@@ -550,7 +550,7 @@ export function AudienceDetailView({
                         </div>
                       ))}
                       {isEditingSection("language") && (
-                        <button onClick={() => setData(prev => ({ ...prev, powerPhrases: [...prev.powerPhrases, ""] }))} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"><Plus className="h-3 w-3" /> Add</button>
+                        <button onClick={() => setData(prev => ({ ...prev, powerPhrases: [...prev.powerPhrases, ""] }))} className="flex items-center justify-center gap-1.5 text-xs text-primary hover:text-primary/80 rounded-lg border border-dashed border-primary/30 px-4 py-3"><Plus className="h-3 w-3" /> Add</button>
                       )}
                     </div>
                   </div>
