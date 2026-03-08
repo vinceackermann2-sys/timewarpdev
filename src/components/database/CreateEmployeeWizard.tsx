@@ -37,14 +37,18 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [sopTitle, setSopTitle] = useState("");
-  const [sopPurpose, setSopPurpose] = useState("");
-  const [sopScope, setSopScope] = useState("");
+  const [purposeWhy, setPurposeWhy] = useState("");
+  const [purposeProblem, setPurposeProblem] = useState("");
+  const [scopeWhere, setScopeWhere] = useState("");
+  const [scopeWhen, setScopeWhen] = useState("");
   const [responsibilities, setResponsibilities] = useState<string[]>([""]);
   const [definitions, setDefinitions] = useState<{ term: string; meaning: string }[]>([]);
   const [materials, setMaterials] = useState<string[]>([""]);
   const [procedure, setProcedure] = useState<string[]>([""]);
-  const [safetyNotes, setSafetyNotes] = useState("");
-  const [documentation, setDocumentation] = useState("");
+  const [safetyWarnings, setSafetyWarnings] = useState("");
+  const [safetyRisks, setSafetyRisks] = useState("");
+  const [docRecords, setDocRecords] = useState("");
+  const [docStorage, setDocStorage] = useState("");
   const [fileUploaded, setFileUploaded] = useState(false);
 
   const progressPercent = ((step + 1) / STEPS.length) * 100;
@@ -57,9 +61,8 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
 
   const handleFileUploaded = (file: { summary: string }) => {
     setFileUploaded(true);
-    // Pre-fill SOP fields from the analysis summary
-    if (file.summary && !sopPurpose) {
-      setSopPurpose(file.summary);
+    if (file.summary && !purposeWhy) {
+      setPurposeWhy(file.summary);
     }
     toast({ title: "SOP file imported", description: "You can review and edit the details in the following steps." });
   };
@@ -76,14 +79,14 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       role: role.trim(),
       orb_colors: orbPalettes[0],
       sop_title: sopTitle.trim() || null,
-      sop_purpose: sopPurpose.trim() || null,
-      sop_scope: sopScope.trim() || null,
+      sop_purpose: [purposeWhy.trim(), purposeProblem.trim()].filter(Boolean).join("\n\n") || null,
+      sop_scope: [scopeWhere.trim(), scopeWhen.trim()].filter(Boolean).join("\n\n") || null,
       sop_responsibilities: responsibilities.filter(r => r.trim()),
       sop_definitions: definitions.filter(d => d.term.trim()),
       sop_materials: materials.filter(m => m.trim()),
       sop_procedure: procedure.filter(p => p.trim()),
-      sop_safety_notes: safetyNotes.trim() || null,
-      sop_documentation: documentation.trim() || null,
+      sop_safety_notes: [safetyWarnings.trim(), safetyRisks.trim()].filter(Boolean).join("\n\n") || null,
+      sop_documentation: [docRecords.trim(), docStorage.trim()].filter(Boolean).join("\n\n") || null,
       sop_revision_history: [{ version: "1.0", date: new Date().toISOString().split("T")[0], notes: "Initial creation" }],
     } as any);
 
@@ -209,9 +212,12 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               <Input value={sopTitle} onChange={e => setSopTitle(e.target.value)} placeholder="e.g. Customer Complaint Handling Procedure" />
             </div>
             <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What is the purpose of this SOP?</Label>
-              <p className="text-xs text-muted-foreground">Why does this procedure exist? What problem does it solve?</p>
-              <Textarea value={sopPurpose} onChange={e => setSopPurpose(e.target.value)} placeholder="Describe the goal and reason for this procedure..." rows={4} />
+              <Label className="text-base font-semibold text-foreground">Why does this procedure exist?</Label>
+              <Input value={purposeWhy} onChange={e => setPurposeWhy(e.target.value)} placeholder="e.g. To ensure consistent handling of customer complaints" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-base font-semibold text-foreground">What problem does it solve?</Label>
+              <Input value={purposeProblem} onChange={e => setPurposeProblem(e.target.value)} placeholder="e.g. Reduces response time and improves customer satisfaction" />
             </div>
           </div>
         )}
@@ -219,9 +225,12 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         {step === 3 && (
           <div className="space-y-8">
             <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What is the scope of this SOP?</Label>
-              <p className="text-xs text-muted-foreground">Where and when does this procedure apply?</p>
-              <Textarea value={sopScope} onChange={e => setSopScope(e.target.value)} placeholder="Describe the boundaries and applicability..." rows={3} />
+              <Label className="text-base font-semibold text-foreground">Where does this procedure apply?</Label>
+              <Input value={scopeWhere} onChange={e => setScopeWhere(e.target.value)} placeholder="e.g. All customer-facing departments" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-base font-semibold text-foreground">When does this procedure apply?</Label>
+              <Input value={scopeWhen} onChange={e => setScopeWhen(e.target.value)} placeholder="e.g. Whenever a complaint is received" />
             </div>
             <div className="space-y-2">
               <Label className="text-base font-semibold text-foreground">Who is responsible for each part?</Label>
@@ -299,14 +308,20 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         {step === 6 && (
           <div className="space-y-8">
             <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">Any safety or compliance considerations?</Label>
-              <p className="text-xs text-muted-foreground">Warnings, regulations, or risk considerations to be aware of.</p>
-              <Textarea value={safetyNotes} onChange={e => setSafetyNotes(e.target.value)} placeholder="Describe any safety or compliance notes..." rows={3} />
+              <Label className="text-base font-semibold text-foreground">Any safety warnings or regulations?</Label>
+              <Input value={safetyWarnings} onChange={e => setSafetyWarnings(e.target.value)} placeholder="e.g. Must comply with GDPR data handling" />
             </div>
             <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What documentation or records must be kept?</Label>
-              <p className="text-xs text-muted-foreground">What records need to be maintained and where they should be stored.</p>
-              <Textarea value={documentation} onChange={e => setDocumentation(e.target.value)} placeholder="Describe the required documentation..." rows={3} />
+              <Label className="text-base font-semibold text-foreground">Any risk considerations?</Label>
+              <Input value={safetyRisks} onChange={e => setSafetyRisks(e.target.value)} placeholder="e.g. Escalation required for legal threats" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-base font-semibold text-foreground">What records must be kept?</Label>
+              <Input value={docRecords} onChange={e => setDocRecords(e.target.value)} placeholder="e.g. Complaint log, resolution notes" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-base font-semibold text-foreground">Where should records be stored?</Label>
+              <Input value={docStorage} onChange={e => setDocStorage(e.target.value)} placeholder="e.g. CRM system, shared drive" />
             </div>
           </div>
         )}
