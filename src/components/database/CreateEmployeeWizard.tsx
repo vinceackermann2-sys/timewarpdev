@@ -232,21 +232,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               <Label className="text-base font-semibold text-foreground">When does this procedure apply?</Label>
               <Input value={scopeWhen} onChange={e => setScopeWhen(e.target.value)} placeholder="e.g. Whenever a complaint is received" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">Who is responsible for each part?</Label>
-              <p className="text-xs text-muted-foreground">List the roles or people responsible.</p>
-              {responsibilities.map((r, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input value={r} onChange={e => updateListItem(responsibilities, setResponsibilities, i, e.target.value)} placeholder={`Responsibility ${i + 1}`} />
-                  {responsibilities.length > 1 && (
-                    <Button variant="ghost" size="icon" onClick={() => removeListItem(responsibilities, setResponsibilities, i)}><X className="h-3 w-3" /></Button>
-                  )}
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={() => addListItem(responsibilities, setResponsibilities)} className="gap-1">
-                <Plus className="h-3 w-3" /> Add
-              </Button>
-            </div>
           </div>
         )}
 
@@ -264,21 +249,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               ))}
               <Button variant="outline" size="sm" onClick={() => setDefinitions([...definitions, { term: "", meaning: "" }])} className="gap-1">
                 <Plus className="h-3 w-3" /> Add Definition
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What materials or tools are needed?</Label>
-              <p className="text-xs text-muted-foreground">Equipment, software, or documents required for this procedure.</p>
-              {materials.map((m, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input value={m} onChange={e => updateListItem(materials, setMaterials, i, e.target.value)} placeholder={`Material ${i + 1}`} />
-                  {materials.length > 1 && (
-                    <Button variant="ghost" size="icon" onClick={() => removeListItem(materials, setMaterials, i)}><X className="h-3 w-3" /></Button>
-                  )}
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={() => addListItem(materials, setMaterials)} className="gap-1">
-                <Plus className="h-3 w-3" /> Add
               </Button>
             </div>
           </div>
@@ -314,14 +284,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
             <div className="space-y-2">
               <Label className="text-base font-semibold text-foreground">Any risk considerations?</Label>
               <Input value={safetyRisks} onChange={e => setSafetyRisks(e.target.value)} placeholder="e.g. Escalation required for legal threats" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What records must be kept?</Label>
-              <Input value={docRecords} onChange={e => setDocRecords(e.target.value)} placeholder="e.g. Complaint log, resolution notes" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">Where should records be stored?</Label>
-              <Input value={docStorage} onChange={e => setDocStorage(e.target.value)} placeholder="e.g. CRM system, shared drive" />
             </div>
           </div>
         )}
