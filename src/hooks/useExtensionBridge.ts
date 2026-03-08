@@ -38,47 +38,51 @@ export function useExtensionBridge() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Log ALL messages to debug extension communication
-      if (event.data && typeof event.data === "object" && event.data.type) {
-        console.log("[ExtBridge] Received message:", event.data.type, "source===window:", event.source === window, event.data);
-      }
+      if (event.source !== window) return;
+      const data = event.data;
 
-      // Accept messages from window OR from content scripts (some extensions post from different source)
-      const { type } = event.data || {};
-
-      if (type === "TIMEWARP_PONG") {
+      // Extension responds with plain string "TIMEWARP_PONG"
+      if (data === "TIMEWARP_PONG") {
         console.log("[ExtBridge] ✅ PONG received! Extension connected.");
         setExtensionConnected(true);
         setDetecting(false);
+        return;
       }
 
-      if (type === "TIMEWARP_PAGE_CONTEXT") {
-        const resolver = resolversRef.current.get("page_context");
-        if (resolver) {
-          resolver(event.data.payload as PageContext);
-          resolversRef.current.delete("page_context");
+      // Also support object format
+      if (typeof data === "object" && data !== null) {
+        const { type } = data;
+
+        if (type === "TIMEWARP_PONG") {
+          console.log("[ExtBridge] ✅ PONG received (object)! Extension connected.");
+          setExtensionConnected(true);
+          setDetecting(false);
         }
-      }
 
-      if (type === "TIMEWARP_ACTION_RESULT") {
-        const resolver = resolversRef.current.get("action_result");
-        if (resolver) {
-          resolver(event.data.payload as ActionResult);
-          resolversRef.current.delete("action_result");
+        if (type === "TIMEWARP_PAGE_CONTEXT") {
+          const resolver = resolversRef.current.get("page_context");
+          if (resolver) {
+            resolver(data.payload as PageContext);
+            resolversRef.current.delete("page_context");
+          }
+        }
+
+        if (type === "TIMEWARP_ACTION_RESULT") {
+          const resolver = resolversRef.current.get("action_result");
+          if (resolver) {
+            resolver(data.payload as ActionResult);
+            resolversRef.current.delete("action_result");
+          }
         }
       }
     };
 
     window.addEventListener("message", handleMessage);
 
-    // Ping the extension
+    // Send as plain string to match extension's expected format
     console.log("[ExtBridge] Sending TIMEWARP_PING...");
-    window.postMessage({ type: "TIMEWARP_PING" }, "*");
+    window.postMessage("TIMEWARP_PING", "*");
 
-    // Also try dispatching a custom DOM event as fallback
-    window.dispatchEvent(new CustomEvent("TIMEWARP_PING"));
-
-    // If no response within 3s, mark as not connected
     const timeout = setTimeout(() => {
       console.log("[ExtBridge] ⏰ Detection timeout - no PONG received");
       setDetecting(false);
@@ -93,15 +97,15 @@ export function useExtensionBridge() {
   const retryDetection = useCallback(() => {
     setDetecting(true);
     setExtensionConnected(false);
-    window.postMessage({ type: "TIMEWARP_PING" }, "*");
-    setTimeout(() => setDetecting(false), 2000);
+    // Send as plain string
+    window.postMessage("TIMEWARP_PING", "*");
+    setTimeout(() => setDetecting(false), 3000);
   }, []);
 
   const getPageContext = useCallback((): Promise<PageContext> => {
     return new Promise((resolve) => {
       resolversRef.current.set("page_context", resolve);
-      window.postMessage({ type: "TIMEWARP_GET_PAGE_CONTEXT" }, "*");
-      // Timeout fallback
+      window.postMessage("TIMEWARP_GET_PAGE_CONTEXT", "*");
       setTimeout(() => {
         if (resolversRef.current.has("page_context")) {
           resolversRef.current.delete("page_context");
@@ -115,7 +119,6 @@ export function useExtensionBridge() {
     return new Promise((resolve) => {
       resolversRef.current.set("action_result", resolve);
       window.postMessage({ type: "TIMEWARP_EXECUTE_ACTION", action }, "*");
-      // Timeout fallback
       setTimeout(() => {
         if (resolversRef.current.has("action_result")) {
           resolversRef.current.delete("action_result");
