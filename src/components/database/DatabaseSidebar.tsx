@@ -57,7 +57,7 @@ import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 
-type View = "dataconversion" | "aiceo" | "businessdna";
+type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
 
 interface DatabaseSidebarProps {
   currentView: View;
