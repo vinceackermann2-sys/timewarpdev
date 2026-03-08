@@ -61,6 +61,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const [businesses, setBusinesses] = useState<BusinessItem[]>([]);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [loadingBusinesses, setLoadingBusinesses] = useState(false);
+  const [expandedBrandId, setExpandedBrandId] = useState<string | null>(null);
 
   // Load businesses when workspace changes on the last step
   useEffect(() => {
