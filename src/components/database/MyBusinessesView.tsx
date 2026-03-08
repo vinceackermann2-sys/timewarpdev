@@ -360,8 +360,8 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
 
 function WorkspaceFooter() {
   return (
-    <div className="w-full max-w-5xl mx-auto mb-6 mt-auto px-6">
-      <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-12 py-14">
+    <div className="w-full mx-auto mb-6 mt-auto px-6" style={{ maxWidth: 1600 }}>
+      <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-12" style={{ height: 326, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div className="flex gap-14">
           <div className="flex items-start gap-2 shrink-0">
             <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-md" />
