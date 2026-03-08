@@ -1,69 +1,50 @@
 
 
-## Fix: Skeleton not showing when switching to Business DNA view
+## Problem
 
-### Root Cause
-In `MyBusinessesView`, the `useEffect` on line 47 has an early exit when `activeWorkspaceId` is `null`:
-```js
-if (!activeWorkspaceId) { setWsBusinesses([]); setLoadingBiz(false); return; }
+The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+
+The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+
+## Plan
+
+### 1. Add context size limiting in both edge functions
+
+**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
+
+In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
+
+```typescript
+function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+  // ... group by source as before ...
+  for (const item of sourceItems) {
+    const itemText = /* build item string */;
+    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+    context += itemText;
+    totalChars += itemText.length;
+  }
+  return context;
+}
 ```
 
-When the component first mounts, `activeWorkspaceId` may briefly be `null` (while `useWorkspace` resolves from localStorage). This immediately sets `loadingBiz = false`, hiding the skeleton. When `activeWorkspaceId` then becomes available on the next render cycle, there's a brief gap where neither skeletons nor businesses show — the user sees an empty state before data loads.
+### 2. Add better error logging for debugging
 
-### Fix
-1. **Keep `loadingBiz` true when workspace is still resolving** — don't set it to `false` when `activeWorkspaceId` is null. Only set it to false after a successful fetch or a confirmed empty state.
+Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
 
-2. **In the useEffect early exit**: Change the `!activeWorkspaceId` branch to keep `loadingBiz` as `true` (or only set it false if `wsLoading` is also false, meaning workspaces have finished loading and there truly is no workspace).
-
-### Changes
-**File: `src/components/database/MyBusinessesView.tsx`**
-
-Update the useEffect (line 46-80):
-- When `!activeWorkspaceId`: only set `loadingBiz(false)` if workspace loading is also complete (`!wsLoading`), otherwise keep it `true` so skeletons remain visible while the workspace ID is being determined.
-- Simplify the `isNewWorkspace` logic — always set `loadingBiz(true)` at the start of `load()` regardless.
-
-```tsx
-useEffect(() => {
-  if (!activeWorkspaceId) {
-    setWsBusinesses([]);
-    // Only stop loading if workspaces have finished loading (no workspace exists)
-    if (!wsLoading) setLoadingBiz(false);
-    return;
-  }
-
-  // Clear stale data and show skeletons
-  setWsBusinesses([]);
-  setLoadingBiz(true);
-  prevWorkspaceId.current = activeWorkspaceId;
-
-  let cancelled = false;
-  async function load() {
-    const { data, error } = await supabase
-      .from("user_business_data")
-      .select("id, content, user_id")
-      .eq("workspace_id", activeWorkspaceId!)
-      .eq("data_type", "brand")
-      .eq("source", "business-dna");
-
-    if (cancelled) return;
-    if (!error && data) {
-      const parsed = data.map((row) => {
-        try {
-          return { ...JSON.parse(row.content || "{}"), _rowId: row.id, _ownerId: row.user_id };
-        } catch { return null; }
-      }).filter(Boolean);
-      lastKnownCount.current = parsed.length;
-      setWsBusinesses(parsed);
-    }
-    setLoadingBiz(false);
-  }
-  load();
-  return () => { cancelled = true; };
-}, [activeWorkspaceId, brands, wsLoading]);
+```typescript
+if (!response.ok) {
+  const errorBody = await response.text().catch(() => "");
+  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+  // ... existing status-specific handling ...
+}
 ```
 
-Key differences:
-- Added `wsLoading` to the dependency array and to the null-workspace guard
-- Removed the `isNewWorkspace` branching — always clear and reload when the effect runs with a valid workspace ID
-- Skeletons now reliably show during the entire loading window
+### 3. Truncate individual item content
+
+Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
+
+This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
 
