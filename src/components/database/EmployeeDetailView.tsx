@@ -151,11 +151,14 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
     setEditName(employee.name);
     setEditRole(employee.role);
     setEditSopTitle(employee.sop_title || "");
-    setEditPurpose(employee.sop_purpose || "");
-    setEditScope(employee.sop_scope || "");
+    setEditPurposeWhy(splitField(employee.sop_purpose, 0));
+    setEditPurposeProblem(splitField(employee.sop_purpose, 1));
+    setEditScopeWhere(splitField(employee.sop_scope, 0));
+    setEditScopeWhen(splitField(employee.sop_scope, 1));
     setEditDefinitions(Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []);
     setEditProcedure(Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []);
-    setEditSafety(employee.sop_safety_notes || "");
+    setEditSafetyWarnings(splitField(employee.sop_safety_notes, 0));
+    setEditSafetyRisks(splitField(employee.sop_safety_notes, 1));
   };
 
   const handleSaveEdit = async () => {
