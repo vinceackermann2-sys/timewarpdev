@@ -6,6 +6,8 @@ import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
+import { useActionGate } from "@/hooks/useActionGate";
+import { ActionsDialog } from "./ActionsDialog";
 
 interface LogEntry {
   id: string;
@@ -65,6 +67,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const isManualModeRef = useRef(false);
   const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
   const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
+  const { checkCanUseAction, showUpgrade, setShowUpgrade } = useActionGate();
 
   useEffect(() => { loadLogs(); }, [employee.id]);
 
@@ -181,6 +184,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       toast({ title: "Extension not detected", description: "Install and log into the TimeWarp extension to run employees.", variant: "destructive" });
       return;
     }
+    if (!checkCanUseAction()) return;
 
     setRunning(true);
     setIsPaused(false);
@@ -539,6 +543,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           </div>
         </div>
       )}
+      <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
     </div>
   );
 }
