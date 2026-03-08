@@ -599,12 +599,12 @@ No explanation, just the JSON array.`
         }
         console.log("Moodboard terms:", aestheticTerms);
 
-        // Step 2: Search Pinterest directly for each term — extract pin image URLs
+        // Step 2: Search Cosmos.so for each term — extract curated image URLs
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
             try {
-              console.log(`Searching Pinterest for: ${term}`);
-              // Search Pinterest specifically
+              console.log(`Searching Cosmos.so for: ${term}`);
+              // Search Cosmos.so for curated moodboard images
               const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -612,7 +612,7 @@ No explanation, just the JSON array.`
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `site:pinterest.com ${term} aesthetic`,
+                  query: `site:cosmos.so ${term} aesthetic`,
                   limit: 5,
                   scrapeOptions: { formats: ["links", "screenshot"] },
                 }),
@@ -622,26 +622,31 @@ No explanation, just the JSON array.`
                 const searchData = await searchRes.json();
                 const results = searchData.data || [];
                 for (const r of results) {
-                  // Try to extract pin image URL from the scraped page
+                  // Try to extract image URLs from Cosmos.so pages
                   const links = r.links || [];
-                  // Pinterest pin images are typically on i.pinimg.com
-                  const pinImgUrl = links.find((l: string) => l && l.includes('pinimg.com') && (l.includes('/originals/') || l.includes('/736x/') || l.includes('/564x/')));
-                  if (pinImgUrl) {
-                    console.log(`✓ Got Pinterest image for "${term}"`);
-                    return pinImgUrl;
+                  // Cosmos.so uses various CDN patterns for images
+                  const cosmosImgUrl = links.find((l: string) => l && (
+                    l.includes('cosmos.so') && (l.includes('/image') || l.includes('/media') || l.match(/\.(jpg|jpeg|png|webp)/i)) ||
+                    l.includes('cdn.cosmos.so') ||
+                    l.includes('imagedelivery.net') ||
+                    l.includes('cloudflare') && l.match(/\.(jpg|jpeg|png|webp)/i)
+                  ));
+                  if (cosmosImgUrl) {
+                    console.log(`✓ Got Cosmos.so image for "${term}"`);
+                    return cosmosImgUrl;
                   }
-                  // Fallback: use screenshot of the Pinterest page
+                  // Fallback: use screenshot of the Cosmos.so page
                   const ss = r.screenshot;
                   if (ss) {
                     const imgUrl = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
-                    console.log(`✓ Got Pinterest screenshot for "${term}"`);
+                    console.log(`✓ Got Cosmos.so screenshot for "${term}"`);
                     return imgUrl;
                   }
                 }
               }
 
               // Fallback: try Unsplash for direct image URLs
-              console.log(`Pinterest failed for "${term}", trying Unsplash...`);
+              console.log(`Cosmos.so failed for "${term}", trying Unsplash...`);
               const fallbackRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -657,7 +662,6 @@ No explanation, just the JSON array.`
               if (fallbackRes.ok) {
                 const fbData = await fallbackRes.json();
                 for (const r of (fbData.data || [])) {
-                  // Unsplash direct image links
                   const links = r.links || [];
                   const unsplashImg = links.find((l: string) => l && l.includes('images.unsplash.com'));
                   if (unsplashImg) {
@@ -681,7 +685,7 @@ No explanation, just the JSON array.`
           })
         );
 
-        // Use Pinterest/Unsplash images directly — NO AI recreation
+        // Use Cosmos.so/Unsplash images directly — NO AI recreation
         const moodboardUrls = moodboardResults
           .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
           .map(r => r.value);
