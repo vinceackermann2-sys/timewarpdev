@@ -74,6 +74,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   const urlIndex = useRef(0);
   const charIndex = useRef(0);
   const isDeleting = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (url) return;
