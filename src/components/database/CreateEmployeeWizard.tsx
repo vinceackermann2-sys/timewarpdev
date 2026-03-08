@@ -306,16 +306,8 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         )}
       </div>
 
-      {/* Footer: step dots + navigation */}
-      <div className="border-t border-border p-4 space-y-3">
-        <div className="flex justify-center gap-1.5">
-          {STEPS.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 w-1.5 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-muted"}`}
-            />
-          ))}
-        </div>
+      {/* Footer: navigation */}
+      <div className="border-t border-border p-4">
         <div className="flex items-center justify-between">
           <Button variant="ghost" onClick={() => step > 0 ? setStep(step - 1) : onCancel()}>
             {step > 0 ? <><ArrowLeft className="h-4 w-4 mr-1" /> Back</> : "Cancel"}
