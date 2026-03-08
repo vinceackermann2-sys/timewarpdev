@@ -79,14 +79,14 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       role: role.trim(),
       orb_colors: orbPalettes[0],
       sop_title: sopTitle.trim() || null,
-      sop_purpose: sopPurpose.trim() || null,
-      sop_scope: sopScope.trim() || null,
+      sop_purpose: [purposeWhy.trim(), purposeProblem.trim()].filter(Boolean).join("\n\n") || null,
+      sop_scope: [scopeWhere.trim(), scopeWhen.trim()].filter(Boolean).join("\n\n") || null,
       sop_responsibilities: responsibilities.filter(r => r.trim()),
       sop_definitions: definitions.filter(d => d.term.trim()),
       sop_materials: materials.filter(m => m.trim()),
       sop_procedure: procedure.filter(p => p.trim()),
-      sop_safety_notes: safetyNotes.trim() || null,
-      sop_documentation: documentation.trim() || null,
+      sop_safety_notes: [safetyWarnings.trim(), safetyRisks.trim()].filter(Boolean).join("\n\n") || null,
+      sop_documentation: [docRecords.trim(), docStorage.trim()].filter(Boolean).join("\n\n") || null,
       sop_revision_history: [{ version: "1.0", date: new Date().toISOString().split("T")[0], notes: "Initial creation" }],
     } as any);
 
