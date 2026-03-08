@@ -1,6 +1,6 @@
 import { 
   Zap, Brain, Users, Building2, Rocket, TrendingUp,
-  Clock, Eye, Heart, DollarSign, ArrowRight, Link2,
+  Clock, Eye, Heart, DollarSign, ArrowRight, Link2, Globe,
   CheckCircle, ChevronRight, Cpu, UserCheck, BarChart3,
   Briefcase, Target, Shield
 } from "lucide-react";
@@ -409,39 +409,55 @@ export function ProductDescription() {
       </section>
 
       {/* ── Bottom CTA ── */}
-      <Section className="relative z-10 text-center pb-28 lg:pb-36" dark>
-        <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">See your company's autonomous future</h3>
-        <p className="text-muted-foreground mb-10 text-lg">Paste your website URL. Get your Business DNA &amp; Autonomy Report in 60 seconds.</p>
-        <div className="max-w-xl mx-auto">
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden text-center" style={{ background: "hsl(0 0% 10%)" }}>
+        {/* Top light */}
+        <div className="absolute pointer-events-none left-0 right-0" style={{ height: 400, top: 0, background: "radial-gradient(ellipse 80% 100% at center top, rgba(51,153,255,0.08) 0%, transparent 60%)" }} />
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
+          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>See your company's autonomous future</h3>
+          <p className="text-base text-white/50 mb-12 max-w-xl mx-auto">Paste your website URL. Get your Business DNA &amp; Autonomy Report in 60 seconds.</p>
+
+          {/* Hero-style input card */}
+          <div className="max-w-xl mx-auto">
+            <div className="flex items-center rounded-[14px] p-[0.5rem_0.5rem_0.5rem_1rem] h-16" style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
+            }}>
+              <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} />
               <input
-                type="url"
+                type="text"
                 value={inputUrl}
                 onChange={(e) => setInputUrl(e.target.value)}
                 placeholder="https://YourBusiness.com"
-                className="w-full h-12 pl-11 pr-4 rounded-xl bg-card border border-border/60 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 transition-colors"
                 onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: "#fff", outline: "none" }}
+                className="placeholder:text-white/30"
               />
+              <button
+                onClick={handleAnalyze}
+                className="h-full shrink-0"
+                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", background: "#3399ff", color: "#fff", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer", transition: "all 0.2s ease" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#2288ee"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "#3399ff"; }}
+              >
+                Analyze →
+              </button>
             </div>
-            <Button onClick={handleAnalyze} className="h-12 px-6 gap-2">
-              Analyze My Business
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex items-center justify-center gap-4 mt-5">
-            <div className="flex items-center gap-1.5">
-              <div className="h-2 w-2 rounded-full bg-[#22c55e]" />
-              <span className="text-xs text-muted-foreground">No credit card</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="h-2 w-2 rounded-full bg-[#3399ff]" />
-              <span className="text-xs text-muted-foreground">15-90 Seconds</span>
+
+            <div className="flex items-center justify-center gap-4 mt-5">
+              <div className="flex items-center gap-1.5">
+                <div className="h-2 w-2 rounded-full bg-[#22c55e]" />
+                <span className="text-xs text-white/40">No credit card</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="h-2 w-2 rounded-full bg-[#3399ff]" />
+                <span className="text-xs text-white/40">15-90 Seconds</span>
+              </div>
             </div>
           </div>
         </div>
-      </Section>
+      </section>
     </div>
   );
 }
