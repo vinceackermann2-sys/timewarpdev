@@ -241,69 +241,112 @@ export function ProductDescription() {
             </div>
           </div>
 
-          {/* Evolution of Labor Title */}
+          {/* Evolution Title */}
           <div className="text-center mb-16">
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>
-              The Evolution of Labor
+              Evolving manual labor.
             </h3>
           </div>
 
-          {/* Evolution cards */}
-          <div className="grid md:grid-cols-2 gap-5">
-            {/* Old way */}
-            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                <filter id="grain-evo-left"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={10} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-evo-left)" />
+          {/* 4 cards in a flow with connecting line */}
+          <div className="relative">
+            {/* Connecting line - vertical on mobile, Z-path on desktop */}
+            <div className="hidden md:block absolute pointer-events-none" style={{ top: 0, left: "50%", width: 2, height: "100%", zIndex: 1 }}>
+              <svg width="100%" height="100%" className="absolute inset-0" style={{ overflow: "visible", left: "-50%", width: "200%" }}>
+                <path
+                  d="M 25% 60 L 25% 220 Q 25% 260 50% 260 L 75% 260 L 75% 420 Q 75% 460 50% 460 L 25% 460 L 25% 640"
+                  fill="none"
+                  stroke="url(#lineGrad)"
+                  strokeWidth="2"
+                  strokeDasharray="6 4"
+                  style={{ opacity: 0.4 }}
+                />
+                <defs>
+                  <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3399ff" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#3399ff" stopOpacity="0.1" />
+                  </linearGradient>
+                </defs>
               </svg>
-              <div className="relative z-10 space-y-5">
-                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
-                <ul className="space-y-3">
-                  {[
-                    "High churn, high cost, and human error.",
-                    'Scaling requires more "managed" hours.',
-                    "Knowledge walks out the door when an employee leaves.",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "hsl(0 0% 35%)" }} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
-                    The Ceiling: <span className="italic">You can only grow as fast as you can hire.</span>
-                  </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-5">
+              {/* Card 1 - top left */}
+              <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
+                  <filter id="grain-evo-1"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={10} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+                  <rect width="100%" height="100%" filter="url(#grain-evo-1)" />
+                </svg>
+                <div className="relative z-10 space-y-5">
+                  <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
+                  <ul className="space-y-3">
+                    {[
+                      "High churn, high cost, and human error.",
+                      'Scaling requires more "managed" hours.',
+                      "Knowledge walks out the door when an employee leaves.",
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
+                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "hsl(0 0% 35%)" }} />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
+                    <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
+                      The Ceiling: <span className="italic">You can only grow as fast as you can hire.</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2 - top right */}
+              <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
+                  <filter id="grain-evo-2"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={15} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+                  <rect width="100%" height="100%" filter="url(#grain-evo-2)" />
+                </svg>
+                <div className="relative z-10 space-y-5">
+                  <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
+                  <ul className="space-y-3">
+                    {[
+                      "Infinite scale with zero headcount increase.",
+                      "The AI CEO manages specialized employees that never sleep.",
+                      "Your Business DNA is preserved and perfected forever.",
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
+                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "#3399ff" }} />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
+                    <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
+                      The Reality: Universal High Income (UHI) powered by autonomous productivity.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* TimeWarp way */}
-            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                <filter id="grain-evo-right"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={15} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-evo-right)" />
+          {/* Blue grained ring at bottom */}
+          <div className="relative flex items-center justify-center mt-20">
+            <div className="relative" style={{ width: 200, height: 200 }}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.6, mixBlendMode: "soft-light" }}>
+                <filter id="grain-ring"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves={4} seed={42} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+                <rect width="100%" height="100%" filter="url(#grain-ring)" />
               </svg>
-              <div className="relative z-10 space-y-5">
-                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
-                <ul className="space-y-3">
-                  {[
-                    "Infinite scale with zero headcount increase.",
-                    "The AI CEO manages specialized employees that never sleep.",
-                    "Your Business DNA is preserved and perfected forever.",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "#3399ff" }} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
-                    The Reality: Universal High Income (UHI) powered by autonomous productivity.
-                  </p>
-                </div>
-              </div>
+              <div className="absolute inset-0 rounded-full" style={{
+                border: "3px solid transparent",
+                background: "linear-gradient(135deg, rgba(51,153,255,0.3), rgba(51,153,255,0.05)) border-box",
+                mask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
+                WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+              }} />
+              <div className="absolute inset-0 rounded-full" style={{
+                boxShadow: "0 0 60px 20px rgba(51,153,255,0.12), inset 0 0 40px 10px rgba(51,153,255,0.05)",
+              }} />
             </div>
           </div>
         </div>
