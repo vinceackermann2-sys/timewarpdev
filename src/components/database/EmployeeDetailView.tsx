@@ -322,6 +322,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       isManualModeRef.current = false;
       setSafetyAlert(null);
       setCurrentStep("");
+      updateOverlay({ visible: false });
       signalStop(employee.id);
       abortRef.current = null;
     }
