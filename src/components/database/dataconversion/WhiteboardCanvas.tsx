@@ -59,6 +59,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
     localStorage.setItem("canvas_connections", JSON.stringify(connections));
   }, [connections]);
   const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
+  const [hoveredConnectionId, setHoveredConnectionId] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [tool, setTool] = useState<"select" | "pan">("pan");
