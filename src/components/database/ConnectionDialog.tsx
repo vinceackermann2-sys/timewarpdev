@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Palette, Package, Users, Link2, X } from "lucide-react";
+import { Palette, Package, Users, Link2, X, Unlink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
@@ -406,37 +407,6 @@ export function ConnectionDialog({
             opacity={isFocused ? 0.7 : 0.15}
             className="transition-opacity"
           />
-          {/* Delete hitbox */}
-          <path
-            d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
-            stroke="transparent"
-            strokeWidth={16}
-            fill="none"
-            className="cursor-pointer"
-            onClick={() => removeConnection(conn)}
-          />
-          {/* Delete indicator at midpoint */}
-          <circle
-            cx={midX}
-            cy={(from.y + to.y) / 2}
-            r={8}
-            fill="hsl(var(--destructive))"
-            opacity={0}
-            className="hover:opacity-80 transition-opacity cursor-pointer"
-            onClick={() => removeConnection(conn)}
-          />
-          <text
-            x={midX}
-            y={(from.y + to.y) / 2 + 1}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={10}
-            fill="white"
-            opacity={0}
-            className="hover:opacity-80 transition-opacity cursor-pointer pointer-events-none"
-          >
-            ×
-          </text>
         </g>
       );
     });
@@ -466,7 +436,7 @@ export function ConnectionDialog({
             className="absolute inset-0 w-full h-full pointer-events-none z-0"
             style={{ overflow: "visible" }}
           >
-            <g className="pointer-events-auto">{renderConnections()}</g>
+            <g>{renderConnections()}</g>
             {dragLine && (
               <line
                 x1={dragLine.x1}
@@ -556,15 +526,38 @@ export function ConnectionDialog({
             </div>
           </div>
 
-          {/* Connection count footer */}
-          <div className="mt-6 pt-4 border-t border-border/30 flex items-center gap-4">
-            <span className="text-xs text-muted-foreground">
-              {connections.length} connection{connections.length !== 1 ? "s" : ""}
-            </span>
-            <span className="text-[10px] text-muted-foreground/50">
-              Click a connection line to remove it
-            </span>
-          </div>
+          {/* Active connections list with unset buttons */}
+          {connections.length > 0 ? (
+            <div className="mt-6 pt-4 border-t border-border/30 space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Connections</span>
+              {connections.map((conn, i) => {
+                const fromName = [...brandEntities, ...productEntities, ...audienceEntities].find(e => e.id === conn.fromId)?.name || "Unknown";
+                const toName = [...brandEntities, ...productEntities, ...audienceEntities].find(e => e.id === conn.toId)?.name || "Unknown";
+                return (
+                  <div key={i} className="flex items-center justify-between gap-2 rounded-lg border border-border/30 bg-muted/30 px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs text-foreground min-w-0">
+                      <span className="truncate font-medium">{fromName}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="truncate font-medium">{toName}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0 gap-1"
+                      onClick={() => removeConnection(conn)}
+                    >
+                      <Unlink className="h-3 w-3" />
+                      Unset
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-6 pt-4 border-t border-border/30">
+              <span className="text-xs text-muted-foreground">No connections yet. Drag between ports to connect entities.</span>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
