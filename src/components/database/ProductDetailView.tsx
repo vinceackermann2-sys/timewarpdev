@@ -450,7 +450,7 @@ export function ProductDetailView({
               <div id="product-overview" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <Package className="h-5 w-5 text-primary" />
+                    <Package className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Product overview</h2>
                   </div>
                   <div className="flex items-center gap-2">
