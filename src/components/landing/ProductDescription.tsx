@@ -330,12 +330,8 @@ export function ProductDescription() {
 
       {/* ── Autonomy Loop ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Bottom light with noise */}
+        {/* Bottom light */}
         <div className="absolute pointer-events-none left-0 right-0" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, hsl(0 0% 10% / 0) 70%)" }} />
-        <svg className="absolute pointer-events-none left-0 right-0" style={{ height: 500, bottom: -100, opacity: 0.35, mixBlendMode: "soft-light" }}>
-          <filter id="grain-loop-light"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves={4} seed={99} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-          <rect width="100%" height="100%" filter="url(#grain-loop-light)" />
-        </svg>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
           <div className="text-center mb-16">
