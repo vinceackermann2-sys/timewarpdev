@@ -509,37 +509,19 @@ export function BrandExtendedSections({
         >
           <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-4">
             <div className="flex flex-wrap gap-3">
-              <div
-                className="px-6 py-2.5 rounded-[20px] text-sm font-medium"
-                style={brandColors?.primary ? {
-                  backgroundColor: brandColors.primary,
-                  color: brandColors.text && brandColors.text !== brandColors.primary ? brandColors.text : '#FFFFFF',
-                } : undefined}
-              >
-                {!brandColors?.primary && <span className="bg-primary text-primary-foreground px-6 py-2.5 rounded-[20px] -mx-6 -my-2.5 block">Primary Button</span>}
-                {brandColors?.primary && 'Primary Button'}
-              </div>
-              <div
-                className="px-6 py-2.5 rounded-[20px] text-sm font-medium"
-                style={brandColors?.primary ? {
-                  border: `2px solid ${brandColors.primary}`,
-                  color: brandColors.primary,
-                  backgroundColor: 'transparent',
-                } : undefined}
-              >
-                {!brandColors?.primary && <span className="border border-border bg-card text-foreground px-6 py-2.5 rounded-[20px] -mx-6 -my-2.5 block">Secondary Button</span>}
-                {brandColors?.primary && 'Secondary Button'}
-              </div>
-              <div
-                className="px-6 py-2.5 rounded-[20px] text-sm font-medium"
-                style={brandColors?.secondary ? {
-                  backgroundColor: `${brandColors.secondary}33`,
-                  color: brandColors.text || brandColors.secondary,
-                } : undefined}
-              >
-                {!brandColors?.secondary && <span className="bg-muted text-muted-foreground px-6 py-2.5 rounded-[20px] -mx-6 -my-2.5 block">Muted Button</span>}
-                {brandColors?.secondary && 'Muted Button'}
-              </div>
+              {brandColors?.primary ? (
+                <>
+                  <div className="px-6 py-2.5 rounded-[20px] text-sm font-medium" style={{ backgroundColor: brandColors.primary, color: '#FFFFFF' }}>Primary Button</div>
+                  <div className="px-6 py-2.5 rounded-[20px] text-sm font-medium" style={{ border: `2px solid ${brandColors.primary}`, color: brandColors.primary }}>Secondary Button</div>
+                  <div className="px-6 py-2.5 rounded-[20px] text-sm font-medium" style={{ backgroundColor: `${brandColors.secondary || brandColors.primary}33`, color: brandColors.text || brandColors.primary }}>Muted Button</div>
+                </>
+              ) : (
+                <>
+                  <div className="px-6 py-2.5 rounded-[20px] bg-primary text-primary-foreground text-sm font-medium">Primary Button</div>
+                  <div className="px-6 py-2.5 rounded-[20px] border border-border bg-card text-foreground text-sm font-medium">Secondary Button</div>
+                  <div className="px-6 py-2.5 rounded-[20px] bg-muted text-muted-foreground text-sm font-medium">Muted Button</div>
+                </>
+              )}
             </div>
             <EditableRulesList
               rules={data.buttonRules}
