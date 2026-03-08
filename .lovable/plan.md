@@ -1,50 +1,23 @@
 
 
-## Problem
+## Fix: Full SOP execution, no random Google tab, proper tab group signaling
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+### Problems
+1. **Stale closure bug** — The `isPaused` / `isManualMode` checks on lines 198-199 read React state inside an async loop, but closures capture the initial value. The loop may hang or skip pause checks because it never sees updated state. Must use refs.
+2. **Random Google tab** — `signalStart` fires immediately, and the extension likely opens a default `google.com` tab. Fix: add `openTab: false` to the start message so the extension only creates the tab group without opening a tab. The AI's first `navigate` action will open the correct URL inside the group.
+3. **Tab group not created** — The extension needs to know the employee name for the group label, and needs to confirm the group is ready before actions start. Fix: add `groupName` to the start signal, and make `signalStart` return a promise that resolves on a `TIMEWARP_GROUP_READY` response from the extension (with a timeout fallback).
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+### Changes
 
-## Plan
+**`src/hooks/useExtensionBridge.ts`**
+- Change `signalStart` to accept `{ employeeId, employeeName }`, send `{ type: "TIMEWARP_EMPLOYEE_START", employeeId, employeeName, useTabGroup: true, openTab: false }`, and return a `Promise` that resolves when `TIMEWARP_GROUP_READY` is received (3s timeout fallback).
+- Add listener for `TIMEWARP_GROUP_READY` message type.
 
-### 1. Add context size limiting in both edge functions
-
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
-
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
-
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
-```
-
-### 2. Add better error logging for debugging
-
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
-
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
-
-### 3. Truncate individual item content
-
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
-
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
+**`src/components/database/EmployeeDetailView.tsx`**
+- Convert `isPaused` and `isManualMode` to use refs (`isPausedRef`, `isManualModeRef`) alongside state, so the async loop always reads current values.
+- Update `handleRun`:
+  - `await signalStart(...)` — wait for group to be ready before entering the loop.
+  - Pass `employee.name` to signalStart for the group label.
+  - Use refs for pause/manual checks inside the loop.
+- Increase `MAX_STEPS` to 50 to give longer SOPs room to complete.
 
