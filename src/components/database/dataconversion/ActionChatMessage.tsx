@@ -245,7 +245,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground truncate">{doc.title}</span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                  <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-foreground flex-shrink-0" />
                 </div>
                 {doc.previewText && (
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
