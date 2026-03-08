@@ -194,7 +194,18 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     setSafetyAlert(null);
     setCurrentStep("Preparing tab group…");
     updateOverlay({ visible: true, employeeName: employee.name, currentStep: "Preparing tab group…", isPaused: false, isManualMode: false });
-    await signalStart(employee.id, employee.name);
+    const groupReady = await signalStart(employee.id, employee.name);
+    if (!groupReady) {
+      toast({
+        title: "Extension tab group failed",
+        description: "The extension didn't create a tab group. Make sure the TimeWarp extension is installed, enabled, and you're not in an incognito window.",
+        variant: "destructive",
+      });
+      setRunning(false);
+      setCurrentStep("");
+      updateOverlay({ visible: false });
+      return;
+    }
     setCurrentStep("");
 
     const controller = new AbortController();
