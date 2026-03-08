@@ -29,6 +29,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useQuery } from "@tanstack/react-query";
+
+const ACTION_LIMITS_SETTINGS: Record<string, number> = {
+  co_founder: 100,
+  aristotle: 1000,
+  timewarp_og: Infinity,
+};
+const FREE_LIMIT_SETTINGS = 20;
+
+function ActionsUsageSummary({ plan }: { plan: string | null }) {
+  const { data } = useQuery({
+    queryKey: ["actions-used-settings"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return { actions_used: 0, bonus_actions: 0 };
+      const { data } = await supabase
+        .from("user_subscriptions")
+        .select("actions_used, bonus_actions")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      return { actions_used: data?.actions_used ?? 0, bonus_actions: (data as any)?.bonus_actions ?? 0 };
+    },
+  });
+  const used = data?.actions_used ?? 0;
+  const bonus = data?.bonus_actions ?? 0;
+  const limit = plan ? ACTION_LIMITS_SETTINGS[plan] ?? FREE_LIMIT_SETTINGS : FREE_LIMIT_SETTINGS;
+  const total = limit === Infinity ? "∞" : String(limit + bonus);
+  return <>{used} / {total}</>;
+}
+
 const integrations = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" as const },
 ];
