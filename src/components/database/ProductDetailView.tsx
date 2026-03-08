@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ProductPageSidebar } from "@/components/database/ProductPageSidebar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 
 /* ── Types ── */
 export interface ProductOffer {
