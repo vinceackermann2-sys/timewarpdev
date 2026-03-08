@@ -1,50 +1,14 @@
 
 
-## Problem
+## Fix: Route all actions to the group tab, don't focus the group
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+### Problem
+1. **Navigate actions open in the user's tab** — `executeAction` sends `targetGroupTab: true`, but `getPageContext` does NOT. The extension likely defaults to the active tab for both context retrieval and action execution. We need `targetGroupTab: true` on `getPageContext` as well, so the extension reads from and acts on the correct tab.
+2. **User gets taken to the group** — Despite `focusGroup: false`, the extension may still be switching focus. We should also add `focusGroup: false` to every `executeAction` call so the extension never switches focus during the run.
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+### Changes
 
-## Plan
-
-### 1. Add context size limiting in both edge functions
-
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
-
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
-
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
-```
-
-### 2. Add better error logging for debugging
-
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
-
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
-
-### 3. Truncate individual item content
-
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
-
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
+**`src/hooks/useExtensionBridge.ts`**
+- `getPageContext`: Change the postMessage to send an object `{ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }` instead of a plain string, so the extension reads page context from the group tab, not the user's active tab.
+- `executeAction`: Add `focusGroup: false` to the postMessage payload to reinforce that actions should execute silently in the background group tab.
 
