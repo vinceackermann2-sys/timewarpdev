@@ -76,7 +76,8 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   const isDeleting = useRef(false);
 
   useEffect(() => {
-    if (url) return; // stop animation when user types
+    if (url) return;
+    let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
       const current = placeholderUrls.current[urlIndex.current];
       if (!isDeleting.current) {
@@ -84,8 +85,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         setPlaceholder(current.slice(0, charIndex.current));
         if (charIndex.current === current.length) {
           isDeleting.current = true;
-          return setTimeout(tick, 4000); // pause 4s before deleting
+          timer = setTimeout(tick, 2500);
+          return;
         }
+        timer = setTimeout(tick, 120);
       } else {
         charIndex.current--;
         setPlaceholder(current.slice(0, charIndex.current));
@@ -93,10 +96,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           isDeleting.current = false;
           urlIndex.current = (urlIndex.current + 1) % placeholderUrls.current.length;
         }
+        timer = setTimeout(tick, 40);
       }
-      return setTimeout(tick, isDeleting.current ? 30 : 80);
     };
-    const timer = setTimeout(tick, 80);
+    timer = setTimeout(tick, 120);
     return () => clearTimeout(timer);
   }, [url]);
 
