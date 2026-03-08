@@ -65,7 +65,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
   if (role === "user") {
     return (
-      <div className="bg-muted textmax-w-[75%] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
+      <div className="bg-muted text] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
         {content}
       </div>
     );
@@ -79,12 +79,12 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
   };
 
   const getTrendIcon = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return <TrendingUp className="h-3 w-3 text-primary" /foregroundforegroundnd === "down") return <TrendingDown className="h-3 w-3 text-destructive" />;
+    if (trend === "up") return <TrendingUp className="h-3 w-3 text-primary" /foregroundforegroundforeground"down") return <TrendingDown className="h-3 w-3 text-destructive" />;
     return null;
   };
 
   const getTrendColor = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return "text-primaryforegroundif (trend === "down") return "text-destructive";
+    if (trend === "up") return "text-primaryforegroforegroundtrend === "down") return "text-destructive";
     return "text-muted-foreground";
   };
 
@@ -96,7 +96,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
           <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
         <span className={cn(
-          "text-[10px] font-semibold text-primary/60 uppercase tracking-widest",
+          "text-[10px] font-semibold text-primmuted-foregroundercase tracking-widest",
           isStreaming && !content && "shimmer-text"
         )}>TimeWarp AI</span>
       </div>
