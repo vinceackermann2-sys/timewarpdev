@@ -132,7 +132,6 @@ export default function TimewarpOG() {
         <Section>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
             <h2 style={{ fontSize: "clamp(22px, 5vw, 28px)", fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", marginBottom: 0, textAlign: "center" }}>Benefits of being a TimeWarp OG</h2>
-            <span style={{ fontSize: isMobile ? 12 : 14, fontWeight: 700, color: "#0a0a0a", background: "linear-gradient(135deg, #fbbf24, #f59e0b)", borderRadius: 20, padding: "4px 14px", whiteSpace: "nowrap" }}>Only 20 spots</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 16, margin: "24px 0" }}>
             <BenefitCard icon={<Users size={22} />} title="1-on-1 Build" desc="We work with you personally to build AI CEO after your bottlenecks." />

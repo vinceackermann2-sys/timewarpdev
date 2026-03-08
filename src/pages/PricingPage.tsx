@@ -257,9 +257,6 @@ export default function PricingPage() {
               </div>
             )}
             <div className="mb-4 flex gap-2">
-              <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
-                Only 20 spots
-              </Badge>
               <Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200 text-xs">
                 Ends April 1st
               </Badge>
