@@ -154,7 +154,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6 max-w-2xl mx-auto w-full">
+      <div className="flex-1 overflow-auto p-6 max-w-2xl mx-auto w-full flex flex-col justify-center">
         {step === 0 && (
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-4 mb-2">
