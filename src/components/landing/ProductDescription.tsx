@@ -309,30 +309,141 @@ export function ProductDescription() {
         </div>
       </section>
 
-      {/* ── Comparison table ── */}
-      <Section className="relative z-10">
-        <div className="text-center mb-12">
-          <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Why the AI CEO wins
-          </h3>
-          <p className="text-muted-foreground">What a human manager misses</p>
-        </div>
+      {/* ── Why the AI CEO wins — visual comparison ── */}
+      <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
+          {/* Heading */}
+          <div className="text-center mb-16">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Why the AI CEO wins
+            </h3>
+            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto">
+              The data your team loved managing manually lost you money. The AI you almost ignored is printing growth.
+            </p>
+          </div>
 
-        <div className="rounded-2xl border border-border/50 bg-card/60 overflow-hidden">
-          {/* Header */}
-          <div className="grid grid-cols-3 gap-4 px-6 py-4 border-b border-border/50 bg-card/80">
-            <span className="text-xs font-mono tracking-wider text-muted-foreground uppercase" />
-            <span className="text-xs font-mono tracking-wider text-muted-foreground/60 uppercase text-center">Traditional CEO</span>
-            <span className="text-xs font-mono tracking-wider text-primary uppercase text-center">TimeWarp AI CEO</span>
-          </div>
-          <div className="px-6">
-            <CompareRow label="Decision Speed" traditional="Days / Weeks" timewarp="Milliseconds" />
-            <CompareRow label="Context" traditional="Limited to reports" timewarp="Every data point in company history" />
-            <CompareRow label="Bias" traditional="Emotional / Subjective" timewarp="Purely ROI-driven" />
-            <CompareRow label="Cost" traditional="$250k+ / Year" timewarp="Fractions of a salary" />
+          {/* Two visual comparison cards */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* LEFT — Manual / Human way */}
+            <div>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>
+                WHAT YOU'RE TRACKING MANUALLY
+              </p>
+              <div className="rounded-2xl relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
+                  <filter id="grain-cmp-left"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={20} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+                  <rect width="100%" height="100%" filter="url(#grain-cmp-left)" />
+                </svg>
+                <div className="relative z-10 p-6 sm:p-7">
+                  {/* Simulated chaotic dashboard */}
+                  <div className="space-y-3 mb-6">
+                    {[
+                      { label: "Revenue Reports", color: "#ef4444" },
+                      { label: "Employee Performance", color: "#f59e0b" },
+                      { label: "Customer Complaints", color: "#ef4444" },
+                      { label: "Inventory Levels", color: "#f59e0b" },
+                      { label: "Marketing Spend", color: "#ef4444" },
+                      { label: "Cash Flow Forecast", color: "#f59e0b" },
+                      { label: "Vendor Contracts", color: "#ef4444" },
+                      { label: "HR Onboarding", color: "#f59e0b" },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-3 rounded-lg px-4 py-2.5" style={{ background: "hsl(0 0% 11%)", border: "1px solid hsl(0 0% 16%)" }}>
+                        <div className="h-2 w-2 rounded-full shrink-0" style={{ background: item.color }} />
+                        <span className="text-sm text-white/70 flex-1">{item.label}</span>
+                        <span className="text-xs" style={{ color: "hsl(0 0% 35%)" }}>Manual</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stats bar */}
+                <div className="relative z-10 grid grid-cols-3 gap-4 px-6 py-4" style={{ borderTop: "1px solid hsl(0 0% 18%)" }}>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40 mb-1">Speed</p>
+                    <p className="text-sm font-bold" style={{ color: "#ef4444" }}>Days</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40 mb-1">Cost</p>
+                    <p className="text-sm font-bold" style={{ color: "#ef4444" }}>$250k+</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40 mb-1">Accuracy</p>
+                    <p className="text-sm font-bold" style={{ color: "#ef4444" }}>Biased</p>
+                  </div>
+                </div>
+
+                {/* Bottom tagline */}
+                <div className="relative z-10 py-3 text-center" style={{ background: "hsl(0 0% 12%)", borderTop: "1px solid hsl(0 0% 16%)" }}>
+                  <p className="text-sm" style={{ color: "#ef4444" }}>Looks organized. Losing money.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT — AI CEO way */}
+            <div>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#22c55e" }}>
+                WHAT THE AI CEO HANDLES FOR YOU
+              </p>
+              <div className="rounded-2xl relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
+                  <filter id="grain-cmp-right"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={25} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+                  <rect width="100%" height="100%" filter="url(#grain-cmp-right)" />
+                </svg>
+                <div className="relative z-10 p-6 sm:p-7">
+                  {/* AI analyzing visualization */}
+                  <div className="rounded-xl p-4 mb-4" style={{ background: "hsl(0 0% 11%)", border: "1px solid hsl(0 0% 18%)" }}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-2.5 w-2.5 rounded-full" style={{ background: "#22c55e" }} />
+                      <span className="text-xs font-mono text-white/50">AI CEO — Live Analysis</span>
+                    </div>
+                    <p className="text-sm text-white/80 leading-relaxed">
+                      "Revenue is up 12% but CAC increased 34%. Reallocating $8.2k from underperforming Google Ads to the top 3 email sequences that convert at 4.2×."
+                    </p>
+                  </div>
+
+                  {/* Decisions made */}
+                  <div className="space-y-2.5">
+                    {[
+                      { label: "Cut wasteful ad spend", status: "Done", statusColor: "#22c55e" },
+                      { label: "Reallocated budget to email", status: "Done", statusColor: "#22c55e" },
+                      { label: "Flagged vendor overcharge", status: "Done", statusColor: "#22c55e" },
+                      { label: "Updated cash flow forecast", status: "Done", statusColor: "#22c55e" },
+                      { label: "Scheduled team briefing", status: "Queued", statusColor: "#3399ff" },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-3 rounded-lg px-4 py-2.5" style={{ background: "hsl(0 0% 11%)", border: "1px solid hsl(0 0% 18%)" }}>
+                        <div className="h-2 w-2 rounded-full shrink-0" style={{ background: item.statusColor }} />
+                        <span className="text-sm text-white/70 flex-1">{item.label}</span>
+                        <span className="text-xs font-medium" style={{ color: item.statusColor }}>{item.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stats bar */}
+                <div className="relative z-10 grid grid-cols-3 gap-4 px-6 py-4" style={{ borderTop: "1px solid hsl(0 0% 18%)" }}>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40 mb-1">Speed</p>
+                    <p className="text-sm font-bold" style={{ color: "#22c55e" }}>Seconds</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40 mb-1">Cost</p>
+                    <p className="text-sm font-bold" style={{ color: "#22c55e" }}>$49/mo</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40 mb-1">Accuracy</p>
+                    <p className="text-sm font-bold" style={{ color: "#22c55e" }}>ROI-driven</p>
+                  </div>
+                </div>
+
+                {/* Bottom tagline */}
+                <div className="relative z-10 py-3 text-center" style={{ background: "hsl(0 0% 12%)", borderTop: "1px solid hsl(0 0% 16%)" }}>
+                  <p className="text-sm" style={{ color: "#22c55e" }}>No fluff. Printing growth.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </Section>
+      </section>
 
       {/* ── Autonomy Loop ── */}
       <Section className="relative z-10" dark>
