@@ -65,7 +65,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
   if (role === "user") {
     return (
-      <div className="bg-muted textx-3 py-1.5 text-[12px] font-medium">
+      <div className="bg-muted text text-[12px] font-medium">
         {content}
       </div>
     );
@@ -79,12 +79,12 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
   };
 
   const getTrendIcon = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return <TrendingUp className="h-3 w-3 text-primary" /foregroundforegroundforegroundforegroundforeground <TrendingDown className="h-3 w-3 text-destructive" />;
+    if (trend === "up") return <TrendingUp className="h-3 w-3 text-primary" /foregroundforegroundforegroundforegroundforegroundforegroundingDown className="h-3 w-3 text-destructive" />;
     return null;
   };
 
   const getTrendColor = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return "text-primaryforegroforegroforegroforeground= "down") return "text-destructive";
+    if (trend === "up") return "text-primaryforegroforegroforegroforegroforegroundown") return "text-destructive";
     return "text-muted-foreground";
   };
 
@@ -96,7 +96,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
           <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
         <span className={cn(
-          "text-[10px] font-semibold text-primmutemutemuted-foregroundndndercase tracking-widest",
+          "text-[10px] font-semibold text-primmutemutemutemuted-foregroundndndndercase tracking-widest",
           isStreaming && !content && "shimmer-text"
         )}>TimeWarp AI</span>
       </div>
@@ -107,7 +107,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
           className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground"
           title="Copy response"
         >
-          {copied ? <Check className="h-3.5 w-3.5 tforegroundroundry" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? <Check className="h-3.5 w-3.5foregroundroundroundry" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
       )}
 
@@ -118,10 +118,10 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
             {insightCards.map((card, idx) => (
               <div 
                 key={idx}
-                className="p-3 rounded-xl bg-card border border-border/50 hover:boborderry/30 transition-colors shadow-sm"
+                className="p-3 rounded-xl bg-card border border-border/50 hovborderrry/30 transition-colors shadow-sm"
               >
                 <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-                  <span className="text-primary">
+                  <span className="textforegroundy">
                     {iconMap[card.icon] || <Sparkles className="h-3.5 w-3.5" />}
                   </span>
                   <span className="text-[10px] uppercase tracking-wider font-semibold truncate">
