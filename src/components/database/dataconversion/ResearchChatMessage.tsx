@@ -65,7 +65,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
   if (role === "user") {
     return (
-      <div className="bg-muted textd ml-auto max-w-[75%] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
+      <div className="bg-muted textmax-w-[75%] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
         {content}
       </div>
     );
@@ -79,13 +79,12 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
   };
 
   const getTrendIcon = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return <TrendingUp className="h-3 w-3 text-primary" /foregroundif (trend === "down") return <TrendingDown className="h-3 w-3 text-destructive" />;
+    if (trend === "up") return <TrendingUp className="h-3 w-3 text-primary" /foregroundforegroundnd === "down") return <TrendingDown className="h-3 w-3 text-destructive" />;
     return null;
   };
 
   const getTrendColor = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return "text-primary";
-    if (trend === "down") return "text-destructive";
+    if (trend === "up") return "text-primaryforegroundif (trend === "down") return "text-destructive";
     return "text-muted-foreground";
   };
 
