@@ -436,7 +436,7 @@ export function ConnectionDialog({
             className="absolute inset-0 w-full h-full pointer-events-none z-0"
             style={{ overflow: "visible" }}
           >
-            <g className="pointer-events-auto">{renderConnections()}</g>
+            <g>{renderConnections()}</g>
             {dragLine && (
               <line
                 x1={dragLine.x1}
