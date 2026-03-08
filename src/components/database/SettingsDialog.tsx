@@ -611,7 +611,23 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                         );
                       })}
                     </div>
-                  </div>
+                  {isOwnerOfSelected && (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <Label className="text-xs text-destructive font-semibold uppercase tracking-wider">Danger Zone</Label>
+                        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">Delete Workspace</p>
+                            <p className="text-xs text-muted-foreground">Permanently delete this workspace and all its data.</p>
+                          </div>
+                          <Button variant="destructive" size="sm" onClick={handleDeleteWorkspace} className="shrink-0">
+                            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
