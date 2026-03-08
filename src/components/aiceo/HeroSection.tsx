@@ -310,6 +310,14 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             border: 1px solid rgba(0,0,0,0.06) !important;
             box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important;
           }
+          .dark-card .hero-input-card {
+            background: rgba(15,20,30,0.75) !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+          }
+          .dark-card .hero-input-bar {
+            background: rgba(15,20,30,0.9) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+          }
           .hero-input-bar {
             height: auto !important;
             border-radius: 12px !important;
