@@ -215,7 +215,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
                     );
                   }
                   return (
-                    <code className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-mono font-bold">{children}</code>
+                    <code className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs font-mono font-bold">{children}</code>
                   );
                 },
               }}
