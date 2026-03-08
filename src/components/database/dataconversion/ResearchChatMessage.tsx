@@ -189,7 +189,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
                 <ul className="my-2 space-y-0.5 list-none pl-1">{children}</ul>
               ),
               ol: ({ children }) => (
-                <ol className="my-2 space-y-0.5 list-decimal pl-5 marker:text-primary marker:font-extrabold">{children}</ol>
+                <ol className="my-2 space-y-0.5 list-decimal pl-5 marker:text-foreground marker:font-extrabold">{children}</ol>
               ),
               p: ({ children }) => (
                 <p className="text-foreground/80 my-2.5 text-[13.5px]">{children}</p>
