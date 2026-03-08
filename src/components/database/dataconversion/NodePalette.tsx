@@ -84,10 +84,7 @@ function MainNodeCard({ item, onDragStart, variant = "research" }: MainNodeCardP
       <div className="h-10 w-10 flex items-center justify-center">
         {Icon && <Icon className="h-5 w-5 text-foreground" />}
       </div>
-      <div className="text-center px-1">
-        <p className="text-xs font-medium">{item.label}</p>
-        <p className="text-[10px] text-muted-foreground leading-tight">{item.description}</p>
-      </div>
+      <p className="text-xs font-medium text-center px-1">{item.label}</p>
     </div>
   );
 }
