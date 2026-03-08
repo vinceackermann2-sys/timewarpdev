@@ -74,34 +74,57 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   const urlIndex = useRef(0);
   const charIndex = useRef(0);
   const isDeleting = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
     if (url) return;
-    let cancelled = false;
+
+    const scheduleNext = (delay: number, fn: () => void) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(fn, delay);
+    };
+
     const tick = () => {
-      if (cancelled) return;
       const current = placeholderUrls.current[urlIndex.current];
+
       if (!isDeleting.current) {
-        charIndex.current++;
+        charIndex.current += 1;
         setPlaceholder(current.slice(0, charIndex.current));
-        if (charIndex.current === current.length) {
+
+        if (charIndex.current >= current.length) {
           isDeleting.current = true;
-          setTimeout(() => { if (!cancelled) tick(); }, 2500);
+          scheduleNext(2000, tick); // visible pause on completed URL
           return;
         }
-        setTimeout(() => { if (!cancelled) tick(); }, 120);
-      } else {
-        charIndex.current--;
-        setPlaceholder(current.slice(0, charIndex.current));
-        if (charIndex.current === 0) {
-          isDeleting.current = false;
-          urlIndex.current = (urlIndex.current + 1) % placeholderUrls.current.length;
-        }
-        setTimeout(() => { if (!cancelled) tick(); }, 40);
+
+        scheduleNext(140, tick); // slower typing
+        return;
+      }
+
+      charIndex.current -= 1;
+      setPlaceholder(current.slice(0, charIndex.current));
+
+      if (charIndex.current <= 0) {
+        isDeleting.current = false;
+        urlIndex.current = (urlIndex.current + 1) % placeholderUrls.current.length;
+      }
+
+      scheduleNext(55, tick);
+    };
+
+    scheduleNext(140, tick);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
       }
     };
-    setTimeout(() => { if (!cancelled) tick(); }, 120);
-    return () => { cancelled = true; };
   }, [url]);
 
   const handleAnalyze = () => {
