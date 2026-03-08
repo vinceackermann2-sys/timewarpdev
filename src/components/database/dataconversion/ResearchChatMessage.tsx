@@ -79,12 +79,14 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
   };
 
   const getTrendIcon = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return <TrendingUp className="h-3 w-3 text-primary" /foregroundforegroundforegroundforegroundforegroundforegroundforegroundforegroundame="h-3 w-3 text-destructive" />;
+    if (trend === "up") return <TrendingUp className="h-3 w-3 text-foreground" />;
+    if (trend === "down") return <TrendingDown className="h-3 w-3 text-destructive" />;
     return null;
   };
 
   const getTrendColor = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return "text-primaryforegroforegroforegroforegroforegroforegroforegroundturn "text-destructive";
+    if (trend === "up") return "text-foreground";
+    if (trend === "down") return "text-destructive";
     return "text-muted-foreground";
   };
 
