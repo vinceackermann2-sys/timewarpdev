@@ -173,7 +173,7 @@ export function ProductDescription() {
                 <rect width="100%" height="100%" filter="url(#grain-right)" />
               </svg>
               <div className="relative z-10">
-                <p className="text-xs tracking-[0.2em] uppercase mb-4 text-red-400">
+                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>
                   What we mean by Business DNA
                 </p>
                 <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
