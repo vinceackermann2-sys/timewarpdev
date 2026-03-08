@@ -59,6 +59,7 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
     localStorage.setItem("canvas_connections", JSON.stringify(connections));
   }, [connections]);
   const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
+  const [hoveredConnectionId, setHoveredConnectionId] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [tool, setTool] = useState<"select" | "pan">("pan");
@@ -403,25 +404,52 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
               
               const from = getPortPosition(fromNode, "output");
               const to = getPortPosition(toNode, "input");
+              const midX = (from.x + to.x) / 2;
+              const midY = (from.y + to.y) / 2;
+              const isHovered = hoveredConnectionId === conn.id;
               
               return (
                 <g key={conn.id}>
                   <path
                     d={getConnectionPath(from, to)}
                     fill="none"
-                    stroke="hsl(var(--primary))"
+                    stroke={isHovered ? "hsl(var(--destructive))" : "hsl(var(--primary))"}
                     strokeWidth="2"
-                    className="opacity-60"
+                    className={isHovered ? "opacity-80" : "opacity-60"}
                   />
                   <path
                     d={getConnectionPath(from, to)}
                     fill="none"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth="6"
-                    className="opacity-0 hover:opacity-20 cursor-pointer"
-                    onClick={() => setConnections(prev => prev.filter(c => c.id !== conn.id))}
+                    stroke="transparent"
+                    strokeWidth="16"
+                    className="cursor-pointer"
                     style={{ pointerEvents: "stroke" }}
+                    onMouseEnter={() => setHoveredConnectionId(conn.id)}
+                    onMouseLeave={() => setHoveredConnectionId(null)}
+                    onClick={() => {
+                      setConnections(prev => prev.filter(c => c.id !== conn.id));
+                      setHoveredConnectionId(null);
+                    }}
                   />
+                  {isHovered && (
+                    <g
+                      transform={`translate(${midX - 12}, ${midY - 12})`}
+                      className="cursor-pointer"
+                      style={{ pointerEvents: "all" }}
+                      onClick={() => {
+                        setConnections(prev => prev.filter(c => c.id !== conn.id));
+                        setHoveredConnectionId(null);
+                      }}
+                    >
+                      <circle cx="12" cy="12" r="12" fill="hsl(var(--destructive))" opacity="0.9" />
+                      <path
+                        d="M8 8L16 16M16 8L8 16"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </g>
+                  )}
                 </g>
               );
             })}
