@@ -230,8 +230,12 @@ export function ProductDescription() {
 
       {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Bottom light glow */}
-        <div className="absolute pointer-events-none" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
+        {/* Large noisy bottom light */}
+        <div className="absolute pointer-events-none" style={{ width: 1200, height: 600, bottom: -200, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.18) 0%, rgba(51,153,255,0.08) 30%, rgba(51,153,255,0.02) 60%, transparent 80%)", filter: "blur(60px)" }} />
+        <svg className="absolute pointer-events-none" style={{ width: 1200, height: 600, bottom: -200, left: "50%", transform: "translateX(-50%)", opacity: 0.4, mixBlendMode: "soft-light" }}>
+          <filter id="grain-evo-light"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves={4} seed={77} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+          <rect width="100%" height="100%" filter="url(#grain-evo-light)" />
+        </svg>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
           {/* Evolution Title */}
           <div className="text-center mb-16">
@@ -276,25 +280,6 @@ export function ProductDescription() {
                 </div>
               </div>
             </GrainCard>
-          </div>
-
-          {/* Blue half-moon at bottom */}
-          <div className="relative flex items-center justify-center mt-20 overflow-hidden" style={{ height: 120 }}>
-            <div className="absolute" style={{
-              width: 400, height: 400, borderRadius: "50%", bottom: -280, left: "50%", transform: "translateX(-50%)",
-              background: "radial-gradient(ellipse at center, rgba(51,153,255,0.15) 0%, rgba(51,153,255,0.05) 40%, transparent 70%)",
-              boxShadow: "0 0 80px 40px rgba(51,153,255,0.08)",
-            }} />
-            <div className="absolute" style={{
-              width: 300, height: 300, borderRadius: "50%", bottom: -220, left: "50%", transform: "translateX(-50%)",
-              border: "1.5px solid rgba(51,153,255,0.2)",
-              boxShadow: "0 0 30px 10px rgba(51,153,255,0.06), inset 0 0 30px 5px rgba(51,153,255,0.04)",
-            }}>
-              <svg className="absolute inset-0 w-full h-full rounded-full overflow-hidden pointer-events-none" style={{ opacity: 0.5, mixBlendMode: "soft-light" }}>
-                <filter id="grain-halfmoon"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves={4} seed={42} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-halfmoon)" />
-              </svg>
-            </div>
           </div>
         </div>
       </section>
