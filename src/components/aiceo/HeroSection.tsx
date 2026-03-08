@@ -190,19 +190,6 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         </div>
       </main>
 
-      {/* Footer */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 10, background: "rgba(255,255,255,0.85)", backdropFilter: "blur(8px)", borderTop: "1px solid rgba(0,0,0,0.06)", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <span style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>
-          © {new Date().getFullYear()} Timewarp ·{" "}
-          <a href="mailto:vincentackermann@timewarpdev.com" style={{ color: "rgba(0,0,0,0.5)", textDecoration: "none" }}>vincentackermann@timewarpdev.com</a>
-        </span>
-        <div style={{ display: "flex", gap: 16 }}>
-          <Link to="/pricing" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)", textDecoration: "none" }}>Pricing</Link>
-          <Link to="/privacy" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)", textDecoration: "none" }}>Privacy Policy</Link>
-          <Link to="/terms" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)", textDecoration: "none" }}>Terms & Information</Link>
-        </div>
-      </div>
-
       {/* Responsive Styles */}
       <style>{`
         @media (max-width: 1024px) {
