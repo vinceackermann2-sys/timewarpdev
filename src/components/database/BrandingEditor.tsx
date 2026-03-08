@@ -220,7 +220,7 @@ export function BrandingEditor({
           {isEditing && (
             <section className="rounded-xl border border-border/50 bg-muted/30 p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-foreground" />
+                <RefreshCw className="h-4 w-4 text-foregroundund" />
                 <span className="text-sm font-semibold text-foreground">
                   Extract branding from URL
                 </span>
@@ -257,7 +257,7 @@ export function BrandingEditor({
           {/* ── Primary Logo ── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4 text-primary" />
+              <ImageIcon className="h-4 w-4 teforegroundary" />
               <span className="text-sm font-semibold text-foreground">
                 Primary logo
               </span>
