@@ -252,9 +252,6 @@ export function ProductDescription() {
             </div>
           </div>
         </div>
-      </section>
-            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto">
-              The intelligence layer that turns your company's history into a digitalized CEO.
             </p>
           </div>
 
