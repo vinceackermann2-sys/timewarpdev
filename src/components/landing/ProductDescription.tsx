@@ -149,7 +149,7 @@ export function ProductDescription() {
           <div className="grid md:grid-cols-2 gap-5">
             {/* Left card */}
             <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.45, mixBlendMode: "soft-light" }}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
                 <filter id="grain-left"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
                 <rect width="100%" height="100%" filter="url(#grain-left)" />
               </svg>
