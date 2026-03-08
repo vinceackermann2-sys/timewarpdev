@@ -599,12 +599,12 @@ No explanation, just the JSON array.`
         }
         console.log("Moodboard terms:", aestheticTerms);
 
-        // Step 2: Search Pinterest directly for each term — extract pin image URLs
+        // Step 2: Search Cosmos.so for each term — extract curated image URLs
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
             try {
-              console.log(`Searching Pinterest for: ${term}`);
-              // Search Pinterest specifically
+              console.log(`Searching Cosmos.so for: ${term}`);
+              // Search Cosmos.so for curated moodboard images
               const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -612,7 +612,7 @@ No explanation, just the JSON array.`
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `site:pinterest.com ${term} aesthetic`,
+                  query: `site:cosmos.so ${term} aesthetic`,
                   limit: 5,
                   scrapeOptions: { formats: ["links", "screenshot"] },
                 }),
@@ -622,26 +622,31 @@ No explanation, just the JSON array.`
                 const searchData = await searchRes.json();
                 const results = searchData.data || [];
                 for (const r of results) {
-                  // Try to extract pin image URL from the scraped page
+                  // Try to extract image URLs from Cosmos.so pages
                   const links = r.links || [];
-                  // Pinterest pin images are typically on i.pinimg.com
-                  const pinImgUrl = links.find((l: string) => l && l.includes('pinimg.com') && (l.includes('/originals/') || l.includes('/736x/') || l.includes('/564x/')));
-                  if (pinImgUrl) {
-                    console.log(`✓ Got Pinterest image for "${term}"`);
-                    return pinImgUrl;
+                  // Cosmos.so uses various CDN patterns for images
+                  const cosmosImgUrl = links.find((l: string) => l && (
+                    l.includes('cosmos.so') && (l.includes('/image') || l.includes('/media') || l.match(/\.(jpg|jpeg|png|webp)/i)) ||
+                    l.includes('cdn.cosmos.so') ||
+                    l.includes('imagedelivery.net') ||
+                    l.includes('cloudflare') && l.match(/\.(jpg|jpeg|png|webp)/i)
+                  ));
+                  if (cosmosImgUrl) {
+                    console.log(`✓ Got Cosmos.so image for "${term}"`);
+                    return cosmosImgUrl;
                   }
-                  // Fallback: use screenshot of the Pinterest page
+                  // Fallback: use screenshot of the Cosmos.so page
                   const ss = r.screenshot;
                   if (ss) {
                     const imgUrl = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
-                    console.log(`✓ Got Pinterest screenshot for "${term}"`);
+                    console.log(`✓ Got Cosmos.so screenshot for "${term}"`);
                     return imgUrl;
                   }
                 }
               }
 
               // Fallback: try Unsplash for direct image URLs
-              console.log(`Pinterest failed for "${term}", trying Unsplash...`);
+              console.log(`Cosmos.so failed for "${term}", trying Unsplash...`);
               const fallbackRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -657,7 +662,6 @@ No explanation, just the JSON array.`
               if (fallbackRes.ok) {
                 const fbData = await fallbackRes.json();
                 for (const r of (fbData.data || [])) {
-                  // Unsplash direct image links
                   const links = r.links || [];
                   const unsplashImg = links.find((l: string) => l && l.includes('images.unsplash.com'));
                   if (unsplashImg) {
@@ -681,7 +685,7 @@ No explanation, just the JSON array.`
           })
         );
 
-        // Use Pinterest/Unsplash images directly — NO AI recreation
+        // Use Cosmos.so/Unsplash images directly — NO AI recreation
         const moodboardUrls = moodboardResults
           .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
           .map(r => r.value);
@@ -774,12 +778,14 @@ No explanation, just the JSON array.`
         const productUseCases = (extracted.product?.useCases || []).slice(0, 3).join('; ');
         
         // Image 1: Icon grid — ICONS ONLY, NO TEXT whatsoever
-        const iconsMessages: any[] = [{
+        const iconsMessages: any[] = [
+          { role: "system", content: "You are an image generator. ABSOLUTE RULE: Never include any text, letters, numbers, labels, captions, or words of any kind in generated images. Output pure visual graphics only. No annotations, no watermarks, no signatures." },
+          {
           role: "user",
           content: ssUrl ? [
             { type: "text", text: `Study this website screenshot for visual style reference only. Create a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
 
-CRITICAL: Generate ONLY icons/symbols. Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure visual icons only.
+CRITICAL RULE — ZERO TEXT: Do NOT include any labels, captions, titles, watermarks, or any form of written language beneath, beside, or on top of the icons. The output must contain ZERO readable characters. No letters. No numbers. No words. Pure graphic symbols only.
 
 The icons must represent concepts from the AUDIENCE's world and the PRODUCT's benefits:
 - Product benefits: ${productBenefits || 'quality, convenience, value'}
@@ -790,14 +796,14 @@ Each icon should symbolize a benefit, pain point, or use case (e.g., clock for s
 - Drawn in a clean style using the brand's color palette: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
 - Well-separated with generous spacing
 - Mix of outlined and filled styles
-- ZERO text of any kind. White background.
+- ABSOLUTELY NO TEXT, NO LABELS, NO CAPTIONS, NO LETTERS, NO NUMBERS. White background.
 Brand: "${brandName}", category: ${brandCategory}` },
             { type: "image_url", image_url: { url: ssUrl } }
           ] : `Generate a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
 
-CRITICAL: Generate ONLY icons/symbols. Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure visual icons only.
+CRITICAL RULE — ZERO TEXT: Do NOT include any labels, captions, titles, watermarks, or any form of written language beneath, beside, or on top of the icons. The output must contain ZERO readable characters. Pure graphic symbols only.
 
-Icons should represent: ${productBenefits || 'quality, convenience, value'} and audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}. Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. ZERO text.`
+Icons should represent: ${productBenefits || 'quality, convenience, value'} and audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}. Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. ABSOLUTELY NO TEXT, NO LABELS, NO LETTERS, NO NUMBERS.`
         }];
 
         const iconsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -820,12 +826,14 @@ Icons should represent: ${productBenefits || 'quality, convenience, value'} and 
 
         // Image 2: Pattern sheet — NO TEXT allowed
         const audiencePowerWords = (extracted.audience?.powerWords || []).slice(0, 5).join(', ');
-        const patternMessages: any[] = [{
+        const patternMessages: any[] = [
+          { role: "system", content: "You are an image generator. ABSOLUTE RULE: Never include any text, letters, numbers, labels, captions, or words of any kind in generated images. Output pure visual graphics only. No annotations, no watermarks, no signatures." },
+          {
           role: "user",
           content: ssUrl ? [
             { type: "text", text: `Study this website screenshot for color reference. Create a pattern reference sheet showing 2-3 distinct decorative patterns/backgrounds stacked vertically.
 
-CRITICAL: Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure abstract visual patterns only.
+CRITICAL RULE — ZERO TEXT: The output must contain ZERO readable characters. Do NOT include any labels, captions, titles, watermarks, signatures, annotations, or any form of written language anywhere in the image. Pure abstract visual patterns only.
 
 These patterns should evoke the EMOTIONAL WORLD of the target audience:
 - Audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}
@@ -838,17 +846,17 @@ Include:
 3. A subtle tileable texture suitable for website section backgrounds
 
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}.
-Each pattern clearly separated. Professional quality. NO TEXT OF ANY KIND.` },
+Each pattern clearly separated. Professional quality. ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO LABELS, NO WATERMARKS.` },
             { type: "image_url", image_url: { url: ssUrl } }
           ] : `Generate a pattern reference sheet for "${brandName}" targeting audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}. Emotional keywords: ${audiencePowerWords || 'trust, comfort'}.
 
-CRITICAL: Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure abstract visual patterns only.
+CRITICAL RULE — ZERO TEXT: The output must contain ZERO readable characters. No labels, no captions, no titles, no watermarks, no signatures, no annotations. Pure abstract visual patterns only.
 
 Show 2-3 distinct patterns stacked vertically:
 1. Flowing organic wave/curve pattern with gradients in brand colors
 2. Geometric/abstract section with rounded shapes
 3. Subtle tileable texture for backgrounds
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Professional, modern. NO TEXT.`
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Professional, modern. ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO LABELS.`
         }];
 
         const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

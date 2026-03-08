@@ -1,35 +1,50 @@
 
 
-## Changes to Branding in Business DNA
+## Problem
 
-### 1. Moodboard: Switch from Pinterest to Cosmos.so
+The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
 
-**File:** `supabase/functions/scrape-product/index.ts` (lines 602-694)
+The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
 
-Replace the Pinterest/Unsplash search pipeline with Cosmos.so:
-- Change the Firecrawl search queries from `site:pinterest.com {term} aesthetic` to `site:cosmos.so {term} aesthetic`
-- Update the image URL extraction to look for Cosmos.so image CDN patterns instead of `pinimg.com`
-- Keep the Unsplash fallback as-is
-- Update all console logs and comments from "Pinterest" to "Cosmos.so"
+## Plan
 
-The AI-generated aesthetic search terms (step 1) remain the same — only the search target and image extraction change.
+### 1. Add context size limiting in both edge functions
 
-### 2. Illustrations: Reinforce NO TEXT in prompts
+**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
 
-**File:** `supabase/functions/scrape-product/index.ts` (lines 776-870)
+In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
 
-Strengthen the no-text instructions in both image generation prompts:
-
-- **Icon grid prompt** (line 780-800): Add explicit negative instructions like "Do NOT include any labels, captions, titles, watermarks, or any form of written language beneath, beside, or on top of the icons." Add a system message reinforcing zero text.
-
-- **Pattern sheet prompt** (line 826-851): Same reinforcement — add "The output must contain ZERO readable characters. No watermarks, no signatures, no annotations." Add system message.
-
-For both, prepend a system message:
+```typescript
+function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+  // ... group by source as before ...
+  for (const item of sourceItems) {
+    const itemText = /* build item string */;
+    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+    context += itemText;
+    totalChars += itemText.length;
+  }
+  return context;
+}
 ```
-{ role: "system", content: "You are an image generator. ABSOLUTE RULE: Never include any text, letters, numbers, labels, captions, or words of any kind in generated images. Output pure visual graphics only." }
+
+### 2. Add better error logging for debugging
+
+Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+
+```typescript
+if (!response.ok) {
+  const errorBody = await response.text().catch(() => "");
+  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+  // ... existing status-specific handling ...
+}
 ```
 
-### Deployment
+### 3. Truncate individual item content
 
-Redeploy the `scrape-product` edge function after changes.
+Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
+
+This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
 
