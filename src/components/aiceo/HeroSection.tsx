@@ -282,11 +282,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             padding: 1.5rem 1rem !important;
           }
           .hero-heading {
-            font-size: clamp(1.6rem, 7.5vw, 2.2rem) !important;
+            font-size: 40px !important;
             margin-bottom: 0.75rem !important;
           }
           .hero-subtitle {
-            font-size: 0.82rem !important;
+            font-size: 18px !important;
             margin-bottom: 1.25rem !important;
             max-width: 100% !important;
           }
@@ -350,6 +350,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             margin-top: 0.75rem !important;
             justify-content: flex-start !important;
             text-align: left !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+          }
+          .hero-hint svg {
+            flex-shrink: 0 !important;
           }
           .hero-badges {
             flex-wrap: wrap !important;
