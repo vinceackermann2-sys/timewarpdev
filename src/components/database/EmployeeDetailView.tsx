@@ -3,10 +3,9 @@ import { AIEmployee } from "./EmployeesView";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
-import { EmployeeRunOverlay } from "./EmployeeRunOverlay";
 
 interface LogEntry {
   id: string;
@@ -64,7 +63,8 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const pauseResolverRef = useRef<(() => void) | null>(null);
   const isPausedRef = useRef(false);
   const isManualModeRef = useRef(false);
-  const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop } = useExtensionBridge();
+  const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
+  const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
 
   useEffect(() => { loadLogs(); }, [employee.id]);
 
@@ -104,6 +104,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     setIsPaused(true);
     isPausedRef.current = true;
     setSafetyAlert(null);
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: true, isManualMode: false, safetyAlert: null });
   };
 
   const handleContinue = () => {
@@ -114,6 +115,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     setSafetyAlert(null);
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: false, isManualMode: false, safetyAlert: null });
   };
 
   const handleManualTakeover = () => {
@@ -121,6 +123,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     isPausedRef.current = true;
     setIsManualMode(true);
     isManualModeRef.current = true;
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: true, isManualMode: true, safetyAlert });
   };
 
   const handleReturnControl = () => {
@@ -131,6 +134,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     setSafetyAlert(null);
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: false, isManualMode: false, safetyAlert: null });
   };
 
   const parseAction = (text: string): (BrowserAction & { done?: boolean; message?: string }) | null => {
@@ -185,6 +189,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     isManualModeRef.current = false;
     setSafetyAlert(null);
     setCurrentStep("Preparing tab group…");
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep: "Preparing tab group…", isPaused: false, isManualMode: false });
     await signalStart(employee.id, employee.name);
     setCurrentStep("");
 
@@ -221,6 +226,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         const pageContext = await getPageContext();
 
         setCurrentStep(`Step ${step + 1}: Thinking…`);
+        updateOverlay({ visible: true, employeeName: employee.name, currentStep: `Step ${step + 1}: Thinking…`, isPaused: false, isManualMode: false });
         await logStep("running", `Step ${step + 1}`, "Thinking…");
         const aiResponse = await callRunEmployee(session, conversationHistory, pageContext);
 
@@ -240,6 +246,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
         if (action.done || action.action === "done") {
           setCurrentStep("Completed");
+          updateOverlay({ visible: false });
           await logStep("completed", "Completed", action.message || "SOP execution finished.");
           toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
           break;
@@ -282,6 +289,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         }
 
         setCurrentStep(`Step ${step + 1}: ${action.action}`);
+        updateOverlay({ visible: true, employeeName: employee.name, currentStep: `Step ${step + 1}: ${action.action}`, isPaused: false, isManualMode: false });
         await logStep("running", `Step ${step + 1}`, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
 
         const result = await executeAction(action, true) || { success: false, action: action.action, error: "No response from extension" };
@@ -314,6 +322,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       isManualModeRef.current = false;
       setSafetyAlert(null);
       setCurrentStep("");
+      updateOverlay({ visible: false });
       signalStop(employee.id);
       abortRef.current = null;
     }
@@ -321,6 +330,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
   const handleStop = () => {
     abortRef.current?.abort();
+    updateOverlay({ visible: false });
     signalStop(employee.id);
     setRunning(false);
     setIsPaused(false);
@@ -331,6 +341,15 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
     toast({ title: "Run stopped" });
+  };
+
+  const toggleResultExpand = (logId: string) => {
+    setExpandedResults(prev => {
+      const next = new Set(prev);
+      if (next.has(logId)) next.delete(logId);
+      else next.add(logId);
+      return next;
+    });
   };
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -464,42 +483,61 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
               <p className="text-sm text-muted-foreground italic">No activity yet. Click "Run Employee" to execute the SOP.</p>
             ) : (
               <div className="space-y-2 max-h-80 overflow-auto border border-border rounded-lg p-3 bg-muted/20">
-                {logs.map(log => (
-                  <div key={log.id} className="flex items-start gap-2.5 text-sm">
-                    {statusIcon(log.status)}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {log.step_label && (
-                          <span className="font-medium text-xs bg-muted px-1.5 py-0.5 rounded">{log.step_label}</span>
-                        )}
-                        <span className="text-[11px] text-muted-foreground">
-                          {new Date(log.created_at).toLocaleTimeString()}
-                        </span>
+                {logs.map(log => {
+                  const isResult = log.status === "completed" && log.message && log.message.length > 40;
+                  const isExpanded = expandedResults.has(log.id);
+
+                  return (
+                    <div key={log.id} className="flex items-start gap-2.5 text-sm">
+                      {statusIcon(log.status)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {log.step_label && (
+                            <span className="font-medium text-xs bg-muted px-1.5 py-0.5 rounded">{log.step_label}</span>
+                          )}
+                          <span className="text-[11px] text-muted-foreground">
+                            {new Date(log.created_at).toLocaleTimeString()}
+                          </span>
+                          {isResult && (
+                            <button
+                              onClick={() => toggleResultExpand(log.id)}
+                              className="flex items-center gap-1 text-[11px] text-primary hover:underline ml-auto"
+                            >
+                              <FileText className="h-3 w-3" />
+                              {isExpanded ? "Collapse" : "View Results"}
+                              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </button>
+                          )}
+                        </div>
+                        {isResult && isExpanded ? (
+                          <div className="mt-2 rounded-lg border border-border bg-background p-3 text-xs whitespace-pre-wrap">
+                            {log.message}
+                          </div>
+                        ) : log.message ? (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.message}</p>
+                        ) : null}
                       </div>
-                      {log.message && <p className="text-xs text-muted-foreground mt-0.5">{log.message}</p>}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Running overlay */}
+      {/* Running indicator - minimal, overlay is in the extension group tab */}
       {running && (
-        <EmployeeRunOverlay
-          employeeName={employee.name}
-          currentStep={currentStep}
-          isPaused={isPaused}
-          isManualMode={isManualMode}
-          onPause={handlePause}
-          onContinue={handleContinue}
-          onStop={handleStop}
-          onManualTakeover={handleManualTakeover}
-          onReturnControl={handleReturnControl}
-          safetyAlert={safetyAlert}
-        />
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-3 rounded-full border border-border bg-background/95 backdrop-blur-xl shadow-lg px-4 py-2">
+            <BusinessBrainOrb size={24} />
+            <span className="text-sm font-medium">{employee.name}</span>
+            <span className="text-xs text-muted-foreground">{currentStep || "Running…"}</span>
+            <Button onClick={handleStop} variant="destructive" size="sm" className="h-7 text-xs">
+              Stop
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
