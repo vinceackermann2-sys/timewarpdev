@@ -282,11 +282,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             padding: 1.5rem 1rem !important;
           }
           .hero-heading {
-            font-size: 40px !important;
+            font-size: 28px !important;
             margin-bottom: 0.75rem !important;
           }
           .hero-subtitle {
-            font-size: 18px !important;
+            font-size: 14px !important;
             margin-bottom: 1.25rem !important;
             max-width: 100% !important;
           }
