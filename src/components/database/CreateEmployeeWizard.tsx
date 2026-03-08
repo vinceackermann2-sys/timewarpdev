@@ -74,14 +74,35 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     setLoadingBusinesses(true);
     const { data } = await supabase
       .from("user_business_data")
-      .select("id, title, data_type, workspace_id, source")
+      .select("id, title, data_type, workspace_id, content")
       .eq("workspace_id", wsId)
       .eq("source", "business-dna")
       .in("data_type", ["brand", "product", "audience"])
-      .order("data_type", { ascending: true })
       .order("created_at", { ascending: false });
-    setBusinesses((data || []).map(d => ({ ...d, source: (d as any).source })) as BusinessItem[]);
+    setBusinesses((data || []) as BusinessItem[]);
     setLoadingBusinesses(false);
+  };
+
+  // Parse brand content to find linked product/audience IDs
+  const getBrandChildren = (brand: BusinessItem) => {
+    try {
+      const parsed = JSON.parse(brand.content || "{}");
+      const brandId = parsed.id || brand.id;
+      const products = businesses.filter(b => {
+        if (b.data_type !== "product") return false;
+        try { return JSON.parse(b.content || "{}").brandId === brandId; } catch { return false; }
+      });
+      const audiences = businesses.filter(b => {
+        if (b.data_type !== "audience") return false;
+        try {
+          const ac = JSON.parse(b.content || "{}");
+          return ac.productIds?.some((pid: string) => products.some(p => {
+            try { return JSON.parse(p.content || "{}").id === pid; } catch { return false; }
+          }));
+        } catch { return false; }
+      });
+      return { products, audiences };
+    } catch { return { products: [], audiences: [] }; }
   };
 
   const canProceed = () => {
