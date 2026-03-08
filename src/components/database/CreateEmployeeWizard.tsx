@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { FileUploadZone } from "@/components/database/FileUploadZone";
 import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2, Upload, PenLine } from "lucide-react";
