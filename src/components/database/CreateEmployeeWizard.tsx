@@ -212,9 +212,12 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               <Input value={sopTitle} onChange={e => setSopTitle(e.target.value)} placeholder="e.g. Customer Complaint Handling Procedure" />
             </div>
             <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What is the purpose of this SOP?</Label>
-              <p className="text-xs text-muted-foreground">Why does this procedure exist? What problem does it solve?</p>
-              <Textarea value={sopPurpose} onChange={e => setSopPurpose(e.target.value)} placeholder="Describe the goal and reason for this procedure..." rows={4} />
+              <Label className="text-base font-semibold text-foreground">Why does this procedure exist?</Label>
+              <Input value={purposeWhy} onChange={e => setPurposeWhy(e.target.value)} placeholder="e.g. To ensure consistent handling of customer complaints" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-base font-semibold text-foreground">What problem does it solve?</Label>
+              <Input value={purposeProblem} onChange={e => setPurposeProblem(e.target.value)} placeholder="e.g. Reduces response time and improves customer satisfaction" />
             </div>
           </div>
         )}
