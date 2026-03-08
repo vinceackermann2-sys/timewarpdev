@@ -81,7 +81,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
     badgeBorder: dark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.08)",
     badgeText: dark ? "#fff" : "#fff",
     dotColor: dark ? "#ffffff" : "#ffffff",
-    dotColor: dark ? "#ffffff" : "#000000",
+    
     hintColor: dark ? "rgba(255,255,255,0.5)" : "#333",
     navLink: dark ? "#fff" : "#000",
     iconColor: dark ? "rgba(255,255,255,0.7)" : "#333",
