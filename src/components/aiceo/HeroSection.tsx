@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Globe, Sun, Moon, Link2 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 interface HeroSectionProps {
   onRunClick?: () => void;
@@ -62,7 +63,8 @@ function LightPhoneMockup() {
 export function HeroSection({ onRunClick }: HeroSectionProps) {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
-  const [dark, setDark] = useState(false);
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const dark = resolvedTheme === "dark";
   const [placeholder, setPlaceholder] = useState("");
   const placeholderUrls = useRef([
     "nike.com/shoes/air-max",
@@ -200,7 +202,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         <div className="hero-nav-actions" style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
           <button
             aria-label="Toggle theme"
-            onClick={() => setDark(d => !d)}
+            onClick={() => setTheme(dark ? "light" : "dark")}
             style={{ background: "none", border: "none", cursor: "pointer", color: t.iconColor, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease" }}
           >
             {dark ? <Moon size={20} /> : <Sun size={20} />}
