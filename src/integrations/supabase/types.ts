@@ -384,6 +384,47 @@ export type Database = {
         }
         Relationships: []
       }
+      whiteboard_chat_history: {
+        Row: {
+          chat_type: string
+          created_at: string
+          id: string
+          messages: Json
+          node_id: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          chat_type: string
+          created_at?: string
+          id?: string
+          messages?: Json
+          node_id: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          chat_type?: string
+          created_at?: string
+          id?: string
+          messages?: Json
+          node_id?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whiteboard_chat_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invitations: {
         Row: {
           created_at: string
