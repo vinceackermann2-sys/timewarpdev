@@ -41,9 +41,17 @@ serve(async (req) => {
       formattedUrl = `https://${formattedUrl}`;
     }
 
-    console.log("Scraping URL:", formattedUrl);
+    // Extract base URL for homepage screenshots
+    let baseUrl: string;
+    try {
+      baseUrl = new URL(formattedUrl).origin;
+    } catch {
+      baseUrl = formattedUrl;
+    }
 
-    // Step 1: Scrape with Firecrawl (desktop + branding)
+    console.log("Scraping URL:", formattedUrl, "Base URL:", baseUrl);
+
+    // Step 1: Scrape with Firecrawl (desktop + branding) — use BASE URL for screenshots
     const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: {
@@ -51,7 +59,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        url: formattedUrl,
+        url: baseUrl,
         formats: ["markdown", "links", "branding", "screenshot"],
         onlyMainContent: false,
       }),
@@ -66,19 +74,12 @@ serve(async (req) => {
       );
     }
 
-    const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
-    const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
-    const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
-    const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
-
-    console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot);
-    if (firecrawlBranding) console.log("Firecrawl branding data found");
-
-    // Step 1b: Mobile screenshot (parallel)
-    const mobileScreenshotPromise = (async () => {
+    // Also scrape the product page for content extraction
+    let productMarkdown = "";
+    let productMetadata: any = {};
+    if (baseUrl !== formattedUrl) {
       try {
-        console.log("Fetching mobile screenshot...");
-        const mobileRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        const productScrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
@@ -86,6 +87,41 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             url: formattedUrl,
+            formats: ["markdown"],
+            onlyMainContent: true,
+          }),
+        });
+        if (productScrapeRes.ok) {
+          const pd = await productScrapeRes.json();
+          productMarkdown = pd.data?.markdown || pd.markdown || "";
+          productMetadata = pd.data?.metadata || pd.metadata || {};
+        }
+      } catch (e) {
+        console.warn("Product page scrape failed (non-fatal):", e);
+      }
+    }
+
+    const homepageMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+    const markdown = productMarkdown || homepageMarkdown;
+    const metadata = productMarkdown ? productMetadata : (scrapeData.data?.metadata || scrapeData.metadata || {});
+    const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
+    const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
+
+    console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot);
+    if (firecrawlBranding) console.log("Firecrawl branding data found");
+
+    // Step 1b: Mobile screenshot (parallel) — use BASE URL
+    const mobileScreenshotPromise = (async () => {
+      try {
+        console.log("Fetching mobile screenshot for base URL...");
+        const mobileRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: baseUrl,
             formats: ["screenshot"],
             mobile: true,
           }),
@@ -502,20 +538,18 @@ ${markdown.slice(0, 15000)}`;
       }
     }
 
-    // ── Moodboard: Pinterest pin screenshots via aesthetic search terms ──
+    // ── Moodboard: Download directly from Pinterest ──
     const moodboardPromise = (async () => {
       try {
         const audienceDesc = extracted.audience?.description || "general consumers";
         const brandCategory = extracted.brand?.category || "lifestyle";
-        const brandColors = extracted.brand?.colors || {};
         const brandName = extracted.brand?.name || "the brand";
         const audiencePainPoints = (extracted.product?.painPoints || []).slice(0, 3).join('; ');
         const audiencePowerPhrases = (extracted.audience?.powerPhrases || []).slice(0, 3).join('; ');
-        const brandPositioning = extracted.brand?.visualIdentity?.imageGuidelines?.map((g: any) => g.rule).slice(0, 2).join('; ') || '';
         const productDescription = (extracted.product?.description || '').slice(0, 200);
         const audienceAttentionHooks = (extracted.audience?.attentionHooks || []).slice(0, 2).join('; ');
 
-        // Step 1: Generate 6 aesthetic search terms using AI — grounded in audience & brand messaging
+        // Step 1: Generate 6 aesthetic search terms using AI
         console.log("Generating moodboard aesthetic terms...");
         const termsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -565,12 +599,12 @@ No explanation, just the JSON array.`
         }
         console.log("Moodboard terms:", aestheticTerms);
 
-        // Step 2: For each term, search in parallel with screenshot scrapeOptions
+        // Step 2: Search Pinterest directly for each term — extract pin image URLs
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
             try {
-              console.log(`Searching moodboard for: ${term}`);
-              // Try Firecrawl search with screenshot scrapeOptions (captures visuals inline)
+              console.log(`Searching Pinterest for: ${term}`);
+              // Search Pinterest specifically
               const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -578,9 +612,9 @@ No explanation, just the JSON array.`
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `${term} aesthetic inspiration`,
-                  limit: 3,
-                  scrapeOptions: { formats: ["screenshot"] },
+                  query: `site:pinterest.com ${term} aesthetic`,
+                  limit: 5,
+                  scrapeOptions: { formats: ["links", "screenshot"] },
                 }),
               });
 
@@ -588,17 +622,26 @@ No explanation, just the JSON array.`
                 const searchData = await searchRes.json();
                 const results = searchData.data || [];
                 for (const r of results) {
+                  // Try to extract pin image URL from the scraped page
+                  const links = r.links || [];
+                  // Pinterest pin images are typically on i.pinimg.com
+                  const pinImgUrl = links.find((l: string) => l && l.includes('pinimg.com') && (l.includes('/originals/') || l.includes('/736x/') || l.includes('/564x/')));
+                  if (pinImgUrl) {
+                    console.log(`✓ Got Pinterest image for "${term}"`);
+                    return pinImgUrl;
+                  }
+                  // Fallback: use screenshot of the Pinterest page
                   const ss = r.screenshot;
                   if (ss) {
                     const imgUrl = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
-                    console.log(`✓ Got moodboard screenshot for "${term}"`);
+                    console.log(`✓ Got Pinterest screenshot for "${term}"`);
                     return imgUrl;
                   }
                 }
               }
 
-              // Fallback: search Unsplash/Pexels for visual content
-              console.log(`Primary search failed for "${term}", trying image sites...`);
+              // Fallback: try Unsplash for direct image URLs
+              console.log(`Pinterest failed for "${term}", trying Unsplash...`);
               const fallbackRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -606,18 +649,25 @@ No explanation, just the JSON array.`
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `site:unsplash.com OR site:pexels.com ${term}`,
+                  query: `site:unsplash.com ${term}`,
                   limit: 3,
-                  scrapeOptions: { formats: ["screenshot"] },
+                  scrapeOptions: { formats: ["links", "screenshot"] },
                 }),
               });
               if (fallbackRes.ok) {
                 const fbData = await fallbackRes.json();
                 for (const r of (fbData.data || [])) {
+                  // Unsplash direct image links
+                  const links = r.links || [];
+                  const unsplashImg = links.find((l: string) => l && l.includes('images.unsplash.com'));
+                  if (unsplashImg) {
+                    console.log(`✓ Got Unsplash image for "${term}"`);
+                    return unsplashImg;
+                  }
                   const ss = r.screenshot;
                   if (ss) {
                     const imgUrl = typeof ss === 'string' && ss.startsWith('http') ? ss : `data:image/png;base64,${ss}`;
-                    console.log(`✓ Got moodboard screenshot (fallback) for "${term}"`);
+                    console.log(`✓ Got Unsplash screenshot (fallback) for "${term}"`);
                     return imgUrl;
                   }
                 }
@@ -631,48 +681,8 @@ No explanation, just the JSON array.`
           })
         );
 
-        const rawScreenshots = moodboardResults
-          .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
-          .map(r => r.value);
-
-        console.log("Got", rawScreenshots.length, "moodboard screenshots, now AI-recreating...");
-
-        // Step 3: AI-recreate each screenshot as an original image
-        const recreateResults = await Promise.allSettled(
-          rawScreenshots.slice(0, 6).map(async (ssUrl, idx) => {
-            try {
-              const recreateRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-flash-image",
-                  messages: [{
-                    role: "user",
-                    content: [
-                      { type: "text", text: `Study this screenshot of a moodboard/aesthetic image. Recreate the same visual concept, mood, colors, textures, and composition as a brand-new original image. This moodboard is for a brand targeting: ${audienceDesc.split('.').slice(0, 2).join('.')}. The mood should reflect their lifestyle and aspirations. Match the aesthetic feel precisely — same mood, same style — but make it a completely original creation, not a copy. Output a clean, high-quality image with no text or watermarks.` },
-                      { type: "image_url", image_url: { url: ssUrl } }
-                    ]
-                  }],
-                  modalities: ["image", "text"],
-                }),
-              });
-              if (recreateRes.ok) {
-                const d = await recreateRes.json();
-                const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-                if (img) {
-                  console.log(`✓ AI-recreated moodboard image ${idx + 1}`);
-                  return img;
-                }
-              }
-              return ssUrl; // fallback to original screenshot
-            } catch (e) {
-              console.warn(`Moodboard recreate error ${idx}:`, e);
-              return ssUrl;
-            }
-          })
-        );
-
-        const moodboardUrls = recreateResults
+        // Use Pinterest/Unsplash images directly — NO AI recreation
+        const moodboardUrls = moodboardResults
           .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
           .map(r => r.value);
 
@@ -699,7 +709,7 @@ No explanation, just the JSON array.`
     }
 
     // ══════════════════════════════════════════════
-    // AI IMAGE GENERATION (logo screenshot, illustrations, guideline images)
+    // AI IMAGE GENERATION (logo, illustrations, guideline images, social media)
     // ══════════════════════════════════════════════
 
     const brandName = extracted.brand?.name || "the brand";
@@ -713,7 +723,6 @@ No explanation, just the JSON array.`
 
     // ── Logo: use found image URLs, or AI-recreate the logo ──
     if (!extracted.brand.logoUrls || extracted.brand.logoUrls.length === 0) {
-      // No logo image found — recreate it with AI using the screenshot as reference
       if (websiteScreenshot) {
         aiImagePromises.push((async () => {
           try {
@@ -749,10 +758,10 @@ No explanation, just the JSON array.`
       }
     }
 
-    // ── Generate icon list + pattern list based on website's existing visual style ──
+    // ── Generate icon grid + pattern sheet — NO TEXT allowed ──
     aiImagePromises.push((async () => {
       try {
-        console.log("Generating brand icon list and pattern list based on website...");
+        console.log("Generating brand icon grid and pattern sheet...");
         const illustrationUrls: string[] = [];
         const ssUrl = websiteScreenshot
           ? (typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
@@ -760,16 +769,19 @@ No explanation, just the JSON array.`
               : `data:image/png;base64,${websiteScreenshot}`)
           : null;
 
-        // Image 1: Icon list — grounded in audience needs & brand messaging, not visual identity
         const audienceBuyingTriggers = (extracted.audience?.buyingTriggers || []).slice(0, 3).join('; ');
         const productBenefits = (extracted.product?.benefits || []).slice(0, 4).join('; ');
         const productUseCases = (extracted.product?.useCases || []).slice(0, 3).join('; ');
+        
+        // Image 1: Icon grid — ICONS ONLY, NO TEXT whatsoever
         const iconsMessages: any[] = [{
           role: "user",
           content: ssUrl ? [
             { type: "text", text: `Study this website screenshot for visual style reference only. Create a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
 
-The icons must represent concepts from the AUDIENCE's world and the PRODUCT's benefits — NOT the brand's visual identity:
+CRITICAL: Generate ONLY icons/symbols. Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure visual icons only.
+
+The icons must represent concepts from the AUDIENCE's world and the PRODUCT's benefits:
 - Product benefits: ${productBenefits || 'quality, convenience, value'}
 - Audience needs: ${audienceBuyingTriggers || 'ease of use, time saving, reliability'}
 - Use cases: ${productUseCases || 'daily use, convenience'}
@@ -778,10 +790,14 @@ Each icon should symbolize a benefit, pain point, or use case (e.g., clock for s
 - Drawn in a clean style using the brand's color palette: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
 - Well-separated with generous spacing
 - Mix of outlined and filled styles
-- No text labels. White background.
+- ZERO text of any kind. White background.
 Brand: "${brandName}", category: ${brandCategory}` },
             { type: "image_url", image_url: { url: ssUrl } }
-          ] : `Generate a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background. Icons should represent: ${productBenefits || 'quality, convenience, value'} and audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}. Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. No text labels.`
+          ] : `Generate a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
+
+CRITICAL: Generate ONLY icons/symbols. Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure visual icons only.
+
+Icons should represent: ${productBenefits || 'quality, convenience, value'} and audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}. Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. ZERO text.`
         }];
 
         const iconsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -798,18 +814,20 @@ Brand: "${brandName}", category: ${brandCategory}` },
           const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
           if (img) {
             illustrationUrls.push(img);
-            console.log("✓ Generated icon list");
+            console.log("✓ Generated icon grid");
           }
         }
 
-        // Image 2: Pattern list — grounded in audience emotion & brand messaging
+        // Image 2: Pattern sheet — NO TEXT allowed
         const audiencePowerWords = (extracted.audience?.powerWords || []).slice(0, 5).join(', ');
         const patternMessages: any[] = [{
           role: "user",
           content: ssUrl ? [
             { type: "text", text: `Study this website screenshot for color reference. Create a pattern reference sheet showing 2-3 distinct decorative patterns/backgrounds stacked vertically.
 
-These patterns should evoke the EMOTIONAL WORLD of the target audience, not just match the website's visual identity:
+CRITICAL: Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure abstract visual patterns only.
+
+These patterns should evoke the EMOTIONAL WORLD of the target audience:
 - Audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}
 - Emotional keywords: ${audiencePowerWords || 'trust, comfort, confidence'}
 - Brand tone: ${extracted.product?.positioningStatement?.slice(0, 150) || brandCategory}
@@ -820,13 +838,17 @@ Include:
 3. A subtle tileable texture suitable for website section backgrounds
 
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}.
-Each pattern clearly separated. Professional quality. No text.` },
+Each pattern clearly separated. Professional quality. NO TEXT OF ANY KIND.` },
             { type: "image_url", image_url: { url: ssUrl } }
-          ] : `Generate a pattern reference sheet for "${brandName}" targeting audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}. Emotional keywords: ${audiencePowerWords || 'trust, comfort'}. Show 2-3 distinct patterns stacked vertically:
+          ] : `Generate a pattern reference sheet for "${brandName}" targeting audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}. Emotional keywords: ${audiencePowerWords || 'trust, comfort'}.
+
+CRITICAL: Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure abstract visual patterns only.
+
+Show 2-3 distinct patterns stacked vertically:
 1. Flowing organic wave/curve pattern with gradients in brand colors
 2. Geometric/abstract section with rounded shapes
 3. Subtle tileable texture for backgrounds
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Professional, modern. No text.`
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Professional, modern. NO TEXT.`
         }];
 
         const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -843,20 +865,18 @@ Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.
           const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
           if (img) {
             illustrationUrls.push(img);
-            console.log("✓ Generated pattern list");
+            console.log("✓ Generated pattern sheet");
           }
         }
 
         if (illustrationUrls.length > 0) {
           extracted.brand.visualIdentity.illustrationUrls = illustrationUrls;
-          console.log("Generated", illustrationUrls.length, "illustrations (icon list + pattern list)");
-        } else {
-          console.warn("No illustrations generated");
+          console.log("Generated", illustrationUrls.length, "illustrations");
         }
       } catch (e) { console.error("Illustration gen error:", e); }
     })());
 
-    // ── Generate per-guideline images using product images when relevant ──
+    // ── Generate per-guideline images ──
     if (guidelines.length > 0) {
       aiImagePromises.push((async () => {
         try {
@@ -921,13 +941,13 @@ Create a clean, professional mood/reference photo that demonstrates this specifi
       })());
     }
 
-    // ── Product images: remove backgrounds to get clean product shots ──
+    // ── Product images: remove backgrounds ──
     const productImgUrls = extracted.product?.images || [];
     if (productImgUrls.length > 0) {
       aiImagePromises.push((async () => {
         try {
           const imagesToProcess = productImgUrls.slice(0, 4).filter((u: string) => u && typeof u === 'string');
-          console.log("Removing backgrounds from", imagesToProcess.length, "product images (parallel)...");
+          console.log("Removing backgrounds from", imagesToProcess.length, "product images...");
 
           const bgResults = await Promise.allSettled(
             imagesToProcess.map(async (imgUrl: string, idx: number) => {
@@ -955,7 +975,7 @@ Create a clean, professional mood/reference photo that demonstrates this specifi
                     return cleanImg;
                   }
                 }
-                return imgUrl; // fallback to original
+                return imgUrl;
               } catch (e) {
                 console.warn("BG removal error for image:", e);
                 return imgUrl;
@@ -972,6 +992,97 @@ Create a clean, professional mood/reference photo that demonstrates this specifi
         } catch (e) { console.error("Product BG removal pipeline error:", e); }
       })());
     }
+
+    // ── Social Media: Generate UGC product images ──
+    aiImagePromises.push((async () => {
+      try {
+        console.log("Generating social media UGC images...");
+        const productName = extracted.product?.name || "the product";
+        const productDesc = (extracted.product?.description || '').slice(0, 200);
+        const productImageUrl = productImages.length > 0 ? productImages[0] : null;
+        const socialMediaUrls: string[] = [];
+
+        const socialPrompts = [
+          {
+            label: "Feed post (1:1)",
+            prompt: `Create a UGC-style social media feed post image (square 1:1 ratio). Show the product "${productName}" in a real-life lifestyle setting that resonates with the target audience.
+
+Target audience: ${audienceDesc.split('.').slice(0, 2).join('.')}
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
+Product: ${productDesc}
+
+The image should look like authentic user-generated content — natural lighting, real setting, casual composition. Show the product being used or displayed in a way the target audience would naturally photograph it. NO text, NO logos, NO overlays. Just a beautiful, authentic product lifestyle shot.${productImageUrl ? `\n\nCRITICAL: The product must look EXACTLY like the product in the reference image — same shape, colors, details. Do NOT redesign or alter the product.` : ''}`
+          },
+          {
+            label: "Story (9:16)",
+            prompt: `Create a UGC-style social media story image (vertical 9:16 ratio). Show the product "${productName}" in a dynamic, eye-catching vertical composition.
+
+Target audience: ${audienceDesc.split('.').slice(0, 2).join('.')}
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
+Product: ${productDesc}
+
+The image should feel like a real person's Instagram story — close-up, personal, intimate perspective. Show someone interacting with or unboxing the product. Natural, warm lighting. NO text, NO logos, NO overlays. Authentic UGC feel.${productImageUrl ? `\n\nCRITICAL: The product must look EXACTLY like the product in the reference image — same shape, colors, details. Do NOT redesign or alter the product.` : ''}`
+          },
+          {
+            label: "Reel (1:1)",
+            prompt: `Create a UGC-style social media reel thumbnail image (square 1:1 ratio). Show the product "${productName}" in an action/in-use moment.
+
+Target audience: ${audienceDesc.split('.').slice(0, 2).join('.')}
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
+Product: ${productDesc}
+
+The image should capture a dynamic moment — the product being actively used, demonstrating its key benefit. Should feel like a frame from a real user's video. Energetic, authentic, relatable. NO text, NO logos, NO overlays.${productImageUrl ? `\n\nCRITICAL: The product must look EXACTLY like the product in the reference image — same shape, colors, details. Do NOT redesign or alter the product.` : ''}`
+          }
+        ];
+
+        const socialResults = await Promise.allSettled(
+          socialPrompts.map(async ({ label, prompt }) => {
+            try {
+              const messages: any[] = [{
+                role: "user",
+                content: productImageUrl ? [
+                  { type: "text", text: prompt },
+                  { type: "image_url", image_url: { url: productImageUrl } }
+                ] : prompt
+              }];
+
+              const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash-image",
+                  messages,
+                  modalities: ["image", "text"],
+                }),
+              });
+              if (res.ok) {
+                const d = await res.json();
+                const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+                if (img) {
+                  console.log(`✓ Generated social media: ${label}`);
+                  return img;
+                }
+              }
+              return null;
+            } catch (e) {
+              console.warn(`Social media gen error (${label}):`, e);
+              return null;
+            }
+          })
+        );
+
+        for (const r of socialResults) {
+          if (r.status === 'fulfilled' && r.value) {
+            socialMediaUrls.push(r.value);
+          }
+        }
+
+        if (socialMediaUrls.length > 0) {
+          extracted.brand.visualIdentity.socialMediaUrls = socialMediaUrls;
+          console.log("Generated", socialMediaUrls.length, "social media UGC images");
+        }
+      } catch (e) { console.error("Social media generation error:", e); }
+    })());
 
     // Wait for moodboard + all AI image generation
     await Promise.all([moodboardPromise, ...aiImagePromises]);
