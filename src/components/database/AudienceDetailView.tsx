@@ -307,7 +307,7 @@ export function AudienceDetailView({
 
                   <div id="buying-triggers">
                     <SectionHeading id="" title="Buying triggers" subtitle="Events or circumstances that motivate the Audience to start looking for solutions like yours." />
-                    <BulletList items={data.buyingTriggers} icon={Sparkles} iconClass="text-amber-500" isEditing={isEditingSection("overview")} onChange={(v) => setData(prev => ({ ...prev, buyingTriggers: v }))} />
+                    <BulletList items={data.buyingTriggers} icon={Sparkles} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(v) => setData(prev => ({ ...prev, buyingTriggers: v }))} />
                   </div>
 
                   <button onClick={() => setDescExpanded(!descExpanded)} className="flex items-center gap-1.5 text-sm font-medium text-foreground mx-auto hover:text-primary transition-colors">
