@@ -31,7 +31,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
 
   if (role === "user") {
     return (
-      <div className="bg-accent text-accent-foreground ml-8 rounded-xl pw-fit max-w-[75%] x-4 py-2.5 text-sm shadow-sm">
+      <div className="bg-muted text-foreground ml-8 w-fit max-w-[75%] rounded-xl px-4 py-2.5 text-sm shadow-sm">
         {content}
       </div>
     );
@@ -48,10 +48,10 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
 
   const getDocIcon = (type: DocumentLink["type"]) => {
     switch (type) {
-      case "doc": return <FileText className="h-4 w-4 text-primary" />;
-      case "email": return <Mail className="h-4 w-4 text-primary" />;
-      case "calendar": return <Calendar className="h-4 w-4 text-primary" />;
-      case "sheet": return <Table2 className="h-4 w-4 text-primary" />;
+      case "doc": return <FileText className="h-4 w-4 text-foreground" />;
+      case "email": return <Mail className="h-4 w-4 text-foreground" />;
+      case "calendar": return <Calendar className="h-4 w-4 text-foreground" />;
+      case "sheet": return <Table2 className="h-4 w-4 text-foreground" />;
     }
   };
 
@@ -69,7 +69,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       return <Loader2 className="h-3.5 w-3.5 animate-spin text-accent-foreground" />;
     }
     if (step.status === "complete") {
-      return <CheckCircle2 className="h-3.5 w-3.5 text-primary" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 text-foregroundundundundundund" />;
     }
     if (step.status === "error") {
       return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
@@ -85,7 +85,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
           <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
         <span className={cn(
-          "text-[10px] font-semibold text-primary/60 uppercase tracking-widest",
+          "text-[10px] fontmuted-foregroundoregroundoregroundoregroundoreground/60 uppercase tracking-widest",
           isStreaming && !content && "shimmer-text"
         )}>TimeWarp AI</span>
       </div>
@@ -96,7 +96,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
           className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground z-10"
           title="Copy response"
         >
-          {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? <Check className="h-3.5 w-3.5 text-foreground" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
       )}
       {/* Progress Steps */}
@@ -115,7 +115,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
               </div>
               <span className={cn(
                 "font-medium",
-                step.status === "complete" && "text-primary",
+                step.status === "complete" && "text-foreground",
                 step.status === "running" && "text-foreground",
                 step.status === "error" && "text-destructive",
                 step.status === "pending" && "text-muted-foreground"
@@ -144,30 +144,30 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
             <ReactMarkdown
               components={{
                 h1: ({ children }) => (
-                  <h1 className="text-[15px] font-extrabold text-foreground mt-5 mb-2 pb-1.5 border-b border-primary/30 uppercase tracking-wide">
+                  <h1 className="text-[15px] font-extrabold text-foreground mt-borderpb-1.5 bborder border-primary/30 uppercase tracking-wide">
                     {children}
                   </h1>
                 ),
                 h2: ({ children }) => (
-                  <h2 className="text-[14px] font-extrabold text-foreground mt-4 mb-2 underline decoration-primary/40 decoration-2 underline-offset-4">
+                  <h2 className="text-[14px] font-extrabold text-foreground mt-4 mb-2 underliforegroundration-primary/40 decoration-2 underline-offset-4">
                     {children}
                   </h2>
                 ),
                 h3: ({ children }) => (
                   <h3 className="text-[13px] font-bold text-foreground flex items-center gap-2 mt-3 mb-1.5">
-                    <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
-                    <span className="underline decoration-primary/30 decoration-1 underline-offset-3">{children}</span>
+                     <Sparkles className="h-3 w-3 text-foreground flex-shrink-0" />
+                     <span className="underline decoration-foreground/30 decoration-1 underline-offset-3">{children}</span>
                   </h3>
                 ),
                 strong: ({ children }) => (
                   <strong className="font-extrabold text-foreground">{children}</strong>
                 ),
                 em: ({ children }) => (
-                  <em className="not-italic font-semibold text-primary underline decoration-primary/30 decoration-1 underline-offset-2">{children}</em>
+                  <em className="not-italic font-semibold text-foreground underline decoration-foreground/30 decoration-1 underline-offset-2">{children}</em>
                 ),
                 li: ({ children }) => (
                   <li className="flex items-start gap-2 text-foreground/80 my-1.5">
-                    <span className="text-primary text-[10px] mt-[7px] flex-shrink-0">●</span>
+                    <span className="text-foreground/60 text-[10px] mt-[7px] flex-shrink-0">●</span>
                     <span className="flex-1">{children}</span>
                   </li>
                 ),
@@ -175,13 +175,13 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
                   <ul className="my-2 space-y-0.5 list-none pl-1">{children}</ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="my-2 space-y-0.5 list-decimal pl-5 marker:text-primary marker:font-extrabold">{children}</ol>
+                  <ol className="my-2 space-y-0.5 list-decimal pl-5 marker:text-foreground marker:font-extrabold">{children}</ol>
                 ),
                 p: ({ children }) => (
                   <p className="text-foreground/80 my-2.5 text-[13.5px]">{children}</p>
                 ),
                 blockquote: ({ children }) => (
-                  <blockquote className="border-l-2 border-primary pl-4 my-3 py-1 text-foreground/70 italic text-[13px]">
+                  <blockquote className="border-l-2 border-border pl-4 my-3 py-1 text-foreground/70 italic text-[13px]">
                     {children}
                   </blockquote>
                 ),
@@ -194,7 +194,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
                   </div>
                 ),
                 thead: ({ children }) => (
-                  <thead className="bg-primary/8">{children}</thead>
+                  <thead className="bg-muted/50">{children}</thead>
                 ),
                 th: ({ children }) => (
                   <th className="border-b border-border/50 px-3 py-2 text-left font-extrabold text-foreground text-[11px] uppercase tracking-wider">{children}</th>
@@ -215,7 +215,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
                     );
                   }
                   return (
-                    <code className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-mono font-bold">{children}</code>
+                    <code className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs font-mono font-bold">{children}</code>
                   );
                 },
               }}
@@ -223,7 +223,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
               {content}
             </ReactMarkdown>
           </div>
-          {isStreaming && <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 rounded-sm" />}
+          {isStreaming && <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5 rounded-sm" />}
         </div>
       )}
 
@@ -239,20 +239,20 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
               className="flex items-start gap-3 p-3 rounded-xl border border-border bg-card hover:bg-accent/10 hover:border-accent/50 transition-all group shadow-sm"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+              <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0 group-hover:bg-muted/80 transition-colors">
                 {getDocIcon(doc.type)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground truncate">{doc.title}</span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                  <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-foreground flex-shrink-0" />
                 </div>
                 {doc.previewText && (
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                     {doc.previewText}
                   </p>
                 )}
-                <div className="flex items-center gap-1 mt-1.5 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 mt-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                   <span>Open in Google {getDocLabel(doc.type)}</span>
                   <ArrowRight className="h-3 w-3" />
                 </div>
@@ -265,7 +265,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       {/* Loading state */}
       {!content && !steps?.length && isStreaming && (
         <div className="px-4 py-4 flex items-center gap-2.5">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <Loader2 className="h-4 w-4 animate-spin text-foreground" />
           <span className="text-muted-foreground text-sm">Processing...</span>
         </div>
       )}

@@ -65,7 +65,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
   if (role === "user") {
     return (
-      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
+      <div className="bg-muted textdium">
         {content}
       </div>
     );
@@ -79,13 +79,13 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
   };
 
   const getTrendIcon = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return <TrendingUp className="h-3 w-3 text-primary" />;
+    if (trend === "up") return <TrendingUp className="h-3 w-3 text-foreground" />;
     if (trend === "down") return <TrendingDown className="h-3 w-3 text-destructive" />;
     return null;
   };
 
   const getTrendColor = (trend?: InsightCard["trend"]) => {
-    if (trend === "up") return "text-primary";
+    if (trend === "up") return "text-foreground";
     if (trend === "down") return "text-destructive";
     return "text-muted-foreground";
   };
@@ -98,7 +98,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
           <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
         <span className={cn(
-          "text-[10px] font-semibold text-primary/60 uppercase tracking-widest",
+          "text-[10px] font-semibold text-primmutemutemutemutemutemuted-foregroundndndndndndercase tracking-widest",
           isStreaming && !content && "shimmer-text"
         )}>TimeWarp AI</span>
       </div>
@@ -109,7 +109,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
           className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground"
           title="Copy response"
         >
-          {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? <Check className="h-3.5 wforegroundroundroundroundroundry" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
       )}
 
@@ -120,10 +120,10 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
             {insightCards.map((card, idx) => (
               <div 
                 key={idx}
-                className="p-3 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors shadow-sm"
+                className="p-3 rounded-xl bg-card border border-borborderrrrry/30 transition-colors shadow-sm"
               >
                 <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-                  <span className="text-primary">
+                  <span className="teforegroundoundoundy">
                     {iconMap[card.icon] || <Sparkles className="h-3.5 w-3.5" />}
                   </span>
                   <span className="text-[10px] uppercase tracking-wider font-semibold truncate">
@@ -160,30 +160,30 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
           <ReactMarkdown
             components={{
               h1: ({ children }) => (
-                <h1 className="text-[15px] font-extrabold text-foreground mt-5 mb-2 pb-1.5 border-b border-primary/30 uppercase tracking-wide">
+                <h1 className="text-[15px] font-extrabold text-foreground mt-5 mb-2 pb-1.5 border-bborderdermary/30 uppercase tracking-wide">
                   {children}
                 </h1>
               ),
               h2: ({ children }) => (
-                <h2 className="text-[14px] font-extrabold text-foreground mt-4 mb-2 underline decoration-primary/40 decoration-2 underline-offset-4">
+                <h2 className="text-[14px] font-extrabold text-foreground mt-4 mb-2 underline decoratiforegroundary/40 decoration-2 underline-offset-4">
                   {children}
                 </h2>
               ),
               h3: ({ children }) => (
                 <h3 className="text-[13px] font-bold text-foreground flex items-center gap-2 mt-3 mb-1.5">
-                  <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
-                  <span className="underline decoration-primary/30 decoration-1 underline-offset-3">{children}</span>
+                   <Sparkles className="h-3 w-3 text-foreground flex-shrink-0" />
+                   <span className="underline decoration-foreground/30 decoration-1 underline-offset-3">{children}</span>
                 </h3>
               ),
               strong: ({ children }) => (
                 <strong className="font-extrabold text-foreground">{children}</strong>
               ),
               em: ({ children }) => (
-                <em className="not-italic font-semibold text-primary underline decoration-primary/30 decoration-1 underline-offset-2">{children}</em>
+                <em className="not-italic font-semibold text-foreground underline decoration-foreground/30 decoration-1 underline-offset-2">{children}</em>
               ),
               li: ({ children }) => (
                 <li className="flex items-start gap-2 text-foreground/80 my-1.5">
-                  <span className="text-primary text-[10px] mt-[7px] flex-shrink-0">●</span>
+                  <span className="text-foreground/60 text-[10px] mt-[7px] flex-shrink-0">●</span>
                   <span className="flex-1">{children}</span>
                 </li>
               ),
@@ -191,13 +191,13 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
                 <ul className="my-2 space-y-0.5 list-none pl-1">{children}</ul>
               ),
               ol: ({ children }) => (
-                <ol className="my-2 space-y-0.5 list-decimal pl-5 marker:text-primary marker:font-extrabold">{children}</ol>
+                <ol className="my-2 space-y-0.5 list-decimal pl-5 marker:text-foreground marker:font-extrabold">{children}</ol>
               ),
               p: ({ children }) => (
                 <p className="text-foreground/80 my-2.5 text-[13.5px]">{children}</p>
               ),
               blockquote: ({ children }) => (
-                <blockquote className="border-l-2 border-primary pl-4 my-3 py-1 text-foreground/70 italic text-[13px]">
+                <blockquote className="border-l-2 border-border pl-4 my-3 py-1 text-foreground/70 italic text-[13px]">
                   {children}
                 </blockquote>
               ),
@@ -210,7 +210,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
                 </div>
               ),
               thead: ({ children }) => (
-                <thead className="bg-primary/8">{children}</thead>
+                <thead className="bg-muted/50">{children}</thead>
               ),
               th: ({ children }) => (
                 <th className="border-b border-border/50 px-3 py-2 text-left font-extrabold text-foreground text-[11px] uppercase tracking-wider">{children}</th>
@@ -231,14 +231,14 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
                   );
                 }
                 return (
-                  <code className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-mono font-bold">{children}</code>
+                  <code className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs font-mono font-bold">{children}</code>
                 );
               },
             }}
           >
             {content}
           </ReactMarkdown>
-          {isStreaming && <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 rounded-sm" />}
+          {isStreaming && <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5 rounded-sm" />}
         </div>
       )}
 
