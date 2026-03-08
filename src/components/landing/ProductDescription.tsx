@@ -233,42 +233,12 @@ export function ProductDescription() {
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)" }} />
       </section>
 
-      {/* ── Business DNA + Evolution of Labor (merged) ── */}
+      {/* ── Business DNA — full-screen sticky scroll-swap ── */}
+      <BusinessDNACard />
+
+      {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(30)].map((_, i) => (
-            <div key={i} className="absolute rounded-full bg-white" style={{
-              left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`,
-              width: `${1 + Math.random() * 1.5}px`, height: `${1 + Math.random() * 1.5}px`,
-              opacity: 0.08 + Math.random() * 0.12,
-            }} />
-          ))}
-        </div>
-
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          {/* Business DNA Title with sparkles */}
-          <div className="text-center mb-16 relative">
-            <div className="absolute inset-0 pointer-events-none" style={{ top: "-40px", bottom: "-40px", left: "10%", right: "10%" }}>
-              {[...Array(20)].map((_, i) => (
-                <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
-                  left: `${10 + Math.random() * 80}%`, top: `${10 + Math.random() * 80}%`,
-                  width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
-                  background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#ffffff",
-                  opacity: 0.3 + Math.random() * 0.5,
-                  boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.4)"}`,
-                  animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
-                }} />
-              ))}
-            </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5 relative z-10" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
-            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto relative z-10">The intelligence layer that turns your company's history into a digitalized CEO.</p>
-          </div>
-
-          {/* Business DNA scroll-swap card */}
-          <div className="mb-24 max-w-2xl mx-auto">
-            <BusinessDNACard />
-          </div>
-
           {/* Evolution Title */}
           <div className="text-center mb-16">
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Evolving manual labor.</h3>
