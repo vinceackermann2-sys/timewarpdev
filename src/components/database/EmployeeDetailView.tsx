@@ -86,6 +86,9 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const [editSopTitle, setEditSopTitle] = useState(employee.sop_title || "");
   const [editPurpose, setEditPurpose] = useState(employee.sop_purpose || "");
   const [editScope, setEditScope] = useState(employee.sop_scope || "");
+  const [editDefinitions, setEditDefinitions] = useState<{ term: string; meaning: string }[]>(
+    Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []
+  );
   const [editProcedure, setEditProcedure] = useState<string[]>(
     Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []
   );
@@ -140,6 +143,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
     setEditSopTitle(employee.sop_title || "");
     setEditPurpose(employee.sop_purpose || "");
     setEditScope(employee.sop_scope || "");
+    setEditDefinitions(Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []);
     setEditProcedure(Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []);
     setEditSafety(employee.sop_safety_notes || "");
   };
@@ -154,6 +158,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         sop_title: editSopTitle.trim() || null,
         sop_purpose: editPurpose.trim() || null,
         sop_scope: editScope.trim() || null,
+        sop_definitions: editDefinitions.filter(d => d.term.trim()),
         sop_procedure: editProcedure.filter(p => p.trim()),
         sop_safety_notes: editSafety.trim() || null,
         updated_at: new Date().toISOString(),
@@ -170,6 +175,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         sop_title: editSopTitle.trim() || null,
         sop_purpose: editPurpose.trim() || null,
         sop_scope: editScope.trim() || null,
+        sop_definitions: editDefinitions.filter(d => d.term.trim()),
         sop_procedure: editProcedure.filter(p => p.trim()),
         sop_safety_notes: editSafety.trim() || null,
       }));
@@ -597,30 +603,47 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Name</Label>
-                <Input value={editName} onChange={e => setEditName(e.target.value)} />
+                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Employee name" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Role</Label>
-                <Input value={editRole} onChange={e => setEditRole(e.target.value)} />
+                <Input value={editRole} onChange={e => setEditRole(e.target.value)} placeholder="e.g. Audience Researcher" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">SOP Title</Label>
-                <Input value={editSopTitle} onChange={e => setEditSopTitle(e.target.value)} />
+                <Input value={editSopTitle} onChange={e => setEditSopTitle(e.target.value)} placeholder="e.g. Signal Mining Method" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Purpose</Label>
-                <Input value={editPurpose} onChange={e => setEditPurpose(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Why does this procedure exist and what problem does it solve?</p>
+                <Input value={editPurpose} onChange={e => setEditPurpose(e.target.value)} placeholder="e.g. To gather data-backed product research" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Scope</Label>
-                <Input value={editScope} onChange={e => setEditScope(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Where and when does this procedure apply?</p>
+                <Input value={editScope} onChange={e => setEditScope(e.target.value)} placeholder="e.g. Online, during product confusion" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Definitions</Label>
+                <p className="text-xs text-muted-foreground">Technical terms or abbreviations used (optional).</p>
+                {editDefinitions.map((d, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={d.term} onChange={e => { const c = [...editDefinitions]; c[i] = { ...c[i], term: e.target.value }; setEditDefinitions(c); }} placeholder="Term" className="w-1/3" />
+                    <Input value={d.meaning} onChange={e => { const c = [...editDefinitions]; c[i] = { ...c[i], meaning: e.target.value }; setEditDefinitions(c); }} placeholder="Meaning" className="flex-1" />
+                    <Button variant="ghost" size="icon" onClick={() => setEditDefinitions(editDefinitions.filter((_, j) => j !== i))}><X className="h-3 w-3" /></Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setEditDefinitions([...editDefinitions, { term: "", meaning: "" }])} className="gap-1">
+                  <Plus className="h-3 w-3" /> Add Definition
+                </Button>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Procedure Steps</Label>
+                <p className="text-xs text-muted-foreground">The step-by-step instructions this employee follows.</p>
                 {editProcedure.map((p, i) => (
                   <div key={i} className="flex gap-2 items-center">
                     <span className="text-xs text-muted-foreground font-mono w-5 text-right shrink-0">{i + 1}.</span>
-                    <Input value={p} onChange={e => { const c = [...editProcedure]; c[i] = e.target.value; setEditProcedure(c); }} />
+                    <Input value={p} onChange={e => { const c = [...editProcedure]; c[i] = e.target.value; setEditProcedure(c); }} placeholder={`Step ${i + 1}`} />
                     {editProcedure.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => setEditProcedure(editProcedure.filter((_, j) => j !== i))}><X className="h-3 w-3" /></Button>
                     )}
@@ -632,27 +655,39 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Safety / Compliance Notes</Label>
-                <Input value={editSafety} onChange={e => setEditSafety(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Any safety warnings, regulations, or risk considerations.</p>
+                <Input value={editSafety} onChange={e => setEditSafety(e.target.value)} placeholder="e.g. Don't chat with anyone" />
               </div>
             </div>
           ) : (
-            /* View Mode */
-            <>
-              {employee.sop_title && <Section title="SOP Title"><p className="font-medium">{employee.sop_title}</p></Section>}
-              {employee.sop_purpose && <Section title="Purpose"><p>{employee.sop_purpose}</p></Section>}
-              {employee.sop_scope && <Section title="Scope"><p>{employee.sop_scope}</p></Section>}
-
-              {employee.sop_definitions && employee.sop_definitions.length > 0 && (
-                <Section title="Definitions">
-                  {renderList(employee.sop_definitions, (d) => (
-                    <span><strong>{d.term}:</strong> {d.meaning}</span>
-                  ))}
-                </Section>
-              )}
-
-              <Section title="Procedure">{renderList(employee.sop_procedure)}</Section>
-
-              {employee.sop_safety_notes && <Section title="Safety / Compliance Notes"><p>{employee.sop_safety_notes}</p></Section>}
+            /* View Mode — always show all fields */
+            <div className="space-y-6">
+              <Section title="SOP Title">
+                <p className="font-medium">{employee.sop_title || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Purpose">
+                <p>{employee.sop_purpose || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Scope">
+                <p>{employee.sop_scope || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Definitions">
+                {employee.sop_definitions && employee.sop_definitions.length > 0
+                  ? renderList(employee.sop_definitions, (d) => (
+                      <span><strong>{d.term}:</strong> {d.meaning}</span>
+                    ))
+                  : <p className="text-muted-foreground italic">None</p>
+                }
+              </Section>
+              <Section title="Procedure">
+                {employee.sop_procedure && employee.sop_procedure.length > 0
+                  ? renderList(employee.sop_procedure)
+                  : <p className="text-muted-foreground italic">Not specified</p>
+                }
+              </Section>
+              <Section title="Safety / Compliance Notes">
+                <p>{employee.sop_safety_notes || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
 
               {employee.sop_revision_history && employee.sop_revision_history.length > 0 && (
                 <Section title="Revision History">
@@ -667,7 +702,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                   </div>
                 </Section>
               )}
-            </>
+            </div>
           )}
 
           {/* Produced Files */}
