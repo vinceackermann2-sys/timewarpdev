@@ -156,16 +156,18 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       {/* Content */}
       <div className="flex-1 overflow-auto p-6 max-w-2xl mx-auto w-full flex flex-col justify-center">
         {step === 0 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="flex flex-col items-center gap-4 mb-2">
               <BusinessBrainOrb size={72} />
             </div>
             <div className="space-y-2">
-              <Label>Employee Name *</Label>
+              <Label className="text-base font-semibold text-foreground">What should this employee be called?</Label>
+              <p className="text-xs text-muted-foreground">Give your AI employee a name.</p>
               <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Alex" />
             </div>
             <div className="space-y-2">
-              <Label>Role *</Label>
+              <Label className="text-base font-semibold text-foreground">What role will they perform?</Label>
+              <p className="text-xs text-muted-foreground">Describe the position or function.</p>
               <Input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Customer Support Agent" />
             </div>
           </div>
@@ -200,15 +202,16 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         )}
 
         {step === 2 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="space-y-2">
-              <Label>SOP Title *</Label>
-              <Input value={sopTitle} onChange={e => setSopTitle(e.target.value)} placeholder="e.g. Customer Complaint Handling Procedure" />
+              <Label className="text-base font-semibold text-foreground">What is the title of this procedure?</Label>
               <p className="text-xs text-muted-foreground">The name of the procedure this employee follows.</p>
+              <Input value={sopTitle} onChange={e => setSopTitle(e.target.value)} placeholder="e.g. Customer Complaint Handling Procedure" />
             </div>
             <div className="space-y-2">
-              <Label>Purpose</Label>
-              <Textarea value={sopPurpose} onChange={e => setSopPurpose(e.target.value)} placeholder="Why does this SOP exist? What problem does it solve?" rows={4} />
+              <Label className="text-base font-semibold text-foreground">What is the purpose of this SOP?</Label>
+              <p className="text-xs text-muted-foreground">Why does this procedure exist? What problem does it solve?</p>
+              <Textarea value={sopPurpose} onChange={e => setSopPurpose(e.target.value)} placeholder="Describe the goal and reason for this procedure..." rows={4} />
             </div>
           </div>
         )}
