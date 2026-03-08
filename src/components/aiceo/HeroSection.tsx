@@ -77,18 +77,19 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
   useEffect(() => {
     if (url) return;
-    let timer: ReturnType<typeof setTimeout>;
+    let cancelled = false;
     const tick = () => {
+      if (cancelled) return;
       const current = placeholderUrls.current[urlIndex.current];
       if (!isDeleting.current) {
         charIndex.current++;
         setPlaceholder(current.slice(0, charIndex.current));
         if (charIndex.current === current.length) {
           isDeleting.current = true;
-          timer = setTimeout(tick, 2500);
+          setTimeout(() => { if (!cancelled) tick(); }, 2500);
           return;
         }
-        timer = setTimeout(tick, 120);
+        setTimeout(() => { if (!cancelled) tick(); }, 120);
       } else {
         charIndex.current--;
         setPlaceholder(current.slice(0, charIndex.current));
@@ -96,11 +97,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           isDeleting.current = false;
           urlIndex.current = (urlIndex.current + 1) % placeholderUrls.current.length;
         }
-        timer = setTimeout(tick, 40);
+        setTimeout(() => { if (!cancelled) tick(); }, 40);
       }
     };
-    timer = setTimeout(tick, 120);
-    return () => clearTimeout(timer);
+    setTimeout(() => { if (!cancelled) tick(); }, 120);
+    return () => { cancelled = true; };
   }, [url]);
 
   const handleAnalyze = () => {
