@@ -202,13 +202,9 @@ export function ProductDescription() {
 
       {/* ── Hero headline — dark stat banner ── */}
       <section className="relative z-10 py-20 lg:py-28 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Ambient light glows */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute rounded-full" style={{ width: 500, height: 500, left: "-10%", top: "-30%", background: "radial-gradient(circle, rgba(51,153,255,0.15) 0%, transparent 70%)", filter: "blur(80px)" }} />
-          <div className="absolute rounded-full" style={{ width: 600, height: 600, right: "-15%", top: "-20%", background: "radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)", filter: "blur(100px)" }} />
-          <div className="absolute rounded-full" style={{ width: 400, height: 400, left: "50%", bottom: "-30%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(51,153,255,0.1) 0%, transparent 70%)", filter: "blur(60px)" }} />
-        </div>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
+        {/* Bottom light glow */}
+        <div className="absolute pointer-events-none" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
           <p className="text-xs tracking-[0.35em] uppercase text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
