@@ -26,6 +26,84 @@ export interface ActionChatMessageProps {
   isStreaming?: boolean;
 }
 
+const markdownComponents = {
+  h1: ({ children }: any) => (
+    <h1 className="text-base font-extrabold text-foreground mt-5 mb-2.5 pb-1.5 border-b border-border/30 uppercase tracking-wide">
+      {children}
+    </h1>
+  ),
+  h2: ({ children }: any) => (
+    <h2 className="text-[15px] font-extrabold text-foreground mt-4 mb-2 underline decoration-foreground/40 decoration-2 underline-offset-4">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }: any) => (
+    <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mt-3 mb-1.5">
+       <Sparkles className="h-3 w-3 text-foreground flex-shrink-0" />
+       <span className="underline decoration-foreground/30 decoration-1 underline-offset-3">{children}</span>
+    </h3>
+  ),
+  strong: ({ children }: any) => (
+    <strong className="font-extrabold text-foreground">{children}</strong>
+  ),
+  em: ({ children }: any) => (
+    <em className="not-italic font-semibold text-foreground underline decoration-foreground/30 decoration-1 underline-offset-2">{children}</em>
+  ),
+  li: ({ children }: any) => (
+    <li className="flex items-start gap-2 text-foreground/80 my-1.5">
+      <span className="text-foreground/60 text-[10px] mt-[7px] flex-shrink-0">●</span>
+      <span className="flex-1">{children}</span>
+    </li>
+  ),
+  ul: ({ children }: any) => (
+    <ul className="my-2 space-y-0.5 list-none pl-1">{children}</ul>
+  ),
+  ol: ({ children }: any) => (
+    <ol className="my-2 space-y-0.5 list-decimal pl-5 marker:text-foreground marker:font-extrabold">{children}</ol>
+  ),
+  p: ({ children }: any) => (
+    <p className="text-foreground/80 my-2.5 text-sm">{children}</p>
+  ),
+  blockquote: ({ children }: any) => (
+    <blockquote className="border-l-2 border-border pl-4 my-3 py-1 text-foreground/70 italic text-[13px]">
+      {children}
+    </blockquote>
+  ),
+  hr: () => (
+    <hr className="my-4 border-border/40" />
+  ),
+  table: ({ children }: any) => (
+    <div className="my-3 w-full overflow-x-auto rounded-lg border border-border/50">
+      <table className="w-full border-collapse text-xs">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: any) => (
+    <thead className="bg-muted/50">{children}</thead>
+  ),
+  th: ({ children }: any) => (
+    <th className="border-b border-border/50 px-3 py-2 text-left font-extrabold text-foreground text-[11px] uppercase tracking-wider">{children}</th>
+  ),
+  tr: ({ children }: any) => (
+    <tr className="border-b border-border/20 last:border-0">{children}</tr>
+  ),
+  td: ({ children }: any) => (
+    <td className="px-3 py-2 text-foreground/70 text-xs">{children}</td>
+  ),
+  code: ({ children, className }: any) => {
+    const isBlock = className?.includes("language-");
+    if (isBlock) {
+      return (
+        <pre className="my-3 p-3 rounded-lg bg-muted/50 border border-border/30 overflow-x-auto">
+          <code className="text-xs text-foreground/90">{children}</code>
+        </pre>
+      );
+    }
+    return (
+      <code className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs font-mono font-bold">{children}</code>
+    );
+  },
+};
+
 export function ActionChatMessage({ role, content, steps, documentLinks, isStreaming }: ActionChatMessageProps) {
   const [copied, setCopied] = useState(false);
 
@@ -43,8 +121,6 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
     toast.success("Copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
   };
-
-  // formatContent no longer needed — using ReactMarkdown
 
   const getDocIcon = (type: DocumentLink["type"]) => {
     switch (type) {
@@ -66,10 +142,10 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
 
   const getStepIcon = (step: ActionStep) => {
     if (step.status === "running") {
-      return <Loader2 className="h-3.5 w-3.5 animate-spin text-accent-foreground" />;
+      return <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground" />;
     }
     if (step.status === "complete") {
-      return <CheckCircle2 className="h-3.5 w-3.5 text-foregroundundundundundund" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 text-foreground" />;
     }
     if (step.status === "error") {
       return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
@@ -85,7 +161,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
           <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
         <span className={cn(
-          "text-[10px] fontmuted-foregroundoregroundoregroundoregroundoreground/60 uppercase tracking-widest",
+          "text-[10px] font-semibold text-muted-foreground uppercase tracking-widest",
           isStreaming && !content && "shimmer-text"
         )}>TimeWarp AI</span>
       </div>
@@ -133,93 +209,16 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       {/* Main Content with Markdown */}
       {content && (
         <div className="px-2 py-3 leading-[1.8]">
-          <div className="prose prose-sm prose-invert max-w-none
-            prose-headings:text-foreground prose-headings:font-extrabold prose-headings:tracking-tight
-            prose-p:text-foreground/80 prose-p:my-2.5 prose-p:text-[13.5px]
-            prose-strong:text-foreground prose-strong:font-bold
-            prose-ul:my-2 prose-ul:pl-0 prose-ul:list-none
-            prose-li:text-foreground/80 prose-li:my-1.5 prose-li:text-[13.5px]
-            [&_ul_li]:flex [&_ul_li]:items-start
-          ">
-            <ReactMarkdown
-              components={{
-                h1: ({ children }) => (
-                  <h1 className="text-[15px] font-extrabold text-foreground mt-borderpb-1.5 bborder border-primary/30 uppercase tracking-wide">
-                    {children}
-                  </h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 className="text-[14px] font-extrabold text-foreground mt-4 mb-2 underliforegroundration-primary/40 decoration-2 underline-offset-4">
-                    {children}
-                  </h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 className="text-[13px] font-bold text-foreground flex items-center gap-2 mt-3 mb-1.5">
-                     <Sparkles className="h-3 w-3 text-foreground flex-shrink-0" />
-                     <span className="underline decoration-foreground/30 decoration-1 underline-offset-3">{children}</span>
-                  </h3>
-                ),
-                strong: ({ children }) => (
-                  <strong className="font-extrabold text-foreground">{children}</strong>
-                ),
-                em: ({ children }) => (
-                  <em className="not-italic font-semibold text-foreground underline decoration-foreground/30 decoration-1 underline-offset-2">{children}</em>
-                ),
-                li: ({ children }) => (
-                  <li className="flex items-start gap-2 text-foreground/80 my-1.5">
-                    <span className="text-foreground/60 text-[10px] mt-[7px] flex-shrink-0">●</span>
-                    <span className="flex-1">{children}</span>
-                  </li>
-                ),
-                ul: ({ children }) => (
-                  <ul className="my-2 space-y-0.5 list-none pl-1">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="my-2 space-y-0.5 list-decimal pl-5 marker:text-foreground marker:font-extrabold">{children}</ol>
-                ),
-                p: ({ children }) => (
-                  <p className="text-foreground/80 my-2.5 text-[13.5px]">{children}</p>
-                ),
-                blockquote: ({ children }) => (
-                  <blockquote className="border-l-2 border-border pl-4 my-3 py-1 text-foreground/70 italic text-[13px]">
-                    {children}
-                  </blockquote>
-                ),
-                hr: () => (
-                  <hr className="my-4 border-border/40" />
-                ),
-                table: ({ children }) => (
-                  <div className="my-3 w-full overflow-x-auto rounded-lg border border-border/50">
-                    <table className="w-full border-collapse text-xs">{children}</table>
-                  </div>
-                ),
-                thead: ({ children }) => (
-                  <thead className="bg-muted/50">{children}</thead>
-                ),
-                th: ({ children }) => (
-                  <th className="border-b border-border/50 px-3 py-2 text-left font-extrabold text-foreground text-[11px] uppercase tracking-wider">{children}</th>
-                ),
-                tr: ({ children }) => (
-                  <tr className="border-b border-border/20 last:border-0">{children}</tr>
-                ),
-                td: ({ children }) => (
-                  <td className="px-3 py-2 text-foreground/70 text-xs">{children}</td>
-                ),
-                code: ({ children, className }) => {
-                  const isBlock = className?.includes("language-");
-                  if (isBlock) {
-                    return (
-                      <pre className="my-3 p-3 rounded-lg bg-muted/50 border border-border/30 overflow-x-auto">
-                        <code className="text-xs text-foreground/90">{children}</code>
-                      </pre>
-                    );
-                  }
-                  return (
-                    <code className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs font-mono font-bold">{children}</code>
-                  );
-                },
-              }}
-            >
+          <div className={cn(
+            "prose prose-sm prose-invert max-w-none",
+            "prose-headings:text-foreground prose-headings:font-extrabold prose-headings:tracking-tight",
+            "prose-p:text-foreground/80 prose-p:my-2.5 prose-p:text-sm",
+            "prose-strong:text-foreground prose-strong:font-bold",
+            "prose-ul:my-2 prose-ul:pl-0 prose-ul:list-none",
+            "prose-li:text-foreground/80 prose-li:my-1.5 prose-li:text-sm",
+            "[&_ul_li]:flex [&_ul_li]:items-start"
+          )}>
+            <ReactMarkdown components={markdownComponents}>
               {content}
             </ReactMarkdown>
           </div>
