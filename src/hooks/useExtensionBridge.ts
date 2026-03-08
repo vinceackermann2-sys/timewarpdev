@@ -38,10 +38,16 @@ export function useExtensionBridge() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.source !== window) return;
+      // Log ALL messages to debug extension communication
+      if (event.data && typeof event.data === "object" && event.data.type) {
+        console.log("[ExtBridge] Received message:", event.data.type, "source===window:", event.source === window, event.data);
+      }
+
+      // Accept messages from window OR from content scripts (some extensions post from different source)
       const { type } = event.data || {};
 
       if (type === "TIMEWARP_PONG") {
+        console.log("[ExtBridge] ✅ PONG received! Extension connected.");
         setExtensionConnected(true);
         setDetecting(false);
       }
@@ -66,12 +72,17 @@ export function useExtensionBridge() {
     window.addEventListener("message", handleMessage);
 
     // Ping the extension
+    console.log("[ExtBridge] Sending TIMEWARP_PING...");
     window.postMessage({ type: "TIMEWARP_PING" }, "*");
 
-    // If no response within 2s, mark as not connected
+    // Also try dispatching a custom DOM event as fallback
+    window.dispatchEvent(new CustomEvent("TIMEWARP_PING"));
+
+    // If no response within 3s, mark as not connected
     const timeout = setTimeout(() => {
+      console.log("[ExtBridge] ⏰ Detection timeout - no PONG received");
       setDetecting(false);
-    }, 2000);
+    }, 3000);
 
     return () => {
       window.removeEventListener("message", handleMessage);
