@@ -69,7 +69,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       return <Loader2 className="h-3.5 w-3.5 animate-spin text-accent-foreground" />;
     }
     if (step.status === "complete") {
-      return <CheckCircle2 className="h-3.5 w-3.5 text-foregroundundund" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 text-foregroundundundund" />;
     }
     if (step.status === "error") {
       return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
@@ -85,7 +85,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
           <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
         <span className={cn(
-          "text-[10px] font-semiboldmuted-foregroundoreground/60 uppercase tracking-widest",
+          "text-[10px] font-semibmuted-foregroundoregroundoreground/60 uppercase tracking-widest",
           isStreaming && !content && "shimmer-text"
         )}>TimeWarp AI</span>
       </div>
@@ -96,7 +96,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
           className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground z-10"
           title="Copy response"
         >
-          {copied ? <Check className="h-3.5 w-foregroundt-primary" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? <Check className=foregroundw-foregroundt-primary" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
       )}
       {/* Progress Steps */}
@@ -115,7 +115,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
               </div>
               <span className={cn(
                 "font-medium",
-                step.status === "complete" && "text-primary",
+                step.status === "completforegroundtext-primary",
                 step.status === "running" && "text-foreground",
                 step.status === "error" && "text-destructive",
                 step.status === "pending" && "text-muted-foreground"
