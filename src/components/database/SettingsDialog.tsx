@@ -38,7 +38,7 @@ const ACTION_LIMITS_SETTINGS: Record<string, number> = {
 };
 const FREE_LIMIT_SETTINGS = 20;
 
-function ActionsUsageSummary({ plan: _stripePlan }: { plan: string | null }) {
+function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
   const { data } = useQuery({
     queryKey: ["actions-used-settings"],
     queryFn: async () => {
@@ -58,10 +58,28 @@ function ActionsUsageSummary({ plan: _stripePlan }: { plan: string | null }) {
   });
   const used = data?.actions_used ?? 0;
   const bonus = data?.bonus_actions ?? 0;
-  const dbPlan = data?.plan ?? _stripePlan;
+  const dbPlan = data?.plan ?? fallbackPlan;
   const limit = dbPlan ? ACTION_LIMITS_SETTINGS[dbPlan] ?? FREE_LIMIT_SETTINGS : FREE_LIMIT_SETTINGS;
   const total = limit === Infinity ? "∞" : String(limit + bonus);
-  return <>{used} / {total}</>;
+  const planName = dbPlan === "co_founder" ? "Co Founder"
+    : dbPlan === "aristotle" ? "Aristotle"
+    : dbPlan === "timewarp_og" ? "TimeWarp OG"
+    : "Free";
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/30 p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
+          <p className="text-lg font-bold mt-0.5">{planName}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Actions Used</p>
+          <p className="text-lg font-bold mt-0.5">{used} / {total}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const integrations = [
