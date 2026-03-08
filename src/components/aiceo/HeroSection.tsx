@@ -82,11 +82,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
     hintColor: dark ? "rgba(255,255,255,0.5)" : "#333",
     navLink: dark ? "#fff" : "#000",
     iconColor: dark ? "rgba(255,255,255,0.7)" : "#333",
-    logoFilter: dark ? "brightness(10)" : "contrast(1.1) brightness(1.05)",
+    logoFilter: dark ? "none" : "contrast(1.1) brightness(1.05)",
     logoBlend: dark ? "normal" as const : "multiply" as const,
-    auraOpacity: dark ? 0.4 : 1,
+    auraOpacity: dark ? 0.85 : 1,
     noiseBlend1: dark ? "soft-light" as const : "soft-light" as const,
-    noiseBlend2: dark ? "multiply" as const : "multiply" as const,
+    noiseBlend2: dark ? "screen" as const : "multiply" as const,
   };
 
   return (
