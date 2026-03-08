@@ -150,17 +150,13 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton 
-                    tooltip="Employees - Coming Soon"
-                    className="opacity-50 cursor-not-allowed"
-                    disabled
+                    isActive={currentView === "employees"}
+                    onClick={() => onViewChange("employees")}
+                    tooltip="Employees"
+                    className={currentView === "employees" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
                   >
-                    <Bot className="h-4 w-4" />
-                    {!isCollapsed && (
-                      <span className="flex items-center gap-2">
-                        Employees
-                        <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full leading-none">Soon</span>
-                      </span>
-                    )}
+                    <SiriOrb size="16px" animationDuration={25} className="shrink-0" />
+                    {!isCollapsed && <span>Employees</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

@@ -164,6 +164,9 @@ const Database = () => {
                 }
               </BusinessDNAProvider>
             )}
+            {currentView === "employees" && user && (
+              <EmployeesView />
+            )}
           </main>
       </SidebarInset>
       <ActionsCelebration
