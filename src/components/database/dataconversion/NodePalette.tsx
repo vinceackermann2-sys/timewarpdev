@@ -99,7 +99,25 @@ interface NodePaletteProps {
 export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
   const { brands, isLoading: brandsLoading } = useBusinessDNA();
   const { workspaces, activeWorkspaceId, selectWorkspace, isLoading: workspacesLoading } = useWorkspace();
-  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(() => {
+    return localStorage.getItem("preferred_business_id");
+  });
+
+  // Persist selected business to localStorage and trigger storage event for other components
+  useEffect(() => {
+    if (selectedBrandId) {
+      localStorage.setItem("preferred_business_id", selectedBrandId);
+    } else {
+      localStorage.removeItem("preferred_business_id");
+    }
+    // Dispatch storage event so BusinessDatabaseNode can react
+    window.dispatchEvent(new Event("storage"));
+  }, [selectedBrandId]);
+
+  // Clear selected business when workspace changes
+  useEffect(() => {
+    setSelectedBrandId(null);
+  }, [activeWorkspaceId]);
 
   return (
     <div className="w-[260px] border-r border-border bg-card/30 flex flex-col h-full">
