@@ -69,7 +69,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       return <Loader2 className="h-3.5 w-3.5 animate-spin text-accent-foreground" />;
     }
     if (step.status === "complete") {
-      return <CheckCircle2 className="h-3.5 w-3.5 text-foreground" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 text-foregroundund" />;
     }
     if (step.status === "error") {
       return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
@@ -85,7 +85,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
           <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
         <span className={cn(
-          "text-[10px] font-semibold text-primary/60 uppercase tracking-widest",
+          "text-[10px] font-semibold temuted-foreground/60 uppercase tracking-widest",
           isStreaming && !content && "shimmer-text"
         )}>TimeWarp AI</span>
       </div>
