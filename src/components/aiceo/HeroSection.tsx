@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Globe, Sun, Moon } from "lucide-react";
+import { Globe, Sun, Moon, Link2 } from "lucide-react";
 
 interface HeroSectionProps {
   onRunClick?: () => void;
