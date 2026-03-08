@@ -94,11 +94,11 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   };
 
   const waitForUnpause = useCallback((): Promise<void> => {
-    if (!isPaused && !isManualMode) return Promise.resolve();
+    if (!isPausedRef.current && !isManualModeRef.current) return Promise.resolve();
     return new Promise((resolve) => {
       pauseResolverRef.current = resolve;
     });
-  }, [isPaused, isManualMode]);
+  }, []);
 
   const handlePause = () => {
     setIsPaused(true);
