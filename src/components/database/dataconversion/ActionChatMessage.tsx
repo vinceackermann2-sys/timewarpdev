@@ -239,7 +239,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
               className="flex items-start gap-3 p-3 rounded-xl border border-border bg-card hover:bg-accent/10 hover:border-accent/50 transition-all group shadow-sm"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+              <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0 group-hover:bg-muted/80 transition-colors">
                 {getDocIcon(doc.type)}
               </div>
               <div className="flex-1 min-w-0">
