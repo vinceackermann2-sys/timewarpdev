@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useActionGate } from "@/hooks/useActionGate";
-import { ActionsDialog } from "./ActionsDialog";
 import { 
   Loader2,
   Sparkles,
