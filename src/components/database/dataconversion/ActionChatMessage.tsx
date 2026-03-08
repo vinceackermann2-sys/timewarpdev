@@ -48,10 +48,10 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
 
   const getDocIcon = (type: DocumentLink["type"]) => {
     switch (type) {
-      case "doc": return <FileText className="h-4 w-4 text-primary" />;
-      case "email": return <Mail className="h-4 w-4 text-primary" />;
-      case "calendar": return <Calendar className="h-4 w-4 text-primary" />;
-      case "sheet": return <Table2 className="h-4 w-4 text-primary" />;
+      case "doc": return <FileText className="h-4 w-4 text-foreground" />;
+      case "email": return <Mail className="h-4 w-4 text-foreground" />;
+      case "calendar": return <Calendar className="h-4 w-4 text-foreground" />;
+      case "sheet": return <Table2 className="h-4 w-4 text-foreground" />;
     }
   };
 
