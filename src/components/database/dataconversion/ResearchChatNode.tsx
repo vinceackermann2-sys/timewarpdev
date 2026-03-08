@@ -535,6 +535,7 @@ export function ResearchChatNode({
         </div>
       </div>
     </div>
+      <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
     </>
   );
 
