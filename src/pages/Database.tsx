@@ -32,6 +32,7 @@ const Database = () => {
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
+  const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
 
   // Check for view parameter and pending task on mount
   useEffect(() => {
