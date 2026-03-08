@@ -123,6 +123,7 @@ const Database = () => {
       return;
     }
     setCurrentView(view);
+    localStorage.setItem("tw_current_view", view);
   };
 
   return (
