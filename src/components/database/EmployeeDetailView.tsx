@@ -295,7 +295,9 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     } finally {
       setRunning(false);
       setIsPaused(false);
+      isPausedRef.current = false;
       setIsManualMode(false);
+      isManualModeRef.current = false;
       setSafetyAlert(null);
       setCurrentStep("");
       signalStop(employee.id);
