@@ -182,8 +182,11 @@ export function BusinessDatabaseNode({
               <CheckCircle2 className="h-3.5 w-3.5" />
             </span>
           )}
-          {!isLoading && items.length === 0 && (
-            <span className="text-xs text-amber-500">No data</span>
+          {!isLoading && !selectedBrandId && (
+            <span className="text-xs text-amber-500">Select business</span>
+          )}
+          {!isLoading && selectedBrandId && items.length === 0 && (
+            <span className="text-xs text-muted-foreground">Empty</span>
           )}
         </div>
       </div>
