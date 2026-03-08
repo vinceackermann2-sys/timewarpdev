@@ -588,6 +588,5 @@ export function DatabaseView() {
         </div>
       </div>
     </div>
-    </>
   );
 }
