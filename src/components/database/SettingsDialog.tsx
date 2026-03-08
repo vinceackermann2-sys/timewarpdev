@@ -611,6 +611,8 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                         );
                       })}
                     </div>
+                    </div>
+                  </div>
                   {isOwnerOfSelected && (
                     <>
                       <Separator />
