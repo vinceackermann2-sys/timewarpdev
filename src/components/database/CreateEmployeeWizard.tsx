@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { FileUploadZone } from "@/components/database/FileUploadZone";
 import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2, Upload, PenLine } from "lucide-react";
@@ -106,24 +106,50 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     setter(list.filter((_, i) => i !== idx));
   };
 
+  const STEP_SHORT = ["Identity", "Import", "Title", "Scope", "Definitions", "Procedure", "Safety"];
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Top: Progress bar + step name */}
-      <div className="p-4 border-b border-border space-y-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onCancel} className="shrink-0">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1">
-            <h2 className="font-semibold text-sm">New AI Employee</h2>
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">{STEPS[step]}</span>
-            <span className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length}</span>
-          </div>
-          <Progress value={progressPercent} className="h-1.5" />
+      {/* Top: Stepper bar like reference image */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {STEP_SHORT.map((label, i) => {
+            const isActive = i === step;
+            const isDone = i < step;
+            return (
+              <button
+                key={i}
+                onClick={() => {
+                  // Allow clicking completed steps to go back
+                  if (i < step) setStep(i);
+                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all shrink-0 ${
+                  isActive
+                    ? "bg-primary/10 border border-primary/30"
+                    : "border border-transparent"
+                } ${i < step ? "cursor-pointer" : "cursor-default"}`}
+              >
+                <span
+                  className={`flex items-center justify-center h-6 w-6 rounded-full text-xs font-semibold shrink-0 ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : isDone
+                        ? "bg-primary/80 text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {isDone ? <Check className="h-3 w-3" /> : i + 1}
+                </span>
+                <span
+                  className={`text-xs font-medium whitespace-nowrap ${
+                    isActive ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -280,16 +306,8 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         )}
       </div>
 
-      {/* Footer: step dots + navigation */}
-      <div className="border-t border-border p-4 space-y-3">
-        <div className="flex justify-center gap-1.5">
-          {STEPS.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 w-1.5 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-muted"}`}
-            />
-          ))}
-        </div>
+      {/* Footer: navigation */}
+      <div className="border-t border-border p-4">
         <div className="flex items-center justify-between">
           <Button variant="ghost" onClick={() => step > 0 ? setStep(step - 1) : onCancel()}>
             {step > 0 ? <><ArrowLeft className="h-4 w-4 mr-1" /> Back</> : "Cancel"}
