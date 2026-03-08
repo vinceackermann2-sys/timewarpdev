@@ -45,126 +45,16 @@ serve(async (req) => {
       });
     }
 
-    // Load linked business data for RAG context
-    let businessContext = "";
-    if (employee.linked_business_id) {
-      const { data: bizData } = await supabase
-        .from("user_business_data")
-        .select("title, content, analyzed_content, data_type, source")
-        .eq("id", employee.linked_business_id)
-        .single();
+    // Load business context
+    const businessContext = await loadBusinessContext(supabase, employee);
 
-      if (bizData) {
-        businessContext = `\n\n## Linked Business Data\n- **Title:** ${bizData.title}\n- **Type:** ${bizData.data_type}\n- **Source:** ${bizData.source}`;
-        if (bizData.content) businessContext += `\n\n### Content\n${bizData.content.slice(0, 5000)}`;
-        if (bizData.analyzed_content) businessContext += `\n\n### Analysis\n${bizData.analyzed_content.slice(0, 3000)}`;
-      }
-
-      // Also load sibling data from same workspace
-      if (employee.workspace_id) {
-        const { data: wsData } = await supabase
-          .from("user_business_data")
-          .select("title, content, analyzed_content, data_type")
-          .eq("workspace_id", employee.workspace_id)
-          .neq("id", employee.linked_business_id)
-          .limit(20);
-
-        if (wsData && wsData.length > 0) {
-          businessContext += "\n\n## Additional Workspace Data\n";
-          for (const item of wsData) {
-            businessContext += `\n### ${item.title} (${item.data_type})\n`;
-            if (item.analyzed_content) businessContext += item.analyzed_content.slice(0, 1000) + "\n";
-            else if (item.content) businessContext += item.content.slice(0, 1000) + "\n";
-          }
-        }
-      }
-    }
-
-    // Build RAG system prompt from SOP fields
-    const procedures = Array.isArray(employee.sop_procedure) ? employee.sop_procedure : [];
-    const definitions = Array.isArray(employee.sop_definitions) ? employee.sop_definitions : [];
-    const responsibilities = Array.isArray(employee.sop_responsibilities) ? employee.sop_responsibilities : [];
-
-    const sopSection = `
-## AI Employee Identity
-- **Name:** ${employee.name}
-- **Role:** ${employee.role}
-${employee.sop_title ? `- **SOP Title:** ${employee.sop_title}` : ""}
-${employee.sop_purpose ? `\n## Purpose\n${employee.sop_purpose}` : ""}
-${employee.sop_scope ? `\n## Scope\n${employee.sop_scope}` : ""}
-${definitions.length > 0 ? `\n## Definitions\n${definitions.map((d: any) => `- **${d.term}:** ${d.meaning}`).join("\n")}` : ""}
-${responsibilities.length > 0 ? `\n## Responsibilities\n${responsibilities.map((r: any, i: number) => `${i + 1}. ${r}`).join("\n")}` : ""}
-${procedures.length > 0 ? `\n## Standard Operating Procedure (Step-by-Step)\n${procedures.map((p: any, i: number) => `${i + 1}. ${p}`).join("\n")}` : ""}
-${employee.sop_safety_notes ? `\n## Safety & Compliance Notes\n${employee.sop_safety_notes}` : ""}
-${employee.sop_documentation ? `\n## Documentation Requirements\n${employee.sop_documentation}` : ""}
-`;
-
-    // Build page context section
-    let pageSection = "";
-    if (pageContext) {
-      pageSection = `
-## Current Browser Page Context
-- **URL:** ${pageContext.url || "unknown"}
-- **Title:** ${pageContext.title || "unknown"}
-${pageContext.selectedText ? `- **Selected Text:** "${pageContext.selectedText}"` : ""}
-${pageContext.pageContent ? `\n### Page Content (extracted)\n${pageContext.pageContent.slice(0, 15000)}` : ""}
-${pageContext.formFields ? `\n### Visible Form Fields\n${JSON.stringify(pageContext.formFields, null, 2)}` : ""}
-${pageContext.links ? `\n### Key Links\n${JSON.stringify(pageContext.links.slice(0, 30), null, 2)}` : ""}
-`;
-    }
-
-    const systemPrompt = `You are an AI employee executing a Standard Operating Procedure (SOP) through a user's browser. You must follow the SOP steps precisely and use the business context to inform your actions.
-
-${sopSection}
-${businessContext}
-${pageSection}
-
-## Your Capabilities
-You analyze the SOP steps and the current page, then return structured browser actions to execute each step.
-
-## Response Format
-Always respond with a JSON object wrapped in a markdown code block.
-
-### Action Types:
-1. **click** — Click an element
-   \`{ "action": "click", "selector": "CSS selector or description", "reasoning": "why" }\`
-2. **type** — Type text into a field
-   \`{ "action": "type", "selector": "CSS selector or description", "value": "text to type", "reasoning": "why" }\`
-3. **navigate** — Go to a URL
-   \`{ "action": "navigate", "url": "https://...", "reasoning": "why" }\`
-4. **scroll** — Scroll the page
-   \`{ "action": "scroll", "direction": "up|down", "amount": 500, "reasoning": "why" }\`
-5. **extract** — Extract data from the page
-   \`{ "action": "extract", "selector": "CSS selector or description", "dataLabel": "what this data is", "reasoning": "why" }\`
-6. **wait** — Wait before next action
-   \`{ "action": "wait", "duration": 1000, "reasoning": "why" }\`
-7. **respond** — Reply to the user (no browser action)
-   \`{ "action": "respond", "message": "your reply", "reasoning": "why" }\`
-
-### Multi-step tasks
-For multi-step tasks, return an array of actions:
-\`\`\`json
-{
-  "steps": [
-    { "action": "navigate", "url": "https://...", "reasoning": "Go to the target page per SOP step 1" },
-    { "action": "click", "selector": "#btn", "reasoning": "Click per SOP step 2" }
-  ],
-  "summary": "Brief description of what you're doing"
-}
-\`\`\`
-
-## Guidelines
-- Follow the SOP procedure steps in order
-- Use business context data to fill forms, make decisions, and provide accurate information
-- Use CSS selectors when possible, fall back to descriptive text
-- If you cannot complete a step from the visible page, use "respond" to ask for clarification
-- Always include "reasoning" that references the SOP step being executed
-- If the task involves sensitive actions (delete, purchase, send), warn the user first with a "respond" action
-- For login screens, payment forms, or 2FA prompts, use "respond" to ask the user to handle it manually`;
+    // Build system prompt
+    const systemPrompt = buildSystemPrompt(employee, businessContext, pageContext);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    // Non-streaming: get single action response
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -177,7 +67,7 @@ For multi-step tasks, return an array of actions:
           { role: "system", content: systemPrompt },
           ...(messages || []),
         ],
-        stream: true,
+        stream: false,
       }),
     });
 
@@ -198,17 +88,11 @@ For multi-step tasks, return an array of actions:
       throw new Error("AI service unavailable");
     }
 
-    // Log the run
-    await supabase.from("ai_employee_logs").insert({
-      employee_id,
-      user_id: user.id,
-      status: "running",
-      step_label: "Started",
-      message: `Running SOP: ${employee.sop_title || employee.role}`,
-    });
+    const aiResult = await response.json();
+    const content = aiResult.choices?.[0]?.message?.content || "";
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    return new Response(JSON.stringify({ content }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
     console.error("run-employee error:", e?.message);
@@ -217,3 +101,108 @@ For multi-step tasks, return an array of actions:
     });
   }
 });
+
+async function loadBusinessContext(supabase: any, employee: any): Promise<string> {
+  let businessContext = "";
+  if (!employee.linked_business_id) return businessContext;
+
+  const { data: bizData } = await supabase
+    .from("user_business_data")
+    .select("title, content, analyzed_content, data_type, source")
+    .eq("id", employee.linked_business_id)
+    .single();
+
+  if (bizData) {
+    businessContext = `\n\n## Linked Business Data\n- **Title:** ${bizData.title}\n- **Type:** ${bizData.data_type}\n- **Source:** ${bizData.source}`;
+    if (bizData.content) businessContext += `\n\n### Content\n${bizData.content.slice(0, 5000)}`;
+    if (bizData.analyzed_content) businessContext += `\n\n### Analysis\n${bizData.analyzed_content.slice(0, 3000)}`;
+  }
+
+  if (employee.workspace_id) {
+    const { data: wsData } = await supabase
+      .from("user_business_data")
+      .select("title, content, analyzed_content, data_type")
+      .eq("workspace_id", employee.workspace_id)
+      .neq("id", employee.linked_business_id)
+      .limit(20);
+
+    if (wsData && wsData.length > 0) {
+      businessContext += "\n\n## Additional Workspace Data\n";
+      for (const item of wsData) {
+        businessContext += `\n### ${item.title} (${item.data_type})\n`;
+        if (item.analyzed_content) businessContext += item.analyzed_content.slice(0, 1000) + "\n";
+        else if (item.content) businessContext += item.content.slice(0, 1000) + "\n";
+      }
+    }
+  }
+
+  return businessContext;
+}
+
+function buildSystemPrompt(employee: any, businessContext: string, pageContext: any): string {
+  const procedures = Array.isArray(employee.sop_procedure) ? employee.sop_procedure : [];
+  const definitions = Array.isArray(employee.sop_definitions) ? employee.sop_definitions : [];
+  const responsibilities = Array.isArray(employee.sop_responsibilities) ? employee.sop_responsibilities : [];
+
+  const sopSection = `
+## AI Employee Identity
+- **Name:** ${employee.name}
+- **Role:** ${employee.role}
+${employee.sop_title ? `- **SOP Title:** ${employee.sop_title}` : ""}
+${employee.sop_purpose ? `\n## Purpose\n${employee.sop_purpose}` : ""}
+${employee.sop_scope ? `\n## Scope\n${employee.sop_scope}` : ""}
+${definitions.length > 0 ? `\n## Definitions\n${definitions.map((d: any) => `- **${d.term}:** ${d.meaning}`).join("\n")}` : ""}
+${responsibilities.length > 0 ? `\n## Responsibilities\n${responsibilities.map((r: any, i: number) => `${i + 1}. ${r}`).join("\n")}` : ""}
+${procedures.length > 0 ? `\n## Standard Operating Procedure (Step-by-Step)\n${procedures.map((p: any, i: number) => `${i + 1}. ${p}`).join("\n")}` : ""}
+${employee.sop_safety_notes ? `\n## Safety & Compliance Notes\n${employee.sop_safety_notes}` : ""}
+${employee.sop_documentation ? `\n## Documentation Requirements\n${employee.sop_documentation}` : ""}
+`;
+
+  let pageSection = "";
+  if (pageContext) {
+    pageSection = `
+## Current Browser Page Context
+- **URL:** ${pageContext.url || "unknown"}
+- **Title:** ${pageContext.title || "unknown"}
+${pageContext.selectedText ? `- **Selected Text:** "${pageContext.selectedText}"` : ""}
+${pageContext.pageContent ? `\n### Page Content (extracted)\n${pageContext.pageContent.slice(0, 15000)}` : ""}
+${pageContext.formFields ? `\n### Visible Form Fields\n${JSON.stringify(pageContext.formFields, null, 2)}` : ""}
+${pageContext.links ? `\n### Key Links\n${JSON.stringify(pageContext.links.slice(0, 30), null, 2)}` : ""}
+`;
+  }
+
+  return `You are an AI employee executing a Standard Operating Procedure (SOP) through a user's browser. You follow the SOP steps precisely, one action at a time.
+
+${sopSection}
+${businessContext}
+${pageSection}
+
+## CRITICAL: One Action at a Time
+You are in an agentic loop. Each call you return EXACTLY ONE action. After the action executes, you'll receive the updated page context and result, then decide the next action.
+
+## Response Format
+Always respond with a single JSON object wrapped in a markdown code block:
+
+\`\`\`json
+{ "action": "navigate", "url": "https://...", "reasoning": "SOP step 1: go to target page", "done": false }
+\`\`\`
+
+### Action Types:
+1. **click** — \`{ "action": "click", "selector": "CSS selector or description", "reasoning": "why", "done": false }\`
+2. **type** — \`{ "action": "type", "selector": "CSS selector or description", "value": "text", "reasoning": "why", "done": false }\`
+3. **navigate** — \`{ "action": "navigate", "url": "https://...", "reasoning": "why", "done": false }\`
+4. **scroll** — \`{ "action": "scroll", "direction": "up|down", "amount": 500, "reasoning": "why", "done": false }\`
+5. **extract** — \`{ "action": "extract", "selector": "CSS selector or description", "dataLabel": "what", "reasoning": "why", "done": false }\`
+6. **wait** — \`{ "action": "wait", "duration": 1000, "reasoning": "why", "done": false }\`
+7. **respond** — \`{ "action": "respond", "message": "your reply", "reasoning": "why", "done": false }\`
+8. **done** — \`{ "action": "done", "message": "summary of what was accomplished", "reasoning": "all SOP steps completed", "done": true }\`
+
+## Guidelines
+- Follow the SOP procedure steps in order
+- Return ONE action per response — you'll get the result and fresh page context before choosing the next action
+- Set "done": true ONLY when all SOP steps are completed or you cannot proceed
+- Use CSS selectors when possible, fall back to descriptive text
+- If you cannot complete a step, use "respond" to ask for clarification
+- For sensitive actions (delete, purchase, send), warn with "respond" first
+- For login screens, payment forms, or 2FA, use "respond" to ask the user to handle manually`;
+}
