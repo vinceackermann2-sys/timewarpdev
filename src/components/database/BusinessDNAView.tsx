@@ -305,7 +305,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
              <h1 className="text-2xl font-bold text-foreground leading-tight">{activeBrand?.name || "Your Business"}</h1>
              <div className="flex items-center gap-2.5">
                 <BusinessBrainOrb size={22} />
-               <span className="text-base text-muted-foreground">Business Brain</span>
+               <span className="text-base text-muted-foreground">AI CEO</span>
                 <motion.span
                   className="text-base font-medium text-primary"
                   animate={{ opacity: [1, 0.4, 1] }}
