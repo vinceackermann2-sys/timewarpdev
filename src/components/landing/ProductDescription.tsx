@@ -333,28 +333,54 @@ export function ProductDescription() {
       </section>
 
       {/* ── Autonomy Loop ── */}
-      <Section className="relative z-10" dark>
-        <div className="text-center mb-16">
-          <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">The TimeWarp Autonomy Loop</h3>
-        </div>
-        <div className="max-w-xl mx-auto">
-          <LoopStep number="01" title="Ingest — Business DNA" description="TimeWarp scans your files, Microsoft, financials, and SOPs to map your unique DNA." icon={Brain} />
-          <LoopStep number="02" title="Deploy — The AI CEO" description="The system takes over executive functions: resource allocation, task delegation, and strategy." icon={Cpu} />
-          <LoopStep number="03" title="Execute — Replace Jobs" description="Autonomous employees perform the roles of SDRs, Accountants, and Project Managers." icon={UserCheck} />
-          <div className="relative flex gap-5">
-            <div className="flex flex-col items-center">
-              <div className="h-12 w-12 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-                <BarChart3 className="h-5 w-5 text-primary" />
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
+        {/* Bottom light with noise */}
+        <div className="absolute pointer-events-none left-0 right-0" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, hsl(0 0% 10% / 0) 70%)" }} />
+        <svg className="absolute pointer-events-none left-0 right-0" style={{ height: 500, bottom: -100, opacity: 0.35, mixBlendMode: "soft-light" }}>
+          <filter id="grain-loop-light"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves={4} seed={99} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+          <rect width="100%" height="100%" filter="url(#grain-loop-light)" />
+        </svg>
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>The TimeWarp Autonomy Loop</h3>
+          </div>
+          <div className="max-w-xl mx-auto">
+            {[
+              { number: "01", title: "Ingest — Business DNA", description: "TimeWarp scans digital footprint, and defines a business dna.", icon: Brain },
+              { number: "02", title: "Deploy — The AI CEO", description: "The system takes over executive functions: resource allocation, task delegation, and strategy.", icon: Cpu },
+              { number: "03", title: "Execute — Replace Jobs", description: "Autonomous employees perform the roles of SDRs, Accountants, and Project Managers.", icon: UserCheck },
+            ].map((step, i) => (
+              <div key={i} className="relative flex gap-5">
+                <div className="flex flex-col items-center">
+                  <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(51,153,255,0.1)", border: "1px solid rgba(51,153,255,0.2)" }}>
+                    <step.icon className="h-5 w-5" style={{ color: "#3399ff" }} />
+                  </div>
+                  <div className="w-px flex-1 mt-2" style={{ background: "hsl(0 0% 20%)" }} />
+                </div>
+                <div className="pb-12">
+                  <span className="text-xs font-mono tracking-wider" style={{ color: "rgba(51,153,255,0.5)" }}>{step.number}</span>
+                  <h4 className="text-lg font-bold text-white mt-1">{step.title}</h4>
+                  <p className="text-sm mt-2 leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>{step.description}</p>
+                </div>
               </div>
-            </div>
-            <div>
-              <span className="text-xs font-mono text-primary/60 tracking-wider">04</span>
-              <h4 className="text-lg font-bold text-foreground mt-1">UHI — Profit Distribution</h4>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">As labor costs drop to zero, profit margins explode, enabling the shift toward Universal High Income for stakeholders.</p>
+            ))}
+            {/* Last step — no connecting line */}
+            <div className="relative flex gap-5">
+              <div className="flex flex-col items-center">
+                <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(51,153,255,0.15)", border: "1px solid rgba(51,153,255,0.3)" }}>
+                  <BarChart3 className="h-5 w-5" style={{ color: "#3399ff" }} />
+                </div>
+              </div>
+              <div>
+                <span className="text-xs font-mono tracking-wider" style={{ color: "rgba(51,153,255,0.5)" }}>04</span>
+                <h4 className="text-lg font-bold text-white mt-1">UHI — Profit Distribution</h4>
+                <p className="text-sm mt-2 leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>As labor costs drop to zero, profit margins explode, enabling the shift toward Universal High Income for stakeholders.</p>
+              </div>
             </div>
           </div>
         </div>
-      </Section>
+      </section>
 
       {/* ── Who is TimeWarp for? ── */}
       <Section className="relative z-10">
