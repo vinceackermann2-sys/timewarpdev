@@ -778,12 +778,14 @@ No explanation, just the JSON array.`
         const productUseCases = (extracted.product?.useCases || []).slice(0, 3).join('; ');
         
         // Image 1: Icon grid — ICONS ONLY, NO TEXT whatsoever
-        const iconsMessages: any[] = [{
+        const iconsMessages: any[] = [
+          { role: "system", content: "You are an image generator. ABSOLUTE RULE: Never include any text, letters, numbers, labels, captions, or words of any kind in generated images. Output pure visual graphics only. No annotations, no watermarks, no signatures." },
+          {
           role: "user",
           content: ssUrl ? [
             { type: "text", text: `Study this website screenshot for visual style reference only. Create a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
 
-CRITICAL: Generate ONLY icons/symbols. Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure visual icons only.
+CRITICAL RULE — ZERO TEXT: Do NOT include any labels, captions, titles, watermarks, or any form of written language beneath, beside, or on top of the icons. The output must contain ZERO readable characters. No letters. No numbers. No words. Pure graphic symbols only.
 
 The icons must represent concepts from the AUDIENCE's world and the PRODUCT's benefits:
 - Product benefits: ${productBenefits || 'quality, convenience, value'}
@@ -794,14 +796,14 @@ Each icon should symbolize a benefit, pain point, or use case (e.g., clock for s
 - Drawn in a clean style using the brand's color palette: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
 - Well-separated with generous spacing
 - Mix of outlined and filled styles
-- ZERO text of any kind. White background.
+- ABSOLUTELY NO TEXT, NO LABELS, NO CAPTIONS, NO LETTERS, NO NUMBERS. White background.
 Brand: "${brandName}", category: ${brandCategory}` },
             { type: "image_url", image_url: { url: ssUrl } }
           ] : `Generate a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
 
-CRITICAL: Generate ONLY icons/symbols. Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure visual icons only.
+CRITICAL RULE — ZERO TEXT: Do NOT include any labels, captions, titles, watermarks, or any form of written language beneath, beside, or on top of the icons. The output must contain ZERO readable characters. Pure graphic symbols only.
 
-Icons should represent: ${productBenefits || 'quality, convenience, value'} and audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}. Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. ZERO text.`
+Icons should represent: ${productBenefits || 'quality, convenience, value'} and audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}. Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. ABSOLUTELY NO TEXT, NO LABELS, NO LETTERS, NO NUMBERS.`
         }];
 
         const iconsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
