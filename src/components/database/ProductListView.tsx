@@ -21,8 +21,8 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
   const [isDone, setIsDone] = useState(false);
   const [connectProductId, setConnectProductId] = useState<string | null>(null);
   const { toast } = useToast();
-  // Filter products to only show those belonging to the active brand
-  const brandProducts = products.filter(p => p.brandId === activeBrandId);
+  // Show all products in this workspace, not just connected ones
+  const brandProducts = products;
   const selectedProduct = brandProducts.find(p => p.id === selectedProductId);
   
 

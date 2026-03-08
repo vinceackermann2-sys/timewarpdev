@@ -169,7 +169,7 @@ function EntityCard({
         </span>
         {connectedCount > 0 && (
           <span className={cn("text-[10px]", COLORS[entity.type])}>
-            {connectedCount} connection{connectedCount !== 1 ? "s" : ""}
+            Connected
           </span>
         )}
       </div>
