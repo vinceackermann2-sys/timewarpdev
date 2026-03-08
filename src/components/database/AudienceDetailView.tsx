@@ -199,6 +199,7 @@ export function AudienceDetailView({
   onBack: () => void;
   onSave: (audience: AudienceData) => void;
 }) {
+  const { userName } = useBusinessDNA();
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const toArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value as T[] : []);
   const toSafeString = (value: unknown): string => {
