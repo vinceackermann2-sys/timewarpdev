@@ -535,41 +535,47 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
             ) : logs.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">No activity yet. Click "Run Employee" to execute the SOP.</p>
             ) : (
-              <div className="space-y-2 max-h-80 overflow-auto border border-border rounded-lg p-3 bg-muted/20">
+              <div className="space-y-3 max-h-[500px] overflow-auto border border-border rounded-lg p-3 bg-muted/20">
                 {logs.map(log => {
                   const isResult = log.status === "completed" && log.message && log.message.length > 40;
-                  const isExpanded = expandedResults.has(log.id);
 
                   return (
-                    <div key={log.id} className="flex items-start gap-2.5 text-sm">
-                      {statusIcon(log.status)}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {log.step_label && (
-                            <span className="font-medium text-xs bg-muted px-1.5 py-0.5 rounded">{log.step_label}</span>
-                          )}
-                          <span className="text-[11px] text-muted-foreground">
-                            {new Date(log.created_at).toLocaleTimeString()}
-                          </span>
-                          {isResult && (
-                            <button
-                              onClick={() => toggleResultExpand(log.id)}
-                              className="flex items-center gap-1 text-[11px] text-primary hover:underline ml-auto"
-                            >
-                              <FileText className="h-3 w-3" />
-                              {isExpanded ? "Collapse" : "View Results"}
-                              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                            </button>
+                    <div key={log.id}>
+                      <div className="flex items-start gap-2.5 text-sm">
+                        {statusIcon(log.status)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {log.step_label && (
+                              <span className="font-medium text-xs bg-muted px-1.5 py-0.5 rounded">{log.step_label}</span>
+                            )}
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(log.created_at).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          {!isResult && log.message && (
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.message}</p>
                           )}
                         </div>
-                        {isResult && isExpanded ? (
-                          <div className="mt-2 rounded-lg border border-border bg-background p-3 text-xs whitespace-pre-wrap">
-                            {log.message}
-                          </div>
-                        ) : log.message ? (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.message}</p>
-                        ) : null}
                       </div>
+
+                      {/* Result Card */}
+                      {isResult && (
+                        <button
+                          onClick={() => setViewingResult(log)}
+                          className="mt-2 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-border bg-background hover:bg-muted/40 transition-colors p-4 text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <FileText className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{log.step_label || "Result"}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{log.message?.slice(0, 150)}…</p>
+                            </div>
+                            <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                          </div>
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -578,6 +584,50 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Result Viewer Dialog */}
+      <Dialog open={!!viewingResult} onOpenChange={(open) => !open && setViewingResult(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col p-0">
+          <div className="flex items-center justify-between p-5 pb-0">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">{viewingResult?.step_label || "Result"}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {viewingResult ? new Date(viewingResult.created_at).toLocaleString() : ""}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto px-5 py-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 text-sm whitespace-pre-wrap leading-relaxed">
+              {viewingResult?.message}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 p-5 pt-0 border-t border-border mt-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => viewingResult && handleDownloadResult(viewingResult)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </Button>
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => viewingResult && handleSaveToDatabase(viewingResult)}
+              disabled={savingToDb}
+            >
+              {savingToDb ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
+              Add to Business Database
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {running && (
         <EmployeeRunOverlay
