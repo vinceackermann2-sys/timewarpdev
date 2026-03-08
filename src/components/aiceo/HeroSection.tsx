@@ -165,9 +165,9 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           </p>
 
           {/* URL Input */}
-          <div style={{ marginBottom: "1.5rem" }}>
+          <div className="hero-input-card" style={{ marginBottom: "1.5rem" }}>
             <div className="hero-input-bar" style={{ display: "flex", alignItems: "center", background: t.inputBg, borderRadius: 14, padding: "0.5rem 0.5rem 0.5rem 1rem", boxShadow: t.inputShadow, border: `1px solid ${t.inputBorder}`, height: 64, transition: "all 0.3s ease" }}>
-              <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} />
+              <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} className="hero-input-icon" />
               <input
                 type="text"
                 placeholder="nike.com/shoes/air-max"
@@ -186,6 +186,13 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 Analyze →
               </button>
             </div>
+            <button
+              className="hero-mobile-analyze"
+              onClick={handleAnalyze}
+              style={{ display: "none", width: "100%", padding: "0.75rem", borderRadius: 12, fontSize: "0.95rem", background: "#3399ff", color: "#fff", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer", marginTop: "0.75rem", alignItems: "center", justifyContent: "center" }}
+            >
+              Analyze →
+            </button>
             <div className="hero-hint" style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease", flexWrap: "wrap" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13A5 5 0 0015 8V6A5 5 0 005 6V8A5 5 0 0010 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11A5 5 0 009 16V18A5 5 0 0019 18V16A5 5 0 0014 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               Link to a specific product (like "nike.com/shoes/air-max") for 10x faster results
@@ -275,12 +282,12 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             padding: 1.5rem 1rem !important;
           }
           .hero-heading {
-            font-size: clamp(2rem, 9vw, 2.8rem) !important;
-            margin-bottom: 1rem !important;
+            font-size: clamp(1.6rem, 7.5vw, 2.2rem) !important;
+            margin-bottom: 0.75rem !important;
           }
           .hero-subtitle {
-            font-size: 0.9rem !important;
-            margin-bottom: 1.5rem !important;
+            font-size: 0.82rem !important;
+            margin-bottom: 1.25rem !important;
             max-width: 100% !important;
           }
           .hero-badge-dot {
@@ -288,22 +295,49 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             height: 4px !important;
             min-width: 4px !important;
             min-height: 4px !important;
+            display: inline-block !important;
+            padding: 0 !important;
+            border-radius: 9999px !important;
+            aspect-ratio: 1 / 1;
+            flex-shrink: 0;
+          }
+          /* Card wrapper on mobile */
+          .hero-input-card {
+            background: rgba(255,255,255,0.65) !important;
+            backdrop-filter: blur(16px) !important;
+            border-radius: 20px !important;
+            padding: 1rem !important;
+            border: 1px solid rgba(0,0,0,0.06) !important;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important;
           }
           .hero-input-bar {
-            height: 52px !important;
+            height: auto !important;
             border-radius: 12px !important;
-            padding: 0.4rem 0.4rem 0.4rem 0.75rem !important;
+            padding: 0.75rem !important;
+            box-shadow: none !important;
+            border: 1px solid rgba(0,0,0,0.08) !important;
+            background: #fff !important;
+          }
+          .hero-input-icon {
+            display: none !important;
           }
           .hero-input-bar input {
             font-size: 0.9rem !important;
           }
           .hero-analyze-btn {
-            padding: 0 1rem !important;
-            font-size: 0.9rem !important;
-            border-radius: 8px !important;
+            display: none !important;
+          }
+          .hero-input-card::after {
+            content: none;
+          }
+          .hero-mobile-analyze {
+            display: flex !important;
           }
           .hero-hint {
-            font-size: 0.75rem !important;
+            font-size: 0.72rem !important;
+            margin-top: 0.75rem !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
           }
           .hero-badges {
             flex-wrap: wrap !important;
@@ -314,13 +348,6 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .hero-badges > span {
             font-size: 0.78rem !important;
             padding: 0.4rem 0.8rem !important;
-          }
-          .hero-badge-dot {
-            display: inline-block !important;
-            padding: 0 !important;
-            border-radius: 9999px !important;
-            aspect-ratio: 1 / 1;
-            flex-shrink: 0;
           }
         }
       `}</style>
