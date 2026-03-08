@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Globe, Sun } from "lucide-react";
+import { Globe, Sun, Moon } from "lucide-react";
 
 interface HeroSectionProps {
   onRunClick?: () => void;
@@ -62,16 +62,38 @@ function LightPhoneMockup() {
 export function HeroSection({ onRunClick }: HeroSectionProps) {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
+  const [dark, setDark] = useState(false);
 
   const handleAnalyze = () => {
     if (onRunClick) onRunClick();
   };
 
+  // Theme colors
+  const t = {
+    bg: dark ? "#0a0e1a" : "#ffffff",
+    text: dark ? "#ffffff" : "#000000",
+    textSec: dark ? "rgba(255,255,255,0.6)" : "#333333",
+    inputBg: dark ? "rgba(255,255,255,0.08)" : "#ffffff",
+    inputBorder: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+    inputShadow: dark ? "0 4px 15px rgba(0,0,0,0.3)" : "0 4px 15px rgba(0,0,0,0.08)",
+    badgeBg: dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.6)",
+    badgeBorder: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+    dotColor: dark ? "#ffffff" : "#000000",
+    hintColor: dark ? "rgba(255,255,255,0.5)" : "#333",
+    navLink: dark ? "#fff" : "#000",
+    iconColor: dark ? "rgba(255,255,255,0.7)" : "#333",
+    logoFilter: dark ? "brightness(10)" : "contrast(1.1) brightness(1.05)",
+    logoBlend: dark ? "normal" as const : "multiply" as const,
+    auraOpacity: dark ? 0.4 : 1,
+    noiseBlend1: dark ? "soft-light" as const : "soft-light" as const,
+    noiseBlend2: dark ? "multiply" as const : "multiply" as const,
+  };
+
   return (
-    <div style={{ fontFamily: "'Outfit', sans-serif", color: "#000", minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease" }}>
       {/* Fixed SVG Background */}
-      <div style={{ position: "fixed", inset: 0, zIndex: -1, background: "#fff", overflow: "hidden" }}>
-        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+      <div style={{ position: "fixed", inset: 0, zIndex: -1, background: t.bg, overflow: "hidden", transition: "background 0.3s ease" }}>
+        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: t.auraOpacity, transition: "opacity 0.3s ease" }} viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
           <defs>
             <filter id="f5" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="60" /></filter>
             <filter id="f4" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="60" /></filter>
@@ -116,16 +138,17 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       {/* Navbar */}
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
-          <img src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: "multiply" as const, filter: "contrast(1.1) brightness(1.05)" }} />
+          <img src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: t.logoBlend, filter: t.logoFilter, transition: "filter 0.3s ease" }} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
           <button
-            aria-label="Theme"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#333", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease" }}
+            aria-label="Toggle theme"
+            onClick={() => setDark(d => !d)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: t.iconColor, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease" }}
           >
-            <Sun size={20} />
+            {dark ? <Moon size={20} /> : <Sun size={20} />}
           </button>
-          <Link to="/auth" style={{ textDecoration: "none", color: "#000", fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif" }}>Login</Link>
+          <Link to="/auth" style={{ textDecoration: "none", color: t.navLink, fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>Login</Link>
           <Link
             to="/auth?mode=signup"
             style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0.6rem 1.2rem", borderRadius: 8, fontFamily: "'Outfit', sans-serif", fontWeight: 500, fontSize: "0.95rem", cursor: "pointer", textDecoration: "none", transition: "all 0.2s ease", border: "none", background: "#3399ff", color: "#fff" }}
@@ -139,16 +162,16 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       <main style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 1760, margin: "0 auto", padding: "4rem 2rem", gap: "4rem", flex: 1 }} className="hero-main-flex">
         {/* Left Content */}
         <div style={{ flex: 1, maxWidth: 720 }} className="hero-left-content">
-          <h1 style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: "#000", fontFamily: "'Outfit', sans-serif" }}>
+          <h1 style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: t.text, fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
             Get business decisions<br />completed in seconds
           </h1>
-          <p style={{ fontSize: "1.25rem", color: "#333", lineHeight: 1.5, marginBottom: "3rem", maxWidth: "90%", fontFamily: "'Outfit', sans-serif" }}>
+          <p style={{ fontSize: "1.25rem", color: t.textSec, lineHeight: 1.5, marginBottom: "3rem", maxWidth: "90%", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
             AI CEO runs deep research on your business and turns your data into levers pulled–for you
           </p>
 
           {/* URL Input */}
           <div style={{ marginBottom: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", background: "#fff", borderRadius: 14, padding: "0.5rem 0.5rem 0.5rem 1rem", boxShadow: "0 4px 15px rgba(0,0,0,0.08)", border: "1px solid rgba(0,0,0,0.05)", height: 64, transition: "box-shadow 0.2s" }}>
+            <div style={{ display: "flex", alignItems: "center", background: t.inputBg, borderRadius: 14, padding: "0.5rem 0.5rem 0.5rem 1rem", boxShadow: t.inputShadow, border: `1px solid ${t.inputBorder}`, height: 64, transition: "all 0.3s ease" }}>
               <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} />
               <input
                 type="text"
@@ -156,7 +179,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: "#000", outline: "none" }}
+                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: t.text, outline: "none", transition: "color 0.3s ease" }}
               />
               <button
                 onClick={handleAnalyze}
@@ -167,7 +190,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 Analyze →
               </button>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "#333", marginTop: "1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13A5 5 0 0015 8V6A5 5 0 005 6V8A5 5 0 0010 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11A5 5 0 009 16V18A5 5 0 0019 18V16A5 5 0 0014 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               Link to a specific product (like "nike.com/shoes/air-max") for 10x faster results
             </div>
@@ -175,11 +198,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
           {/* Badges */}
           <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(8px)", color: "#000", padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: "1px solid rgba(0,0,0,0.05)" }}>
-              <span style={{ width: 6, height: 6, background: "#000", borderRadius: "50%" }} /> No credit card
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.text, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
+              <span style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> No credit card
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(8px)", color: "#000", padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: "1px solid rgba(0,0,0,0.05)" }}>
-              <span style={{ width: 6, height: 6, background: "#000", borderRadius: "50%" }} /> 15-90 seconds
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.text, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
+              <span style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> 15-90 seconds
             </span>
           </div>
         </div>
