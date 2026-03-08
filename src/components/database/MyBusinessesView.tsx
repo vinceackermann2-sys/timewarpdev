@@ -38,18 +38,25 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
     members, isLoading: wsLoading,
   } = useWorkspace();
   const [wsBusinesses, setWsBusinesses] = useState<BrandEntry[]>([]);
-  const [loadingBiz, setLoadingBiz] = useState(false);
+  const [loadingBiz, setLoadingBiz] = useState(true);
   const lastKnownCount = useRef(0);
+  const prevWorkspaceId = useRef<string | null>(null);
 
-  // Load businesses for the active workspace — start immediately with cached ID
+  // Load businesses for the active workspace
   useEffect(() => {
     if (!activeWorkspaceId) { setWsBusinesses([]); setLoadingBiz(false); return; }
 
-    // Clear stale data immediately when workspace changes
-    setWsBusinesses([]);
+    // Always show loading when workspace changes
+    const isNewWorkspace = prevWorkspaceId.current !== activeWorkspaceId;
+    if (isNewWorkspace) {
+      setWsBusinesses([]);
+      setLoadingBiz(true);
+      prevWorkspaceId.current = activeWorkspaceId;
+    }
+
     let cancelled = false;
     async function load() {
-      setLoadingBiz(true);
+      if (!isNewWorkspace) setLoadingBiz(true);
       const { data, error } = await supabase
         .from("user_business_data")
         .select("id, content, user_id")
@@ -236,8 +243,8 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             </motion.button>
           )}
 
-          {/* Loading skeletons — match last known business count */}
-          {loadingBiz && lastKnownCount.current > 0 && Array.from({ length: lastKnownCount.current }).map((_, i) => (
+          {/* Loading skeletons */}
+          {loadingBiz && Array.from({ length: Math.max(lastKnownCount.current, 1) }).map((_, i) => (
             <div key={`skel-${i}`} className="flex flex-col items-start gap-3 rounded-xl border border-border/50 bg-card/50 p-6 min-h-[200px]">
               <Skeleton className="h-12 w-12 rounded-xl" />
               <div className="mt-auto space-y-2 w-full">
@@ -248,8 +255,8 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             </div>
           ))}
 
-          {/* Business cards */}
-          {filteredBrands.map((brand) => (
+          {/* Business cards — hide while loading to prevent stale data */}
+          {!loadingBiz && filteredBrands.map((brand) => (
             <motion.button
               key={brand.id}
               whileHover={{ scale: 1.02 }}
