@@ -311,9 +311,16 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             justify-content: center !important;
             margin-top: 1.5rem !important;
           }
-          .hero-badges span {
+          .hero-badges > span {
             font-size: 0.78rem !important;
             padding: 0.4rem 0.8rem !important;
+          }
+          .hero-badge-dot {
+            display: inline-block !important;
+            padding: 0 !important;
+            border-radius: 9999px !important;
+            aspect-ratio: 1 / 1;
+            flex-shrink: 0;
           }
         }
       `}</style>
