@@ -104,6 +104,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     setIsPaused(true);
     isPausedRef.current = true;
     setSafetyAlert(null);
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: true, isManualMode: false, safetyAlert: null });
   };
 
   const handleContinue = () => {
