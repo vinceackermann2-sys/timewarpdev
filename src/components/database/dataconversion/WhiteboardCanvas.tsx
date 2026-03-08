@@ -322,8 +322,8 @@ export function WhiteboardCanvas({ onDrop }: WhiteboardCanvasProps) {
       "website": 200,
     };
     const nodeWidths: Record<string, number> = {
-      "research": 540,
-      "action": 540,
+      "research": 700,
+      "action": 700,
       "business-db": 320,
       "text": 280,
       "document": 260,
