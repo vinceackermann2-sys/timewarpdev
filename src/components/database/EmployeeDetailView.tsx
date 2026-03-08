@@ -56,7 +56,8 @@ function isSafetyBlocked(action: any): string | null {
   return null;
 }
 
-export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
+export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete }: Props) {
+  const [employee, setEmployee] = useState<AIEmployee>(initialEmployee);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [running, setRunning] = useState(false);
@@ -75,6 +76,21 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const [savingToDb, setSavingToDb] = useState(false);
   const { checkCanUseAction } = useActionGate();
   const { activeWorkspace } = useWorkspace();
+  const [producedFiles, setProducedFiles] = useState<{ id: string; title: string; created_at: string }[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(employee.name);
+  const [editRole, setEditRole] = useState(employee.role);
+  const [editSopTitle, setEditSopTitle] = useState(employee.sop_title || "");
+  const [editPurpose, setEditPurpose] = useState(employee.sop_purpose || "");
+  const [editScope, setEditScope] = useState(employee.sop_scope || "");
+  const [editProcedure, setEditProcedure] = useState<string[]>(
+    Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []
+  );
+  const [editSafety, setEditSafety] = useState(employee.sop_safety_notes || "");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => { loadLogs(); }, [employee.id]);
 
