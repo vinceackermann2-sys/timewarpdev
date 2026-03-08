@@ -53,7 +53,7 @@ function NodeItemCard({ item, onDragStart }: NodeItemCardProps) {
         </span>
       )}
       <div className="flex items-center justify-center h-10 w-10">
-        {Icon && <Icon className="text-primary h-5 w-5" />}
+        {Icon && <Icon className="text-foreground h-5 w-5" />}
       </div>
       <p className="text-xs font-medium text-center leading-tight px-1">{item.label}</p>
     </div>
