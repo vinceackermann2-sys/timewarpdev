@@ -123,7 +123,7 @@ export function useExtensionBridge() {
   const executeAction = useCallback((action: BrowserAction, executeInTab = true): Promise<ActionResult> => {
     return new Promise((resolve) => {
       resolversRef.current.set("action_result", resolve);
-      window.postMessage({ type: "TIMEWARP_EXECUTE_ACTION", action, executeInTab }, "*");
+      window.postMessage({ type: "TIMEWARP_EXECUTE_ACTION", action, executeInTab, targetGroupTab: true }, "*");
       setTimeout(() => {
         if (resolversRef.current.has("action_result")) {
           resolversRef.current.delete("action_result");
@@ -142,6 +142,7 @@ export function useExtensionBridge() {
         employeeName,
         useTabGroup: true,
         openTab: false,
+        focusGroup: false,
       }, "*");
       // Fallback: resolve after 3s even if extension doesn't confirm
       setTimeout(() => {

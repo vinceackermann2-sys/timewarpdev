@@ -197,8 +197,14 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
       await logStep("running", "Started", `Running SOP: ${employee.sop_title || employee.role}`);
 
+      // Small delay to let extension set up the tab group
+      await new Promise(r => setTimeout(r, 1200));
+
+      const procedureSteps = Array.isArray(employee.sop_procedure) ? employee.sop_procedure : [];
+      const stepCount = procedureSteps.length;
+
       const conversationHistory: Array<{ role: string; content: string }> = [
-        { role: "user", content: "Execute the SOP procedure now. The browser is ready. You are operating inside a dedicated tab group." },
+        { role: "user", content: `Execute the FULL SOP procedure now, step by step. You have ${stepCount} procedure steps to complete. Start with step 1 immediately — navigate to the correct URL. There is no page context yet because you need to open the first page yourself. Do NOT return "done" until every single procedure step has been completed. Work through ALL ${stepCount} steps sequentially.` },
       ];
 
       const MAX_STEPS = 50;
