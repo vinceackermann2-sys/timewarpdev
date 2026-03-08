@@ -7,9 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-import { Brain } from "lucide-react";
-
-export interface InsightCard {
+import { Brain } from "lucide-reactnterface InsightCard {
   icon: string;
   title: string;
   value: string;
@@ -65,7 +63,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
   if (role === "user") {
     return (
-      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] rounded-lg px-3 py-1.5 text-[12px] font-medium">
+      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
         {content}
       </div>
     );
