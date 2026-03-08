@@ -183,6 +183,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       toast({ title: "Extension not detected", description: "Install and log into the TimeWarp extension to run employees.", variant: "destructive" });
       return;
     }
+    if (!checkCanUseAction()) return;
 
     setRunning(true);
     setIsPaused(false);

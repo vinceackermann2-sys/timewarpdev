@@ -215,6 +215,7 @@ export function DatabaseView() {
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
+    if (!checkCanUseAction()) return;
 
     const userMessage: Message = { role: "user", content };
     setMessages(prev => [...prev, userMessage]);

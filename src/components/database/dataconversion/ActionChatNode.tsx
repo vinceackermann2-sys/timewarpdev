@@ -265,6 +265,7 @@ export function ActionChatNode({
   const handleSend = useCallback(async (messageOverride?: string) => {
     const messageToSend = messageOverride || input.trim();
     if (!messageToSend || isLoading) return;
+    if (!checkCanUseAction()) return;
 
     setInput("");
     setMessages(prev => [...prev, { role: "user", content: messageToSend }]);
