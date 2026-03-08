@@ -8,54 +8,11 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
-/* ─────────────────────── Section wrapper ─────────────────────── */
-function Section({ children, className = "", dark = false }: { children: React.ReactNode; className?: string; dark?: boolean }) {
-  return (
-    <section className={`relative py-20 lg:py-28 ${dark ? "bg-card/60" : ""} ${className}`}>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-/* ─────────────────────── Autonomy loop step ─────────────────────── */
-function LoopStep({ number, title, description, icon: Icon }: { number: string; title: string; description: string; icon: any }) {
-  return (
-    <div className="relative flex gap-5">
-      <div className="flex flex-col items-center">
-        <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-          <Icon className="h-5 w-5 text-primary" />
-        </div>
-        <div className="w-px flex-1 bg-border/40 mt-2" />
-      </div>
-      <div className="pb-12">
-        <span className="text-xs font-mono text-primary/60 tracking-wider">{number}</span>
-        <h4 className="text-lg font-bold text-foreground mt-1">{title}</h4>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────── Persona card ─────────────────────── */
-function PersonaCard({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
-  return (
-    <div className="rounded-2xl border border-border/50 bg-card/80 p-6 hover:border-primary/30 transition-colors">
-      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-        <Icon className="h-5 w-5 text-primary" />
-      </div>
-      <h4 className="text-lg font-bold text-foreground mb-2">{title}</h4>
-      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
 /* ─────────────────────── Grain card wrapper ─────────────────────── */
-function GrainCard({ children, filterId, seed = 0, borderColor = "hsl(0 0% 18%)" }: { children: React.ReactNode; filterId: string; seed?: number; borderColor?: string }) {
+function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode; filterId: string; seed?: number }) {
   return (
-    <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: `1px solid ${borderColor}` }}>
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
+    <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden bg-card border border-border">
+      <svg className="absolute inset-0 w-full h-full pointer-events-none dark:opacity-80 opacity-30" style={{ mixBlendMode: "soft-light" }}>
         <filter id={filterId}><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={seed} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
         <rect width="100%" height="100%" filter={`url(#${filterId})`} />
       </svg>
@@ -76,7 +33,6 @@ function BusinessDNACard() {
       ([entry]) => {
         if (entry.isIntersecting && !hasEntered) {
           setHasEntered(true);
-          // Auto-swap to card 2 after a delay
           timerRef.current = setTimeout(() => setActiveCard(1), 2800);
         }
       },
@@ -90,9 +46,9 @@ function BusinessDNACard() {
   }, [hasEntered]);
 
   return (
-    <div ref={sectionRef} className="relative z-20 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
-      {/* Sparkles */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    <div ref={sectionRef} className="relative z-20 py-24 lg:py-32 bg-background">
+      {/* Sparkles — dark only */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden dark:block hidden">
         {[...Array(20)].map((_, i) => (
           <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
             left: `${10 + Math.random() * 80}%`, top: `${10 + Math.random() * 80}%`,
@@ -108,8 +64,8 @@ function BusinessDNACard() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         {/* Title */}
         <div className="text-center mb-10">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
-          <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto">The intelligence layer that turns your company's history into a digitalized CEO.</p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">The intelligence layer that turns your company's history into a digitalized CEO.</p>
         </div>
 
         {/* Card container */}
@@ -126,9 +82,9 @@ function BusinessDNACard() {
             }}
           >
             <GrainCard filterId="grain-dna-1" seed={0}>
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>What others call "AI Automation"</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Chatbots, agents and workflows.</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>Other tools connect apps to move data. That's plumbing — not leadership.</p>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4 text-destructive">What others call "AI Automation"</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-4">Chatbots, agents and workflows.</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">Other tools connect apps to move data. That's plumbing — not leadership.</p>
             </GrainCard>
           </div>
 
@@ -143,10 +99,10 @@ function BusinessDNACard() {
               pointerEvents: activeCard === 1 ? "auto" : "none",
             }}
           >
-            <GrainCard filterId="grain-dna-2" seed={5} borderColor="hsl(0 0% 20%)">
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>What we mean by Business DNA</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Every decision your company has</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.</p>
+            <GrainCard filterId="grain-dna-2" seed={5}>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4 text-primary">What we mean by Business DNA</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-4">Every decision your company has</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.</p>
             </GrainCard>
           </div>
         </div>
@@ -160,7 +116,7 @@ function BusinessDNACard() {
               style={{
                 width: activeCard === i ? 24 : 8,
                 height: 8,
-                background: activeCard === i ? "#3399ff" : "rgba(255,255,255,0.2)",
+                background: activeCard === i ? "#3399ff" : "hsl(var(--muted))",
                 boxShadow: activeCard === i ? "0 0 12px rgba(51,153,255,0.5)" : "none",
               }}
             />
@@ -188,89 +144,80 @@ export function ProductDescription() {
 
   return (
     <div className="relative">
-      {/* Cosmic background continuation */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        background: `
-          linear-gradient(to bottom, 
-            hsl(230 30% 3%) 0%, 
-            hsl(228 28% 5%) 30%,
-            hsl(225 25% 4%) 60%,
-            hsl(230 30% 3%) 100%
-          )
-        `
+      {/* Cosmic background — dark only */}
+      <div className="absolute inset-0 pointer-events-none dark:block hidden" style={{
+        background: `linear-gradient(to bottom, hsl(230 30% 3%) 0%, hsl(228 28% 5%) 30%, hsl(225 25% 4%) 60%, hsl(230 30% 3%) 100%)`
       }} />
 
-      {/* ── Hero headline — dark stat banner ── */}
-      <section className="relative z-10 py-20 lg:py-28 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
-        {/* Bottom light glow */}
-        <div className="absolute pointer-events-none" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
+      {/* ── Hero headline — stat banner ── */}
+      <section className="relative z-10 py-20 lg:py-28 overflow-hidden bg-background">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        {/* Bottom light glow — dark only */}
+        <div className="absolute pointer-events-none dark:block hidden" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
-          <p className="text-xs tracking-[0.35em] uppercase text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
+          <p className="text-xs tracking-[0.35em] uppercase text-muted-foreground font-mono mb-10">AI CEO — Replacing human labor</p>
           <div className="flex items-center justify-center gap-12 sm:gap-20 lg:gap-32 mb-10">
             <div>
-              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-white leading-none">+100%</span>
-              <p className="text-sm sm:text-base text-white/50 mt-3">More freedom</p>
+              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-foreground leading-none">+100%</span>
+              <p className="text-sm sm:text-base text-muted-foreground mt-3">More freedom</p>
             </div>
             <div>
-              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-white leading-none">-100%</span>
-              <p className="text-sm sm:text-base text-white/50 mt-3">Less work</p>
+              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-foreground leading-none">-100%</span>
+              <p className="text-sm sm:text-base text-muted-foreground mt-3">Less work</p>
             </div>
           </div>
-          <p className="text-sm sm:text-base text-white/50 max-w-2xl mx-auto">
-            Not from hiring more employees. From <span className="font-semibold text-white">levers pulled for you</span> – built on the DNA already running through your business.
+          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
+            Not from hiring more employees. From <span className="font-semibold text-foreground">levers pulled for you</span> – built on the DNA already running through your business.
           </p>
         </div>
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)" }} />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       </section>
 
       {/* ── Business DNA — full-screen sticky scroll-swap ── */}
       <BusinessDNACard />
 
       {/* ── Evolution of Labor ── */}
-      <section className="relative z-10 py-24 lg:py-32 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Full-width bottom light */}
-        <div className="absolute pointer-events-none left-0 right-0" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, hsl(0 0% 10% / 0) 70%)" }} />
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background">
+        {/* Bottom glow — dark only */}
+        <div className="absolute pointer-events-none left-0 right-0 dark:block hidden" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, transparent 70%)" }} />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          {/* Evolution Title */}
           <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Evolving manual labor.</h3>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Evolving manual labor.</h3>
           </div>
 
-          {/* Evolution cards — static layout */}
           <div className="grid md:grid-cols-2 gap-5">
             <GrainCard filterId="grain-evo-0" seed={10}>
               <div className="space-y-5">
-                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
+                <p className="text-xs tracking-[0.2em] uppercase text-destructive">The old way: Hiring humans for every role</p>
                 <ul className="space-y-3">
                   {["High churn, high cost, and human error.", 'Scaling requires more "managed" hours.', "Knowledge walks out the door when an employee leaves."].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "hsl(0 0% 35%)" }} />
+                    <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 bg-muted-foreground/50" />
                       {item}
                     </li>
                   ))}
                 </ul>
-                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
+                <div className="pt-3 border-t border-border">
+                  <p className="text-sm font-semibold text-muted-foreground">
                     The Ceiling: <span className="italic">You can only grow as fast as you can hire.</span>
                   </p>
                 </div>
               </div>
             </GrainCard>
-            <GrainCard filterId="grain-evo-1" seed={15} borderColor="hsl(0 0% 20%)">
+            <GrainCard filterId="grain-evo-1" seed={15}>
               <div className="space-y-5">
-                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
+                <p className="text-xs tracking-[0.2em] uppercase text-primary">The TimeWarp way: Replacing all jobs</p>
                 <ul className="space-y-3">
                   {["Infinite scale with zero headcount increase.", "The AI CEO manages specialized employees that never sleep.", "Your Business DNA is preserved and perfected forever."].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "#3399ff" }} />
+                    <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 bg-primary" />
                       {item}
                     </li>
                   ))}
                 </ul>
-                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
+                <div className="pt-3 border-t border-border">
+                  <p className="text-sm font-semibold text-muted-foreground">
                     The Reality: <span className="italic">Universal High Income (UHI) powered by autonomous productivity.</span>
                   </p>
                 </div>
@@ -281,15 +228,15 @@ export function ProductDescription() {
       </section>
 
       {/* ── Why the AI CEO wins ── */}
-      <section className="relative z-10 py-24 lg:py-32" style={{ background: "#1D1D1D" }}>
+      <section className="relative z-10 py-24 lg:py-32 bg-muted/50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
           <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Why the AI CEO wins</h3>
-            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto">What a human manager misses</p>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Why the AI CEO wins</h3>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">What a human manager misses</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="flex flex-col">
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>TRADITIONAL CEO</p>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4 text-destructive">TRADITIONAL CEO</p>
               <GrainCard filterId="grain-cmp-left" seed={20}>
                 <div className="space-y-3">
                   {[
@@ -298,17 +245,17 @@ export function ProductDescription() {
                     { label: "Bias", value: "Emotional / Subjective" },
                     { label: "Cost", value: "$250k+ / Year" },
                   ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style={{ background: "hsl(0 0% 11%)", border: "1px solid hsl(0 0% 16%)" }}>
-                      <span className="text-sm text-white/50">{item.label}</span>
-                      <span className="text-sm font-medium" style={{ color: "#ef4444" }}>{item.value}</span>
+                    <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 bg-background border border-border">
+                      <span className="text-sm text-muted-foreground">{item.label}</span>
+                      <span className="text-sm font-medium text-destructive">{item.value}</span>
                     </div>
                   ))}
                 </div>
               </GrainCard>
             </div>
             <div className="flex flex-col">
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#22c55e" }}>TIMEWARP AI CEO</p>
-              <GrainCard filterId="grain-cmp-right" seed={25} borderColor="hsl(0 0% 20%)">
+              <p className="text-xs tracking-[0.2em] uppercase mb-4 text-status-success">TIMEWARP AI CEO</p>
+              <GrainCard filterId="grain-cmp-right" seed={25}>
                 <div className="space-y-3">
                   {[
                     { label: "Decision Speed", value: "Milliseconds" },
@@ -316,9 +263,9 @@ export function ProductDescription() {
                     { label: "Bias", value: "Purely ROI-driven" },
                     { label: "Cost", value: "Fractions of a salary" },
                   ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style={{ background: "hsl(0 0% 11%)", border: "1px solid hsl(0 0% 16%)" }}>
-                      <span className="text-sm text-white/50">{item.label}</span>
-                      <span className="text-sm font-medium" style={{ color: "#22c55e" }}>{item.value}</span>
+                    <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 bg-background border border-border">
+                      <span className="text-sm text-muted-foreground">{item.label}</span>
+                      <span className="text-sm font-medium text-status-success">{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -329,13 +276,13 @@ export function ProductDescription() {
       </section>
 
       {/* ── Autonomy Loop ── */}
-      <section className="relative z-10 py-24 lg:py-32 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Bottom light */}
-        <div className="absolute pointer-events-none left-0 right-0" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, hsl(0 0% 10% / 0) 70%)" }} />
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background">
+        {/* Bottom glow — dark only */}
+        <div className="absolute pointer-events-none left-0 right-0 dark:block hidden" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, transparent 70%)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
           <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>The TimeWarp Autonomy Loop</h3>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>The TimeWarp Autonomy Loop</h3>
           </div>
           <div className="max-w-xl mx-auto">
             {[
@@ -345,29 +292,29 @@ export function ProductDescription() {
             ].map((step, i) => (
               <div key={i} className="relative flex gap-5">
                 <div className="flex flex-col items-center">
-                  <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(51,153,255,0.1)", border: "1px solid rgba(51,153,255,0.2)" }}>
-                    <step.icon className="h-5 w-5" style={{ color: "#3399ff" }} />
+                  <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
+                    <step.icon className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="w-px flex-1 mt-2" style={{ background: "hsl(0 0% 20%)" }} />
+                  <div className="w-px flex-1 mt-2 bg-border" />
                 </div>
                 <div className="pb-12">
-                  <span className="text-xs font-mono tracking-wider" style={{ color: "rgba(51,153,255,0.5)" }}>{step.number}</span>
-                  <h4 className="text-lg font-bold text-white mt-1">{step.title}</h4>
-                  <p className="text-sm mt-2 leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>{step.description}</p>
+                  <span className="text-xs font-mono tracking-wider text-primary/50">{step.number}</span>
+                  <h4 className="text-lg font-bold text-foreground mt-1">{step.title}</h4>
+                  <p className="text-sm mt-2 leading-relaxed text-muted-foreground">{step.description}</p>
                 </div>
               </div>
             ))}
             {/* Last step — no connecting line */}
             <div className="relative flex gap-5">
               <div className="flex flex-col items-center">
-                <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(51,153,255,0.15)", border: "1px solid rgba(51,153,255,0.3)" }}>
-                  <BarChart3 className="h-5 w-5" style={{ color: "#3399ff" }} />
+                <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 bg-primary/15 border border-primary/30">
+                  <BarChart3 className="h-5 w-5 text-primary" />
                 </div>
               </div>
               <div>
-                <span className="text-xs font-mono tracking-wider" style={{ color: "rgba(51,153,255,0.5)" }}>04</span>
-                <h4 className="text-lg font-bold text-white mt-1">UHI — Profit Distribution</h4>
-                <p className="text-sm mt-2 leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>As labor costs drop to zero, profit margins explode, enabling the shift toward Universal High Income for stakeholders.</p>
+                <span className="text-xs font-mono tracking-wider text-primary/50">04</span>
+                <h4 className="text-lg font-bold text-foreground mt-1">UHI — Profit Distribution</h4>
+                <p className="text-sm mt-2 leading-relaxed text-muted-foreground">As labor costs drop to zero, profit margins explode, enabling the shift toward Universal High Income for stakeholders.</p>
               </div>
             </div>
           </div>
@@ -375,14 +322,14 @@ export function ProductDescription() {
       </section>
 
       {/* ── Who is TimeWarp for? ── */}
-      <section className="relative z-10 py-24 lg:py-32 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Purple/blue ambient glow at bottom */}
-        <div className="absolute pointer-events-none left-0 right-0" style={{ height: 400, bottom: 0, background: "radial-gradient(ellipse 80% 100% at center bottom, rgba(120,80,220,0.12) 0%, rgba(51,153,255,0.06) 40%, transparent 70%)" }} />
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background">
+        {/* Ambient glow — dark only */}
+        <div className="absolute pointer-events-none left-0 right-0 dark:block hidden" style={{ height: 400, bottom: 0, background: "radial-gradient(ellipse 80% 100% at center bottom, rgba(120,80,220,0.12) 0%, rgba(51,153,255,0.06) 40%, transparent 70%)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
           <div className="text-center mb-6">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Who is TimeWarp for?</h3>
-            <p className="text-base text-white/50 max-w-xl mx-auto">If you've ever said "Why is my business not growing faster?" — Then this is for you.</p>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Who is TimeWarp for?</h3>
+            <p className="text-base text-muted-foreground max-w-xl mx-auto">If you've ever said "Why is my business not growing faster?" — Then this is for you.</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-5 mt-14 max-w-4xl mx-auto">
@@ -394,14 +341,10 @@ export function ProductDescription() {
             ].map((card, i) => (
               <div
                 key={i}
-                className="rounded-2xl p-7 sm:p-8 transition-colors"
-                style={{
-                  background: "hsl(0 0% 14%)",
-                  border: "1px solid hsl(0 0% 20%)",
-                }}
+                className="rounded-2xl p-7 sm:p-8 transition-colors bg-card border border-border hover:border-primary/30"
               >
-                <h4 className="text-lg font-bold text-white mb-3">{card.title}</h4>
-                <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>{card.description}</p>
+                <h4 className="text-lg font-bold text-foreground mb-3">{card.title}</h4>
+                <p className="text-sm leading-relaxed text-muted-foreground">{card.description}</p>
               </div>
             ))}
           </div>
@@ -409,37 +352,31 @@ export function ProductDescription() {
       </section>
 
       {/* ── Bottom CTA ── */}
-      <section className="relative z-10 py-24 lg:py-32 overflow-hidden text-center" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Top light */}
-        <div className="absolute pointer-events-none left-0 right-0" style={{ height: 400, top: 0, background: "radial-gradient(ellipse 80% 100% at center top, rgba(51,153,255,0.08) 0%, transparent 60%)" }} />
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden text-center bg-background">
+        {/* Top glow — dark only */}
+        <div className="absolute pointer-events-none left-0 right-0 dark:block hidden" style={{ height: 400, top: 0, background: "radial-gradient(ellipse 80% 100% at center top, rgba(51,153,255,0.08) 0%, transparent 60%)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>See your company's autonomous future</h3>
-          <p className="text-base text-white/50 mb-12 max-w-xl mx-auto">Paste your website URL. Get your Business DNA &amp; Autonomy Report in 60 seconds.</p>
+          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>See your company's autonomous future</h3>
+          <p className="text-base text-muted-foreground mb-12 max-w-xl mx-auto">Paste your website URL. Get your Business DNA &amp; Autonomy Report in 60 seconds.</p>
 
           {/* Hero-style input card */}
           <div className="max-w-xl mx-auto">
-            <div className="flex items-center rounded-[14px] p-[0.5rem_0.5rem_0.5rem_1rem] h-16" style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
-            }}>
-              <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} />
+            <div className="flex items-center rounded-[14px] p-[0.5rem_0.5rem_0.5rem_1rem] h-16 bg-card border border-border shadow-md">
+              <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" />
               <input
                 type="text"
                 value={inputUrl}
                 onChange={(e) => setInputUrl(e.target.value)}
                 placeholder="https://YourBusiness.com"
                 onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: "#fff", outline: "none" }}
-                className="placeholder:text-white/30"
+                className="flex-1 border-none bg-transparent text-foreground placeholder:text-muted-foreground/40 outline-none"
+                style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }}
               />
               <button
                 onClick={handleAnalyze}
-                className="h-full shrink-0"
-                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", background: "#3399ff", color: "#fff", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer", transition: "all 0.2s ease" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#2288ee"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "#3399ff"; }}
+                className="h-full shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer" }}
               >
                 Analyze →
               </button>
@@ -447,12 +384,12 @@ export function ProductDescription() {
 
             <div className="flex items-center justify-center gap-4 mt-5">
               <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-[#22c55e]" />
-                <span className="text-xs text-white/40">No credit card</span>
+                <div className="h-2 w-2 rounded-full bg-status-success" />
+                <span className="text-xs text-muted-foreground">No credit card</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-[#3399ff]" />
-                <span className="text-xs text-white/40">15-90 Seconds</span>
+                <div className="h-2 w-2 rounded-full bg-primary" />
+                <span className="text-xs text-muted-foreground">15-90 Seconds</span>
               </div>
             </div>
           </div>
