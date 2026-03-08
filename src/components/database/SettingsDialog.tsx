@@ -170,7 +170,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   // Workspace state
   const {
     workspaces, createWorkspace, sendInvite, removeMember, updateMemberRole,
-    cancelInvitation, renameWorkspace, loadMembersForWorkspace, isLoading: wsLoading,
+    cancelInvitation, renameWorkspace, deleteWorkspace, loadMembersForWorkspace, isLoading: wsLoading,
   } = useWorkspace();
   const [selectedWsId, setSelectedWsId] = useState<string | null>(null);
   const [wsMemberData, setWsMemberData] = useState<{ members: WorkspaceMember[]; invitations: WorkspaceInvitation[] }>({ members: [], invitations: [] });
