@@ -173,7 +173,7 @@ export function ProductDescription() {
             <ul className="space-y-3">
               {[
                 "High churn, high cost, and human error.",
-                "Scaling requires more "managed" hours.",
+                'Scaling requires more "managed" hours.',
                 "Knowledge walks out the door when an employee leaves.",
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
