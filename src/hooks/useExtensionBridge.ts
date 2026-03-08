@@ -110,7 +110,7 @@ export function useExtensionBridge() {
   const getPageContext = useCallback((): Promise<PageContext> => {
     return new Promise((resolve) => {
       resolversRef.current.set("page_context", resolve);
-      window.postMessage("TIMEWARP_GET_PAGE_CONTEXT", "*");
+      window.postMessage({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }, "*");
       setTimeout(() => {
         if (resolversRef.current.has("page_context")) {
           resolversRef.current.delete("page_context");
