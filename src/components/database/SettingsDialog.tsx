@@ -170,7 +170,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   // Workspace state
   const {
     workspaces, createWorkspace, sendInvite, removeMember, updateMemberRole,
-    cancelInvitation, renameWorkspace, loadMembersForWorkspace, isLoading: wsLoading,
+    cancelInvitation, renameWorkspace, deleteWorkspace, loadMembersForWorkspace, isLoading: wsLoading,
   } = useWorkspace();
   const [selectedWsId, setSelectedWsId] = useState<string | null>(null);
   const [wsMemberData, setWsMemberData] = useState<{ members: WorkspaceMember[]; invitations: WorkspaceInvitation[] }>({ members: [], invitations: [] });
@@ -330,6 +330,17 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
     if (!newWsName.trim()) return;
     try { await createWorkspace(newWsName.trim()); setShowCreateWs(false); setNewWsName(""); toast({ title: "Workspace created" }); }
     catch (err: any) { toast({ title: "Failed", description: err.message, variant: "destructive" }); }
+  };
+
+  const handleDeleteWorkspace = async () => {
+    if (!selectedWsId) return;
+    try {
+      await deleteWorkspace(selectedWsId);
+      setSelectedWsId(null);
+      toast({ title: "Workspace deleted" });
+    } catch (err: any) {
+      toast({ title: "Failed to delete workspace", description: err.message, variant: "destructive" });
+    }
   };
 
   // Plans handlers
@@ -601,6 +612,23 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                       })}
                     </div>
                   </div>
+                  {isOwnerOfSelected && (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <Label className="text-xs text-destructive font-semibold uppercase tracking-wider">Danger Zone</Label>
+                        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">Delete Workspace</p>
+                            <p className="text-xs text-muted-foreground">Permanently delete this workspace and all its data.</p>
+                          </div>
+                          <Button variant="destructive" size="sm" onClick={handleDeleteWorkspace} className="shrink-0">
+                            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

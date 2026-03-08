@@ -249,6 +249,19 @@ export function useWorkspace() {
     await loadWorkspaces();
   }, [loadWorkspaces]);
 
+  const deleteWorkspace = useCallback(async (wsId: string) => {
+    // Delete members first, then workspace
+    await supabase.from("workspace_invitations").delete().eq("workspace_id", wsId);
+    await supabase.from("workspace_members").delete().eq("workspace_id", wsId);
+    const { error } = await supabase.from("workspaces").delete().eq("id", wsId);
+    if (error) throw error;
+    if (activeWorkspaceId === wsId) {
+      localStorage.removeItem("preferred_workspace_id");
+      setActiveWorkspaceId(null);
+    }
+    await loadWorkspaces();
+  }, [activeWorkspaceId, loadWorkspaces]);
+
   const activeWorkspace = workspaces.find(w => w.workspaceId === activeWorkspaceId) || null;
 
   return {
@@ -265,6 +278,7 @@ export function useWorkspace() {
     updateMemberRole,
     cancelInvitation,
     renameWorkspace,
+    deleteWorkspace,
     loadMembersForWorkspace,
     reload: loadWorkspaces,
   };
