@@ -12,7 +12,7 @@ const quickAccessNodes: NodeItem[] = [
   { id: "text", label: "Text", description: "Text input" },
   { id: "document", label: "Document", description: "Documents" },
   { id: "image", label: "Image", description: "Visual assets" },
-  { id: "website", label: "Website", description: "Web data" },
+  { id: "website", label: "URL", description: "Any URL" },
 ];
 
 const researchNode: NodeItem = {

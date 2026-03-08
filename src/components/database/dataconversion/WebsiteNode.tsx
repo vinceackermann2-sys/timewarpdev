@@ -234,7 +234,7 @@ export function WebsiteNode({
         ) : (
           <div className="h-[calc(100%-44px)] rounded-lg bg-muted/20 flex flex-col items-center justify-center p-4">
             <Globe className="h-8 w-8 text-muted-foreground/40 mb-2" />
-            <p className="text-xs text-muted-foreground">Enter a URL above</p>
+            <p className="text-xs text-muted-foreground">Paste any URL above</p>
           </div>
         )}
       </div>
