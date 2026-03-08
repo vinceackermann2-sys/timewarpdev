@@ -320,7 +320,7 @@ export function AudienceDetailView({
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden space-y-8">
                         <div className="border-t border-border/30 pt-6" id="use-case-requirements">
                           <SectionHeading id="" title="Use case requirements" subtitle="Capabilities your solution must offer to address the Audience's pain points." />
-                          <BulletList items={data.useCaseRequirements} icon={Crosshair} iconClass="text-sky-400" isEditing={isEditingSection("overview")} onChange={(v) => setData(prev => ({ ...prev, useCaseRequirements: v }))} />
+                          <BulletList items={data.useCaseRequirements} icon={Crosshair} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(v) => setData(prev => ({ ...prev, useCaseRequirements: v }))} />
                         </div>
                         <div id="key-success-indicators">
                           <SectionHeading id="" title="Key success indicators" subtitle="" />
