@@ -202,7 +202,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         <div className="hero-nav-actions" style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
           <button
             aria-label="Toggle theme"
-            onClick={() => setDark(d => !d)}
+            onClick={() => setTheme(dark ? "light" : "dark")}
             style={{ background: "none", border: "none", cursor: "pointer", color: t.iconColor, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease" }}
           >
             {dark ? <Moon size={20} /> : <Sun size={20} />}
