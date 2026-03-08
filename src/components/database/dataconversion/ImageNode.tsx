@@ -35,6 +35,7 @@ export function ImageNode({
   const { checkCanUseAction } = useActionGate();
 
   const analyzeImage = useCallback(async (file: File, imageUrl: string) => {
+    if (!checkCanUseAction()) return;
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 

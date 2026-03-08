@@ -29,6 +29,7 @@ export function TextNode({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const analyzeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { checkCanUseAction } = useActionGate();
 
   const analyzeText = useCallback(async (textToAnalyze: string) => {
     if (!textToAnalyze.trim() || textToAnalyze.length < 10) return;

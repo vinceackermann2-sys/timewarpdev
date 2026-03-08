@@ -83,6 +83,7 @@ export function DocumentNode({
   };
 
   const analyzeDocument = useCallback(async (file: File, documentUrl: string) => {
+    if (!checkCanUseAction()) return;
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 

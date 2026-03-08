@@ -31,6 +31,7 @@ export function WebsiteNode({
   const { checkCanUseAction } = useActionGate();
 
   const analyzeWebsite = useCallback(async (websiteUrl: string) => {
+    if (!checkCanUseAction()) return;
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 
