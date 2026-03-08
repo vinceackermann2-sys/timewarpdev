@@ -13,6 +13,7 @@ import { AddProductURLView } from "@/components/database/AddProductURLView";
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2 } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
+import { EmployeesView } from "@/components/database/EmployeesView";
 
 type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
 
