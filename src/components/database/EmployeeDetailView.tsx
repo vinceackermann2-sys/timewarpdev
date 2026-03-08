@@ -207,7 +207,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         { role: "user", content: `Execute the FULL SOP procedure now, step by step. You have ${stepCount} procedure steps to complete. Start with step 1 immediately — navigate to the correct URL. There is no page context yet because you need to open the first page yourself. Do NOT return "done" until every single procedure step has been completed. Work through ALL ${stepCount} steps sequentially.` },
       ];
 
-      const MAX_STEPS = 50;
+      const MAX_STEPS = 80;
 
       for (let step = 0; step < MAX_STEPS; step++) {
         if (abortRef.current?.signal.aborted) break;
