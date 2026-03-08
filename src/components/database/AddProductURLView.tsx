@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Globe, ArrowRight, Sparkles, Loader2, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
