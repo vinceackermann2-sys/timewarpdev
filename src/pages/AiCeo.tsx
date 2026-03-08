@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { HeroSection } from "@/components/aiceo/HeroSection";
+import { ProductDescription } from "@/components/landing/ProductDescription";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 import { Loader2 } from "lucide-react";
 
@@ -16,7 +17,6 @@ const AiCeo = () => {
     searchParams.has("oauth_success") ||
     searchParams.has("oauth_error");
 
-  // If authenticated user lands on homepage with oauth params, redirect to /app with those params
   useEffect(() => {
     if (isOAuthReturn) {
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -32,7 +32,6 @@ const AiCeo = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user && !isOAuthReturn) {
-        // Already logged in and not returning from OAuth → go to app
         navigate("/app", { replace: true });
       } else {
         setIsLoading(false);
@@ -52,7 +51,12 @@ const AiCeo = () => {
     return <AiCeoChatView />;
   }
 
-  return <HeroSection onRunClick={() => setShowChat(true)} />;
+  return (
+    <>
+      <HeroSection onRunClick={() => navigate("/auth?mode=signup")} />
+      <ProductDescription />
+    </>
+  );
 };
 
 export default AiCeo;
