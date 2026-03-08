@@ -177,7 +177,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
                 <strong className="font-extrabold text-foreground">{children}</strong>
               ),
               em: ({ children }) => (
-                <em className="not-italic font-semibold text-primary underline decoration-primary/30 decoration-1 underline-offset-2">{children}</em>
+                <em className="not-italic font-semibold text-foreground underline decoration-foreground/30 decoration-1 underline-offset-2">{children}</em>
               ),
               li: ({ children }) => (
                 <li className="flex items-start gap-2 text-foreground/80 my-1.5">
