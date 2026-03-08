@@ -275,13 +275,19 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             padding: 1.5rem 1rem !important;
           }
           .hero-heading {
-            font-size: clamp(1.8rem, 8vw, 2.4rem) !important;
-            margin-bottom: 1.25rem !important;
+            font-size: clamp(2rem, 9vw, 2.8rem) !important;
+            margin-bottom: 1rem !important;
           }
           .hero-subtitle {
-            font-size: 1rem !important;
-            margin-bottom: 2rem !important;
+            font-size: 0.9rem !important;
+            margin-bottom: 1.5rem !important;
             max-width: 100% !important;
+          }
+          .hero-badge-dot {
+            width: 4px !important;
+            height: 4px !important;
+            min-width: 4px !important;
+            min-height: 4px !important;
           }
           .hero-input-bar {
             height: 52px !important;
