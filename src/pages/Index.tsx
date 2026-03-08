@@ -120,8 +120,12 @@ const Index = () => {
     );
   }
 
-  // Show quiz funnel for everyone (authenticated or not)
-  return <QuizFunnel />;
+  return (
+    <>
+      <QuizFunnel />
+      <ProductDescription />
+    </>
+  );
 };
 
 export default Index;
