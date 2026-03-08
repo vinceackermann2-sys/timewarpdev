@@ -564,6 +564,9 @@ export function ActionChatNode({
                 </motion.div>
               ))}
             </AnimatePresence>
+            {isLoading && messages[messages.length - 1]?.role === "user" && (
+              <ActionChatMessage role="assistant" content="" isStreaming={true} />
+            )}
           </div>
         )}
         </div>

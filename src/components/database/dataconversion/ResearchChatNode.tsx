@@ -501,6 +501,9 @@ export function ResearchChatNode({
                 </motion.div>
               ))}
             </AnimatePresence>
+            {isLoading && messages[messages.length - 1]?.role === "user" && (
+              <ResearchChatMessage role="assistant" content="" isStreaming={true} />
+            )}
           </div>
         )}
         </div>
