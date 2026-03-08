@@ -71,10 +71,13 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     setLoadingBusinesses(true);
     const { data } = await supabase
       .from("user_business_data")
-      .select("id, title, data_type, workspace_id")
+      .select("id, title, data_type, workspace_id, source")
       .eq("workspace_id", wsId)
+      .eq("source", "business-dna")
+      .in("data_type", ["brand", "product", "audience"])
+      .order("data_type", { ascending: true })
       .order("created_at", { ascending: false });
-    setBusinesses((data || []) as BusinessItem[]);
+    setBusinesses((data || []).map(d => ({ ...d, source: (d as any).source })) as BusinessItem[]);
     setLoadingBusinesses(false);
   };
 
@@ -344,34 +347,48 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
             {selectedWorkspaceId && (
               <div className="space-y-2">
                 <Label className="text-base font-semibold text-foreground">Which business data should it query?</Label>
+                <p className="text-xs text-muted-foreground">Select a brand, product, or audience from your Business DNA.</p>
                 {loadingBusinesses ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
                     <Loader2 className="h-4 w-4 animate-spin" /> Loading...
                   </div>
                 ) : businesses.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic py-4">No business data in this workspace. You can still create the employee and link data later.</p>
+                  <p className="text-sm text-muted-foreground italic py-4">No Business DNA data in this workspace. Add brands, products, or audiences first.</p>
                 ) : (
-                  <div className="grid grid-cols-1 gap-2 max-h-48 overflow-auto">
-                    {businesses.map(b => (
-                      <button
-                        key={b.id}
-                        onClick={() => setSelectedBusinessId(selectedBusinessId === b.id ? null : b.id)}
-                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
-                          selectedBusinessId === b.id
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-border/80"
-                        }`}
-                      >
-                        <span className="text-base">{dataTypeIcon(b.data_type)}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{b.title}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{b.data_type}</p>
+                  <div className="max-h-56 overflow-auto space-y-4">
+                    {(["brand", "product", "audience"] as const).map(dtype => {
+                      const items = businesses.filter(b => b.data_type === dtype);
+                      if (items.length === 0) return null;
+                      return (
+                        <div key={dtype}>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                            {dtype === "brand" ? "🏷️ Brands" : dtype === "product" ? "📦 Products" : "👥 Audiences"}
+                          </p>
+                          <div className="grid grid-cols-1 gap-1.5">
+                            {items.map(b => (
+                              <button
+                                key={b.id}
+                                onClick={() => setSelectedBusinessId(selectedBusinessId === b.id ? null : b.id)}
+                                className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                                  selectedBusinessId === b.id
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border hover:border-border/80"
+                                }`}
+                              >
+                                <span className="text-base">{dataTypeIcon(b.data_type)}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{b.title}</p>
+                                  <p className="text-xs text-muted-foreground capitalize">{b.data_type}</p>
+                                </div>
+                                {selectedBusinessId === b.id && (
+                                  <Check className="h-4 w-4 text-primary shrink-0" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        {selectedBusinessId === b.id && (
-                          <Check className="h-4 w-4 text-primary shrink-0" />
-                        )}
-                      </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
