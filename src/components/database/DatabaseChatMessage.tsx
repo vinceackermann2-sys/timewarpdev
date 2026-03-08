@@ -6,7 +6,7 @@ import {
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { extractSuggestions } from "@/lib/parseSuggestions";
-import adEvoIcon from "@/assets/ad-evo-icon.svg";
+import { Brain } from "lucide-react";
 
 export interface InsightCard {
   icon: string;
@@ -70,7 +70,7 @@ const iconMap: Record<string, React.ReactNode> = {
 export function DatabaseChatMessage({ role, content, insightCards, isStreaming }: DatabaseChatMessageProps) {
   if (role === "user") {
     return (
-      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] rounded-lg px-3 py-1.5 text-[12px] font-medium">
+      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
         {content}
       </div>
     );
@@ -92,11 +92,9 @@ export function DatabaseChatMessage({ role, content, insightCards, isStreaming }
     <div className="bg-card/80 backdrop-blur border border-border/50 max-w-[80%] rounded-2xl rounded-bl-md overflow-hidden text-sm">
       {/* Name label with icon */}
       <div className="px-4 pt-3 pb-0.5 flex items-center gap-2">
-        <img 
-          src={adEvoIcon} 
-          alt="" 
-          className="h-10 w-10 flex-shrink-0"
-        />
+        <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center">
+          <Brain className="h-7 w-7 text-foreground" />
+        </div>
         <span className={cn(
           "text-[10px] font-semibold text-primary/60 uppercase tracking-widest",
           isStreaming && !content && "shimmer-text"

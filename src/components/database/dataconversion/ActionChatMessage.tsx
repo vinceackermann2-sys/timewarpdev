@@ -3,7 +3,7 @@ import { ExternalLink, FileText, Mail, Calendar, CheckCircle2, AlertCircle, Load
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-import adEvoIcon from "@/assets/ad-evo-icon.svg";
+import { Brain } from "lucide-react";
 
 export interface ActionStep {
   icon: string;
@@ -31,7 +31,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
 
   if (role === "user") {
     return (
-      <div className="bg-accent text-accent-foreground ml-8 rounded-xl px-4 py-2.5 text-sm shadow-sm">
+      <div className="bg-accent text-accent-foreground ml-8 rounded-xl pw-fit max-w-[75%] x-4 py-2.5 text-sm shadow-sm">
         {content}
       </div>
     );
@@ -81,11 +81,9 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
     <div className="mr-4 rounded-xl overflow-hidden text-sm group/msg relative">
       {/* Name label with icon */}
       <div className="px-2 pt-2 pb-0.5 flex items-center gap-2">
-        <img 
-          src={adEvoIcon} 
-          alt="" 
-          className="h-10 w-10 flex-shrink-0"
-        />
+        <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center">
+          <Brain className="h-7 w-7 text-foreground" />
+        </div>
         <span className={cn(
           "text-[10px] font-semibold text-primary/60 uppercase tracking-widest",
           isStreaming && !content && "shimmer-text"

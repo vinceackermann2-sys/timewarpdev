@@ -7,7 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-import adEvoIcon from "@/assets/ad-evo-icon.svg";
+import { Brain } from "lucide-react";
 
 export interface InsightCard {
   icon: string;
@@ -65,7 +65,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
   if (role === "user") {
     return (
-      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] rounded-lg px-3 py-1.5 text-[12px] font-medium">
+      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
         {content}
       </div>
     );
@@ -94,11 +94,9 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
     <div className="mr-4 rounded-xl overflow-hidden text-sm group/msg relative">
       {/* Name label with icon */}
       <div className="px-2 pt-2 pb-0.5 flex items-center gap-2">
-        <img 
-          src={adEvoIcon} 
-          alt="" 
-          className="h-10 w-10 flex-shrink-0"
-        />
+        <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center">
+          <Brain className="h-7 w-7 text-foreground" />
+        </div>
         <span className={cn(
           "text-[10px] font-semibold text-primary/60 uppercase tracking-widest",
           isStreaming && !content && "shimmer-text"
