@@ -275,12 +275,12 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             padding: 1.5rem 1rem !important;
           }
           .hero-heading {
-            font-size: clamp(2rem, 9vw, 2.8rem) !important;
-            margin-bottom: 1rem !important;
+            font-size: clamp(1.6rem, 7.5vw, 2.2rem) !important;
+            margin-bottom: 0.75rem !important;
           }
           .hero-subtitle {
-            font-size: 0.9rem !important;
-            margin-bottom: 1.5rem !important;
+            font-size: 0.82rem !important;
+            margin-bottom: 1.25rem !important;
             max-width: 100% !important;
           }
           .hero-badge-dot {
@@ -288,22 +288,49 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             height: 4px !important;
             min-width: 4px !important;
             min-height: 4px !important;
+            display: inline-block !important;
+            padding: 0 !important;
+            border-radius: 9999px !important;
+            aspect-ratio: 1 / 1;
+            flex-shrink: 0;
+          }
+          /* Card wrapper on mobile */
+          .hero-input-card {
+            background: rgba(255,255,255,0.65) !important;
+            backdrop-filter: blur(16px) !important;
+            border-radius: 20px !important;
+            padding: 1rem !important;
+            border: 1px solid rgba(0,0,0,0.06) !important;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important;
           }
           .hero-input-bar {
-            height: 52px !important;
+            height: auto !important;
             border-radius: 12px !important;
-            padding: 0.4rem 0.4rem 0.4rem 0.75rem !important;
+            padding: 0.75rem !important;
+            box-shadow: none !important;
+            border: 1px solid rgba(0,0,0,0.08) !important;
+            background: #fff !important;
+          }
+          .hero-input-icon {
+            display: none !important;
           }
           .hero-input-bar input {
             font-size: 0.9rem !important;
           }
           .hero-analyze-btn {
-            padding: 0 1rem !important;
-            font-size: 0.9rem !important;
-            border-radius: 8px !important;
+            display: none !important;
+          }
+          .hero-input-card::after {
+            content: none;
+          }
+          .hero-mobile-analyze {
+            display: flex !important;
           }
           .hero-hint {
-            font-size: 0.75rem !important;
+            font-size: 0.72rem !important;
+            margin-top: 0.75rem !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
           }
           .hero-badges {
             flex-wrap: wrap !important;
@@ -314,13 +341,6 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .hero-badges > span {
             font-size: 0.78rem !important;
             padding: 0.4rem 0.8rem !important;
-          }
-          .hero-badge-dot {
-            display: inline-block !important;
-            padding: 0 !important;
-            border-radius: 9999px !important;
-            aspect-ratio: 1 / 1;
-            flex-shrink: 0;
           }
         }
       `}</style>
