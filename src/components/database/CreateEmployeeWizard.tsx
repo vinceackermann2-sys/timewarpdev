@@ -61,9 +61,8 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
 
   const handleFileUploaded = (file: { summary: string }) => {
     setFileUploaded(true);
-    // Pre-fill SOP fields from the analysis summary
-    if (file.summary && !sopPurpose) {
-      setSopPurpose(file.summary);
+    if (file.summary && !purposeWhy) {
+      setPurposeWhy(file.summary);
     }
     toast({ title: "SOP file imported", description: "You can review and edit the details in the following steps." });
   };
