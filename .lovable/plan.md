@@ -1,50 +1,42 @@
 
 
-## Problem
+## Fix: Referral & Invite Actions Not Granted + No Celebration
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+### Problems Identified
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+1. **Auth.tsx race condition**: After `processReferral` sets `showCelebration(true)`, the calling code immediately calls `navigateToDashboard()` on the next line (lines 76-78, 85-88), navigating away before the celebration dialog renders.
 
-## Plan
+2. **InviteAccept.tsx**: No celebration dialog at all — just a static success message. Users who join via invite link with a referral code never see the celebration.
 
-### 1. Add context size limiting in both edge functions
+3. **Referrer never notified**: There's no mechanism to show the referrer their +125 Actions bonus when someone completes their referral.
 
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
+### Fix Plan
 
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
+#### 1. Auth.tsx — Stop navigating after successful referral
 
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
+**Change `processReferral`** to return a boolean. When it returns `true` (referral completed), skip `navigateToDashboard()` — the celebration dialog's `onOpenChange` already handles navigation on dismiss.
+
+```
+Lines 55-70: processReferral returns true on success
+Lines 72-78: checkSession — if processReferral returned true, don't navigate
+Lines 83-90: onAuthStateChange — same guard
 ```
 
-### 2. Add better error logging for debugging
+#### 2. InviteAccept.tsx — Add ActionsCelebration dialog
 
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+- Import and render `ActionsCelebration`
+- After `complete_referral` RPC succeeds, show the celebration before navigating
+- After workspace invite succeeds (no referral), navigate directly
 
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
+#### 3. Database.tsx — Check for unseen referral completions (referrer side)
 
-### 3. Truncate individual item content
+- On mount, query `referrals` table for rows where `referrer_id = auth.uid()` AND `status = 'completed'` AND `completed_at` is recent (or use a localStorage timestamp to track last-seen)
+- If found, show `ActionsCelebration` with reason `"referral"`
+- Store `lastSeenReferralAt` in localStorage to avoid repeat celebrations
 
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
+### Files Changed
 
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
+- `src/pages/Auth.tsx` — Fix race condition in processReferral flow
+- `src/pages/InviteAccept.tsx` — Add celebration dialog for referred users
+- `src/pages/Database.tsx` — Add referrer-side celebration check on mount
 
