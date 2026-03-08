@@ -129,11 +129,11 @@ export function useExtensionBridge() {
   }, []);
 
   const signalStart = useCallback((employeeId: string) => {
-    window.postMessage({ type: "TIMEWARP_EMPLOYEE_START", employeeId }, "*");
+    window.postMessage({ type: "TIMEWARP_EMPLOYEE_START", employeeId, useTabGroup: true }, "*");
   }, []);
 
   const signalStop = useCallback((employeeId: string) => {
-    window.postMessage({ type: "TIMEWARP_EMPLOYEE_STOP", employeeId }, "*");
+    window.postMessage({ type: "TIMEWARP_EMPLOYEE_STOP", employeeId, closeTabGroup: true }, "*");
   }, []);
 
   return {
