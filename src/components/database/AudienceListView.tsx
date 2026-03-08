@@ -190,7 +190,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
                       {connectedProducts.length > 0 && (
                         <>
                           <span className="text-[10px] text-muted-foreground/40">·</span>
-                          <span className="text-[10px] text-primary">{connectedProducts.length} product{connectedProducts.length !== 1 ? "s" : ""}</span>
+                          <span className="text-[10px] text-primary">Connected</span>
                         </>
                       )}
                     </div>
