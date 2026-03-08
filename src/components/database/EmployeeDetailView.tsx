@@ -134,6 +134,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     setSafetyAlert(null);
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: false, isManualMode: false, safetyAlert: null });
   };
 
   const parseAction = (text: string): (BrowserAction & { done?: boolean; message?: string }) | null => {
