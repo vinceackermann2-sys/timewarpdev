@@ -229,8 +229,13 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         const action = parseAction(aiResponse);
 
         if (!action) {
-          await logStep("completed", `Step ${step + 1}`, aiResponse.slice(0, 500));
-          break;
+          // Retry: AI responded with plain text instead of JSON — ask it to fix
+          conversationHistory.push({
+            role: "user",
+            content: `Your response was not valid JSON. You MUST always respond with a JSON code block. Re-read the SOP and continue from where you left off. Respond with the next action as a JSON code block.`,
+          });
+          await logStep("running", `Step ${step + 1}`, "Retrying: AI did not return JSON");
+          continue;
         }
 
         if (action.done || action.action === "done") {
