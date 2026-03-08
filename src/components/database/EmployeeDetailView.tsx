@@ -618,26 +618,32 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
             /* Edit Mode */
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Name</Label>
-                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Employee name" />
+                <Label className="text-sm font-medium">What should this employee be called?</Label>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="e.g. Alex" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Role</Label>
+                <Label className="text-sm font-medium">What role will they perform?</Label>
                 <Input value={editRole} onChange={e => setEditRole(e.target.value)} placeholder="e.g. Audience Researcher" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">SOP Title</Label>
+                <Label className="text-sm font-medium">What is the title of this procedure?</Label>
                 <Input value={editSopTitle} onChange={e => setEditSopTitle(e.target.value)} placeholder="e.g. Signal Mining Method" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Purpose</Label>
-                <p className="text-xs text-muted-foreground">Why does this procedure exist and what problem does it solve?</p>
-                <Input value={editPurpose} onChange={e => setEditPurpose(e.target.value)} placeholder="e.g. To gather data-backed product research" />
+                <Label className="text-sm font-medium">Why does this procedure exist?</Label>
+                <Input value={editPurposeWhy} onChange={e => setEditPurposeWhy(e.target.value)} placeholder="e.g. To gather data-backed product research" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Scope</Label>
-                <p className="text-xs text-muted-foreground">Where and when does this procedure apply?</p>
-                <Input value={editScope} onChange={e => setEditScope(e.target.value)} placeholder="e.g. Online, during product confusion" />
+                <Label className="text-sm font-medium">What problem does it solve?</Label>
+                <Input value={editPurposeProblem} onChange={e => setEditPurposeProblem(e.target.value)} placeholder="e.g. Manual researching takes time" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Where does this procedure apply?</Label>
+                <Input value={editScopeWhere} onChange={e => setEditScopeWhere(e.target.value)} placeholder="e.g. Online" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">When does this procedure apply?</Label>
+                <Input value={editScopeWhen} onChange={e => setEditScopeWhen(e.target.value)} placeholder="e.g. During product confusion" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Definitions</Label>
@@ -654,8 +660,8 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 </Button>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Procedure Steps</Label>
-                <p className="text-xs text-muted-foreground">The step-by-step instructions this employee follows.</p>
+                <Label className="text-sm font-medium">What are the step-by-step instructions?</Label>
+                <p className="text-xs text-muted-foreground">The core procedure this employee will follow, in order.</p>
                 {editProcedure.map((p, i) => (
                   <div key={i} className="flex gap-2 items-center">
                     <span className="text-xs text-muted-foreground font-mono w-5 text-right shrink-0">{i + 1}.</span>
@@ -670,9 +676,12 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 </Button>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Safety / Compliance Notes</Label>
-                <p className="text-xs text-muted-foreground">Any safety warnings, regulations, or risk considerations.</p>
-                <Input value={editSafety} onChange={e => setEditSafety(e.target.value)} placeholder="e.g. Don't chat with anyone" />
+                <Label className="text-sm font-medium">Any safety warnings or regulations?</Label>
+                <Input value={editSafetyWarnings} onChange={e => setEditSafetyWarnings(e.target.value)} placeholder="e.g. Don't chat with anyone" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Any risk considerations?</Label>
+                <Input value={editSafetyRisks} onChange={e => setEditSafetyRisks(e.target.value)} placeholder="e.g. Escalation required for legal threats" />
               </div>
             </div>
           ) : (
