@@ -164,7 +164,7 @@ export function WebsiteNode({
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
         <div className="flex items-center gap-2">
           <Globe className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Website</span>
+          <span className="text-sm font-medium">URL</span>
         </div>
         <div className="flex items-center gap-2">
           {isAnalyzing && (
