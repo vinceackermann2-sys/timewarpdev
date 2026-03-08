@@ -119,8 +119,8 @@ export function EmployeesView() {
     );
   }
 
-  if (isLoading) {
-    const skeletonCount = Math.max(employees.length, 3);
+  if (isLoading && employees.length > 0) {
+    const skeletonCount = employees.length;
     return (
       <div className="flex-1 overflow-auto p-6">
         <div className="flex items-center justify-between mb-6">
