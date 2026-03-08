@@ -823,7 +823,7 @@ export function ProductDetailView({
                               <button onClick={() => setData(prev => ({ ...prev, powerPhrases: prev.powerPhrases.filter((_, idx) => idx !== i) }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
                             </div>
                           ) : (
-                            <span className="text-sm px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">"{phrase}"</span>
+                            <span className="text-sm px-3 py-1.5 rounded-full bg-muted text-foreground font-medium">"{phrase}"</span>
                           )}
                         </div>
                       ))}
