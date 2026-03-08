@@ -607,26 +607,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
               {/* ── PLANS TAB ── */}
               {activeTab === "plans" && (
                 <div className="space-y-6">
-                  {/* Current Plan & Usage Summary */}
-                  <div className="rounded-xl border border-border bg-muted/30 p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
-                        <p className="text-lg font-bold mt-0.5">
-                          {currentPlan === "co_founder" ? "Co Founder"
-                            : currentPlan === "aristotle" ? "Aristotle"
-                            : currentPlan === "timewarp_og" ? "TimeWarp OG"
-                            : "Free"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Actions Used</p>
-                        <p className="text-lg font-bold mt-0.5">
-                          <ActionsUsageSummary plan={currentPlan} />
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <PlanUsageSummary fallbackPlan={currentPlan} />
 
                   <div className="flex justify-center">
                     <div className="inline-flex items-center rounded-full bg-muted p-1 gap-1">
