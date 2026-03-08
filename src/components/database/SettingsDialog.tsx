@@ -332,6 +332,17 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
     catch (err: any) { toast({ title: "Failed", description: err.message, variant: "destructive" }); }
   };
 
+  const handleDeleteWorkspace = async () => {
+    if (!selectedWsId) return;
+    try {
+      await deleteWorkspace(selectedWsId);
+      setSelectedWsId(null);
+      toast({ title: "Workspace deleted" });
+    } catch (err: any) {
+      toast({ title: "Failed to delete workspace", description: err.message, variant: "destructive" });
+    }
+  };
+
   // Plans handlers
   const handleGetStarted = async (plan: PlanKey) => {
     if (currentPlan === plan) { handleManageSubscription(); return; }
