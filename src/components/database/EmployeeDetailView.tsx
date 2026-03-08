@@ -206,8 +206,8 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       for (let step = 0; step < MAX_STEPS; step++) {
         if (abortRef.current?.signal.aborted) break;
 
-        // Wait if paused or manual mode
-        if (isPaused || isManualMode) {
+        // Wait if paused or manual mode (use refs for fresh values)
+        if (isPausedRef.current || isManualModeRef.current) {
           await waitForUnpause();
         }
         if (abortRef.current?.signal.aborted) break;
