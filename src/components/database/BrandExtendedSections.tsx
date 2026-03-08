@@ -375,6 +375,7 @@ export function BrandExtendedSections({
                   websiteScreenshot: initialData?.websiteScreenshot,
                   mobileScreenshot: initialData?.mobileScreenshot,
                   guidelineImageUrls: initialData?.guidelineImageUrls,
+                  socialMediaUrls: initialData?.socialMediaUrls,
                 });
                 onEditToggle?.();
               }} className="gap-1.5">
