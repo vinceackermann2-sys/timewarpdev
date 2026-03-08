@@ -217,6 +217,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             text-align: center !important;
             padding: 2rem 1rem !important;
             justify-content: center !important;
+            align-items: center !important;
             gap: 2rem !important;
           }
           .hero-left-content {
@@ -224,6 +225,24 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             display: flex !important;
             flex-direction: column !important;
             max-width: 100% !important;
+            width: 100% !important;
+          }
+          .hero-heading {
+            text-align: center !important;
+          }
+          .hero-subtitle {
+            text-align: center !important;
+            max-width: 100% !important;
+          }
+          .hero-input-bar {
+            width: 100% !important;
+          }
+          .hero-hint {
+            justify-content: center !important;
+            text-align: center !important;
+          }
+          .hero-badges {
+            justify-content: center !important;
           }
           .hero-phone-visual {
             display: none !important;
