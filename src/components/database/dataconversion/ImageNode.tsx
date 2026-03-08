@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Image as ImageIcon, Upload, X, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,8 +32,10 @@ export function ImageNode({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { checkCanUseAction } = useActionGate();
 
   const analyzeImage = useCallback(async (file: File, imageUrl: string) => {
+    if (!checkCanUseAction()) return;
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Upload, FileText, Image, File, Loader2, X, CheckCircle2, Music, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +51,7 @@ export function FileUploadZone({ onFileUploaded }: FileUploadZoneProps) {
   const [currentFile, setCurrentFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { checkCanUseAction } = useActionGate();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -62,6 +64,7 @@ export function FileUploadZone({ onFileUploaded }: FileUploadZoneProps) {
   }, []);
 
   const processFile = async (file: File) => {
+    if (!checkCanUseAction()) return;
     if (!SUPPORTED_TYPES.includes(file.type)) {
       toast({
         title: "Unsupported file type",

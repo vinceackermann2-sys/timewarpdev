@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { FileText, Upload, X, Loader2, CheckCircle2, FileSpreadsheet, FileType, File, Music, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ export function DocumentNode({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { checkCanUseAction } = useActionGate();
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split(".").pop()?.toLowerCase();
@@ -81,6 +83,7 @@ export function DocumentNode({
   };
 
   const analyzeDocument = useCallback(async (file: File, documentUrl: string) => {
+    if (!checkCanUseAction()) return;
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 

@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Globe, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -27,8 +28,10 @@ export function WebsiteNode({
   const [url, setUrl] = useState(node.websiteUrl || "");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const { checkCanUseAction } = useActionGate();
 
   const analyzeWebsite = useCallback(async (websiteUrl: string) => {
+    if (!checkCanUseAction()) return;
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 

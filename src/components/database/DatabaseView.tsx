@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useActionGate } from "@/hooks/useActionGate";
-import { ActionsDialog } from "./ActionsDialog";
 import { 
   Loader2,
   Sparkles,
@@ -106,7 +105,7 @@ export function DatabaseView() {
   const [showModeSelector, setShowModeSelector] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const modeSelectorRef = useRef<HTMLDivElement>(null);
-  const { checkCanUseAction, showUpgrade, setShowUpgrade } = useActionGate();
+  const { checkCanUseAction } = useActionGate();
 
   // Check DB for existing connections
   useEffect(() => {
@@ -408,7 +407,6 @@ export function DatabaseView() {
   }
 
   return (
-    <>
     <div className="h-full flex flex-col relative overflow-hidden bg-background">
       <BgGradient
         gradientFrom="hsl(var(--background))"
@@ -590,7 +588,5 @@ export function DatabaseView() {
         </div>
       </div>
     </div>
-      <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
-    </>
   );
 }

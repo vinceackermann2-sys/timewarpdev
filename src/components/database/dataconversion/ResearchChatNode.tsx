@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useActionGate } from "@/hooks/useActionGate";
-import { ActionsDialog } from "../ActionsDialog";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Telescope, ArrowUp, X, Database, FileText, Type, Image, Globe, Loader2, Maximize2, Minimize2 } from "lucide-react";
@@ -72,7 +71,7 @@ export function ResearchChatNode({
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { checkCanUseAction, showUpgrade, setShowUpgrade } = useActionGate();
+  const { checkCanUseAction } = useActionGate();
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -535,7 +534,6 @@ export function ResearchChatNode({
         </div>
       </div>
     </div>
-      <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
     </>
   );
 

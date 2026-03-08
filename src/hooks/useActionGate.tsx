@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ActionsDialog } from "@/components/database/ActionsDialog";
 
 const ACTION_LIMITS: Record<string, number> = {
   co_founder: 100,
@@ -10,7 +11,19 @@ const ACTION_LIMITS: Record<string, number> = {
 };
 const FREE_LIMIT = 20;
 
-export function useActionGate() {
+interface ActionGateContextType {
+  remaining: number;
+  checkCanUseAction: () => boolean;
+  refreshUsage: () => void;
+}
+
+const ActionGateContext = createContext<ActionGateContextType>({
+  remaining: 0,
+  checkCanUseAction: () => true,
+  refreshUsage: () => {},
+});
+
+export function ActionGateProvider({ children }: { children: ReactNode }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const { plan } = useSubscription();
   const queryClient = useQueryClient();
@@ -47,11 +60,14 @@ export function useActionGate() {
     queryClient.invalidateQueries({ queryKey: ["actions-used"] });
   }, [queryClient]);
 
-  return {
-    remaining,
-    checkCanUseAction,
-    showUpgrade,
-    setShowUpgrade,
-    refreshUsage,
-  };
+  return (
+    <ActionGateContext.Provider value={{ remaining, checkCanUseAction, refreshUsage }}>
+      {children}
+      <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
+    </ActionGateContext.Provider>
+  );
+}
+
+export function useActionGate() {
+  return useContext(ActionGateContext);
 }

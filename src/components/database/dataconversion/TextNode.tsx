@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Type, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,9 +29,11 @@ export function TextNode({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const analyzeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { checkCanUseAction } = useActionGate();
 
   const analyzeText = useCallback(async (textToAnalyze: string) => {
     if (!textToAnalyze.trim() || textToAnalyze.length < 10) return;
+    if (!checkCanUseAction()) return;
 
     setIsAnalyzing(true);
     setAnalysisProgress(0);

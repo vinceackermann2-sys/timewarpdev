@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Package, Plus, Trash2, ChevronRight, Lock, Palette, Users, Link2, Globe, ArrowRight, Sparkles, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
   const [isDone, setIsDone] = useState(false);
   const [connectProductId, setConnectProductId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { checkCanUseAction } = useActionGate();
   // Show all products in this workspace, not just connected ones
   const brandProducts = products;
   const selectedProduct = brandProducts.find(p => p.id === selectedProductId);
@@ -28,6 +30,7 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
 
   const handleExtract = async () => {
     if (!url.trim()) return;
+    if (!checkCanUseAction()) return;
     setIsLoading(true);
     setStatus("Scraping product page...");
 

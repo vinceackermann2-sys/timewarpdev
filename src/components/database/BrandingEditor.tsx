@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -118,9 +119,11 @@ export function BrandingEditor({
   const [isExtracting, setIsExtracting] = useState(false);
 
   const { toast } = useToast();
+  const { checkCanUseAction } = useActionGate();
 
   const handleExtract = async () => {
     if (!extractUrl.trim()) return;
+    if (!checkCanUseAction()) return;
     setIsExtracting(true);
     try {
       const { data, error } = await supabase.functions.invoke("scrape-product", {

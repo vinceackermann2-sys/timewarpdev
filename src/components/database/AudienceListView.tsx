@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Users, Plus, Trash2, ChevronRight, Lock, Package, Link2, Globe, ArrowRight, Sparkles, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
   const [isDone, setIsDone] = useState(false);
   const [connectAudienceId, setConnectAudienceId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { checkCanUseAction } = useActionGate();
   // Show all audiences, not just connected ones
   const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
   const brandAudiences = audiences;
@@ -29,6 +31,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
 
   const handleExtract = async () => {
     if (!url.trim()) return;
+    if (!checkCanUseAction()) return;
     setIsLoading(true);
     setStatus("Scraping page for audience data...");
 

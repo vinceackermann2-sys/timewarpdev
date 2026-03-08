@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Globe, ArrowRight, Sparkles, Loader2, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const { toast } = useToast();
   const { setBrands, setProducts, setAudiences } = useBusinessDNA();
+  const { checkCanUseAction } = useActionGate();
 
   useEffect(() => {
     if (url || isLoading) return;
@@ -46,6 +48,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
 
   const handleContinue = async () => {
     if (!url.trim()) return;
+    if (!checkCanUseAction()) return;
     setIsLoading(true);
     setStatus("Scraping product page...");
 
