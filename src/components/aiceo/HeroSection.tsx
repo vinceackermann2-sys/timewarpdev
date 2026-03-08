@@ -81,15 +81,12 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
     badgeBorder: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
     badgeText: dark ? "#fff" : "#000",
     dotColor: dark ? "#ffffff" : "#000000",
-    
     hintColor: dark ? "rgba(255,255,255,0.5)" : "#333",
     navLink: dark ? "#fff" : "#000",
     iconColor: dark ? "rgba(255,255,255,0.7)" : "#333",
     logoFilter: dark ? "none" : "contrast(1.1) brightness(1.05)",
     logoBlend: dark ? "normal" as const : "multiply" as const,
     auraOpacity: dark ? 0.85 : 1,
-    noiseBlend1: dark ? "soft-light" as const : "soft-light" as const,
-    noiseBlend2: dark ? "screen" as const : "multiply" as const,
   };
 
   return (
@@ -107,29 +104,23 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             <filter id="fcap1" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="72" /></filter>
             <filter id="fcap2" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="90" /></filter>
           </defs>
-          {/* Bridge */}
           <rect x="-200" y="100" width="2320" height="400" rx="1160" ry="200" fill="#7a6aa0" opacity="0.30" filter="url(#fcap2)" />
-          {/* Bottom Rings */}
           <rect x="-550" y="270" width="3020" height="1380" rx="1510" ry="690" fill="#a0b3e4" opacity="0.64" filter="url(#f4)" />
           <rect x="-272" y="360" width="2464" height="1120" rx="1232" ry="560" fill="#6f95d6" opacity="0.68" filter="url(#f3)" />
           <rect x="-96" y="440" width="2112" height="960" rx="1056" ry="480" fill="#777dd6" opacity="0.72" filter="url(#f2)" />
           <rect x="80" y="520" width="1760" height="800" rx="880" ry="400" fill="#b28ac8" opacity="0.74" filter="url(#f1)" />
           <rect x="240" y="590" width="1440" height="660" rx="720" ry="330" fill="#D36E8E" opacity="0.74" filter="url(#f1)" />
-          {/* Blob */}
           <rect x="510" y="750" width="900" height="460" rx="230" ry="230" fill="#e57373" opacity="0.74" filter="url(#fblob)" />
-          {/* Top Cap */}
           <rect x="200" y="-160" width="1520" height="460" rx="760" ry="230" fill="#e5a9c5" opacity="0.35" filter="url(#fcap2)" />
           <rect x="360" y="-240" width="1200" height="480" rx="600" ry="240" fill="#e5a9c5" opacity="0.50" filter="url(#fcap2)" />
           <rect x="480" y="-180" width="960" height="380" rx="480" ry="190" fill="#e5a9c5" opacity="0.60" filter="url(#fcap1)" />
         </svg>
-        {/* Noise layer 1 */}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "soft-light" as const, opacity: 0.85, zIndex: 9 }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
             <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.88" numOctaves={4} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
             <rect width="100%" height="100%" filter="url(#grain)" opacity="1" />
           </svg>
         </div>
-        {/* Noise layer 2 */}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "multiply" as const, opacity: 0.42, zIndex: 10 }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
             <filter id="grain2"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves={3} seed={8} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
@@ -139,11 +130,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       </div>
 
       {/* Navbar */}
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto" }}>
+      <header className="hero-navbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
-          <img src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: t.logoBlend, filter: t.logoFilter, transition: "filter 0.3s ease" }} />
+          <img className="hero-logo" src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: t.logoBlend, filter: t.logoFilter, transition: "filter 0.3s ease" }} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+        <div className="hero-nav-actions" style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
           <button
             aria-label="Toggle theme"
             onClick={() => setDark(d => !d)}
@@ -151,7 +142,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           >
             {dark ? <Moon size={20} /> : <Sun size={20} />}
           </button>
-          <Link to="/auth" style={{ textDecoration: "none", color: t.navLink, fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>Login</Link>
+          <Link className="hero-login-link" to="/auth" style={{ textDecoration: "none", color: t.navLink, fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>Login</Link>
           <Link
             className="hero-cta-btn"
             to="/auth?mode=signup"
@@ -166,16 +157,16 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       <main style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 1760, margin: "0 auto", padding: "4rem 2rem", gap: "4rem", flex: 1 }} className="hero-main-flex">
         {/* Left Content */}
         <div style={{ flex: 1, maxWidth: 720 }} className="hero-left-content">
-          <h1 className="hero-heading" className="hero-heading" className="hero-heading" className="hero-heading" className="hero-heading" className="hero-heading" style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: t.text, fontFamily: "'Outfit', sans-serif",className="hero-subtitle"  transition: "color 0.3s className="hero-subtitle" ease" }}>
-            GetclassName="hero-subtitle"  business decisions<br />className="hero-subtitle" completed in seconds
-    className="hero-subtitle"       </h1>
-          <p style={{ fontSize: "1.25rem", color: t.textSec, lineHeight: 1.5, marginBottom: "3rem", maxWidth: "90%", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
-            className="hero-input-bar" AI CEO runs deep research on your business and turnclassName="hero-input-bar" s your data into levers pulled–for you
-          className="hero-input-bar" </p>
+          <h1 className="hero-heading" style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: t.text, fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
+            Get business decisions<br />completed in seconds
+          </h1>
+          <p className="hero-subtitle" style={{ fontSize: "1.25rem", color: t.textSec, lineHeight: 1.5, marginBottom: "3rem", maxWidth: "90%", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
+            AI CEO runs deep research on your business and turns your data into levers pulled–for you
+          </p>
 
           {/* URL Input */}
-          <div stclassName="hero-input-bar" yle={{ marginBottom: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", background: t.inputBg, borderRadius: 14, padding: "0.5rem 0.5rem 0.5rem 1rem", boxShadow: t.inputShadow, border: `1px solid ${t.inputBorder}`, height: 64, transition: "all 0.3s ease" }}>
+          <div style={{ marginBottom: "1.5rem" }}>
+            <div className="hero-input-bar" style={{ display: "flex", alignItems: "center", background: t.inputBg, borderRadius: 14, padding: "0.5rem 0.5rem 0.5rem 1rem", boxShadow: t.inputShadow, border: `1px solid ${t.inputBorder}`, height: 64, transition: "all 0.3s ease" }}>
               <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} />
               <input
                 type="text"
@@ -186,22 +177,23 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: t.inputText, outline: "none", transition: "color 0.3s ease" }}
               />
               <button
+                className="hero-analyze-btn"
                 onClick={handleAnalyze}
                 style={{ height: "100%", padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap" as const, background: "#3399ff", color: "#fff", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer", transition: "all 0.2s ease" }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#2288ee"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "#3399ff"; (e.currentTarget asclassName="hero-hint"  HTMLElement).style.transform = "translateY(0)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "#3399ff"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
               >
-          className="hero-hint"       Analyze →
+                Analyze →
               </button>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease" }}>
+            <div className="hero-hint" style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13A5 5 0 0015 8V6A5 5 0 005 6V8A5 5 0 0010 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11A5 5 0 009 16V18A5 5 0 0019 18V16A5 5 0 0014 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Link to a specific product (like "nike.com/shoes/air-max") className="hero-badges" for 10x faster results
+              Link to a specific product (like "nike.com/shoes/air-max") for 10x faster results
             </div>
           </div>
 
           {/* Badges */}
-          <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
+          <div className="hero-badges" style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.badgeText, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
               <span style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> No credit card
             </span>
@@ -247,9 +239,12 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .hero-nav-actions {
             gap: 0.75rem !important;
           }
+          .hero-login-link {
+            font-size: 0.85rem !important;
+          }
           .hero-cta-btn {
             padding: 0.5rem 0.9rem !important;
-            font-size: 0.85rem !important;
+            font-size: 0.8rem !important;
           }
           .hero-main-flex {
             padding: 1.5rem 1rem !important;
