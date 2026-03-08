@@ -1,6 +1,6 @@
 import { AIEmployee } from "./EmployeesView";
 import { Button } from "@/components/ui/button";
-import { SiriOrb } from "@/components/ui/siri-orb";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { ArrowLeft, Trash2 } from "lucide-react";
 
 interface Props {
