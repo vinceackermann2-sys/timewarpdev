@@ -496,7 +496,7 @@ export function ProductDetailView({
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden space-y-8">
                         <div className="border-t border-border/30 pt-6">
                           <SectionHeading id="key-features" title="Key features" subtitle="Core functional capabilities that define your product." />
-                          <BulletList items={data.features} icon={Sparkles} iconClass="text-amber-500" isEditing={isEditingSection("overview")} onChange={(f) => setData(prev => ({ ...prev, features: f }))} />
+                          <BulletList items={data.features} icon={Sparkles} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(f) => setData(prev => ({ ...prev, features: f }))} />
                         </div>
                         <div>
                           <SectionHeading id="key-benefits" title="Key benefits" subtitle="Value that users gain from your product's features." />
@@ -504,7 +504,7 @@ export function ProductDetailView({
                         </div>
                         <div>
                           <SectionHeading id="target-pain-points" title="Target pain points" subtitle="Specific problems your product solves for users." />
-                          <BulletList items={data.painPoints} icon={CircleAlert} iconClass="text-rose-400" isEditing={isEditingSection("overview")} onChange={(p) => setData(prev => ({ ...prev, painPoints: p }))} />
+                          <BulletList items={data.painPoints} icon={CircleAlert} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(p) => setData(prev => ({ ...prev, painPoints: p }))} />
                         </div>
                         <div>
                           <SectionHeading id="primary-use-cases" title="Primary use cases" subtitle="Main scenarios where users apply your product." />
@@ -512,7 +512,7 @@ export function ProductDetailView({
                         </div>
                         <div>
                           <SectionHeading id="target-scenarios" title="Target scenarios" subtitle="Specific situations or triggers that lead users to need your product." />
-                          <BulletList items={data.targetScenarios} icon={Crosshair} iconClass="text-sky-400" isEditing={isEditingSection("overview")} onChange={(s) => setData(prev => ({ ...prev, targetScenarios: s }))} />
+                          <BulletList items={data.targetScenarios} icon={Crosshair} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(s) => setData(prev => ({ ...prev, targetScenarios: s }))} />
                         </div>
                       </motion.div>
                     )}
