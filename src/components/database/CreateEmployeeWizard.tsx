@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { FileUploadZone } from "@/components/database/FileUploadZone";
-import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2, Upload, PenLine } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2, PenLine, Database, Building2 } from "lucide-react";
 
 interface Props {
   onCancel: () => void;
@@ -21,16 +20,24 @@ const STEPS = [
   "Identity",
   "Import SOP",
   "Title & Purpose",
-  "Scope & Responsibilities",
-  "Definitions & Materials",
+  "Scope",
+  "Definitions",
   "Procedure",
-  "Safety & Documentation",
+  "Safety",
+  "Business Data",
 ];
+
+interface BusinessItem {
+  id: string;
+  title: string;
+  data_type: string;
+  workspace_id: string | null;
+}
 
 export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
-  const { activeWorkspaceId } = useWorkspace();
+  const { activeWorkspaceId, workspaces } = useWorkspace();
   const { toast } = useToast();
 
   // Form state
@@ -41,17 +48,35 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const [purposeProblem, setPurposeProblem] = useState("");
   const [scopeWhere, setScopeWhere] = useState("");
   const [scopeWhen, setScopeWhen] = useState("");
-  const [responsibilities, setResponsibilities] = useState<string[]>([""]);
   const [definitions, setDefinitions] = useState<{ term: string; meaning: string }[]>([]);
-  const [materials, setMaterials] = useState<string[]>([""]);
   const [procedure, setProcedure] = useState<string[]>([""]);
   const [safetyWarnings, setSafetyWarnings] = useState("");
   const [safetyRisks, setSafetyRisks] = useState("");
-  const [docRecords, setDocRecords] = useState("");
-  const [docStorage, setDocStorage] = useState("");
   const [fileUploaded, setFileUploaded] = useState(false);
 
-  const progressPercent = ((step + 1) / STEPS.length) * 100;
+  // Business data step
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>(activeWorkspaceId || "");
+  const [businesses, setBusinesses] = useState<BusinessItem[]>([]);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
+  const [loadingBusinesses, setLoadingBusinesses] = useState(false);
+
+  // Load businesses when workspace changes on the last step
+  useEffect(() => {
+    if (step === STEPS.length - 1 && selectedWorkspaceId) {
+      loadBusinesses(selectedWorkspaceId);
+    }
+  }, [step, selectedWorkspaceId]);
+
+  const loadBusinesses = async (wsId: string) => {
+    setLoadingBusinesses(true);
+    const { data } = await supabase
+      .from("user_business_data")
+      .select("id, title, data_type, workspace_id")
+      .eq("workspace_id", wsId)
+      .order("created_at", { ascending: false });
+    setBusinesses((data || []) as BusinessItem[]);
+    setLoadingBusinesses(false);
+  };
 
   const canProceed = () => {
     if (step === 0) return name.trim() && role.trim();
@@ -74,20 +99,18 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
 
     const { error } = await supabase.from("ai_employees" as any).insert({
       user_id: session.user.id,
-      workspace_id: activeWorkspaceId,
+      workspace_id: selectedWorkspaceId || activeWorkspaceId,
       name: name.trim(),
       role: role.trim(),
       orb_colors: orbPalettes[0],
       sop_title: sopTitle.trim() || null,
       sop_purpose: [purposeWhy.trim(), purposeProblem.trim()].filter(Boolean).join("\n\n") || null,
       sop_scope: [scopeWhere.trim(), scopeWhen.trim()].filter(Boolean).join("\n\n") || null,
-      sop_responsibilities: responsibilities.filter(r => r.trim()),
       sop_definitions: definitions.filter(d => d.term.trim()),
-      sop_materials: materials.filter(m => m.trim()),
       sop_procedure: procedure.filter(p => p.trim()),
       sop_safety_notes: [safetyWarnings.trim(), safetyRisks.trim()].filter(Boolean).join("\n\n") || null,
-      sop_documentation: [docRecords.trim(), docStorage.trim()].filter(Boolean).join("\n\n") || null,
       sop_revision_history: [{ version: "1.0", date: new Date().toISOString().split("T")[0], notes: "Initial creation" }],
+      linked_business_id: selectedBusinessId,
     } as any);
 
     setSaving(false);
@@ -109,11 +132,18 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     setter(list.filter((_, i) => i !== idx));
   };
 
-  const STEP_SHORT = ["Identity", "Import", "Title", "Scope", "Definitions", "Procedure", "Safety"];
+  const STEP_SHORT = ["Identity", "Import", "Title", "Scope", "Definitions", "Procedure", "Safety", "Data"];
+
+  const dataTypeIcon = (type: string) => {
+    if (type === "brand") return "🏷️";
+    if (type === "product") return "📦";
+    if (type === "audience") return "👥";
+    return "📄";
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden h-full">
-      {/* Top: Stepper bar like reference image */}
+      {/* Top: Stepper bar */}
       <div className="p-4 border-b border-border flex justify-center">
         <div className="flex items-center gap-1 overflow-x-auto">
           {STEP_SHORT.map((label, i) => {
@@ -122,14 +152,9 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
             return (
               <button
                 key={i}
-                onClick={() => {
-                  // Allow clicking completed steps to go back
-                  if (i < step) setStep(i);
-                }}
+                onClick={() => { if (i < step) setStep(i); }}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all shrink-0 ${
-                  isActive
-                    ? "bg-primary/10 border border-primary/30"
-                    : "border border-transparent"
+                  isActive ? "bg-primary/10 border border-primary/30" : "border border-transparent"
                 } ${i < step ? "cursor-pointer" : "cursor-default"}`}
               >
                 <span
@@ -143,11 +168,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
                 >
                   {isDone ? <Check className="h-3 w-3" /> : i + 1}
                 </span>
-                <span
-                  className={`text-xs font-medium whitespace-nowrap ${
-                    isActive ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                >
+                <span className={`text-xs font-medium whitespace-nowrap ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
                   {label}
                 </span>
               </button>
@@ -182,9 +203,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               <h3 className="text-lg font-semibold text-foreground">Import or build your SOP</h3>
               <p className="text-sm text-muted-foreground">Upload an existing SOP document, or continue to fill in the details manually.</p>
             </div>
-
             <FileUploadZone onFileUploaded={handleFileUploaded} />
-
             {!fileUploaded && (
               <div className="relative flex items-center gap-4 py-2">
                 <div className="flex-1 h-px bg-border" />
@@ -192,12 +211,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
                 <div className="flex-1 h-px bg-border" />
               </div>
             )}
-
-            <Button
-              variant="outline"
-              className="w-full gap-2 h-12"
-              onClick={() => setStep(2)}
-            >
+            <Button variant="outline" className="w-full gap-2 h-12" onClick={() => setStep(2)}>
               <PenLine className="h-4 w-4" />
               {fileUploaded ? "Review & edit SOP details" : "Fill in manually"}
             </Button>
@@ -287,9 +301,86 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
             </div>
           </div>
         )}
+
+        {step === 7 && (
+          <div className="space-y-8">
+            <div className="text-center space-y-2 mb-2">
+              <Database className="h-10 w-10 mx-auto text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">Link business data</h3>
+              <p className="text-sm text-muted-foreground">Select the workspace and business this employee will use when executing the SOP.</p>
+            </div>
+
+            {/* Workspace selector */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold text-foreground">Which workspace?</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {workspaces.map(ws => (
+                  <button
+                    key={ws.workspaceId}
+                    onClick={() => {
+                      setSelectedWorkspaceId(ws.workspaceId);
+                      setSelectedBusinessId(null);
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                      selectedWorkspaceId === ws.workspaceId
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-border/80"
+                    }`}
+                  >
+                    <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{ws.workspaceName}</p>
+                      <p className="text-xs text-muted-foreground">{ws.memberCount} member{ws.memberCount !== 1 ? "s" : ""} · {ws.role}</p>
+                    </div>
+                    {selectedWorkspaceId === ws.workspaceId && (
+                      <Check className="h-4 w-4 text-primary shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Business selector */}
+            {selectedWorkspaceId && (
+              <div className="space-y-2">
+                <Label className="text-base font-semibold text-foreground">Which business data should it query?</Label>
+                {loadingBusinesses ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+                  </div>
+                ) : businesses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic py-4">No business data in this workspace. You can still create the employee and link data later.</p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 max-h-48 overflow-auto">
+                    {businesses.map(b => (
+                      <button
+                        key={b.id}
+                        onClick={() => setSelectedBusinessId(selectedBusinessId === b.id ? null : b.id)}
+                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                          selectedBusinessId === b.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-border/80"
+                        }`}
+                      >
+                        <span className="text-base">{dataTypeIcon(b.data_type)}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{b.title}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{b.data_type}</p>
+                        </div>
+                        {selectedBusinessId === b.id && (
+                          <Check className="h-4 w-4 text-primary shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Footer: navigation pinned to bottom */}
+      {/* Footer */}
       <div className="mt-auto border-t border-border p-4">
         <div className="flex items-center justify-between">
           <Button variant="ghost" onClick={() => step > 0 ? setStep(step - 1) : onCancel()}>
