@@ -448,8 +448,8 @@ export function ActionChatNode({
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border bg-accent/10 rounded-t-xl">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-accent/20 flex items-center justify-center">
-            <Images className="h-4 w-4 text-accent-foreground" />
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center">
+            <Images className="h-4 w-4 text-foreground" />
           </div>
           <div>
             <p className="text-sm font-medium">Generation Chat</p>

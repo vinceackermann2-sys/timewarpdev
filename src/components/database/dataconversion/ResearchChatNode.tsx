@@ -384,8 +384,8 @@ export function ResearchChatNode({
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30 rounded-t-xl">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Telescope className="h-4 w-4 text-primary" />
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center">
+            <Telescope className="h-4 w-4 text-foreground" />
           </div>
           <div>
             <p className="text-sm font-medium">Research Chat</p>
