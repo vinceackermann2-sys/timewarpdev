@@ -143,6 +143,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
     setEditSopTitle(employee.sop_title || "");
     setEditPurpose(employee.sop_purpose || "");
     setEditScope(employee.sop_scope || "");
+    setEditDefinitions(Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []);
     setEditProcedure(Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []);
     setEditSafety(employee.sop_safety_notes || "");
   };
@@ -157,6 +158,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         sop_title: editSopTitle.trim() || null,
         sop_purpose: editPurpose.trim() || null,
         sop_scope: editScope.trim() || null,
+        sop_definitions: editDefinitions.filter(d => d.term.trim()),
         sop_procedure: editProcedure.filter(p => p.trim()),
         sop_safety_notes: editSafety.trim() || null,
         updated_at: new Date().toISOString(),
@@ -173,6 +175,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         sop_title: editSopTitle.trim() || null,
         sop_purpose: editPurpose.trim() || null,
         sop_scope: editScope.trim() || null,
+        sop_definitions: editDefinitions.filter(d => d.term.trim()),
         sop_procedure: editProcedure.filter(p => p.trim()),
         sop_safety_notes: editSafety.trim() || null,
       }));
