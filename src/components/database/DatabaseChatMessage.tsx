@@ -6,7 +6,9 @@ import {
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { extractSuggestions } from "@/lib/parseSuggestions";
-import { Brain } from "lucide-reactnterface InsightCard {
+import { Brain } from "lucide-react";
+
+export interface InsightCard {
   icon: string;
   title: string;
   value: string;
