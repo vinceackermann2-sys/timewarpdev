@@ -105,7 +105,7 @@ export function DatabaseView() {
   const [showModeSelector, setShowModeSelector] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const modeSelectorRef = useRef<HTMLDivElement>(null);
-  const { checkCanUseAction, showUpgrade, setShowUpgrade } = useActionGate();
+  const { checkCanUseAction } = useActionGate();
 
   // Check DB for existing connections
   useEffect(() => {

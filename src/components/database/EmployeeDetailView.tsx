@@ -66,7 +66,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const isManualModeRef = useRef(false);
   const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
   const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
-  const { checkCanUseAction, showUpgrade, setShowUpgrade } = useActionGate();
+  const { checkCanUseAction } = useActionGate();
 
   useEffect(() => { loadLogs(); }, [employee.id]);
 

@@ -71,7 +71,7 @@ export function ResearchChatNode({
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { checkCanUseAction, showUpgrade, setShowUpgrade } = useActionGate();
+  const { checkCanUseAction } = useActionGate();
 
   // Auto-scroll to bottom
   useEffect(() => {
