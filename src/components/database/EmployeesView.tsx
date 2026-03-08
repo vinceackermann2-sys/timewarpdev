@@ -27,6 +27,7 @@ export interface AIEmployee {
   updated_at: string;
   workspace_id: string | null;
   user_id: string;
+  linked_business_id: string | null;
 }
 
 const ORB_PALETTES = [
