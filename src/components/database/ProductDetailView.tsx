@@ -450,7 +450,7 @@ export function ProductDetailView({
               <div id="product-overview" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <Package className="h-5 w-5 text-primary" />
+                    <Package className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Product overview</h2>
                   </div>
                   <div className="flex items-center gap-2">
@@ -496,7 +496,7 @@ export function ProductDetailView({
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden space-y-8">
                         <div className="border-t border-border/30 pt-6">
                           <SectionHeading id="key-features" title="Key features" subtitle="Core functional capabilities that define your product." />
-                          <BulletList items={data.features} icon={Sparkles} iconClass="text-amber-500" isEditing={isEditingSection("overview")} onChange={(f) => setData(prev => ({ ...prev, features: f }))} />
+                          <BulletList items={data.features} icon={Sparkles} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(f) => setData(prev => ({ ...prev, features: f }))} />
                         </div>
                         <div>
                           <SectionHeading id="key-benefits" title="Key benefits" subtitle="Value that users gain from your product's features." />
@@ -504,7 +504,7 @@ export function ProductDetailView({
                         </div>
                         <div>
                           <SectionHeading id="target-pain-points" title="Target pain points" subtitle="Specific problems your product solves for users." />
-                          <BulletList items={data.painPoints} icon={CircleAlert} iconClass="text-rose-400" isEditing={isEditingSection("overview")} onChange={(p) => setData(prev => ({ ...prev, painPoints: p }))} />
+                          <BulletList items={data.painPoints} icon={CircleAlert} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(p) => setData(prev => ({ ...prev, painPoints: p }))} />
                         </div>
                         <div>
                           <SectionHeading id="primary-use-cases" title="Primary use cases" subtitle="Main scenarios where users apply your product." />
@@ -512,7 +512,7 @@ export function ProductDetailView({
                         </div>
                         <div>
                           <SectionHeading id="target-scenarios" title="Target scenarios" subtitle="Specific situations or triggers that lead users to need your product." />
-                          <BulletList items={data.targetScenarios} icon={Crosshair} iconClass="text-sky-400" isEditing={isEditingSection("overview")} onChange={(s) => setData(prev => ({ ...prev, targetScenarios: s }))} />
+                          <BulletList items={data.targetScenarios} icon={Crosshair} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(s) => setData(prev => ({ ...prev, targetScenarios: s }))} />
                         </div>
                       </motion.div>
                     )}
@@ -620,7 +620,7 @@ export function ProductDetailView({
               <div id="value-proposition" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <Zap className="h-5 w-5 text-primary" />
+                    <Zap className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Value proposition</h2>
                   </div>
                   <div className="flex items-center gap-2">
@@ -645,11 +645,11 @@ export function ProductDetailView({
                   </div>
                   <div>
                     <SectionHeading id="unique-selling-points" title="Unique selling points" subtitle="What makes your product stand out from alternatives." />
-                    <BulletList items={data.uniqueSellingPoints} icon={Zap} iconClass="text-amber-500" isEditing={isEditingSection("value")} onChange={(u) => setData(prev => ({ ...prev, uniqueSellingPoints: u }))} />
+                    <BulletList items={data.uniqueSellingPoints} icon={Zap} iconClass="text-muted-foreground" isEditing={isEditingSection("value")} onChange={(u) => setData(prev => ({ ...prev, uniqueSellingPoints: u }))} />
                   </div>
                   <div>
                     <SectionHeading id="competitive-advantages" title="Competitive advantages" subtitle="Structural advantages over competitors." />
-                    <BulletList items={data.competitiveAdvantages} icon={ShieldCheck} iconClass="text-emerald-500" isEditing={isEditingSection("value")} onChange={(c) => setData(prev => ({ ...prev, competitiveAdvantages: c }))} />
+                    <BulletList items={data.competitiveAdvantages} icon={ShieldCheck} iconClass="text-muted-foreground" isEditing={isEditingSection("value")} onChange={(c) => setData(prev => ({ ...prev, competitiveAdvantages: c }))} />
                   </div>
                 </div>
               </div>
@@ -658,7 +658,7 @@ export function ProductDetailView({
               <div id="objections-proof" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <MessageSquareWarning className="h-5 w-5 text-primary" />
+                    <MessageSquareWarning className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Objections & proof points</h2>
                   </div>
                   <div className="flex items-center gap-2">
@@ -751,7 +751,7 @@ export function ProductDetailView({
               <div id="language-patterns" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <Languages className="h-5 w-5 text-primary" />
+                    <Languages className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Language patterns</h2>
                   </div>
                   <div className="flex items-center gap-2">
@@ -873,7 +873,7 @@ export function ProductDetailView({
               <div id="content-refinement" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <ListChecks className="h-5 w-5 text-primary" />
+                    <ListChecks className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Content refinement</h2>
                   </div>
                   <div className="flex items-center gap-2">
@@ -889,7 +889,7 @@ export function ProductDetailView({
                 </div>
                 <div className="px-6 py-6 max-w-3xl">
                   <SectionHeading id="refinement-checklist" title="Refinement checklist" subtitle="Review these before publishing any product copy." />
-                  <BulletList items={data.refinementChecklist} icon={ListChecks} iconClass="text-primary" isEditing={isEditingSection("refinement")} onChange={(r) => setData(prev => ({ ...prev, refinementChecklist: r }))} />
+                  <BulletList items={data.refinementChecklist} icon={ListChecks} iconClass="text-muted-foreground" isEditing={isEditingSection("refinement")} onChange={(r) => setData(prev => ({ ...prev, refinementChecklist: r }))} />
                 </div>
               </div>
 

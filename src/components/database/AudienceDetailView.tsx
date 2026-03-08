@@ -290,7 +290,7 @@ export function AudienceDetailView({
               <div id="audience-overview" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <Users className="h-5 w-5 text-primary" />
+                    <Users className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Audience overview</h2>
                   </div>
                   <EditControls section="overview" />
@@ -307,7 +307,7 @@ export function AudienceDetailView({
 
                   <div id="buying-triggers">
                     <SectionHeading id="" title="Buying triggers" subtitle="Events or circumstances that motivate the Audience to start looking for solutions like yours." />
-                    <BulletList items={data.buyingTriggers} icon={Sparkles} iconClass="text-amber-500" isEditing={isEditingSection("overview")} onChange={(v) => setData(prev => ({ ...prev, buyingTriggers: v }))} />
+                    <BulletList items={data.buyingTriggers} icon={Sparkles} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(v) => setData(prev => ({ ...prev, buyingTriggers: v }))} />
                   </div>
 
                   <button onClick={() => setDescExpanded(!descExpanded)} className="flex items-center gap-1.5 text-sm font-medium text-foreground mx-auto hover:text-primary transition-colors">
@@ -320,7 +320,7 @@ export function AudienceDetailView({
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden space-y-8">
                         <div className="border-t border-border/30 pt-6" id="use-case-requirements">
                           <SectionHeading id="" title="Use case requirements" subtitle="Capabilities your solution must offer to address the Audience's pain points." />
-                          <BulletList items={data.useCaseRequirements} icon={Crosshair} iconClass="text-sky-400" isEditing={isEditingSection("overview")} onChange={(v) => setData(prev => ({ ...prev, useCaseRequirements: v }))} />
+                          <BulletList items={data.useCaseRequirements} icon={Crosshair} iconClass="text-muted-foreground" isEditing={isEditingSection("overview")} onChange={(v) => setData(prev => ({ ...prev, useCaseRequirements: v }))} />
                         </div>
                         <div id="key-success-indicators">
                           <SectionHeading id="" title="Key success indicators" subtitle="" />
@@ -344,7 +344,7 @@ export function AudienceDetailView({
               <div id="core-messaging" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <MessageCircle className="h-5 w-5 text-primary" />
+                    <MessageCircle className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Core messaging</h2>
                   </div>
                   <EditControls section="messaging" />
@@ -369,7 +369,7 @@ export function AudienceDetailView({
               <div id="engagement-patterns" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <Zap className="h-5 w-5 text-primary" />
+                    <Zap className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Engagement patterns</h2>
                   </div>
                   <EditControls section="engagement" />
@@ -484,7 +484,7 @@ export function AudienceDetailView({
               <div id="language-patterns" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <Languages className="h-5 w-5 text-primary" />
+                    <Languages className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Language patterns</h2>
                   </div>
                   <EditControls section="language" />
@@ -593,7 +593,7 @@ export function AudienceDetailView({
               <div id="content-refinement" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
                   <div className="flex items-center gap-2.5">
-                    <ListChecks className="h-5 w-5 text-primary" />
+                    <ListChecks className="h-5 w-5 text-foreground" />
                     <h2 className="text-lg font-semibold text-foreground">Content refinement</h2>
                   </div>
                   <EditControls section="refinement" />
