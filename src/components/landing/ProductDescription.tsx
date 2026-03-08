@@ -86,10 +86,10 @@ function BusinessDNACard() {
   }, []);
 
   return (
-    // Outer container: 200vh so user scrolls through it
-    <div ref={outerRef} className="relative" style={{ height: "200vh" }}>
-      {/* Sticky inner — fills viewport */}
-      <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
+    // Outer container: 200vh so user scrolls through it while sticky card stays
+    <div ref={outerRef} className="relative z-20" style={{ height: "200vh" }}>
+      {/* Sticky inner — fills viewport, nothing else visible */}
+      <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden z-20" style={{ background: "hsl(0 0% 10%)" }}>
         {/* Sparkles */}
         <div className="absolute inset-0 pointer-events-none">
           {[...Array(20)].map((_, i) => (
