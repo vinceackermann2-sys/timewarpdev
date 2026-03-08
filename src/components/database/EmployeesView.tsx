@@ -48,23 +48,38 @@ export function EmployeesView() {
 
   const loadEmployees = async () => {
     setIsLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) { setIsLoading(false); return; }
+    try {
+      const sessionResult = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise<null>((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
+      ]) as { data: { session: any } };
 
-    let query = supabase
-      .from("ai_employees" as any)
-      .select("*")
-      .order("created_at", { ascending: false });
+      const session = sessionResult?.data?.session;
+      if (!session?.user) { setIsLoading(false); return; }
 
-    if (activeWorkspaceId) {
-      query = query.eq("workspace_id", activeWorkspaceId);
-    } else {
-      query = query.eq("user_id", session.user.id);
-    }
+      let query = supabase
+        .from("ai_employees")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    const { data, error } = await query;
-    if (!error && data) {
-      setEmployees(data as unknown as AIEmployee[]);
+      if (activeWorkspaceId) {
+        query = query.eq("workspace_id", activeWorkspaceId);
+      } else {
+        query = query.eq("user_id", session.user.id);
+      }
+
+      const { data, error } = await Promise.race([
+        query,
+        new Promise<{ data: null; error: Error }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: new Error("timeout") }), 8000)
+        ),
+      ]);
+
+      if (!error && data) {
+        setEmployees(data as unknown as AIEmployee[]);
+      }
+    } catch (e) {
+      console.error("Failed to load employees:", e);
     }
     setIsLoading(false);
   };
