@@ -1,21 +1,50 @@
 
 
-## Fix: New tab group in background + full SOP completion
+## Problem
 
-### Root causes
-1. **Group opens in current tab** — The extension message has `openTab: false`, but the extension is likely reusing the current tab or not creating a new tab at all. Need to change to `openTab: true` (create a new tab inside the group) combined with `focusGroup: false` (don't switch focus to it). The webapp should NOT be the tab in the group — a fresh blank tab should be created.
-2. **SOP stops early** — The AI may still return `done` prematurely. The loop also breaks when `parseAction` returns null (line 231-234), which happens if the AI responds with plain text instead of JSON. Need to handle that as a retry instead of a break.
+The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
 
-### Changes
+The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
 
-**`src/hooks/useExtensionBridge.ts`**
-- Change `signalStart` to send `openTab: true` (so extension creates a fresh `about:blank` tab inside the new group) while keeping `focusGroup: false` (don't switch user to it).
+## Plan
 
-**`src/components/database/EmployeeDetailView.tsx`**
-- When `parseAction` returns null, instead of breaking, push a retry message to conversation history telling the AI to respond with valid JSON and continue the loop.
-- After action result, include fresh page context in the follow-up message so the AI always has current state.
-- Increase `MAX_STEPS` to 80 for complex SOPs.
+### 1. Add context size limiting in both edge functions
 
-**`supabase/functions/run-employee/index.ts`**
-- Add even stronger instruction: "You MUST respond with a JSON code block every time. Never respond with plain text. If you are unsure what to do, use navigate or respond — but always in JSON format."
+**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
+
+In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
+
+```typescript
+function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+  // ... group by source as before ...
+  for (const item of sourceItems) {
+    const itemText = /* build item string */;
+    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+    context += itemText;
+    totalChars += itemText.length;
+  }
+  return context;
+}
+```
+
+### 2. Add better error logging for debugging
+
+Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+
+```typescript
+if (!response.ok) {
+  const errorBody = await response.text().catch(() => "");
+  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+  // ... existing status-specific handling ...
+}
+```
+
+### 3. Truncate individual item content
+
+Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
+
+This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
 

@@ -207,7 +207,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         { role: "user", content: `Execute the FULL SOP procedure now, step by step. You have ${stepCount} procedure steps to complete. Start with step 1 immediately — navigate to the correct URL. There is no page context yet because you need to open the first page yourself. Do NOT return "done" until every single procedure step has been completed. Work through ALL ${stepCount} steps sequentially.` },
       ];
 
-      const MAX_STEPS = 50;
+      const MAX_STEPS = 80;
 
       for (let step = 0; step < MAX_STEPS; step++) {
         if (abortRef.current?.signal.aborted) break;
@@ -229,8 +229,13 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         const action = parseAction(aiResponse);
 
         if (!action) {
-          await logStep("completed", `Step ${step + 1}`, aiResponse.slice(0, 500));
-          break;
+          // Retry: AI responded with plain text instead of JSON — ask it to fix
+          conversationHistory.push({
+            role: "user",
+            content: `Your response was not valid JSON. You MUST always respond with a JSON code block. Re-read the SOP and continue from where you left off. Respond with the next action as a JSON code block.`,
+          });
+          await logStep("running", `Step ${step + 1}`, "Retrying: AI did not return JSON");
+          continue;
         }
 
         if (action.done || action.action === "done") {
@@ -285,7 +290,10 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           ? `Action "${action.action}" succeeded.${result.data ? ` Data: ${JSON.stringify(result.data)}` : ""}`
           : `Action "${action.action}" failed: ${result.error || "unknown error"}`;
 
-        conversationHistory.push({ role: "user", content: resultMsg });
+        // Include fresh page context so AI knows current state
+        const freshContext = await getPageContext();
+        const contextInfo = freshContext?.url ? ` Current page: ${freshContext.url}` : "";
+        conversationHistory.push({ role: "user", content: resultMsg + contextInfo + ` Continue with the next SOP step. You have ${stepCount} total steps to complete.` });
 
         if (result.success) {
           await logStep("running", `Step ${step + 1} ✓`, `Completed: ${action.action}`);
