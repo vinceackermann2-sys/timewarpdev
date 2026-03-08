@@ -2,49 +2,53 @@
 
 ## Problem
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+The current moodboard pipeline searches cosmos.so via Firecrawl, trying to extract CDN image URLs from the search results' `links` array. The issue is:
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+1. **Cosmos.so doesn't expose direct CDN image links in page links** — the `links` array from Firecrawl search results contains page URLs, not image CDN URLs
+2. **Screenshot fallback returns base64 data URIs** which are large and don't persist well
+3. **Unsplash fallback** also relies on finding `images.unsplash.com` in page links, which is unreliable via search
 
-## Plan
+## Proposed Solution: Use Firecrawl Scrape with Screenshot Format
 
-### 1. Add context size limiting in both edge functions
+Instead of searching and hoping to find image URLs in links, we should:
 
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
+1. **Search cosmos.so** for relevant pages (keep current approach)
+2. **Scrape the top result page** using Firecrawl's `screenshot` format to get an actual rendered image
+3. **Upload the screenshot to storage** (business-data bucket) so it's a persistent, CORS-free URL
+4. **Fall back to Unsplash scrape** using the same screenshot approach
 
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
+### Changes
 
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
+**File: `supabase/functions/scrape-product/index.ts`** (moodboard section ~lines 604-695)
+
+- For each aesthetic term, after getting cosmos.so search results:
+  - Take the first result URL and **scrape it** with `formats: ["screenshot"]` to get a reliable image
+  - If screenshot is base64, upload it to the `business-data` storage bucket and return the public/signed URL
+  - Same approach for Unsplash fallback
+- This guarantees we get actual visual content instead of hoping for CDN links in page metadata
+
+### Implementation Details
+
+```text
+Current flow:
+  Search cosmos.so → extract links[] → hope for CDN URL → fallback to screenshot base64
+
+New flow:
+  Search cosmos.so → get page URL → scrape page with screenshot format
+  → upload screenshot to storage → return persistent URL
+  → fallback: search Unsplash → same scrape+upload pattern
 ```
 
-### 2. Add better error logging for debugging
+- Storage path: `business-data/{user_id}/moodboard/{term-slug}.png`
+- The uploaded URLs will be standard backend storage URLs, no CORS/hotlink issues
+- Frontend `BrandExtendedSections.tsx` needs no changes — it already renders image URLs in `<img>` tags
 
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+### Alternative: Use Firecrawl `scrapeOptions` with `formats: ["screenshot"]` directly in the search call
 
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
+The current code already requests `scrapeOptions: { formats: ["links", "screenshot"] }` in the search — but screenshots from search results may be unreliable. The more reliable approach is a dedicated scrape call on the top result URL.
 
-### 3. Truncate individual item content
+### Scope
 
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
-
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
+- **1 file changed**: `supabase/functions/scrape-product/index.ts` — rewrite the moodboard image extraction logic (~lines 604-695)
+- Requires the `SUPABASE_SERVICE_ROLE_KEY` secret (already configured) for storage uploads from the edge function
 
