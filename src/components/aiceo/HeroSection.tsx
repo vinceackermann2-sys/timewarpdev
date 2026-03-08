@@ -195,10 +195,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           {/* Badges */}
           <div className="hero-badges" style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.badgeText, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
-              <span style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> No credit card
+              <span className="hero-badge-dot" style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> No credit card
             </span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.badgeText, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
-              <span style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> 15-90 seconds
+              <span className="hero-badge-dot" style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> 15-90 seconds
             </span>
           </div>
         </div>
@@ -219,11 +219,13 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             justify-content: center !important;
             align-items: center !important;
             gap: 2rem !important;
+            min-height: calc(100dvh - 80px) !important;
           }
           .hero-left-content {
             align-items: center !important;
             display: flex !important;
             flex-direction: column !important;
+            justify-content: center !important;
             max-width: 100% !important;
             width: 100% !important;
           }
@@ -243,6 +245,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           }
           .hero-badges {
             justify-content: center !important;
+          }
+          .hero-badge-dot {
+            width: 4px !important;
+            height: 4px !important;
           }
           .hero-phone-visual {
             display: none !important;
