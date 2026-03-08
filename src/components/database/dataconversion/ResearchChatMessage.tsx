@@ -94,8 +94,8 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
     <div className="mr-4 rounded-xl overflow-hidden text-sm group/msg relative">
       {/* Name label with icon */}
       <div className="px-2 pt-2 pb-0.5 flex items-center gap-2">
-        <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center">
-          <Brain className="h-7 w-7 text-foreground" />
+        <div className="h-8 w-8 flex-shrink-0 flex items-center justify-center">
+          <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
         <span className={cn(
           "text-[10px] font-semibold text-primary/60 uppercase tracking-widest",
