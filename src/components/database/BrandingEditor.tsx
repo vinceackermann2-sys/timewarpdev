@@ -220,7 +220,7 @@ export function BrandingEditor({
           {isEditing && (
             <section className="rounded-xl border border-border/50 bg-muted/30 p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-primary" />
+                <RefreshCw className="h-4 w-4 text-foreground" />
                 <span className="text-sm font-semibold text-foreground">
                   Extract branding from URL
                 </span>
