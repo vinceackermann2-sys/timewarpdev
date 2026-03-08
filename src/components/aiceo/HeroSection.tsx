@@ -157,7 +157,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       <main style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 1760, margin: "0 auto", padding: "4rem 2rem", gap: "4rem", flex: 1 }} className="hero-main-flex">
         {/* Left Content */}
         <div style={{ flex: 1, maxWidth: 720 }} className="hero-left-content">
-          <h1 className="hero-heading" style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: t.text, fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
+          <h1 className="hero-heading" style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: "#0F2638", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
             Get business decisions<br />completed in seconds
           </h1>
           <p className="hero-subtitle" style={{ fontSize: "1.25rem", color: t.textSec, lineHeight: 1.5, marginBottom: "3rem", maxWidth: "90%", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
