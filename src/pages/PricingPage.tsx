@@ -144,15 +144,15 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 pt-8 pb-4">
+    <div className="min-h-[1300px] bg-background">
+      <div className="max-w-[1900px] mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" />
           Back to home
         </Link>
       </div>
 
-      <div className="container mx-auto px-4 pb-20">
+      <div className="max-w-[1900px] mx-auto px-4 pb-20">
         <div className="text-center mb-10">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Choose Your Plan</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
