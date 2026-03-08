@@ -526,15 +526,38 @@ export function ConnectionDialog({
             </div>
           </div>
 
-          {/* Connection count footer */}
-          <div className="mt-6 pt-4 border-t border-border/30 flex items-center gap-4">
-            <span className="text-xs text-muted-foreground">
-              {connections.length} connection{connections.length !== 1 ? "s" : ""}
-            </span>
-            <span className="text-[10px] text-muted-foreground/50">
-              Click a connection line to remove it
-            </span>
-          </div>
+          {/* Active connections list with unset buttons */}
+          {connections.length > 0 ? (
+            <div className="mt-6 pt-4 border-t border-border/30 space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Connections</span>
+              {connections.map((conn, i) => {
+                const fromName = [...brandEntities, ...productEntities, ...audienceEntities].find(e => e.id === conn.fromId)?.name || "Unknown";
+                const toName = [...brandEntities, ...productEntities, ...audienceEntities].find(e => e.id === conn.toId)?.name || "Unknown";
+                return (
+                  <div key={i} className="flex items-center justify-between gap-2 rounded-lg border border-border/30 bg-muted/30 px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs text-foreground min-w-0">
+                      <span className="truncate font-medium">{fromName}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="truncate font-medium">{toName}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0 gap-1"
+                      onClick={() => removeConnection(conn)}
+                    >
+                      <Unlink className="h-3 w-3" />
+                      Unset
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-6 pt-4 border-t border-border/30">
+              <span className="text-xs text-muted-foreground">No connections yet. Drag between ports to connect entities.</span>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
