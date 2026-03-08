@@ -230,9 +230,9 @@ export function ProductDescription() {
 
       {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Large noisy bottom light */}
-        <div className="absolute pointer-events-none" style={{ width: 1200, height: 600, bottom: -200, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.18) 0%, rgba(51,153,255,0.08) 30%, rgba(51,153,255,0.02) 60%, transparent 80%)", filter: "blur(60px)" }} />
-        <svg className="absolute pointer-events-none" style={{ width: 1200, height: 600, bottom: -200, left: "50%", transform: "translateX(-50%)", opacity: 0.4, mixBlendMode: "soft-light" }}>
+        {/* Full-width noisy bottom light */}
+        <div className="absolute pointer-events-none left-0 right-0" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, hsl(0 0% 10% / 0) 70%)" }} />
+        <svg className="absolute pointer-events-none left-0 right-0" style={{ height: 500, bottom: -100, opacity: 0.35, mixBlendMode: "soft-light" }}>
           <filter id="grain-evo-light"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves={4} seed={77} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
           <rect width="100%" height="100%" filter="url(#grain-evo-light)" />
         </svg>
