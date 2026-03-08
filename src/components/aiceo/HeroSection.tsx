@@ -73,12 +73,15 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
     bg: dark ? "#0a0e1a" : "#ffffff",
     text: dark ? "#ffffff" : "#000000",
     textSec: dark ? "rgba(255,255,255,0.6)" : "#333333",
-    inputBg: dark ? "rgba(255,255,255,0.08)" : "#ffffff",
-    inputBorder: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-    inputShadow: dark ? "0 4px 15px rgba(0,0,0,0.3)" : "0 4px 15px rgba(0,0,0,0.08)",
-    badgeBg: dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.6)",
-    badgeBorder: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-    dotColor: dark ? "#ffffff" : "#000000",
+    inputBg: dark ? "rgba(255,255,255,0.08)" : "#0a0e1a",
+    inputBorder: dark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.08)",
+    inputShadow: dark ? "0 4px 15px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.15)",
+    inputText: dark ? "#fff" : "#fff",
+    badgeBg: dark ? "rgba(255,255,255,0.08)" : "#0a0e1a",
+    badgeBorder: dark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.08)",
+    badgeText: dark ? "#fff" : "#fff",
+    dotColor: dark ? "#ffffff" : "#ffffff",
+    
     hintColor: dark ? "rgba(255,255,255,0.5)" : "#333",
     navLink: dark ? "#fff" : "#000",
     iconColor: dark ? "rgba(255,255,255,0.7)" : "#333",
@@ -179,7 +182,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: t.text, outline: "none", transition: "color 0.3s ease" }}
+                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: t.inputText, outline: "none", transition: "color 0.3s ease" }}
               />
               <button
                 onClick={handleAnalyze}
@@ -198,10 +201,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
           {/* Badges */}
           <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.text, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.badgeText, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
               <span style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> No credit card
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.text, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.badgeText, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
               <span style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> 15-90 seconds
             </span>
           </div>
