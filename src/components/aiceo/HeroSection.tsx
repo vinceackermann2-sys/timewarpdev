@@ -62,13 +62,35 @@ function LightPhoneMockup() {
 export function HeroSection({ onRunClick }: HeroSectionProps) {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
+  const [dark, setDark] = useState(false);
 
   const handleAnalyze = () => {
     if (onRunClick) onRunClick();
   };
 
+  // Theme colors
+  const t = {
+    bg: dark ? "#0a0e1a" : "#ffffff",
+    text: dark ? "#ffffff" : "#000000",
+    textSec: dark ? "rgba(255,255,255,0.6)" : "#333333",
+    inputBg: dark ? "rgba(255,255,255,0.08)" : "#ffffff",
+    inputBorder: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+    inputShadow: dark ? "0 4px 15px rgba(0,0,0,0.3)" : "0 4px 15px rgba(0,0,0,0.08)",
+    badgeBg: dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.6)",
+    badgeBorder: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+    dotColor: dark ? "#ffffff" : "#000000",
+    hintColor: dark ? "rgba(255,255,255,0.5)" : "#333",
+    navLink: dark ? "#fff" : "#000",
+    iconColor: dark ? "rgba(255,255,255,0.7)" : "#333",
+    logoFilter: dark ? "brightness(10)" : "contrast(1.1) brightness(1.05)",
+    logoBlend: dark ? "normal" as const : "multiply" as const,
+    auraOpacity: dark ? 0.4 : 1,
+    noiseBlend1: dark ? "soft-light" as const : "soft-light" as const,
+    noiseBlend2: dark ? "multiply" as const : "multiply" as const,
+  };
+
   return (
-    <div style={{ fontFamily: "'Outfit', sans-serif", color: "#000", minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease" }}>
       {/* Fixed SVG Background */}
       <div style={{ position: "fixed", inset: 0, zIndex: -1, background: "#fff", overflow: "hidden" }}>
         <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
