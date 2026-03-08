@@ -3,11 +3,13 @@ import { AIEmployee } from "./EmployeesView";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp, Download, Database, X } from "lucide-react";
 import { EmployeeRunOverlay } from "./EmployeeRunOverlay";
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
 import { useActionGate } from "@/hooks/useActionGate";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 interface LogEntry {
   id: string;
@@ -67,7 +69,10 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const isManualModeRef = useRef(false);
   const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
   const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
+  const [viewingResult, setViewingResult] = useState<LogEntry | null>(null);
+  const [savingToDb, setSavingToDb] = useState(false);
   const { checkCanUseAction } = useActionGate();
+  const { activeWorkspace } = useWorkspace();
 
   useEffect(() => { loadLogs(); }, [employee.id]);
 
@@ -367,6 +372,39 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     });
   };
 
+  const handleDownloadResult = (log: LogEntry) => {
+    const blob = new Blob([log.message || ""], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${employee.name}-${log.step_label || "result"}-${new Date(log.created_at).toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSaveToDatabase = async (log: LogEntry) => {
+    setSavingToDb(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const wsId = activeWorkspace?.workspaceId || localStorage.getItem("preferred_workspace_id");
+      await supabase.from("user_business_data").insert({
+        user_id: session.user.id,
+        workspace_id: wsId || null,
+        title: `${employee.name} – ${log.step_label || "Result"}`,
+        data_type: "document",
+        source: "ai_employee",
+        content: log.message || "",
+      });
+      toast({ title: "Saved to database", description: "Result added to your Business Database." });
+      setViewingResult(null);
+    } catch (e: any) {
+      toast({ title: "Failed to save", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingToDb(false);
+    }
+  };
+
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="space-y-2">
       <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</h3>
@@ -497,41 +535,47 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
             ) : logs.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">No activity yet. Click "Run Employee" to execute the SOP.</p>
             ) : (
-              <div className="space-y-2 max-h-80 overflow-auto border border-border rounded-lg p-3 bg-muted/20">
+              <div className="space-y-3 max-h-[500px] overflow-auto border border-border rounded-lg p-3 bg-muted/20">
                 {logs.map(log => {
                   const isResult = log.status === "completed" && log.message && log.message.length > 40;
-                  const isExpanded = expandedResults.has(log.id);
 
                   return (
-                    <div key={log.id} className="flex items-start gap-2.5 text-sm">
-                      {statusIcon(log.status)}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {log.step_label && (
-                            <span className="font-medium text-xs bg-muted px-1.5 py-0.5 rounded">{log.step_label}</span>
-                          )}
-                          <span className="text-[11px] text-muted-foreground">
-                            {new Date(log.created_at).toLocaleTimeString()}
-                          </span>
-                          {isResult && (
-                            <button
-                              onClick={() => toggleResultExpand(log.id)}
-                              className="flex items-center gap-1 text-[11px] text-primary hover:underline ml-auto"
-                            >
-                              <FileText className="h-3 w-3" />
-                              {isExpanded ? "Collapse" : "View Results"}
-                              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                            </button>
+                    <div key={log.id}>
+                      <div className="flex items-start gap-2.5 text-sm">
+                        {statusIcon(log.status)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {log.step_label && (
+                              <span className="font-medium text-xs bg-muted px-1.5 py-0.5 rounded">{log.step_label}</span>
+                            )}
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(log.created_at).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          {!isResult && log.message && (
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.message}</p>
                           )}
                         </div>
-                        {isResult && isExpanded ? (
-                          <div className="mt-2 rounded-lg border border-border bg-background p-3 text-xs whitespace-pre-wrap">
-                            {log.message}
-                          </div>
-                        ) : log.message ? (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.message}</p>
-                        ) : null}
                       </div>
+
+                      {/* Result Card */}
+                      {isResult && (
+                        <button
+                          onClick={() => setViewingResult(log)}
+                          className="mt-2 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-border bg-background hover:bg-muted/40 transition-colors p-4 text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <FileText className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{log.step_label || "Result"}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{log.message?.slice(0, 150)}…</p>
+                            </div>
+                            <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                          </div>
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -540,6 +584,50 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Result Viewer Dialog */}
+      <Dialog open={!!viewingResult} onOpenChange={(open) => !open && setViewingResult(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col p-0">
+          <div className="flex items-center justify-between p-5 pb-0">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">{viewingResult?.step_label || "Result"}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {viewingResult ? new Date(viewingResult.created_at).toLocaleString() : ""}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto px-5 py-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 text-sm whitespace-pre-wrap leading-relaxed">
+              {viewingResult?.message}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 p-5 pt-0 border-t border-border mt-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => viewingResult && handleDownloadResult(viewingResult)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </Button>
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => viewingResult && handleSaveToDatabase(viewingResult)}
+              disabled={savingToDb}
+            >
+              {savingToDb ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
+              Add to Business Database
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {running && (
         <EmployeeRunOverlay
