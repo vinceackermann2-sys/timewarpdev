@@ -1,5 +1,6 @@
- import { useState, useEffect } from "react";
- import { QuizFunnel } from "@/components/landing/QuizFunnel";
+import { useState, useEffect } from "react";
+import { QuizFunnel } from "@/components/landing/QuizFunnel";
+import { ProductDescription } from "@/components/landing/ProductDescription";
  import { LiveAnalysisView } from "@/components/dashboard/LiveAnalysisView";
  import { useNavigate, useSearchParams } from "react-router-dom";
  import { supabase } from "@/integrations/supabase/client";
@@ -119,8 +120,12 @@ const Index = () => {
     );
   }
 
-  // Show quiz funnel for everyone (authenticated or not)
-  return <QuizFunnel />;
+  return (
+    <>
+      <QuizFunnel />
+      <ProductDescription />
+    </>
+  );
 };
 
 export default Index;
