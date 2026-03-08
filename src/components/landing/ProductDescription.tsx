@@ -4,7 +4,7 @@ import {
   CheckCircle, ChevronRight, Cpu, UserCheck, BarChart3,
   Briefcase, Target, Shield
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
