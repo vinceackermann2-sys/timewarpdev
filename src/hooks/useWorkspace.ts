@@ -278,6 +278,7 @@ export function useWorkspace() {
     updateMemberRole,
     cancelInvitation,
     renameWorkspace,
+    deleteWorkspace,
     loadMembersForWorkspace,
     reload: loadWorkspaces,
   };
