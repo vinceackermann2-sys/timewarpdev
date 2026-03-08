@@ -209,7 +209,7 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
                       {totalConnections > 0 && (
                         <>
                           <span className="text-[10px] text-muted-foreground/40">·</span>
-                          <span className="text-[10px] text-primary">{totalConnections} connection{totalConnections !== 1 ? "s" : ""}</span>
+                          <span className="text-[10px] text-primary">Connected</span>
                         </>
                       )}
                     </div>
