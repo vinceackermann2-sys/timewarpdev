@@ -545,7 +545,7 @@ export function AudienceDetailView({
                               <button onClick={() => setData(prev => ({ ...prev, powerPhrases: prev.powerPhrases.filter((_, idx) => idx !== i) }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
                             </div>
                           ) : (
-                            <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary font-medium leading-relaxed h-full flex items-center">{phrase}</div>
+                            <div className="rounded-lg border border-border/40 bg-muted/30 px-4 py-3 text-sm text-foreground font-medium leading-relaxed h-full flex items-center">{phrase}</div>
                           )}
                         </div>
                       ))}
