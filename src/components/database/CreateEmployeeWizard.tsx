@@ -37,14 +37,18 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [sopTitle, setSopTitle] = useState("");
-  const [sopPurpose, setSopPurpose] = useState("");
-  const [sopScope, setSopScope] = useState("");
+  const [purposeWhy, setPurposeWhy] = useState("");
+  const [purposeProblem, setPurposeProblem] = useState("");
+  const [scopeWhere, setScopeWhere] = useState("");
+  const [scopeWhen, setScopeWhen] = useState("");
   const [responsibilities, setResponsibilities] = useState<string[]>([""]);
   const [definitions, setDefinitions] = useState<{ term: string; meaning: string }[]>([]);
   const [materials, setMaterials] = useState<string[]>([""]);
   const [procedure, setProcedure] = useState<string[]>([""]);
-  const [safetyNotes, setSafetyNotes] = useState("");
-  const [documentation, setDocumentation] = useState("");
+  const [safetyWarnings, setSafetyWarnings] = useState("");
+  const [safetyRisks, setSafetyRisks] = useState("");
+  const [docRecords, setDocRecords] = useState("");
+  const [docStorage, setDocStorage] = useState("");
   const [fileUploaded, setFileUploaded] = useState(false);
 
   const progressPercent = ((step + 1) / STEPS.length) * 100;
