@@ -58,23 +58,45 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     await loadLogs();
   };
 
-  const parseActions = (text: string): { steps: BrowserAction[]; summary: string } | null => {
+  const parseAction = (text: string): (BrowserAction & { done?: boolean; message?: string }) | null => {
     try {
-      // Extract JSON from markdown code blocks
       const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
       const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : text.trim();
       const parsed = JSON.parse(jsonStr);
-
-      if (parsed.steps && Array.isArray(parsed.steps)) {
-        return { steps: parsed.steps, summary: parsed.summary || "" };
-      }
-      if (parsed.action) {
-        return { steps: [parsed], summary: parsed.reasoning || "" };
-      }
+      if (parsed.action) return parsed;
       return null;
     } catch {
       return null;
     }
+  };
+
+  const callRunEmployee = async (
+    session: any,
+    messages: Array<{ role: string; content: string }>,
+    pageContext: any
+  ): Promise<string> => {
+    const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify({
+        employee_id: employee.id,
+        messages,
+        pageContext,
+      }),
+      signal: abortRef.current?.signal,
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    return data.content || "";
   };
 
   const handleRun = async () => {
@@ -86,104 +108,79 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     setRunning(true);
     signalStart(employee.id);
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setRunning(false); return; }
 
-      // Get page context from extension
-      const pageContext = await getPageContext();
-
       await logStep("running", "Started", `Running SOP: ${employee.sop_title || employee.role}`);
 
-      // Stream from run-employee edge function
-      const controller = new AbortController();
-      abortRef.current = controller;
+      // Agentic loop: context → AI → action → result → repeat
+      const conversationHistory: Array<{ role: string; content: string }> = [
+        { role: "user", content: "Execute the SOP procedure now. The browser is ready." },
+      ];
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({
-          employee_id: employee.id,
-          messages: [{ role: "user", content: `Execute the SOP procedure now. The browser is ready.` }],
-          pageContext,
-        }),
-        signal: controller.signal,
-      });
+      const MAX_STEPS = 30;
 
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: "Unknown error" }));
-        await logStep("error", "Error", err.error || `HTTP ${resp.status}`);
-        toast({ title: "Run failed", description: err.error || "An error occurred", variant: "destructive" });
-        setRunning(false);
-        signalStop(employee.id);
-        return;
-      }
+      for (let step = 0; step < MAX_STEPS; step++) {
+        if (abortRef.current?.signal.aborted) break;
 
-      // Read streamed response
-      const reader = resp.body?.getReader();
-      if (!reader) throw new Error("No response body");
+        // 1. Get fresh page context from extension
+        const pageContext = await getPageContext();
 
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let fullText = "";
+        // 2. Call AI for next action
+        await logStep("running", `Step ${step + 1}`, "Thinking…");
+        const aiResponse = await callRunEmployee(session, conversationHistory, pageContext);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        // Add AI response to conversation
+        conversationHistory.push({ role: "assistant", content: aiResponse });
 
-        let newlineIdx: number;
-        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIdx);
-          buffer = buffer.slice(newlineIdx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) fullText += content;
-          } catch { /* partial */ }
-        }
-      }
+        // 3. Parse the single action
+        const action = parseAction(aiResponse);
 
-      // Parse AI response for actions
-      const actionPlan = parseActions(fullText);
-
-      if (!actionPlan) {
-        // AI responded with text only (no actions)
-        await logStep("completed", "Response", fullText.slice(0, 500));
-        toast({ title: "Run completed", description: "Employee responded with guidance." });
-      } else {
-        // Execute each action through the extension
-        for (let i = 0; i < actionPlan.steps.length; i++) {
-          const step = actionPlan.steps[i];
-
-          if (step.action === "respond") {
-            await logStep("running", `Step ${i + 1}`, step.message || step.reasoning || "Response");
-            continue;
-          }
-
-          await logStep("running", `Step ${i + 1}`, `${step.action}: ${step.reasoning || step.selector || step.url || ""}`);
-
-          const result = await executeAction(step);
-
-          if (!result.success) {
-            await logStep("error", `Step ${i + 1} Failed`, result.error || "Action failed");
-            toast({ title: "Step failed", description: result.error, variant: "destructive" });
-            break;
-          }
-
-          await logStep("running", `Step ${i + 1} ✓`, `Completed: ${step.action}`);
+        if (!action) {
+          // Plain text response
+          await logStep("completed", `Step ${step + 1}`, aiResponse.slice(0, 500));
+          break;
         }
 
-        await logStep("completed", "Completed", `Finished executing ${actionPlan.steps.length} step(s). ${actionPlan.summary}`);
-        toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
+        // 4. Check if done
+        if (action.done || action.action === "done") {
+          await logStep("completed", "Completed", action.message || "SOP execution finished.");
+          toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
+          break;
+        }
+
+        // 5. Handle "respond" (message to user, no browser action)
+        if (action.action === "respond") {
+          await logStep("running", `Step ${step + 1}`, action.message || action.reasoning || "Response");
+          conversationHistory.push({
+            role: "user",
+            content: `User saw your message. Continue with the next SOP step.`,
+          });
+          continue;
+        }
+
+        // 6. Execute the action via extension (in the active tab)
+        await logStep("running", `Step ${step + 1}`, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
+
+        const result = await executeAction(action, true);
+
+        // 7. Feed result back to AI
+        const resultMsg = result.success
+          ? `Action "${action.action}" succeeded.${result.data ? ` Data: ${JSON.stringify(result.data)}` : ""}`
+          : `Action "${action.action}" failed: ${result.error || "unknown error"}`;
+
+        conversationHistory.push({ role: "user", content: resultMsg });
+
+        if (result.success) {
+          await logStep("running", `Step ${step + 1} ✓`, `Completed: ${action.action}`);
+        } else {
+          await logStep("error", `Step ${step + 1} ✗`, result.error || "Action failed");
+          // Let AI decide whether to retry or abort
+        }
       }
     } catch (e: any) {
       if (e.name !== "AbortError") {
