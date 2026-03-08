@@ -364,40 +364,40 @@ function WorkspaceFooter() {
       <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-12" style={{ height: 326, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div className="flex gap-14">
           <div className="flex items-start gap-2 shrink-0">
-            <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-md" />
-            <span className="font-semibold text-lg text-foreground">TimeWarp</span>
+            <img src="/favicon.png" alt="TimeWarp" className="h-10 w-10 rounded-md" />
+            <span className="font-semibold text-xl text-foreground">TimeWarp</span>
           </div>
           <div className="flex flex-wrap gap-14 flex-1">
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Product</h4>
+              <h4 className="font-semibold text-foreground" style={{ fontSize: 16 }}>Product</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link></li>
+                <li><Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors" style={{ fontSize: 14 }}>Pricing</Link></li>
               </ul>
             </div>
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Resources</h4>
+              <h4 className="font-semibold text-foreground" style={{ fontSize: 16 }}>Resources</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/support" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Support</Link></li>
+                <li><Link to="/support" className="text-muted-foreground hover:text-foreground transition-colors" style={{ fontSize: 14 }}>Support</Link></li>
               </ul>
             </div>
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Legal</h4>
+              <h4 className="font-semibold text-foreground" style={{ fontSize: 16 }}>Legal</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link></li>
-                <li><Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors" style={{ fontSize: 14 }}>Terms of Service</Link></li>
+                <li><Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors" style={{ fontSize: 14 }}>Privacy Policy</Link></li>
               </ul>
             </div>
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Community</h4>
+              <h4 className="font-semibold text-foreground" style={{ fontSize: 16 }}>Community</h4>
               <ul className="space-y-1.5">
-                <li><a href="https://discord.gg" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Discord</a></li>
+                <li><a href="https://discord.gg" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" style={{ fontSize: 14 }}>Discord</a></li>
               </ul>
             </div>
           </div>
         </div>
         <div className="flex items-center justify-between mt-10 pt-5 border-t border-border/30">
-          <p className="text-xs text-muted-foreground">© 2026 Vincent Ackermann, All rights reserved</p>
-          <p className="text-xs text-muted-foreground">🇸🇪 Made in Sweden</p>
+          <p className="text-muted-foreground" style={{ fontSize: 14 }}>© 2026 Vincent Ackermann, All rights reserved</p>
+          <p className="text-muted-foreground" style={{ fontSize: 14 }}>🇸🇪 Made in Sweden</p>
         </div>
       </div>
     </div>
