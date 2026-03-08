@@ -138,16 +138,17 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       {/* Navbar */}
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
-          <img src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: "multiply" as const, filter: "contrast(1.1) brightness(1.05)" }} />
+          <img src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: t.logoBlend, filter: t.logoFilter, transition: "filter 0.3s ease" }} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
           <button
-            aria-label="Theme"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#333", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease" }}
+            aria-label="Toggle theme"
+            onClick={() => setDark(d => !d)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: t.iconColor, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease" }}
           >
-            <Sun size={20} />
+            {dark ? <Moon size={20} /> : <Sun size={20} />}
           </button>
-          <Link to="/auth" style={{ textDecoration: "none", color: "#000", fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif" }}>Login</Link>
+          <Link to="/auth" style={{ textDecoration: "none", color: t.navLink, fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>Login</Link>
           <Link
             to="/auth?mode=signup"
             style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0.6rem 1.2rem", borderRadius: 8, fontFamily: "'Outfit', sans-serif", fontWeight: 500, fontSize: "0.95rem", cursor: "pointer", textDecoration: "none", transition: "all 0.2s ease", border: "none", background: "#3399ff", color: "#fff" }}
