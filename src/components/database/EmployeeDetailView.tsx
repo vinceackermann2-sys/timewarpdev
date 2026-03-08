@@ -289,6 +289,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         }
 
         setCurrentStep(`Step ${step + 1}: ${action.action}`);
+        updateOverlay({ visible: true, employeeName: employee.name, currentStep: `Step ${step + 1}: ${action.action}`, isPaused: false, isManualMode: false });
         await logStep("running", `Step ${step + 1}`, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
 
         const result = await executeAction(action, true) || { success: false, action: action.action, error: "No response from extension" };
