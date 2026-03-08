@@ -79,20 +79,30 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const [producedFiles, setProducedFiles] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
 
+  // Helper to split double-newline joined fields
+  const splitField = (val: string | null, index: number) => {
+    if (!val) return "";
+    const parts = val.split("\n\n");
+    return parts[index] || "";
+  };
+
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(employee.name);
   const [editRole, setEditRole] = useState(employee.role);
   const [editSopTitle, setEditSopTitle] = useState(employee.sop_title || "");
-  const [editPurpose, setEditPurpose] = useState(employee.sop_purpose || "");
-  const [editScope, setEditScope] = useState(employee.sop_scope || "");
+  const [editPurposeWhy, setEditPurposeWhy] = useState(splitField(employee.sop_purpose, 0));
+  const [editPurposeProblem, setEditPurposeProblem] = useState(splitField(employee.sop_purpose, 1));
+  const [editScopeWhere, setEditScopeWhere] = useState(splitField(employee.sop_scope, 0));
+  const [editScopeWhen, setEditScopeWhen] = useState(splitField(employee.sop_scope, 1));
   const [editDefinitions, setEditDefinitions] = useState<{ term: string; meaning: string }[]>(
     Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []
   );
   const [editProcedure, setEditProcedure] = useState<string[]>(
     Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []
   );
-  const [editSafety, setEditSafety] = useState(employee.sop_safety_notes || "");
+  const [editSafetyWarnings, setEditSafetyWarnings] = useState(splitField(employee.sop_safety_notes, 0));
+  const [editSafetyRisks, setEditSafetyRisks] = useState(splitField(employee.sop_safety_notes, 1));
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => { loadLogs(); loadProducedFiles(); }, [employee.id]);
@@ -141,26 +151,32 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
     setEditName(employee.name);
     setEditRole(employee.role);
     setEditSopTitle(employee.sop_title || "");
-    setEditPurpose(employee.sop_purpose || "");
-    setEditScope(employee.sop_scope || "");
+    setEditPurposeWhy(splitField(employee.sop_purpose, 0));
+    setEditPurposeProblem(splitField(employee.sop_purpose, 1));
+    setEditScopeWhere(splitField(employee.sop_scope, 0));
+    setEditScopeWhen(splitField(employee.sop_scope, 1));
     setEditDefinitions(Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []);
     setEditProcedure(Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []);
-    setEditSafety(employee.sop_safety_notes || "");
+    setEditSafetyWarnings(splitField(employee.sop_safety_notes, 0));
+    setEditSafetyRisks(splitField(employee.sop_safety_notes, 1));
   };
 
   const handleSaveEdit = async () => {
     setSavingEdit(true);
+    const joinedPurpose = [editPurposeWhy.trim(), editPurposeProblem.trim()].filter(Boolean).join("\n\n") || null;
+    const joinedScope = [editScopeWhere.trim(), editScopeWhen.trim()].filter(Boolean).join("\n\n") || null;
+    const joinedSafety = [editSafetyWarnings.trim(), editSafetyRisks.trim()].filter(Boolean).join("\n\n") || null;
     const { error } = await supabase
       .from("ai_employees" as any)
       .update({
         name: editName.trim(),
         role: editRole.trim(),
         sop_title: editSopTitle.trim() || null,
-        sop_purpose: editPurpose.trim() || null,
-        sop_scope: editScope.trim() || null,
+        sop_purpose: joinedPurpose,
+        sop_scope: joinedScope,
         sop_definitions: editDefinitions.filter(d => d.term.trim()),
         sop_procedure: editProcedure.filter(p => p.trim()),
-        sop_safety_notes: editSafety.trim() || null,
+        sop_safety_notes: joinedSafety,
         updated_at: new Date().toISOString(),
       } as any)
       .eq("id", employee.id);
@@ -173,11 +189,11 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         name: editName.trim(),
         role: editRole.trim(),
         sop_title: editSopTitle.trim() || null,
-        sop_purpose: editPurpose.trim() || null,
-        sop_scope: editScope.trim() || null,
+        sop_purpose: joinedPurpose,
+        sop_scope: joinedScope,
         sop_definitions: editDefinitions.filter(d => d.term.trim()),
         sop_procedure: editProcedure.filter(p => p.trim()),
-        sop_safety_notes: editSafety.trim() || null,
+        sop_safety_notes: joinedSafety,
       }));
       setIsEditing(false);
       toast({ title: "Employee updated" });
@@ -602,26 +618,32 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
             /* Edit Mode */
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Name</Label>
-                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Employee name" />
+                <Label className="text-sm font-medium">What should this employee be called?</Label>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="e.g. Alex" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Role</Label>
+                <Label className="text-sm font-medium">What role will they perform?</Label>
                 <Input value={editRole} onChange={e => setEditRole(e.target.value)} placeholder="e.g. Audience Researcher" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">SOP Title</Label>
+                <Label className="text-sm font-medium">What is the title of this procedure?</Label>
                 <Input value={editSopTitle} onChange={e => setEditSopTitle(e.target.value)} placeholder="e.g. Signal Mining Method" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Purpose</Label>
-                <p className="text-xs text-muted-foreground">Why does this procedure exist and what problem does it solve?</p>
-                <Input value={editPurpose} onChange={e => setEditPurpose(e.target.value)} placeholder="e.g. To gather data-backed product research" />
+                <Label className="text-sm font-medium">Why does this procedure exist?</Label>
+                <Input value={editPurposeWhy} onChange={e => setEditPurposeWhy(e.target.value)} placeholder="e.g. To gather data-backed product research" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Scope</Label>
-                <p className="text-xs text-muted-foreground">Where and when does this procedure apply?</p>
-                <Input value={editScope} onChange={e => setEditScope(e.target.value)} placeholder="e.g. Online, during product confusion" />
+                <Label className="text-sm font-medium">What problem does it solve?</Label>
+                <Input value={editPurposeProblem} onChange={e => setEditPurposeProblem(e.target.value)} placeholder="e.g. Manual researching takes time" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Where does this procedure apply?</Label>
+                <Input value={editScopeWhere} onChange={e => setEditScopeWhere(e.target.value)} placeholder="e.g. Online" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">When does this procedure apply?</Label>
+                <Input value={editScopeWhen} onChange={e => setEditScopeWhen(e.target.value)} placeholder="e.g. During product confusion" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Definitions</Label>
@@ -638,8 +660,8 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 </Button>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Procedure Steps</Label>
-                <p className="text-xs text-muted-foreground">The step-by-step instructions this employee follows.</p>
+                <Label className="text-sm font-medium">What are the step-by-step instructions?</Label>
+                <p className="text-xs text-muted-foreground">The core procedure this employee will follow, in order.</p>
                 {editProcedure.map((p, i) => (
                   <div key={i} className="flex gap-2 items-center">
                     <span className="text-xs text-muted-foreground font-mono w-5 text-right shrink-0">{i + 1}.</span>
@@ -654,22 +676,31 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 </Button>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Safety / Compliance Notes</Label>
-                <p className="text-xs text-muted-foreground">Any safety warnings, regulations, or risk considerations.</p>
-                <Input value={editSafety} onChange={e => setEditSafety(e.target.value)} placeholder="e.g. Don't chat with anyone" />
+                <Label className="text-sm font-medium">Any safety warnings or regulations?</Label>
+                <Input value={editSafetyWarnings} onChange={e => setEditSafetyWarnings(e.target.value)} placeholder="e.g. Don't chat with anyone" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Any risk considerations?</Label>
+                <Input value={editSafetyRisks} onChange={e => setEditSafetyRisks(e.target.value)} placeholder="e.g. Escalation required for legal threats" />
               </div>
             </div>
           ) : (
-            /* View Mode — always show all fields */
+            /* View Mode — one field per question, matching wizard */
             <div className="space-y-6">
               <Section title="SOP Title">
                 <p className="font-medium">{employee.sop_title || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
-              <Section title="Purpose">
-                <p>{employee.sop_purpose || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              <Section title="Why does this procedure exist?">
+                <p>{splitField(employee.sop_purpose, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
-              <Section title="Scope">
-                <p>{employee.sop_scope || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              <Section title="What problem does it solve?">
+                <p>{splitField(employee.sop_purpose, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Where does this procedure apply?">
+                <p>{splitField(employee.sop_scope, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="When does this procedure apply?">
+                <p>{splitField(employee.sop_scope, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
               <Section title="Definitions">
                 {employee.sop_definitions && employee.sop_definitions.length > 0
@@ -685,8 +716,11 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                   : <p className="text-muted-foreground italic">Not specified</p>
                 }
               </Section>
-              <Section title="Safety / Compliance Notes">
-                <p>{employee.sop_safety_notes || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              <Section title="Safety warnings or regulations">
+                <p>{splitField(employee.sop_safety_notes, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Risk considerations">
+                <p>{splitField(employee.sop_safety_notes, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
 
               {employee.sop_revision_history && employee.sop_revision_history.length > 0 && (
