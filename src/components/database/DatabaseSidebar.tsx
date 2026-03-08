@@ -76,6 +76,8 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
   useEffect(() => {
     if (currentView === "dataconversion") {
       setOpen(false);
+    } else {
+      setOpen(true);
     }
   }, [currentView, setOpen]);
   const [settingsOpen, setSettingsOpen] = useState(false);
