@@ -181,7 +181,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
               ),
               li: ({ children }) => (
                 <li className="flex items-start gap-2 text-foreground/80 my-1.5">
-                  <span className="text-primary text-[10px] mt-[7px] flex-shrink-0">●</span>
+                  <span className="text-foreground/60 text-[10px] mt-[7px] flex-shrink-0">●</span>
                   <span className="flex-1">{children}</span>
                 </li>
               ),
