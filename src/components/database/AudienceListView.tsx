@@ -31,6 +31,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
 
   const handleExtract = async () => {
     if (!url.trim()) return;
+    if (!checkCanUseAction()) return;
     setIsLoading(true);
     setStatus("Scraping page for audience data...");
 

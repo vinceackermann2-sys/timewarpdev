@@ -30,6 +30,7 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
 
   const handleExtract = async () => {
     if (!url.trim()) return;
+    if (!checkCanUseAction()) return;
     setIsLoading(true);
     setStatus("Scraping product page...");
 

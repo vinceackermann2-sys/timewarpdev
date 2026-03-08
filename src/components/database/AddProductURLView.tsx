@@ -48,6 +48,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
 
   const handleContinue = async () => {
     if (!url.trim()) return;
+    if (!checkCanUseAction()) return;
     setIsLoading(true);
     setStatus("Scraping product page...");
 
