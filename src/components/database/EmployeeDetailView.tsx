@@ -108,7 +108,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   };
 
   const statusIcon = (status: string) => {
-    if (status === "completed") return <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />;
+    if (status === "completed") return <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />;
     if (status === "error") return <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />;
     return <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />;
   };
