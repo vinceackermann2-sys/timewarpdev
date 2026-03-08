@@ -48,6 +48,7 @@ const Database = () => {
     
     if (viewParam === 'aiceo') {
       setCurrentView('aiceo');
+      localStorage.setItem("tw_current_view", "aiceo");
     }
     
     // Check for pending task from research flow
