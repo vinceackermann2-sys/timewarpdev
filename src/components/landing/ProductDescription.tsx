@@ -92,8 +92,39 @@ export function ProductDescription() {
       }} />
 
       {/* ── Hero headline — dark stat banner ── */}
-      <section className="relative z-10 py-20 lg:py-28" style={{ background: "hsl(0 0% 10%)" }}>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center">
+      <section className="relative z-10 py-20 lg:py-28 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
+        {/* Ambient light glows */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Blue glow - left */}
+          <div className="absolute rounded-full" style={{
+            width: 500, height: 500,
+            left: "-10%", top: "-30%",
+            background: "radial-gradient(circle, rgba(51,153,255,0.15) 0%, transparent 70%)",
+            filter: "blur(80px)",
+          }} />
+          {/* Purple glow - right */}
+          <div className="absolute rounded-full" style={{
+            width: 600, height: 600,
+            right: "-15%", top: "-20%",
+            background: "radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)",
+            filter: "blur(100px)",
+          }} />
+          {/* Warm glow - center bottom */}
+          <div className="absolute rounded-full" style={{
+            width: 400, height: 400,
+            left: "50%", bottom: "-30%",
+            transform: "translateX(-50%)",
+            background: "radial-gradient(circle, rgba(51,153,255,0.1) 0%, transparent 70%)",
+            filter: "blur(60px)",
+          }} />
+        </div>
+
+        {/* Horizontal line separator at top */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{
+          background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)",
+        }} />
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
           <p className="text-xs tracking-[0.35em] uppercase text-white/50 font-mono mb-10">
             AI CEO — Replacing human labor
           </p>
@@ -113,6 +144,11 @@ export function ProductDescription() {
             Not from hiring more employees. From <span className="font-semibold text-white">levers pulled for you</span> – built on the DNA already running through your business.
           </p>
         </div>
+
+        {/* Horizontal line separator at bottom */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{
+          background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)",
+        }} />
       </section>
 
       {/* ── Business DNA + Evolution of Labor (merged single section) ── */}
