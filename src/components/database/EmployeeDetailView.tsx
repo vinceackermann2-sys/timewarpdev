@@ -92,7 +92,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const [editSafety, setEditSafety] = useState(employee.sop_safety_notes || "");
   const [savingEdit, setSavingEdit] = useState(false);
 
-  useEffect(() => { loadLogs(); }, [employee.id]);
+  useEffect(() => { loadLogs(); loadProducedFiles(); }, [employee.id]);
 
   const loadLogs = async () => {
     setLoadingLogs(true);
@@ -104,6 +104,78 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
       .limit(50);
     setLogs((data || []) as unknown as LogEntry[]);
     setLoadingLogs(false);
+  };
+
+  const loadProducedFiles = async () => {
+    setLoadingFiles(true);
+    const { data } = await supabase
+      .from("user_business_data")
+      .select("id, title, created_at")
+      .eq("source", "ai_employee")
+      .ilike("title", `${employee.name}%`)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setProducedFiles((data || []) as { id: string; title: string; created_at: string }[]);
+    setLoadingFiles(false);
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    await supabase.from("ai_employee_logs").delete().eq("id", logId);
+    setLogs(prev => prev.filter(l => l.id !== logId));
+    toast({ title: "Log entry deleted" });
+  };
+
+  const handleClearAllLogs = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await supabase.from("ai_employee_logs").delete().eq("employee_id", employee.id).eq("user_id", session.user.id);
+    setLogs([]);
+    toast({ title: "Activity log cleared" });
+  };
+
+  const startEditing = () => {
+    setIsEditing(true);
+    setEditName(employee.name);
+    setEditRole(employee.role);
+    setEditSopTitle(employee.sop_title || "");
+    setEditPurpose(employee.sop_purpose || "");
+    setEditScope(employee.sop_scope || "");
+    setEditProcedure(Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []);
+    setEditSafety(employee.sop_safety_notes || "");
+  };
+
+  const handleSaveEdit = async () => {
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("ai_employees" as any)
+      .update({
+        name: editName.trim(),
+        role: editRole.trim(),
+        sop_title: editSopTitle.trim() || null,
+        sop_purpose: editPurpose.trim() || null,
+        sop_scope: editScope.trim() || null,
+        sop_procedure: editProcedure.filter(p => p.trim()),
+        sop_safety_notes: editSafety.trim() || null,
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("id", employee.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      setEmployee(prev => ({
+        ...prev,
+        name: editName.trim(),
+        role: editRole.trim(),
+        sop_title: editSopTitle.trim() || null,
+        sop_purpose: editPurpose.trim() || null,
+        sop_scope: editScope.trim() || null,
+        sop_procedure: editProcedure.filter(p => p.trim()),
+        sop_safety_notes: editSafety.trim() || null,
+      }));
+      setIsEditing(false);
+      toast({ title: "Employee updated" });
+    }
   };
 
   const logStep = async (status: string, stepLabel: string, message: string) => {
