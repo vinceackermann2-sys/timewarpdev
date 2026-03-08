@@ -248,31 +248,8 @@ export function ProductDescription() {
             </h3>
           </div>
 
-          {/* 4 cards in a flow with connecting line */}
-          <div className="relative">
-            {/* Connecting line - vertical on mobile, Z-path on desktop */}
-            <div className="hidden md:block absolute pointer-events-none" style={{ top: 0, left: "50%", width: 2, height: "100%", zIndex: 1 }}>
-              <svg width="100%" height="100%" className="absolute inset-0" style={{ overflow: "visible", left: "-50%", width: "200%" }}>
-                <path
-                  d="M 25% 60 L 25% 220 Q 25% 260 50% 260 L 75% 260 L 75% 420 Q 75% 460 50% 460 L 25% 460 L 25% 640"
-                  fill="none"
-                  stroke="url(#lineGrad)"
-                  strokeWidth="2"
-                  strokeDasharray="6 4"
-                  style={{ opacity: 0.4 }}
-                />
-                <defs>
-                  <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3399ff" stopOpacity="0.6" />
-                    <stop offset="100%" stopColor="#3399ff" stopOpacity="0.1" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-5">
-              {/* Card 1 - top left */}
-              <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
+          {/* 4 cards with scroll-animated path */}
+          <EvolutionFlow />
                 <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
                   <filter id="grain-evo-1"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={10} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
                   <rect width="100%" height="100%" filter="url(#grain-evo-1)" />
