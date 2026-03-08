@@ -360,6 +360,11 @@ export function ConnectionDialog({
     }
   };
 
+  const removeAllConnectionsForEntity = (entityId: string) => {
+    const entityConns = connections.filter(c => c.fromId === entityId || c.toId === entityId);
+    entityConns.forEach(conn => removeConnection(conn));
+  };
+
   // Build entity lists
   const brandEntities: EntityItem[] = brands.map((b) => ({
     id: b.id,
