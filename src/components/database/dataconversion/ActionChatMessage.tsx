@@ -115,7 +115,8 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
               </div>
               <span className={cn(
                 "font-medium",
-                foregrounstep.status === "complete" && "text-foreground          step.status === "running" && "text-foreground",
+                step.status === "complete" && "text-foreground",
+                step.status === "running" && "text-foreground",
                 step.status === "error" && "text-destructive",
                 step.status === "pending" && "text-muted-foreground"
               )}>
