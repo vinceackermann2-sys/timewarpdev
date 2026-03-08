@@ -157,7 +157,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       <main style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 1760, margin: "0 auto", padding: "4rem 2rem", gap: "4rem", flex: 1 }} className="hero-main-flex">
         {/* Left Content */}
         <div style={{ flex: 1, maxWidth: 720 }} className="hero-left-content">
-          <h1 className="hero-heading" style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: t.text, fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
+          <h1 className="hero-heading" style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: "#0F2638", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
             Get business decisions<br />completed in seconds
           </h1>
           <p className="hero-subtitle" style={{ fontSize: "1.25rem", color: t.textSec, lineHeight: 1.5, marginBottom: "3rem", maxWidth: "90%", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
@@ -186,7 +186,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 Analyze →
               </button>
             </div>
-            <div className="hero-hint" style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease" }}>
+            <div className="hero-hint" style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease", flexWrap: "wrap" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13A5 5 0 0015 8V6A5 5 0 005 6V8A5 5 0 0010 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11A5 5 0 009 16V18A5 5 0 0019 18V16A5 5 0 0014 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               Link to a specific product (like "nike.com/shoes/air-max") for 10x faster results
             </div>
