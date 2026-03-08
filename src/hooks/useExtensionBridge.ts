@@ -142,6 +142,7 @@ export function useExtensionBridge() {
         employeeName,
         useTabGroup: true,
         openTab: false,
+        focusGroup: false,
       }, "*");
       // Fallback: resolve after 3s even if extension doesn't confirm
       setTimeout(() => {

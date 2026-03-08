@@ -171,14 +171,19 @@ ${pageContext.links ? `\n### Key Links\n${JSON.stringify(pageContext.links.slice
 `;
   }
 
+  const stepCount = procedures.length;
+
   return `You are an AI employee executing a Standard Operating Procedure (SOP) through a user's browser. You follow the SOP steps precisely, one action at a time.
 
 ${sopSection}
 ${businessContext}
 ${pageSection}
 
-## CRITICAL: One Action at a Time
-You are in an agentic loop. Each call you return EXACTLY ONE action. After the action executes, you'll receive the updated page context and result, then decide the next action.
+## CRITICAL RULES
+1. **Complete ALL steps** — You have ${stepCount} procedure steps. Do NOT return "done" until every single step has been executed. Track which step you are on.
+2. **One action at a time** — Each call you return EXACTLY ONE action. After the action executes, you'll receive the updated page context and result, then decide the next action.
+3. **No page context = navigate first** — If there is no page context or the URL is blank, your first action MUST be a "navigate" to the appropriate URL for step 1. Do NOT return "done" just because there is no page context yet.
+4. **Never stop early** — Even if an action fails, try an alternative approach or move to the next step. Only return "done" after all ${stepCount} steps are completed or you truly cannot proceed after multiple attempts.
 
 ## Response Format
 Always respond with a single JSON object wrapped in a markdown code block:
