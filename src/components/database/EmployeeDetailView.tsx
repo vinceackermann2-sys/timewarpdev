@@ -163,17 +163,20 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
 
   const handleSaveEdit = async () => {
     setSavingEdit(true);
+    const joinedPurpose = [editPurposeWhy.trim(), editPurposeProblem.trim()].filter(Boolean).join("\n\n") || null;
+    const joinedScope = [editScopeWhere.trim(), editScopeWhen.trim()].filter(Boolean).join("\n\n") || null;
+    const joinedSafety = [editSafetyWarnings.trim(), editSafetyRisks.trim()].filter(Boolean).join("\n\n") || null;
     const { error } = await supabase
       .from("ai_employees" as any)
       .update({
         name: editName.trim(),
         role: editRole.trim(),
         sop_title: editSopTitle.trim() || null,
-        sop_purpose: editPurpose.trim() || null,
-        sop_scope: editScope.trim() || null,
+        sop_purpose: joinedPurpose,
+        sop_scope: joinedScope,
         sop_definitions: editDefinitions.filter(d => d.term.trim()),
         sop_procedure: editProcedure.filter(p => p.trim()),
-        sop_safety_notes: editSafety.trim() || null,
+        sop_safety_notes: joinedSafety,
         updated_at: new Date().toISOString(),
       } as any)
       .eq("id", employee.id);
@@ -186,11 +189,11 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         name: editName.trim(),
         role: editRole.trim(),
         sop_title: editSopTitle.trim() || null,
-        sop_purpose: editPurpose.trim() || null,
-        sop_scope: editScope.trim() || null,
+        sop_purpose: joinedPurpose,
+        sop_scope: joinedScope,
         sop_definitions: editDefinitions.filter(d => d.term.trim()),
         sop_procedure: editProcedure.filter(p => p.trim()),
-        sop_safety_notes: editSafety.trim() || null,
+        sop_safety_notes: joinedSafety,
       }));
       setIsEditing(false);
       toast({ title: "Employee updated" });
