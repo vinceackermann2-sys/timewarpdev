@@ -39,27 +39,27 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-        <ActionGateProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<AiCeo />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/app" element={<Database />} />
-                <Route path="/timewarp-og" element={<TimewarpOG />} />
-                <Route path="/invite" element={<InviteAccept />} />
-                <Route path="/pricing" element={<PricingPage />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/terms" element={<TermsOfPurchase />} />
-                <Route path="/support" element={<Support />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <ActionGateProvider>
+                <Routes>
+                  <Route path="/" element={<AiCeo />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/app" element={<Database />} />
+                  <Route path="/timewarp-og" element={<TimewarpOG />} />
+                  <Route path="/invite" element={<InviteAccept />} />
+                  <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfPurchase />} />
+                  <Route path="/support" element={<Support />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ActionGateProvider>
             </BrowserRouter>
           </TooltipProvider>
-        </ActionGateProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
