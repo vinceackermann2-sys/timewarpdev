@@ -164,8 +164,14 @@ const Database = () => {
               </BusinessDNAProvider>
             )}
           </main>
-        </SidebarInset>
-      </div>
+      </SidebarInset>
+      <ActionsCelebration
+        open={showReferrerCelebration}
+        onOpenChange={setShowReferrerCelebration}
+        actionsGranted={125}
+        reason="referral"
+      />
+    </div>
     </SidebarProvider>
   );
 };
