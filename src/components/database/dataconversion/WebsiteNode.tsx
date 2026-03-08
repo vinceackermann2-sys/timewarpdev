@@ -191,7 +191,7 @@ export function WebsiteNode({
           onKeyDown={handleKeyDown}
           onMouseDown={(e) => e.stopPropagation()}
           onFocus={(e) => e.stopPropagation()}
-          placeholder="Enter URL..."
+          placeholder="Paste any URL (website, YouTube, etc.)..."
           className="h-8 text-sm"
         />
 
