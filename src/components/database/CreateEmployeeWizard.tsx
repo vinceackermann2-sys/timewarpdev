@@ -33,6 +33,7 @@ interface BusinessItem {
   title: string;
   data_type: string;
   workspace_id: string | null;
+  content?: string | null;
 }
 
 export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props) {
