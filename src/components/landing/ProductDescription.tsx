@@ -91,19 +91,29 @@ export function ProductDescription() {
         `
       }} />
 
-      {/* ── Hero headline ── */}
-      <Section className="relative z-10 text-center pt-28 lg:pt-36">
-        <p className="text-xs tracking-[0.35em] uppercase text-primary/80 font-mono mb-6">
-          AI CEO — Replacing human labor
-        </p>
-        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-          100% more freedom<br />
-          <span className="text-primary">100% less work</span>
-        </h2>
-        <p className="mt-8 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Not from hiring more employees. From levers pulled for you — built on the DNA already running through your business.
-        </p>
-      </Section>
+      {/* ── Hero headline — dark stat banner ── */}
+      <section className="relative z-10 py-20 lg:py-28" style={{ background: "hsl(0 0% 10%)" }}>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center">
+          <p className="text-xs tracking-[0.35em] uppercase text-white/50 font-mono mb-10">
+            AI CEO — Replacing human labor
+          </p>
+
+          <div className="flex items-center justify-center gap-12 sm:gap-20 lg:gap-32 mb-10">
+            <div>
+              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-white leading-none">+100%</span>
+              <p className="text-sm sm:text-base text-white/50 mt-3">More freedom</p>
+            </div>
+            <div>
+              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-white leading-none">-100%</span>
+              <p className="text-sm sm:text-base text-white/50 mt-3">Less work</p>
+            </div>
+          </div>
+
+          <p className="text-sm sm:text-base text-white/50 max-w-2xl mx-auto">
+            Not from hiring more employees. From <span className="font-semibold text-white">levers pulled for you</span> – built on the DNA already running through your business.
+          </p>
+        </div>
+      </section>
 
       {/* ── Business DNA intro ── */}
       <Section className="relative z-10" dark>
