@@ -63,6 +63,7 @@ export function FileUploadZone({ onFileUploaded }: FileUploadZoneProps) {
   }, []);
 
   const processFile = async (file: File) => {
+    if (!checkCanUseAction()) return;
     if (!SUPPORTED_TYPES.includes(file.type)) {
       toast({
         title: "Unsupported file type",
