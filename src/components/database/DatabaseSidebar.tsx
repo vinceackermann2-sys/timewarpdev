@@ -56,9 +56,7 @@ import { SettingsDialog } from "./SettingsDialog";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
-import { Bot } from "lucide-react";
-
-type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
+import { Bot } from "lucide-react"dataconversion" | "aiceo" | "businessdna" | "employees";
 
 interface DatabaseSidebarProps {
   currentView: View;
@@ -155,8 +153,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     tooltip="Employees"
                     className={currentView === "employees" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
                   >
-                    <SiriOrb size="16px" animationDuration={25} className="shrink-0" />
-                    {!isCollapsed && <span>Employees</span>}
+                    <SiriOrb size="16Bot className="h-4 w-4                  {!isCollapsed && <span>Employees</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

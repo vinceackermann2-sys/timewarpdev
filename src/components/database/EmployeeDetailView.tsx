@@ -1,6 +1,6 @@
 import { AIEmployee } from "./EmployeesView";
 import { Button } from "@/components/ui/button";
-import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import BusinessBrainOrb from "@/components/ui/business-brain/business-brain-orb";
 import { ArrowLeft, Trash2 } from "lucide-react";
 
 interface Props {
@@ -49,8 +49,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-2xl mx-auto space-y-8">
           {/* Identity */}
-          <div className="flex items-center gap-4">
-            <SiriOrb size="64px" animationDuration={15} colors={employee.orb_colors} />
+          <div className="flex items-center gap-4"BusinessBrainOrb size={64oyee.orb_colors} />
             <div>
               <h2 className="text-xl font-semibold">{employee.name}</h2>
               <p className="text-muted-foreground">{employee.role}</p>

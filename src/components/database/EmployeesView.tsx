@@ -147,10 +147,8 @@ export function EmployeesView() {
             onClick={() => setSelectedEmployee(emp)}
             className="group p-5 rounded-xl border border-border/60 bg-card hover:border-border hover:shadow-sm transition-all text-left flex flex-col items-center gap-3"
           >
-            <SiriOrb
-              size="56px"
-              animationDuration={18}
-              colors={emp.orb_colors}
+            <BusinessBrainOrb
+              size={56}
               className="group-hover:scale-105 transition-transform"
             />
             <div className="text-center">

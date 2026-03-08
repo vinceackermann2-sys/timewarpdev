@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import BusinessBrainOrb from "@/components/ui/business-brain/business-brain-orb";
+import BusinessBrainOrb from "@/components/ui/business-brain/business-brain/business-brain-orb";
 import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2 } from "lucide-react";
 
 interface Props {
@@ -119,18 +119,14 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       <div className="flex-1 overflow-auto p-6 max-w-2xl mx-auto w-full">
         {step === 0 && (
           <div className="space-y-6">
-            <div className="flex flex-col items-center gap-4 mb-2">
-BusinessBrainOrb size={72electedPalette]} />
-              <div className="flex gap-2">
+            <div className="flex flex-col items-centeBusinessBrainOrb size={72className="flex gap-2">
                 {orbPalettes.map((pal, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedPalette(i)}
                     className={`w-8 h-8 rounded-full border-2 transition-all ${i === selectedPalette ? "border-foreground scale-110" : "border-border"}`}
                   >
-                    <SiriOrb size="28px" animationDuration={20} colors={pal} />
-                  </button>
-                ))}
+                    <SiriOrb size="28px" animationDuration={BusinessBrainOrb size={28          ))}
               </div>
             </div>
             <div className="space-y-2">
