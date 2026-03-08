@@ -28,7 +28,13 @@ const Database = () => {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentView, setCurrentView] = useState<View>("businessdna");
+  const [currentView, setCurrentView] = useState<View>(() => {
+    const saved = localStorage.getItem("tw_current_view");
+    if (saved && ["dataconversion", "aiceo", "businessdna", "employees"].includes(saved)) {
+      return saved as View;
+    }
+    return "businessdna";
+  });
   const [showBusinessDNA, setShowBusinessDNA] = useState(false);
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
