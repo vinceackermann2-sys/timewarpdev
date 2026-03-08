@@ -826,12 +826,14 @@ Icons should represent: ${productBenefits || 'quality, convenience, value'} and 
 
         // Image 2: Pattern sheet — NO TEXT allowed
         const audiencePowerWords = (extracted.audience?.powerWords || []).slice(0, 5).join(', ');
-        const patternMessages: any[] = [{
+        const patternMessages: any[] = [
+          { role: "system", content: "You are an image generator. ABSOLUTE RULE: Never include any text, letters, numbers, labels, captions, or words of any kind in generated images. Output pure visual graphics only. No annotations, no watermarks, no signatures." },
+          {
           role: "user",
           content: ssUrl ? [
             { type: "text", text: `Study this website screenshot for color reference. Create a pattern reference sheet showing 2-3 distinct decorative patterns/backgrounds stacked vertically.
 
-CRITICAL: Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure abstract visual patterns only.
+CRITICAL RULE — ZERO TEXT: The output must contain ZERO readable characters. Do NOT include any labels, captions, titles, watermarks, signatures, annotations, or any form of written language anywhere in the image. Pure abstract visual patterns only.
 
 These patterns should evoke the EMOTIONAL WORLD of the target audience:
 - Audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}
@@ -844,17 +846,17 @@ Include:
 3. A subtle tileable texture suitable for website section backgrounds
 
 Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}.
-Each pattern clearly separated. Professional quality. NO TEXT OF ANY KIND.` },
+Each pattern clearly separated. Professional quality. ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO LABELS, NO WATERMARKS.` },
             { type: "image_url", image_url: { url: ssUrl } }
           ] : `Generate a pattern reference sheet for "${brandName}" targeting audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}. Emotional keywords: ${audiencePowerWords || 'trust, comfort'}.
 
-CRITICAL: Absolutely NO text, NO labels, NO words, NO letters, NO numbers anywhere in the image. Pure abstract visual patterns only.
+CRITICAL RULE — ZERO TEXT: The output must contain ZERO readable characters. No labels, no captions, no titles, no watermarks, no signatures, no annotations. Pure abstract visual patterns only.
 
 Show 2-3 distinct patterns stacked vertically:
 1. Flowing organic wave/curve pattern with gradients in brand colors
 2. Geometric/abstract section with rounded shapes
 3. Subtle tileable texture for backgrounds
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Professional, modern. NO TEXT.`
+Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Professional, modern. ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO LABELS.`
         }];
 
         const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
