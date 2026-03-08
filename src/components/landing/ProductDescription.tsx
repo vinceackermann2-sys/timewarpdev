@@ -375,16 +375,38 @@ export function ProductDescription() {
       </section>
 
       {/* ── Who is TimeWarp for? ── */}
-      <Section className="relative z-10">
-        <div className="text-center mb-12">
-          <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Who is TimeWarp for?</h3>
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
+        {/* Purple/blue ambient glow at bottom */}
+        <div className="absolute pointer-events-none left-0 right-0" style={{ height: 400, bottom: 0, background: "radial-gradient(ellipse 80% 100% at center bottom, rgba(120,80,220,0.12) 0%, rgba(51,153,255,0.06) 40%, transparent 70%)" }} />
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
+          <div className="text-center mb-6">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Who is TimeWarp for?</h3>
+            <p className="text-base text-white/50 max-w-xl mx-auto">If you've ever said "Why is my business not growing faster?" — Then this is for you.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-5 mt-14 max-w-4xl mx-auto">
+            {[
+              { title: "Visionary Founders", description: 'Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise.' },
+              { title: "Hyper-Scale Startups", description: "Companies that need to scale from $1M to $100M without the friction of hiring 200 people." },
+              { title: "Efficiency-First Enterprises", description: 'Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO.' },
+              { title: "Solo Operators & Small Teams", description: "Entrepreneurs running lean who want enterprise-level execution without enterprise-level headcount." },
+            ].map((card, i) => (
+              <div
+                key={i}
+                className="rounded-2xl p-7 sm:p-8 transition-colors"
+                style={{
+                  background: "hsl(0 0% 14%)",
+                  border: "1px solid hsl(0 0% 20%)",
+                }}
+              >
+                <h4 className="text-lg font-bold text-white mb-3">{card.title}</h4>
+                <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>{card.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          <PersonaCard icon={Rocket} title="Visionary Founders" description={'Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise.'} />
-          <PersonaCard icon={TrendingUp} title="Hyper-Scale Startups" description="Companies that need to scale from $1M to $100M without the friction of hiring 200 people." />
-          <PersonaCard icon={Building2} title="Efficiency-First Enterprises" description={'Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO.'} />
-        </div>
-      </Section>
+      </section>
 
       {/* ── Bottom CTA ── */}
       <Section className="relative z-10 text-center pb-28 lg:pb-36" dark>
