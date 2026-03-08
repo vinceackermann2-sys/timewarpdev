@@ -525,12 +525,7 @@ export function ActionChatNode({
           <div className="text-center text-muted-foreground py-6">
             <Images className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm font-medium mb-2">Generate Data & Content</p>
-            <div className="text-xs space-y-1">
-              <p>• "Draft a reply to John's email"</p>
-              <p>• "Create an SOP for onboarding"</p>
-              <p>• "Schedule a meeting tomorrow at 2pm"</p>
-              <p>• "Write a strategy document"</p>
-            </div>
+            <p className="text-xs">Connect data sources and ask me to generate content for you.</p>
           </div>
         ) : (
           <div className="space-y-3">
