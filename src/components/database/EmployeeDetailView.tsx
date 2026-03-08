@@ -549,9 +549,16 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
 
         {!running && (
           <>
+            <Button variant="outline" size="sm" className="gap-2" onClick={isEditing ? handleSaveEdit : startEditing} disabled={savingEdit}>
+              {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isEditing ? <Save className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+              {isEditing ? "Save" : "Edit"}
+            </Button>
+            {isEditing && (
+              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
+            )}
             <Button
               onClick={handleRun}
-              disabled={!extensionConnected || detecting}
+              disabled={!extensionConnected || detecting || isEditing}
               className="gap-2"
               size="sm"
               title={!extensionConnected ? "Install and log into the TimeWarp extension to run employees" : undefined}
