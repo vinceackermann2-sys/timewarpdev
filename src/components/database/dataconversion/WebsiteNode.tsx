@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Globe, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";

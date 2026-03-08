@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { FileText, Upload, X, Loader2, CheckCircle2, FileSpreadsheet, FileType, File, Music, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

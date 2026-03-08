@@ -32,6 +32,7 @@ export function TextNode({
 
   const analyzeText = useCallback(async (textToAnalyze: string) => {
     if (!textToAnalyze.trim() || textToAnalyze.length < 10) return;
+    if (!checkCanUseAction()) return;
 
     setIsAnalyzing(true);
     setAnalysisProgress(0);
