@@ -216,7 +216,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3"><Users className="h-6 w-6 text-primary" /></div>
+          <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mb-3"><Users className="h-6 w-6 text-foreground" /></div>
           <p className="text-sm text-muted-foreground">No audiences yet</p>
           <p className="text-xs text-muted-foreground/60 mt-1">Create your first audience segment to get started</p>
         </div>
