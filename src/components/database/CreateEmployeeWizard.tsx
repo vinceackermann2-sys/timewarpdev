@@ -71,10 +71,13 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     setLoadingBusinesses(true);
     const { data } = await supabase
       .from("user_business_data")
-      .select("id, title, data_type, workspace_id")
+      .select("id, title, data_type, workspace_id, source")
       .eq("workspace_id", wsId)
+      .eq("source", "business-dna")
+      .in("data_type", ["brand", "product", "audience"])
+      .order("data_type", { ascending: true })
       .order("created_at", { ascending: false });
-    setBusinesses((data || []) as BusinessItem[]);
+    setBusinesses((data || []).map(d => ({ ...d, source: (d as any).source })) as BusinessItem[]);
     setLoadingBusinesses(false);
   };
 
