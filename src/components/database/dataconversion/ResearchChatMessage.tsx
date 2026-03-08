@@ -169,8 +169,8 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
               ),
               h3: ({ children }) => (
                 <h3 className="text-[13px] font-bold text-foreground flex items-center gap-2 mt-3 mb-1.5">
-                  <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
-                  <span className="underline decoration-primary/30 decoration-1 underline-offset-3">{children}</span>
+                   <Sparkles className="h-3 w-3 text-foreground flex-shrink-0" />
+                   <span className="underline decoration-foreground/30 decoration-1 underline-offset-3">{children}</span>
                 </h3>
               ),
               strong: ({ children }) => (
