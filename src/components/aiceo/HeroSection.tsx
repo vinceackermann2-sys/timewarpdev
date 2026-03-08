@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Globe, Sun, Moon } from "lucide-react";
+import { Globe, Sun, Moon, Link2 } from "lucide-react";
 
 interface HeroSectionProps {
   onRunClick?: () => void;
@@ -90,7 +90,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   };
 
   return (
-    <div style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease" }}>
+    <div className={dark ? "dark-card" : ""} style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease" }}>
       {/* Fixed SVG Background */}
       <div style={{ position: "fixed", inset: 0, zIndex: -1, background: t.bg, overflow: "hidden", transition: "background 0.3s ease" }}>
         <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: t.auraOpacity, transition: "opacity 0.3s ease" }} viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
@@ -194,7 +194,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
               Analyze →
             </button>
             <div className="hero-hint" style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease", flexWrap: "wrap" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13A5 5 0 0015 8V6A5 5 0 005 6V8A5 5 0 0010 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11A5 5 0 009 16V18A5 5 0 0019 18V16A5 5 0 0014 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <Link2 size={14} style={{ flexShrink: 0 }} />
               Link to a specific product (like "nike.com/shoes/air-max") for 10x faster results
             </div>
           </div>
@@ -310,6 +310,14 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             border: 1px solid rgba(0,0,0,0.06) !important;
             box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important;
           }
+          .dark-card .hero-input-card {
+            background: rgba(15,20,30,0.75) !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+          }
+          .dark-card .hero-input-bar {
+            background: rgba(15,20,30,0.9) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+          }
           .hero-input-bar {
             height: auto !important;
             border-radius: 12px !important;
@@ -334,7 +342,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             display: flex !important;
           }
           .hero-hint {
-            font-size: 0.72rem !important;
+            font-size: 0.65rem !important;
             margin-top: 0.75rem !important;
             justify-content: flex-start !important;
             text-align: left !important;
