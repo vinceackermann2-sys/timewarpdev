@@ -209,110 +209,25 @@ Format your response with these sections:
             }
           } catch (_) { /* ignore */ }
 
-          // Fetch the watch page HTML to extract captions/transcript
-          let pageHtml = "";
-          let transcript = "";
-          let videoDescription = "";
-          try {
-            const fetchRes = await fetch(rawUrl, {
-              headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
-              redirect: "follow",
-            });
-            if (fetchRes.ok) {
-              pageHtml = await fetchRes.text();
-
-              // Extract video description from ytInitialPlayerResponse
-              const descMatch = pageHtml.match(/"shortDescription"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-              if (descMatch) {
-                videoDescription = descMatch[1]
-                  .replace(/\\n/g, "\n")
-                  .replace(/\\"/g, '"')
-                  .replace(/\\\\/g, "\\");
-              }
-
-              // Extract captions/transcript URL from the page
-              const captionMatch = pageHtml.match(/"captionTracks"\s*:\s*(\[.*?\])/);
-              if (captionMatch) {
-                try {
-                  const captionTracks = JSON.parse(captionMatch[1]);
-                  // Prefer English, fall back to first available
-                  const enTrack = captionTracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
-                  const captionUrl = enTrack?.baseUrl || captionTracks[0]?.baseUrl;
-
-                  if (captionUrl) {
-                    const captionRes = await fetch(captionUrl);
-                    if (captionRes.ok) {
-                      const captionXml = await captionRes.text();
-                      // Parse XML captions: extract text from <text> elements
-                      transcript = captionXml
-                        .replace(/<[^>]+>/g, " ")
-                        .replace(/&amp;/g, "&")
-                        .replace(/&lt;/g, "<")
-                        .replace(/&gt;/g, ">")
-                        .replace(/&quot;/g, '"')
-                        .replace(/&#39;/g, "'")
-                        .replace(/\s+/g, " ")
-                        .trim();
-                    }
-                  }
-                } catch (_) {
-                  console.error("Failed to parse caption tracks");
-                }
-              }
-            }
-          } catch (_) { /* ignore */ }
-
-          // Get high-res thumbnail for visual analysis
-          const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-          let thumbnailBase64 = "";
-          if (videoId) {
-            try {
-              const thumbRes = await fetch(thumbnailUrl);
-              if (thumbRes.ok) {
-                const thumbBuf = await thumbRes.arrayBuffer();
-                const uint8 = new Uint8Array(thumbBuf);
-                let binary = "";
-                for (let i = 0; i < uint8.length; i++) {
-                  binary += String.fromCharCode(uint8[i]);
-                }
-                thumbnailBase64 = btoa(binary);
-              }
-            } catch (_) { /* ignore */ }
-          }
-
-          extractedText = transcript || videoDescription || "";
-
-          // Build multimodal prompt if we have a thumbnail
-          if (thumbnailBase64) {
-            useMultimodal = true;
-            mediaUrl = `data:image/jpeg;base64,${thumbnailBase64}`;
-          }
-
-          userPrompt = `Analyze this YouTube video in depth.
-
-**Video URL:** ${rawUrl}
-**Title:** ${videoTitle}
-${videoAuthor ? `**Channel:** ${videoAuthor}` : ""}
-
-${videoDescription ? `**Video Description:**\n${videoDescription.slice(0, 3000)}\n` : ""}
-
-${transcript ? `**Full Transcript (auto-captions):**\n${transcript.slice(0, 30000)}\n` : "⚠️ No transcript/captions available for this video."}
-
-${thumbnailBase64 ? "I've also attached the video thumbnail for visual context.\n" : ""}
+          // Use Gemini API directly with YouTube URL support for native video understanding
+          const geminiPrompt = `You are a business analyst. Analyze this YouTube video thoroughly — watch and listen to the ENTIRE video.
 
 Provide a comprehensive analysis:
 
 ## Video Summary
-A detailed overview of what the video covers.
+A detailed overview of what the video covers, what is shown visually, and what is said.
+
+## Full Transcript
+Transcribe everything that is said in the video as accurately as possible.
+
+## Visual Content & Scenes
+Describe what is shown in the video: people, locations, slides, screen recordings, product demos, graphics, text overlays, etc. Note key visual moments with approximate timestamps.
 
 ## Key Points & Topics
 Bullet-pointed list of the main subjects, arguments, and insights discussed.
 
 ## Notable Quotes
-Direct quotes from the transcript that are particularly impactful or important.
-
-## Visual Content
-${thumbnailBase64 ? "Based on the thumbnail and any visual cues from the transcript," : "Based on context clues,"} describe the visual style, presentation format (talking head, slides, screencast, etc.).
+Direct quotes that are particularly impactful or important.
 
 ## Target Audience
 Who this content is made for.
@@ -322,6 +237,111 @@ Actionable insights and how this content could be relevant for business strategy
 
 ## Content Strategy Notes
 How this video fits into broader content patterns, what works well about it.`;
+
+          // Call Gemini API directly with file_data for YouTube URL
+          const geminiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${LOVABLE_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    {
+                      file_data: {
+                        file_uri: rawUrl,
+                        mime_type: "video/*",
+                      },
+                    },
+                    { text: geminiPrompt },
+                  ],
+                }],
+              }),
+            }
+          );
+
+          // If direct Gemini API fails (e.g. API key format mismatch), fall back to gateway with transcript extraction
+          if (!geminiResponse.ok) {
+            console.log("Direct Gemini API failed, falling back to transcript extraction");
+
+            // Fetch transcript from YouTube captions
+            let transcript = "";
+            let videoDescription = "";
+            try {
+              const fetchRes = await fetch(rawUrl, {
+                headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+                redirect: "follow",
+              });
+              if (fetchRes.ok) {
+                const pageHtml = await fetchRes.text();
+
+                const descMatch = pageHtml.match(/"shortDescription"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+                if (descMatch) {
+                  videoDescription = descMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+                }
+
+                const captionMatch = pageHtml.match(/"captionTracks"\s*:\s*(\[.*?\])/);
+                if (captionMatch) {
+                  try {
+                    const captionTracks = JSON.parse(captionMatch[1]);
+                    const enTrack = captionTracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
+                    const captionUrl = enTrack?.baseUrl || captionTracks[0]?.baseUrl;
+                    if (captionUrl) {
+                      const captionRes = await fetch(captionUrl);
+                      if (captionRes.ok) {
+                        const captionXml = await captionRes.text();
+                        transcript = captionXml
+                          .replace(/<[^>]+>/g, " ")
+                          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+                          .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+                          .replace(/\s+/g, " ").trim();
+                      }
+                    }
+                  } catch (_) { /* ignore */ }
+                }
+              }
+            } catch (_) { /* ignore */ }
+
+            extractedText = transcript || videoDescription || "";
+            userPrompt = `Analyze this YouTube video in depth.
+
+**Video URL:** ${rawUrl}
+**Title:** ${videoTitle}
+${videoAuthor ? `**Channel:** ${videoAuthor}` : ""}
+
+${videoDescription ? `**Video Description:**\n${videoDescription.slice(0, 3000)}\n` : ""}
+
+${transcript ? `**Full Transcript (auto-captions):**\n${transcript.slice(0, 50000)}\n` : "⚠️ No transcript/captions available."}
+
+Provide a comprehensive analysis with these sections:
+## Video Summary, ## Key Points & Topics, ## Notable Quotes, ## Target Audience, ## Business Insights & Takeaways, ## Content Strategy Notes`;
+
+          } else {
+            // Direct Gemini API succeeded — extract the response
+            const geminiData = await geminiResponse.json();
+            const videoAnalysis = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "No analysis generated.";
+
+            extractedText = videoAnalysis;
+
+            // Skip the normal AI gateway call — return directly
+            if (userId && supabaseAdmin) {
+              await supabaseAdmin.from("user_business_data").insert({
+                user_id: userId,
+                data_type: "youtube_video",
+                source: "canvas",
+                title: dataTitle,
+                content: rawUrl,
+                analyzed_content: videoAnalysis,
+                is_analyzed: true,
+                metadata: { url: rawUrl, videoId, videoTitle, videoAuthor },
+              });
+              await updateBucketContext(supabaseAdmin, userId);
+            }
+
+            return new Response(JSON.stringify({ success: true, analysis: videoAnalysis, extractedText: videoAnalysis }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
 
         } else if (isSocialMedia) {
           // Social media URL — fetch what we can
