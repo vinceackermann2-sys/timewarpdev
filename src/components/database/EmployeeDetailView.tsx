@@ -2,8 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { AIEmployee } from "./EmployeesView";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp, Download, Database, X } from "lucide-react";
+import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp, Download, Database, X, Pencil, Save, Plus } from "lucide-react";
 import { EmployeeRunOverlay } from "./EmployeeRunOverlay";
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
@@ -54,7 +56,8 @@ function isSafetyBlocked(action: any): string | null {
   return null;
 }
 
-export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
+export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete }: Props) {
+  const [employee, setEmployee] = useState<AIEmployee>(initialEmployee);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [running, setRunning] = useState(false);
@@ -73,8 +76,23 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const [savingToDb, setSavingToDb] = useState(false);
   const { checkCanUseAction } = useActionGate();
   const { activeWorkspace } = useWorkspace();
+  const [producedFiles, setProducedFiles] = useState<{ id: string; title: string; created_at: string }[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
-  useEffect(() => { loadLogs(); }, [employee.id]);
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(employee.name);
+  const [editRole, setEditRole] = useState(employee.role);
+  const [editSopTitle, setEditSopTitle] = useState(employee.sop_title || "");
+  const [editPurpose, setEditPurpose] = useState(employee.sop_purpose || "");
+  const [editScope, setEditScope] = useState(employee.sop_scope || "");
+  const [editProcedure, setEditProcedure] = useState<string[]>(
+    Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []
+  );
+  const [editSafety, setEditSafety] = useState(employee.sop_safety_notes || "");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => { loadLogs(); loadProducedFiles(); }, [employee.id]);
 
   const loadLogs = async () => {
     setLoadingLogs(true);
@@ -86,6 +104,78 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       .limit(50);
     setLogs((data || []) as unknown as LogEntry[]);
     setLoadingLogs(false);
+  };
+
+  const loadProducedFiles = async () => {
+    setLoadingFiles(true);
+    const { data } = await supabase
+      .from("user_business_data")
+      .select("id, title, created_at")
+      .eq("source", "ai_employee")
+      .ilike("title", `${employee.name}%`)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setProducedFiles((data || []) as { id: string; title: string; created_at: string }[]);
+    setLoadingFiles(false);
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    await supabase.from("ai_employee_logs").delete().eq("id", logId);
+    setLogs(prev => prev.filter(l => l.id !== logId));
+    toast({ title: "Log entry deleted" });
+  };
+
+  const handleClearAllLogs = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await supabase.from("ai_employee_logs").delete().eq("employee_id", employee.id).eq("user_id", session.user.id);
+    setLogs([]);
+    toast({ title: "Activity log cleared" });
+  };
+
+  const startEditing = () => {
+    setIsEditing(true);
+    setEditName(employee.name);
+    setEditRole(employee.role);
+    setEditSopTitle(employee.sop_title || "");
+    setEditPurpose(employee.sop_purpose || "");
+    setEditScope(employee.sop_scope || "");
+    setEditProcedure(Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []);
+    setEditSafety(employee.sop_safety_notes || "");
+  };
+
+  const handleSaveEdit = async () => {
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("ai_employees" as any)
+      .update({
+        name: editName.trim(),
+        role: editRole.trim(),
+        sop_title: editSopTitle.trim() || null,
+        sop_purpose: editPurpose.trim() || null,
+        sop_scope: editScope.trim() || null,
+        sop_procedure: editProcedure.filter(p => p.trim()),
+        sop_safety_notes: editSafety.trim() || null,
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("id", employee.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      setEmployee(prev => ({
+        ...prev,
+        name: editName.trim(),
+        role: editRole.trim(),
+        sop_title: editSopTitle.trim() || null,
+        sop_purpose: editPurpose.trim() || null,
+        sop_scope: editScope.trim() || null,
+        sop_procedure: editProcedure.filter(p => p.trim()),
+        sop_safety_notes: editSafety.trim() || null,
+      }));
+      setIsEditing(false);
+      toast({ title: "Employee updated" });
+    }
   };
 
   const logStep = async (status: string, stepLabel: string, message: string) => {
@@ -459,9 +549,16 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
         {!running && (
           <>
+            <Button variant="outline" size="sm" className="gap-2" onClick={isEditing ? handleSaveEdit : startEditing} disabled={savingEdit}>
+              {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isEditing ? <Save className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+              {isEditing ? "Save" : "Edit"}
+            </Button>
+            {isEditing && (
+              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
+            )}
             <Button
               onClick={handleRun}
-              disabled={!extensionConnected || detecting}
+              disabled={!extensionConnected || detecting || isEditing}
               className="gap-2"
               size="sm"
               title={!extensionConnected ? "Install and log into the TimeWarp extension to run employees" : undefined}
@@ -495,39 +592,118 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
             </div>
           )}
 
-          {employee.sop_title && <Section title="SOP Title"><p className="font-medium">{employee.sop_title}</p></Section>}
-          {employee.sop_purpose && <Section title="Purpose"><p>{employee.sop_purpose}</p></Section>}
-          {employee.sop_scope && <Section title="Scope"><p>{employee.sop_scope}</p></Section>}
+          {isEditing ? (
+            /* Edit Mode */
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Name</Label>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Role</Label>
+                <Input value={editRole} onChange={e => setEditRole(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">SOP Title</Label>
+                <Input value={editSopTitle} onChange={e => setEditSopTitle(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Purpose</Label>
+                <Input value={editPurpose} onChange={e => setEditPurpose(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Scope</Label>
+                <Input value={editScope} onChange={e => setEditScope(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Procedure Steps</Label>
+                {editProcedure.map((p, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <span className="text-xs text-muted-foreground font-mono w-5 text-right shrink-0">{i + 1}.</span>
+                    <Input value={p} onChange={e => { const c = [...editProcedure]; c[i] = e.target.value; setEditProcedure(c); }} />
+                    {editProcedure.length > 1 && (
+                      <Button variant="ghost" size="icon" onClick={() => setEditProcedure(editProcedure.filter((_, j) => j !== i))}><X className="h-3 w-3" /></Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setEditProcedure([...editProcedure, ""])} className="gap-1">
+                  <Plus className="h-3 w-3" /> Add Step
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Safety / Compliance Notes</Label>
+                <Input value={editSafety} onChange={e => setEditSafety(e.target.value)} />
+              </div>
+            </div>
+          ) : (
+            /* View Mode */
+            <>
+              {employee.sop_title && <Section title="SOP Title"><p className="font-medium">{employee.sop_title}</p></Section>}
+              {employee.sop_purpose && <Section title="Purpose"><p>{employee.sop_purpose}</p></Section>}
+              {employee.sop_scope && <Section title="Scope"><p>{employee.sop_scope}</p></Section>}
 
-          {employee.sop_definitions && employee.sop_definitions.length > 0 && (
-            <Section title="Definitions">
-              {renderList(employee.sop_definitions, (d) => (
-                <span><strong>{d.term}:</strong> {d.meaning}</span>
-              ))}
-            </Section>
+              {employee.sop_definitions && employee.sop_definitions.length > 0 && (
+                <Section title="Definitions">
+                  {renderList(employee.sop_definitions, (d) => (
+                    <span><strong>{d.term}:</strong> {d.meaning}</span>
+                  ))}
+                </Section>
+              )}
+
+              <Section title="Procedure">{renderList(employee.sop_procedure)}</Section>
+
+              {employee.sop_safety_notes && <Section title="Safety / Compliance Notes"><p>{employee.sop_safety_notes}</p></Section>}
+
+              {employee.sop_revision_history && employee.sop_revision_history.length > 0 && (
+                <Section title="Revision History">
+                  <div className="space-y-1">
+                    {employee.sop_revision_history.map((rev: any, i: number) => (
+                      <div key={i} className="flex gap-3 text-xs">
+                        <span className="font-mono text-muted-foreground">{rev.version}</span>
+                        <span className="text-muted-foreground">{rev.date}</span>
+                        <span>{rev.notes}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              )}
+            </>
           )}
 
-          <Section title="Procedure">{renderList(employee.sop_procedure)}</Section>
-
-          {employee.sop_safety_notes && <Section title="Safety / Compliance Notes"><p>{employee.sop_safety_notes}</p></Section>}
-
-          {employee.sop_revision_history && employee.sop_revision_history.length > 0 && (
-            <Section title="Revision History">
-              <div className="space-y-1">
-                {employee.sop_revision_history.map((rev: any, i: number) => (
-                  <div key={i} className="flex gap-3 text-xs">
-                    <span className="font-mono text-muted-foreground">{rev.version}</span>
-                    <span className="text-muted-foreground">{rev.date}</span>
-                    <span>{rev.notes}</span>
+          {/* Produced Files */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Produced Files</h3>
+            {loadingFiles ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              </div>
+            ) : producedFiles.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">No files produced yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {producedFiles.map(f => (
+                  <div key={f.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 text-sm">
+                    <FileText className="h-4 w-4 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{f.title}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(f.created_at).toLocaleString()}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-            </Section>
-          )}
+            )}
+          </div>
 
           {/* Activity Log */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Activity Log</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Activity Log</h3>
+              {logs.length > 0 && (
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1 h-7 text-xs" onClick={handleClearAllLogs}>
+                  <Trash2 className="h-3 w-3" /> Clear All
+                </Button>
+              )}
+            </div>
             {loadingLogs ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="h-4 w-4 animate-spin" /> Loading logs...
@@ -541,7 +717,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
                   return (
                     <div key={log.id}>
-                      <div className="flex items-start gap-2.5 text-sm">
+                      <div className="flex items-start gap-2.5 text-sm group">
                         {statusIcon(log.status)}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -556,6 +732,12 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
                             <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.message}</p>
                           )}
                         </div>
+                        <button
+                          onClick={() => handleDeleteLog(log.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </div>
 
                       {/* Result Card */}
