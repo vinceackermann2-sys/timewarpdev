@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useActionGate } from "@/hooks/useActionGate";
 import { Upload, FileText, Image, File, Loader2, X, CheckCircle2, Music, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
