@@ -273,11 +273,13 @@ export function BrandExtendedSections({
   onEditToggle,
   onSave,
   initialData,
+  brandColors,
 }: {
   isEditing?: boolean;
   onEditToggle?: () => void;
   onSave?: (data: VisualIdentityInitial) => void;
   initialData?: VisualIdentityInitial;
+  brandColors?: BrandColorsProps;
 }) {
   const [data, setData] = useState<VisualIdentityData>(() => {
     const base = { ...DEFAULT_DATA };
