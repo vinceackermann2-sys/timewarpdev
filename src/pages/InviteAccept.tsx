@@ -3,15 +3,12 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 
 const InviteAccept = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "success" | "error" | "auth">("loading");
   const [message, setMessage] = useState("");
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [targetRoute, setTargetRoute] = useState("/app");
   const token = searchParams.get("token");
   const refCode = searchParams.get("ref");
 
@@ -30,8 +27,6 @@ const InviteAccept = () => {
         return;
       }
 
-      let workspaceId: string | null = null;
-
       // Handle workspace invitation
       if (token) {
         const { data, error } = await supabase.rpc("accept_workspace_invitation", {
@@ -48,16 +43,16 @@ const InviteAccept = () => {
         if (result?.error) {
           setStatus("error");
           setMessage(result.error);
-          return;
-        }
-        
-        if (result?.workspace_id) {
-          workspaceId = result.workspace_id;
-          localStorage.setItem("preferred_workspace_id", result.workspace_id);
+        } else {
+          if (result?.workspace_id) {
+            localStorage.setItem("preferred_workspace_id", result.workspace_id);
+          }
+          setStatus("success");
+          setMessage("You've been added to the workspace!");
         }
       }
 
-      // Handle referral code
+      // Handle referral code (can coexist with invite)
       if (refCode) {
         try {
           const { data: refResult } = await supabase.rpc("complete_referral", {
@@ -66,36 +61,21 @@ const InviteAccept = () => {
           });
           const rr = refResult as any;
           if (rr?.success) {
-            // Show celebration — navigation happens on dismiss
-            setTargetRoute("/app");
-            setShowCelebration(true);
-            if (token) {
+            if (!token) {
               setStatus("success");
-              setMessage("You've been added to the workspace and received 125 bonus Actions!");
+              setMessage("Welcome! You've received 125 bonus Actions!");
             }
-            return; // Don't navigate yet — celebration dialog handles it
           } else if (rr?.error && !token) {
             setStatus("error");
             setMessage(rr.error);
-            return;
           }
         } catch {
+          // Referral processing failed silently if invite succeeded
           if (!token) {
             setStatus("error");
             setMessage("Failed to process referral.");
-            return;
           }
         }
-      }
-
-      // No referral celebration — show success directly
-      if (token) {
-        setStatus("success");
-        setMessage("You've been added to the workspace!");
-      } else {
-        // Edge case: ref code failed silently, nothing to show
-        setStatus("success");
-        setMessage("Welcome!");
       }
     };
 
@@ -105,13 +85,13 @@ const InviteAccept = () => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center space-y-4">
-        {status === "loading" && !showCelebration && (
+        {status === "loading" && (
           <>
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
             <p className="text-muted-foreground">Processing...</p>
           </>
         )}
-        {status === "success" && !showCelebration && (
+        {status === "success" && (
           <>
             <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto" />
             <h1 className="text-xl font-semibold">{message}</h1>
@@ -140,15 +120,6 @@ const InviteAccept = () => {
           </>
         )}
       </div>
-      <ActionsCelebration
-        open={showCelebration}
-        onOpenChange={(open) => {
-          setShowCelebration(open);
-          if (!open) navigate(targetRoute);
-        }}
-        actionsGranted={125}
-        reason="referred"
-      />
     </div>
   );
 };

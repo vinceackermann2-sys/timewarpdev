@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { ProductPageSidebar } from "@/components/database/ProductPageSidebar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 
 /* ── Types ── */
 export interface ProductOffer {
@@ -356,7 +355,6 @@ export function ProductDetailView({
   onBack: () => void;
   onSave: (product: ProductData) => void;
 }) {
-  const { userName } = useBusinessDNA();
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const safeProduct: ProductData = {
     ...DEFAULT_PRODUCT,
@@ -433,8 +431,6 @@ export function ProductDetailView({
               </span>
               <span className="text-xs text-muted-foreground/60">|</span>
               <span className="text-xs text-muted-foreground">Last updated: {data.lastUpdated}</span>
-              <span className="text-xs text-muted-foreground/60">|</span>
-              <span className="text-xs text-muted-foreground">Added by: {userName}</span>
             </div>
           </div>
         </div>
