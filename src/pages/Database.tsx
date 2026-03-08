@@ -11,6 +11,7 @@ import { BusinessDNAView } from "@/components/database/BusinessDNAView";
 import { MyBusinessesView } from "@/components/database/MyBusinessesView";
 import { AddProductURLView } from "@/components/database/AddProductURLView";
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
+import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { Loader2 } from "lucide-react";
 
 type View = "dataconversion" | "aiceo" | "businessdna";
@@ -31,6 +32,7 @@ const Database = () => {
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
+  const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
 
   // Check for view parameter and pending task on mount
   useEffect(() => {
@@ -72,6 +74,30 @@ const Database = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Check for unseen referral completions (referrer side)
+  useEffect(() => {
+    if (!user) return;
+    const checkReferrerRewards = async () => {
+      const lastSeen = localStorage.getItem("lastSeenReferralAt");
+      const { data } = await supabase
+        .from("referrals")
+        .select("completed_at")
+        .eq("referrer_id", user.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(1);
+      
+      if (data && data.length > 0 && data[0].completed_at) {
+        const completedAt = data[0].completed_at;
+        if (!lastSeen || new Date(completedAt) > new Date(lastSeen)) {
+          localStorage.setItem("lastSeenReferralAt", completedAt);
+          setShowReferrerCelebration(true);
+        }
+      }
+    };
+    checkReferrerRewards();
+  }, [user]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -94,54 +120,62 @@ const Database = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <DatabaseSidebar 
-          currentView={currentView} 
-          onViewChange={handleViewChange}
-          userEmail={user?.email || ""}
-        />
-        <SidebarInset className="flex flex-col flex-1">
-          <main className="flex-1 overflow-hidden">
-            {currentView === "dataconversion" && user && (
-              <BusinessDNAProvider>
-                <DataConversionView />
-              </BusinessDNAProvider>
-            )}
-            {currentView === "aiceo" && user && (
-              <TimeWarpAIView 
-                initialTask={pendingTask}
-                onTaskConsumed={() => setPendingTask(null)}
-              />
-            )}
-            {currentView === "businessdna" && user && (
-              <BusinessDNAProvider>
-                {showAddProduct
-                  ? <AddProductURLView 
-                      onBack={() => setShowAddProduct(false)} 
-                      onComplete={(newBrandId?: string) => { 
-                        setShowAddProduct(false); 
-                        setActiveBrandId(newBrandId || activeBrandId);
-                        setShowBusinessDNA(true); 
-                      }}
-                      activeBrandId={activeBrandId}
-                    />
-                  : showBusinessDNA && activeBrandId
-                    ? <BusinessDNAView 
-                        activeBrandId={activeBrandId} 
-                        onBack={() => { setShowBusinessDNA(false); setActiveBrandId(null); }} 
+    <>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <DatabaseSidebar 
+            currentView={currentView} 
+            onViewChange={handleViewChange}
+            userEmail={user?.email || ""}
+          />
+          <SidebarInset className="flex flex-col flex-1">
+            <main className="flex-1 overflow-hidden">
+              {currentView === "dataconversion" && user && (
+                <BusinessDNAProvider>
+                  <DataConversionView />
+                </BusinessDNAProvider>
+              )}
+              {currentView === "aiceo" && user && (
+                <TimeWarpAIView 
+                  initialTask={pendingTask}
+                  onTaskConsumed={() => setPendingTask(null)}
+                />
+              )}
+              {currentView === "businessdna" && user && (
+                <BusinessDNAProvider>
+                  {showAddProduct
+                    ? <AddProductURLView 
+                        onBack={() => setShowAddProduct(false)} 
+                        onComplete={(newBrandId?: string) => { 
+                          setShowAddProduct(false); 
+                          setActiveBrandId(newBrandId || activeBrandId);
+                          setShowBusinessDNA(true); 
+                        }}
+                        activeBrandId={activeBrandId}
                       />
-                    : <MyBusinessesView 
-                        onSelectBusiness={() => setShowAddProduct(true)} 
-                        onOpenBusiness={(brandId) => { setActiveBrandId(brandId); setShowBusinessDNA(true); }}
-                      />
-                }
-              </BusinessDNAProvider>
-            )}
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+                    : showBusinessDNA && activeBrandId
+                      ? <BusinessDNAView 
+                          activeBrandId={activeBrandId} 
+                          onBack={() => { setShowBusinessDNA(false); setActiveBrandId(null); }} 
+                        />
+                      : <MyBusinessesView 
+                          onSelectBusiness={() => setShowAddProduct(true)} 
+                          onOpenBusiness={(brandId) => { setActiveBrandId(brandId); setShowBusinessDNA(true); }}
+                        />
+                  }
+                </BusinessDNAProvider>
+              )}
+            </main>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+      <ActionsCelebration
+        open={showReferrerCelebration}
+        onOpenChange={setShowReferrerCelebration}
+        actionsGranted={125}
+        reason="referral"
+      />
+    </>
   );
 };
 

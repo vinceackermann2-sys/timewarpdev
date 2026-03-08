@@ -52,7 +52,7 @@ const Auth = () => {
       sessionStorage.setItem("quizData", JSON.stringify(quizData));
     }
 
-    const processReferral = async (userId: string) => {
+    const processReferral = async (userId: string): Promise<boolean> => {
       const storedRef = localStorage.getItem("referral_code");
       if (storedRef) {
         try {
@@ -64,15 +64,18 @@ const Auth = () => {
           if (data && (data as any).success) {
             setCelebrationReason("referred");
             setShowCelebration(true);
+            return true;
           }
         } catch { /* ignore referral errors */ }
       }
+      return false;
     };
 
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        await processReferral(session.user.id);
+        const celebrating = await processReferral(session.user.id);
+        if (celebrating) return; // celebration dialog will handle navigation on dismiss
         const redirect = searchParams.get("redirect");
         if (redirect) { navigate(redirect); return; }
         if (!quizData) { navigateToDashboard(); return; }
@@ -82,7 +85,8 @@ const Auth = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        await processReferral(session.user.id);
+        const celebrating = await processReferral(session.user.id);
+        if (celebrating) return; // celebration dialog will handle navigation on dismiss
         const redirect = searchParams.get("redirect");
         if (redirect) { navigate(redirect); return; }
         if (!quizData) { navigateToDashboard(); }
