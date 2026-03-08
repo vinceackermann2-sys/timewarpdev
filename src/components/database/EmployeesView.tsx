@@ -113,7 +113,8 @@ export function EmployeesView() {
   // Empty state
   if (employees.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-cenBusinessBrainOrb size={96ionDuration={15} className="mb-6" />
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+        <BusinessBrainOrb size={96} className="mb-6" />
         <h2 className="text-2xl font-semibold mb-2">No AI Employees yet</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
           Create your first AI employee. Give them a name, role, and a Standard Operating Procedure — they'll execute tasks based on your SOP.

@@ -155,7 +155,8 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     tooltip="Employees"
                     className={currentView === "employees" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
                   >
-                    <SiriOrb size="16Bot className="h-4 w-4                  {!isCollapsed && <span>Employees</span>}
+                    <Bot className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>Employees</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
