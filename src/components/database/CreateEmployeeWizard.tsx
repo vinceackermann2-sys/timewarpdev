@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2 } from "lucide-react";
+import { FileUploadZone } from "@/components/database/FileUploadZone";
+import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2, Upload, PenLine } from "lucide-react";
 
 interface Props {
   onCancel: () => void;
@@ -17,6 +19,7 @@ interface Props {
 
 const STEPS = [
   "Identity",
+  "Import SOP",
   "Title & Purpose",
   "Scope & Responsibilities",
   "Definitions & Materials",
@@ -33,7 +36,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   // Form state
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
-  const [selectedPalette, setSelectedPalette] = useState(0);
   const [sopTitle, setSopTitle] = useState("");
   const [sopPurpose, setSopPurpose] = useState("");
   const [sopScope, setSopScope] = useState("");
@@ -43,11 +45,23 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const [procedure, setProcedure] = useState<string[]>([""]);
   const [safetyNotes, setSafetyNotes] = useState("");
   const [documentation, setDocumentation] = useState("");
+  const [fileUploaded, setFileUploaded] = useState(false);
+
+  const progressPercent = ((step + 1) / STEPS.length) * 100;
 
   const canProceed = () => {
     if (step === 0) return name.trim() && role.trim();
-    if (step === 1) return sopTitle.trim();
+    if (step === 2) return sopTitle.trim();
     return true;
+  };
+
+  const handleFileUploaded = (file: { summary: string }) => {
+    setFileUploaded(true);
+    // Pre-fill SOP fields from the analysis summary
+    if (file.summary && !sopPurpose) {
+      setSopPurpose(file.summary);
+    }
+    toast({ title: "SOP file imported", description: "You can review and edit the details in the following steps." });
   };
 
   const handleSave = async () => {
@@ -60,7 +74,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       workspace_id: activeWorkspaceId,
       name: name.trim(),
       role: role.trim(),
-      orb_colors: orbPalettes[selectedPalette],
+      orb_colors: orbPalettes[0],
       sop_title: sopTitle.trim() || null,
       sop_purpose: sopPurpose.trim() || null,
       sop_scope: sopScope.trim() || null,
@@ -94,25 +108,23 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border">
-        <Button variant="ghost" size="icon" onClick={onCancel}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <h2 className="font-semibold">New AI Employee</h2>
-          <p className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length} — {STEPS[step]}</p>
+      {/* Top: Progress bar + step name */}
+      <div className="p-4 border-b border-border space-y-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={onCancel} className="shrink-0">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1">
+            <h2 className="font-semibold text-sm">New AI Employee</h2>
+          </div>
         </div>
-      </div>
-
-      {/* Progress */}
-      <div className="flex gap-1 px-4 pt-3">
-        {STEPS.map((_, i) => (
-          <div
-            key={i}
-            className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-muted"}`}
-          />
-        ))}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">{STEPS[step]}</span>
+            <span className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length}</span>
+          </div>
+          <Progress value={progressPercent} className="h-1.5" />
+        </div>
       </div>
 
       {/* Content */}
@@ -135,6 +147,34 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
 
         {step === 1 && (
           <div className="space-y-6">
+            <div className="text-center space-y-2 mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Import or build your SOP</h3>
+              <p className="text-sm text-muted-foreground">Upload an existing SOP document, or continue to fill in the details manually.</p>
+            </div>
+
+            <FileUploadZone onFileUploaded={handleFileUploaded} />
+
+            {!fileUploaded && (
+              <div className="relative flex items-center gap-4 py-2">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground font-medium">OR</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+            )}
+
+            <Button
+              variant="outline"
+              className="w-full gap-2 h-12"
+              onClick={() => setStep(2)}
+            >
+              <PenLine className="h-4 w-4" />
+              {fileUploaded ? "Review & edit SOP details" : "Fill in manually"}
+            </Button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-6">
             <div className="space-y-2">
               <Label>SOP Title *</Label>
               <Input value={sopTitle} onChange={e => setSopTitle(e.target.value)} placeholder="e.g. Customer Complaint Handling Procedure" />
@@ -147,15 +187,15 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
           </div>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <div className="space-y-6">
             <div className="space-y-2">
               <Label>Scope</Label>
-              <Textarea value={sopScope} onChange={e => setSopScope(e.target.value)} placeholder="Where and when does this SOP apply? Which department, team, or process?" rows={3} />
+              <Textarea value={sopScope} onChange={e => setSopScope(e.target.value)} placeholder="Where and when does this SOP apply?" rows={3} />
             </div>
             <div className="space-y-2">
               <Label>Responsibilities</Label>
-              <p className="text-xs text-muted-foreground mb-2">Who is responsible for each part of the process?</p>
+              <p className="text-xs text-muted-foreground mb-2">Who is responsible for each part?</p>
               {responsibilities.map((r, i) => (
                 <div key={i} className="flex gap-2">
                   <Input value={r} onChange={e => updateListItem(responsibilities, setResponsibilities, i, e.target.value)} placeholder={`Responsibility ${i + 1}`} />
@@ -171,7 +211,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div className="space-y-6">
             <div className="space-y-2">
               <Label>Definitions (Optional)</Label>
@@ -205,7 +245,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
           </div>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <div className="space-y-6">
             <div className="space-y-2">
               <Label>Procedure (Core Section)</Label>
@@ -226,7 +266,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
           </div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <div className="space-y-6">
             <div className="space-y-2">
               <Label>Safety / Compliance Notes</Label>
@@ -240,21 +280,37 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         )}
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between p-4 border-t border-border">
-        <Button variant="ghost" onClick={() => step > 0 ? setStep(step - 1) : onCancel()}>
-          {step > 0 ? <><ArrowLeft className="h-4 w-4 mr-1" /> Back</> : "Cancel"}
-        </Button>
-        {step < STEPS.length - 1 ? (
-          <Button onClick={() => setStep(step + 1)} disabled={!canProceed()} className="gap-1">
-            Next <ArrowRight className="h-4 w-4" />
+      {/* Footer: step dots + navigation */}
+      <div className="border-t border-border p-4 space-y-3">
+        <div className="flex justify-center gap-1.5">
+          {STEPS.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 w-1.5 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-muted"}`}
+            />
+          ))}
+        </div>
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" onClick={() => step > 0 ? setStep(step - 1) : onCancel()}>
+            {step > 0 ? <><ArrowLeft className="h-4 w-4 mr-1" /> Back</> : "Cancel"}
           </Button>
-        ) : (
-          <Button onClick={handleSave} disabled={saving || !canProceed()} className="gap-1">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            Create Employee
-          </Button>
-        )}
+          {step < STEPS.length - 1 ? (
+            step === 1 ? (
+              <Button onClick={() => setStep(2)} className="gap-1">
+                Skip <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button onClick={() => setStep(step + 1)} disabled={!canProceed()} className="gap-1">
+                Next <ArrowRight className="h-4 w-4" />
+              </Button>
+            )
+          ) : (
+            <Button onClick={handleSave} disabled={saving || !canProceed()} className="gap-1">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Create Employee
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
