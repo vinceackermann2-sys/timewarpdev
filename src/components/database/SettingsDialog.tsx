@@ -302,7 +302,6 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
   const getPlanButtonLabel = (plan: PlanKey) => {
     if (currentPlan === plan) return "Manage Plan";
-    if (plan === "co_founder") return "Pre-order";
     return "Get Started";
   };
 
