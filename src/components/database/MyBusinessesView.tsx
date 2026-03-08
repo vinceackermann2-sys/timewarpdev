@@ -38,18 +38,25 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
     members, isLoading: wsLoading,
   } = useWorkspace();
   const [wsBusinesses, setWsBusinesses] = useState<BrandEntry[]>([]);
-  const [loadingBiz, setLoadingBiz] = useState(false);
+  const [loadingBiz, setLoadingBiz] = useState(true);
   const lastKnownCount = useRef(0);
+  const prevWorkspaceId = useRef<string | null>(null);
 
-  // Load businesses for the active workspace — start immediately with cached ID
+  // Load businesses for the active workspace
   useEffect(() => {
     if (!activeWorkspaceId) { setWsBusinesses([]); setLoadingBiz(false); return; }
 
-    // Clear stale data immediately when workspace changes
-    setWsBusinesses([]);
+    // Always show loading when workspace changes
+    const isNewWorkspace = prevWorkspaceId.current !== activeWorkspaceId;
+    if (isNewWorkspace) {
+      setWsBusinesses([]);
+      setLoadingBiz(true);
+      prevWorkspaceId.current = activeWorkspaceId;
+    }
+
     let cancelled = false;
     async function load() {
-      setLoadingBiz(true);
+      if (!isNewWorkspace) setLoadingBiz(true);
       const { data, error } = await supabase
         .from("user_business_data")
         .select("id, content, user_id")
