@@ -102,12 +102,15 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
   const handlePause = () => {
     setIsPaused(true);
+    isPausedRef.current = true;
     setSafetyAlert(null);
   };
 
   const handleContinue = () => {
     setIsPaused(false);
+    isPausedRef.current = false;
     setIsManualMode(false);
+    isManualModeRef.current = false;
     setSafetyAlert(null);
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
@@ -115,12 +118,16 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
   const handleManualTakeover = () => {
     setIsPaused(true);
+    isPausedRef.current = true;
     setIsManualMode(true);
+    isManualModeRef.current = true;
   };
 
   const handleReturnControl = () => {
     setIsManualMode(false);
+    isManualModeRef.current = false;
     setIsPaused(false);
+    isPausedRef.current = false;
     setSafetyAlert(null);
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
