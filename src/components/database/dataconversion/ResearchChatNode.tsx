@@ -515,7 +515,7 @@ export function ResearchChatNode({
             size="icon"
             onClick={() => handleSend()}
             disabled={!input.trim() || isLoading || connectedContexts.length === 0}
-            className="h-10 w-10 rounded-full self-end shrink-0"
+            className={cn("h-10 w-10 rounded-full self-end shrink-0", input.trim() && !isLoading ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "")}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
