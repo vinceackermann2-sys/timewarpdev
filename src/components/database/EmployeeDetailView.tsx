@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AIEmployee } from "./EmployeesView";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
 
 interface LogEntry {
   id: string;
@@ -25,6 +26,8 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [running, setRunning] = useState(false);
   const { toast } = useToast();
+  const abortRef = useRef<AbortController | null>(null);
+  const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop } = useExtensionBridge();
 
   useEffect(() => {
     loadLogs();
@@ -33,7 +36,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const loadLogs = async () => {
     setLoadingLogs(true);
     const { data } = await supabase
-      .from("ai_employee_logs" as any)
+      .from("ai_employee_logs")
       .select("*")
       .eq("employee_id", employee.id)
       .order("created_at", { ascending: false })
@@ -42,48 +45,162 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     setLoadingLogs(false);
   };
 
-  const handleRun = async () => {
-    setRunning(true);
+  const logStep = async (status: string, stepLabel: string, message: string) => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) { setRunning(false); return; }
-
-    const userId = session.user.id;
-
-    // Log: started
-    await supabase.from("ai_employee_logs" as any).insert({
+    if (!session?.user) return;
+    await supabase.from("ai_employee_logs").insert({
       employee_id: employee.id,
-      user_id: userId,
-      status: "running",
-      step_label: "Started",
-      message: `Running SOP: ${employee.sop_title || employee.role}`,
-    } as any);
+      user_id: session.user.id,
+      status,
+      step_label: stepLabel,
+      message,
+    });
+    await loadLogs();
+  };
 
-    // Simulate SOP procedure execution step by step
-    const steps = Array.isArray(employee.sop_procedure) ? employee.sop_procedure : [];
-    for (let i = 0; i < steps.length; i++) {
-      await new Promise(r => setTimeout(r, 800 + Math.random() * 600));
-      await supabase.from("ai_employee_logs" as any).insert({
-        employee_id: employee.id,
-        user_id: userId,
-        status: "running",
-        step_label: `Step ${i + 1}`,
-        message: String(steps[i]),
-      } as any);
-      await loadLogs();
+  const parseActions = (text: string): { steps: BrowserAction[]; summary: string } | null => {
+    try {
+      // Extract JSON from markdown code blocks
+      const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : text.trim();
+      const parsed = JSON.parse(jsonStr);
+
+      if (parsed.steps && Array.isArray(parsed.steps)) {
+        return { steps: parsed.steps, summary: parsed.summary || "" };
+      }
+      if (parsed.action) {
+        return { steps: [parsed], summary: parsed.reasoning || "" };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleRun = async () => {
+    if (!extensionConnected) {
+      toast({ title: "Extension not detected", description: "Install and log into the TimeWarp extension to run employees.", variant: "destructive" });
+      return;
     }
 
-    // Log: completed
-    await supabase.from("ai_employee_logs" as any).insert({
-      employee_id: employee.id,
-      user_id: userId,
-      status: "completed",
-      step_label: "Completed",
-      message: `Finished executing ${steps.length} step${steps.length !== 1 ? "s" : ""} successfully.`,
-    } as any);
+    setRunning(true);
+    signalStart(employee.id);
 
-    await loadLogs();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setRunning(false); return; }
+
+      // Get page context from extension
+      const pageContext = await getPageContext();
+
+      await logStep("running", "Started", `Running SOP: ${employee.sop_title || employee.role}`);
+
+      // Stream from run-employee edge function
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          employee_id: employee.id,
+          messages: [{ role: "user", content: `Execute the SOP procedure now. The browser is ready.` }],
+          pageContext,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+        await logStep("error", "Error", err.error || `HTTP ${resp.status}`);
+        toast({ title: "Run failed", description: err.error || "An error occurred", variant: "destructive" });
+        setRunning(false);
+        signalStop(employee.id);
+        return;
+      }
+
+      // Read streamed response
+      const reader = resp.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) fullText += content;
+          } catch { /* partial */ }
+        }
+      }
+
+      // Parse AI response for actions
+      const actionPlan = parseActions(fullText);
+
+      if (!actionPlan) {
+        // AI responded with text only (no actions)
+        await logStep("completed", "Response", fullText.slice(0, 500));
+        toast({ title: "Run completed", description: "Employee responded with guidance." });
+      } else {
+        // Execute each action through the extension
+        for (let i = 0; i < actionPlan.steps.length; i++) {
+          const step = actionPlan.steps[i];
+
+          if (step.action === "respond") {
+            await logStep("running", `Step ${i + 1}`, step.message || step.reasoning || "Response");
+            continue;
+          }
+
+          await logStep("running", `Step ${i + 1}`, `${step.action}: ${step.reasoning || step.selector || step.url || ""}`);
+
+          const result = await executeAction(step);
+
+          if (!result.success) {
+            await logStep("error", `Step ${i + 1} Failed`, result.error || "Action failed");
+            toast({ title: "Step failed", description: result.error, variant: "destructive" });
+            break;
+          }
+
+          await logStep("running", `Step ${i + 1} ✓`, `Completed: ${step.action}`);
+        }
+
+        await logStep("completed", "Completed", `Finished executing ${actionPlan.steps.length} step(s). ${actionPlan.summary}`);
+        toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
+      }
+    } catch (e: any) {
+      if (e.name !== "AbortError") {
+        await logStep("error", "Error", e.message || "Unknown error");
+        toast({ title: "Run failed", description: e.message, variant: "destructive" });
+      }
+    } finally {
+      setRunning(false);
+      signalStop(employee.id);
+      abortRef.current = null;
+    }
+  };
+
+  const handleStop = () => {
+    abortRef.current?.abort();
+    signalStop(employee.id);
     setRunning(false);
-    toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
+    toast({ title: "Run stopped" });
   };
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -123,15 +240,37 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           <h2 className="font-semibold">{employee.name}</h2>
           <p className="text-xs text-muted-foreground">{employee.role}</p>
         </div>
-        <Button
-          onClick={handleRun}
-          disabled={running}
-          className="gap-2"
-          size="sm"
-        >
-          {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          {running ? "Running…" : "Run Employee"}
-        </Button>
+
+        {/* Extension status */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {detecting ? (
+            <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Detecting extension…</>
+          ) : extensionConnected ? (
+            <><Wifi className="h-3.5 w-3.5 text-primary" /> Extension connected</>
+          ) : (
+            <button onClick={retryDetection} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+              <WifiOff className="h-3.5 w-3.5 text-destructive" /> Extension not found
+              <RefreshCw className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
+        {running ? (
+          <Button onClick={handleStop} variant="destructive" size="sm" className="gap-2">
+            <XCircle className="h-4 w-4" /> Stop
+          </Button>
+        ) : (
+          <Button
+            onClick={handleRun}
+            disabled={!extensionConnected || detecting}
+            className="gap-2"
+            size="sm"
+            title={!extensionConnected ? "Install and log into the TimeWarp extension to run employees" : undefined}
+          >
+            <Play className="h-4 w-4" />
+            Run Employee
+          </Button>
+        )}
         <Button variant="ghost" size="icon" onClick={() => onDelete(employee.id)} className="text-destructive hover:text-destructive">
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -139,7 +278,6 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-2xl mx-auto space-y-8">
-          {/* Identity */}
           <div className="flex items-center gap-4">
             <BusinessBrainOrb size={64} />
             <div>
@@ -147,6 +285,15 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
               <p className="text-muted-foreground">{employee.role}</p>
             </div>
           </div>
+
+          {!extensionConnected && !detecting && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+              <p className="font-medium text-destructive">Browser extension required</p>
+              <p className="text-muted-foreground mt-1">
+                Install and log into the TimeWarp browser extension to connect this employee to your browser and execute SOP steps automatically.
+              </p>
+            </div>
+          )}
 
           {employee.sop_title && <Section title="SOP Title"><p className="font-medium">{employee.sop_title}</p></Section>}
           {employee.sop_purpose && <Section title="Purpose"><p>{employee.sop_purpose}</p></Section>}
