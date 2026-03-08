@@ -229,7 +229,9 @@ export function ProductDescription() {
       <BusinessDNACard />
 
       {/* ── Evolution of Labor ── */}
-      <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
+        {/* Bottom light glow */}
+        <div className="absolute pointer-events-none" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
           {/* Evolution Title */}
           <div className="text-center mb-16">
