@@ -255,8 +255,8 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             </div>
           ))}
 
-          {/* Business cards */}
-          {filteredBrands.map((brand) => (
+          {/* Business cards — hide while loading to prevent stale data */}
+          {!loadingBiz && filteredBrands.map((brand) => (
             <motion.button
               key={brand.id}
               whileHover={{ scale: 1.02 }}
