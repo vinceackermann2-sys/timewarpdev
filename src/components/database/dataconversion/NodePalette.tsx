@@ -82,7 +82,7 @@ function MainNodeCard({ item, onDragStart, variant = "research" }: MainNodeCardP
       )}
     >
       <div className="h-10 w-10 flex items-center justify-center">
-        {Icon && <Icon className={cn("h-5 w-5", isAction ? "text-accent-foreground" : "text-primary")} />}
+        {Icon && <Icon className="h-5 w-5 text-foreground" />}
       </div>
       <div className="text-center px-1">
         <p className="text-xs font-medium">{item.label}</p>
