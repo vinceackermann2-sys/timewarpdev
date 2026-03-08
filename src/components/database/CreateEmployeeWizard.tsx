@@ -109,7 +109,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const STEP_SHORT = ["Identity", "Import", "Title", "Scope", "Definitions", "Procedure", "Safety"];
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden h-full">
       {/* Top: Stepper bar like reference image */}
       <div className="p-4 border-b border-border flex justify-center">
         <div className="flex items-center gap-1 overflow-x-auto">
