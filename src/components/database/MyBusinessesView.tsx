@@ -243,8 +243,8 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             </motion.button>
           )}
 
-          {/* Loading skeletons — match last known business count */}
-          {loadingBiz && lastKnownCount.current > 0 && Array.from({ length: lastKnownCount.current }).map((_, i) => (
+          {/* Loading skeletons */}
+          {loadingBiz && Array.from({ length: Math.max(lastKnownCount.current, 1) }).map((_, i) => (
             <div key={`skel-${i}`} className="flex flex-col items-start gap-3 rounded-xl border border-border/50 bg-card/50 p-6 min-h-[200px]">
               <Skeleton className="h-12 w-12 rounded-xl" />
               <div className="mt-auto space-y-2 w-full">
