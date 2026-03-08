@@ -31,7 +31,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
 
   if (role === "user") {
     return (
-      <div className="bg-muted text-foreground ml-8 w-fit max-w-[75%] rounded-xl px-4 py-2.5 text-sm shadow-sm">
+      <div className="bg-muted text-foreground ml-auto w-fit max-w-[75%] rounded-xl px-4 py-2.5 text-sm">
         {content}
       </div>
     );
