@@ -7,7 +7,6 @@ import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, W
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
 import { useActionGate } from "@/hooks/useActionGate";
-import { ActionsDialog } from "./ActionsDialog";
 
 interface LogEntry {
   id: string;
