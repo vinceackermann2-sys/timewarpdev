@@ -110,7 +110,7 @@ export function useExtensionBridge() {
   const getPageContext = useCallback((): Promise<PageContext> => {
     return new Promise((resolve) => {
       resolversRef.current.set("page_context", resolve);
-      window.postMessage("TIMEWARP_GET_PAGE_CONTEXT", "*");
+      window.postMessage({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }, "*");
       setTimeout(() => {
         if (resolversRef.current.has("page_context")) {
           resolversRef.current.delete("page_context");
@@ -123,7 +123,7 @@ export function useExtensionBridge() {
   const executeAction = useCallback((action: BrowserAction, executeInTab = true): Promise<ActionResult> => {
     return new Promise((resolve) => {
       resolversRef.current.set("action_result", resolve);
-      window.postMessage({ type: "TIMEWARP_EXECUTE_ACTION", action, executeInTab, targetGroupTab: true }, "*");
+      window.postMessage({ type: "TIMEWARP_EXECUTE_ACTION", action, executeInTab, targetGroupTab: true, focusGroup: false }, "*");
       setTimeout(() => {
         if (resolversRef.current.has("action_result")) {
           resolversRef.current.delete("action_result");
