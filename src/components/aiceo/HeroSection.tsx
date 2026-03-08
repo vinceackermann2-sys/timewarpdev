@@ -153,6 +153,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           </button>
           <Link to="/auth" style={{ textDecoration: "none", color: t.navLink, fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>Login</Link>
           <Link
+            className="hero-cta-btn"
             to="/auth?mode=signup"
             style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0.6rem 1.2rem", borderRadius: 8, fontFamily: "'Outfit', sans-serif", fontWeight: 500, fontSize: "0.95rem", cursor: "pointer", textDecoration: "none", transition: "all 0.2s ease", border: "none", background: "#3399ff", color: "#fff" }}
           >
