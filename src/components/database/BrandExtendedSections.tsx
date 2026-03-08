@@ -355,7 +355,7 @@ export function BrandExtendedSections({
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
         <div className="flex items-center gap-2.5">
-          <LayoutGrid className="h-5 w-5 text-primary" />
+          <LayoutGrid className="h-5 w-5 text-foreground" />
           <h2 className="text-lg font-semibold text-foreground">Visual Identity</h2>
         </div>
         <div className="flex items-center gap-2">
