@@ -36,6 +36,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const { toast } = useToast();
   const { setBrands, setProducts, setAudiences } = useBusinessDNA();
+  const { checkCanUseAction } = useActionGate();
 
   useEffect(() => {
     if (url || isLoading) return;
