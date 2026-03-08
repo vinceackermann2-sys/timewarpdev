@@ -161,6 +161,17 @@ export function useExtensionBridge() {
     window.postMessage({ type: "TIMEWARP_EMPLOYEE_STOP", employeeId, closeTabGroup: true }, "*");
   }, []);
 
+  const updateOverlay = useCallback((state: {
+    visible: boolean;
+    employeeName?: string;
+    currentStep?: string;
+    isPaused?: boolean;
+    isManualMode?: boolean;
+    safetyAlert?: string | null;
+  }) => {
+    window.postMessage({ type: "TIMEWARP_OVERLAY_UPDATE", targetGroupTab: true, ...state }, "*");
+  }, []);
+
   return {
     extensionConnected,
     detecting,
@@ -169,5 +180,6 @@ export function useExtensionBridge() {
     executeAction,
     signalStart,
     signalStop,
+    updateOverlay,
   };
 }
