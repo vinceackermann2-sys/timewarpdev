@@ -385,6 +385,7 @@ JSON structure to return:
   "audience": {
     "name": "",
     "description": "",
+    "avatarPrompt": "",
     "buyingTriggers": [],
     "useCaseRequirements": [],
     "keySuccessIndicators": [],
