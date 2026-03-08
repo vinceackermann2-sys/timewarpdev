@@ -246,6 +246,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
         if (action.done || action.action === "done") {
           setCurrentStep("Completed");
+          updateOverlay({ visible: false });
           await logStep("completed", "Completed", action.message || "SOP execution finished.");
           toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
           break;
