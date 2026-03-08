@@ -63,7 +63,8 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const pauseResolverRef = useRef<(() => void) | null>(null);
   const isPausedRef = useRef(false);
   const isManualModeRef = useRef(false);
-  const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop } = useExtensionBridge();
+  const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
+  const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
 
   useEffect(() => { loadLogs(); }, [employee.id]);
 
