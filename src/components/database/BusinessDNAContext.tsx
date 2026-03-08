@@ -47,6 +47,7 @@ export interface ProductEntry extends ProductData {
 
 export interface AudienceEntry extends AudienceData {
   productIds?: string[];
+  avatarUrl?: string;
 }
 
 interface BusinessDNAContextType {

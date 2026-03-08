@@ -176,8 +176,12 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
             return (
               <div key={audience.id} className="group rounded-xl border border-border/40 bg-card/50 hover:bg-card transition-colors cursor-pointer">
                 <div className="flex items-center gap-3 px-4 py-3.5" onClick={() => setSelectedAudienceId(audience.id)}>
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                    <Users className="h-5 w-5 text-primary" />
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                    {audience.avatarUrl ? (
+                      <img src={audience.avatarUrl} alt={audience.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <Users className="h-5 w-5 text-primary" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{audience.name}</p>
