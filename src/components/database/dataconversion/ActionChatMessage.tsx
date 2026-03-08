@@ -96,7 +96,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
           className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground z-10"
           title="Copy response"
         >
-          {copied ? <Check className="h-3.5 w-3.5 text-foreground" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? <Check className="h-3.5 w-3.5 text-foregroundopy className="h-3.5 w-3.5" />}
         </button>
       )}
       {/* Progress Steps */}
@@ -115,8 +115,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
               </div>
               <span className={cn(
                 "font-medium",
-                foregroundatus foregroundmpletforegroundtext-primary",
-                step.status === "running" && "text-foreground",
+                foregrounstep.status === "complete" && "text-foreground          step.status === "running" && "text-foreground",
                 step.status === "error" && "text-destructive",
                 step.status === "pending" && "text-muted-foreground"
               )}>
