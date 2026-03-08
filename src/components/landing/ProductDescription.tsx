@@ -115,7 +115,7 @@ export function ProductDescription() {
         </div>
       </section>
 
-      {/* ── Business DNA + Evolution of Labor (merged) ── */}
+      {/* ── Business DNA + Evolution of Labor (merged single section) ── */}
       <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
         {/* Subtle particle dots */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -245,125 +245,6 @@ export function ProductDescription() {
                 </ul>
                 <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
                   <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
-                    The Reality: Universal High Income (UHI) powered by autonomous productivity.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-            </p>
-          </div>
-
-          {/* Two comparison cards */}
-          <div className="grid md:grid-cols-2 gap-5">
-            {/* Left card */}
-            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                <filter id="grain-left"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-left)" />
-              </svg>
-              <div className="relative z-10">
-                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>
-                  What others call "AI Automation"
-                </p>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
-                  Chatbots, agents and workflows.
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
-                  Other tools connect apps to move data. That's plumbing — not leadership.
-                </p>
-              </div>
-            </div>
-
-            {/* Right card */}
-            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                <filter id="grain-right"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={5} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-right)" />
-              </svg>
-              <div className="relative z-10">
-                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>
-                  What we mean by Business DNA
-                </p>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
-                  Every decision, SOP, and winning pivot your company has ever made.
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
-                  The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Evolution of Labor ── */}
-      <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>
-              The Evolution of Labor
-            </h3>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-5">
-            {/* Old way */}
-            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                <filter id="grain-evo-left"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={10} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-evo-left)" />
-              </svg>
-              <div className="relative z-10 space-y-5">
-                <div className="flex items-center gap-3 mb-2">
-                  <Users className="h-5 w-5" style={{ color: "hsl(0 0% 50%)" }} />
-                  <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
-                </div>
-                <ul className="space-y-3">
-                  {[
-                    "High churn, high cost, and human error.",
-                    'Scaling requires more "managed" hours.',
-                    "Knowledge walks out the door when an employee leaves.",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "hsl(0 0% 35%)" }} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
-                    The Ceiling: <span className="italic">You can only grow as fast as you can hire.</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* TimeWarp way */}
-            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                <filter id="grain-evo-right"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={15} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-evo-right)" />
-              </svg>
-              <div className="relative z-10 space-y-5">
-                <div className="flex items-center gap-3 mb-2">
-                  <Zap className="h-5 w-5" style={{ color: "#3399ff" }} />
-                  <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
-                </div>
-                <ul className="space-y-3">
-                  {[
-                    "Infinite scale with zero headcount increase.",
-                    "The AI CEO manages specialized employees that never sleep.",
-                    "Your Business DNA is preserved and perfected forever.",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                      <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#3399ff" }} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                  <p className="text-sm font-semibold" style={{ color: "#3399ff" }}>
                     The Reality: Universal High Income (UHI) powered by autonomous productivity.
                   </p>
                 </div>
