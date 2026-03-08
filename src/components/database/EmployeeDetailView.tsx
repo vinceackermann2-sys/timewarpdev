@@ -123,6 +123,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     isPausedRef.current = true;
     setIsManualMode(true);
     isManualModeRef.current = true;
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: true, isManualMode: true, safetyAlert });
   };
 
   const handleReturnControl = () => {
