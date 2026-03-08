@@ -129,7 +129,7 @@ const Database = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-[1300px] max-w-[1900px] mx-auto flex w-full bg-background">
+      <div className="min-h-[1300px] flex w-full bg-background">
         <DatabaseSidebar 
           currentView={currentView} 
           onViewChange={handleViewChange}
