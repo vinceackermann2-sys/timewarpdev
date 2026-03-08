@@ -69,7 +69,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       return <Loader2 className="h-3.5 w-3.5 animate-spin text-accent-foreground" />;
     }
     if (step.status === "complete") {
-      return <CheckCircle2 className="h-3.5 w-3.5 text-foregroundundundundund" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 text-foregroundundundundundund" />;
     }
     if (step.status === "error") {
       return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
@@ -85,7 +85,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
           <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
         <span className={cn(
-          "text-[10px] font-semuted-foregroundoregroundoregroundoreground/60 uppercase tracking-widest",
+          "text-[10px] fontmuted-foregroundoregroundoregroundoregroundoreground/60 uppercase tracking-widest",
           isStreaming && !content && "shimmer-text"
         )}>TimeWarp AI</span>
       </div>
@@ -96,7 +96,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
           className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground z-10"
           title="Copy response"
         >
-          {copied ? <Check cforegrounde=foregroundw-foregroundt-primary" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ?foreground cforegrounde=foregroundw-foregroundt-primary" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
       )}
       {/* Progress Steps */}
@@ -115,7 +115,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
               </div>
               <span className={cn(
                 "font-medium",
-                step.status foregroundmpletforegroundtext-primary",
+                foregroundatus foregroundmpletforegroundtext-primary",
                 step.status === "running" && "text-foreground",
                 step.status === "error" && "text-destructive",
                 step.status === "pending" && "text-muted-foreground"
@@ -144,12 +144,12 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
             <ReactMarkdown
               components={{
                 h1: ({ children }) => (
-                  <h1 className="text-[15px] font-extrabold text-foreground mt-5 mb-2 pb-1.5 bborder border-primary/30 uppercase tracking-wide">
+                  <h1 className="text-[15px] font-extrabold text-foreground mt-borderpb-1.5 bborder border-primary/30 uppercase tracking-wide">
                     {children}
                   </h1>
                 ),
                 h2: ({ children }) => (
-                  <h2 className="text-[14px] font-extrabold text-foreground mt-4 mb-2 underline decoration-primary/40 decoration-2 underline-offset-4">
+                  <h2 className="text-[14px] font-extrabold text-foreground mt-4 mb-2 underliforegroundration-primary/40 decoration-2 underline-offset-4">
                     {children}
                   </h2>
                 ),
