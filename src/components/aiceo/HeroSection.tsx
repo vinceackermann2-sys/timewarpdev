@@ -206,7 +206,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
               <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} className="hero-input-icon" />
               <input
                 type="text"
-                placeholder="nike.com/shoes/air-max"
+                placeholder={placeholder || "nike.com/shoes/air-max"}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
