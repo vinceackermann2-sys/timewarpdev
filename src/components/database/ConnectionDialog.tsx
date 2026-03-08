@@ -407,37 +407,6 @@ export function ConnectionDialog({
             opacity={isFocused ? 0.7 : 0.15}
             className="transition-opacity"
           />
-          {/* Delete hitbox */}
-          <path
-            d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
-            stroke="transparent"
-            strokeWidth={16}
-            fill="none"
-            className="cursor-pointer"
-            onClick={() => removeConnection(conn)}
-          />
-          {/* Delete indicator at midpoint */}
-          <circle
-            cx={midX}
-            cy={(from.y + to.y) / 2}
-            r={8}
-            fill="hsl(var(--destructive))"
-            opacity={0}
-            className="hover:opacity-80 transition-opacity cursor-pointer"
-            onClick={() => removeConnection(conn)}
-          />
-          <text
-            x={midX}
-            y={(from.y + to.y) / 2 + 1}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={10}
-            fill="white"
-            opacity={0}
-            className="hover:opacity-80 transition-opacity cursor-pointer pointer-events-none"
-          >
-            ×
-          </text>
         </g>
       );
     });
