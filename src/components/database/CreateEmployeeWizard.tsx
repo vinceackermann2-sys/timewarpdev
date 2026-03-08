@@ -5,10 +5,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { FileUploadZone } from "@/components/database/FileUploadZone";
-import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2, PenLine, Database, Building2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2, PenLine, Database, Building2, ChevronDown, ChevronRight } from "lucide-react";
 
 interface Props {
   onCancel: () => void;
