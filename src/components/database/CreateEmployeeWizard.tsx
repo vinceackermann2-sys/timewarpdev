@@ -308,14 +308,20 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         {step === 6 && (
           <div className="space-y-8">
             <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">Any safety or compliance considerations?</Label>
-              <p className="text-xs text-muted-foreground">Warnings, regulations, or risk considerations to be aware of.</p>
-              <Textarea value={safetyNotes} onChange={e => setSafetyNotes(e.target.value)} placeholder="Describe any safety or compliance notes..." rows={3} />
+              <Label className="text-base font-semibold text-foreground">Any safety warnings or regulations?</Label>
+              <Input value={safetyWarnings} onChange={e => setSafetyWarnings(e.target.value)} placeholder="e.g. Must comply with GDPR data handling" />
             </div>
             <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What documentation or records must be kept?</Label>
-              <p className="text-xs text-muted-foreground">What records need to be maintained and where they should be stored.</p>
-              <Textarea value={documentation} onChange={e => setDocumentation(e.target.value)} placeholder="Describe the required documentation..." rows={3} />
+              <Label className="text-base font-semibold text-foreground">Any risk considerations?</Label>
+              <Input value={safetyRisks} onChange={e => setSafetyRisks(e.target.value)} placeholder="e.g. Escalation required for legal threats" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-base font-semibold text-foreground">What records must be kept?</Label>
+              <Input value={docRecords} onChange={e => setDocRecords(e.target.value)} placeholder="e.g. Complaint log, resolution notes" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-base font-semibold text-foreground">Where should records be stored?</Label>
+              <Input value={docStorage} onChange={e => setDocStorage(e.target.value)} placeholder="e.g. CRM system, shared drive" />
             </div>
           </div>
         )}
