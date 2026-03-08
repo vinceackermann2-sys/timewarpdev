@@ -32,6 +32,7 @@ export function ImageNode({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { checkCanUseAction } = useActionGate();
 
   const analyzeImage = useCallback(async (file: File, imageUrl: string) => {
     setIsAnalyzing(true);
