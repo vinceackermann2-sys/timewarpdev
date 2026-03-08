@@ -64,54 +64,56 @@ function GrainCard({ children, filterId, seed = 0, borderColor = "hsl(0 0% 18%)"
   );
 }
 
-/* ─────────────────────── Business DNA sticky scroll-swap ─── */
+/* ─────────────────────── Business DNA auto-swap card ─── */
 function BusinessDNACard() {
-  const outerRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
   const [activeCard, setActiveCard] = useState(0);
-  const [sectionProgress, setSectionProgress] = useState(0);
+  const [hasEntered, setHasEntered] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (!outerRef.current) return;
-      const rect = outerRef.current.getBoundingClientRect();
-      const scrollableHeight = outerRef.current.offsetHeight - window.innerHeight;
-      if (scrollableHeight <= 0) return;
-      const progress = Math.min(1, Math.max(0, -rect.top / scrollableHeight));
-      setSectionProgress(progress);
-      setActiveCard(progress < 0.5 ? 0 : 1);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasEntered) {
+          setHasEntered(true);
+          // Auto-swap to card 2 after a delay
+          timerRef.current = setTimeout(() => setActiveCard(1), 2800);
+        }
+      },
+      { threshold: 0.5 }
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => {
+      observer.disconnect();
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [hasEntered]);
 
   return (
-    // Outer container: 200vh so user scrolls through it while sticky card stays
-    <div ref={outerRef} className="relative z-20" style={{ height: "200vh" }}>
-      {/* Sticky inner — fills viewport, nothing else visible */}
-      <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden z-20" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Sparkles */}
-        <div className="absolute inset-0 pointer-events-none">
-          {[...Array(20)].map((_, i) => (
-            <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
-              left: `${10 + Math.random() * 80}%`, top: `${10 + Math.random() * 80}%`,
-              width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
-              background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#ffffff",
-              opacity: 0.3 + Math.random() * 0.5,
-              boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.4)"}`,
-              animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
-            }} />
-          ))}
-        </div>
+    <div ref={sectionRef} className="relative z-20 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
+      {/* Sparkles */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {[...Array(20)].map((_, i) => (
+          <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
+            left: `${10 + Math.random() * 80}%`, top: `${10 + Math.random() * 80}%`,
+            width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
+            background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#ffffff",
+            opacity: 0.3 + Math.random() * 0.5,
+            boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.4)"}`,
+            animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
+          }} />
+        ))}
+      </div>
 
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         {/* Title */}
-        <div className="text-center mb-10 relative z-10">
+        <div className="text-center mb-10">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
           <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto">The intelligence layer that turns your company's history into a digitalized CEO.</p>
         </div>
 
         {/* Card container */}
-        <div className="relative z-10 w-full max-w-2xl" style={{ minHeight: 200 }}>
+        <div className="relative max-w-2xl mx-auto" style={{ minHeight: 200 }}>
           {/* Card 1 */}
           <div
             className="transition-all duration-700 ease-out"
@@ -150,7 +152,7 @@ function BusinessDNACard() {
         </div>
 
         {/* Pagination dots */}
-        <div className="flex items-center gap-3 mt-8 relative z-10">
+        <div className="flex items-center justify-center gap-3 mt-8">
           {[0, 1].map(i => (
             <div
               key={i}
@@ -163,12 +165,6 @@ function BusinessDNACard() {
               }}
             />
           ))}
-        </div>
-
-        {/* Scroll hint */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 transition-opacity duration-500" style={{ opacity: sectionProgress < 0.9 ? 0.5 : 0 }}>
-          <span className="text-xs text-white/40 tracking-widest uppercase">Scroll</span>
-          <div className="w-px h-6 bg-white/20" />
         </div>
       </div>
     </div>
