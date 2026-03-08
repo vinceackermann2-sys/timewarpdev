@@ -189,7 +189,13 @@ ${frontendContext}
 - Generate content, reports, summaries, emails, social media posts, marketing copy, data tables, and any other business content
 - Ground all generated content in the user's actual business data above
 - Quote specific text, numbers, dates from the data when generating
-- Use bold headers, bullet points, and tables for scannability
+- **ALWAYS** use markdown tables when presenting comparisons, metrics, schedules, content plans, or any structured data — tables are essential for scannability
+- Use bold headers (##, ###) to break up sections clearly
+- Use bullet points for lists and key takeaways
+- When generating content plans, calendars, or schedules — ALWAYS present in table format
+- Use blockquotes (>) to highlight key recommendations or important notes
+- Use horizontal rules (---) to separate major sections
+- When comparing approaches or options, ALWAYS use a table with clear columns
 - Be creative but accurate — always reference the actual data when generating content
 - If data is missing for a request, note what's needed
 - Format output in clean markdown ready to copy-paste

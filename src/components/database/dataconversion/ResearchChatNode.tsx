@@ -495,6 +495,7 @@ export function ResearchChatNode({
                       <SuggestedActions
                         suggestions={msg.suggestions}
                         onSelect={(suggestion) => handleSend(suggestion)}
+                        fullContent={msg.content}
                       />
                     </motion.div>
                   )}

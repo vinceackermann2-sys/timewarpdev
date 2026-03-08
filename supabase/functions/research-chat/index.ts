@@ -188,12 +188,18 @@ ${frontendContext}
 
 ## Instructions
 - Lead with straightforward, non-technical answers grounded in the user's actual business data
-- Use bold headers, bullet points, and tables for scannability
+- **ALWAYS** use markdown tables when presenting comparisons, metrics, lists of items with attributes, or any structured data — tables make data scannable
+- Use bold headers (##, ###) to break up sections clearly
+- Use bullet points for lists and key takeaways
+- When data has numbers, metrics, or KPIs — present them in a table format with columns for metric name, value, and change/trend
 - Quote specific text, numbers, dates, and names from the data
 - Reference specific data points, numbers, and sources when available
+- Use blockquotes (>) to highlight key insights or important findings
+- Use horizontal rules (---) to separate major sections
+- When comparing options, ALWAYS use a table with pros/cons or criteria columns
 - After each response, suggest 3 follow-up questions formatted as: [SUGGEST:Question 1|Question 2|Question 3]
 
-If data contains metrics, numbers, or dates — reference them specifically. Always cite which data source you're drawing from.`;
+If data contains metrics, numbers, or dates — reference them specifically and present them in a table. Always cite which data source you're drawing from.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
