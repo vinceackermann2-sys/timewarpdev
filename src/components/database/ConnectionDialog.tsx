@@ -127,6 +127,7 @@ function EntityCard({
   onDragStart,
   onDragEnd,
   portRef,
+  onUnset,
 }: {
   entity: EntityItem;
   highlighted: boolean;
@@ -134,13 +135,14 @@ function EntityCard({
   onDragStart: (id: string, type: EntityType, e: React.MouseEvent) => void;
   onDragEnd: (id: string, type: EntityType) => void;
   portRef: (el: HTMLDivElement | null, id: string) => void;
+  onUnset?: () => void;
 }) {
   const Icon = ICONS[entity.type];
   const ports = PORTS[entity.type];
   return (
     <div
       className={cn(
-        "relative flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 transition-all select-none",
+        "group/card relative flex items-center gap-2 px-3 py-2 rounded-lg border transition-all select-none",
         highlighted
           ? BG_COLORS[entity.type]
           : "bg-card/60 border-border/30 hover:border-border/50"
@@ -158,14 +160,14 @@ function EntityCard({
       )}
       <div
         className={cn(
-          "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
+          "h-7 w-7 rounded-md flex items-center justify-center shrink-0",
           BG_COLORS[entity.type]
         )}
       >
-        <Icon className={cn("h-4.5 w-4.5", COLORS[entity.type])} />
+        <Icon className={cn("h-3.5 w-3.5", COLORS[entity.type])} />
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-sm font-medium text-foreground truncate block">
+        <span className="text-xs font-medium text-foreground truncate block">
           {entity.name}
         </span>
         {connectedCount > 0 && (
@@ -174,6 +176,15 @@ function EntityCard({
           </span>
         )}
       </div>
+      {connectedCount > 0 && onUnset && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onUnset(); }}
+          className="opacity-0 group-hover/card:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-destructive shrink-0"
+          title="Unset connections"
+        >
+          <Unlink className="h-3 w-3" />
+        </button>
+      )}
       {ports.includes("right") && (
         <DragPort
           entityId={entity.id}
