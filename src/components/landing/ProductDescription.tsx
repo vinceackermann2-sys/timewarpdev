@@ -154,7 +154,7 @@ export function ProductDescription() {
                 <rect width="100%" height="100%" filter="url(#grain-left)" />
               </svg>
               <div className="relative z-10">
-                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "hsl(0 0% 45%)" }}>
+                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>
                   What others call "AI Automation"
                 </p>
                 <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
