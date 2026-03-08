@@ -209,50 +209,71 @@ Format your response with these sections:
             }
           } catch (_) { /* ignore */ }
 
-          // Fetch the watch page HTML to extract captions/transcript
-          let pageHtml = "";
+          // Fetch the YouTube page to extract transcript, description, chapters, and thumbnail
           let transcript = "";
           let videoDescription = "";
+          let chapters: string[] = [];
+          let thumbnailBase64 = "";
+          
           try {
             const fetchRes = await fetch(rawUrl, {
               headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
               redirect: "follow",
             });
             if (fetchRes.ok) {
-              pageHtml = await fetchRes.text();
+              const pageHtml = await fetchRes.text();
 
-              // Extract video description from ytInitialPlayerResponse
+              // Extract video description
               const descMatch = pageHtml.match(/"shortDescription"\s*:\s*"((?:[^"\\]|\\.)*)"/);
               if (descMatch) {
-                videoDescription = descMatch[1]
-                  .replace(/\\n/g, "\n")
-                  .replace(/\\"/g, '"')
-                  .replace(/\\\\/g, "\\");
+                videoDescription = descMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
               }
 
-              // Extract captions/transcript URL from the page
+              // Extract chapters from description (timestamp patterns like "0:00 Intro")
+              if (videoDescription) {
+                const chapterLines = videoDescription.split("\n").filter(line => /^\d{1,2}:\d{2}/.test(line.trim()));
+                if (chapterLines.length > 1) chapters = chapterLines;
+              }
+
+              // Extract captions/transcript
               const captionMatch = pageHtml.match(/"captionTracks"\s*:\s*(\[.*?\])/);
               if (captionMatch) {
                 try {
                   const captionTracks = JSON.parse(captionMatch[1]);
-                  // Prefer English, fall back to first available
-                  const enTrack = captionTracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
-                  const captionUrl = enTrack?.baseUrl || captionTracks[0]?.baseUrl;
+                  // Prefer English, then auto-generated, then first available
+                  const enTrack = captionTracks.find((t: any) => t.languageCode === "en" && !t.kind) 
+                    || captionTracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"))
+                    || captionTracks[0];
+                  const captionUrl = enTrack?.baseUrl;
 
                   if (captionUrl) {
                     const captionRes = await fetch(captionUrl);
                     if (captionRes.ok) {
                       const captionXml = await captionRes.text();
-                      // Parse XML captions: extract text from <text> elements
-                      transcript = captionXml
-                        .replace(/<[^>]+>/g, " ")
-                        .replace(/&amp;/g, "&")
-                        .replace(/&lt;/g, "<")
-                        .replace(/&gt;/g, ">")
-                        .replace(/&quot;/g, '"')
-                        .replace(/&#39;/g, "'")
-                        .replace(/\s+/g, " ")
-                        .trim();
+                      // Parse timed captions: extract timestamps + text
+                      const segments: string[] = [];
+                      const segmentRegex = /<text start="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g;
+                      let match;
+                      while ((match = segmentRegex.exec(captionXml)) !== null) {
+                        const startSec = parseFloat(match[1]);
+                        const mins = Math.floor(startSec / 60);
+                        const secs = Math.floor(startSec % 60);
+                        const timestamp = `${mins}:${secs.toString().padStart(2, "0")}`;
+                        const text = match[2]
+                          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+                          .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\n/g, " ").trim();
+                        if (text) segments.push(`[${timestamp}] ${text}`);
+                      }
+                      transcript = segments.join("\n");
+                      
+                      // If regex failed, fallback to simple extraction
+                      if (!transcript) {
+                        transcript = captionXml
+                          .replace(/<[^>]+>/g, " ")
+                          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+                          .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+                          .replace(/\s+/g, " ").trim();
+                      }
                     }
                   }
                 } catch (_) {
@@ -262,66 +283,67 @@ Format your response with these sections:
             }
           } catch (_) { /* ignore */ }
 
-          // Get high-res thumbnail for visual analysis
-          const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-          let thumbnailBase64 = "";
+          // Get high-res thumbnail for visual context
           if (videoId) {
             try {
-              const thumbRes = await fetch(thumbnailUrl);
-              if (thumbRes.ok) {
+              const thumbRes = await fetch(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+              if (thumbRes.ok && thumbRes.headers.get("content-type")?.includes("image")) {
                 const thumbBuf = await thumbRes.arrayBuffer();
                 const uint8 = new Uint8Array(thumbBuf);
                 let binary = "";
-                for (let i = 0; i < uint8.length; i++) {
-                  binary += String.fromCharCode(uint8[i]);
-                }
+                for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
                 thumbnailBase64 = btoa(binary);
               }
             } catch (_) { /* ignore */ }
           }
 
-          extractedText = transcript || videoDescription || "";
-
-          // Build multimodal prompt if we have a thumbnail
+          // Send thumbnail for visual analysis
           if (thumbnailBase64) {
             useMultimodal = true;
             mediaUrl = `data:image/jpeg;base64,${thumbnailBase64}`;
           }
 
-          userPrompt = `Analyze this YouTube video in depth.
+          extractedText = transcript || videoDescription || "";
+
+          userPrompt = `Analyze this YouTube video thoroughly based on its full transcript, description, and thumbnail.
 
 **Video URL:** ${rawUrl}
 **Title:** ${videoTitle}
 ${videoAuthor ? `**Channel:** ${videoAuthor}` : ""}
 
-${videoDescription ? `**Video Description:**\n${videoDescription.slice(0, 3000)}\n` : ""}
+${videoDescription ? `**Video Description:**\n${videoDescription.slice(0, 5000)}\n` : ""}
 
-${transcript ? `**Full Transcript (auto-captions):**\n${transcript.slice(0, 30000)}\n` : "⚠️ No transcript/captions available for this video."}
+${chapters.length > 0 ? `**Chapters:**\n${chapters.join("\n")}\n` : ""}
 
-${thumbnailBase64 ? "I've also attached the video thumbnail for visual context.\n" : ""}
+${transcript ? `**FULL TIMESTAMPED TRANSCRIPT (this is what was said in the video):**\n${transcript.slice(0, 80000)}\n` : "⚠️ No transcript/captions available for this video — analyze based on available metadata."}
 
-Provide a comprehensive analysis:
+${thumbnailBase64 ? "I've also attached the video thumbnail — analyze what's visually shown (people, setting, style, branding).\n" : ""}
+
+Provide a comprehensive, detailed analysis:
 
 ## Video Summary
-A detailed overview of what the video covers.
+A thorough overview of what the video covers — what was discussed, demonstrated, or presented.
+
+## What Was Said (Key Dialogue & Arguments)
+The most important things said in the video, organized by topic. Include direct quotes with timestamps where impactful.
+
+## What Was Shown (Visual Content)
+Based on the thumbnail and transcript context, describe the visual format (talking head, slides, demo, etc.), setting, people, and any visual elements mentioned.
 
 ## Key Points & Topics
-Bullet-pointed list of the main subjects, arguments, and insights discussed.
+Detailed bullet-pointed list of every major subject, argument, and insight discussed.
 
 ## Notable Quotes
-Direct quotes from the transcript that are particularly impactful or important.
-
-## Visual Content
-${thumbnailBase64 ? "Based on the thumbnail and any visual cues from the transcript," : "Based on context clues,"} describe the visual style, presentation format (talking head, slides, screencast, etc.).
+The most impactful direct quotes from the transcript with timestamps.
 
 ## Target Audience
-Who this content is made for.
+Who this video is made for and why.
 
 ## Business Insights & Takeaways
-Actionable insights and how this content could be relevant for business strategy.
+Actionable insights — what can be learned or applied from this video.
 
 ## Content Strategy Notes
-How this video fits into broader content patterns, what works well about it.`;
+Format analysis, engagement techniques used, and how this fits into content strategy.`;
 
         } else if (isSocialMedia) {
           // Social media URL — fetch what we can
