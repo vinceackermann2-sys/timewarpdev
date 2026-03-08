@@ -115,55 +115,66 @@ export function ProductDescription() {
         </div>
       </section>
 
-      {/* ── Business DNA intro ── */}
-      <Section className="relative z-10" dark>
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-primary/20 bg-primary/5 mb-8">
-            <Brain className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold text-primary">This is Business DNA</span>
-          </div>
-          <p className="text-xl sm:text-2xl text-foreground/90 max-w-3xl mx-auto leading-relaxed font-medium">
-            The intelligence layer that turns your company's history into a <span className="italic text-primary">digitalized CEO</span>.
-          </p>
+      {/* ── Business DNA intro + comparison cards ── */}
+      <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
+        {/* Subtle particle dots */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(30)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full bg-white"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: `${1 + Math.random() * 1.5}px`,
+                height: `${1 + Math.random() * 1.5}px`,
+                opacity: 0.08 + Math.random() * 0.12,
+              }}
+            />
+          ))}
         </div>
-      </Section>
 
-      {/* ── What others call vs what we mean ── */}
-      <Section className="relative z-10">
-        <div className="grid md:grid-cols-2 gap-12 lg:gap-16">
-          {/* Left: what others call */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
-              <h3 className="text-xs tracking-[0.25em] uppercase text-muted-foreground font-mono">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
+          {/* Title */}
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>
+              This is Business DNA.
+            </h2>
+            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto">
+              The intelligence layer that turns your company's history into a digitalized CEO.
+            </p>
+          </div>
+
+          {/* Two comparison cards */}
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* Left card */}
+            <div className="rounded-2xl p-7 sm:p-8" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "hsl(0 0% 45%)" }}>
                 What others call "AI Automation"
+              </p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
+                Chatbots, agents and workflows.
               </h3>
+              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
+                Other tools connect apps to move data. That's plumbing — not leadership.
+              </p>
             </div>
-            <p className="text-2xl font-bold text-foreground/60">
-              Chatbots, agents and workflows.
-            </p>
-            <p className="text-muted-foreground leading-relaxed">
-              Other tools connect apps to move data. That's plumbing — <span className="italic">not leadership</span>.
-            </p>
-          </div>
 
-          {/* Right: what we mean */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-primary" />
-              <h3 className="text-xs tracking-[0.25em] uppercase text-primary font-mono">
+            {/* Right card */}
+            <div className="rounded-2xl p-7 sm:p-8" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4 text-red-400">
                 What we mean by Business DNA
+              </p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
+                Every decision, SOP, and winning pivot your company has ever made.
               </h3>
+              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
+                The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.
+              </p>
             </div>
-            <p className="text-2xl font-bold text-foreground">
-              Every decision, SOP, and winning pivot your company has ever made.
-            </p>
-            <p className="text-muted-foreground leading-relaxed">
-              The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the <span className="italic text-foreground">"Why"</span> behind your success — and runs the company based on that intelligence.
-            </p>
           </div>
         </div>
-      </Section>
+      </section>
 
       {/* ── Evolution of Labor ── */}
       <Section className="relative z-10" dark>
