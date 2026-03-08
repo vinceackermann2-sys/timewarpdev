@@ -168,6 +168,12 @@ const Database = () => {
         </SidebarInset>
       </div>
     </SidebarProvider>
+    <ActionsCelebration
+      open={showReferrerCelebration}
+      onOpenChange={setShowReferrerCelebration}
+      actionsGranted={125}
+      reason="referral"
+    />
   );
 };
 
