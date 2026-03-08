@@ -212,45 +212,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               <BusinessBrainOrb size={72} />
             </div>
 
-            {/* Template quick-start */}
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Start from a template</Label>
-              <button
-                type="button"
-                onClick={() => {
-                  setName("Signal Scout");
-                  setRole("Audience Researcher");
-                  setSopTitle("Signal Mining Method");
-                  setPurposeWhy("To gather data-backed product research");
-                  setPurposeProblem("Manual researching takes time");
-                  setScopeWhere("Online");
-                  setScopeWhen("During product confusion");
-                  setProcedure([
-                    "Go to reddit.com",
-                    "Search up audience-related problems people have with our product",
-                    "Find quotes verifying these problems",
-                    "Find different audiences that have different problems",
-                  ]);
-                  setSafetyWarnings("Don't chat with anyone");
-                  toast({ title: "Template applied", description: "Audience Research SOP loaded — you can edit any field." });
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 hover:border-primary/30 transition-all text-left group"
-              >
-                <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10 text-primary text-sm shrink-0">🔍</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">Audience Research SOP</p>
-                  <p className="text-xs text-muted-foreground">Signal mining method — Reddit audience research</p>
-                </div>
-                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-              </button>
-            </div>
-
-            <div className="relative flex items-center gap-4 py-1">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground font-medium">OR START BLANK</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-
             <div className="space-y-2">
               <Label className="text-base font-semibold text-foreground">What should this employee be called?</Label>
               <p className="text-xs text-muted-foreground">Give your AI employee a name.</p>
@@ -261,6 +222,41 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               <p className="text-xs text-muted-foreground">Describe the position or function.</p>
               <Input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Customer Support Agent" />
             </div>
+
+            <div className="relative flex items-center gap-4 py-1">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground font-medium">OR START FROM TEMPLATE</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setName("Signal Scout");
+                setRole("Audience Researcher");
+                setSopTitle("Signal Mining Method");
+                setPurposeWhy("To gather data-backed product research");
+                setPurposeProblem("Manual researching takes time");
+                setScopeWhere("Online");
+                setScopeWhen("During product confusion");
+                setProcedure([
+                  "Go to reddit.com",
+                  "Search up audience-related problems people have with our product",
+                  "Find quotes verifying these problems",
+                  "Find different audiences that have different problems",
+                ]);
+                setSafetyWarnings("Don't chat with anyone");
+                toast({ title: "Template applied", description: "Signal Mining Method loaded — you can edit any field." });
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 hover:border-primary/30 transition-all text-left group"
+            >
+              <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10 text-primary text-sm shrink-0">🔍</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">Signal Mining Method</p>
+                <p className="text-xs text-muted-foreground">Data-backed research — Reddit audience research</p>
+              </div>
+              <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+            </button>
           </div>
         )}
 
