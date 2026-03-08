@@ -265,7 +265,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
       {/* Loading state */}
       {!content && !steps?.length && isStreaming && (
         <div className="px-4 py-4 flex items-center gap-2.5">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <Loader2 className="h-4 w-4 animate-spin text-foreground" />
           <span className="text-muted-foreground text-sm">Processing...</span>
         </div>
       )}
