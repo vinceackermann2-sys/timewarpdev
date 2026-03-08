@@ -350,6 +350,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             margin-top: 0.75rem !important;
             justify-content: flex-start !important;
             text-align: left !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+          }
+          .hero-hint svg {
+            flex-shrink: 0 !important;
           }
           .hero-badges {
             flex-wrap: wrap !important;
