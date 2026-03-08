@@ -123,7 +123,9 @@ export function useExtensionBridge() {
   const executeAction = useCallback((action: BrowserAction, executeInTab = true): Promise<ActionResult> => {
     return new Promise((resolve) => {
       resolversRef.current.set("action_result", resolve);
-      window.postMessage({ type: "TIMEWARP_EXECUTE_ACTION", action, executeInTab, targetGroupTab: true, focusGroup: false }, "*");
+      const msg = { type: "TIMEWARP_EXECUTE_ACTION", action, executeInTab, targetGroupTab: true, focusGroup: false };
+      console.log("[ExtBridge] 📤 Sending action:", JSON.stringify(msg));
+      window.postMessage(msg, "*");
       setTimeout(() => {
         if (resolversRef.current.has("action_result")) {
           resolversRef.current.delete("action_result");
