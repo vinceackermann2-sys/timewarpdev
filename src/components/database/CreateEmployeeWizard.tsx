@@ -251,21 +251,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
                 <Plus className="h-3 w-3" /> Add Definition
               </Button>
             </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What materials or tools are needed?</Label>
-              <p className="text-xs text-muted-foreground">Equipment, software, or documents required for this procedure.</p>
-              {materials.map((m, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input value={m} onChange={e => updateListItem(materials, setMaterials, i, e.target.value)} placeholder={`Material ${i + 1}`} />
-                  {materials.length > 1 && (
-                    <Button variant="ghost" size="icon" onClick={() => removeListItem(materials, setMaterials, i)}><X className="h-3 w-3" /></Button>
-                  )}
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={() => addListItem(materials, setMaterials)} className="gap-1">
-                <Plus className="h-3 w-3" /> Add
-              </Button>
-            </div>
           </div>
         )}
 
