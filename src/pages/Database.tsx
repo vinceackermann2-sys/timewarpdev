@@ -74,6 +74,30 @@ const Database = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Check for unseen referral completions (referrer side)
+  useEffect(() => {
+    if (!user) return;
+    const checkReferrerRewards = async () => {
+      const lastSeen = localStorage.getItem("lastSeenReferralAt");
+      const { data } = await supabase
+        .from("referrals")
+        .select("completed_at")
+        .eq("referrer_id", user.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(1);
+      
+      if (data && data.length > 0 && data[0].completed_at) {
+        const completedAt = data[0].completed_at;
+        if (!lastSeen || new Date(completedAt) > new Date(lastSeen)) {
+          localStorage.setItem("lastSeenReferralAt", completedAt);
+          setShowReferrerCelebration(true);
+        }
+      }
+    };
+    checkReferrerRewards();
+  }, [user]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
