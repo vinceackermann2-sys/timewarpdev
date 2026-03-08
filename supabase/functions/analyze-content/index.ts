@@ -209,87 +209,65 @@ Format your response with these sections:
             }
           } catch (_) { /* ignore */ }
 
-          // Use Gemini API directly with YouTube URL support for native video understanding
-          const geminiPrompt = `You are a business analyst. Analyze this YouTube video thoroughly — watch and listen to the ENTIRE video.
+          // Fetch the YouTube page to extract transcript, description, chapters, and thumbnail
+          let transcript = "";
+          let videoDescription = "";
+          let chapters: string[] = [];
+          let thumbnailBase64 = "";
+          
+          try {
+            const fetchRes = await fetch(rawUrl, {
+              headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+              redirect: "follow",
+            });
+            if (fetchRes.ok) {
+              const pageHtml = await fetchRes.text();
 
-Provide a comprehensive analysis:
+              // Extract video description
+              const descMatch = pageHtml.match(/"shortDescription"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+              if (descMatch) {
+                videoDescription = descMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+              }
 
-## Video Summary
-A detailed overview of what the video covers, what is shown visually, and what is said.
+              // Extract chapters from description (timestamp patterns like "0:00 Intro")
+              if (videoDescription) {
+                const chapterLines = videoDescription.split("\n").filter(line => /^\d{1,2}:\d{2}/.test(line.trim()));
+                if (chapterLines.length > 1) chapters = chapterLines;
+              }
 
-## Full Transcript
-Transcribe everything that is said in the video as accurately as possible.
+              // Extract captions/transcript
+              const captionMatch = pageHtml.match(/"captionTracks"\s*:\s*(\[.*?\])/);
+              if (captionMatch) {
+                try {
+                  const captionTracks = JSON.parse(captionMatch[1]);
+                  // Prefer English, then auto-generated, then first available
+                  const enTrack = captionTracks.find((t: any) => t.languageCode === "en" && !t.kind) 
+                    || captionTracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"))
+                    || captionTracks[0];
+                  const captionUrl = enTrack?.baseUrl;
 
-## Visual Content & Scenes
-Describe what is shown in the video: people, locations, slides, screen recordings, product demos, graphics, text overlays, etc. Note key visual moments with approximate timestamps.
-
-## Key Points & Topics
-Bullet-pointed list of the main subjects, arguments, and insights discussed.
-
-## Notable Quotes
-Direct quotes that are particularly impactful or important.
-
-## Target Audience
-Who this content is made for.
-
-## Business Insights & Takeaways
-Actionable insights and how this content could be relevant for business strategy.
-
-## Content Strategy Notes
-How this video fits into broader content patterns, what works well about it.`;
-
-          // Call Gemini API directly with file_data for YouTube URL
-          const geminiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${LOVABLE_API_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [
-                    {
-                      file_data: {
-                        file_uri: rawUrl,
-                        mime_type: "video/*",
-                      },
-                    },
-                    { text: geminiPrompt },
-                  ],
-                }],
-              }),
-            }
-          );
-
-          // If direct Gemini API fails (e.g. API key format mismatch), fall back to gateway with transcript extraction
-          if (!geminiResponse.ok) {
-            console.log("Direct Gemini API failed, falling back to transcript extraction");
-
-            // Fetch transcript from YouTube captions
-            let transcript = "";
-            let videoDescription = "";
-            try {
-              const fetchRes = await fetch(rawUrl, {
-                headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
-                redirect: "follow",
-              });
-              if (fetchRes.ok) {
-                const pageHtml = await fetchRes.text();
-
-                const descMatch = pageHtml.match(/"shortDescription"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-                if (descMatch) {
-                  videoDescription = descMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
-                }
-
-                const captionMatch = pageHtml.match(/"captionTracks"\s*:\s*(\[.*?\])/);
-                if (captionMatch) {
-                  try {
-                    const captionTracks = JSON.parse(captionMatch[1]);
-                    const enTrack = captionTracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
-                    const captionUrl = enTrack?.baseUrl || captionTracks[0]?.baseUrl;
-                    if (captionUrl) {
-                      const captionRes = await fetch(captionUrl);
-                      if (captionRes.ok) {
-                        const captionXml = await captionRes.text();
+                  if (captionUrl) {
+                    const captionRes = await fetch(captionUrl);
+                    if (captionRes.ok) {
+                      const captionXml = await captionRes.text();
+                      // Parse timed captions: extract timestamps + text
+                      const segments: string[] = [];
+                      const segmentRegex = /<text start="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g;
+                      let match;
+                      while ((match = segmentRegex.exec(captionXml)) !== null) {
+                        const startSec = parseFloat(match[1]);
+                        const mins = Math.floor(startSec / 60);
+                        const secs = Math.floor(startSec % 60);
+                        const timestamp = `${mins}:${secs.toString().padStart(2, "0")}`;
+                        const text = match[2]
+                          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+                          .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\n/g, " ").trim();
+                        if (text) segments.push(`[${timestamp}] ${text}`);
+                      }
+                      transcript = segments.join("\n");
+                      
+                      // If regex failed, fallback to simple extraction
+                      if (!transcript) {
                         transcript = captionXml
                           .replace(/<[^>]+>/g, " ")
                           .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
@@ -297,51 +275,75 @@ How this video fits into broader content patterns, what works well about it.`;
                           .replace(/\s+/g, " ").trim();
                       }
                     }
-                  } catch (_) { /* ignore */ }
+                  }
+                } catch (_) {
+                  console.error("Failed to parse caption tracks");
                 }
               }
-            } catch (_) { /* ignore */ }
+            }
+          } catch (_) { /* ignore */ }
 
-            extractedText = transcript || videoDescription || "";
-            userPrompt = `Analyze this YouTube video in depth.
+          // Get high-res thumbnail for visual context
+          if (videoId) {
+            try {
+              const thumbRes = await fetch(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+              if (thumbRes.ok && thumbRes.headers.get("content-type")?.includes("image")) {
+                const thumbBuf = await thumbRes.arrayBuffer();
+                const uint8 = new Uint8Array(thumbBuf);
+                let binary = "";
+                for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+                thumbnailBase64 = btoa(binary);
+              }
+            } catch (_) { /* ignore */ }
+          }
+
+          // Send thumbnail for visual analysis
+          if (thumbnailBase64) {
+            useMultimodal = true;
+            mediaUrl = `data:image/jpeg;base64,${thumbnailBase64}`;
+          }
+
+          extractedText = transcript || videoDescription || "";
+
+          userPrompt = `Analyze this YouTube video thoroughly based on its full transcript, description, and thumbnail.
 
 **Video URL:** ${rawUrl}
 **Title:** ${videoTitle}
 ${videoAuthor ? `**Channel:** ${videoAuthor}` : ""}
 
-${videoDescription ? `**Video Description:**\n${videoDescription.slice(0, 3000)}\n` : ""}
+${videoDescription ? `**Video Description:**\n${videoDescription.slice(0, 5000)}\n` : ""}
 
-${transcript ? `**Full Transcript (auto-captions):**\n${transcript.slice(0, 50000)}\n` : "⚠️ No transcript/captions available."}
+${chapters.length > 0 ? `**Chapters:**\n${chapters.join("\n")}\n` : ""}
 
-Provide a comprehensive analysis with these sections:
-## Video Summary, ## Key Points & Topics, ## Notable Quotes, ## Target Audience, ## Business Insights & Takeaways, ## Content Strategy Notes`;
+${transcript ? `**FULL TIMESTAMPED TRANSCRIPT (this is what was said in the video):**\n${transcript.slice(0, 80000)}\n` : "⚠️ No transcript/captions available for this video — analyze based on available metadata."}
 
-          } else {
-            // Direct Gemini API succeeded — extract the response
-            const geminiData = await geminiResponse.json();
-            const videoAnalysis = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "No analysis generated.";
+${thumbnailBase64 ? "I've also attached the video thumbnail — analyze what's visually shown (people, setting, style, branding).\n" : ""}
 
-            extractedText = videoAnalysis;
+Provide a comprehensive, detailed analysis:
 
-            // Skip the normal AI gateway call — return directly
-            if (userId && supabaseAdmin) {
-              await supabaseAdmin.from("user_business_data").insert({
-                user_id: userId,
-                data_type: "youtube_video",
-                source: "canvas",
-                title: dataTitle,
-                content: rawUrl,
-                analyzed_content: videoAnalysis,
-                is_analyzed: true,
-                metadata: { url: rawUrl, videoId, videoTitle, videoAuthor },
-              });
-              await updateBucketContext(supabaseAdmin, userId);
-            }
+## Video Summary
+A thorough overview of what the video covers — what was discussed, demonstrated, or presented.
 
-            return new Response(JSON.stringify({ success: true, analysis: videoAnalysis, extractedText: videoAnalysis }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
+## What Was Said (Key Dialogue & Arguments)
+The most important things said in the video, organized by topic. Include direct quotes with timestamps where impactful.
+
+## What Was Shown (Visual Content)
+Based on the thumbnail and transcript context, describe the visual format (talking head, slides, demo, etc.), setting, people, and any visual elements mentioned.
+
+## Key Points & Topics
+Detailed bullet-pointed list of every major subject, argument, and insight discussed.
+
+## Notable Quotes
+The most impactful direct quotes from the transcript with timestamps.
+
+## Target Audience
+Who this video is made for and why.
+
+## Business Insights & Takeaways
+Actionable insights — what can be learned or applied from this video.
+
+## Content Strategy Notes
+Format analysis, engagement techniques used, and how this fits into content strategy.`;
 
         } else if (isSocialMedia) {
           // Social media URL — fetch what we can
