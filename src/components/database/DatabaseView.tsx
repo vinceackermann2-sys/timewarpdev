@@ -408,6 +408,7 @@ export function DatabaseView() {
   }
 
   return (
+    <>
     <div className="h-full flex flex-col relative overflow-hidden bg-background">
       <BgGradient
         gradientFrom="hsl(var(--background))"
