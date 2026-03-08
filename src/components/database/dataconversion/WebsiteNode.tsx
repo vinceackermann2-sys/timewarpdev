@@ -28,6 +28,7 @@ export function WebsiteNode({
   const [url, setUrl] = useState(node.websiteUrl || "");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const { checkCanUseAction } = useActionGate();
 
   const analyzeWebsite = useCallback(async (websiteUrl: string) => {
     setIsAnalyzing(true);
