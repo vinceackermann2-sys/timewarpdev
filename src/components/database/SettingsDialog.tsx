@@ -302,7 +302,6 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
   const getPlanButtonLabel = (plan: PlanKey) => {
     if (currentPlan === plan) return "Manage Plan";
-    if (plan === "co_founder") return "Pre-order";
     return "Get Started";
   };
 
@@ -610,7 +609,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                     {/* TimeWarp OG */}
                     <div className={cn("relative rounded-xl border-2 bg-card p-5 flex flex-col", currentPlan === "timewarp_og" ? "border-green-500" : "border-border/60")}>
                       {currentPlan === "timewarp_og" && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><Badge className="bg-green-500 text-white border-green-500 px-3 py-0.5 text-xs">Your Plan</Badge></div>}
-                      <div className="flex gap-1.5 mb-3"><Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Only 20 spots</Badge><Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200 text-xs">Ends April 1st</Badge></div>
+                      <div className="flex gap-1.5 mb-3"><Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200 text-xs">Ends April 1st</Badge></div>
                       <h3 className="text-lg font-bold mb-1">TimeWarp OG</h3>
                       <p className="text-muted-foreground text-xs mb-4">Unlimited power</p>
                       <div className="mb-4"><span className="text-3xl font-bold">${prices.timewarp_og}</span><span className="text-muted-foreground text-sm"> / mo</span></div>
