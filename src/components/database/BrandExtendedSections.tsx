@@ -40,6 +40,14 @@ interface VisualIdentityInitial {
   websiteScreenshot?: string;
   mobileScreenshot?: string;
   guidelineImageUrls?: string[];
+  socialMediaUrls?: string[];
+}
+
+interface BrandColorsProps {
+  primary?: string;
+  secondary?: string;
+  background?: string;
+  text?: string;
 }
 
 const DEFAULT_DATA: VisualIdentityData = {

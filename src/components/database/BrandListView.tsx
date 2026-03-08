@@ -53,6 +53,7 @@ export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
                 isEditing={isVisualIdentityEditing}
                 onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)}
                 initialData={selectedBrand.visualIdentity}
+                brandColors={selectedBrand.colors}
                 onSave={(viData) => {
                   setBrands(prev => prev.map(b => b.id === activeBrandId ? {
                     ...b,
