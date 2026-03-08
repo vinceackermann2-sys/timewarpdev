@@ -219,11 +219,13 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             justify-content: center !important;
             align-items: center !important;
             gap: 2rem !important;
+            min-height: calc(100dvh - 80px) !important;
           }
           .hero-left-content {
             align-items: center !important;
             display: flex !important;
             flex-direction: column !important;
+            justify-content: center !important;
             max-width: 100% !important;
             width: 100% !important;
           }
@@ -243,6 +245,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           }
           .hero-badges {
             justify-content: center !important;
+          }
+          .hero-badge-dot {
+            width: 4px !important;
+            height: 4px !important;
           }
           .hero-phone-visual {
             display: none !important;
