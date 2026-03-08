@@ -165,9 +165,9 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           </p>
 
           {/* URL Input */}
-          <div style={{ marginBottom: "1.5rem" }}>
+          <div className="hero-input-card" style={{ marginBottom: "1.5rem" }}>
             <div className="hero-input-bar" style={{ display: "flex", alignItems: "center", background: t.inputBg, borderRadius: 14, padding: "0.5rem 0.5rem 0.5rem 1rem", boxShadow: t.inputShadow, border: `1px solid ${t.inputBorder}`, height: 64, transition: "all 0.3s ease" }}>
-              <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} />
+              <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} className="hero-input-icon" />
               <input
                 type="text"
                 placeholder="nike.com/shoes/air-max"
