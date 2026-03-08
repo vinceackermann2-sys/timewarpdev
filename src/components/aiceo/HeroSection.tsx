@@ -165,11 +165,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       <main style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 1760, margin: "0 auto", padding: "4rem 2rem", gap: "4rem", flex: 1 }} className="hero-main-flex">
         {/* Left Content */}
         <div style={{ flex: 1, maxWidth: 720 }} className="hero-left-content">
-          <h1 className="hero-heading" className="hero-heading" className="hero-heading" className="hero-heading" className="hero-heading" style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: t.text, fontFamily: "'Outfit', sans-serif", transition: "color 0.3s className="hero-subtitle" ease" }}>
+          <h1 className="hero-heading" className="hero-heading" className="hero-heading" className="hero-heading" className="hero-heading" className="hero-heading" style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: t.text, fontFamily: "'Outfit', sans-serif",className="hero-subtitle"  transition: "color 0.3s className="hero-subtitle" ease" }}>
             GetclassName="hero-subtitle"  business decisions<br />className="hero-subtitle" completed in seconds
     className="hero-subtitle"       </h1>
           <p style={{ fontSize: "1.25rem", color: t.textSec, lineHeight: 1.5, marginBottom: "3rem", maxWidth: "90%", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
-            AI CEO runs deep research on your business and turnclassName="hero-input-bar" s your data into levers pulled–for you
+            className="hero-input-bar" AI CEO runs deep research on your business and turnclassName="hero-input-bar" s your data into levers pulled–for you
           className="hero-input-bar" </p>
 
           {/* URL Input */}
@@ -188,14 +188,14 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 onClick={handleAnalyze}
                 style={{ height: "100%", padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap" as const, background: "#3399ff", color: "#fff", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer", transition: "all 0.2s ease" }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#2288ee"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "#3399ff"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "#3399ff"; (e.currentTarget asclassName="hero-hint"  HTMLElement).style.transform = "translateY(0)"; }}
               >
           className="hero-hint"       Analyze →
               </button>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13A5 5 0 0015 8V6A5 5 0 005 6V8A5 5 0 0010 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11A5 5 0 009 16V18A5 5 0 0019 18V16A5 5 0 0014 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Link to a specific product (like "nike.com/shoes/air-max") for 10x faster results
+              Link to a specific product (like "nike.com/shoes/air-max") className="hero-badges" for 10x faster results
             </div>
           </div>
 
