@@ -84,7 +84,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         setPlaceholder(current.slice(0, charIndex.current));
         if (charIndex.current === current.length) {
           isDeleting.current = true;
-          return setTimeout(tick, 2000); // pause before deleting
+          return setTimeout(tick, 4000); // pause 4s before deleting
         }
       } else {
         charIndex.current--;
