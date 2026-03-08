@@ -285,7 +285,7 @@ export function ProductDescription() {
       </section>
 
       {/* ── Why the AI CEO wins ── */}
-      <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
+      <section className="relative z-10 py-24 lg:py-32" style={{ background: "#1D1D1D" }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
           <div className="text-center mb-16">
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Why the AI CEO wins</h3>
