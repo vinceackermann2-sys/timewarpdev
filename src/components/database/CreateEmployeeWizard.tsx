@@ -225,9 +225,12 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         {step === 3 && (
           <div className="space-y-8">
             <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What is the scope of this SOP?</Label>
-              <p className="text-xs text-muted-foreground">Where and when does this procedure apply?</p>
-              <Textarea value={sopScope} onChange={e => setSopScope(e.target.value)} placeholder="Describe the boundaries and applicability..." rows={3} />
+              <Label className="text-base font-semibold text-foreground">Where does this procedure apply?</Label>
+              <Input value={scopeWhere} onChange={e => setScopeWhere(e.target.value)} placeholder="e.g. All customer-facing departments" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-base font-semibold text-foreground">When does this procedure apply?</Label>
+              <Input value={scopeWhen} onChange={e => setScopeWhen(e.target.value)} placeholder="e.g. Whenever a complaint is received" />
             </div>
             <div className="space-y-2">
               <Label className="text-base font-semibold text-foreground">Who is responsible for each part?</Label>
