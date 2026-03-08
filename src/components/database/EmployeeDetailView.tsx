@@ -685,16 +685,22 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
               </div>
             </div>
           ) : (
-            /* View Mode — always show all fields */
+            /* View Mode — one field per question, matching wizard */
             <div className="space-y-6">
               <Section title="SOP Title">
                 <p className="font-medium">{employee.sop_title || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
-              <Section title="Purpose">
-                <p>{employee.sop_purpose || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              <Section title="Why does this procedure exist?">
+                <p>{splitField(employee.sop_purpose, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
-              <Section title="Scope">
-                <p>{employee.sop_scope || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              <Section title="What problem does it solve?">
+                <p>{splitField(employee.sop_purpose, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Where does this procedure apply?">
+                <p>{splitField(employee.sop_scope, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="When does this procedure apply?">
+                <p>{splitField(employee.sop_scope, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
               <Section title="Definitions">
                 {employee.sop_definitions && employee.sop_definitions.length > 0
@@ -710,8 +716,11 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                   : <p className="text-muted-foreground italic">Not specified</p>
                 }
               </Section>
-              <Section title="Safety / Compliance Notes">
-                <p>{employee.sop_safety_notes || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              <Section title="Safety warnings or regulations">
+                <p>{splitField(employee.sop_safety_notes, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Risk considerations">
+                <p>{splitField(employee.sop_safety_notes, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
 
               {employee.sop_revision_history && employee.sop_revision_history.length > 0 && (
