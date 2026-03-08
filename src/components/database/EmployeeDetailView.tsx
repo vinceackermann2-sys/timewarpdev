@@ -530,18 +530,19 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         </div>
       </div>
 
-      {/* Running indicator - minimal, overlay is in the extension group tab */}
       {running && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-3 rounded-full border border-border bg-background/95 backdrop-blur-xl shadow-lg px-4 py-2">
-            <BusinessBrainOrb size={24} />
-            <span className="text-sm font-medium">{employee.name}</span>
-            <span className="text-xs text-muted-foreground">{currentStep || "Running…"}</span>
-            <Button onClick={handleStop} variant="destructive" size="sm" className="h-7 text-xs">
-              Stop
-            </Button>
-          </div>
-        </div>
+        <EmployeeRunOverlay
+          employeeName={employee.name}
+          currentStep={currentStep}
+          isPaused={isPaused}
+          isManualMode={isManualMode}
+          onPause={handlePause}
+          onContinue={handleContinue}
+          onStop={handleStop}
+          onManualTakeover={handleManualTakeover}
+          onReturnControl={handleReturnControl}
+          safetyAlert={safetyAlert}
+        />
       )}
     </div>
   );
