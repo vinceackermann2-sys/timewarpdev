@@ -194,16 +194,23 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
             return (
               <div key={product.id} className="group rounded-xl border border-border/40 bg-card/50 hover:bg-card transition-colors cursor-pointer">
                 <div className="flex items-center gap-3 px-4 py-3.5" onClick={() => setSelectedProductId(product.id)}>
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                    <Package className="h-5 w-5 text-primary" />
-                  </div>
+                  {/* Product thumbnail or icon */}
+                  {product.images?.[0]?.url ? (
+                    <div className="h-10 w-10 rounded-lg border border-border/30 overflow-hidden shrink-0 bg-muted/30">
+                      <img src={product.images[0].url} alt={product.name} className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                      <Package className="h-5 w-5 text-primary" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">{product.category} · Updated {product.lastUpdated}</p>
+                    <p className="text-xs text-muted-foreground truncate">{product.category}{product.description ? ` · ${product.description.slice(0, 80)}${product.description.length > 80 ? '…' : ''}` : ''}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70"><Lock className="h-2.5 w-2.5" />Private</span>
                       <span className="text-[10px] text-muted-foreground/40">·</span>
-                      <span className="text-[10px] text-muted-foreground/70">Last updated: {product.lastUpdated}</span>
+                      <span className="text-[10px] text-muted-foreground/70">Updated: {product.lastUpdated}</span>
                       <span className="text-[10px] text-muted-foreground/40">·</span>
                       <span className="text-[10px] text-muted-foreground/70">Added by: {userName}</span>
                       {totalConnections > 0 && (

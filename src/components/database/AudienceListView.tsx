@@ -180,11 +180,11 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{audience.name}</p>
-                    <p className="text-xs text-muted-foreground">Audience Segment · Updated {audience.lastUpdated}</p>
+                    <p className="text-xs text-muted-foreground truncate">{audience.description ? `${audience.description.slice(0, 90)}${audience.description.length > 90 ? '…' : ''}` : 'Audience Segment'}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70"><Lock className="h-2.5 w-2.5" />Private</span>
                       <span className="text-[10px] text-muted-foreground/40">·</span>
-                      <span className="text-[10px] text-muted-foreground/70">Last updated: {audience.lastUpdated}</span>
+                      <span className="text-[10px] text-muted-foreground/70">Updated: {audience.lastUpdated}</span>
                       <span className="text-[10px] text-muted-foreground/40">·</span>
                       <span className="text-[10px] text-muted-foreground/70">Added by: {userName}</span>
                       {connectedProducts.length > 0 && (
