@@ -6,9 +6,7 @@ import {
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { extractSuggestions } from "@/lib/parseSuggestions";
-import { Brain } from "lucide-react";
-
-export interface InsightCard {
+import { Brain } from "lucide-reactnterface InsightCard {
   icon: string;
   title: string;
   value: string;
@@ -70,7 +68,7 @@ const iconMap: Record<string, React.ReactNode> = {
 export function DatabaseChatMessage({ role, content, insightCards, isStreaming }: DatabaseChatMessageProps) {
   if (role === "user") {
     return (
-      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] rounded-lg px-3 py-1.5 text-[12px] font-medium">
+      <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
         {content}
       </div>
     );
