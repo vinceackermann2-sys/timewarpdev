@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useSubscription } from "@/useSubscription";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
