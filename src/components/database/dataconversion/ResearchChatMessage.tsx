@@ -195,7 +195,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
                 <p className="text-foreground/80 my-2.5 text-[13.5px]">{children}</p>
               ),
               blockquote: ({ children }) => (
-                <blockquote className="border-l-2 border-primary pl-4 my-3 py-1 text-foreground/70 italic text-[13px]">
+                <blockquote className="border-l-2 border-border pl-4 my-3 py-1 text-foreground/70 italic text-[13px]">
                   {children}
                 </blockquote>
               ),
