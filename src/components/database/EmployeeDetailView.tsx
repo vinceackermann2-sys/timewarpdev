@@ -86,6 +86,9 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const [editSopTitle, setEditSopTitle] = useState(employee.sop_title || "");
   const [editPurpose, setEditPurpose] = useState(employee.sop_purpose || "");
   const [editScope, setEditScope] = useState(employee.sop_scope || "");
+  const [editDefinitions, setEditDefinitions] = useState<{ term: string; meaning: string }[]>(
+    Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []
+  );
   const [editProcedure, setEditProcedure] = useState<string[]>(
     Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []
   );
