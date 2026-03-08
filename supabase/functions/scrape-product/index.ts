@@ -385,6 +385,7 @@ JSON structure to return:
   "audience": {
     "name": "",
     "description": "",
+    "avatarPrompt": "",
     "buyingTriggers": [],
     "useCaseRequirements": [],
     "keySuccessIndicators": [],
@@ -882,6 +883,58 @@ Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.
           console.log("Generated", illustrationUrls.length, "illustrations");
         }
       } catch (e) { console.error("Illustration gen error:", e); }
+    })());
+
+    // ── Audience Avatar: Generate a portrait based on audience description ──
+    aiImagePromises.push((async () => {
+      try {
+        const audienceDesc = extracted.audience?.description || "";
+        const audienceName = extracted.audience?.name || "Target Customer";
+        const avatarPromptHint = extracted.audience?.avatarPrompt || "";
+        
+        if (!audienceDesc || audienceDesc.length < 20) {
+          console.log("Skipping avatar generation — no audience description");
+          return;
+        }
+
+        console.log("Generating audience avatar...");
+        
+        const avatarPrompt = `Generate a professional, realistic portrait photograph of a single person who represents this target audience:
+
+"${audienceDesc.slice(0, 500)}"
+${avatarPromptHint ? `\nAdditional visual hints: ${avatarPromptHint}` : ''}
+
+Create a high-quality headshot or upper-body portrait with:
+- Natural lighting, professional quality
+- Neutral or slightly warm background (blurred)
+- Authentic, relatable appearance matching the demographic
+- Friendly, approachable expression
+- Professional but not overly corporate
+- Age, style, and appearance that matches the target customer description
+
+This should look like a real customer testimonial photo or persona portrait. NO text, NO labels, NO watermarks. Just the portrait.`;
+
+        const avatarRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image",
+            messages: [{ role: "user", content: avatarPrompt }],
+            modalities: ["image", "text"],
+          }),
+        });
+
+        if (avatarRes.ok) {
+          const d = await avatarRes.json();
+          const avatarUrl = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          if (avatarUrl) {
+            extracted.audience.avatarUrl = avatarUrl;
+            console.log("✓ Generated audience avatar");
+          }
+        } else {
+          console.warn("Avatar generation failed:", avatarRes.status);
+        }
+      } catch (e) { console.error("Avatar generation error:", e); }
     })());
 
     // ── Generate per-guideline images ──
