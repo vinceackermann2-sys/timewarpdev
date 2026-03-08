@@ -64,17 +64,21 @@ function GrainCard({ children, filterId, seed = 0, borderColor = "hsl(0 0% 18%)"
   );
 }
 
-/* ─────────────────────── Business DNA scroll-swap card ─── */
+/* ─────────────────────── Business DNA sticky scroll-swap ─── */
 function BusinessDNACard() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [showSecond, setShowSecond] = useState(false);
+  const outerRef = useRef<HTMLDivElement>(null);
+  const [activeCard, setActiveCard] = useState(0);
+  const [sectionProgress, setSectionProgress] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const trigger = window.innerHeight * 0.45;
-      setShowSecond(rect.top < trigger);
+      if (!outerRef.current) return;
+      const rect = outerRef.current.getBoundingClientRect();
+      const scrollableHeight = outerRef.current.offsetHeight - window.innerHeight;
+      if (scrollableHeight <= 0) return;
+      const progress = Math.min(1, Math.max(0, -rect.top / scrollableHeight));
+      setSectionProgress(progress);
+      setActiveCard(progress < 0.5 ? 0 : 1);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
@@ -82,41 +86,90 @@ function BusinessDNACard() {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative" style={{ minHeight: 220 }}>
-      {/* Card 1 */}
-      <div
-        className="transition-all duration-700 ease-out"
-        style={{
-          opacity: showSecond ? 0 : 1,
-          transform: showSecond ? "translateY(-30px) scale(0.97)" : "translateY(0) scale(1)",
-          position: showSecond ? "absolute" : "relative",
-          inset: showSecond ? 0 : undefined,
-          pointerEvents: showSecond ? "none" : "auto",
-        }}
-      >
-        <GrainCard filterId="grain-dna-1" seed={0}>
-          <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>What others call "AI Automation"</p>
-          <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Chatbots, agents and workflows.</h3>
-          <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>Other tools connect apps to move data. That's plumbing — not leadership.</p>
-        </GrainCard>
-      </div>
+    // Outer container: 200vh so user scrolls through it
+    <div ref={outerRef} className="relative" style={{ height: "200vh" }}>
+      {/* Sticky inner — fills viewport */}
+      <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
+        {/* Sparkles */}
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
+              left: `${10 + Math.random() * 80}%`, top: `${10 + Math.random() * 80}%`,
+              width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
+              background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#ffffff",
+              opacity: 0.3 + Math.random() * 0.5,
+              boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.4)"}`,
+              animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
+            }} />
+          ))}
+        </div>
 
-      {/* Card 2 */}
-      <div
-        className="transition-all duration-700 ease-out"
-        style={{
-          opacity: showSecond ? 1 : 0,
-          transform: showSecond ? "translateY(0) scale(1)" : "translateY(30px) scale(0.97)",
-          position: showSecond ? "relative" : "absolute",
-          inset: showSecond ? undefined : 0,
-          pointerEvents: showSecond ? "auto" : "none",
-        }}
-      >
-        <GrainCard filterId="grain-dna-2" seed={5} borderColor="hsl(0 0% 20%)">
-          <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>What we mean by Business DNA</p>
-          <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Every decision your company has</h3>
-          <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.</p>
-        </GrainCard>
+        {/* Title */}
+        <div className="text-center mb-10 relative z-10">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
+          <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto">The intelligence layer that turns your company's history into a digitalized CEO.</p>
+        </div>
+
+        {/* Card container */}
+        <div className="relative z-10 w-full max-w-2xl" style={{ minHeight: 200 }}>
+          {/* Card 1 */}
+          <div
+            className="transition-all duration-700 ease-out"
+            style={{
+              opacity: activeCard === 0 ? 1 : 0,
+              transform: activeCard === 0 ? "translateY(0) scale(1)" : "translateY(-30px) scale(0.97)",
+              position: activeCard === 0 ? "relative" : "absolute",
+              inset: activeCard === 0 ? undefined : 0,
+              pointerEvents: activeCard === 0 ? "auto" : "none",
+            }}
+          >
+            <GrainCard filterId="grain-dna-1" seed={0}>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>What others call "AI Automation"</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Chatbots, agents and workflows.</h3>
+              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>Other tools connect apps to move data. That's plumbing — not leadership.</p>
+            </GrainCard>
+          </div>
+
+          {/* Card 2 */}
+          <div
+            className="transition-all duration-700 ease-out"
+            style={{
+              opacity: activeCard === 1 ? 1 : 0,
+              transform: activeCard === 1 ? "translateY(0) scale(1)" : "translateY(30px) scale(0.97)",
+              position: activeCard === 1 ? "relative" : "absolute",
+              inset: activeCard === 1 ? undefined : 0,
+              pointerEvents: activeCard === 1 ? "auto" : "none",
+            }}
+          >
+            <GrainCard filterId="grain-dna-2" seed={5} borderColor="hsl(0 0% 20%)">
+              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>What we mean by Business DNA</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Every decision your company has</h3>
+              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.</p>
+            </GrainCard>
+          </div>
+        </div>
+
+        {/* Pagination dots */}
+        <div className="flex items-center gap-3 mt-8 relative z-10">
+          {[0, 1].map(i => (
+            <div
+              key={i}
+              className="rounded-full transition-all duration-500"
+              style={{
+                width: activeCard === i ? 24 : 8,
+                height: 8,
+                background: activeCard === i ? "#3399ff" : "rgba(255,255,255,0.2)",
+                boxShadow: activeCard === i ? "0 0 12px rgba(51,153,255,0.5)" : "none",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Scroll hint */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 transition-opacity duration-500" style={{ opacity: sectionProgress < 0.9 ? 0.5 : 0 }}>
+          <span className="text-xs text-white/40 tracking-widest uppercase">Scroll</span>
+          <div className="w-px h-6 bg-white/20" />
+        </div>
       </div>
     </div>
   );
@@ -180,42 +233,12 @@ export function ProductDescription() {
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)" }} />
       </section>
 
-      {/* ── Business DNA + Evolution of Labor (merged) ── */}
+      {/* ── Business DNA — full-screen sticky scroll-swap ── */}
+      <BusinessDNACard />
+
+      {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(30)].map((_, i) => (
-            <div key={i} className="absolute rounded-full bg-white" style={{
-              left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`,
-              width: `${1 + Math.random() * 1.5}px`, height: `${1 + Math.random() * 1.5}px`,
-              opacity: 0.08 + Math.random() * 0.12,
-            }} />
-          ))}
-        </div>
-
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          {/* Business DNA Title with sparkles */}
-          <div className="text-center mb-16 relative">
-            <div className="absolute inset-0 pointer-events-none" style={{ top: "-40px", bottom: "-40px", left: "10%", right: "10%" }}>
-              {[...Array(20)].map((_, i) => (
-                <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
-                  left: `${10 + Math.random() * 80}%`, top: `${10 + Math.random() * 80}%`,
-                  width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
-                  background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#ffffff",
-                  opacity: 0.3 + Math.random() * 0.5,
-                  boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.4)"}`,
-                  animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
-                }} />
-              ))}
-            </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5 relative z-10" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
-            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto relative z-10">The intelligence layer that turns your company's history into a digitalized CEO.</p>
-          </div>
-
-          {/* Business DNA scroll-swap card */}
-          <div className="mb-24 max-w-2xl mx-auto">
-            <BusinessDNACard />
-          </div>
-
           {/* Evolution Title */}
           <div className="text-center mb-16">
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Evolving manual labor.</h3>
