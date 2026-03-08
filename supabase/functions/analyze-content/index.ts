@@ -184,32 +184,122 @@ Format your response with these sections:
       }
 
       case "website": {
-        dataTitle = content.websiteUrl || "Website";
-        let websiteContent = "";
-        try {
-          const fetchRes = await fetch(content.websiteUrl, {
-            headers: { "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0)" },
-            redirect: "follow",
-          });
-          if (fetchRes.ok) {
-            const html = await fetchRes.text();
-            websiteContent = html
-              .replace(/<script[\s\S]*?<\/script>/gi, "")
-              .replace(/<style[\s\S]*?<\/style>/gi, "")
-              .replace(/<[^>]+>/g, " ")
-              .replace(/\s+/g, " ")
-              .trim()
-              .slice(0, 15000);
-          }
-        } catch (fetchErr) {
-          console.error("Failed to fetch website");
-        }
+        const rawUrl = content.websiteUrl || "";
+        dataTitle = rawUrl || "URL";
 
-        extractedText = websiteContent;
-        if (websiteContent) {
-          userPrompt = `Analyze this website (${content.websiteUrl}).\n\nExtracted content:\n${websiteContent}\n\nProvide a structured summary including: what the website is about, key topics, main offerings/products, contact info if available, and actionable business insights.`;
+        // Detect URL type
+        const isYouTube = /(?:youtube\.com\/(?:watch|embed|shorts)|youtu\.be\/)/i.test(rawUrl);
+        const isSocialMedia = /(?:twitter\.com|x\.com|instagram\.com|facebook\.com|tiktok\.com|linkedin\.com)/i.test(rawUrl);
+
+        if (isYouTube) {
+          // Extract YouTube video ID
+          const videoIdMatch = rawUrl.match(/(?:v=|\/(?:embed|shorts)\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+          const videoId = videoIdMatch?.[1] || "";
+          
+          // Use oEmbed API for metadata
+          let videoTitle = rawUrl;
+          let videoAuthor = "";
+          try {
+            const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(rawUrl)}&format=json`);
+            if (oembedRes.ok) {
+              const oembed = await oembedRes.json();
+              videoTitle = oembed.title || rawUrl;
+              videoAuthor = oembed.author_name || "";
+              dataTitle = videoTitle;
+            }
+          } catch (_) { /* ignore */ }
+
+          // Fetch the watch page for description/transcript hints
+          let pageText = "";
+          try {
+            const fetchRes = await fetch(rawUrl, {
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0)" },
+              redirect: "follow",
+            });
+            if (fetchRes.ok) {
+              const html = await fetchRes.text();
+              pageText = html
+                .replace(/<script[\s\S]*?<\/script>/gi, "")
+                .replace(/<style[\s\S]*?<\/style>/gi, "")
+                .replace(/<[^>]+>/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 15000);
+            }
+          } catch (_) { /* ignore */ }
+
+          extractedText = pageText;
+          userPrompt = `Analyze this YouTube video URL: ${rawUrl}
+Video title: ${videoTitle}
+${videoAuthor ? `Channel: ${videoAuthor}` : ""}
+Video ID: ${videoId}
+
+Page content extracted:
+${pageText || "(could not fetch page content)"}
+
+Provide a structured analysis including:
+- **Video Overview**: What the video is about based on title, description, and page content
+- **Key Topics**: Main subjects covered
+- **Target Audience**: Who this content is for
+- **Business Insights**: Actionable takeaways
+- **Content Strategy Notes**: How this content fits into a broader strategy`;
+
+        } else if (isSocialMedia) {
+          // Social media URL — fetch what we can
+          let pageContent = "";
+          try {
+            const fetchRes = await fetch(rawUrl, {
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0)" },
+              redirect: "follow",
+            });
+            if (fetchRes.ok) {
+              const html = await fetchRes.text();
+              pageContent = html
+                .replace(/<script[\s\S]*?<\/script>/gi, "")
+                .replace(/<style[\s\S]*?<\/style>/gi, "")
+                .replace(/<[^>]+>/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 15000);
+            }
+          } catch (_) { /* ignore */ }
+
+          extractedText = pageContent;
+          userPrompt = `Analyze this social media URL: ${rawUrl}
+
+Extracted page content:
+${pageContent || "(could not fetch - may require authentication)"}
+
+Provide a structured analysis including: platform, content type (post, profile, video, etc.), key information, engagement context, and business insights. If content couldn't be fetched, analyze what you can infer from the URL structure.`;
+
         } else {
-          userPrompt = `Analyze the website at ${content.websiteUrl}. I couldn't fetch its content directly.`;
+          // Standard website
+          let websiteContent = "";
+          try {
+            const fetchRes = await fetch(rawUrl, {
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0)" },
+              redirect: "follow",
+            });
+            if (fetchRes.ok) {
+              const html = await fetchRes.text();
+              websiteContent = html
+                .replace(/<script[\s\S]*?<\/script>/gi, "")
+                .replace(/<style[\s\S]*?<\/style>/gi, "")
+                .replace(/<[^>]+>/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 15000);
+            }
+          } catch (fetchErr) {
+            console.error("Failed to fetch website");
+          }
+
+          extractedText = websiteContent;
+          if (websiteContent) {
+            userPrompt = `Analyze this website (${rawUrl}).\n\nExtracted content:\n${websiteContent}\n\nProvide a structured summary including: what the website is about, key topics, main offerings/products, contact info if available, and actionable business insights.`;
+          } else {
+            userPrompt = `Analyze the website at ${rawUrl}. I couldn't fetch its content directly. Provide any insights you can based on the URL.`;
+          }
         }
         break;
       }

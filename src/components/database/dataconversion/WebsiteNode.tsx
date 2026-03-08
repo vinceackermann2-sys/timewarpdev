@@ -164,7 +164,7 @@ export function WebsiteNode({
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
         <div className="flex items-center gap-2">
           <Globe className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Website</span>
+          <span className="text-sm font-medium">URL</span>
         </div>
         <div className="flex items-center gap-2">
           {isAnalyzing && (
@@ -191,7 +191,7 @@ export function WebsiteNode({
           onKeyDown={handleKeyDown}
           onMouseDown={(e) => e.stopPropagation()}
           onFocus={(e) => e.stopPropagation()}
-          placeholder="Enter URL..."
+          placeholder="Paste any URL (website, YouTube, etc.)..."
           className="h-8 text-sm"
         />
 
@@ -234,7 +234,7 @@ export function WebsiteNode({
         ) : (
           <div className="h-[calc(100%-44px)] rounded-lg bg-muted/20 flex flex-col items-center justify-center p-4">
             <Globe className="h-8 w-8 text-muted-foreground/40 mb-2" />
-            <p className="text-xs text-muted-foreground">Enter a URL above</p>
+            <p className="text-xs text-muted-foreground">Paste any URL above</p>
           </div>
         )}
       </div>
