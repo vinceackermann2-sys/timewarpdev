@@ -182,7 +182,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: t.text, outline: "none", transition: "color 0.3s ease" }}
+                style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'Outfit', sans-serif", fontSize: "1rem", color: t.inputText, outline: "none", transition: "color 0.3s ease" }}
               />
               <button
                 onClick={handleAnalyze}
