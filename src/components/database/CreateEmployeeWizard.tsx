@@ -306,8 +306,8 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         )}
       </div>
 
-      {/* Footer: navigation */}
-      <div className="border-t border-border p-4">
+      {/* Footer: navigation pinned to bottom */}
+      <div className="mt-auto border-t border-border p-4">
         <div className="flex items-center justify-between">
           <Button variant="ghost" onClick={() => step > 0 ? setStep(step - 1) : onCancel()}>
             {step > 0 ? <><ArrowLeft className="h-4 w-4 mr-1" /> Back</> : "Cancel"}
