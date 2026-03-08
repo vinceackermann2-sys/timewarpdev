@@ -536,16 +536,16 @@ export function AudienceDetailView({
 
                   <div>
                     <SectionHeading id="power-phrases" title="Power phrases" subtitle="" />
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="grid grid-cols-2 gap-2 mt-3">
                       {data.powerPhrases.map((phrase, i) => (
                         <div key={i}>
                           {isEditingSection("language") ? (
                             <div className="flex gap-1">
-                              <Input value={phrase} onChange={(e) => { const next = [...data.powerPhrases]; next[i] = e.target.value; setData(prev => ({ ...prev, powerPhrases: next })); }} className="h-7 text-xs w-52" />
+                              <Input value={phrase} onChange={(e) => { const next = [...data.powerPhrases]; next[i] = e.target.value; setData(prev => ({ ...prev, powerPhrases: next })); }} className="h-9 text-xs flex-1" />
                               <button onClick={() => setData(prev => ({ ...prev, powerPhrases: prev.powerPhrases.filter((_, idx) => idx !== i) }))} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
                             </div>
                           ) : (
-                            <span className="text-sm px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">{phrase}</span>
+                            <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary font-medium leading-relaxed h-full flex items-center">{phrase}</div>
                           )}
                         </div>
                       ))}
