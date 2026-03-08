@@ -220,7 +220,7 @@ export function BrandingEditor({
           {isEditing && (
             <section className="rounded-xl border border-border/50 bg-muted/30 p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-primary" />
+                <RefreshCw className="h-4 w-4 text-foregroundundundund" />
                 <span className="text-sm font-semibold text-foreground">
                   Extract branding from URL
                 </span>
@@ -257,7 +257,7 @@ export function BrandingEditor({
           {/* ── Primary Logo ── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4 text-primary" />
+              <ImageIcon className="h-4 foregroundgroundgroundary" />
               <span className="text-sm font-semibold text-foreground">
                 Primary logo
               </span>
@@ -322,7 +322,7 @@ export function BrandingEditor({
           {/* ── Brand Colors ── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <Palette className="h-4 w-4 text-primary" />
+              <Palette className="hforegroundoregroundrimary" />
               <span className="text-sm font-semibold text-foreground">
                 Brand colors
               </span>
@@ -372,7 +372,7 @@ export function BrandingEditor({
           {/* ── Typography ── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <Type className="h-4 w-4 text-primary" />
+              <Type className="h-4 foregroundt-primary" />
               <span className="text-sm font-semibold text-foreground">
                 Typography
               </span>

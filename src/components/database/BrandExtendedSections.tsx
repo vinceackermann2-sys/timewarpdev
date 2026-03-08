@@ -86,7 +86,7 @@ function BrandSection({
   return (
     <section id={id} className="space-y-3">
       <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-primary" />
+        <Icon className="h-4 w-4 text-foreground" />
         <span className="text-sm font-semibold text-foreground">{title}</span>
       </div>
       <p className="text-xs text-muted-foreground">{description}</p>
