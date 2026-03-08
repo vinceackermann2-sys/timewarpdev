@@ -595,7 +595,7 @@ export function ActionChatNode({
             size="icon"
             onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
-            className={cn("h-10 w-10 rounded-full self-end shrink-0", input.trim() && !isLoading ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "")}
+            className={cn("h-10 w-10 rounded-full self-end shrink-0", input.trim() && !isLoading ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "bg-muted border border-border text-muted-foreground")}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
