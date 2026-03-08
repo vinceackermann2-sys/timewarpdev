@@ -51,6 +51,7 @@ export function FileUploadZone({ onFileUploaded }: FileUploadZoneProps) {
   const [currentFile, setCurrentFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { checkCanUseAction } = useActionGate();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
