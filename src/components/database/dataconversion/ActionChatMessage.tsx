@@ -194,7 +194,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
                   </div>
                 ),
                 thead: ({ children }) => (
-                  <thead className="bg-primary/8">{children}</thead>
+                  <thead className="bg-muted/50">{children}</thead>
                 ),
                 th: ({ children }) => (
                   <th className="border-b border-border/50 px-3 py-2 text-left font-extrabold text-foreground text-[11px] uppercase tracking-wider">{children}</th>
