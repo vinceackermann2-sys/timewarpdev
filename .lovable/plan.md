@@ -1,50 +1,23 @@
 
 
-## Problem
+## Fix: Complete SOP execution, tab group targeting, no focus switch
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+### Problems
+1. **Stops at step 1** — The AI sees no page context (empty `{}` from the webapp tab) and likely returns `done` immediately. The initial user message doesn't emphasize that the AI must work through ALL procedure steps regardless. Also, the system prompt needs stronger language against premature `done`.
+2. **Actions execute in current tab** — `executeAction` sends `executeInTab: true` but doesn't tell the extension to target the group tab specifically. Need to add `targetGroupTab: true` to the message.
+3. **Group creation focuses user** — `signalStart` doesn't send `focusGroup: false`, so the extension defaults to focusing the new group.
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+### Changes
 
-## Plan
+**`src/hooks/useExtensionBridge.ts`**
+- `signalStart`: Add `focusGroup: false` to the postMessage payload so the extension creates the group in the background.
+- `executeAction`: Add `targetGroupTab: true` to the postMessage payload so the extension routes actions to the tab inside the group, not the current tab.
 
-### 1. Add context size limiting in both edge functions
+**`src/components/database/EmployeeDetailView.tsx`**
+- Change the initial conversation message to strongly instruct the AI to begin with step 1 and work through every SOP step sequentially, never stopping early.
+- After `signalStart`, add a small delay (1s) before entering the loop, giving the extension time to set up the group.
 
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
-
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
-
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
-```
-
-### 2. Add better error logging for debugging
-
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
-
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
-
-### 3. Truncate individual item content
-
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
-
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
+**`supabase/functions/run-employee/index.ts`**
+- Strengthen the system prompt: Add explicit instruction "Do NOT return done until you have completed every numbered procedure step. You have {N} procedure steps to complete. Track your progress." Include a step count.
+- Add: "If there is no page context yet, start by navigating to the appropriate URL for step 1. Do NOT return done just because there is no page context."
 
