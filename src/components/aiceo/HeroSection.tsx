@@ -155,7 +155,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   return (
     <div className={dark ? "dark-card" : ""} style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease" }}>
       {/* Fixed SVG Background */}
-      <div style={{ position: "fixed", inset: 0, zIndex: -1, background: t.bg, overflow: "hidden", transition: "background 0.3s ease" }}>
+      <div style={{ position: "absolute", inset: 0, zIndex: -1, background: t.bg, overflow: "hidden", transition: "background 0.3s ease" }}>
         <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: t.auraOpacity, transition: "opacity 0.3s ease" }} viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
           <defs>
             <filter id="f5" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="60" /></filter>
