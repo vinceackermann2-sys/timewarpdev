@@ -1,22 +1,50 @@
 
 
-## Plan: Replace SiriOrb with BusinessBrainOrb and use Bot icon in sidebar
+## Problem
 
-### Changes
+The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
 
-1. **Sidebar menu icon** (`DatabaseSidebar.tsx`, line 158): Replace `<SiriOrb size="16px" ...>` with `<Bot className="h-4 w-4" />` from lucide-react. Add `Bot` to the import list.
+The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
 
-2. **Employees page — replace all SiriOrb usages with BusinessBrainOrb** (`EmployeesView.tsx`):
-   - Import `BusinessBrainOrb` instead of `SiriOrb`
-   - Empty state orb (line 117): `<BusinessBrainOrb size={96} className="mb-6" />`
-   - Employee card orbs (line 151-156): `<BusinessBrainOrb size={56} className="group-hover:scale-105 transition-transform" />`
+## Plan
 
-3. **Employee detail view** (`EmployeeDetailView.tsx`):
-   - Import `BusinessBrainOrb` instead of `SiriOrb`
-   - Replace the detail orb with `<BusinessBrainOrb size={64} />`
+### 1. Add context size limiting in both edge functions
 
-4. **Create wizard** (`CreateEmployeeWizard.tsx`): Check if SiriOrb is used there for preview and replace with BusinessBrainOrb as well.
+**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
 
-### Notes
-- `BusinessBrainOrb` doesn't support custom `colors` or `animationDuration` props — it has a fixed visual style. The per-employee color customization will be removed (the orb will look the same for all employees, matching the Business Brain style).
+In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
+
+```typescript
+function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+  // ... group by source as before ...
+  for (const item of sourceItems) {
+    const itemText = /* build item string */;
+    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+    context += itemText;
+    totalChars += itemText.length;
+  }
+  return context;
+}
+```
+
+### 2. Add better error logging for debugging
+
+Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+
+```typescript
+if (!response.ok) {
+  const errorBody = await response.text().catch(() => "");
+  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+  // ... existing status-specific handling ...
+}
+```
+
+### 3. Truncate individual item content
+
+Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
+
+This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
 

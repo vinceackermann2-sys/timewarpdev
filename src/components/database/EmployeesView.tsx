@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SiriOrb } from "@/components/ui/siri-orb";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { CreateEmployeeWizard } from "./CreateEmployeeWizard";
 import { EmployeeDetailView } from "./EmployeeDetailView";
 
@@ -114,7 +114,7 @@ export function EmployeesView() {
   if (employees.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-        <SiriOrb size="96px" animationDuration={15} className="mb-6" />
+        <BusinessBrainOrb size={96} className="mb-6" />
         <h2 className="text-2xl font-semibold mb-2">No AI Employees yet</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
           Create your first AI employee. Give them a name, role, and a Standard Operating Procedure — they'll execute tasks based on your SOP.
@@ -148,10 +148,8 @@ export function EmployeesView() {
             onClick={() => setSelectedEmployee(emp)}
             className="group p-5 rounded-xl border border-border/60 bg-card hover:border-border hover:shadow-sm transition-all text-left flex flex-col items-center gap-3"
           >
-            <SiriOrb
-              size="56px"
-              animationDuration={18}
-              colors={emp.orb_colors}
+            <BusinessBrainOrb
+              size={56}
               className="group-hover:scale-105 transition-transform"
             />
             <div className="text-center">
