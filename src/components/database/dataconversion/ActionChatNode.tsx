@@ -410,8 +410,8 @@ export function ActionChatNode({
         style={isFullscreen ? {} : {
           left: node.x,
           top: node.y,
-          width: 540,
-          height: 480,
+          width: 700,
+          height: 600,
         }}
         onMouseDown={isFullscreen ? undefined : onMouseDown}
         onWheel={handleWheel}
