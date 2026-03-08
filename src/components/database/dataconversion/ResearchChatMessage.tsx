@@ -236,7 +236,7 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
           >
             {content}
           </ReactMarkdown>
-          {isStreaming && <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 rounded-sm" />}
+          {isStreaming && <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5 rounded-sm" />}
         </div>
       )}
 
