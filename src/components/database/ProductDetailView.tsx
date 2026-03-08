@@ -889,7 +889,7 @@ export function ProductDetailView({
                 </div>
                 <div className="px-6 py-6 max-w-3xl">
                   <SectionHeading id="refinement-checklist" title="Refinement checklist" subtitle="Review these before publishing any product copy." />
-                  <BulletList items={data.refinementChecklist} icon={ListChecks} iconClass="text-primary" isEditing={isEditingSection("refinement")} onChange={(r) => setData(prev => ({ ...prev, refinementChecklist: r }))} />
+                  <BulletList items={data.refinementChecklist} icon={ListChecks} iconClass="text-muted-foreground" isEditing={isEditingSection("refinement")} onChange={(r) => setData(prev => ({ ...prev, refinementChecklist: r }))} />
                 </div>
               </div>
 
