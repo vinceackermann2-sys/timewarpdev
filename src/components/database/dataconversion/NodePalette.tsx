@@ -17,14 +17,14 @@ const quickAccessNodes: NodeItem[] = [
 
 const researchNode: NodeItem = {
   id: "research",
-  label: "Research",
-  description: "AI chat for data analysis",
+  label: "Research Chat",
+  description: "",
 };
 
 const actionNode: NodeItem = {
   id: "action",
-  label: "Generation",
-  description: "Execute from research",
+  label: "Generation Chat",
+  description: "",
 };
 
 interface NodeItemCardProps {
@@ -53,7 +53,7 @@ function NodeItemCard({ item, onDragStart }: NodeItemCardProps) {
         </span>
       )}
       <div className="flex items-center justify-center h-10 w-10">
-        {Icon && <Icon className="text-primary h-5 w-5" />}
+        {Icon && <Icon className="text-foreground h-5 w-5" />}
       </div>
       <p className="text-xs font-medium text-center leading-tight px-1">{item.label}</p>
     </div>
@@ -82,12 +82,9 @@ function MainNodeCard({ item, onDragStart, variant = "research" }: MainNodeCardP
       )}
     >
       <div className="h-10 w-10 flex items-center justify-center">
-        {Icon && <Icon className={cn("h-5 w-5", isAction ? "text-accent-foreground" : "text-primary")} />}
+        {Icon && <Icon className="h-5 w-5 text-foreground" />}
       </div>
-      <div className="text-center px-1">
-        <p className="text-xs font-medium">{item.label}</p>
-        <p className="text-[10px] text-muted-foreground leading-tight">{item.description}</p>
-      </div>
+      <p className="text-xs font-medium text-center px-1">{item.label}</p>
     </div>
   );
 }
