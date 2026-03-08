@@ -201,7 +201,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         { role: "user", content: "Execute the SOP procedure now. The browser is ready. You are operating inside a dedicated tab group." },
       ];
 
-      const MAX_STEPS = 30;
+      const MAX_STEPS = 50;
 
       for (let step = 0; step < MAX_STEPS; step++) {
         if (abortRef.current?.signal.aborted) break;
