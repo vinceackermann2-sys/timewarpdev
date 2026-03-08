@@ -41,7 +41,6 @@ export function useExtensionBridge() {
       if (event.source !== window) return;
       const data = event.data;
 
-      // Extension responds with plain string "TIMEWARP_PONG"
       if (data === "TIMEWARP_PONG") {
         console.log("[ExtBridge] ✅ PONG received! Extension connected.");
         setExtensionConnected(true);
@@ -49,7 +48,6 @@ export function useExtensionBridge() {
         return;
       }
 
-      // Also support object format
       if (typeof data === "object" && data !== null) {
         const { type } = data;
 
@@ -74,12 +72,20 @@ export function useExtensionBridge() {
             resolversRef.current.delete("action_result");
           }
         }
+
+        if (type === "TIMEWARP_GROUP_READY") {
+          console.log("[ExtBridge] ✅ Tab group ready.");
+          const resolver = resolversRef.current.get("group_ready");
+          if (resolver) {
+            resolver(true);
+            resolversRef.current.delete("group_ready");
+          }
+        }
       }
     };
 
     window.addEventListener("message", handleMessage);
 
-    // Send as plain string to match extension's expected format
     console.log("[ExtBridge] Sending TIMEWARP_PING...");
     window.postMessage("TIMEWARP_PING", "*");
 
@@ -97,7 +103,6 @@ export function useExtensionBridge() {
   const retryDetection = useCallback(() => {
     setDetecting(true);
     setExtensionConnected(false);
-    // Send as plain string
     window.postMessage("TIMEWARP_PING", "*");
     setTimeout(() => setDetecting(false), 3000);
   }, []);
@@ -128,8 +133,25 @@ export function useExtensionBridge() {
     });
   }, []);
 
-  const signalStart = useCallback((employeeId: string) => {
-    window.postMessage({ type: "TIMEWARP_EMPLOYEE_START", employeeId, useTabGroup: true }, "*");
+  const signalStart = useCallback((employeeId: string, employeeName: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      resolversRef.current.set("group_ready", resolve);
+      window.postMessage({
+        type: "TIMEWARP_EMPLOYEE_START",
+        employeeId,
+        employeeName,
+        useTabGroup: true,
+        openTab: false,
+      }, "*");
+      // Fallback: resolve after 3s even if extension doesn't confirm
+      setTimeout(() => {
+        if (resolversRef.current.has("group_ready")) {
+          console.log("[ExtBridge] ⏰ Group ready timeout - proceeding anyway");
+          resolversRef.current.delete("group_ready");
+          resolve(false);
+        }
+      }, 3000);
+    });
   }, []);
 
   const signalStop = useCallback((employeeId: string) => {

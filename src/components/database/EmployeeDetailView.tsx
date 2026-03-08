@@ -62,6 +62,8 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const { toast } = useToast();
   const abortRef = useRef<AbortController | null>(null);
   const pauseResolverRef = useRef<(() => void) | null>(null);
+  const isPausedRef = useRef(false);
+  const isManualModeRef = useRef(false);
   const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop } = useExtensionBridge();
 
   useEffect(() => { loadLogs(); }, [employee.id]);
@@ -92,20 +94,23 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   };
 
   const waitForUnpause = useCallback((): Promise<void> => {
-    if (!isPaused && !isManualMode) return Promise.resolve();
+    if (!isPausedRef.current && !isManualModeRef.current) return Promise.resolve();
     return new Promise((resolve) => {
       pauseResolverRef.current = resolve;
     });
-  }, [isPaused, isManualMode]);
+  }, []);
 
   const handlePause = () => {
     setIsPaused(true);
+    isPausedRef.current = true;
     setSafetyAlert(null);
   };
 
   const handleContinue = () => {
     setIsPaused(false);
+    isPausedRef.current = false;
     setIsManualMode(false);
+    isManualModeRef.current = false;
     setSafetyAlert(null);
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
@@ -113,12 +118,16 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
   const handleManualTakeover = () => {
     setIsPaused(true);
+    isPausedRef.current = true;
     setIsManualMode(true);
+    isManualModeRef.current = true;
   };
 
   const handleReturnControl = () => {
     setIsManualMode(false);
+    isManualModeRef.current = false;
     setIsPaused(false);
+    isPausedRef.current = false;
     setSafetyAlert(null);
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
@@ -171,10 +180,13 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
     setRunning(true);
     setIsPaused(false);
+    isPausedRef.current = false;
     setIsManualMode(false);
+    isManualModeRef.current = false;
     setSafetyAlert(null);
+    setCurrentStep("Preparing tab group…");
+    await signalStart(employee.id, employee.name);
     setCurrentStep("");
-    signalStart(employee.id);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -189,13 +201,13 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         { role: "user", content: "Execute the SOP procedure now. The browser is ready. You are operating inside a dedicated tab group." },
       ];
 
-      const MAX_STEPS = 30;
+      const MAX_STEPS = 50;
 
       for (let step = 0; step < MAX_STEPS; step++) {
         if (abortRef.current?.signal.aborted) break;
 
-        // Wait if paused or manual mode
-        if (isPaused || isManualMode) {
+        // Wait if paused or manual mode (use refs for fresh values)
+        if (isPausedRef.current || isManualModeRef.current) {
           await waitForUnpause();
         }
         if (abortRef.current?.signal.aborted) break;
@@ -227,7 +239,9 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
         if (safetyBlock) {
           setSafetyAlert(safetyBlock);
           setIsPaused(true);
+          isPausedRef.current = true;
           setIsManualMode(true);
+          isManualModeRef.current = true;
           await logStep("running", `Step ${step + 1} ⚠️`, `SAFETY: ${safetyBlock}`);
 
           // Wait for user to handle manually and return control
@@ -281,7 +295,9 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     } finally {
       setRunning(false);
       setIsPaused(false);
+      isPausedRef.current = false;
       setIsManualMode(false);
+      isManualModeRef.current = false;
       setSafetyAlert(null);
       setCurrentStep("");
       signalStop(employee.id);
@@ -294,7 +310,9 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     signalStop(employee.id);
     setRunning(false);
     setIsPaused(false);
+    isPausedRef.current = false;
     setIsManualMode(false);
+    isManualModeRef.current = false;
     setSafetyAlert(null);
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
