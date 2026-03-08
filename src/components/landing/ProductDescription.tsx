@@ -1,6 +1,6 @@
 import { 
   Zap, Brain, Users, Building2, Rocket, TrendingUp,
-  Clock, Eye, Heart, DollarSign, ArrowRight, Link2,
+  Clock, Eye, Heart, DollarSign, ArrowRight, Link2, Globe,
   CheckCircle, ChevronRight, Cpu, UserCheck, BarChart3,
   Briefcase, Target, Shield
 } from "lucide-react";
