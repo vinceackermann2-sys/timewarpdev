@@ -46,6 +46,7 @@ export function DocumentNode({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { checkCanUseAction } = useActionGate();
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split(".").pop()?.toLowerCase();
