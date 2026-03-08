@@ -180,10 +180,13 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
     setRunning(true);
     setIsPaused(false);
+    isPausedRef.current = false;
     setIsManualMode(false);
+    isManualModeRef.current = false;
     setSafetyAlert(null);
+    setCurrentStep("Preparing tab group…");
+    await signalStart(employee.id, employee.name);
     setCurrentStep("");
-    signalStart(employee.id);
 
     const controller = new AbortController();
     abortRef.current = controller;
