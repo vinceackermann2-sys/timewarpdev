@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/useWorkspace";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { CreateEmployeeWizard } from "./CreateEmployeeWizard";
@@ -104,9 +105,32 @@ export function EmployeesView() {
   }
 
   if (isLoading) {
+    const skeletonCount = Math.max(employees.length, 3);
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="flex-1 overflow-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <Skeleton className="h-9 w-32 rounded-md" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: skeletonCount }).map((_, i) => (
+            <div
+              key={i}
+              className="p-5 rounded-xl border border-border/60 bg-card flex flex-col items-center gap-3 animate-fade-in"
+              style={{ animationDelay: `${i * 80}ms`, animationFillMode: "both" }}
+            >
+              <Skeleton className="h-14 w-14 rounded-full" />
+              <div className="text-center space-y-1.5 w-full">
+                <Skeleton className="h-4 w-24 mx-auto" />
+                <Skeleton className="h-3 w-16 mx-auto" />
+              </div>
+              <Skeleton className="h-5 w-28 rounded-full" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
