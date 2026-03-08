@@ -297,7 +297,7 @@ export function ProductDescription() {
           <PersonaCard
             icon={Rocket}
             title="Visionary Founders"
-            description="Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise."
+            description={'Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise.'}
           />
           <PersonaCard
             icon={TrendingUp}
