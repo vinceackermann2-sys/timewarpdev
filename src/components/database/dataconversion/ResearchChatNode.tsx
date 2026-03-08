@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { SuggestedActions } from "./SuggestedActions";
 import { ResearchChatMessage, parseInsightCards, InsightCard } from "./ResearchChatMessage";
+import { useWhiteboardChatHistory } from "@/hooks/useWhiteboardChatHistory";
 import type { CanvasNode, Connection } from "./types";
 
 interface ChatMessage {
@@ -58,19 +59,11 @@ export function ResearchChatNode({
   onOutputPortMouseDown,
   onClose,
 }: ResearchChatNodeProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    try {
-      const saved = localStorage.getItem(`chat_history_${node.id}`);
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
+  const { messages, setMessages } = useWhiteboardChatHistory<ChatMessage>({
+    nodeId: node.id,
+    chatType: "research",
   });
 
-  // Persist chat history
-  useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem(`chat_history_${node.id}`, JSON.stringify(messages.filter(m => !m.isStreaming)));
-    }
-  }, [messages, node.id]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [connectedContexts, setConnectedContexts] = useState<ConnectedContext[]>([]);
