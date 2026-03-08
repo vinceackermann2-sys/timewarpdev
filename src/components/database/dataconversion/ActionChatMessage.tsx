@@ -3,9 +3,7 @@ import { ExternalLink, FileText, Mail, Calendar, CheckCircle2, AlertCircle, Load
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-import { Brain } from "lucide-react";
-
-export interface ActionStep {
+import { Brain } from "lucide-reactnterface ActionStep {
   icon: string;
   label: string;
   status: "pending" | "running" | "complete" | "error";
@@ -31,7 +29,7 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
 
   if (role === "user") {
     return (
-      <div className="bg-accent text-accent-foreground ml-8 rounded-xl px-4 py-2.5 text-sm shadow-sm">
+      <div className="bg-accent text-accent-foreground ml-8 rounded-xl pw-fit max-w-[75%] x-4 py-2.5 text-sm shadow-sm">
         {content}
       </div>
     );
