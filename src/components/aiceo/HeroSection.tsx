@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Globe, Sun, Moon, Link2 } from "lucide-react";
 
@@ -63,6 +63,42 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [dark, setDark] = useState(false);
+  const [placeholder, setPlaceholder] = useState("");
+  const placeholderUrls = useRef([
+    "nike.com/shoes/air-max",
+    "apple.com/iphone-16",
+    "tesla.com/model-3",
+    "spotify.com/premium",
+    "shopify.com/my-store",
+  ]);
+  const urlIndex = useRef(0);
+  const charIndex = useRef(0);
+  const isDeleting = useRef(false);
+
+  useEffect(() => {
+    if (url) return; // stop animation when user types
+    const tick = () => {
+      const current = placeholderUrls.current[urlIndex.current];
+      if (!isDeleting.current) {
+        charIndex.current++;
+        setPlaceholder(current.slice(0, charIndex.current));
+        if (charIndex.current === current.length) {
+          isDeleting.current = true;
+          return setTimeout(tick, 2000); // pause before deleting
+        }
+      } else {
+        charIndex.current--;
+        setPlaceholder(current.slice(0, charIndex.current));
+        if (charIndex.current === 0) {
+          isDeleting.current = false;
+          urlIndex.current = (urlIndex.current + 1) % placeholderUrls.current.length;
+        }
+      }
+      return setTimeout(tick, isDeleting.current ? 30 : 80);
+    };
+    const timer = setTimeout(tick, 80);
+    return () => clearTimeout(timer);
+  }, [url]);
 
   const handleAnalyze = () => {
     if (onRunClick) onRunClick();
@@ -170,7 +206,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
               <Globe size={20} style={{ color: "#3399ff", opacity: 0.7, marginRight: "0.75rem", flexShrink: 0 }} className="hero-input-icon" />
               <input
                 type="text"
-                placeholder="nike.com/shoes/air-max"
+                placeholder={placeholder || "nike.com/shoes/air-max"}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
