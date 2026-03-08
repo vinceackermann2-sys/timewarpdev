@@ -290,7 +290,10 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           ? `Action "${action.action}" succeeded.${result.data ? ` Data: ${JSON.stringify(result.data)}` : ""}`
           : `Action "${action.action}" failed: ${result.error || "unknown error"}`;
 
-        conversationHistory.push({ role: "user", content: resultMsg });
+        // Include fresh page context so AI knows current state
+        const freshContext = await getPageContext();
+        const contextInfo = freshContext?.url ? ` Current page: ${freshContext.url}` : "";
+        conversationHistory.push({ role: "user", content: resultMsg + contextInfo + ` Continue with the next SOP step. You have ${stepCount} total steps to complete.` });
 
         if (result.success) {
           await logStep("running", `Step ${step + 1} ✓`, `Completed: ${action.action}`);

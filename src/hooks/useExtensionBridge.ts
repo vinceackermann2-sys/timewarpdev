@@ -141,7 +141,7 @@ export function useExtensionBridge() {
         employeeId,
         employeeName,
         useTabGroup: true,
-        openTab: false,
+        openTab: true,
         focusGroup: false,
       }, "*");
       // Fallback: resolve after 3s even if extension doesn't confirm
