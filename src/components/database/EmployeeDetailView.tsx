@@ -79,20 +79,30 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const [producedFiles, setProducedFiles] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
 
+  // Helper to split double-newline joined fields
+  const splitField = (val: string | null, index: number) => {
+    if (!val) return "";
+    const parts = val.split("\n\n");
+    return parts[index] || "";
+  };
+
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(employee.name);
   const [editRole, setEditRole] = useState(employee.role);
   const [editSopTitle, setEditSopTitle] = useState(employee.sop_title || "");
-  const [editPurpose, setEditPurpose] = useState(employee.sop_purpose || "");
-  const [editScope, setEditScope] = useState(employee.sop_scope || "");
+  const [editPurposeWhy, setEditPurposeWhy] = useState(splitField(employee.sop_purpose, 0));
+  const [editPurposeProblem, setEditPurposeProblem] = useState(splitField(employee.sop_purpose, 1));
+  const [editScopeWhere, setEditScopeWhere] = useState(splitField(employee.sop_scope, 0));
+  const [editScopeWhen, setEditScopeWhen] = useState(splitField(employee.sop_scope, 1));
   const [editDefinitions, setEditDefinitions] = useState<{ term: string; meaning: string }[]>(
     Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []
   );
   const [editProcedure, setEditProcedure] = useState<string[]>(
     Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []
   );
-  const [editSafety, setEditSafety] = useState(employee.sop_safety_notes || "");
+  const [editSafetyWarnings, setEditSafetyWarnings] = useState(splitField(employee.sop_safety_notes, 0));
+  const [editSafetyRisks, setEditSafetyRisks] = useState(splitField(employee.sop_safety_notes, 1));
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => { loadLogs(); loadProducedFiles(); }, [employee.id]);
