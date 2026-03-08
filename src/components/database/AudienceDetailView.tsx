@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AudiencePageSidebar } from "@/components/database/AudiencePageSidebar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 
 /* ── Types ── */
 export interface AudienceData {
@@ -198,6 +199,7 @@ export function AudienceDetailView({
   onBack: () => void;
   onSave: (audience: AudienceData) => void;
 }) {
+  const { userName } = useBusinessDNA();
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const toArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value as T[] : []);
   const toSafeString = (value: unknown): string => {
@@ -275,7 +277,7 @@ export function AudienceDetailView({
           <span className="text-xs text-muted-foreground/60">|</span>
           <span className="text-xs text-muted-foreground">Last updated: {data.lastUpdated}</span>
           <span className="text-xs text-muted-foreground/60">|</span>
-          <span className="text-xs text-muted-foreground">Added by: Unknown</span>
+          <span className="text-xs text-muted-foreground">Added by: {userName}</span>
         </div>
       </div>
 
