@@ -74,6 +74,29 @@ const Database = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Check for uncelebrated referral completions (referrer side)
+  useEffect(() => {
+    if (!user) return;
+    const checkReferrerRewards = async () => {
+      try {
+        const { data } = await supabase
+          .from("referrals")
+          .select("id")
+          .eq("referrer_id", user.id)
+          .eq("status", "completed")
+          .eq("actions_granted", true);
+        if (!data || data.length === 0) return;
+        const celebrated: string[] = JSON.parse(localStorage.getItem("celebrated_referral_ids") || "[]");
+        const newIds = data.filter((r) => !celebrated.includes(r.id)).map((r) => r.id);
+        if (newIds.length > 0) {
+          setShowReferrerCelebration(true);
+          localStorage.setItem("celebrated_referral_ids", JSON.stringify([...celebrated, ...newIds]));
+        }
+      } catch { /* ignore */ }
+    };
+    checkReferrerRewards();
+  }, [user]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
