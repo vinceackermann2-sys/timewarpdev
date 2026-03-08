@@ -149,12 +149,12 @@ export function ProductDescription() {
           <div className="grid md:grid-cols-2 gap-5">
             {/* Left card */}
             <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.45, mixBlendMode: "soft-light" }}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
                 <filter id="grain-left"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
                 <rect width="100%" height="100%" filter="url(#grain-left)" />
               </svg>
               <div className="relative z-10">
-                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "hsl(0 0% 45%)" }}>
+                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>
                   What others call "AI Automation"
                 </p>
                 <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
@@ -168,12 +168,12 @@ export function ProductDescription() {
 
             {/* Right card */}
             <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.45, mixBlendMode: "soft-light" }}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
                 <filter id="grain-right"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={5} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
                 <rect width="100%" height="100%" filter="url(#grain-right)" />
               </svg>
               <div className="relative z-10">
-                <p className="text-xs tracking-[0.2em] uppercase mb-4 text-red-400">
+                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>
                   What we mean by Business DNA
                 </p>
                 <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
