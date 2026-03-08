@@ -330,6 +330,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
   const handleStop = () => {
     abortRef.current?.abort();
+    updateOverlay({ visible: false });
     signalStop(employee.id);
     setRunning(false);
     setIsPaused(false);
@@ -340,6 +341,15 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     pauseResolverRef.current?.();
     pauseResolverRef.current = null;
     toast({ title: "Run stopped" });
+  };
+
+  const toggleResultExpand = (logId: string) => {
+    setExpandedResults(prev => {
+      const next = new Set(prev);
+      if (next.has(logId)) next.delete(logId);
+      else next.add(logId);
+      return next;
+    });
   };
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
