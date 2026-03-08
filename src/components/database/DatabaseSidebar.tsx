@@ -115,7 +115,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               className={`p-1.5 rounded-md hover:bg-primary/10 hover:text-primary transition-colors flex-shrink-0 ${isCollapsed ? 'w-full flex justify-center' : ''}`}
               title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              <PanelLeft className="h-4 w-4" />
             </button>
           </div>
         </SidebarHeader>
