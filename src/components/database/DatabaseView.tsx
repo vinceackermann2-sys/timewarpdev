@@ -591,6 +591,6 @@ export function DatabaseView() {
       </div>
     </div>
       <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
-    </div>
+    </>
   );
 }
