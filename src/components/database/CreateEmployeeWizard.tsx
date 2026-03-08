@@ -156,16 +156,18 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       {/* Content */}
       <div className="flex-1 overflow-auto p-6 max-w-2xl mx-auto w-full flex flex-col justify-center">
         {step === 0 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="flex flex-col items-center gap-4 mb-2">
               <BusinessBrainOrb size={72} />
             </div>
             <div className="space-y-2">
-              <Label>Employee Name *</Label>
+              <Label className="text-base font-semibold text-foreground">What should this employee be called?</Label>
+              <p className="text-xs text-muted-foreground">Give your AI employee a name.</p>
               <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Alex" />
             </div>
             <div className="space-y-2">
-              <Label>Role *</Label>
+              <Label className="text-base font-semibold text-foreground">What role will they perform?</Label>
+              <p className="text-xs text-muted-foreground">Describe the position or function.</p>
               <Input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Customer Support Agent" />
             </div>
           </div>
@@ -200,28 +202,30 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         )}
 
         {step === 2 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="space-y-2">
-              <Label>SOP Title *</Label>
-              <Input value={sopTitle} onChange={e => setSopTitle(e.target.value)} placeholder="e.g. Customer Complaint Handling Procedure" />
+              <Label className="text-base font-semibold text-foreground">What is the title of this procedure?</Label>
               <p className="text-xs text-muted-foreground">The name of the procedure this employee follows.</p>
+              <Input value={sopTitle} onChange={e => setSopTitle(e.target.value)} placeholder="e.g. Customer Complaint Handling Procedure" />
             </div>
             <div className="space-y-2">
-              <Label>Purpose</Label>
-              <Textarea value={sopPurpose} onChange={e => setSopPurpose(e.target.value)} placeholder="Why does this SOP exist? What problem does it solve?" rows={4} />
+              <Label className="text-base font-semibold text-foreground">What is the purpose of this SOP?</Label>
+              <p className="text-xs text-muted-foreground">Why does this procedure exist? What problem does it solve?</p>
+              <Textarea value={sopPurpose} onChange={e => setSopPurpose(e.target.value)} placeholder="Describe the goal and reason for this procedure..." rows={4} />
             </div>
           </div>
         )}
 
         {step === 3 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="space-y-2">
-              <Label>Scope</Label>
-              <Textarea value={sopScope} onChange={e => setSopScope(e.target.value)} placeholder="Where and when does this SOP apply?" rows={3} />
+              <Label className="text-base font-semibold text-foreground">What is the scope of this SOP?</Label>
+              <p className="text-xs text-muted-foreground">Where and when does this procedure apply?</p>
+              <Textarea value={sopScope} onChange={e => setSopScope(e.target.value)} placeholder="Describe the boundaries and applicability..." rows={3} />
             </div>
             <div className="space-y-2">
-              <Label>Responsibilities</Label>
-              <p className="text-xs text-muted-foreground mb-2">Who is responsible for each part?</p>
+              <Label className="text-base font-semibold text-foreground">Who is responsible for each part?</Label>
+              <p className="text-xs text-muted-foreground">List the roles or people responsible.</p>
               {responsibilities.map((r, i) => (
                 <div key={i} className="flex gap-2">
                   <Input value={r} onChange={e => updateListItem(responsibilities, setResponsibilities, i, e.target.value)} placeholder={`Responsibility ${i + 1}`} />
@@ -238,10 +242,10 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         )}
 
         {step === 4 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="space-y-2">
-              <Label>Definitions (Optional)</Label>
-              <p className="text-xs text-muted-foreground mb-2">Technical terms or abbreviations used.</p>
+              <Label className="text-base font-semibold text-foreground">Are there any terms or abbreviations to define?</Label>
+              <p className="text-xs text-muted-foreground">Technical terms or abbreviations used in this procedure (optional).</p>
               {definitions.map((d, i) => (
                 <div key={i} className="flex gap-2">
                   <Input value={d.term} onChange={e => { const c = [...definitions]; c[i] = { ...c[i], term: e.target.value }; setDefinitions(c); }} placeholder="Term" className="w-1/3" />
@@ -254,8 +258,8 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               </Button>
             </div>
             <div className="space-y-2">
-              <Label>Required Materials / Tools</Label>
-              <p className="text-xs text-muted-foreground mb-2">Equipment, software, or documents needed.</p>
+              <Label className="text-base font-semibold text-foreground">What materials or tools are needed?</Label>
+              <p className="text-xs text-muted-foreground">Equipment, software, or documents required for this procedure.</p>
               {materials.map((m, i) => (
                 <div key={i} className="flex gap-2">
                   <Input value={m} onChange={e => updateListItem(materials, setMaterials, i, e.target.value)} placeholder={`Material ${i + 1}`} />
@@ -272,10 +276,10 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         )}
 
         {step === 5 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="space-y-2">
-              <Label>Procedure (Core Section)</Label>
-              <p className="text-xs text-muted-foreground mb-2">Step-by-step instructions the employee will follow.</p>
+              <Label className="text-base font-semibold text-foreground">What are the step-by-step instructions?</Label>
+              <p className="text-xs text-muted-foreground">The core procedure this employee will follow, in order.</p>
               {procedure.map((p, i) => (
                 <div key={i} className="flex gap-2 items-start">
                   <span className="text-xs text-muted-foreground font-mono mt-2.5 w-6 text-right shrink-0">{i + 1}.</span>
@@ -293,14 +297,16 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         )}
 
         {step === 6 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="space-y-2">
-              <Label>Safety / Compliance Notes</Label>
-              <Textarea value={safetyNotes} onChange={e => setSafetyNotes(e.target.value)} placeholder="Warnings, regulations, or risk considerations." rows={3} />
+              <Label className="text-base font-semibold text-foreground">Any safety or compliance considerations?</Label>
+              <p className="text-xs text-muted-foreground">Warnings, regulations, or risk considerations to be aware of.</p>
+              <Textarea value={safetyNotes} onChange={e => setSafetyNotes(e.target.value)} placeholder="Describe any safety or compliance notes..." rows={3} />
             </div>
             <div className="space-y-2">
-              <Label>Documentation / Records</Label>
-              <Textarea value={documentation} onChange={e => setDocumentation(e.target.value)} placeholder="What records must be kept and where." rows={3} />
+              <Label className="text-base font-semibold text-foreground">What documentation or records must be kept?</Label>
+              <p className="text-xs text-muted-foreground">What records need to be maintained and where they should be stored.</p>
+              <Textarea value={documentation} onChange={e => setDocumentation(e.target.value)} placeholder="Describe the required documentation..." rows={3} />
             </div>
           </div>
         )}
