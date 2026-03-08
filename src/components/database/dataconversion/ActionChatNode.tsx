@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { ActionChatMessage, ActionStep, DocumentLink } from "./ActionChatMessage";
 import { SuggestedActions } from "./SuggestedActions";
+import { useWhiteboardChatHistory } from "@/hooks/useWhiteboardChatHistory";
 import type { CanvasNode, Connection } from "./types";
 
 interface ChatMessage {
