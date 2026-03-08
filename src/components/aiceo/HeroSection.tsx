@@ -63,7 +63,8 @@ function LightPhoneMockup() {
 export function HeroSection({ onRunClick }: HeroSectionProps) {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
-  const [dark, setDark] = useState(false);
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const dark = resolvedTheme === "dark";
   const [placeholder, setPlaceholder] = useState("");
   const placeholderUrls = useRef([
     "nike.com/shoes/air-max",
