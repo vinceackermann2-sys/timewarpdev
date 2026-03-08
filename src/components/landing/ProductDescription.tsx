@@ -5,7 +5,7 @@ import {
   Briefcase, Target, Shield
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 /* ─────────────────────── Grain card wrapper ─────────────────────── */
