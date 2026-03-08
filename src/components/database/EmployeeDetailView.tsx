@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AIEmployee } from "./EmployeesView";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
+import { EmployeeRunOverlay } from "./EmployeeRunOverlay";
 
 interface LogEntry {
   id: string;
@@ -21,17 +22,49 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
+// Safety: blocked action keywords
+const BLOCKED_ACTIONS = [
+  "pay", "purchase", "buy", "checkout", "place order", "subscribe",
+  "sign up", "register", "create account",
+  "log in", "sign in", "login", "signin",
+];
+
+function isSafetyBlocked(action: any): string | null {
+  const actionStr = JSON.stringify(action).toLowerCase();
+
+  // Check for payment-related actions
+  if (/\b(pay|purchase|buy|checkout|place.?order|add.?to.?cart.*checkout)\b/.test(actionStr)) {
+    return "Blocked: payment action detected. Manual takeover required.";
+  }
+  // Check for signup
+  if (/\b(sign.?up|register|create.?account|registration)\b/.test(actionStr)) {
+    return "Blocked: account creation detected. Manual takeover required.";
+  }
+  // Check for login
+  if (/\b(log.?in|sign.?in|password|authenticate)\b/.test(actionStr)) {
+    return "Blocked: login action detected. Manual takeover required.";
+  }
+  // Check for sensitive data entry (credit card patterns, SSN patterns)
+  if (/\b(credit.?card|card.?number|cvv|ssn|social.?security)\b/.test(actionStr)) {
+    return "Blocked: sensitive data entry detected. Manual takeover required.";
+  }
+  return null;
+}
+
 export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [running, setRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [currentStep, setCurrentStep] = useState("");
+  const [safetyAlert, setSafetyAlert] = useState<string | null>(null);
   const { toast } = useToast();
   const abortRef = useRef<AbortController | null>(null);
+  const pauseResolverRef = useRef<(() => void) | null>(null);
   const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop } = useExtensionBridge();
 
-  useEffect(() => {
-    loadLogs();
-  }, [employee.id]);
+  useEffect(() => { loadLogs(); }, [employee.id]);
 
   const loadLogs = async () => {
     setLoadingLogs(true);
@@ -56,6 +89,39 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       message,
     });
     await loadLogs();
+  };
+
+  const waitForUnpause = useCallback((): Promise<void> => {
+    if (!isPaused && !isManualMode) return Promise.resolve();
+    return new Promise((resolve) => {
+      pauseResolverRef.current = resolve;
+    });
+  }, [isPaused, isManualMode]);
+
+  const handlePause = () => {
+    setIsPaused(true);
+    setSafetyAlert(null);
+  };
+
+  const handleContinue = () => {
+    setIsPaused(false);
+    setIsManualMode(false);
+    setSafetyAlert(null);
+    pauseResolverRef.current?.();
+    pauseResolverRef.current = null;
+  };
+
+  const handleManualTakeover = () => {
+    setIsPaused(true);
+    setIsManualMode(true);
+  };
+
+  const handleReturnControl = () => {
+    setIsManualMode(false);
+    setIsPaused(false);
+    setSafetyAlert(null);
+    pauseResolverRef.current?.();
+    pauseResolverRef.current = null;
   };
 
   const parseAction = (text: string): (BrowserAction & { done?: boolean; message?: string }) | null => {
@@ -89,12 +155,10 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       }),
       signal: abortRef.current?.signal,
     });
-
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ error: "Unknown error" }));
       throw new Error(err.error || `HTTP ${resp.status}`);
     }
-
     const data = await resp.json();
     return data.content || "";
   };
@@ -106,6 +170,10 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     }
 
     setRunning(true);
+    setIsPaused(false);
+    setIsManualMode(false);
+    setSafetyAlert(null);
+    setCurrentStep("");
     signalStart(employee.id);
 
     const controller = new AbortController();
@@ -117,9 +185,8 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
 
       await logStep("running", "Started", `Running SOP: ${employee.sop_title || employee.role}`);
 
-      // Agentic loop: context → AI → action → result → repeat
       const conversationHistory: Array<{ role: string; content: string }> = [
-        { role: "user", content: "Execute the SOP procedure now. The browser is ready." },
+        { role: "user", content: "Execute the SOP procedure now. The browser is ready. You are operating inside a dedicated tab group." },
       ];
 
       const MAX_STEPS = 30;
@@ -127,34 +194,60 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       for (let step = 0; step < MAX_STEPS; step++) {
         if (abortRef.current?.signal.aborted) break;
 
-        // 1. Get fresh page context from extension
+        // Wait if paused or manual mode
+        if (isPaused || isManualMode) {
+          await waitForUnpause();
+        }
+        if (abortRef.current?.signal.aborted) break;
+
         const pageContext = await getPageContext();
 
-        // 2. Call AI for next action
+        setCurrentStep(`Step ${step + 1}: Thinking…`);
         await logStep("running", `Step ${step + 1}`, "Thinking…");
         const aiResponse = await callRunEmployee(session, conversationHistory, pageContext);
 
-        // Add AI response to conversation
         conversationHistory.push({ role: "assistant", content: aiResponse });
 
-        // 3. Parse the single action
         const action = parseAction(aiResponse);
 
         if (!action) {
-          // Plain text response
           await logStep("completed", `Step ${step + 1}`, aiResponse.slice(0, 500));
           break;
         }
 
-        // 4. Check if done
         if (action.done || action.action === "done") {
+          setCurrentStep("Completed");
           await logStep("completed", "Completed", action.message || "SOP execution finished.");
           toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
           break;
         }
 
-        // 5. Handle "respond" (message to user, no browser action)
+        // Safety check BEFORE execution
+        const safetyBlock = isSafetyBlocked(action);
+        if (safetyBlock) {
+          setSafetyAlert(safetyBlock);
+          setIsPaused(true);
+          setIsManualMode(true);
+          await logStep("running", `Step ${step + 1} ⚠️`, `SAFETY: ${safetyBlock}`);
+
+          // Wait for user to handle manually and return control
+          await new Promise<void>((resolve) => {
+            pauseResolverRef.current = resolve;
+          });
+
+          if (abortRef.current?.signal.aborted) break;
+
+          // After manual takeover, tell AI the user handled it
+          conversationHistory.push({
+            role: "user",
+            content: `The user manually completed the sensitive action (${action.action}). Continue with the next SOP step. Get fresh page context.`,
+          });
+          setSafetyAlert(null);
+          continue;
+        }
+
         if (action.action === "respond") {
+          setCurrentStep(`Step ${step + 1}: ${action.message?.slice(0, 60) || "Message"}`);
           await logStep("running", `Step ${step + 1}`, action.message || action.reasoning || "Response");
           conversationHistory.push({
             role: "user",
@@ -163,12 +256,11 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           continue;
         }
 
-        // 6. Execute the action via extension (in the active tab)
+        setCurrentStep(`Step ${step + 1}: ${action.action}`);
         await logStep("running", `Step ${step + 1}`, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
 
         const result = await executeAction(action, true) || { success: false, action: action.action, error: "No response from extension" };
 
-        // 7. Feed result back to AI
         const resultMsg = result.success
           ? `Action "${action.action}" succeeded.${result.data ? ` Data: ${JSON.stringify(result.data)}` : ""}`
           : `Action "${action.action}" failed: ${result.error || "unknown error"}`;
@@ -179,7 +271,6 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           await logStep("running", `Step ${step + 1} ✓`, `Completed: ${action.action}`);
         } else {
           await logStep("error", `Step ${step + 1} ✗`, result.error || "Action failed");
-          // Let AI decide whether to retry or abort
         }
       }
     } catch (e: any) {
@@ -189,6 +280,10 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
       }
     } finally {
       setRunning(false);
+      setIsPaused(false);
+      setIsManualMode(false);
+      setSafetyAlert(null);
+      setCurrentStep("");
       signalStop(employee.id);
       abortRef.current = null;
     }
@@ -198,6 +293,11 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     abortRef.current?.abort();
     signalStop(employee.id);
     setRunning(false);
+    setIsPaused(false);
+    setIsManualMode(false);
+    setSafetyAlert(null);
+    pauseResolverRef.current?.();
+    pauseResolverRef.current = null;
     toast({ title: "Run stopped" });
   };
 
@@ -253,25 +353,23 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           )}
         </div>
 
-        {running ? (
-          <Button onClick={handleStop} variant="destructive" size="sm" className="gap-2">
-            <XCircle className="h-4 w-4" /> Stop
-          </Button>
-        ) : (
-          <Button
-            onClick={handleRun}
-            disabled={!extensionConnected || detecting}
-            className="gap-2"
-            size="sm"
-            title={!extensionConnected ? "Install and log into the TimeWarp extension to run employees" : undefined}
-          >
-            <Play className="h-4 w-4" />
-            Run Employee
-          </Button>
+        {!running && (
+          <>
+            <Button
+              onClick={handleRun}
+              disabled={!extensionConnected || detecting}
+              className="gap-2"
+              size="sm"
+              title={!extensionConnected ? "Install and log into the TimeWarp extension to run employees" : undefined}
+            >
+              <Play className="h-4 w-4" />
+              Run Employee
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => onDelete(employee.id)} className="text-destructive hover:text-destructive">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </>
         )}
-        <Button variant="ghost" size="icon" onClick={() => onDelete(employee.id)} className="text-destructive hover:text-destructive">
-          <Trash2 className="h-4 w-4" />
-        </Button>
       </div>
 
       <div className="flex-1 overflow-auto p-6">
@@ -305,9 +403,7 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
             </Section>
           )}
 
-          <Section title="Procedure">
-            {renderList(employee.sop_procedure)}
-          </Section>
+          <Section title="Procedure">{renderList(employee.sop_procedure)}</Section>
 
           {employee.sop_safety_notes && <Section title="Safety / Compliance Notes"><p>{employee.sop_safety_notes}</p></Section>}
 
@@ -357,6 +453,22 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Running overlay */}
+      {running && (
+        <EmployeeRunOverlay
+          employeeName={employee.name}
+          currentStep={currentStep}
+          isPaused={isPaused}
+          isManualMode={isManualMode}
+          onPause={handlePause}
+          onContinue={handleContinue}
+          onStop={handleStop}
+          onManualTakeover={handleManualTakeover}
+          onReturnControl={handleReturnControl}
+          safetyAlert={safetyAlert}
+        />
+      )}
     </div>
   );
 }
