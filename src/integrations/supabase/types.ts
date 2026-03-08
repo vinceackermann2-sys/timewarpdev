@@ -14,10 +14,49 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_employee_logs: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          message: string | null
+          status: string
+          step_label: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          message?: string | null
+          status?: string
+          step_label?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          message?: string | null
+          status?: string
+          step_label?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_employee_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "ai_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_employees: {
         Row: {
           created_at: string
           id: string
+          linked_business_id: string | null
           name: string
           orb_colors: Json | null
           role: string
@@ -39,6 +78,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          linked_business_id?: string | null
           name: string
           orb_colors?: Json | null
           role: string
@@ -60,6 +100,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          linked_business_id?: string | null
           name?: string
           orb_colors?: Json | null
           role?: string
@@ -79,6 +120,13 @@ export type Database = {
           workspace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_employees_linked_business_id_fkey"
+            columns: ["linked_business_id"]
+            isOneToOne: false
+            referencedRelation: "user_business_data"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_employees_workspace_id_fkey"
             columns: ["workspace_id"]
