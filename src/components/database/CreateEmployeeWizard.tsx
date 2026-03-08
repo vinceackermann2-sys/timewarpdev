@@ -232,21 +232,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               <Label className="text-base font-semibold text-foreground">When does this procedure apply?</Label>
               <Input value={scopeWhen} onChange={e => setScopeWhen(e.target.value)} placeholder="e.g. Whenever a complaint is received" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">Who is responsible for each part?</Label>
-              <p className="text-xs text-muted-foreground">List the roles or people responsible.</p>
-              {responsibilities.map((r, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input value={r} onChange={e => updateListItem(responsibilities, setResponsibilities, i, e.target.value)} placeholder={`Responsibility ${i + 1}`} />
-                  {responsibilities.length > 1 && (
-                    <Button variant="ghost" size="icon" onClick={() => removeListItem(responsibilities, setResponsibilities, i)}><X className="h-3 w-3" /></Button>
-                  )}
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={() => addListItem(responsibilities, setResponsibilities)} className="gap-1">
-                <Plus className="h-3 w-3" /> Add
-              </Button>
-            </div>
           </div>
         )}
 
