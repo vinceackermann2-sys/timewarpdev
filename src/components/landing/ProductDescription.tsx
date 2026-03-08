@@ -4,7 +4,7 @@ import {
   CheckCircle, ChevronRight, Cpu, UserCheck, BarChart3,
   Briefcase, Target, Shield
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -16,17 +16,6 @@ function Section({ children, className = "", dark = false }: { children: React.R
         {children}
       </div>
     </section>
-  );
-}
-
-/* ─────────────────────── Comparison table row ─────────────────── */
-function CompareRow({ label, traditional, timewarp }: { label: string; traditional: string; timewarp: string }) {
-  return (
-    <div className="grid grid-cols-3 gap-4 py-4 border-b border-border/30 last:border-0 items-center">
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      <span className="text-sm text-muted-foreground/70 text-center">{traditional}</span>
-      <span className="text-sm font-semibold text-primary text-center">{timewarp}</span>
-    </div>
   );
 }
 
@@ -58,6 +47,185 @@ function PersonaCard({ icon: Icon, title, description }: { icon: any; title: str
       </div>
       <h4 className="text-lg font-bold text-foreground mb-2">{title}</h4>
       <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+/* ─────────────────────── Grain card wrapper ─────────────────────── */
+function GrainCard({ children, filterId, seed = 0, borderColor = "hsl(0 0% 18%)" }: { children: React.ReactNode; filterId: string; seed?: number; borderColor?: string }) {
+  return (
+    <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: `1px solid ${borderColor}` }}>
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
+        <filter id={filterId}><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={seed} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <rect width="100%" height="100%" filter={`url(#${filterId})`} />
+      </svg>
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+}
+
+/* ─────────────────────── Evolution Flow with scroll animation ─── */
+function EvolutionFlow() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pathRef = useRef<SVGPathElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [cardsVisible, setCardsVisible] = useState([false, false, false, false]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const windowH = window.innerHeight;
+      const start = windowH * 0.8;
+      const end = -rect.height * 0.3;
+      const progress = Math.min(1, Math.max(0, (start - rect.top) / (start - end)));
+      setScrollProgress(progress);
+
+      // Stagger card reveals
+      const thresholds = [0.05, 0.25, 0.45, 0.65];
+      setCardsVisible(thresholds.map(t => progress >= t));
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (pathRef.current) {
+      const length = pathRef.current.getTotalLength();
+      pathRef.current.style.strokeDasharray = `${length}`;
+      pathRef.current.style.strokeDashoffset = `${length * (1 - scrollProgress)}`;
+    }
+  }, [scrollProgress]);
+
+  const cards = [
+    {
+      color: "#ef4444",
+      label: "The old way: Hiring humans for every role",
+      items: [
+        "High churn, high cost, and human error.",
+        'Scaling requires more "managed" hours.',
+        "Knowledge walks out the door when an employee leaves.",
+      ],
+      footer: { text: 'The Ceiling:', italic: 'You can only grow as fast as you can hire.' },
+      seed: 10,
+    },
+    {
+      color: "#3399ff",
+      label: "The TimeWarp way: Replacing all jobs",
+      items: [
+        "Infinite scale with zero headcount increase.",
+        "The AI CEO manages specialized employees that never sleep.",
+        "Your Business DNA is preserved and perfected forever.",
+      ],
+      footer: { text: 'The Reality:', italic: 'Universal High Income (UHI) powered by autonomous productivity.' },
+      seed: 15,
+    },
+  ];
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* SVG connecting path */}
+      <svg
+        className="hidden md:block absolute inset-0 w-full h-full pointer-events-none"
+        style={{ zIndex: 1 }}
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="pathGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#3399ff" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#3399ff" stopOpacity="0.15" />
+          </linearGradient>
+          <filter id="pathGlow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <path
+          ref={pathRef}
+          d="M 120 0 L 120 140 Q 120 170 150 170 L 500 170 Q 530 170 530 200 L 530 340"
+          fill="none"
+          stroke="url(#pathGrad)"
+          strokeWidth="2"
+          filter="url(#pathGlow)"
+          style={{ transition: "stroke-dashoffset 0.1s linear" }}
+        />
+        {/* Glowing dot at path tip */}
+        {scrollProgress > 0 && pathRef.current && (
+          <circle
+            cx={pathRef.current.getPointAtLength(pathRef.current.getTotalLength() * scrollProgress).x}
+            cy={pathRef.current.getPointAtLength(pathRef.current.getTotalLength() * scrollProgress).y}
+            r="4"
+            fill="#3399ff"
+            style={{ filter: "drop-shadow(0 0 6px rgba(51,153,255,0.8))" }}
+          />
+        )}
+      </svg>
+
+      <div className="grid md:grid-cols-2 gap-5 relative z-10">
+        {cards.map((card, idx) => (
+          <div
+            key={idx}
+            className="transition-all duration-700 ease-out"
+            style={{
+              opacity: cardsVisible[idx] ? 1 : 0,
+              transform: cardsVisible[idx] ? "translateY(0)" : "translateY(40px)",
+            }}
+          >
+            <GrainCard filterId={`grain-evo-${idx}`} seed={card.seed} borderColor={idx === 1 ? "hsl(0 0% 20%)" : "hsl(0 0% 18%)"}>
+              <div className="space-y-5">
+                <p className="text-xs tracking-[0.2em] uppercase" style={{ color: card.color }}>{card.label}</p>
+                <ul className="space-y-3">
+                  {card.items.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: idx === 0 ? "hsl(0 0% 35%)" : "#3399ff" }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
+                  <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
+                    {card.footer.text} <span className="italic">{card.footer.italic}</span>
+                  </p>
+                </div>
+              </div>
+            </GrainCard>
+          </div>
+        ))}
+      </div>
+
+      {/* Blue half-moon at bottom */}
+      <div className="relative flex items-center justify-center mt-20 overflow-hidden" style={{ height: 120 }}>
+        <div className="absolute" style={{
+          width: 400,
+          height: 400,
+          borderRadius: "50%",
+          bottom: -280,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "radial-gradient(ellipse at center, rgba(51,153,255,0.15) 0%, rgba(51,153,255,0.05) 40%, transparent 70%)",
+          boxShadow: "0 0 80px 40px rgba(51,153,255,0.08)",
+        }} />
+        <div className="absolute" style={{
+          width: 300,
+          height: 300,
+          borderRadius: "50%",
+          bottom: -220,
+          left: "50%",
+          transform: "translateX(-50%)",
+          border: "1.5px solid rgba(51,153,255,0.2)",
+          boxShadow: "0 0 30px 10px rgba(51,153,255,0.06), inset 0 0 30px 5px rgba(51,153,255,0.04)",
+        }}>
+          <svg className="absolute inset-0 w-full h-full rounded-full overflow-hidden pointer-events-none" style={{ opacity: 0.5, mixBlendMode: "soft-light" }}>
+            <filter id="grain-halfmoon"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves={4} seed={42} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+            <rect width="100%" height="100%" filter="url(#grain-halfmoon)" />
+          </svg>
+        </div>
+      </div>
     </div>
   );
 }
@@ -95,40 +263,14 @@ export function ProductDescription() {
       <section className="relative z-10 py-20 lg:py-28 overflow-hidden" style={{ background: "hsl(0 0% 10%)" }}>
         {/* Ambient light glows */}
         <div className="absolute inset-0 pointer-events-none">
-          {/* Blue glow - left */}
-          <div className="absolute rounded-full" style={{
-            width: 500, height: 500,
-            left: "-10%", top: "-30%",
-            background: "radial-gradient(circle, rgba(51,153,255,0.15) 0%, transparent 70%)",
-            filter: "blur(80px)",
-          }} />
-          {/* Purple glow - right */}
-          <div className="absolute rounded-full" style={{
-            width: 600, height: 600,
-            right: "-15%", top: "-20%",
-            background: "radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)",
-            filter: "blur(100px)",
-          }} />
-          {/* Warm glow - center bottom */}
-          <div className="absolute rounded-full" style={{
-            width: 400, height: 400,
-            left: "50%", bottom: "-30%",
-            transform: "translateX(-50%)",
-            background: "radial-gradient(circle, rgba(51,153,255,0.1) 0%, transparent 70%)",
-            filter: "blur(60px)",
-          }} />
+          <div className="absolute rounded-full" style={{ width: 500, height: 500, left: "-10%", top: "-30%", background: "radial-gradient(circle, rgba(51,153,255,0.15) 0%, transparent 70%)", filter: "blur(80px)" }} />
+          <div className="absolute rounded-full" style={{ width: 600, height: 600, right: "-15%", top: "-20%", background: "radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)", filter: "blur(100px)" }} />
+          <div className="absolute rounded-full" style={{ width: 400, height: 400, left: "50%", bottom: "-30%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(51,153,255,0.1) 0%, transparent 70%)", filter: "blur(60px)" }} />
         </div>
-
-        {/* Horizontal line separator at top */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{
-          background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)",
-        }} />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
-          <p className="text-xs tracking-[0.35em] uppercase text-white/50 font-mono mb-10">
-            AI CEO — Replacing human labor
-          </p>
-
+          <p className="text-xs tracking-[0.35em] uppercase text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
           <div className="flex items-center justify-center gap-12 sm:gap-20 lg:gap-32 mb-10">
             <div>
               <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-white leading-none">+100%</span>
@@ -139,288 +281,111 @@ export function ProductDescription() {
               <p className="text-sm sm:text-base text-white/50 mt-3">Less work</p>
             </div>
           </div>
-
           <p className="text-sm sm:text-base text-white/50 max-w-2xl mx-auto">
             Not from hiring more employees. From <span className="font-semibold text-white">levers pulled for you</span> – built on the DNA already running through your business.
           </p>
         </div>
-
-        {/* Horizontal line separator at bottom */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{
-          background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)",
-        }} />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)" }} />
       </section>
 
-      {/* ── Business DNA + Evolution of Labor (merged single section) ── */}
+      {/* ── Business DNA + Evolution of Labor (merged) ── */}
       <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
-        {/* Subtle particle dots */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {[...Array(30)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full bg-white"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                width: `${1 + Math.random() * 1.5}px`,
-                height: `${1 + Math.random() * 1.5}px`,
-                opacity: 0.08 + Math.random() * 0.12,
-              }}
-            />
+            <div key={i} className="absolute rounded-full bg-white" style={{
+              left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`,
+              width: `${1 + Math.random() * 1.5}px`, height: `${1 + Math.random() * 1.5}px`,
+              opacity: 0.08 + Math.random() * 0.12,
+            }} />
           ))}
         </div>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          {/* Business DNA Title */}
+          {/* Business DNA Title with sparkles */}
           <div className="text-center mb-16 relative">
-            {/* Sparkles behind title */}
             <div className="absolute inset-0 pointer-events-none" style={{ top: "-40px", bottom: "-40px", left: "10%", right: "10%" }}>
               {[...Array(20)].map((_, i) => (
-                <div
-                  key={`sparkle-${i}`}
-                  className="absolute rounded-full"
-                  style={{
-                    left: `${10 + Math.random() * 80}%`,
-                    top: `${10 + Math.random() * 80}%`,
-                    width: `${2 + Math.random() * 3}px`,
-                    height: `${2 + Math.random() * 3}px`,
-                    background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#ffffff",
-                    opacity: 0.3 + Math.random() * 0.5,
-                    boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.4)"}`,
-                    animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
-                  }}
-                />
+                <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
+                  left: `${10 + Math.random() * 80}%`, top: `${10 + Math.random() * 80}%`,
+                  width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
+                  background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#ffffff",
+                  opacity: 0.3 + Math.random() * 0.5,
+                  boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.4)"}`,
+                  animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
+                }} />
               ))}
             </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5 relative z-10" style={{ fontFamily: "'Playfair Display', serif" }}>
-              This is Business DNA.
-            </h2>
-            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto relative z-10">
-              The intelligence layer that turns your company's history into a digitalized CEO.
-            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5 relative z-10" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
+            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto relative z-10">The intelligence layer that turns your company's history into a digitalized CEO.</p>
           </div>
 
           {/* Business DNA comparison cards */}
           <div className="grid md:grid-cols-2 gap-5 mb-24">
-            {/* Left card */}
-            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                <filter id="grain-left"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-left)" />
-              </svg>
-              <div className="relative z-10">
-                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>
-                  What others call "AI Automation"
-                </p>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
-                  Chatbots, agents and workflows.
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
-                  Other tools connect apps to move data. That's plumbing — not leadership.
-                </p>
-              </div>
-            </div>
-
-            {/* Right card */}
-            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                <filter id="grain-right"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={5} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-right)" />
-              </svg>
-              <div className="relative z-10">
-                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>
-                  What we mean by Business DNA
-                </p>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
-                  Every decision your company has
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
-                  The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.
-                </p>
-              </div>
-            </div>
+            <GrainCard filterId="grain-left" seed={0}>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>What others call "AI Automation"</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Chatbots, agents and workflows.</h3>
+              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>Other tools connect apps to move data. That's plumbing — not leadership.</p>
+            </GrainCard>
+            <GrainCard filterId="grain-right" seed={5} borderColor="hsl(0 0% 20%)">
+              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>What we mean by Business DNA</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Every decision your company has</h3>
+              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.</p>
+            </GrainCard>
           </div>
 
           {/* Evolution Title */}
           <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Evolving manual labor.
-            </h3>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Evolving manual labor.</h3>
           </div>
 
-          {/* 4 cards in a flow with connecting line */}
-          <div className="relative">
-            {/* Connecting line - vertical on mobile, Z-path on desktop */}
-            <div className="hidden md:block absolute pointer-events-none" style={{ top: 0, left: "50%", width: 2, height: "100%", zIndex: 1 }}>
-              <svg width="100%" height="100%" className="absolute inset-0" style={{ overflow: "visible", left: "-50%", width: "200%" }}>
-                <path
-                  d="M 25% 60 L 25% 220 Q 25% 260 50% 260 L 75% 260 L 75% 420 Q 75% 460 50% 460 L 25% 460 L 25% 640"
-                  fill="none"
-                  stroke="url(#lineGrad)"
-                  strokeWidth="2"
-                  strokeDasharray="6 4"
-                  style={{ opacity: 0.4 }}
-                />
-                <defs>
-                  <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3399ff" stopOpacity="0.6" />
-                    <stop offset="100%" stopColor="#3399ff" stopOpacity="0.1" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-5">
-              {/* Card 1 - top left */}
-              <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                  <filter id="grain-evo-1"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={10} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                  <rect width="100%" height="100%" filter="url(#grain-evo-1)" />
-                </svg>
-                <div className="relative z-10 space-y-5">
-                  <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
-                  <ul className="space-y-3">
-                    {[
-                      "High churn, high cost, and human error.",
-                      'Scaling requires more "managed" hours.',
-                      "Knowledge walks out the door when an employee leaves.",
-                    ].map((item, i) => (
-                      <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "hsl(0 0% 35%)" }} />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                    <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
-                      The Ceiling: <span className="italic">You can only grow as fast as you can hire.</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2 - top right */}
-              <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                  <filter id="grain-evo-2"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={15} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                  <rect width="100%" height="100%" filter="url(#grain-evo-2)" />
-                </svg>
-                <div className="relative z-10 space-y-5">
-                  <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
-                  <ul className="space-y-3">
-                    {[
-                      "Infinite scale with zero headcount increase.",
-                      "The AI CEO manages specialized employees that never sleep.",
-                      "Your Business DNA is preserved and perfected forever.",
-                    ].map((item, i) => (
-                      <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "hsl(0 0% 50%)" }}>
-                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "#3399ff" }} />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="pt-3" style={{ borderTop: "1px solid hsl(0 0% 20%)" }}>
-                    <p className="text-sm font-semibold" style={{ color: "hsl(0 0% 50%)" }}>
-                      The Reality: Universal High Income (UHI) powered by autonomous productivity.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Blue grained ring at bottom */}
-          <div className="relative flex items-center justify-center mt-20">
-            <div className="relative" style={{ width: 200, height: 200 }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.6, mixBlendMode: "soft-light" }}>
-                <filter id="grain-ring"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves={4} seed={42} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                <rect width="100%" height="100%" filter="url(#grain-ring)" />
-              </svg>
-              <div className="absolute inset-0 rounded-full" style={{
-                border: "3px solid transparent",
-                background: "linear-gradient(135deg, rgba(51,153,255,0.3), rgba(51,153,255,0.05)) border-box",
-                mask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
-                WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
-                WebkitMaskComposite: "xor",
-                maskComposite: "exclude",
-              }} />
-              <div className="absolute inset-0 rounded-full" style={{
-                boxShadow: "0 0 60px 20px rgba(51,153,255,0.12), inset 0 0 40px 10px rgba(51,153,255,0.05)",
-              }} />
-            </div>
-          </div>
+          {/* Evolution cards with scroll animation */}
+          <EvolutionFlow />
         </div>
       </section>
 
-      {/* ── Why the AI CEO wins — visual comparison ── */}
+      {/* ── Why the AI CEO wins ── */}
       <section className="relative z-10 py-24 lg:py-32" style={{ background: "hsl(0 0% 10%)" }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
-          {/* Heading */}
           <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Why the AI CEO wins
-            </h3>
-            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto">
-              What a human manager misses
-            </p>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Why the AI CEO wins</h3>
+            <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto">What a human manager misses</p>
           </div>
-
-          {/* Two equal-height comparison cards */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* LEFT — Traditional CEO */}
             <div className="flex flex-col">
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>
-                TRADITIONAL CEO
-              </p>
-              <div className="rounded-2xl relative overflow-hidden flex-1 flex flex-col" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                  <filter id="grain-cmp-left"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={20} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                  <rect width="100%" height="100%" filter="url(#grain-cmp-left)" />
-                </svg>
-                <div className="relative z-10 p-6 sm:p-7 flex-1">
-                  <div className="space-y-3">
-                    {[
-                      { label: "Decision Speed", value: "Days / Weeks" },
-                      { label: "Context", value: "Limited to reports" },
-                      { label: "Bias", value: "Emotional / Subjective" },
-                      { label: "Cost", value: "$250k+ / Year" },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style={{ background: "hsl(0 0% 11%)", border: "1px solid hsl(0 0% 16%)" }}>
-                        <span className="text-sm text-white/50">{item.label}</span>
-                        <span className="text-sm font-medium" style={{ color: "#ef4444" }}>{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#ef4444" }}>TRADITIONAL CEO</p>
+              <GrainCard filterId="grain-cmp-left" seed={20}>
+                <div className="space-y-3">
+                  {[
+                    { label: "Decision Speed", value: "Days / Weeks" },
+                    { label: "Context", value: "Limited to reports" },
+                    { label: "Bias", value: "Emotional / Subjective" },
+                    { label: "Cost", value: "$250k+ / Year" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style={{ background: "hsl(0 0% 11%)", border: "1px solid hsl(0 0% 16%)" }}>
+                      <span className="text-sm text-white/50">{item.label}</span>
+                      <span className="text-sm font-medium" style={{ color: "#ef4444" }}>{item.value}</span>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              </GrainCard>
             </div>
-
-            {/* RIGHT — TimeWarp AI CEO */}
             <div className="flex flex-col">
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#22c55e" }}>
-                TIMEWARP AI CEO
-              </p>
-              <div className="rounded-2xl relative overflow-hidden flex-1 flex flex-col" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8, mixBlendMode: "soft-light" }}>
-                  <filter id="grain-cmp-right"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={25} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-                  <rect width="100%" height="100%" filter="url(#grain-cmp-right)" />
-                </svg>
-                <div className="relative z-10 p-6 sm:p-7 flex-1">
-                  <div className="space-y-3">
-                    {[
-                      { label: "Decision Speed", value: "Milliseconds" },
-                      { label: "Context", value: "Every data point in company history" },
-                      { label: "Bias", value: "Purely ROI-driven" },
-                      { label: "Cost", value: "Fractions of a salary" },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style={{ background: "hsl(0 0% 11%)", border: "1px solid hsl(0 0% 16%)" }}>
-                        <span className="text-sm text-white/50">{item.label}</span>
-                        <span className="text-sm font-medium" style={{ color: "#22c55e" }}>{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
+              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#22c55e" }}>TIMEWARP AI CEO</p>
+              <GrainCard filterId="grain-cmp-right" seed={25} borderColor="hsl(0 0% 20%)">
+                <div className="space-y-3">
+                  {[
+                    { label: "Decision Speed", value: "Milliseconds" },
+                    { label: "Context", value: "Every data point in company history" },
+                    { label: "Bias", value: "Purely ROI-driven" },
+                    { label: "Cost", value: "Fractions of a salary" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style={{ background: "hsl(0 0% 11%)", border: "1px solid hsl(0 0% 16%)" }}>
+                      <span className="text-sm text-white/50">{item.label}</span>
+                      <span className="text-sm font-medium" style={{ color: "#22c55e" }}>{item.value}</span>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              </GrainCard>
             </div>
           </div>
         </div>
@@ -429,30 +394,12 @@ export function ProductDescription() {
       {/* ── Autonomy Loop ── */}
       <Section className="relative z-10" dark>
         <div className="text-center mb-16">
-          <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            The TimeWarp Autonomy Loop
-          </h3>
+          <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">The TimeWarp Autonomy Loop</h3>
         </div>
-
         <div className="max-w-xl mx-auto">
-          <LoopStep 
-            number="01" 
-            title="Ingest — Business DNA"
-            description="TimeWarp scans your files, Microsoft, financials, and SOPs to map your unique DNA."
-            icon={Brain}
-          />
-          <LoopStep 
-            number="02" 
-            title="Deploy — The AI CEO"
-            description="The system takes over executive functions: resource allocation, task delegation, and strategy."
-            icon={Cpu}
-          />
-          <LoopStep 
-            number="03" 
-            title="Execute — Replace Jobs"
-            description="Autonomous employees perform the roles of SDRs, Accountants, and Project Managers."
-            icon={UserCheck}
-          />
+          <LoopStep number="01" title="Ingest — Business DNA" description="TimeWarp scans your files, Microsoft, financials, and SOPs to map your unique DNA." icon={Brain} />
+          <LoopStep number="02" title="Deploy — The AI CEO" description="The system takes over executive functions: resource allocation, task delegation, and strategy." icon={Cpu} />
+          <LoopStep number="03" title="Execute — Replace Jobs" description="Autonomous employees perform the roles of SDRs, Accountants, and Project Managers." icon={UserCheck} />
           <div className="relative flex gap-5">
             <div className="flex flex-col items-center">
               <div className="h-12 w-12 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
@@ -462,9 +409,7 @@ export function ProductDescription() {
             <div>
               <span className="text-xs font-mono text-primary/60 tracking-wider">04</span>
               <h4 className="text-lg font-bold text-foreground mt-1">UHI — Profit Distribution</h4>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                As labor costs drop to zero, profit margins explode, enabling the shift toward Universal High Income for stakeholders.
-              </p>
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">As labor costs drop to zero, profit margins explode, enabling the shift toward Universal High Income for stakeholders.</p>
             </div>
           </div>
         </div>
@@ -473,39 +418,19 @@ export function ProductDescription() {
       {/* ── Who is TimeWarp for? ── */}
       <Section className="relative z-10">
         <div className="text-center mb-12">
-          <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Who is TimeWarp for?
-          </h3>
+          <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Who is TimeWarp for?</h3>
         </div>
-
         <div className="grid md:grid-cols-3 gap-6">
-          <PersonaCard
-            icon={Rocket}
-            title="Visionary Founders"
-            description={'Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise.'}
-          />
-          <PersonaCard
-            icon={TrendingUp}
-            title="Hyper-Scale Startups"
-            description="Companies that need to scale from $1M to $100M without the friction of hiring 200 people."
-          />
-          <PersonaCard
-            icon={Building2}
-            title="Efficiency-First Enterprises"
-            description={'Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO.'}
-          />
+          <PersonaCard icon={Rocket} title="Visionary Founders" description={'Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise.'} />
+          <PersonaCard icon={TrendingUp} title="Hyper-Scale Startups" description="Companies that need to scale from $1M to $100M without the friction of hiring 200 people." />
+          <PersonaCard icon={Building2} title="Efficiency-First Enterprises" description={'Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO.'} />
         </div>
       </Section>
 
       {/* ── Bottom CTA ── */}
       <Section className="relative z-10 text-center pb-28 lg:pb-36" dark>
-        <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-          See your company's autonomous future
-        </h3>
-        <p className="text-muted-foreground mb-10 text-lg">
-          Paste your website URL. Get your Business DNA &amp; Autonomy Report in 60 seconds.
-        </p>
-
+        <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">See your company's autonomous future</h3>
+        <p className="text-muted-foreground mb-10 text-lg">Paste your website URL. Get your Business DNA &amp; Autonomy Report in 60 seconds.</p>
         <div className="max-w-xl mx-auto">
           <div className="flex gap-3">
             <div className="flex-1 relative">
@@ -519,10 +444,7 @@ export function ProductDescription() {
                 onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
               />
             </div>
-            <Button
-              onClick={handleAnalyze}
-              className="h-12 px-6 gap-2"
-            >
+            <Button onClick={handleAnalyze} className="h-12 px-6 gap-2">
               Analyze My Business
               <ArrowRight className="h-4 w-4" />
             </Button>
