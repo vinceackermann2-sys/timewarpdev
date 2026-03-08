@@ -56,7 +56,7 @@ import { SettingsDialog } from "./SettingsDialog";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
-import { SiriOrb } from "@/components/ui/siri-orb";
+import { Bot } from "lucide-react";
 
 type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
 
