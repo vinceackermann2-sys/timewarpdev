@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SiriOrb } from "@/components/ui/siri-orb";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { CreateEmployeeWizard } from "./CreateEmployeeWizard";
 import { EmployeeDetailView } from "./EmployeeDetailView";
 
