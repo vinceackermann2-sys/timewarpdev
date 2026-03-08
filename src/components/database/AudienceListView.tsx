@@ -176,11 +176,11 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
             return (
               <div key={audience.id} className="group rounded-xl border border-border/40 bg-card/50 hover:bg-card transition-colors cursor-pointer">
                 <div className="flex items-center gap-3 px-4 py-3.5" onClick={() => setSelectedAudienceId(audience.id)}>
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className="h-10 w-10 rounded-lg bg-muted/50 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
                     {audience.avatarUrl ? (
                       <img src={audience.avatarUrl} alt={audience.name} className="h-full w-full object-cover" />
                     ) : (
-                      <Users className="h-5 w-5 text-primary" />
+                      <Users className="h-5 w-5 text-foreground" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -216,7 +216,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3"><Users className="h-6 w-6 text-primary" /></div>
+          <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mb-3"><Users className="h-6 w-6 text-foreground" /></div>
           <p className="text-sm text-muted-foreground">No audiences yet</p>
           <p className="text-xs text-muted-foreground/60 mt-1">Create your first audience segment to get started</p>
         </div>
