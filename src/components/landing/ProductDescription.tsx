@@ -282,7 +282,6 @@ export function ProductDescription() {
             </GrainCard>
           </div>
         </div>
-        </div>
       </section>
 
       {/* ── Why the AI CEO wins ── */}
