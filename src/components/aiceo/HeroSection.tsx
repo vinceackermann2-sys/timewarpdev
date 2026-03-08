@@ -190,7 +190,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                 Analyze →
               </button>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "#333", marginTop: "1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: t.hintColor, marginTop: "1rem", transition: "color 0.3s ease" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13A5 5 0 0015 8V6A5 5 0 005 6V8A5 5 0 0010 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11A5 5 0 009 16V18A5 5 0 0019 18V16A5 5 0 0014 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               Link to a specific product (like "nike.com/shoes/air-max") for 10x faster results
             </div>
@@ -198,11 +198,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
           {/* Badges */}
           <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(8px)", color: "#000", padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: "1px solid rgba(0,0,0,0.05)" }}>
-              <span style={{ width: 6, height: 6, background: "#000", borderRadius: "50%" }} /> No credit card
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.text, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
+              <span style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> No credit card
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(8px)", color: "#000", padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: "1px solid rgba(0,0,0,0.05)" }}>
-              <span style={{ width: 6, height: 6, background: "#000", borderRadius: "50%" }} /> 15-90 seconds
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: t.badgeBg, backdropFilter: "blur(8px)", color: t.text, padding: "0.5rem 1rem", borderRadius: 999, fontSize: "0.85rem", fontWeight: 500, border: `1px solid ${t.badgeBorder}`, transition: "all 0.3s ease" }}>
+              <span style={{ width: 6, height: 6, background: t.dotColor, borderRadius: "50%", transition: "background 0.3s ease" }} /> 15-90 seconds
             </span>
           </div>
         </div>
