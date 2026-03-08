@@ -1,50 +1,19 @@
 
 
-## Problem
+## Analysis: Extension needs updating
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+You're right — the webapp is already sending all the correct flags (`targetGroupTab: true`, `focusGroup: false`, `openTab: true`). The problem is on the **extension side**: the extension's content script and background script need to be updated to actually read and respect these flags.
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+The webapp (this codebase) is doing everything correctly:
+- `signalStart` sends `openTab: true`, `focusGroup: false`
+- `executeAction` sends `targetGroupTab: true`, `focusGroup: false`
+- `getPageContext` sends `targetGroupTab: true`
 
-## Plan
+**The extension code needs to be updated** to:
+1. Store the group's tab ID when it creates the tab group
+2. On `TIMEWARP_EXECUTE_ACTION` with `targetGroupTab: true` — route the action (especially `navigate`) to the stored group tab ID instead of the active tab
+3. On `TIMEWARP_GET_PAGE_CONTEXT` with `targetGroupTab: true` — read context from the group tab, not the active tab
+4. On `TIMEWARP_EMPLOYEE_START` with `focusGroup: false` — create the group without calling `chrome.tabs.update(..., { active: true })`
 
-### 1. Add context size limiting in both edge functions
-
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
-
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
-
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
-```
-
-### 2. Add better error logging for debugging
-
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
-
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
-
-### 3. Truncate individual item content
-
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
-
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
+**No changes needed in this Lovable project.** The extension's background script needs the update. This is outside the scope of what can be changed here — you'll need to update your browser extension code to handle these flags.
 
