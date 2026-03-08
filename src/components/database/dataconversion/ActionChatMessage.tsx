@@ -3,7 +3,7 @@ import { ExternalLink, FileText, Mail, Calendar, CheckCircle2, AlertCircle, Load
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-import adEvoIcon from "@/assets/ad-evo-icon.svg";
+import { Brain } from "lucide-react";
 
 export interface ActionStep {
   icon: string;
