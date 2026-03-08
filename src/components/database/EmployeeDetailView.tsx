@@ -372,6 +372,39 @@ export function EmployeeDetailView({ employee, onBack, onDelete }: Props) {
     });
   };
 
+  const handleDownloadResult = (log: LogEntry) => {
+    const blob = new Blob([log.message || ""], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${employee.name}-${log.step_label || "result"}-${new Date(log.created_at).toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSaveToDatabase = async (log: LogEntry) => {
+    setSavingToDb(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const wsId = activeWorkspace?.workspaceId || localStorage.getItem("preferred_workspace_id");
+      await supabase.from("user_business_data").insert({
+        user_id: session.user.id,
+        workspace_id: wsId || null,
+        title: `${employee.name} – ${log.step_label || "Result"}`,
+        data_type: "document",
+        source: "ai_employee",
+        content: log.message || "",
+      });
+      toast({ title: "Saved to database", description: "Result added to your Business Database." });
+      setViewingResult(null);
+    } catch (e: any) {
+      toast({ title: "Failed to save", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingToDb(false);
+    }
+  };
+
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="space-y-2">
       <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</h3>
