@@ -148,29 +148,41 @@ export function ProductDescription() {
           {/* Two comparison cards */}
           <div className="grid md:grid-cols-2 gap-5">
             {/* Left card */}
-            <div className="rounded-2xl p-7 sm:p-8" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "hsl(0 0% 45%)" }}>
-                What others call "AI Automation"
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
-                Chatbots, agents and workflows.
-              </h3>
-              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
-                Other tools connect apps to move data. That's plumbing — not leadership.
-              </p>
+            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 18%)" }}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.45, mixBlendMode: "soft-light" }}>
+                <filter id="grain-left"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+                <rect width="100%" height="100%" filter="url(#grain-left)" />
+              </svg>
+              <div className="relative z-10">
+                <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "hsl(0 0% 45%)" }}>
+                  What others call "AI Automation"
+                </p>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
+                  Chatbots, agents and workflows.
+                </h3>
+                <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
+                  Other tools connect apps to move data. That's plumbing — not leadership.
+                </p>
+              </div>
             </div>
 
             {/* Right card */}
-            <div className="rounded-2xl p-7 sm:p-8" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
-              <p className="text-xs tracking-[0.2em] uppercase mb-4 text-red-400">
-                What we mean by Business DNA
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
-                Every decision, SOP, and winning pivot your company has ever made.
-              </h3>
-              <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
-                The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.
-              </p>
+            <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden" style={{ background: "hsl(0 0% 14%)", border: "1px solid hsl(0 0% 20%)" }}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.45, mixBlendMode: "soft-light" }}>
+                <filter id="grain-right"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={5} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+                <rect width="100%" height="100%" filter="url(#grain-right)" />
+              </svg>
+              <div className="relative z-10">
+                <p className="text-xs tracking-[0.2em] uppercase mb-4 text-red-400">
+                  What we mean by Business DNA
+                </p>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">
+                  Every decision, SOP, and winning pivot your company has ever made.
+                </h3>
+                <p className="text-sm leading-relaxed" style={{ color: "hsl(0 0% 50%)" }}>
+                  The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.
+                </p>
+              </div>
             </div>
           </div>
         </div>
