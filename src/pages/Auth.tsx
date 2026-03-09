@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 import authBg from "@/assets/auth-bg.png";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link as RouterLink } from "react-router-dom";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 
 const Auth = () => {
