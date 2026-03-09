@@ -277,10 +277,10 @@ export function ProductDescription() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-5 mt-14 max-w-4xl mx-auto">
-            {[{ title: "Visionary Founders", description: 'Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise.' },
-            { title: "Hyper-Scale Startups", description: "Companies that need to scale from $1M to $100M without the friction of hiring 200 people." },
-            { title: "Efficiency-First Enterprises", description: 'Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO.' },
-            { title: "Solo Operators & Small Teams", description: "Entrepreneurs running lean who want enterprise-level execution without enterprise-level headcount." }].
+            {[{ title: "Fullfillers", description: 'Founders who want to exit the "daily grind" ' },
+            { title: "Hyper-Scale ", description: "Companies that need to scale without the friction of hiring 200 people." },
+            { title: "Family First", description: "Legacy businesses looking to keep core values while staying in business." },
+            { title: "Solo Founder", description: "Entrepreneurs who wants enterprise-level execution without enterprise-level headcount." }].
             map((card, i) =>
             <div key={i} className="rounded-2xl p-7 sm:p-8 transition-colors bg-card border border-border hover:border-primary/30 dark:bg-[hsl(0_0%_14%)] dark:border-[hsl(0_0%_20%)]">
                 <h4 className="text-lg font-bold text-foreground dark:text-white mb-3">{card.title}</h4>
