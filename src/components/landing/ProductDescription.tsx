@@ -185,8 +185,8 @@ export function ProductDescription() {
                 <div className="space-y-3">
                   {[
                   { label: "Decision Speed", value: "Days / Weeks" },
-                  { label: "Context", value: "Limited to reports" },
-                  { label: "Bias", value: "Emotional / Subjective" },
+                  { label: "Labor", value: "8h/day" },
+                  { label: "Labor", value: "Limited knowledge" },
                   { label: "Cost", value: "$250k+ / Year" }].
                   map((item, i) =>
                   <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 bg-background border border-border dark:bg-[hsl(0_0%_11%)] dark:border-[hsl(0_0%_16%)]">
@@ -203,8 +203,8 @@ export function ProductDescription() {
                 <div className="space-y-3">
                   {[
                   { label: "Decision Speed", value: "Milliseconds" },
-                  { label: "Context", value: "Every data point in company history" },
-                  { label: "Bias", value: "Purely ROI-driven" },
+                  { label: "Labor", value: "Every data point in internet history" },
+                  { label: "Labor", value: "24/7" },
                   { label: "Cost", value: "Fractions of a salary" }].
                   map((item, i) =>
                   <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 bg-background border border-border dark:bg-[hsl(0_0%_11%)] dark:border-[hsl(0_0%_16%)]">
@@ -226,13 +226,12 @@ export function ProductDescription() {
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
           <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
-</h3>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>The Value Exchange loop</h3>
           </div>
           <div className="max-w-xl mx-auto">
-            {[{ number: "01", title: "Ingest — Business DNA", description: "TimeWarp scans digital footprint, and defines a business dna.", icon: Brain },
-            { number: "02", title: "Deploy — The AI CEO", description: "The system takes over executive functions: resource allocation, task delegation, and strategy.", icon: Cpu },
-            { number: "03", title: "Execute — Replace Jobs", description: "Autonomous employees perform the roles of SDRs, Accountants, and Project Managers.", icon: UserCheck }].
+            {[{ number: "01", title: "Problem — Value Creation", description: "People exchange money only to reduce pain or increase pleasure.", icon: Brain },
+            { number: "02", title: "Solution — Value Creation", description: "The solution must be perceived as more valuable than the money exchanged.", icon: Cpu },
+            { number: "03", title: "Capture — Value Exchange", description: "Sales is the ultimate validation of value.", icon: UserCheck }].
             map((step, i) =>
             <div key={i} className="relative flex gap-5">
                 <div className="flex flex-col items-center">
@@ -278,10 +277,10 @@ export function ProductDescription() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-5 mt-14 max-w-4xl mx-auto">
-            {[{ title: "Visionary Founders", description: 'Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise.' },
-            { title: "Hyper-Scale Startups", description: "Companies that need to scale from $1M to $100M without the friction of hiring 200 people." },
-            { title: "Efficiency-First Enterprises", description: 'Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO.' },
-            { title: "Solo Operators & Small Teams", description: "Entrepreneurs running lean who want enterprise-level execution without enterprise-level headcount." }].
+            {[{ title: "Fullfillers", description: 'Founders who want to exit the "daily grind" ' },
+            { title: "Hyper-Scale ", description: "Companies that need to scale without the friction of hiring 200 people." },
+            { title: "Family First", description: "Legacy businesses looking to keep core values while staying in business." },
+            { title: "Solo Founder", description: "Entrepreneurs who wants enterprise-level execution without enterprise-level headcount." }].
             map((card, i) =>
             <div key={i} className="rounded-2xl p-7 sm:p-8 transition-colors bg-card border border-border hover:border-primary/30 dark:bg-[hsl(0_0%_14%)] dark:border-[hsl(0_0%_20%)]">
                 <h4 className="text-lg font-bold text-foreground dark:text-white mb-3">{card.title}</h4>
