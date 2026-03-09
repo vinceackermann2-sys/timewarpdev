@@ -118,24 +118,7 @@ export function ProductDescription() {
       <BusinessDNACard />
 
       {/* ── Evolution of Labor ── */}
-      <section className="relative z-10 py-24 lg:py-32 overflow-hidden">
-        {/* Particle animation background */}
-        <div className="absolute inset-0 pointer-events-none">
-          <ParticleAnimation
-            containerSize="100%"
-            particleCount={300}
-            colors={['#3399ff', '#00b8a9', '#6366f1', '#818cf8']}
-            animationDuration={[2, 4]}
-            className="w-full h-full"
-          />
-          {/* Light mode overlay to blend with cream bg */}
-          <div className="absolute inset-0 bg-background/70 dark:bg-black/40" />
-        </div>
-        {/* Top fade into previous section */}
-        <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none z-[1]" style={{ background: "linear-gradient(to bottom, hsl(var(--background)), transparent)" }} />
-        {/* Bottom fade into next section */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none z-[1]" style={{ background: "linear-gradient(to top, hsl(var(--muted) / 0.3), transparent)" }} />
-        <div className="dark:hidden absolute bottom-0 left-0 right-0 h-32 pointer-events-none z-[1]" style={{ background: "linear-gradient(to top, hsl(var(--background)), transparent)" }} />
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
         {/* Bottom glow — dark only */}
         <div className="absolute pointer-events-none left-0 right-0 hidden dark:block" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, transparent 70%)" }} />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
