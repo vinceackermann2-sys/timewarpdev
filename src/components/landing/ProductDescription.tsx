@@ -103,7 +103,7 @@ export function ProductDescription() {
               <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">More freedom</p>
             </div>
             <div>
-              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">-100%</span>
+              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">-100%</span>
               <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">Less work</p>
             </div>
           </div>
