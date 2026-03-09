@@ -498,5 +498,6 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         }
       `}</style>
     </div>
+    </>
   );
 }
