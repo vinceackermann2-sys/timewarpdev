@@ -33,7 +33,6 @@ function BusinessDNACard() {
       {/* Background fill sits behind glow */}
       <div className="absolute inset-0 bg-background dark:bg-[hsl(0_0%_10%)] -z-10" />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         <div className="text-center mb-10">
           <div className="relative inline-block px-8 py-4">
             {/* Sparkles — behind heading only, both light and dark */}
