@@ -171,6 +171,51 @@ export function ProductDescription() {
         </div>
       </section>
 
+      {/* ── Autonomy Loop ── */}
+      <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
+        {/* Bottom glow — dark only */}
+        <div className="absolute pointer-events-none left-0 right-0 hidden dark:block" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, transparent 70%)" }} />
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>The Value Exchange loop</h3>
+          </div>
+          <div className="max-w-xl mx-auto">
+            {[{ number: "01", title: "Problem — Value Creation", description: "People exchange money only to reduce pain or increase pleasure.", icon: Brain },
+            { number: "02", title: "Solution — Value Creation", description: "The solution must be perceived as more valuable than the money exchanged.", icon: Cpu },
+            { number: "03", title: "Capture — Value Exchange", description: "Sales is the ultimate validation of value.", icon: UserCheck }].
+            map((step, i) =>
+            <div key={i} className="relative flex gap-5">
+                <div className="flex flex-col items-center">
+                  <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20" style={{ background: "rgba(51,153,255,0.1)", borderColor: "rgba(51,153,255,0.2)" }}>
+                    <step.icon className="h-5 w-5 text-primary" style={{ color: "#3399ff" }} />
+                  </div>
+                  <div className="w-px flex-1 mt-2 bg-border dark:bg-[hsl(0_0%_20%)]" />
+                </div>
+                <div className="pb-12">
+                  <span className="text-xs font-mono tracking-wider text-primary/50" style={{ color: "rgba(51,153,255,0.5)" }}>{step.number}</span>
+                  <h4 className="text-lg font-bold text-foreground dark:text-white mt-1">{step.title}</h4>
+                  <p className="text-sm mt-2 leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">{step.description}</p>
+                </div>
+              </div>
+            )}
+            {/* Last step */}
+            <div className="relative flex gap-5">
+              <div className="flex flex-col items-center">
+                <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(51,153,255,0.15)", border: "1px solid rgba(51,153,255,0.3)" }}>
+                  <BarChart3 className="h-5 w-5" style={{ color: "#3399ff" }} />
+                </div>
+              </div>
+              <div>
+                <span className="text-xs font-mono tracking-wider" style={{ color: "rgba(51,153,255,0.5)" }}>04</span>
+                <h4 className="text-lg font-bold text-foreground dark:text-white mt-1">Evolve — Value Recreation       </h4>
+                <p className="text-sm mt-2 leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">​Captured value gets fed back into stage 1 to improve.       </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Why the AI CEO wins ── */}
       <section className="relative z-10 py-24 lg:py-32 bg-muted/30 dark:bg-[#1D1D1D]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
@@ -214,51 +259,6 @@ export function ProductDescription() {
                   )}
                 </div>
               </GrainCard>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Autonomy Loop ── */}
-      <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
-        {/* Bottom glow — dark only */}
-        <div className="absolute pointer-events-none left-0 right-0 hidden dark:block" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, transparent 70%)" }} />
-
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>The Value Exchange loop</h3>
-          </div>
-          <div className="max-w-xl mx-auto">
-            {[{ number: "01", title: "Problem — Value Creation", description: "People exchange money only to reduce pain or increase pleasure.", icon: Brain },
-            { number: "02", title: "Solution — Value Creation", description: "The solution must be perceived as more valuable than the money exchanged.", icon: Cpu },
-            { number: "03", title: "Capture — Value Exchange", description: "Sales is the ultimate validation of value.", icon: UserCheck }].
-            map((step, i) =>
-            <div key={i} className="relative flex gap-5">
-                <div className="flex flex-col items-center">
-                  <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20" style={{ background: "rgba(51,153,255,0.1)", borderColor: "rgba(51,153,255,0.2)" }}>
-                    <step.icon className="h-5 w-5 text-primary" style={{ color: "#3399ff" }} />
-                  </div>
-                  <div className="w-px flex-1 mt-2 bg-border dark:bg-[hsl(0_0%_20%)]" />
-                </div>
-                <div className="pb-12">
-                  <span className="text-xs font-mono tracking-wider text-primary/50" style={{ color: "rgba(51,153,255,0.5)" }}>{step.number}</span>
-                  <h4 className="text-lg font-bold text-foreground dark:text-white mt-1">{step.title}</h4>
-                  <p className="text-sm mt-2 leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">{step.description}</p>
-                </div>
-              </div>
-            )}
-            {/* Last step */}
-            <div className="relative flex gap-5">
-              <div className="flex flex-col items-center">
-                <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(51,153,255,0.15)", border: "1px solid rgba(51,153,255,0.3)" }}>
-                  <BarChart3 className="h-5 w-5" style={{ color: "#3399ff" }} />
-                </div>
-              </div>
-              <div>
-                <span className="text-xs font-mono tracking-wider" style={{ color: "rgba(51,153,255,0.5)" }}>04</span>
-                <h4 className="text-lg font-bold text-foreground dark:text-white mt-1">Evolve — Value Recreation       </h4>
-                <p className="text-sm mt-2 leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">​Captured value gets fed back into stage 1 to improve.       </p>
-              </div>
             </div>
           </div>
         </div>
