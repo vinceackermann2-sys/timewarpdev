@@ -7,7 +7,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LightSpeed } from "@/components/ui/light-speed";
+import { ParticleAnimation } from "@/components/ui/particle-animation-1";
 
 /* ─────────────────────── Grain card wrapper ─────────────────────── */
 function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode; filterId: string; seed?: number }) {
@@ -119,11 +119,18 @@ export function ProductDescription() {
 
       {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden">
-        {/* LightSpeed WebGL background */}
+        {/* Particle animation background */}
         <div className="absolute inset-0 pointer-events-none">
-          <LightSpeed className="absolute inset-0 w-full h-full" speed={0.4} />
+          <ParticleAnimation
+            containerSize="100%"
+            particleCount={300}
+            colors={['#3399ff', '#00b8a9', '#6366f1', '#818cf8']}
+            animationDuration={[2, 4]}
+            freeze={true}
+            className="w-full h-full"
+          />
           {/* Light mode overlay to blend with cream bg */}
-          <div className="absolute inset-0 bg-background/80 dark:bg-transparent" />
+          <div className="absolute inset-0 bg-background/70 dark:bg-black/40" />
         </div>
         {/* Top fade into previous section */}
         <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none z-[1]" style={{ background: "linear-gradient(to bottom, hsl(var(--background)), transparent)" }} />
