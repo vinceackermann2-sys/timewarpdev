@@ -29,9 +29,9 @@ function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode
 /* ─────────────────────── Business DNA side-by-side cards ─── */
 function BusinessDNACard() {
   return (
-    <div className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]">
-      {/* Top glow — received from stat section above */}
-      <div className="absolute pointer-events-none dark:opacity-100 opacity-40" style={{ width: "100%", height: 300, top: -100, left: 0, background: "radial-gradient(ellipse 50% 100% at center top, rgba(51,153,255,0.08) 0%, rgba(139,92,246,0.04) 40%, transparent 70%)", filter: "blur(50px)" }} />
+    <div className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]" style={{ overflow: "visible" }}>
+      {/* Top glow — continuation from stat section, fades naturally */}
+      <div className="absolute pointer-events-none dark:opacity-100 opacity-70" style={{ width: "100%", height: 400, top: 0, left: 0, background: "radial-gradient(ellipse 50% 100% at center top, rgba(51,153,255,0.14) 0%, rgba(139,92,246,0.06) 40%, transparent 80%)", filter: "blur(60px)" }} />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         <div className="text-center mb-10">
           <div className="relative inline-block px-8 py-4">
