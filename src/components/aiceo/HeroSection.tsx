@@ -223,7 +223,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         {/* Grain: lightweight canvas-generated noise tile (all devices) */}
         {noiseUrl && (
-          <div style={{
+          <div className="hero-grain-tile" style={{
             position: "absolute", inset: 0, pointerEvents: "none",
             mixBlendMode: "soft-light" as const, opacity: 0.6, zIndex: 9,
             backgroundImage: `url(${noiseUrl})`,
