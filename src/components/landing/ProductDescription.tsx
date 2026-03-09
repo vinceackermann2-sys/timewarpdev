@@ -118,6 +118,10 @@ export function ProductDescription() {
 
       {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
+        {/* LightSpeed WebGL background */}
+        <div className="absolute inset-0 pointer-events-none opacity-30 dark:opacity-50">
+          <LightSpeed className="absolute inset-0 w-full h-full" speed={0.4} />
+        </div>
         {/* Bottom glow — dark only */}
         <div className="absolute pointer-events-none left-0 right-0 hidden dark:block" style={{ height: 500, bottom: -100, background: "radial-gradient(ellipse 100% 80% at center bottom, rgba(51,153,255,0.14) 0%, rgba(51,153,255,0.06) 30%, transparent 70%)" }} />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
