@@ -30,6 +30,8 @@ function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode
 function BusinessDNACard() {
   return (
     <div className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]">
+      {/* Top glow — received from stat section above */}
+      <div className="absolute pointer-events-none dark:opacity-100 opacity-40" style={{ width: "100%", height: 300, top: -100, left: 0, background: "radial-gradient(ellipse 50% 100% at center top, rgba(51,153,255,0.08) 0%, rgba(139,92,246,0.04) 40%, transparent 70%)", filter: "blur(50px)" }} />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         <div className="text-center mb-10">
           <div className="relative inline-block px-8 py-4">
@@ -96,8 +98,9 @@ export function ProductDescription() {
       {/* ── Hero headline — stat banner ── */}
       <section className="relative z-10 py-20 lg:py-28 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
-        {/* Bottom light glow */}
-        <div className="absolute pointer-events-none hidden dark:block" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
+        {/* Bottom light glow — fades into next section */}
+        <div className="absolute pointer-events-none" style={{ width: "100%", height: 400, bottom: -200, left: 0, background: "radial-gradient(ellipse 60% 100% at center top, rgba(51,153,255,0.10) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(50px)" }} />
+        <div className="absolute pointer-events-none dark:opacity-100 opacity-40" style={{ width: 700, height: 350, bottom: -150, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center, rgba(139,92,246,0.08) 0%, rgba(51,153,255,0.06) 30%, transparent 70%)", filter: "blur(60px)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
           <p className="text-xs tracking-[0.35em] uppercase text-muted-foreground dark:text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
