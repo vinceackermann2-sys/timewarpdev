@@ -372,8 +372,8 @@ export function ProductDescription() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between mt-10 pt-5 border-t border-border/30 dark:border-[hsl(0_0%_20%)]">
-              <p className="text-muted-foreground dark:text-[hsl(0_0%_50%)]" style={{ fontSize: 14 }}>© 2026 Vincent Ackermann, All rights reserved</p>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-10 pt-5 border-t border-border/30 dark:border-[hsl(0_0%_20%)]">
+              <p className="text-muted-foreground dark:text-[hsl(0_0%_50%)] text-center sm:text-left" style={{ fontSize: 14 }}>© 2026 Vincent Ackermann, All rights reserved</p>
               <p className="text-muted-foreground dark:text-[hsl(0_0%_50%)]" style={{ fontSize: 14 }}>🇸🇪 Made in Sweden</p>
             </div>
           </div>
