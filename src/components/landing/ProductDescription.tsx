@@ -21,32 +21,10 @@ function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode
   );
 }
 
-/* ─────────────────────── Business DNA auto-swap card ─── */
+/* ─────────────────────── Business DNA side-by-side cards ─── */
 function BusinessDNACard() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const [activeCard, setActiveCard] = useState(0);
-  const [hasEntered, setHasEntered] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasEntered) {
-          setHasEntered(true);
-          timerRef.current = setTimeout(() => setActiveCard(1), 2800);
-        }
-      },
-      { threshold: 0.5 }
-    );
-    if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => {
-      observer.disconnect();
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [hasEntered]);
-
   return (
-    <div ref={sectionRef} className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]">
+    <div className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]">
       {/* Sparkles — dark only */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden hidden dark:block">
         {[...Array(20)].map((_, i) => (
@@ -67,47 +45,20 @@ function BusinessDNACard() {
           <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto">The intelligence layer that turns your company's history into a digitalized CEO.</p>
         </div>
 
-        <div className="relative max-w-2xl mx-auto" style={{ minHeight: 200 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {/* Card 1 */}
-          <div className="transition-all duration-700 ease-out" style={{
-            opacity: activeCard === 0 ? 1 : 0,
-            transform: activeCard === 0 ? "translateY(0) scale(1)" : "translateY(-30px) scale(0.97)",
-            position: activeCard === 0 ? "relative" : "absolute",
-            inset: activeCard === 0 ? undefined : 0,
-            pointerEvents: activeCard === 0 ? "auto" : "none",
-          }}>
-            <GrainCard filterId="grain-dna-1" seed={0}>
-              <p className="text-xs tracking-[0.2em] uppercase mb-4 text-destructive" style={{ color: "#ef4444" }}>What others call "AI Automation"</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-4">Chatbots, agents and workflows.</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">Other tools connect apps to move data. That's plumbing — not leadership.</p>
-            </GrainCard>
-          </div>
+          <GrainCard filterId="grain-dna-1" seed={0}>
+            <p className="text-xs tracking-[0.2em] uppercase mb-4 text-destructive" style={{ color: "#ef4444" }}>What others call "AI Automation"</p>
+            <h3 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-4">Chatbots, agents and workflows.</h3>
+            <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">Other tools connect apps to move data. That's plumbing — not leadership.</p>
+          </GrainCard>
 
           {/* Card 2 */}
-          <div className="transition-all duration-700 ease-out" style={{
-            opacity: activeCard === 1 ? 1 : 0,
-            transform: activeCard === 1 ? "translateY(0) scale(1)" : "translateY(30px) scale(0.97)",
-            position: activeCard === 1 ? "relative" : "absolute",
-            inset: activeCard === 1 ? undefined : 0,
-            pointerEvents: activeCard === 1 ? "auto" : "none",
-          }}>
-            <GrainCard filterId="grain-dna-2" seed={5}>
-              <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>What we mean by Business DNA</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-4">Every decision your company has</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.</p>
-            </GrainCard>
-          </div>
-        </div>
-
-        {/* Pagination dots */}
-        <div className="flex items-center justify-center gap-3 mt-8">
-          {[0, 1].map(i => (
-            <div key={i} className="rounded-full transition-all duration-500" style={{
-              width: activeCard === i ? 24 : 8, height: 8,
-              background: activeCard === i ? "#3399ff" : "hsl(var(--muted))",
-              boxShadow: activeCard === i ? "0 0 12px rgba(51,153,255,0.5)" : "none",
-            }} />
-          ))}
+          <GrainCard filterId="grain-dna-2" seed={5}>
+            <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>What we mean by Business DNA</p>
+            <h3 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-4">Every decision your company has</h3>
+            <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.</p>
+          </GrainCard>
         </div>
       </div>
     </div>
