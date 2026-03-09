@@ -1,50 +1,39 @@
 
 
+# Fix Mobile Performance While Keeping Grain
+
 ## Problem
+The page is laggy on mobile even without grain. The real performance bottleneck is the SVG aurora itself -- 10 large `<rect>` elements each with `feGaussianBlur` filters (stdDeviation 60-90) that the GPU must composite continuously. The grain is a secondary cost.
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+## Optimization Strategy
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+### 1. Replace SVG aurora with a static CSS gradient on mobile
+Instead of rendering 10 blurred SVG rects on mobile, use a CSS radial/linear gradient that visually approximates the aurora. This eliminates all SVG filter processing on mobile.
 
-## Plan
+### 2. Add grain back on all devices using a lightweight approach
+Use a smaller, fixed-size grain SVG (e.g. 200x200) tiled with CSS `background-repeat` instead of a full-viewport `feTurbulence` render. Or use a tiny base64 noise PNG (~2KB) as a repeating background -- this is nearly free for the GPU compared to real-time fractal noise generation.
 
-### 1. Add context size limiting in both edge functions
+### 3. Keep desktop unchanged
+Desktop continues using the full SVG aurora + inline grain filters as-is.
 
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
+## Implementation Details
 
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
+**File: `src/components/aiceo/HeroSection.tsx`**
 
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
+- Wrap the SVG aurora in `hidden sm:block` so it only renders on desktop
+- Add a mobile-only CSS gradient background that approximates the aurora colors (purples, pinks, blues) using 3-4 radial gradients
+- Replace the two `feTurbulence` grain SVGs with a single tiny (200x200) pre-rendered noise PNG encoded as base64, applied as a repeating `background-image` overlay on all screen sizes
+- The base64 noise image is ~1-2KB and costs zero GPU compute vs `feTurbulence` which recalculates per-pixel
+
+```text
+Desktop path:  SVG aurora (10 blurred rects) + SVG grain filters
+Mobile path:   CSS radial gradients + base64 noise PNG tile
+Visual result: Nearly identical
 ```
 
-### 2. Add better error logging for debugging
-
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
-
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
-
-### 3. Truncate individual item content
-
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
-
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
+### Expected Impact
+- Eliminates ~10 `feGaussianBlur` filter passes on mobile (biggest win)
+- Eliminates 2 `feTurbulence` filter passes on mobile
+- Grain texture preserved via lightweight PNG tile (~0ms GPU vs ~100-200ms)
+- No visual change on desktop
 
