@@ -121,10 +121,6 @@ const Auth = () => {
       toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
       return false;
     }
-    if (isSignUp && password !== confirmPassword) {
-      toast({ title: "Passwords don't match", description: "Please make sure your passwords match.", variant: "destructive" });
-      return false;
-    }
     return true;
   };
 
@@ -234,7 +230,7 @@ const Auth = () => {
             <Button
               type="button"
               variant={quizData ? "default" : "outline"}
-              className="w-full gap-3 mb-4 h-12 rounded-xl"
+              className="w-full gap-3 mb-4 h-12 rounded-xl border border-border bg-[hsl(30,20%,20%)] text-[hsl(40,30%,95%)] dark:bg-[hsl(40,30%,95%)] dark:text-[hsl(30,20%,20%)] hover:opacity-90"
               onClick={handleGoogleSignIn}
               disabled={isGoogleLoading}
             >
@@ -264,7 +260,7 @@ const Auth = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-primary font-semibold">Email</Label>
+                    <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input id="email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl" />
@@ -272,7 +268,7 @@ const Auth = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-primary font-semibold">Password</Label>
+                    <Label htmlFor="password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input id="password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl" />
@@ -282,15 +278,6 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  {isSignUp && (
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="text-primary font-semibold">Confirm Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id="confirmPassword" type={showPassword ? "text" : "password"} placeholder="Confirm your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl" />
-                      </div>
-                    </div>
-                  )}
 
                   {isSignUp && (
                     <div className="flex items-start gap-3">
