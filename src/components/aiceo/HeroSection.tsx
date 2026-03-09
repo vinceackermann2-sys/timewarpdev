@@ -390,7 +390,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             padding: 0.6rem 0.75rem !important;
           }
           .hero-logo {
-            height: 30px !important;
+            height: 38px !important;
           }
           .hero-nav-actions {
             gap: 0.5rem !important;
