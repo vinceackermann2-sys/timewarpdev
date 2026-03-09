@@ -106,33 +106,8 @@ export function ProductDescription() {
         background: `linear-gradient(to bottom, hsl(230 30% 3%) 0%, hsl(228 28% 5%) 30%, hsl(225 25% 4%) 60%, hsl(230 30% 3%) 100%)`
       }} />
 
-      {/* ── Hero headline — stat banner ── */}
-      <section className="relative z-10 py-20 lg:py-28 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
-        {/* Bottom light glow */}
-        <div className="absolute pointer-events-none hidden dark:block" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
-
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
-          <p className="text-xs tracking-[0.35em] uppercase text-muted-foreground dark:text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
-          <div className="flex items-center justify-center gap-6 sm:gap-20 lg:gap-32 mb-10">
-            <div>
-              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">+100%</span>
-              <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">More freedom</p>
-            </div>
-            <div>
-              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">+100%</span>
-              <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">Less work</p>
-            </div>
-          </div>
-          <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 max-w-2xl mx-auto">
-            Not from hiring more employees. From <span className="font-semibold text-foreground dark:text-white">levers pulled for you</span> – built on the DNA already running through your business.
-          </p>
-        </div>
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)" }} />
-      </section>
-
-      {/* ── Business DNA ── */}
-      <RaceAnimation />
+      {/* ── Stat banner + Race animation (merged section) ── */}
+      <RaceAnimation inputUrl={inputUrl} navigate={navigate} />
 
       {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
