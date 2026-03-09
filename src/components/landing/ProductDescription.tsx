@@ -299,20 +299,22 @@ export function ProductDescription() {
 
           {/* Hero-style input card */}
           <div className="max-w-xl mx-auto">
-            <div className="flex items-center rounded-[14px] p-[0.5rem_0.5rem_0.5rem_1rem] h-16 bg-card border border-border shadow-md dark:bg-[rgba(255,255,255,0.06)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
-              <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" style={{ color: "#3399ff" }} />
-              <input
-                type="text"
-                value={inputUrl}
-                onChange={(e) => setInputUrl(e.target.value)}
-                placeholder="https://YourBusiness.com"
-                onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none"
-                style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }}
-              />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center rounded-[14px] p-2 sm:p-[0.5rem_0.5rem_0.5rem_1rem] sm:h-16 bg-card border border-border shadow-md dark:bg-[rgba(255,255,255,0.06)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+              <div className="flex items-center flex-1 px-3 sm:px-0">
+                <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" style={{ color: "#3399ff" }} />
+                <input
+                  type="text"
+                  value={inputUrl}
+                  onChange={(e) => setInputUrl(e.target.value)}
+                  placeholder="https://YourBusiness.com"
+                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                  className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none py-3 sm:py-0"
+                  style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }}
+                />
+              </div>
               <button
                 onClick={handleAnalyze}
-                className="h-full shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 sm:mt-0 h-12 sm:h-full"
                 style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer" }}
               >
                 Analyze →
