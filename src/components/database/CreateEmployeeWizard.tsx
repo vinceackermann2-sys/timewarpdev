@@ -124,9 +124,10 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) { setSaving(false); return; }
 
-    const { error } = await supabase.from("ai_employees" as any).insert({
+    const wsId = selectedWorkspaceId || activeWorkspaceId || null;
+    const { error } = await supabase.from("ai_employees").insert({
       user_id: session.user.id,
-      workspace_id: selectedWorkspaceId || activeWorkspaceId,
+      workspace_id: wsId ? wsId : null,
       name: name.trim(),
       role: role.trim(),
       orb_colors: orbPalettes[0],
@@ -138,7 +139,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       sop_safety_notes: [safetyWarnings.trim(), safetyRisks.trim()].filter(Boolean).join("\n\n") || null,
       sop_revision_history: [{ version: "1.0", date: new Date().toISOString().split("T")[0], notes: "Initial creation" }],
       linked_business_id: selectedBusinessId,
-    } as any);
+    });
 
     setSaving(false);
     if (error) {
