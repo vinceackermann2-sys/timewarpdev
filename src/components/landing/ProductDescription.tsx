@@ -27,7 +27,7 @@ function GrainCard({ children, filterId, seed = 0 }: {children: React.ReactNode;
 }
 
 /* ─────────────────────── Race Animation ─── */
-function RaceAnimation() {
+function RaceAnimation({ inputUrl, navigate }: { inputUrl?: string; navigate?: any }) {
   const [started, setStarted] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -36,51 +36,67 @@ function RaceAnimation() {
     if (!el) return;
     const obs = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) { setStarted(true); obs.disconnect(); }
-    }, { threshold: 0.4 });
+    }, { threshold: 0.3 });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
   return (
-    <div ref={sectionRef} className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]">
+    <section ref={sectionRef} className="relative z-10 py-20 lg:py-28 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
+      {/* Glow */}
+      <div className="absolute pointer-events-none hidden dark:block" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-        <div className="text-center mb-10">
+        {/* Stat banner */}
+        <div className="text-center">
+          <p className="text-xs tracking-[0.35em] uppercase text-muted-foreground dark:text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
+          <div className="flex items-center justify-center gap-6 sm:gap-20 lg:gap-32 mb-10">
+            <div>
+              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">+100%</span>
+              <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">More freedom</p>
+            </div>
+            <div>
+              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">+100%</span>
+              <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">Less work</p>
+            </div>
+          </div>
+          <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 max-w-2xl mx-auto">
+            Not from hiring more employees. From <span className="font-semibold text-foreground dark:text-white">levers pulled for you</span> – built on the DNA already running through your business.
+          </p>
+        </div>
+
+        {/* Timewarping heading */}
+        <div className="text-center mt-24 lg:mt-32 mb-10">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white" style={{ fontFamily: "'Playfair Display', serif" }}>This is Timewarping.</h2>
           <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto mt-5">The intelligence layer that turns your company's history into a universal advantage</p>
         </div>
 
-        {/* Race visualization */}
+        {/* Race lines */}
         <div className="max-w-3xl mx-auto mt-16 space-y-12">
-          {/* Line A — reaches halfway */}
           <div className="relative flex items-center gap-4 sm:gap-6">
             <Calculator className="h-6 w-6 sm:h-8 sm:w-8 text-foreground dark:text-white shrink-0" />
             <div className="flex-1 relative h-12 flex items-center">
               <div
                 className="absolute inset-y-1/2 left-0 h-[3px] bg-foreground/60 dark:bg-white/60 transition-all ease-out"
-                style={{
-                  width: started ? '50%' : '0%',
-                  transitionDuration: '3s',
-                }}
+                style={{ width: started ? '50%' : '0%', transitionDuration: '3s' }}
               />
             </div>
           </div>
-
-          {/* Line B — reaches end */}
           <div className="relative flex items-center gap-4 sm:gap-6">
             <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-foreground dark:text-white shrink-0" />
             <div className="flex-1 relative h-12 flex items-center">
               <div
                 className="absolute inset-y-1/2 left-0 h-[3px] bg-foreground/60 dark:bg-white/60 transition-all ease-out"
-                style={{
-                  width: started ? '100%' : '0%',
-                  transitionDuration: '2s',
-                }}
+                style={{ width: started ? '100%' : '0%', transitionDuration: '2s' }}
               />
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)" }} />
+    </section>
   );
 }
 
