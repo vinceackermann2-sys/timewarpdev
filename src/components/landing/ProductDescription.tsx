@@ -12,12 +12,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 /* ─────────────────────── Grain card wrapper ─────────────────────── */
 function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode; filterId: string; seed?: number }) {
+  const isMobile = useIsMobile();
   return (
     <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden bg-card border border-border dark:bg-[hsl(0_0%_14%)] dark:border-[hsl(0_0%_20%)]">
-      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30 dark:opacity-80" style={{ mixBlendMode: "soft-light" }}>
-        <filter id={filterId}><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={seed} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-        <rect width="100%" height="100%" filter={`url(#${filterId})`} />
-      </svg>
+      {!isMobile && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30 dark:opacity-80" style={{ mixBlendMode: "soft-light" }}>
+          <filter id={filterId}><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={seed} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+          <rect width="100%" height="100%" filter={`url(#${filterId})`} />
+        </svg>
+      )}
       <div className="relative z-10">{children}</div>
     </div>
   );
