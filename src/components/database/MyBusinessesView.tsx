@@ -360,14 +360,14 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
 
 function WorkspaceFooter() {
   return (
-    <div className="w-full mx-auto mb-6 mt-auto px-6" style={{ maxWidth: 1900 }}>
-      <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-12" style={{ height: 326, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div className="flex gap-14">
+    <div className="w-full mx-auto mb-6 mt-auto px-4 sm:px-6" style={{ maxWidth: 1900 }}>
+      <div className="rounded-2xl border border-border/50 bg-muted/30 backdrop-blur-sm px-5 sm:px-12 py-8 sm:py-14">
+        <div className="flex flex-col gap-8 sm:flex-row sm:gap-14">
           <div className="flex items-start gap-2 shrink-0">
             <img src="/favicon.png" alt="TimeWarp" className="h-10 w-10 rounded-md" />
             <span className="font-semibold text-xl text-foreground">TimeWarp</span>
           </div>
-          <div className="flex flex-wrap gap-14 flex-1">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-6 sm:gap-14 flex-1">
             <div className="space-y-2">
               <h4 className="font-semibold text-foreground" style={{ fontSize: 16 }}>Product</h4>
               <ul className="space-y-1.5">
@@ -395,8 +395,8 @@ function WorkspaceFooter() {
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-between mt-10 pt-5 border-t border-border/30">
-          <p className="text-muted-foreground" style={{ fontSize: 14 }}>© 2026 Vincent Ackermann, All rights reserved</p>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-10 pt-5 border-t border-border/30">
+          <p className="text-muted-foreground text-center sm:text-left" style={{ fontSize: 14 }}>© 2026 Vincent Ackermann, All rights reserved</p>
           <p className="text-muted-foreground" style={{ fontSize: 14 }}>🇸🇪 Made in Sweden</p>
         </div>
       </div>
