@@ -126,7 +126,6 @@ export function ProductDescription() {
             particleCount={300}
             colors={['#3399ff', '#00b8a9', '#6366f1', '#818cf8']}
             animationDuration={[2, 4]}
-            freeze={true}
             className="w-full h-full"
           />
           {/* Light mode overlay to blend with cream bg */}
