@@ -144,7 +144,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screeng-background">
+    <div className="min-h-screen bg-background">
       <div className="max-w-[1900px] mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" />
