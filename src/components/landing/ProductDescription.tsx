@@ -51,44 +51,32 @@ function RaceAnimation() {
 
         {/* Race visualization */}
         <div className="max-w-3xl mx-auto mt-16 space-y-12">
-          {/* Runner A — Human (slow) */}
+          {/* Line A — reaches halfway */}
           <div className="relative flex items-center gap-4 sm:gap-6">
             <span className="text-2xl sm:text-4xl font-bold text-foreground dark:text-white shrink-0 w-10 sm:w-14">A</span>
             <div className="flex-1 relative h-12 flex items-center">
-              {/* Track line */}
-              <div className="absolute inset-y-1/2 left-0 right-0 h-px bg-border dark:bg-[hsl(0_0%_25%)]" />
-              {/* Runner */}
               <div
-                className="absolute text-2xl sm:text-3xl transition-all ease-out"
+                className="absolute inset-y-1/2 left-0 h-[3px] bg-foreground/60 dark:bg-white/60 transition-all ease-out"
                 style={{
-                  left: started ? '45%' : '0%',
+                  width: started ? '50%' : '0%',
                   transitionDuration: '3s',
                 }}
-              >🏃</div>
-              {/* Finish flag */}
-              <div className="absolute right-0 text-2xl sm:text-3xl">🏁</div>
+              />
             </div>
-            <span className="text-xs sm:text-sm text-muted-foreground dark:text-white/40 shrink-0 w-20 sm:w-28 text-right">Manual labor</span>
           </div>
 
-          {/* Runner B — TimeWarp (fast, reaches finish) */}
+          {/* Line B — reaches end */}
           <div className="relative flex items-center gap-4 sm:gap-6">
             <span className="text-2xl sm:text-4xl font-bold text-foreground dark:text-white shrink-0 w-10 sm:w-14">B</span>
             <div className="flex-1 relative h-12 flex items-center">
-              {/* Track line */}
-              <div className="absolute inset-y-1/2 left-0 right-0 h-px bg-border dark:bg-[hsl(0_0%_25%)]" />
-              {/* Runner */}
               <div
-                className="absolute text-2xl sm:text-3xl transition-all ease-out"
+                className="absolute inset-y-1/2 left-0 h-[3px] bg-foreground/60 dark:bg-white/60 transition-all ease-out"
                 style={{
-                  left: started ? 'calc(100% - 2rem)' : '0%',
+                  width: started ? '100%' : '0%',
                   transitionDuration: '2s',
                 }}
-              >🏃</div>
-              {/* Finish flag */}
-              <div className="absolute right-0 text-2xl sm:text-3xl">🏁</div>
+              />
             </div>
-            <span className="text-xs sm:text-sm shrink-0 w-20 sm:w-28 text-right" style={{ color: '#3399ff' }}>TimeWarp</span>
           </div>
         </div>
       </div>
