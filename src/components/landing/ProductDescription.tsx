@@ -97,13 +97,13 @@ export function ProductDescription() {
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
           <p className="text-xs tracking-[0.35em] uppercase text-muted-foreground dark:text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
-          <div className="flex items-center justify-center gap-12 sm:gap-20 lg:gap-32 mb-10">
+          <div className="flex items-center justify-center gap-6 sm:gap-20 lg:gap-32 mb-10">
             <div>
-              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">+100%</span>
+              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">+100%</span>
               <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">More freedom</p>
             </div>
             <div>
-              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">-100%</span>
+              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">-100%</span>
               <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">Less work</p>
             </div>
           </div>
@@ -299,20 +299,22 @@ export function ProductDescription() {
 
           {/* Hero-style input card */}
           <div className="max-w-xl mx-auto">
-            <div className="flex items-center rounded-[14px] p-[0.5rem_0.5rem_0.5rem_1rem] h-16 bg-card border border-border shadow-md dark:bg-[rgba(255,255,255,0.06)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
-              <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" style={{ color: "#3399ff" }} />
-              <input
-                type="text"
-                value={inputUrl}
-                onChange={(e) => setInputUrl(e.target.value)}
-                placeholder="https://YourBusiness.com"
-                onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none"
-                style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }}
-              />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center rounded-[14px] p-2 sm:p-[0.5rem_0.5rem_0.5rem_1rem] sm:h-16 bg-card border border-border shadow-md dark:bg-[rgba(255,255,255,0.06)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+              <div className="flex items-center flex-1 px-3 sm:px-0">
+                <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" style={{ color: "#3399ff" }} />
+                <input
+                  type="text"
+                  value={inputUrl}
+                  onChange={(e) => setInputUrl(e.target.value)}
+                  placeholder="https://YourBusiness.com"
+                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                  className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none py-3 sm:py-0"
+                  style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }}
+                />
+              </div>
               <button
                 onClick={handleAnalyze}
-                className="h-full shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 sm:mt-0 h-12 sm:h-full"
                 style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer" }}
               >
                 Analyze →
@@ -370,8 +372,8 @@ export function ProductDescription() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between mt-10 pt-5 border-t border-border/30 dark:border-[hsl(0_0%_20%)]">
-              <p className="text-muted-foreground dark:text-[hsl(0_0%_50%)]" style={{ fontSize: 14 }}>© 2026 Vincent Ackermann, All rights reserved</p>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-10 pt-5 border-t border-border/30 dark:border-[hsl(0_0%_20%)]">
+              <p className="text-muted-foreground dark:text-[hsl(0_0%_50%)] text-center sm:text-left" style={{ fontSize: 14 }}>© 2026 Vincent Ackermann, All rights reserved</p>
               <p className="text-muted-foreground dark:text-[hsl(0_0%_50%)]" style={{ fontSize: 14 }}>🇸🇪 Made in Sweden</p>
             </div>
           </div>

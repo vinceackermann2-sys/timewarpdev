@@ -144,7 +144,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-[1300px] bg-background">
+    <div className="min-h-screeng-background">
       <div className="max-w-[1900px] mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" />
@@ -215,7 +215,7 @@ export default function PricingPage() {
           </div>
 
           {/* Aristotle */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-green-500" : "border-blue-500"} bg-card p-7 flex flex-col scale-[1.02] z-10`}>
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-green-500" : "border-blue-500"} bg-card p-7 flex flex-col scmd:ale-[1.02] z-10`}>
             {currentPlan === "aristotle" ? (
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                 <Badge className="bg-green-500 text-white border-green-500 px-4 py-1 text-xs">Your Plan</Badge>
