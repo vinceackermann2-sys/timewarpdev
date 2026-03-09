@@ -203,8 +203,8 @@ export function ProductDescription() {
                 <div className="space-y-3">
                   {[
                   { label: "Decision Speed", value: "Milliseconds" },
-                  { label: "Context", value: "Every data point in company history" },
-                  { label: "Bias", value: "Purely ROI-driven" },
+                  { label: "Labor", value: "Every data point in internet history" },
+                  { label: "Labor", value: "24/7" },
                   { label: "Cost", value: "Fractions of a salary" }].
                   map((item, i) =>
                   <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 bg-background border border-border dark:bg-[hsl(0_0%_11%)] dark:border-[hsl(0_0%_16%)]">
