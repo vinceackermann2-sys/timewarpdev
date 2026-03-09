@@ -158,13 +158,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
     <div className={dark ? "dark-card" : ""} style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease", position: "relative", overflow: "hidden" }}>
       {/* Fixed SVG Background */}
       <div style={{ position: "absolute", inset: 0, zIndex: -1, background: t.bg, overflow: "hidden", transition: "background 0.3s ease" }}>
-        {/* Simplified gradient on mobile, full SVG aurora on desktop */}
-        <div className="sm:hidden" style={{ position: "absolute", inset: 0, background: dark
-          ? "radial-gradient(ellipse 120% 80% at 50% 80%, rgba(122,106,160,0.4) 0%, rgba(107,149,214,0.3) 30%, rgba(178,138,200,0.2) 60%, transparent 100%)"
-          : "radial-gradient(ellipse 120% 80% at 50% 80%, rgba(160,179,228,0.5) 0%, rgba(111,149,214,0.4) 30%, rgba(211,110,142,0.3) 60%, transparent 100%)",
-          transition: "background 0.3s ease"
-        }} />
-        <svg className="hidden sm:block" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: t.auraOpacity, transition: "opacity 0.3s ease" }} viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: t.auraOpacity, transition: "opacity 0.3s ease" }} viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
           <defs>
             <filter id="f5" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="60" /></filter>
             <filter id="f4" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="60" /></filter>
