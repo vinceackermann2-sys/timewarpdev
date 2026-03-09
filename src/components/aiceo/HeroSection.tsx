@@ -1,10 +1,29 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Globe, Sun, Moon, Link2 } from "lucide-react";
 import { useTheme } from "next-themes";
 
 interface HeroSectionProps {
   onRunClick?: () => void;
+}
+
+// Generate a small noise data URL once (100x100 canvas → ~4KB PNG)
+function generateNoiseDataUrl(): string {
+  const size = 100;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const imageData = ctx.createImageData(size, size);
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    const v = Math.random() * 255;
+    imageData.data[i] = v;
+    imageData.data[i + 1] = v;
+    imageData.data[i + 2] = v;
+    imageData.data[i + 3] = 255;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL("image/png");
 }
 
 function LightPhoneMockup() {
@@ -78,6 +97,12 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   const isDeleting = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Generate noise texture once
+  const noiseUrl = useMemo(() => {
+    if (typeof document === "undefined") return "";
+    return generateNoiseDataUrl();
+  }, []);
+
   useEffect(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -100,11 +125,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         if (charIndex.current >= current.length) {
           isDeleting.current = true;
-          scheduleNext(2000, tick); // visible pause on completed URL
+          scheduleNext(2000, tick);
           return;
         }
 
-        scheduleNext(140, tick); // slower typing
+        scheduleNext(140, tick);
         return;
       }
 
@@ -156,9 +181,24 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
   return (
     <div className={dark ? "dark-card" : ""} style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease", position: "relative", overflow: "hidden" }}>
-      {/* Fixed SVG Background */}
+      {/* Fixed Background */}
       <div style={{ position: "absolute", inset: 0, zIndex: -1, background: t.bg, overflow: "hidden", transition: "background 0.3s ease" }}>
-        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: t.auraOpacity, transition: "opacity 0.3s ease" }} viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+        {/* Mobile: lightweight CSS gradient aurora (no SVG filters) */}
+        <div className="block sm:hidden" style={{
+          position: "absolute", inset: 0,
+          background: [
+            `radial-gradient(ellipse 120% 80% at 50% 90%, ${dark ? "rgba(107,71,214,0.45)" : "rgba(160,179,228,0.64)"} 0%, transparent 70%)`,
+            `radial-gradient(ellipse 100% 60% at 30% 70%, ${dark ? "rgba(178,138,200,0.4)" : "rgba(119,125,214,0.5)"} 0%, transparent 60%)`,
+            `radial-gradient(ellipse 80% 50% at 70% 80%, ${dark ? "rgba(211,110,142,0.35)" : "rgba(211,110,142,0.45)"} 0%, transparent 55%)`,
+            `radial-gradient(ellipse 60% 40% at 50% 95%, ${dark ? "rgba(229,115,115,0.3)" : "rgba(229,115,115,0.4)"} 0%, transparent 50%)`,
+            `radial-gradient(ellipse 140% 40% at 50% 0%, ${dark ? "rgba(229,169,197,0.3)" : "rgba(229,169,197,0.45)"} 0%, transparent 50%)`,
+          ].join(", "),
+          opacity: t.auraOpacity,
+          transition: "opacity 0.3s ease",
+        }} />
+
+        {/* Desktop: full SVG aurora with blur filters */}
+        <svg className="hidden sm:block" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: t.auraOpacity, transition: "opacity 0.3s ease" }} viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
           <defs>
             <filter id="f5" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="60" /></filter>
             <filter id="f4" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="60" /></filter>
@@ -180,13 +220,26 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           <rect x="360" y="-240" width="1200" height="480" rx="600" ry="240" fill="#e5a9c5" opacity="0.50" filter="url(#fcap2)" />
           <rect x="480" y="-180" width="960" height="380" rx="480" ry="190" fill="#e5a9c5" opacity="0.60" filter="url(#fcap1)" />
         </svg>
-        <div className="hidden sm:block" style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "soft-light" as const, opacity: 0.85, zIndex: 9 }}>
+
+        {/* Grain: lightweight canvas-generated noise tile (all devices) */}
+        {noiseUrl && (
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            mixBlendMode: "soft-light" as const, opacity: 0.6, zIndex: 9,
+            backgroundImage: `url(${noiseUrl})`,
+            backgroundRepeat: "repeat",
+            backgroundSize: "100px 100px",
+          }} />
+        )}
+
+        {/* Desktop-only: extra high-fidelity SVG grain layer */}
+        <div className="hidden sm:block" style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "soft-light" as const, opacity: 0.85, zIndex: 10 }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
             <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.88" numOctaves={4} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
             <rect width="100%" height="100%" filter="url(#grain)" opacity="1" />
           </svg>
         </div>
-        <div className="hidden sm:block" style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "multiply" as const, opacity: 0.42, zIndex: 10 }}>
+        <div className="hidden sm:block" style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "multiply" as const, opacity: 0.42, zIndex: 11 }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
             <filter id="grain2"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves={3} seed={8} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
             <rect width="100%" height="100%" filter="url(#grain2)" opacity="1" />
