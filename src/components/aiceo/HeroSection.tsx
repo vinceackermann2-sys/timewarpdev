@@ -389,20 +389,28 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             background-size: 150px 150px !important;
           }
           .hero-navbar {
-            padding: 1rem 0.75rem !important;
+            padding: 0.6rem 0.75rem !important;
           }
           .hero-logo {
-            height: 36px !important;
+            height: 30px !important;
           }
           .hero-nav-actions {
-            gap: 0.75rem !important;
+            gap: 0.5rem !important;
+          }
+          .hero-theme-btn {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
           }
           .hero-login-link {
-            font-size: 0.85rem !important;
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.8rem !important;
+            border-radius: 8px !important;
           }
           .hero-cta-btn {
-            padding: 0.5rem 0.9rem !important;
-            font-size: 0.8rem !important;
+            padding: 0.35rem 0.7rem !important;
+            font-size: 0.75rem !important;
+            border-radius: 6px !important;
           }
           .hero-main-flex {
             padding: 1.5rem 1rem !important;
