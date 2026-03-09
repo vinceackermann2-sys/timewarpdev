@@ -226,8 +226,7 @@ export function ProductDescription() {
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
           <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
-</h3>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>The Value Exchange loop</h3>
           </div>
           <div className="max-w-xl mx-auto">
             {[{ number: "01", title: "Ingest — Business DNA", description: "TimeWarp scans digital footprint, and defines a business dna.", icon: Brain },
