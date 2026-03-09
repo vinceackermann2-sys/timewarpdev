@@ -97,7 +97,12 @@ const Auth = () => {
   }, [navigate, quizData]);
 
   const navigateToDashboard = () => {
-    navigate("/app", { state: { quizData } });
+    const productUrl = searchParams.get("url");
+    if (productUrl) {
+      navigate(`/app?addProduct=true&url=${encodeURIComponent(productUrl)}`, { state: { quizData } });
+    } else {
+      navigate("/app", { state: { quizData } });
+    }
   };
 
   const validateForm = () => {

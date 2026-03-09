@@ -29,7 +29,14 @@ interface AddProductURLViewProps {
 }
 
 export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProductURLViewProps) {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(() => {
+    const pending = sessionStorage.getItem('pendingProductUrl');
+    if (pending) {
+      sessionStorage.removeItem('pendingProductUrl');
+      return pending;
+    }
+    return "";
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [isDone, setIsDone] = useState(false);

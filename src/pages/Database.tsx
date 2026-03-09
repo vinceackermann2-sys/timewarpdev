@@ -45,10 +45,22 @@ const Database = () => {
   useEffect(() => {
     const viewParam = searchParams.get('view');
     const autostart = searchParams.get('autostart');
+    const addProduct = searchParams.get('addProduct');
+    const productUrl = searchParams.get('url');
     
     if (viewParam === 'aiceo') {
       setCurrentView('aiceo');
       localStorage.setItem("tw_current_view", "aiceo");
+    }
+
+    // Auto-open Add Product flow from landing page analyze
+    if (addProduct === 'true') {
+      setCurrentView('businessdna');
+      localStorage.setItem("tw_current_view", "businessdna");
+      setShowAddProduct(true);
+      if (productUrl) {
+        sessionStorage.setItem('pendingProductUrl', productUrl);
+      }
     }
     
     // Check for pending task from research flow
@@ -58,7 +70,6 @@ const Database = () => {
         try {
           const task = JSON.parse(storedTask);
           setPendingTask(task);
-          // Clear after reading
           sessionStorage.removeItem('pendingAgentTask');
         } catch (e) {
           console.error('Failed to parse pending task:', e);
