@@ -7,6 +7,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { LightSpeed } from "@/components/ui/light-speed";
 
 /* ─────────────────────── Grain card wrapper ─────────────────────── */
 function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode; filterId: string; seed?: number }) {
