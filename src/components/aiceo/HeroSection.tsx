@@ -180,7 +180,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   };
 
   return (
-    <div className={dark ? "dark-card" : ""} style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease", position: "relative", overflow: "hidden" }}>
+    <div className={dark ? "dark-card" : ""} style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease", position: "relative", overflow: "hidden", paddingTop: 72 }}>
       {/* Fixed Background */}
       <div style={{ position: "absolute", inset: 0, zIndex: -1, background: t.bg, overflow: "hidden", transition: "background 0.3s ease" }}>
         {/* Mobile: lightweight CSS gradient aurora (no SVG filters) */}
@@ -248,7 +248,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       </div>
 
       {/* Navbar */}
-      <header className="hero-navbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto" }}>
+      <header className="hero-navbar" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", background: dark ? "rgba(10,14,26,0.65)" : "rgba(255,255,255,0.65)" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <img className="hero-logo" src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: t.logoBlend, filter: t.logoFilter, transition: "filter 0.3s ease" }} />
         </div>

@@ -5,11 +5,18 @@ import { HeroSection } from "@/components/aiceo/HeroSection";
 import { ProductDescription } from "@/components/landing/ProductDescription";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 import { Loader2 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const { setTheme } = useTheme();
+
+  // Force dark mode on landing page
+  useEffect(() => {
+    setTheme("dark");
+  }, [setTheme]);
 
   const isOAuthReturn =
     searchParams.has("microsoft_connected") ||
