@@ -2,7 +2,7 @@ import {
   Zap, Brain, Users, Building2, Rocket, TrendingUp,
   Clock, Eye, Heart, DollarSign, ArrowRight, Link2, Globe,
   CheckCircle, ChevronRight, Cpu, UserCheck, BarChart3,
-  Briefcase, Target, Shield } from
+  Briefcase, Target, Shield, Calculator, Bot } from
 "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -53,7 +53,7 @@ function RaceAnimation() {
         <div className="max-w-3xl mx-auto mt-16 space-y-12">
           {/* Line A — reaches halfway */}
           <div className="relative flex items-center gap-4 sm:gap-6">
-            <span className="text-2xl sm:text-4xl font-bold text-foreground dark:text-white shrink-0 w-10 sm:w-14">A</span>
+            <Calculator className="h-6 w-6 sm:h-8 sm:w-8 text-foreground dark:text-white shrink-0" />
             <div className="flex-1 relative h-12 flex items-center">
               <div
                 className="absolute inset-y-1/2 left-0 h-[3px] bg-foreground/60 dark:bg-white/60 transition-all ease-out"
@@ -67,7 +67,7 @@ function RaceAnimation() {
 
           {/* Line B — reaches end */}
           <div className="relative flex items-center gap-4 sm:gap-6">
-            <span className="text-2xl sm:text-4xl font-bold text-foreground dark:text-white shrink-0 w-10 sm:w-14">B</span>
+            <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-foreground dark:text-white shrink-0" />
             <div className="flex-1 relative h-12 flex items-center">
               <div
                 className="absolute inset-y-1/2 left-0 h-[3px] bg-foreground/60 dark:bg-white/60 transition-all ease-out"
