@@ -5,6 +5,7 @@ import { HeroSection } from "@/components/aiceo/HeroSection";
 import { ProductDescription } from "@/components/landing/ProductDescription";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 import { Loader2 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
