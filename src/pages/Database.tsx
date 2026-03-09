@@ -11,9 +11,26 @@ import { BusinessDNAView } from "@/components/database/BusinessDNAView";
 import { MyBusinessesView } from "@/components/database/MyBusinessesView";
 import { AddProductURLView } from "@/components/database/AddProductURLView";
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, Menu } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { EmployeesView } from "@/components/database/EmployeesView";
+import { useSidebar } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+
+function MobileHeader() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border">
+      <div className="flex items-center gap-2">
+        <img src="/favicon.png" alt="TimeWarp" className="h-7 w-7 rounded-lg" />
+        <span className="font-semibold text-sm">TimeWarp</span>
+      </div>
+      <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+        <Menu className="h-5 w-5" />
+      </Button>
+    </div>
+  );
+}
 
 type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
 
@@ -147,6 +164,7 @@ const Database = () => {
           userEmail={user?.email || ""}
         />
         <SidebarInset className="flex flex-col flex-1">
+          <MobileHeader />
           <main className="flex-1 overflow-hidden">
             {currentView === "dataconversion" && user && (
               <BusinessDNAProvider>

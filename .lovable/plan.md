@@ -1,33 +1,50 @@
 
 
-# Mobile Optimization — Full Plan
+## Problem
 
-## Changes
+The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
 
-### 1. `/app` page — Mobile header with menu trigger (`src/pages/Database.tsx`)
-Add a mobile-only header bar at the top of `SidebarInset` with a hamburger/menu icon (top-right) that calls `toggleSidebar()` from the `useSidebar` hook. The shadcn sidebar already renders as a Sheet drawer on mobile — it just needs a visible trigger button.
+The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
 
-Create a small `MobileHeader` component inline that uses `useSidebar` and renders only on `md:hidden`.
+## Plan
 
-### 2. `/app` page — Block canvas on mobile (`src/components/database/DataConversionView.tsx`)
-When on mobile (use `useIsMobile` hook), show a message like "Data Conversion canvas requires a desktop browser" instead of rendering `NodePalette` + `WhiteboardCanvas`.
+### 1. Add context size limiting in both edge functions
 
-### 3. Footer mobile fixes (`src/components/landing/ProductDescription.tsx`)
-- Footer link columns: change `flex-wrap gap-10` to `gap-6 sm:gap-10` for tighter mobile spacing
-- Footer brand + links: use `flex-col` on small screens (already does this)
-- Copyright row: already wraps, just tighten gap
+**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
 
-### 4. Pricing page (`src/pages/PricingPage.tsx`)
-- Billing toggle buttons: reduce padding on mobile with `px-3 sm:px-5`
-- Fix typo on line 147: `min-h-screeng-background` → `min-h-screen bg-background`
-- Grid already stacks on mobile (`md:grid-cols-3`)
+In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
 
-### 5. Auth page (`src/pages/Auth.tsx`)
-- Already uses `min-h-screen`, just verify padding is mobile-friendly
+```typescript
+function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+  // ... group by source as before ...
+  for (const item of sourceItems) {
+    const itemText = /* build item string */;
+    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+    context += itemText;
+    totalChars += itemText.length;
+  }
+  return context;
+}
+```
 
-### 6. HeroSection (`src/components/aiceo/HeroSection.tsx`)
-- Already has comprehensive mobile media queries — no changes needed
+### 2. Add better error logging for debugging
 
-## Summary
-~4 files modified. Key addition is the mobile menu trigger on `/app` and blocking the canvas view on mobile.
+Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+
+```typescript
+if (!response.ok) {
+  const errorBody = await response.text().catch(() => "");
+  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+  // ... existing status-specific handling ...
+}
+```
+
+### 3. Truncate individual item content
+
+Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
+
+This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
 

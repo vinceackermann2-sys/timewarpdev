@@ -344,7 +344,7 @@ export function ProductDescription() {
                 <img src="/favicon.png" alt="TimeWarp" className="h-10 w-10 rounded-md" />
                 <span className="font-semibold text-xl text-foreground dark:text-white">TimeWarp</span>
               </div>
-              <div className="flex flex-wrap gap-10 sm:gap-14 flex-1">
+              <div className="flex flex-wrap gap-6 sm:gap-14 flex-1">
                 <div className="space-y-2">
                   <h4 className="font-semibold text-foreground dark:text-white" style={{ fontSize: 16 }}>Product</h4>
                   <ul className="space-y-1.5">
