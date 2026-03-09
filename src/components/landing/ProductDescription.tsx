@@ -229,9 +229,9 @@ export function ProductDescription() {
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>The Value Exchange loop</h3>
           </div>
           <div className="max-w-xl mx-auto">
-            {[{ number: "01", title: "Ingest — Business DNA", description: "TimeWarp scans digital footprint, and defines a business dna.", icon: Brain },
-            { number: "02", title: "Deploy — The AI CEO", description: "The system takes over executive functions: resource allocation, task delegation, and strategy.", icon: Cpu },
-            { number: "03", title: "Execute — Replace Jobs", description: "Autonomous employees perform the roles of SDRs, Accountants, and Project Managers.", icon: UserCheck }].
+            {[{ number: "01", title: "Problem — Value Creation", description: "People exchange money only to reduce pain or increase pleasure.", icon: Brain },
+            { number: "02", title: "Solution — Value Creation", description: "The solution must be perceived as more valuable than the money exchanged.", icon: Cpu },
+            { number: "03", title: "Capture — Value Exchange", description: "Sales is the ultimate validation of value.", icon: UserCheck }].
             map((step, i) =>
             <div key={i} className="relative flex gap-5">
                 <div className="flex flex-col items-center">
