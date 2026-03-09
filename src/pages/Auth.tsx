@@ -121,10 +121,6 @@ const Auth = () => {
       toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
       return false;
     }
-    if (isSignUp && password !== confirmPassword) {
-      toast({ title: "Passwords don't match", description: "Please make sure your passwords match.", variant: "destructive" });
-      return false;
-    }
     return true;
   };
 
