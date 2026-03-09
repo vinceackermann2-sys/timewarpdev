@@ -203,11 +203,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           <button
             aria-label="Toggle theme"
             onClick={() => setTheme(dark ? "light" : "dark")}
-            style={{ background: "none", border: "none", cursor: "pointer", color: t.iconColor, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease" }}
+            style={{ background: dark ? "hsla(0,0%,100%,0.1)" : "hsla(250,30%,92%,0.7)", border: "none", cursor: "pointer", color: t.iconColor, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", borderRadius: 12, width: 40, height: 40 }}
           >
             {dark ? <Moon size={20} /> : <Sun size={20} />}
           </button>
-          <Link className="hero-login-link" to="/auth" style={{ textDecoration: "none", color: t.navLink, fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>Login</Link>
+          <Link className="hero-login-link" to="/auth" style={{ textDecoration: "none", color: t.navLink, fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease", background: dark ? "hsla(0,0%,100%,0.1)" : "hsla(250,30%,92%,0.7)", padding: "0.5rem 1.2rem", borderRadius: 12 }}>Log in</Link>
           <Link
             className="hero-cta-btn"
             to="/auth?mode=signup"
