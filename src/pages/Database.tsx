@@ -147,6 +147,7 @@ const Database = () => {
           userEmail={user?.email || ""}
         />
         <SidebarInset className="flex flex-col flex-1">
+          <MobileHeader />
           <main className="flex-1 overflow-hidden">
             {currentView === "dataconversion" && user && (
               <BusinessDNAProvider>
