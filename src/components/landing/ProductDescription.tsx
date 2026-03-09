@@ -29,9 +29,9 @@ function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode
 /* ─────────────────────── Business DNA side-by-side cards ─── */
 function BusinessDNACard() {
   return (
-    <div className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]" style={{ overflow: "visible" }}>
-      {/* Top glow — continuation from stat section, fades naturally */}
-      <div className="absolute pointer-events-none dark:opacity-100 opacity-70" style={{ width: "100%", height: 400, top: 0, left: 0, background: "radial-gradient(ellipse 50% 100% at center top, rgba(51,153,255,0.14) 0%, rgba(139,92,246,0.06) 40%, transparent 80%)", filter: "blur(60px)" }} />
+    <div className="relative z-20 py-24 lg:py-32 bg-transparent dark:bg-transparent">
+      {/* Background fill sits behind glow */}
+      <div className="absolute inset-0 bg-background dark:bg-[hsl(0_0%_10%)] -z-10" />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         <div className="text-center mb-10">
           <div className="relative inline-block px-8 py-4">
@@ -96,11 +96,8 @@ export function ProductDescription() {
       }} />
 
       {/* ── Hero headline — stat banner ── */}
-      <section className="relative z-10 py-20 lg:py-28 bg-background dark:bg-[hsl(0_0%_10%)]" style={{ overflow: "visible" }}>
+      <section className="relative z-10 py-20 lg:py-28 bg-background dark:bg-[hsl(0_0%_10%)]">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
-        {/* Bottom light glow — extends well into next section */}
-        <div className="absolute pointer-events-none z-30" style={{ width: "100%", height: 600, bottom: -400, left: 0, background: "radial-gradient(ellipse 50% 80% at center top, rgba(51,153,255,0.18) 0%, rgba(51,153,255,0.08) 30%, rgba(139,92,246,0.03) 60%, transparent 85%)", filter: "blur(60px)", opacity: 1 }} />
-        <div className="absolute pointer-events-none z-30 dark:opacity-100 opacity-70" style={{ width: 900, height: 500, bottom: -350, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center, rgba(139,92,246,0.12) 0%, rgba(51,153,255,0.08) 30%, transparent 70%)", filter: "blur(70px)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
           <p className="text-xs tracking-[0.35em] uppercase text-muted-foreground dark:text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
@@ -120,6 +117,12 @@ export function ProductDescription() {
         </div>
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)" }} />
       </section>
+
+      {/* ── Glow bridge between stat banner and Business DNA ── */}
+      <div className="relative z-30 pointer-events-none" style={{ height: 0 }}>
+        <div className="absolute left-0 right-0" style={{ top: -120, height: 500, background: "radial-gradient(ellipse 55% 50% at center 30%, rgba(51,153,255,0.20) 0%, rgba(139,92,246,0.08) 35%, transparent 75%)", filter: "blur(50px)" }} />
+        <div className="absolute dark:opacity-100 opacity-80" style={{ top: -80, height: 400, left: "10%", right: "10%", background: "radial-gradient(ellipse 60% 50% at center 30%, rgba(51,153,255,0.12) 0%, rgba(139,92,246,0.05) 40%, transparent 80%)", filter: "blur(70px)" }} />
+      </div>
 
       {/* ── Business DNA ── */}
       <BusinessDNACard />
