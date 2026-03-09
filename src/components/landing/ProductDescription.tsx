@@ -1,9 +1,9 @@
-import { 
+import {
   Zap, Brain, Users, Building2, Rocket, TrendingUp,
   Clock, Eye, Heart, DollarSign, ArrowRight, Link2, Globe,
   CheckCircle, ChevronRight, Cpu, UserCheck, BarChart3,
-  Briefcase, Target, Shield
-} from "lucide-react";
+  Briefcase, Target, Shield } from
+"lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,66 +11,64 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 
 /* ─────────────────────── Grain card wrapper ─────────────────────── */
-function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode; filterId: string; seed?: number }) {
+function GrainCard({ children, filterId, seed = 0 }: {children: React.ReactNode;filterId: string;seed?: number;}) {
   const isMobile = useIsMobile();
   return (
     <div className="rounded-2xl p-7 sm:p-8 relative overflow-hidden bg-card border border-border dark:bg-[hsl(0_0%_14%)] dark:border-[hsl(0_0%_20%)]">
-      {!isMobile && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30 dark:opacity-80" style={{ mixBlendMode: "soft-light" }}>
+      {!isMobile &&
+      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30 dark:opacity-80" style={{ mixBlendMode: "soft-light" }}>
           <filter id={filterId}><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={seed} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
           <rect width="100%" height="100%" filter={`url(#${filterId})`} />
         </svg>
-      )}
+      }
       <div className="relative z-10">{children}</div>
-    </div>
-  );
+    </div>);
+
 }
 
 /* ─────────────────────── Business DNA side-by-side cards ─── */
 function BusinessDNACard() {
   return (
-    <div className="relative z-20 py-24 lg:py-32 bg-transparent dark:bg-transparent">
-      {/* Background fill sits behind glow */}
-      <div className="absolute inset-0 bg-background dark:bg-[hsl(0_0%_10%)] -z-10" />
+    <div className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         <div className="text-center mb-10">
           <div className="relative inline-block px-8 py-4">
             {/* Sparkles — behind heading only, both light and dark */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden hidden sm:block">
-              {[...Array(12)].map((_, i) => (
-                <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
-                  left: `${5 + Math.random() * 90}%`, top: `${5 + Math.random() * 90}%`,
-                  width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
-                  background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#94a3b8",
-                  opacity: 0.3 + Math.random() * 0.5,
-                  boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(148,163,184,0.4)"}`,
-                  animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
-                }} />
-              ))}
+              {[...Array(12)].map((_, i) =>
+              <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
+                left: `${5 + Math.random() * 90}%`, top: `${5 + Math.random() * 90}%`,
+                width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
+                background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#94a3b8",
+                opacity: 0.3 + Math.random() * 0.5,
+                boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(148,163,184,0.4)"}`,
+                animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`
+              }} />
+              )}
             </div>
-            <h2 className="relative z-10 text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
+            <h2 className="relative z-10 text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white" style={{ fontFamily: "'Playfair Display', serif" }}>This is Timewarping. </h2>
           </div>
-          <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto mt-5">The intelligence layer that turns your company's history into a digitalized CEO.</p>
+          <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto mt-5"> ​The intelligence layer that turns your company's history into a univeral advantage                  </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {/* Card 1 */}
           <GrainCard filterId="grain-dna-1" seed={0}>
-            <p className="text-xs tracking-[0.2em] uppercase mb-4 text-destructive" style={{ color: "#ef4444" }}>What others call "AI Automation"</p>
+            <p className="text-xs tracking-[0.2em] uppercase mb-4 text-destructive" style={{ color: "#ef4444" }}>What others call "Business dna"</p>
             <h3 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-4">Chatbots, agents and workflows.</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">Other tools connect apps to move data. That's plumbing — not leadership.</p>
+            <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">Other tools connect apps to move data. That's plumbing not leadership.</p>
           </GrainCard>
 
           {/* Card 2 */}
           <GrainCard filterId="grain-dna-2" seed={5}>
             <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>What we mean by Business DNA</p>
             <h3 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-4">Every decision your company has</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success — and runs the company based on that intelligence.</p>
+            <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success  and runs the company based on that intelligence.</p>
           </GrainCard>
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
@@ -96,8 +94,10 @@ export function ProductDescription() {
       }} />
 
       {/* ── Hero headline — stat banner ── */}
-      <section className="relative z-10 py-20 lg:py-28 bg-background dark:bg-[hsl(0_0%_10%)]">
+      <section className="relative z-10 py-20 lg:py-28 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
+        {/* Bottom light glow */}
+        <div className="absolute pointer-events-none hidden dark:block" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
           <p className="text-xs tracking-[0.35em] uppercase text-muted-foreground dark:text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
@@ -107,7 +107,7 @@ export function ProductDescription() {
               <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">More freedom</p>
             </div>
             <div>
-              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">-100%</span>
+              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">+100%</span>
               <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">Less work</p>
             </div>
           </div>
@@ -117,12 +117,6 @@ export function ProductDescription() {
         </div>
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)" }} />
       </section>
-
-      {/* ── Glow bridge between stat banner and Business DNA ── */}
-      <div className="relative z-30 pointer-events-none" style={{ height: 0 }}>
-        <div className="absolute left-0 right-0" style={{ top: -120, height: 500, background: "radial-gradient(ellipse 55% 50% at center 30%, rgba(51,153,255,0.20) 0%, rgba(139,92,246,0.08) 35%, transparent 75%)", filter: "blur(50px)" }} />
-        <div className="absolute dark:opacity-100 opacity-80" style={{ top: -80, height: 400, left: "10%", right: "10%", background: "radial-gradient(ellipse 60% 50% at center 30%, rgba(51,153,255,0.12) 0%, rgba(139,92,246,0.05) 40%, transparent 80%)", filter: "blur(70px)" }} />
-      </div>
 
       {/* ── Business DNA ── */}
       <BusinessDNACard />
@@ -141,12 +135,12 @@ export function ProductDescription() {
               <div className="space-y-5">
                 <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#ef4444" }}>The old way: Hiring humans for every role</p>
                 <ul className="space-y-3">
-                  {["High churn, high cost, and human error.", 'Scaling requires more "managed" hours.', "Knowledge walks out the door when an employee leaves."].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground dark:text-[hsl(0_0%_50%)]">
+                  {["High churn, high cost, and human error.", 'Scaling requires more "managed" hours.', "Knowledge walks out the door when an employee leaves."].map((item, i) =>
+                  <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground dark:text-[hsl(0_0%_50%)]">
                       <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 bg-muted-foreground/50 dark:bg-[hsl(0_0%_35%)]" />
                       {item}
                     </li>
-                  ))}
+                  )}
                 </ul>
                 <div className="pt-3 border-t border-border dark:border-[hsl(0_0%_20%)]">
                   <p className="text-sm font-semibold text-muted-foreground dark:text-[hsl(0_0%_50%)]">
@@ -159,12 +153,12 @@ export function ProductDescription() {
               <div className="space-y-5">
                 <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "#3399ff" }}>The TimeWarp way: Replacing all jobs</p>
                 <ul className="space-y-3">
-                  {["Infinite scale with zero headcount increase.", "The AI CEO manages specialized employees that never sleep.", "Your Business DNA is preserved and perfected forever."].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground dark:text-[hsl(0_0%_50%)]">
+                  {["Infinite scale with zero headcount increase.", "The AI CEO manages specialized employees that never sleep.", "Your Business DNA is preserved and perfected forever."].map((item, i) =>
+                  <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground dark:text-[hsl(0_0%_50%)]">
                       <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "#3399ff" }} />
                       {item}
                     </li>
-                  ))}
+                  )}
                 </ul>
                 <div className="pt-3 border-t border-border dark:border-[hsl(0_0%_20%)]">
                   <p className="text-sm font-semibold text-muted-foreground dark:text-[hsl(0_0%_50%)]">
@@ -182,7 +176,7 @@ export function ProductDescription() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
           <div className="text-center mb-16">
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>Why the AI CEO wins</h3>
-            <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto">What a human manager misses</p>
+            <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto">What used to take years </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="flex flex-col">
@@ -190,16 +184,16 @@ export function ProductDescription() {
               <GrainCard filterId="grain-cmp-left" seed={20}>
                 <div className="space-y-3">
                   {[
-                    { label: "Decision Speed", value: "Days / Weeks" },
-                    { label: "Context", value: "Limited to reports" },
-                    { label: "Bias", value: "Emotional / Subjective" },
-                    { label: "Cost", value: "$250k+ / Year" },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 bg-background border border-border dark:bg-[hsl(0_0%_11%)] dark:border-[hsl(0_0%_16%)]">
+                  { label: "Decision Speed", value: "Days / Weeks" },
+                  { label: "Context", value: "Limited to reports" },
+                  { label: "Bias", value: "Emotional / Subjective" },
+                  { label: "Cost", value: "$250k+ / Year" }].
+                  map((item, i) =>
+                  <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 bg-background border border-border dark:bg-[hsl(0_0%_11%)] dark:border-[hsl(0_0%_16%)]">
                       <span className="text-sm text-muted-foreground dark:text-white/50">{item.label}</span>
                       <span className="text-sm font-medium" style={{ color: "#ef4444" }}>{item.value}</span>
                     </div>
-                  ))}
+                  )}
                 </div>
               </GrainCard>
             </div>
@@ -208,16 +202,16 @@ export function ProductDescription() {
               <GrainCard filterId="grain-cmp-right" seed={25}>
                 <div className="space-y-3">
                   {[
-                    { label: "Decision Speed", value: "Milliseconds" },
-                    { label: "Context", value: "Every data point in company history" },
-                    { label: "Bias", value: "Purely ROI-driven" },
-                    { label: "Cost", value: "Fractions of a salary" },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 bg-background border border-border dark:bg-[hsl(0_0%_11%)] dark:border-[hsl(0_0%_16%)]">
+                  { label: "Decision Speed", value: "Milliseconds" },
+                  { label: "Context", value: "Every data point in company history" },
+                  { label: "Bias", value: "Purely ROI-driven" },
+                  { label: "Cost", value: "Fractions of a salary" }].
+                  map((item, i) =>
+                  <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 bg-background border border-border dark:bg-[hsl(0_0%_11%)] dark:border-[hsl(0_0%_16%)]">
                       <span className="text-sm text-muted-foreground dark:text-white/50">{item.label}</span>
                       <span className="text-sm font-medium" style={{ color: "#22c55e" }}>{item.value}</span>
                     </div>
-                  ))}
+                  )}
                 </div>
               </GrainCard>
             </div>
@@ -232,15 +226,15 @@ export function ProductDescription() {
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
           <div className="text-center mb-16">
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>The TimeWarp Autonomy Loop</h3>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+</h3>
           </div>
           <div className="max-w-xl mx-auto">
-            {[
-              { number: "01", title: "Ingest — Business DNA", description: "TimeWarp scans digital footprint, and defines a business dna.", icon: Brain },
-              { number: "02", title: "Deploy — The AI CEO", description: "The system takes over executive functions: resource allocation, task delegation, and strategy.", icon: Cpu },
-              { number: "03", title: "Execute — Replace Jobs", description: "Autonomous employees perform the roles of SDRs, Accountants, and Project Managers.", icon: UserCheck },
-            ].map((step, i) => (
-              <div key={i} className="relative flex gap-5">
+            {[{ number: "01", title: "Ingest — Business DNA", description: "TimeWarp scans digital footprint, and defines a business dna.", icon: Brain },
+            { number: "02", title: "Deploy — The AI CEO", description: "The system takes over executive functions: resource allocation, task delegation, and strategy.", icon: Cpu },
+            { number: "03", title: "Execute — Replace Jobs", description: "Autonomous employees perform the roles of SDRs, Accountants, and Project Managers.", icon: UserCheck }].
+            map((step, i) =>
+            <div key={i} className="relative flex gap-5">
                 <div className="flex flex-col items-center">
                   <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20" style={{ background: "rgba(51,153,255,0.1)", borderColor: "rgba(51,153,255,0.2)" }}>
                     <step.icon className="h-5 w-5 text-primary" style={{ color: "#3399ff" }} />
@@ -253,7 +247,7 @@ export function ProductDescription() {
                   <p className="text-sm mt-2 leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">{step.description}</p>
                 </div>
               </div>
-            ))}
+            )}
             {/* Last step */}
             <div className="relative flex gap-5">
               <div className="flex flex-col items-center">
@@ -263,8 +257,8 @@ export function ProductDescription() {
               </div>
               <div>
                 <span className="text-xs font-mono tracking-wider" style={{ color: "rgba(51,153,255,0.5)" }}>04</span>
-                <h4 className="text-lg font-bold text-foreground dark:text-white mt-1">UHI — Profit Distribution</h4>
-                <p className="text-sm mt-2 leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">As labor costs drop to zero, profit margins explode, enabling the shift toward Universal High Income for stakeholders.</p>
+                <h4 className="text-lg font-bold text-foreground dark:text-white mt-1">Evolve — Value Recreation       </h4>
+                <p className="text-sm mt-2 leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">​Captured value gets fed back into stage 1 to improve.       </p>
               </div>
             </div>
           </div>
@@ -279,21 +273,21 @@ export function ProductDescription() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
           <div className="text-center mb-6">
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Who is TimeWarp for?</h3>
-            <p className="text-base text-muted-foreground dark:text-white/50 max-w-xl mx-auto">If you've ever said "Why is my business not growing faster?" — Then this is for you.</p>
+            <p className="text-base text-muted-foreground dark:text-white/50 max-w-xl mx-auto">If you've ever said "Why is my business not growing?"  Then this is for you.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-5 mt-14 max-w-4xl mx-auto">
-            {[
-              { title: "Visionary Founders", description: 'Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise.' },
-              { title: "Hyper-Scale Startups", description: "Companies that need to scale from $1M to $100M without the friction of hiring 200 people." },
-              { title: "Efficiency-First Enterprises", description: 'Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO.' },
-              { title: "Solo Operators & Small Teams", description: "Entrepreneurs running lean who want enterprise-level execution without enterprise-level headcount." },
-            ].map((card, i) => (
-              <div key={i} className="rounded-2xl p-7 sm:p-8 transition-colors bg-card border border-border hover:border-primary/30 dark:bg-[hsl(0_0%_14%)] dark:border-[hsl(0_0%_20%)]">
+            {[{ title: "Visionary Founders", description: 'Founders who want to exit the "daily grind" and move toward a truly passive, autonomous enterprise.' },
+            { title: "Hyper-Scale Startups", description: "Companies that need to scale from $1M to $100M without the friction of hiring 200 people." },
+            { title: "Efficiency-First Enterprises", description: 'Legacy businesses looking to strip away the "management tax" and install a data-driven AI CEO.' },
+            { title: "Solo Operators & Small Teams", description: "Entrepreneurs running lean who want enterprise-level execution without enterprise-level headcount." }].
+            map((card, i) =>
+            <div key={i} className="rounded-2xl p-7 sm:p-8 transition-colors bg-card border border-border hover:border-primary/30 dark:bg-[hsl(0_0%_14%)] dark:border-[hsl(0_0%_20%)]">
                 <h4 className="text-lg font-bold text-foreground dark:text-white mb-3">{card.title}</h4>
                 <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">{card.description}</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
@@ -304,8 +298,8 @@ export function ProductDescription() {
         <div className="absolute pointer-events-none left-0 right-0 hidden dark:block" style={{ height: 400, top: 0, background: "radial-gradient(ellipse 80% 100% at center top, rgba(51,153,255,0.08) 0%, transparent 60%)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>See your company's autonomous future</h3>
-          <p className="text-base text-muted-foreground dark:text-white/50 mb-12 max-w-xl mx-auto">Paste your website URL. Get your Business DNA &amp; Autonomy Report in 60 seconds.</p>
+          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Get to know your company's next decision </h3>
+          <p className="text-base text-muted-foreground dark:text-white/50 mb-12 max-w-xl mx-auto">Paste your website URL. Get your Business DNA in 60 seconds.</p>
 
           {/* Hero-style input card */}
           <div className="max-w-xl mx-auto">
@@ -319,14 +313,14 @@ export function ProductDescription() {
                   placeholder="https://YourBusiness.com"
                   onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
                   className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none py-3 sm:py-0"
-                  style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }}
-                />
+                  style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }} />
+                
               </div>
               <button
                 onClick={handleAnalyze}
                 className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 sm:mt-0 h-12 sm:h-full"
-                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer" }}
-              >
+                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer" }}>
+                
                 Analyze →
               </button>
             </div>
@@ -389,6 +383,6 @@ export function ProductDescription() {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>);
+
 }
