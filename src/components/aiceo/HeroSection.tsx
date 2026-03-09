@@ -223,7 +223,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         {/* Left Content */}
         <div style={{ flex: 1, maxWidth: 720 }} className="hero-left-content">
           <h1 className="hero-heading" style={{ fontSize: "clamp(2.4rem, 5vw, 4.8rem)", fontWeight: 700, lineHeight: 1.05, marginBottom: "2rem", letterSpacing: "-0.04em", color: dark ? "#ffffff" : "#0F2638", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
-            Get business decisions<br />completed in seconds
+            Get business decisions<br />completed in<br className="hero-mobile-br" /> seconds
           </h1>
           <p className="hero-subtitle" style={{ fontSize: "1.25rem", color: t.textSec, lineHeight: 1.5, marginBottom: "3rem", maxWidth: "90%", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease" }}>
             AI CEO runs deep research on your business and turns your data into levers pulled–for you
