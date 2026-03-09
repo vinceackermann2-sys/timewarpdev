@@ -34,12 +34,12 @@ function BusinessDNACard() {
         <div className="text-center mb-10">
           <div className="relative inline-block px-8 py-4">
             {/* Sparkles — behind heading only, both light and dark */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {[...Array(20)].map((_, i) => (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden hidden sm:block">
+              {[...Array(12)].map((_, i) => (
                 <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
                   left: `${5 + Math.random() * 90}%`, top: `${5 + Math.random() * 90}%`,
                   width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
-                  background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : i % 3 === 2 ? "#94a3b8" : "#ffffff",
+                  background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#94a3b8",
                   opacity: 0.3 + Math.random() * 0.5,
                   boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(148,163,184,0.4)"}`,
                   animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
