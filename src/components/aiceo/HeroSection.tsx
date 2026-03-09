@@ -180,13 +180,13 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           <rect x="360" y="-240" width="1200" height="480" rx="600" ry="240" fill="#e5a9c5" opacity="0.50" filter="url(#fcap2)" />
           <rect x="480" y="-180" width="960" height="380" rx="480" ry="190" fill="#e5a9c5" opacity="0.60" filter="url(#fcap1)" />
         </svg>
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "soft-light" as const, opacity: 0.85, zIndex: 9 }}>
+        <div className="hidden sm:block" style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "soft-light" as const, opacity: 0.85, zIndex: 9 }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
             <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.88" numOctaves={4} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
             <rect width="100%" height="100%" filter="url(#grain)" opacity="1" />
           </svg>
         </div>
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "multiply" as const, opacity: 0.42, zIndex: 10 }}>
+        <div className="hidden sm:block" style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "multiply" as const, opacity: 0.42, zIndex: 10 }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
             <filter id="grain2"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves={3} seed={8} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
             <rect width="100%" height="100%" filter="url(#grain2)" opacity="1" />
