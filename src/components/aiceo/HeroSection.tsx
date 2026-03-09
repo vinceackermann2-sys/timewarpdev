@@ -248,7 +248,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       </div>
 
       {/* Navbar */}
-      <header className="hero-navbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto" }}>
+      <header className="hero-navbar" style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", background: dark ? "rgba(10,14,26,0.7)" : "rgba(255,255,255,0.7)" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <img className="hero-logo" src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: t.logoBlend, filter: t.logoFilter, transition: "filter 0.3s ease" }} />
         </div>

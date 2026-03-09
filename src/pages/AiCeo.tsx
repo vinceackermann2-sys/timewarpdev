@@ -11,6 +11,12 @@ const AiCeo = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const { setTheme } = useTheme();
+
+  // Force dark mode on landing page
+  useEffect(() => {
+    setTheme("dark");
+  }, [setTheme]);
 
   const isOAuthReturn =
     searchParams.has("microsoft_connected") ||
