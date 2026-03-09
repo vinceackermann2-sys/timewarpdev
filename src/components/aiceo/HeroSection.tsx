@@ -273,29 +273,6 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         </div>
       </div>
 
-      {/* Navbar */}
-      <header className="hero-navbar" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", background: dark ? "rgba(10,14,26,0.65)" : "rgba(255,255,255,0.65)" }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <img className="hero-logo" src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: t.logoBlend, filter: t.logoFilter, transition: "filter 0.3s ease" }} />
-        </div>
-        <div className="hero-nav-actions" style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-          <button
-            aria-label="Toggle theme"
-            onClick={() => setTheme(dark ? "light" : "dark")}
-            style={{ background: dark ? "hsla(0,0%,100%,0.1)" : "hsla(250,30%,92%,0.7)", border: "none", cursor: "pointer", color: t.iconColor, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", borderRadius: 12, width: 40, height: 40 }}
-          >
-            {dark ? <Moon size={20} /> : <Sun size={20} />}
-          </button>
-          <Link className="hero-login-link" to="/auth" style={{ textDecoration: "none", color: t.navLink, fontWeight: 500, fontSize: "0.95rem", fontFamily: "'Outfit', sans-serif", transition: "color 0.3s ease", background: dark ? "hsla(0,0%,100%,0.1)" : "hsla(250,30%,92%,0.7)", padding: "0.5rem 1.2rem", borderRadius: 12 }}>Log in</Link>
-          <Link
-            className="hero-cta-btn"
-            to="/auth?mode=signup"
-            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0.6rem 1.2rem", borderRadius: 8, fontFamily: "'Outfit', sans-serif", fontWeight: 500, fontSize: "0.95rem", cursor: "pointer", textDecoration: "none", transition: "all 0.2s ease", border: "none", background: "#3399ff", color: "#fff" }}
-          >
-            Get Started →
-          </Link>
-        </div>
-      </header>
 
       {/* Hero */}
       <main style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 1760, margin: "0 auto", padding: "4rem 2rem", gap: "4rem", flex: 1 }} className="hero-main-flex">
