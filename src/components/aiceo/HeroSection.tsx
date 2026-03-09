@@ -381,6 +381,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           }
         }
         @media (max-width: 640px) {
+          .hero-grain-tile {
+            opacity: 0.3 !important;
+            background-size: 150px 150px !important;
+          }
           .hero-navbar {
             padding: 1rem 0.75rem !important;
           }
