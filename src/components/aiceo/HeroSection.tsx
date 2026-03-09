@@ -182,7 +182,9 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   return (
     <>
     {/* Navbar - outside overflow:hidden wrapper so fixed positioning works */}
-    <header className="hero-navbar" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto", background: "transparent    <img className="hero-logo" src="/favicon.png" alt="TimeWarp Logo" style={{ height: 48, width: "auto", display: "block", mixBlendMode: t.logoBlend, filter: t.logoFilter, transition: "filter 0.56 ease" }} />
+    <header className="hero-navbar" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1rem", width: "100%", maxWidth: 1760, margin: "0 auto", background: "transparent", fontFamily: "'Outfit', sans-serif" }}>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <img className="hero-logo" src="/favicon.png" alt="TimeWarp Logo" style={{ height: 56, width: "auto", display: "block", mixBlendMode: t.logoBlend, filter: t.logoFilter, transition: "filter 0.3s ease" }} />
       </div>
       <div className="hero-nav-actions" style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
         <button
