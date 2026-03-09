@@ -26,49 +26,74 @@ function GrainCard({ children, filterId, seed = 0 }: {children: React.ReactNode;
 
 }
 
-/* ─────────────────────── Business DNA side-by-side cards ─── */
-function BusinessDNACard() {
+/* ─────────────────────── Race Animation ─── */
+function RaceAnimation() {
+  const [started, setStarted] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setStarted(true); obs.disconnect(); }
+    }, { threshold: 0.4 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <div className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]">
+    <div ref={sectionRef} className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         <div className="text-center mb-10">
-          <div className="relative inline-block px-8 py-4">
-            {/* Sparkles — behind heading only, both light and dark */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden hidden sm:block">
-              {[...Array(12)].map((_, i) =>
-              <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
-                left: `${5 + Math.random() * 90}%`, top: `${5 + Math.random() * 90}%`,
-                width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
-                background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#94a3b8",
-                opacity: 0.3 + Math.random() * 0.5,
-                boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(148,163,184,0.4)"}`,
-                animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`
-              }} />
-              )}
-            </div>
-            <h2 className="relative z-10 text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white" style={{ fontFamily: "'Playfair Display', serif" }}>This is Timewarping. </h2>
-          </div>
-          <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto mt-5"> ​The intelligence layer that turns your company's history into a univeral advantage                  </p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white" style={{ fontFamily: "'Playfair Display', serif" }}>This is Timewarping.</h2>
+          <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto mt-5">The intelligence layer that turns your company's history into a universal advantage</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {/* Card 1 */}
-          <GrainCard filterId="grain-dna-1" seed={0}>
-            <p className="text-xs tracking-[0.2em] uppercase mb-4 text-destructive" style={{ color: "#ef4444" }}>What others call "Business dna"</p>
-            <h3 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-4">Chatbots, agents and workflows.</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">Other tools connect apps to move data. That's plumbing not leadership.</p>
-          </GrainCard>
+        {/* Race visualization */}
+        <div className="max-w-3xl mx-auto mt-16 space-y-12">
+          {/* Runner A — Human (slow) */}
+          <div className="relative flex items-center gap-4 sm:gap-6">
+            <span className="text-2xl sm:text-4xl font-bold text-foreground dark:text-white shrink-0 w-10 sm:w-14">A</span>
+            <div className="flex-1 relative h-12 flex items-center">
+              {/* Track line */}
+              <div className="absolute inset-y-1/2 left-0 right-0 h-px bg-border dark:bg-[hsl(0_0%_25%)]" />
+              {/* Runner */}
+              <div
+                className="absolute text-2xl sm:text-3xl transition-all ease-out"
+                style={{
+                  left: started ? '45%' : '0%',
+                  transitionDuration: '3s',
+                }}
+              >🏃</div>
+              {/* Finish flag */}
+              <div className="absolute right-0 text-2xl sm:text-3xl">🏁</div>
+            </div>
+            <span className="text-xs sm:text-sm text-muted-foreground dark:text-white/40 shrink-0 w-20 sm:w-28 text-right">Manual labor</span>
+          </div>
 
-          {/* Card 2 */}
-          <GrainCard filterId="grain-dna-2" seed={5}>
-            <p className="text-xs tracking-[0.2em] uppercase mb-4" style={{ color: "#3399ff" }}>What we mean by Business DNA</p>
-            <h3 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-4">Every decision your company has</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground dark:text-[hsl(0_0%_50%)]">The way you close deals. The way you solve churn. The way you scale culture. TimeWarp learns the "Why" behind your success  and runs the company based on that intelligence.</p>
-          </GrainCard>
+          {/* Runner B — TimeWarp (fast, reaches finish) */}
+          <div className="relative flex items-center gap-4 sm:gap-6">
+            <span className="text-2xl sm:text-4xl font-bold text-foreground dark:text-white shrink-0 w-10 sm:w-14">B</span>
+            <div className="flex-1 relative h-12 flex items-center">
+              {/* Track line */}
+              <div className="absolute inset-y-1/2 left-0 right-0 h-px bg-border dark:bg-[hsl(0_0%_25%)]" />
+              {/* Runner */}
+              <div
+                className="absolute text-2xl sm:text-3xl transition-all ease-out"
+                style={{
+                  left: started ? 'calc(100% - 2rem)' : '0%',
+                  transitionDuration: '2s',
+                }}
+              >🏃</div>
+              {/* Finish flag */}
+              <div className="absolute right-0 text-2xl sm:text-3xl">🏁</div>
+            </div>
+            <span className="text-xs sm:text-sm shrink-0 w-20 sm:w-28 text-right" style={{ color: '#3399ff' }}>TimeWarp</span>
+          </div>
         </div>
       </div>
-    </div>);
-
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
@@ -119,7 +144,7 @@ export function ProductDescription() {
       </section>
 
       {/* ── Business DNA ── */}
-      <BusinessDNACard />
+      <RaceAnimation />
 
       {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
