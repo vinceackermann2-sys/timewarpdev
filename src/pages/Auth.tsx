@@ -234,7 +234,7 @@ const Auth = () => {
             <Button
               type="button"
               variant={quizData ? "default" : "outline"}
-              className="w-full gap-3 mb-4 h-12 rounded-xl"
+              className="w-full gap-3 mb-4 h-12 rounded-xl border border-border bg-[hsl(30,20%,20%)] text-[hsl(40,30%,95%)] dark:bg-[hsl(40,30%,95%)] dark:text-[hsl(30,20%,20%)] hover:opacity-90"
               onClick={handleGoogleSignIn}
               disabled={isGoogleLoading}
             >
