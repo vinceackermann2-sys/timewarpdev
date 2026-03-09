@@ -144,7 +144,7 @@ export function ProductDescription() {
       </section>
 
       {/* ── Business DNA ── */}
-      <BusinessDNACard />
+      <RaceAnimation />
 
       {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
