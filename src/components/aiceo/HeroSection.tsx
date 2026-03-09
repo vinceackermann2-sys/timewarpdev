@@ -180,7 +180,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   };
 
   return (
-    <div className={dark ? "dark-card" : ""} style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease", position: "relative", overflow: "hidden" }}>
+    <div className={dark ? "dark-card" : ""} style={{ fontFamily: "'Outfit', sans-serif", color: t.text, minHeight: "100dvh", display: "flex", flexDirection: "column", transition: "color 0.3s ease", position: "relative", overflow: "hidden", paddingTop: 72 }}>
       {/* Fixed Background */}
       <div style={{ position: "absolute", inset: 0, zIndex: -1, background: t.bg, overflow: "hidden", transition: "background 0.3s ease" }}>
         {/* Mobile: lightweight CSS gradient aurora (no SVG filters) */}
