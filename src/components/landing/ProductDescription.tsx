@@ -25,24 +25,25 @@ function GrainCard({ children, filterId, seed = 0 }: { children: React.ReactNode
 function BusinessDNACard() {
   return (
     <div className="relative z-20 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_10%)]">
-      {/* Sparkles — dark only */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden hidden dark:block">
-        {[...Array(20)].map((_, i) => (
-          <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
-            left: `${10 + Math.random() * 80}%`, top: `${10 + Math.random() * 80}%`,
-            width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
-            background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : "#ffffff",
-            opacity: 0.3 + Math.random() * 0.5,
-            boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.4)"}`,
-            animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
-          }} />
-        ))}
-      </div>
-
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         <div className="text-center mb-10">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-5" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
-          <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto">The intelligence layer that turns your company's history into a digitalized CEO.</p>
+          <div className="relative inline-block px-8 py-4">
+            {/* Sparkles — behind heading only, both light and dark */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {[...Array(20)].map((_, i) => (
+                <div key={`sparkle-${i}`} className="absolute rounded-full" style={{
+                  left: `${5 + Math.random() * 90}%`, top: `${5 + Math.random() * 90}%`,
+                  width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
+                  background: i % 3 === 0 ? "#3399ff" : i % 3 === 1 ? "#a78bfa" : i % 3 === 2 ? "#94a3b8" : "#ffffff",
+                  opacity: 0.3 + Math.random() * 0.5,
+                  boxShadow: `0 0 ${4 + Math.random() * 8}px ${i % 3 === 0 ? "rgba(51,153,255,0.6)" : i % 3 === 1 ? "rgba(167,139,250,0.6)" : "rgba(148,163,184,0.4)"}`,
+                  animation: `sparkle-pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite alternate`,
+                }} />
+              ))}
+            </div>
+            <h2 className="relative z-10 text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white" style={{ fontFamily: "'Playfair Display', serif" }}>This is Business DNA.</h2>
+          </div>
+          <p className="text-base sm:text-lg text-muted-foreground dark:text-white/50 max-w-2xl mx-auto mt-5">The intelligence layer that turns your company's history into a digitalized CEO.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
