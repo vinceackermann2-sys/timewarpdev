@@ -187,11 +187,11 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         <div className="block sm:hidden" style={{
           position: "absolute", inset: 0,
           background: [
-            `radial-gradient(ellipse 120% 80% at 50% 90%, ${dark ? "rgba(107,71,214,0.45)" : "rgba(160,179,228,0.64)"} 0%, transparent 70%)`,
-            `radial-gradient(ellipse 100% 60% at 30% 70%, ${dark ? "rgba(178,138,200,0.4)" : "rgba(119,125,214,0.5)"} 0%, transparent 60%)`,
-            `radial-gradient(ellipse 80% 50% at 70% 80%, ${dark ? "rgba(211,110,142,0.35)" : "rgba(211,110,142,0.45)"} 0%, transparent 55%)`,
-            `radial-gradient(ellipse 60% 40% at 50% 95%, ${dark ? "rgba(229,115,115,0.3)" : "rgba(229,115,115,0.4)"} 0%, transparent 50%)`,
-            `radial-gradient(ellipse 140% 40% at 50% 0%, ${dark ? "rgba(229,169,197,0.3)" : "rgba(229,169,197,0.45)"} 0%, transparent 50%)`,
+            `radial-gradient(ellipse 160% 70% at 50% 100%, ${dark ? "rgba(160,179,228,0.5)" : "rgba(160,179,228,0.58)"} 0%, transparent 65%)`,
+            `radial-gradient(ellipse 120% 55% at 40% 85%, ${dark ? "rgba(111,149,214,0.45)" : "rgba(111,149,214,0.55)"} 0%, transparent 55%)`,
+            `radial-gradient(ellipse 90% 45% at 60% 90%, ${dark ? "rgba(178,138,200,0.35)" : "rgba(178,138,200,0.5)"} 0%, transparent 50%)`,
+            `radial-gradient(ellipse 70% 35% at 50% 95%, ${dark ? "rgba(211,110,142,0.25)" : "rgba(211,110,142,0.35)"} 0%, transparent 45%)`,
+            `radial-gradient(ellipse 130% 35% at 50% 0%, ${dark ? "rgba(229,169,197,0.25)" : "rgba(229,169,197,0.4)"} 0%, transparent 45%)`,
           ].join(", "),
           opacity: t.auraOpacity,
           transition: "opacity 0.3s ease",
@@ -223,7 +223,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         {/* Grain: lightweight canvas-generated noise tile (all devices) */}
         {noiseUrl && (
-          <div style={{
+          <div className="hero-grain-tile" style={{
             position: "absolute", inset: 0, pointerEvents: "none",
             mixBlendMode: "soft-light" as const, opacity: 0.6, zIndex: 9,
             backgroundImage: `url(${noiseUrl})`,
@@ -381,6 +381,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           }
         }
         @media (max-width: 640px) {
+          .hero-grain-tile {
+            opacity: 0.3 !important;
+            background-size: 150px 150px !important;
+          }
           .hero-navbar {
             padding: 1rem 0.75rem !important;
           }
