@@ -97,9 +97,9 @@ export function ProductDescription() {
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center relative z-10">
           <p className="text-xs tracking-[0.35em] uppercase text-muted-foreground dark:text-white/50 font-mono mb-10">AI CEO — Replacing human labor</p>
-          <div className="flex items-center justify-center gap-12 sm:gap-20 lg:gap-32 mb-10">
+          <div className="flex items-center justify-center gap-6 sm:gap-20 lg:gap-32 mb-10">
             <div>
-              <span className="text-5xl sm:text-7xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">+100%</span>
+              <span className="text-3xl sm:text-5xl lg:text-8xl font-bold text-foreground dark:text-white leading-none">+100%</span>
               <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mt-3">More freedom</p>
             </div>
             <div>
