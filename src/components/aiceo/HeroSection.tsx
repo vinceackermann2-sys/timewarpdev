@@ -251,7 +251,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         {noiseUrl && (
           <div className="hero-grain-tile" style={{
             position: "absolute", inset: 0, pointerEvents: "none",
-            mixBlendMode: "soft-light" as const, opacity: 0.6, zIndex: 9,
+            mixBlendMode: "soft-light" as const, opacity: 0.35, zIndex: 9,
             backgroundImage: `url(${noiseUrl})`,
             backgroundRepeat: "repeat",
             backgroundSize: "100px 100px",
