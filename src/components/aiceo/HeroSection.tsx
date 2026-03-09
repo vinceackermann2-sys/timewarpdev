@@ -283,6 +283,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
       {/* Responsive Styles */}
       <style>{`
+        .hero-mobile-br { display: none; }
         @media (max-width: 1024px) {
           .hero-main-flex {
             flex-direction: column !important;
