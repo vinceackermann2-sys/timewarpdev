@@ -640,7 +640,7 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   },
                   body: JSON.stringify({
                     url: pageUrl,
-                    formats: ["screenshot", "links"],
+                    formats: ["markdown", "screenshot"],
                     waitFor: 2000,
                   }),
                 });
@@ -649,19 +649,32 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                 const scrapeData = await scrapeRes.json();
                 const content = scrapeData.data || scrapeData;
 
-                // First try: extract CDN image URLs from links
-                const links: string[] = content.links || [];
-                const imageExtensions = /\.(jpg|jpeg|png|webp|avif)(\?|$)/i;
-                const cdnImage = links.find((link: string) =>
-                  imageExtensions.test(link) &&
-                  !link.includes("favicon") &&
-                  !link.includes("logo") &&
-                  !link.includes("icon") &&
-                  link.length > 40
+                // Extract image URLs from markdown ![alt](url) patterns
+                const markdown: string = content.markdown || "";
+                const imgRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
+                const mdImages: string[] = [];
+                let match;
+                while ((match = imgRegex.exec(markdown)) !== null) {
+                  mdImages.push(match[1]);
+                }
+
+                // Also extract raw image URLs from markdown (standalone lines)
+                const rawUrlRegex = /(https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|webp|avif)(?:\?[^\s)]*)?)/gi;
+                while ((match = rawUrlRegex.exec(markdown)) !== null) {
+                  if (!mdImages.includes(match[1])) mdImages.push(match[1]);
+                }
+
+                // Filter to likely content images (not tiny icons/favicons)
+                const cdnImage = mdImages.find((url) =>
+                  !url.includes("favicon") &&
+                  !url.includes("logo") &&
+                  !url.includes("icon") &&
+                  !url.includes("avatar") &&
+                  url.length > 40
                 );
 
                 if (cdnImage) {
-                  console.log(`✓ Found CDN image from cosmos.co links: ${cdnImage.slice(0, 80)}...`);
+                  console.log(`✓ Found CDN image from markdown: ${cdnImage.slice(0, 100)}...`);
                   return cdnImage;
                 }
 
@@ -671,7 +684,7 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   const imgUrl = screenshot.startsWith("http")
                     ? screenshot
                     : `data:image/png;base64,${screenshot}`;
-                  console.log(`✓ Using screenshot for "${term}"`);
+                  console.log(`✓ Using screenshot fallback for "${term}"`);
                   return imgUrl;
                 }
               }
