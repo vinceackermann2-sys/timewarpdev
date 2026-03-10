@@ -592,12 +592,12 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
 
         if (aestheticTerms.length === 0) {
           aestheticTerms = [
-            `${brandCategory} moodboard aesthetic`,
-            `${brandCategory} lifestyle texture`,
-            `${brandCategory} color palette inspiration`,
-            `warm tones lifestyle photography`,
-            `minimal aesthetic flat lay`,
-            `editorial brand photography`,
+            `${brandCategory} product showcase + trust + premium minimal e-commerce`,
+            `${brandCategory} lifestyle + warm confidence + premium minimal e-commerce`,
+            `${brandCategory} texture detail + calm sophistication + premium minimal e-commerce`,
+            `clean packaging flat lay + quality assurance + premium minimal e-commerce`,
+            `aspirational lifestyle moment + empowerment + premium minimal e-commerce`,
+            `editorial product photography + reliability + premium minimal e-commerce`,
           ];
         }
         console.log("Moodboard terms:", aestheticTerms);
