@@ -1,50 +1,28 @@
+## Plan: Switch Moodboard Source from Cosmos.co to Pinterest
 
+### Problem
 
-## Problem
+Cosmos.co uses heavy JS rendering, so Firecrawl can't extract image URLs from the scraped markdown. Pinterest is a better source because:
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+- Pinterest CDN images (`i.pinimg.com`) follow predictable URL patterns
+- Firecrawl search results for `site:pinterest.com` return pin URLs
+- Pinterest pin pages contain `i.pinimg.com` image URLs in the markdown/HTML that are extractable
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+### Approach
 
-## Plan
+Use Firecrawl **search** (not scrape) with `site:pinterest.com` queries. Firecrawl search already returns markdown snippets per result — we can extract `i.pinimg.com` URLs directly from those snippets without needing a second scrape call. This is faster and more reliable.
 
-### 1. Add context size limiting in both edge functions
+### Changes
 
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
+**File**: `supabase/functions/scrape-product/index.ts` (lines ~542-710)
 
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
+1. **Update AI prompt** — Change "Cosmos.co moodboard" to "Pinterest moodboard" in the search term generation prompt. Use the same framework to produce Pinterest-friendly search queries as before.
+2. **Replace Cosmos.co search+scrape with Pinterest search** — For each term:
+  - Firecrawl search: `site:pinterest.com ${term}`, limit 5
+  - Extract `i.pinimg.com` URLs from the search result markdown snippets using regex
+  - Filter for high-res pins (URLs containing `/originals/` or `/736x/` or `/564x/`, skip `/75x/` thumbnails)
+  - Take the first qualifying image per term
+3. **Fallback**: If no `i.pinimg.com` URL found in search markdown, scrape the first Pinterest pin URL with `formats: ["markdown"]` and extract from there. No screenshot fallback needed.
+4. **Update log messages** — Replace "Cosmos.co" references with "Pinterest".
 
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
-```
-
-### 2. Add better error logging for debugging
-
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
-
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
-
-### 3. Truncate individual item content
-
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
-
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
-
+This eliminates the double network call (search → scrape) in most cases, making it faster and more reliable. Pinterest's CDN URLs are consistently present in Firecrawl search result snippets.
