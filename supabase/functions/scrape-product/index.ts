@@ -643,6 +643,49 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                     formats: ["markdown", "screenshot"],
                     waitFor: 2000,
                   }),
+
+                if (!scrapeRes.ok) continue;
+                const scrapeData = await scrapeRes.json();
+                const content = scrapeData.data || scrapeData;
+
+                // Extract image URLs from markdown ![alt](url) patterns
+                const markdown: string = content.markdown || "";
+                const imgRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
+                const mdImages: string[] = [];
+                let match;
+                while ((match = imgRegex.exec(markdown)) !== null) {
+                  mdImages.push(match[1]);
+                }
+
+                // Also extract raw image URLs from markdown (standalone lines)
+                const rawUrlRegex = /(https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|webp|avif)(?:\?[^\s)]*)?)/gi;
+                while ((match = rawUrlRegex.exec(markdown)) !== null) {
+                  if (!mdImages.includes(match[1])) mdImages.push(match[1]);
+                }
+
+                // Filter to likely content images (not tiny icons/favicons)
+                const cdnImage = mdImages.find((url) =>
+                  !url.includes("favicon") &&
+                  !url.includes("logo") &&
+                  !url.includes("icon") &&
+                  !url.includes("avatar") &&
+                  url.length > 40
+                );
+
+                if (cdnImage) {
+                  console.log(`✓ Found CDN image from markdown: ${cdnImage.slice(0, 100)}...`);
+                  return cdnImage;
+                }
+
+                // Fallback: use screenshot as base64 data URL
+                const screenshot = content.screenshot;
+                if (screenshot) {
+                  const imgUrl = screenshot.startsWith("http")
+                    ? screenshot
+                    : `data:image/png;base64,${screenshot}`;
+                  console.log(`✓ Using screenshot fallback for "${term}"`);
+                  return imgUrl;
+                }
               }
 
               console.warn(`No image found for "${term}"`);
