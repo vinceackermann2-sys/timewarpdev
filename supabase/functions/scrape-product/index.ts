@@ -643,6 +643,7 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                     formats: ["markdown", "screenshot"],
                     waitFor: 2000,
                   }),
+                });
 
                 if (!scrapeRes.ok) continue;
                 const scrapeData = await scrapeRes.json();
