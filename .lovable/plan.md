@@ -1,57 +1,50 @@
 
 
-## Plan: Update Moodboard Search to Use Cosmos.co with Audience Aesthetic Framework
+## Problem
 
-### What Changes
+The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
 
-**File: `supabase/functions/scrape-product/index.ts`**
+The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
 
-1. **Update the AI prompt for generating search terms** (lines ~554-577)
-   - Change the prompt to use the framework: `(trust + feeling + Premium minimal e-commerce)`
-   - The AI should generate terms that combine audience-specific visual/emotional descriptors with "premium minimal e-commerce"
-   - Example output: `"hairdryer hold up + soothing pink background + premium minimal e-commerce"`
+## Plan
 
-2. **Change search domain from `cosmos.so` to `cosmos.co`** (line 717)
-   - Update `site:cosmos.so` → `site:cosmos.co`
+### 1. Add context size limiting in both edge functions
 
-3. **Extract actual image URLs from Cosmos.co pages instead of taking screenshots**
-   - Instead of scraping screenshots (expensive, slow), scrape the Cosmos.co result pages for markdown/links and use AI to extract the best image URL from each page
-   - Or: scrape with `formats: ["links"]` and find image URLs directly
+**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
 
-4. **Remove Unsplash fallback entirely** (lines ~741-765)
-   - Delete the fallback search block — no fallback, no fluff
+In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
 
-5. **Remove empty slot padding** — only return the images that were actually found
-
-### Technical Approach
-
-For each of the 6 search terms:
-1. Search Firecrawl with `site:cosmos.co {term}`
-2. Take the first result URL
-3. Scrape that Cosmos.co page with `formats: ["links", "html"]` to extract image URLs from the page content
-4. Filter for actual image URLs (`.jpg`, `.png`, `.webp`, etc.) and return the first high-quality one
-5. If no image found from that result, skip it (no fallback)
-
-The search term prompt will be updated to:
-
-```
-Generate exactly 6 audience aesthetic search terms for a Cosmos.co moodboard.
-
-Use this framework for each term:
-[audience visual/product scene] + [trust feeling/emotion] + premium minimal e-commerce
-
-Example for a hair product targeting aging adults:
-"hairdryer hold up + soothing pink background + premium minimal e-commerce"
-
-The terms should capture the audience's emotional world, lifestyle aspirations, and the product's visual context — combined with a premium minimal e-commerce aesthetic.
-
-Brand: "{brandName}" ({brandCategory})
-Product: {productDescription}
-Target audience: {audienceDesc}
-
-Return ONLY a JSON array of 6 phrases. No explanation.
+```typescript
+function formatContextItems(items: any[]): string {
+  const MAX_CONTEXT_CHARS = 200000;
+  let context = "\n\n## User's Business Data\n\n";
+  let totalChars = 0;
+  // ... group by source as before ...
+  for (const item of sourceItems) {
+    const itemText = /* build item string */;
+    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+    context += itemText;
+    totalChars += itemText.length;
+  }
+  return context;
+}
 ```
 
-### Files Modified
-- `supabase/functions/scrape-product/index.ts` — update moodboard generation logic
+### 2. Add better error logging for debugging
+
+Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+
+```typescript
+if (!response.ok) {
+  const errorBody = await response.text().catch(() => "");
+  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+  // ... existing status-specific handling ...
+}
+```
+
+### 3. Truncate individual item content
+
+Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
+
+This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
 
