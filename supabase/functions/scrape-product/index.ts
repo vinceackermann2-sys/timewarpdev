@@ -944,7 +944,7 @@ This should look like a real customer testimonial photo or persona portrait. NO 
           const productImageUrl = productImages.length > 0 ? productImages[0] : null;
           
           const guidelineResults = await Promise.allSettled(
-            guidelines.slice(0, 3).map(async (g: any) => {
+            guidelines.map(async (g: any) => {
               const ruleText = `${g.rule} ${g.example || ''}`.toLowerCase();
               const mentionsProduct = ruleText.includes('product') || ruleText.includes('unboxing') || ruleText.includes('packaging') || ruleText.includes('in-hand') || ruleText.includes('close-up');
               
