@@ -550,7 +550,7 @@ ${markdown.slice(0, 15000)}`;
         const productDescription = (extracted.product?.description || '').slice(0, 200);
         const audienceAttentionHooks = (extracted.audience?.attentionHooks || []).slice(0, 2).join('; ');
 
-        // Step 1: Generate 6 aesthetic search terms using AI
+        // Step 1: Generate 6 audience aesthetic search terms using AI
         console.log("Generating moodboard aesthetic terms...");
         const termsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -559,21 +559,23 @@ ${markdown.slice(0, 15000)}`;
             model: "google/gemini-2.5-flash-lite",
             messages: [{
               role: "user",
-              content: `Generate exactly 6 short aesthetic/visual search terms for a Pinterest moodboard. These should describe textures, colors, moods, and visual styles that match the AUDIENCE's emotional world and the BRAND's messaging — NOT the brand's visual identity or logo.
+              content: `Generate exactly 6 audience aesthetic search terms for a Cosmos.co moodboard.
+
+Use this framework for each term:
+[audience visual/product scene] + [trust feeling/emotion] + premium minimal e-commerce
+
+Example for a hair product targeting aging adults:
+"hairdryer hold up + soothing pink background + premium minimal e-commerce"
+
+The terms should capture the audience's emotional world, lifestyle aspirations, and the product's visual context — combined with a premium minimal e-commerce aesthetic.
 
 Brand: "${brandName}" (${brandCategory})
 Product: ${productDescription}
 Target audience: ${audienceDesc.split('.').slice(0, 3).join('.')}
 Audience pain points: ${audiencePainPoints || 'general consumer frustrations'}
 Audience power phrases: ${audiencePowerPhrases || 'convenience, quality, trust'}
-Audience attention hooks: ${audienceAttentionHooks || 'problem-aware hooks'}
 
-The moodboard should evoke the FEELINGS the audience experiences — their lifestyle, aspirations, frustrations, and the transformation the product offers. Think about what this audience's ideal world looks like visually.
-
-Return ONLY a JSON array of 6 short phrases (3-5 words each). Example:
-["Morning routine calm simplicity", "Frustrated parent messy home", "Relief after solving problem", "Aspirational lifestyle outdoors", "Cozy evening self-care ritual", "Empowered confident daily life"]
-
-No explanation, just the JSON array.`
+Return ONLY a JSON array of 6 phrases. No explanation.`
             }],
           }),
         });
