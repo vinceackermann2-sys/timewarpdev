@@ -539,7 +539,7 @@ ${markdown.slice(0, 15000)}`;
       }
     }
 
-    // ── Moodboard: Download directly from Pinterest ──
+    // ── Moodboard: Download from Pinterest ──
     const moodboardPromise = (async () => {
       try {
         const audienceDesc = extracted.audience?.description || "general consumers";
@@ -548,10 +548,9 @@ ${markdown.slice(0, 15000)}`;
         const audiencePainPoints = (extracted.product?.painPoints || []).slice(0, 3).join('; ');
         const audiencePowerPhrases = (extracted.audience?.powerPhrases || []).slice(0, 3).join('; ');
         const productDescription = (extracted.product?.description || '').slice(0, 200);
-        const audienceAttentionHooks = (extracted.audience?.attentionHooks || []).slice(0, 2).join('; ');
 
-        // Step 1: Generate 6 audience aesthetic search terms using AI
-        console.log("Generating moodboard aesthetic terms...");
+        // Step 1: Generate 6 aesthetic search terms using AI
+        console.log("Generating Pinterest moodboard aesthetic terms...");
         const termsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -559,7 +558,7 @@ ${markdown.slice(0, 15000)}`;
             model: "google/gemini-2.5-flash-lite",
             messages: [{
               role: "user",
-              content: `Generate exactly 6 audience aesthetic search terms for a Cosmos.co moodboard.
+              content: `Generate exactly 6 audience aesthetic search terms for a Pinterest moodboard.
 
 Use this framework for each term:
 [audience visual/product scene] + [trust feeling/emotion] + premium minimal e-commerce
@@ -600,13 +599,17 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
             `editorial product photography + reliability + premium minimal e-commerce`,
           ];
         }
-        console.log("Moodboard terms:", aestheticTerms);
+        console.log("Pinterest moodboard terms:", aestheticTerms);
 
-        // Step 2: Search Cosmos.co for each term, extract image URLs directly
+        // Step 2: Search Pinterest for each term, extract i.pinimg.com URLs
+        const pinImgRegex = /https?:\/\/i\.pinimg\.com\/[^\s)"']+\.(?:jpg|jpeg|png|webp)/gi;
+        const highResPatterns = ['/originals/', '/736x/', '/564x/'];
+        const lowResPatterns = ['/75x/', '/60x/', '/150x/'];
+
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
             try {
-              console.log(`Searching Cosmos.co for: ${term}`);
+              console.log(`Searching Pinterest for: ${term}`);
               const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -614,24 +617,53 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `site:cosmos.co ${term}`,
-                  limit: 3,
+                  query: `site:pinterest.com ${term}`,
+                  limit: 5,
                 }),
               });
 
               if (!searchRes.ok) {
-                console.warn(`Cosmos.co search failed for "${term}": ${searchRes.status}`);
+                console.warn(`Pinterest search failed for "${term}": ${searchRes.status}`);
                 return null;
               }
 
               const searchData = await searchRes.json();
               const results = searchData.data || [];
 
+              // Collect all i.pinimg.com URLs from search result markdown snippets
+              const allPinUrls: string[] = [];
               for (const r of results) {
-                const pageUrl = r.url;
-                if (!pageUrl) continue;
+                const markdown: string = r.markdown || r.description || "";
+                let match;
+                pinImgRegex.lastIndex = 0;
+                while ((match = pinImgRegex.exec(markdown)) !== null) {
+                  allPinUrls.push(match[0]);
+                }
+              }
 
-                console.log(`Scraping Cosmos.co page for screenshot: ${pageUrl}`);
+              // Prefer high-res images
+              const highRes = allPinUrls.find(url =>
+                highResPatterns.some(p => url.includes(p)) &&
+                !lowResPatterns.some(p => url.includes(p))
+              );
+              if (highRes) {
+                console.log(`✓ Found high-res Pinterest image for "${term}": ${highRes.slice(0, 80)}...`);
+                return highRes;
+              }
+
+              // Accept any non-low-res pin image
+              const anyGood = allPinUrls.find(url =>
+                !lowResPatterns.some(p => url.includes(p))
+              );
+              if (anyGood) {
+                console.log(`✓ Found Pinterest image for "${term}": ${anyGood.slice(0, 80)}...`);
+                return anyGood;
+              }
+
+              // Fallback: scrape the first Pinterest pin page for markdown
+              const firstPinUrl = results.find((r: any) => r.url?.includes("pinterest.com/pin/"))?.url;
+              if (firstPinUrl) {
+                console.log(`Scraping Pinterest pin page: ${firstPinUrl}`);
                 const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
                   method: "POST",
                   headers: {
@@ -639,57 +671,30 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    url: pageUrl,
-                    formats: ["markdown", "screenshot"],
+                    url: firstPinUrl,
+                    formats: ["markdown"],
                     waitFor: 2000,
                   }),
                 });
 
-                if (!scrapeRes.ok) continue;
-                const scrapeData = await scrapeRes.json();
-                const content = scrapeData.data || scrapeData;
-
-                // Extract image URLs from markdown ![alt](url) patterns
-                const markdown: string = content.markdown || "";
-                const imgRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
-                const mdImages: string[] = [];
-                let match;
-                while ((match = imgRegex.exec(markdown)) !== null) {
-                  mdImages.push(match[1]);
-                }
-
-                // Also extract raw image URLs from markdown (standalone lines)
-                const rawUrlRegex = /(https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|webp|avif)(?:\?[^\s)]*)?)/gi;
-                while ((match = rawUrlRegex.exec(markdown)) !== null) {
-                  if (!mdImages.includes(match[1])) mdImages.push(match[1]);
-                }
-
-                // Filter to likely content images (not tiny icons/favicons)
-                const cdnImage = mdImages.find((url) =>
-                  !url.includes("favicon") &&
-                  !url.includes("logo") &&
-                  !url.includes("icon") &&
-                  !url.includes("avatar") &&
-                  url.length > 40
-                );
-
-                if (cdnImage) {
-                  console.log(`✓ Found CDN image from markdown: ${cdnImage.slice(0, 100)}...`);
-                  return cdnImage;
-                }
-
-                // Fallback: use screenshot as base64 data URL
-                const screenshot = content.screenshot;
-                if (screenshot) {
-                  const imgUrl = screenshot.startsWith("http")
-                    ? screenshot
-                    : `data:image/png;base64,${screenshot}`;
-                  console.log(`✓ Using screenshot fallback for "${term}"`);
-                  return imgUrl;
+                if (scrapeRes.ok) {
+                  const scrapeData = await scrapeRes.json();
+                  const md: string = (scrapeData.data?.markdown || scrapeData.markdown || "");
+                  pinImgRegex.lastIndex = 0;
+                  const pinUrls: string[] = [];
+                  let m;
+                  while ((m = pinImgRegex.exec(md)) !== null) {
+                    pinUrls.push(m[0]);
+                  }
+                  const best = pinUrls.find(url => !lowResPatterns.some(p => url.includes(p)));
+                  if (best) {
+                    console.log(`✓ Found Pinterest image from pin scrape: ${best.slice(0, 80)}...`);
+                    return best;
+                  }
                 }
               }
 
-              console.warn(`No image found for "${term}"`);
+              console.warn(`No Pinterest image found for "${term}"`);
               return null;
             } catch (e) {
               console.warn(`Moodboard error for "${term}":`, e);
@@ -703,7 +708,7 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
           .map(r => r.value);
 
         extracted.brand.visualIdentity.moodboardUrls = moodboardUrls;
-        console.log("Final moodboard count:", moodboardUrls.length);
+        console.log("Final Pinterest moodboard count:", moodboardUrls.length);
       } catch (e) {
         console.error("Moodboard pipeline error:", e);
         extracted.brand.visualIdentity.moodboardUrls = [];
