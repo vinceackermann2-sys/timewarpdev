@@ -602,113 +602,11 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
         }
         console.log("Moodboard terms:", aestheticTerms);
 
-        // Step 2: Search Cosmos.so for each term, scrape top result screenshot, upload to storage
-        const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ? "" : "";
-        const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-        const supabaseUrlForStorage = Deno.env.get("SUPABASE_URL") || "";
-
-        // Helper: upload base64 screenshot to storage, return signed URL
-        async function uploadMoodboardImage(base64Data: string, userId: string, slug: string): Promise<string | null> {
-          if (!supabaseUrlForStorage || !SERVICE_ROLE_KEY) {
-            console.warn("Storage not configured, returning data URI");
-            return `data:image/png;base64,${base64Data}`;
-          }
-          try {
-            const binaryStr = atob(base64Data);
-            const bytes = new Uint8Array(binaryStr.length);
-            for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-
-            const filePath = `${userId}/moodboard/${slug}-${Date.now()}.png`;
-            const uploadRes = await fetch(
-              `${supabaseUrlForStorage}/storage/v1/object/business-data/${filePath}`,
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-                  "Content-Type": "image/png",
-                  "x-upsert": "true",
-                },
-                body: bytes,
-              }
-            );
-            if (!uploadRes.ok) {
-              console.warn("Upload failed:", uploadRes.status, await uploadRes.text().catch(() => ""));
-              return null;
-            }
-            // Create signed URL (1 year)
-            const signRes = await fetch(
-              `${supabaseUrlForStorage}/storage/v1/object/sign/business-data/${filePath}`,
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ expiresIn: 31536000 }),
-              }
-            );
-            if (signRes.ok) {
-              const signData = await signRes.json();
-              const signedUrl = signData.signedURL || signData.signedUrl;
-              if (signedUrl) {
-                const fullUrl = signedUrl.startsWith("http") ? signedUrl : `${supabaseUrlForStorage}/storage/v1${signedUrl}`;
-                console.log(`✓ Uploaded moodboard image: ${filePath}`);
-                return fullUrl;
-              }
-            }
-            return null;
-          } catch (e) {
-            console.warn("Upload error:", e);
-            return null;
-          }
-        }
-
-        // Helper: scrape a URL for screenshot, return base64
-        async function scrapeScreenshot(pageUrl: string): Promise<string | null> {
-          try {
-            const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ url: pageUrl, formats: ["screenshot"], waitFor: 2000 }),
-            });
-            if (!scrapeRes.ok) return null;
-            const scrapeData = await scrapeRes.json();
-            const ss = scrapeData.data?.screenshot || scrapeData.screenshot;
-            if (!ss) return null;
-            // If it's already a URL, return it directly
-            if (typeof ss === "string" && ss.startsWith("http")) return ss;
-            // Strip data URI prefix if present
-            const base64 = typeof ss === "string" ? ss.replace(/^data:image\/\w+;base64,/, "") : null;
-            return base64;
-          } catch (e) {
-            console.warn("Scrape screenshot error:", e);
-            return null;
-          }
-        }
-
-        // Extract a userId for storage paths (from auth header or fallback)
-        let moodboardUserId = "anonymous";
-        try {
-          const authHeader = req.headers.get("authorization") || "";
-          if (authHeader) {
-            const token = authHeader.replace("Bearer ", "");
-            // Decode JWT payload to get user_id (sub)
-            const parts = token.split(".");
-            if (parts.length === 3) {
-              const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-              if (payload.sub) moodboardUserId = payload.sub;
-            }
-          }
-        } catch {}
-
+        // Step 2: Search Cosmos.co for each term, extract image URLs directly
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
-            const slug = term.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
             try {
-              console.log(`Searching Cosmos.so for: ${term}`);
+              console.log(`Searching Cosmos.co for: ${term}`);
               const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -716,56 +614,79 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `site:cosmos.so ${term} aesthetic`,
+                  query: `site:cosmos.co ${term}`,
                   limit: 3,
                 }),
               });
 
-              if (searchRes.ok) {
-                const searchData = await searchRes.json();
-                const results = searchData.data || [];
-                for (const r of results) {
-                  const pageUrl = r.url;
-                  if (!pageUrl) continue;
-                  console.log(`Scraping screenshot from: ${pageUrl}`);
-                  const base64 = await scrapeScreenshot(pageUrl);
-                  if (base64) {
-                    // If it was already a URL
-                    if (base64.startsWith("http")) return base64;
-                    // Upload to storage
-                    const uploaded = await uploadMoodboardImage(base64, moodboardUserId, `cosmos-${slug}`);
-                    if (uploaded) return uploaded;
-                  }
+              if (!searchRes.ok) {
+                console.warn(`Cosmos.co search failed for "${term}": ${searchRes.status}`);
+                return null;
+              }
+
+              const searchData = await searchRes.json();
+              const results = searchData.data || [];
+
+              for (const r of results) {
+                const pageUrl = r.url;
+                if (!pageUrl) continue;
+
+                console.log(`Scraping Cosmos.co page for images: ${pageUrl}`);
+                const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    url: pageUrl,
+                    formats: ["links", "markdown"],
+                    onlyMainContent: true,
+                  }),
+                });
+
+                if (!scrapeRes.ok) continue;
+                const scrapeData = await scrapeRes.json();
+                const content = scrapeData.data || scrapeData;
+
+                // Extract image URLs from links array
+                const links: string[] = content.links || [];
+                const markdown: string = content.markdown || "";
+
+                // Find image URLs from links
+                const imageExtensions = /\.(jpg|jpeg|png|webp|avif)(\?|$)/i;
+                const imageFromLinks = links.find((link: string) =>
+                  imageExtensions.test(link) &&
+                  !link.includes("favicon") &&
+                  !link.includes("logo") &&
+                  !link.includes("icon") &&
+                  (link.includes("cosmos") || link.includes("cdn") || link.includes("img") || link.includes("photo") || link.includes("unsplash") || link.includes("amazonaws") || link.includes("cloudinary"))
+                );
+
+                if (imageFromLinks) {
+                  console.log(`✓ Found image URL from links: ${imageFromLinks.slice(0, 80)}...`);
+                  return imageFromLinks;
+                }
+
+                // Fallback: extract image URLs from markdown content
+                const mdImageRegex = /!\[.*?\]\((https?:\/\/[^\s)]+\.(jpg|jpeg|png|webp|avif)[^\s)]*)\)/gi;
+                const imgSrcRegex = /(?:src|href)=["'](https?:\/\/[^\s"']+\.(jpg|jpeg|png|webp|avif)[^\s"']*)/gi;
+                let match;
+
+                match = mdImageRegex.exec(markdown);
+                if (match && match[1]) {
+                  console.log(`✓ Found image URL from markdown: ${match[1].slice(0, 80)}...`);
+                  return match[1];
+                }
+
+                match = imgSrcRegex.exec(markdown);
+                if (match && match[1]) {
+                  console.log(`✓ Found image URL from src: ${match[1].slice(0, 80)}...`);
+                  return match[1];
                 }
               }
 
-              // Fallback: Unsplash
-              console.log(`Cosmos.so failed for "${term}", trying Unsplash...`);
-              const fallbackRes = await fetch("https://api.firecrawl.dev/v1/search", {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  query: `site:unsplash.com ${term}`,
-                  limit: 2,
-                }),
-              });
-              if (fallbackRes.ok) {
-                const fbData = await fallbackRes.json();
-                for (const r of (fbData.data || [])) {
-                  const pageUrl = r.url;
-                  if (!pageUrl) continue;
-                  const base64 = await scrapeScreenshot(pageUrl);
-                  if (base64) {
-                    if (base64.startsWith("http")) return base64;
-                    const uploaded = await uploadMoodboardImage(base64, moodboardUserId, `unsplash-${slug}`);
-                    if (uploaded) return uploaded;
-                  }
-                }
-              }
-
+              console.warn(`No image found for "${term}"`);
               return null;
             } catch (e) {
               console.warn(`Moodboard error for "${term}":`, e);
