@@ -640,40 +640,9 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   },
                   body: JSON.stringify({
                     url: pageUrl,
-                    formats: ["screenshot", "links"],
+                    formats: ["markdown", "screenshot"],
                     waitFor: 2000,
                   }),
-                });
-
-                if (!scrapeRes.ok) continue;
-                const scrapeData = await scrapeRes.json();
-                const content = scrapeData.data || scrapeData;
-
-                // First try: extract CDN image URLs from links
-                const links: string[] = content.links || [];
-                const imageExtensions = /\.(jpg|jpeg|png|webp|avif)(\?|$)/i;
-                const cdnImage = links.find((link: string) =>
-                  imageExtensions.test(link) &&
-                  !link.includes("favicon") &&
-                  !link.includes("logo") &&
-                  !link.includes("icon") &&
-                  link.length > 40
-                );
-
-                if (cdnImage) {
-                  console.log(`✓ Found CDN image from cosmos.co links: ${cdnImage.slice(0, 80)}...`);
-                  return cdnImage;
-                }
-
-                // Fallback: use screenshot as base64 data URL
-                const screenshot = content.screenshot;
-                if (screenshot) {
-                  const imgUrl = screenshot.startsWith("http")
-                    ? screenshot
-                    : `data:image/png;base64,${screenshot}`;
-                  console.log(`✓ Using screenshot for "${term}"`);
-                  return imgUrl;
-                }
               }
 
               console.warn(`No image found for "${term}"`);
