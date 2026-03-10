@@ -631,7 +631,7 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                 const pageUrl = r.url;
                 if (!pageUrl) continue;
 
-                console.log(`Scraping Cosmos.co page for images: ${pageUrl}`);
+                console.log(`Scraping Cosmos.co page for screenshot: ${pageUrl}`);
                 const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
                   method: "POST",
                   headers: {
@@ -640,8 +640,8 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   },
                   body: JSON.stringify({
                     url: pageUrl,
-                    formats: ["links", "markdown"],
-                    onlyMainContent: true,
+                    formats: ["screenshot", "links"],
+                    waitFor: 2000,
                   }),
                 });
 
@@ -649,40 +649,30 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                 const scrapeData = await scrapeRes.json();
                 const content = scrapeData.data || scrapeData;
 
-                // Extract image URLs from links array
+                // First try: extract CDN image URLs from links
                 const links: string[] = content.links || [];
-                const markdown: string = content.markdown || "";
-
-                // Find image URLs from links
                 const imageExtensions = /\.(jpg|jpeg|png|webp|avif)(\?|$)/i;
-                const imageFromLinks = links.find((link: string) =>
+                const cdnImage = links.find((link: string) =>
                   imageExtensions.test(link) &&
                   !link.includes("favicon") &&
                   !link.includes("logo") &&
                   !link.includes("icon") &&
-                  (link.includes("cosmos") || link.includes("cdn") || link.includes("img") || link.includes("photo") || link.includes("unsplash") || link.includes("amazonaws") || link.includes("cloudinary"))
+                  link.length > 40
                 );
 
-                if (imageFromLinks) {
-                  console.log(`✓ Found image URL from links: ${imageFromLinks.slice(0, 80)}...`);
-                  return imageFromLinks;
+                if (cdnImage) {
+                  console.log(`✓ Found CDN image from cosmos.co links: ${cdnImage.slice(0, 80)}...`);
+                  return cdnImage;
                 }
 
-                // Fallback: extract image URLs from markdown content
-                const mdImageRegex = /!\[.*?\]\((https?:\/\/[^\s)]+\.(jpg|jpeg|png|webp|avif)[^\s)]*)\)/gi;
-                const imgSrcRegex = /(?:src|href)=["'](https?:\/\/[^\s"']+\.(jpg|jpeg|png|webp|avif)[^\s"']*)/gi;
-                let match;
-
-                match = mdImageRegex.exec(markdown);
-                if (match && match[1]) {
-                  console.log(`✓ Found image URL from markdown: ${match[1].slice(0, 80)}...`);
-                  return match[1];
-                }
-
-                match = imgSrcRegex.exec(markdown);
-                if (match && match[1]) {
-                  console.log(`✓ Found image URL from src: ${match[1].slice(0, 80)}...`);
-                  return match[1];
+                // Fallback: use screenshot as base64 data URL
+                const screenshot = content.screenshot;
+                if (screenshot) {
+                  const imgUrl = screenshot.startsWith("http")
+                    ? screenshot
+                    : `data:image/png;base64,${screenshot}`;
+                  console.log(`✓ Using screenshot for "${term}"`);
+                  return imgUrl;
                 }
               }
 
@@ -954,7 +944,7 @@ This should look like a real customer testimonial photo or persona portrait. NO 
           const productImageUrl = productImages.length > 0 ? productImages[0] : null;
           
           const guidelineResults = await Promise.allSettled(
-            guidelines.slice(0, 3).map(async (g: any) => {
+            guidelines.map(async (g: any) => {
               const ruleText = `${g.rule} ${g.example || ''}`.toLowerCase();
               const mentionsProduct = ruleText.includes('product') || ruleText.includes('unboxing') || ruleText.includes('packaging') || ruleText.includes('in-hand') || ruleText.includes('close-up');
               
