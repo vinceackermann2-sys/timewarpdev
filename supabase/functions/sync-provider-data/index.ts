@@ -671,7 +671,7 @@ serve(async (req) => {
     let providerData: any;
     switch (provider) {
       case "microsoft":
-        providerData = await fetchMicrosoftData(accessToken);
+        providerData = await fetchMicrosoftData(accessToken, categories, limits);
         break;
       case "google":
         providerData = await fetchGoogleData(accessToken);
