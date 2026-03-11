@@ -1,50 +1,42 @@
 
 
-## Problem
+## Findings
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+### 1. Data Limit Enforcement — NOT plan-aware
+- The DB trigger `enforce_user_data_limit` uses a **hardcoded 3GB limit** for all users regardless of plan.
+- Plan limits exist only on the frontend (`useSubscription.ts`): Free=1GB, Co-Founder=5GB, Aristotle=10GB, OG=unlimited.
+- **Gap**: A free user could store up to 3GB (the trigger limit) instead of being capped at 1GB. No server-side plan check.
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+### 2. Microsoft Sync — hardcoded limits, no user choice
+- `fetchMicrosoftData` fetches exactly **15 emails, 20 events, 10 files** — no user input.
+- `sync-provider-data` blindly persists everything returned. No size budget or category selection.
+
+---
 
 ## Plan
 
-### 1. Add context size limiting in both edge functions
+### A. Enforce plan-based data limits server-side
 
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
+1. **Update `enforce_user_data_limit` trigger** — Instead of hardcoded 3GB, look up the user's plan from `user_subscriptions` and apply the correct limit (Free=1GB, Co-Founder=5GB, Aristotle=10GB, OG=unlimited). Fall back to 1GB if no subscription row exists.
 
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
+2. **Add a pre-sync check in `sync-provider-data`** — Before inserting, estimate total data size for the user and reject/truncate if it would exceed their plan limit. Return a clear error message.
 
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
-```
+### B. Let users choose what Microsoft data to sync and how much
 
-### 2. Add better error logging for debugging
+1. **Accept sync preferences in `sync-provider-data`** — New optional request body fields:
+   - `categories`: array of `"emails" | "events" | "files"` (default: all)
+   - `limits`: `{ emails?: number, events?: number, files?: number }` (default: 50 each, max based on plan)
 
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+2. **Update `fetchMicrosoftData`** to accept these limits and use them in the `$top` query param.
 
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
+3. **Add a sync preferences UI** in `BusinessDataListView.tsx` — Before syncing, show a dialog/popover where users can:
+   - Toggle which categories to sync (Emails, Calendar, Files)
+   - Set a slider or input for how many items per category
+   - See estimated data usage vs their plan limit
+   - Confirm to start sync
 
-### 3. Truncate individual item content
-
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
-
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
+### Files to modify
+- `supabase/functions/sync-provider-data/index.ts` — accept preferences, enforce plan limits
+- `src/components/database/BusinessDataListView.tsx` — add sync preferences dialog
+- DB migration — update `enforce_user_data_limit` trigger to be plan-aware
 
