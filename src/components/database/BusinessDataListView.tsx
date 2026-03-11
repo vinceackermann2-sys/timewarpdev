@@ -466,6 +466,15 @@ export function BusinessDataListView() {
           ))}
         </div>
       )}
+      <SyncPreferencesDialog
+        open={showSyncPrefs}
+        onOpenChange={setShowSyncPrefs}
+        onConfirm={(cats, lims) => handleSync(cats, lims)}
+        isSyncing={syncingProvider}
+        currentUsageBytes={totalBytes}
+        dataLimitBytes={dataLimit}
+        planLabel={planLabel}
+      />
     </div>
   );
 }
