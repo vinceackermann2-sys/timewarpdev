@@ -42,7 +42,9 @@ export function ActionGateProvider({ children }: { children: ReactNode }) {
         plan: (data?.plan as string) ?? null,
       };
     },
-    refetchInterval: 30000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000, // 2 minutes instead of 30s
+    refetchOnWindowFocus: false,
   });
 
   const actionsUsed = subData?.actions_used ?? 0;
