@@ -49,7 +49,9 @@ export function useSubscription() {
       if (error) throw error;
       return data as SubscriptionData;
     },
-    refetchInterval: 60000, // refresh every minute
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // check every 5 minutes instead of 1
+    refetchOnWindowFocus: false,
   });
 
   const plan = subscription?.plan ?? null;

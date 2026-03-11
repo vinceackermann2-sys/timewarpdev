@@ -29,7 +29,9 @@ export function ActionsCard({ isCollapsed }: { isCollapsed: boolean }) {
         .maybeSingle();
       return { actions_used: data?.actions_used ?? 0, bonus_actions: (data as any)?.bonus_actions ?? 0 };
     },
-    refetchInterval: 30000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const actionsUsed = subData?.actions_used ?? 0;
