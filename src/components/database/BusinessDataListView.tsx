@@ -64,6 +64,7 @@ export function BusinessDataListView() {
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
   const [connectingProvider, setConnectingProvider] = useState(false);
   const [syncingProvider, setSyncingProvider] = useState(false);
+  const [showSyncPrefs, setShowSyncPrefs] = useState(false);
   const { plan, getDataLimit } = useSubscription();
 
   const checkConnection = useCallback(async () => {
