@@ -172,25 +172,55 @@ function isVideoFile(name: string, mime: string): boolean {
   return VIDEO_MIMES.includes(mime) || mime.startsWith("video/") || VIDEO_EXTENSIONS.some(ext => lname.endsWith(ext));
 }
 
-async function fetchMicrosoftData(accessToken: string): Promise<any> {
+interface SyncLimits {
+  emails?: number;
+  events?: number;
+  files?: number;
+}
+
+interface SyncCategories {
+  emails?: boolean;
+  events?: boolean;
+  files?: boolean;
+}
+
+async function fetchMicrosoftData(accessToken: string, categories?: SyncCategories, limits?: SyncLimits): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
+  const cats = categories || { emails: true, events: true, files: true };
+  const lims = limits || { emails: 50, events: 50, files: 50 };
 
-  const [mailRes, calRes, filesRes] = await Promise.all([
-    fetch("https://graph.microsoft.com/v1.0/me/messages?$top=15&$select=subject,from,receivedDateTime,body&$orderby=receivedDateTime desc", { headers }),
-    fetch("https://graph.microsoft.com/v1.0/me/events?$top=20&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc", { headers }),
-    fetch("https://graph.microsoft.com/v1.0/me/drive/recent?$top=10", { headers }),
-  ]);
+  const fetches: Promise<Response>[] = [];
+  const fetchKeys: string[] = [];
 
-  const [mail, calendar, files] = await Promise.all([
-    mailRes.ok ? mailRes.json() : { value: [] },
-    calRes.ok ? calRes.json() : { value: [] },
-    filesRes.ok ? filesRes.json() : { value: [] },
-  ]);
+  if (cats.emails !== false) {
+    const emailLimit = Math.min(Math.max(lims.emails || 50, 1), 200);
+    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${emailLimit}&$select=subject,from,receivedDateTime,body&$orderby=receivedDateTime desc`, { headers }));
+    fetchKeys.push("mail");
+  }
+  if (cats.events !== false) {
+    const eventLimit = Math.min(Math.max(lims.events || 50, 1), 200);
+    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/events?$top=${eventLimit}&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc`, { headers }));
+    fetchKeys.push("cal");
+  }
+  if (cats.files !== false) {
+    const fileLimit = Math.min(Math.max(lims.files || 50, 1), 200);
+    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/drive/recent?$top=${fileLimit}`, { headers }));
+    fetchKeys.push("files");
+  }
+
+  const responses = await Promise.all(fetches);
+  const results: Record<string, any> = {};
+  for (let i = 0; i < fetchKeys.length; i++) {
+    results[fetchKeys[i]] = responses[i].ok ? await responses[i].json() : { value: [] };
+  }
+
+  const mail = results.mail || { value: [] };
+  const calendar = results.cal || { value: [] };
+  const files = results.files || { value: [] };
 
   // Extract full email body text (strip HTML)
   const emails = (mail.value || []).map((m: any) => {
     let bodyText = m.body?.content || "";
-    // Strip HTML tags to get plain text
     bodyText = bodyText
       .replace(/<style[\s\S]*?<\/style>/gi, "")
       .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -209,7 +239,8 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
 
   // Try to download text content from files (PDFs, docs, etc.)
   const fileDetails = [];
-  for (const f of (files.value || []).slice(0, 10)) {
+  const fileLimit = Math.min(Math.max(lims.files || 50, 1), 200);
+  for (const f of (files.value || []).slice(0, fileLimit)) {
     const fileInfo: any = {
       name: f.name,
       size: f.size,
@@ -218,7 +249,6 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
       mimeType: f["file"]?.mimeType || "",
     };
 
-    // Try to get file content for text-extractable types
     const mime = fileInfo.mimeType || "";
     const name = (f.name || "").toLowerCase();
     if (name.endsWith(".txt") || name.endsWith(".csv") || mime.includes("text/")) {
@@ -239,7 +269,6 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
         }
       } catch { /* skip */ }
     } else if (isVideoFile(f.name, mime)) {
-      // Download video and extract content via AI (under 10MB)
       try {
         const contentRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${f.id}/content`, { headers });
         if (contentRes.ok) {
@@ -255,15 +284,15 @@ async function fetchMicrosoftData(accessToken: string): Promise<any> {
   }
 
   return {
-    emails,
-    events: (calendar.value || []).map((e: any) => ({
+    emails: cats.emails !== false ? emails : [],
+    events: cats.events !== false ? (calendar.value || []).map((e: any) => ({
       subject: e.subject,
       start: e.start?.dateTime,
       end: e.end?.dateTime,
       organizer: e.organizer?.emailAddress?.address,
       attendees: e.attendees?.length || 0,
-    })),
-    files: fileDetails,
+    })) : [],
+    files: cats.files !== false ? fileDetails : [],
   };
 }
 
@@ -542,7 +571,7 @@ serve(async (req) => {
       });
     }
 
-    const { provider } = await req.json();
+    const { provider, categories, limits } = await req.json();
 
     // WordPress uses credentials stored differently
     if (provider === "wordpress") {
@@ -642,7 +671,7 @@ serve(async (req) => {
     let providerData: any;
     switch (provider) {
       case "microsoft":
-        providerData = await fetchMicrosoftData(accessToken);
+        providerData = await fetchMicrosoftData(accessToken, categories, limits);
         break;
       case "google":
         providerData = await fetchGoogleData(accessToken);

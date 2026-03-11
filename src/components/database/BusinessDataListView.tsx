@@ -12,6 +12,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
+import { SyncPreferencesDialog } from "@/components/database/SyncPreferencesDialog";
 
 interface DataItem {
   id: string;
@@ -63,6 +64,7 @@ export function BusinessDataListView() {
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
   const [connectingProvider, setConnectingProvider] = useState(false);
   const [syncingProvider, setSyncingProvider] = useState(false);
+  const [showSyncPrefs, setShowSyncPrefs] = useState(false);
   const { plan, getDataLimit } = useSubscription();
 
   const checkConnection = useCallback(async () => {
@@ -147,7 +149,7 @@ export function BusinessDataListView() {
     setConnectingProvider(false);
   };
 
-  const handleSync = async () => {
+  const handleSync = async (categories?: { emails: boolean; events: boolean; files: boolean }, limits?: { emails: number; events: number; files: number }) => {
     setSyncingProvider(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -161,13 +163,25 @@ export function BusinessDataListView() {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft" }),
+          body: JSON.stringify({
+            provider: "microsoft",
+            categories: categories || { emails: true, events: true, files: true },
+            limits: limits || { emails: 50, events: 50, files: 50 },
+          }),
         }
       );
       const data = await response.json();
       if (data.success) {
         const s = data.summary;
         toast.success(`Synced ${s.emails || 0} emails, ${s.events || 0} events, ${s.files || 0} files`);
+        // Refresh data list
+        const { data: refreshed } = await (supabase as any)
+          .from("user_business_data")
+          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (refreshed) setItems(refreshed);
       } else {
         toast.error(data.error || "Sync failed");
       }
@@ -175,6 +189,7 @@ export function BusinessDataListView() {
       toast.error("Failed to sync data");
     }
     setSyncingProvider(false);
+    setShowSyncPrefs(false);
   };
 
   const handleDeleteItem = async (e: React.MouseEvent, itemId: string) => {
@@ -314,7 +329,7 @@ export function BusinessDataListView() {
           </div>
           {isConnected ? (
             <div className="flex items-center gap-1 flex-shrink-0">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSync} disabled={syncingProvider}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowSyncPrefs(true)} disabled={syncingProvider}>
                 {syncingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
               </Button>
               <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -451,6 +466,15 @@ export function BusinessDataListView() {
           ))}
         </div>
       )}
+      <SyncPreferencesDialog
+        open={showSyncPrefs}
+        onOpenChange={setShowSyncPrefs}
+        onConfirm={(cats, lims) => handleSync(cats, lims)}
+        isSyncing={syncingProvider}
+        currentUsageBytes={totalBytes}
+        dataLimitBytes={dataLimit}
+        planLabel={planLabel}
+      />
     </div>
   );
 }
