@@ -329,7 +329,7 @@ export function BusinessDataListView() {
           </div>
           {isConnected ? (
             <div className="flex items-center gap-1 flex-shrink-0">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSync} disabled={syncingProvider}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowSyncPrefs(true)} disabled={syncingProvider}>
                 {syncingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
               </Button>
               <CheckCircle2 className="h-5 w-5 text-green-500" />
