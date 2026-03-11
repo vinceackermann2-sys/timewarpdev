@@ -149,7 +149,7 @@ export function BusinessDataListView() {
     setConnectingProvider(false);
   };
 
-  const handleSync = async () => {
+  const handleSync = async (categories?: { emails: boolean; events: boolean; files: boolean }, limits?: { emails: number; events: number; files: number }) => {
     setSyncingProvider(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -163,13 +163,25 @@ export function BusinessDataListView() {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft" }),
+          body: JSON.stringify({
+            provider: "microsoft",
+            categories: categories || { emails: true, events: true, files: true },
+            limits: limits || { emails: 50, events: 50, files: 50 },
+          }),
         }
       );
       const data = await response.json();
       if (data.success) {
         const s = data.summary;
         toast.success(`Synced ${s.emails || 0} emails, ${s.events || 0} events, ${s.files || 0} files`);
+        // Refresh data list
+        const { data: refreshed } = await (supabase as any)
+          .from("user_business_data")
+          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (refreshed) setItems(refreshed);
       } else {
         toast.error(data.error || "Sync failed");
       }
@@ -177,6 +189,7 @@ export function BusinessDataListView() {
       toast.error("Failed to sync data");
     }
     setSyncingProvider(false);
+    setShowSyncPrefs(false);
   };
 
   const handleDeleteItem = async (e: React.MouseEvent, itemId: string) => {
