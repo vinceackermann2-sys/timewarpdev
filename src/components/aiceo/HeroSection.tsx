@@ -259,7 +259,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         )}
 
         {/* Desktop-only: extra high-fidelity SVG grain layer */}
-        <div className="hidden sm:block" style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "soft-light" as const, opacity: 0.85, zIndex: 10 }}>
+        <div className="hidden sm:block" style={{ position: "absolute", inset: 0, pointerEvents: "none", mixBlendMode: "soft-light" as const, opacity: 0.45, zIndex: 10 }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
             <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.88" numOctaves={4} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
             <rect width="100%" height="100%" filter="url(#grain)" opacity="1" />
