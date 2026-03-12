@@ -8,8 +8,8 @@
 export function extractSuggestions(text: string): { content: string; suggestions: string[] } {
   const suggestions: string[] = [];
 
-  // 1. Standard [SUGGEST:...] tag (with optional markdown wrapping like **[SUGGEST:...]** or `[SUGGEST:...]`)
-  const suggestRegex = /\*{0,2}`?\[SUGGEST:([^\]]+)\]`?\*{0,2}/g;
+  // 1. Standard [SUGGEST:...] tag (with optional markdown wrapping like **[SUGGEST:...]**, `[SUGGEST:...]`, or newlines)
+  const suggestRegex = /\*{0,2}`{0,3}\[SUGGEST:\s*([^\]]+)\]\s*`{0,3}\*{0,2}/g;
   let match;
   while ((match = suggestRegex.exec(text)) !== null) {
     const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
