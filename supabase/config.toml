@@ -25,3 +25,7 @@ project_id = "ohvxqlxugqlzzbmfypiy"
     verify_jwt = false
   [functions.sync-provider-data]
     verify_jwt = false
+  [functions.browser-agent]
+    verify_jwt = false
+  [functions.extension-agent]
+    verify_jwt = false

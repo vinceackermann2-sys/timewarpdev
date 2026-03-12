@@ -197,7 +197,7 @@ ${frontendContext}
 - Use blockquotes (>) to highlight key insights or important findings
 - Use horizontal rules (---) to separate major sections
 - When comparing options, ALWAYS use a table with pros/cons or criteria columns
-- After each response, suggest 3 follow-up questions formatted as: [SUGGEST:Question 1|Question 2|Question 3]
+- **MANDATORY**: At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line with 3 follow-up questions the user might ask. Format: [SUGGEST:Question 1?|Question 2?|Question 3?] — do NOT omit this tag, do NOT wrap it in markdown formatting like bold or code blocks. Just the raw tag on its own line.
 
 If data contains metrics, numbers, or dates — reference them specifically and present them in a table. Always cite which data source you're drawing from.`;
 

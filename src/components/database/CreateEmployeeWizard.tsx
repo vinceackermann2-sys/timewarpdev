@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { FileUploadZone } from "@/components/database/FileUploadZone";
@@ -20,9 +21,6 @@ interface Props {
 const STEPS = [
   "Identity",
   "Import SOP",
-  "Title & Purpose",
-  "Scope",
-  "Definitions",
   "Procedure",
   "Safety",
   "Business Data",
@@ -47,11 +45,9 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const [role, setRole] = useState("");
   const [sopTitle, setSopTitle] = useState("");
   const [purposeWhy, setPurposeWhy] = useState("");
-  const [purposeProblem, setPurposeProblem] = useState("");
-  const [scopeWhere, setScopeWhere] = useState("");
-  const [scopeWhen, setScopeWhen] = useState("");
-  const [definitions, setDefinitions] = useState<{ term: string; meaning: string }[]>([]);
   const [procedure, setProcedure] = useState<string[]>([""]);
+  const [procedureContexts, setProcedureContexts] = useState<Record<number, string>>({});
+  const [expandedProcedureIdx, setExpandedProcedureIdx] = useState<number | null>(null);
   const [safetyWarnings, setSafetyWarnings] = useState("");
   const [safetyRisks, setSafetyRisks] = useState("");
   const [fileUploaded, setFileUploaded] = useState(false);
@@ -83,7 +79,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     setLoadingBusinesses(false);
   };
 
-  // Parse brand content to find linked product/audience IDs
   const getBrandChildren = (brand: BusinessItem) => {
     try {
       const parsed = JSON.parse(brand.content || "{}");
@@ -107,7 +102,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
 
   const canProceed = () => {
     if (step === 0) return name.trim() && role.trim();
-    if (step === 2) return sopTitle.trim();
     return true;
   };
 
@@ -125,17 +119,22 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     if (!session?.user) { setSaving(false); return; }
 
     const wsId = selectedWorkspaceId || activeWorkspaceId || null;
+
+    // Build procedure with embedded context
+    const procedureWithContext = procedure.filter(p => p.trim()).map((p, i) => {
+      const ctx = procedureContexts[i]?.trim();
+      return ctx ? `${p} [Context: ${ctx}]` : p;
+    });
+
     const { error } = await supabase.from("ai_employees").insert({
       user_id: session.user.id,
       workspace_id: wsId ? wsId : null,
       name: name.trim(),
       role: role.trim(),
       orb_colors: orbPalettes[0],
-      sop_title: sopTitle.trim() || null,
-      sop_purpose: [purposeWhy.trim(), purposeProblem.trim()].filter(Boolean).join("\n\n") || null,
-      sop_scope: [scopeWhere.trim(), scopeWhen.trim()].filter(Boolean).join("\n\n") || null,
-      sop_definitions: definitions.filter(d => d.term.trim()),
-      sop_procedure: procedure.filter(p => p.trim()),
+      sop_title: sopTitle.trim() || `${role.trim()} Procedure`,
+      sop_purpose: purposeWhy.trim() || null,
+      sop_procedure: procedureWithContext,
       sop_safety_notes: [safetyWarnings.trim(), safetyRisks.trim()].filter(Boolean).join("\n\n") || null,
       sop_revision_history: [{ version: "1.0", date: new Date().toISOString().split("T")[0], notes: "Initial creation" }],
       linked_business_id: selectedBusinessId,
@@ -158,16 +157,19 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   };
   const removeListItem = (list: string[], setter: (v: string[]) => void, idx: number) => {
     setter(list.filter((_, i) => i !== idx));
+    // Also remove context for that index and re-key
+    const newContexts: Record<number, string> = {};
+    Object.entries(procedureContexts).forEach(([k, v]) => {
+      const ki = parseInt(k);
+      if (ki < idx) newContexts[ki] = v;
+      else if (ki > idx) newContexts[ki - 1] = v;
+    });
+    setProcedureContexts(newContexts);
+    if (expandedProcedureIdx === idx) setExpandedProcedureIdx(null);
+    else if (expandedProcedureIdx !== null && expandedProcedureIdx > idx) setExpandedProcedureIdx(expandedProcedureIdx - 1);
   };
 
-  const STEP_SHORT = ["Identity", "Import", "Title", "Scope", "Definitions", "Procedure", "Safety", "Data"];
-
-  const dataTypeIcon = (type: string) => {
-    if (type === "brand") return "🏷️";
-    if (type === "product") return "📦";
-    if (type === "audience") return "👥";
-    return "📄";
-  };
+  const STEP_SHORT = ["Identity", "Import", "Procedure", "Safety", "Data"];
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden h-full">
@@ -237,9 +239,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
                 setRole("Audience Researcher");
                 setSopTitle("Signal Mining Method");
                 setPurposeWhy("To gather data-backed product research");
-                setPurposeProblem("Manual researching takes time");
-                setScopeWhere("Online");
-                setScopeWhen("During product confusion");
                 setProcedure([
                   "Go to reddit.com",
                   "Search up audience-related problems people have with our product",
@@ -285,64 +284,35 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
         {step === 2 && (
           <div className="space-y-8">
             <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What is the title of this procedure?</Label>
-              <p className="text-xs text-muted-foreground">The name of the procedure this employee follows.</p>
-              <Input value={sopTitle} onChange={e => setSopTitle(e.target.value)} placeholder="e.g. Customer Complaint Handling Procedure" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">Why does this procedure exist?</Label>
-              <Input value={purposeWhy} onChange={e => setPurposeWhy(e.target.value)} placeholder="e.g. To ensure consistent handling of customer complaints" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">What problem does it solve?</Label>
-              <Input value={purposeProblem} onChange={e => setPurposeProblem(e.target.value)} placeholder="e.g. Reduces response time and improves customer satisfaction" />
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-8">
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">Where does this procedure apply?</Label>
-              <Input value={scopeWhere} onChange={e => setScopeWhere(e.target.value)} placeholder="e.g. All customer-facing departments" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">When does this procedure apply?</Label>
-              <Input value={scopeWhen} onChange={e => setScopeWhen(e.target.value)} placeholder="e.g. Whenever a complaint is received" />
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="space-y-8">
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-foreground">Are there any terms or abbreviations to define?</Label>
-              <p className="text-xs text-muted-foreground">Technical terms or abbreviations used in this procedure (optional).</p>
-              {definitions.map((d, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input value={d.term} onChange={e => { const c = [...definitions]; c[i] = { ...c[i], term: e.target.value }; setDefinitions(c); }} placeholder="Term" className="w-1/3" />
-                  <Input value={d.meaning} onChange={e => { const c = [...definitions]; c[i] = { ...c[i], meaning: e.target.value }; setDefinitions(c); }} placeholder="Meaning" className="flex-1" />
-                  <Button variant="ghost" size="icon" onClick={() => setDefinitions(definitions.filter((_, j) => j !== i))}><X className="h-3 w-3" /></Button>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={() => setDefinitions([...definitions, { term: "", meaning: "" }])} className="gap-1">
-                <Plus className="h-3 w-3" /> Add Definition
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {step === 5 && (
-          <div className="space-y-8">
-            <div className="space-y-2">
               <Label className="text-base font-semibold text-foreground">What are the step-by-step instructions?</Label>
-              <p className="text-xs text-muted-foreground">The core procedure this employee will follow, in order.</p>
+              <p className="text-xs text-muted-foreground">The core procedure this employee will follow, in order. Click the arrow to add context for each step.</p>
               {procedure.map((p, i) => (
-                <div key={i} className="flex gap-2 items-start">
-                  <span className="text-xs text-muted-foreground font-mono mt-2.5 w-6 text-right shrink-0">{i + 1}.</span>
-                  <Input value={p} onChange={e => updateListItem(procedure, setProcedure, i, e.target.value)} placeholder={`Step ${i + 1}`} />
-                  {procedure.length > 1 && (
-                    <Button variant="ghost" size="icon" onClick={() => removeListItem(procedure, setProcedure, i)}><X className="h-3 w-3" /></Button>
+                <div key={i} className="space-y-1">
+                  <div className="flex gap-2 items-start">
+                    <span className="text-xs text-muted-foreground font-mono mt-2.5 w-6 text-right shrink-0">{i + 1}.</span>
+                    <Input value={p} onChange={e => updateListItem(procedure, setProcedure, i, e.target.value)} placeholder={`Step ${i + 1}`} />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setExpandedProcedureIdx(expandedProcedureIdx === i ? null : i)}
+                      className="shrink-0"
+                      title="Add context"
+                    >
+                      {expandedProcedureIdx === i ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    </Button>
+                    {procedure.length > 1 && (
+                      <Button variant="ghost" size="icon" onClick={() => removeListItem(procedure, setProcedure, i)}><X className="h-3 w-3" /></Button>
+                    )}
+                  </div>
+                  {expandedProcedureIdx === i && (
+                    <div className="ml-8 mr-16 animate-fade-in">
+                      <Textarea
+                        value={procedureContexts[i] || ""}
+                        onChange={e => setProcedureContexts(prev => ({ ...prev, [i]: e.target.value }))}
+                        placeholder="Add additional context, notes, or details for this step..."
+                        className="text-xs min-h-[60px]"
+                      />
+                    </div>
                   )}
                 </div>
               ))}
@@ -353,7 +323,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
           </div>
         )}
 
-        {step === 6 && (
+        {step === 3 && (
           <div className="space-y-8">
             <div className="space-y-2">
               <Label className="text-base font-semibold text-foreground">Any safety warnings or regulations?</Label>
@@ -366,7 +336,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
           </div>
         )}
 
-        {step === 7 && (
+        {step === 4 && (
           <div className="space-y-8">
             <div className="text-center space-y-2 mb-2">
               <Database className="h-10 w-10 mx-auto text-primary" />
@@ -421,16 +391,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
                           </div>
                           <Skeleton className="h-4 w-4 rounded" />
                         </div>
-                        <div className="pl-6 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-3 w-3 rounded" />
-                            <Skeleton className="h-3 w-24" />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-3 w-3 rounded" />
-                            <Skeleton className="h-3 w-20" />
-                          </div>
-                        </div>
                       </div>
                     ))}
                   </div>
@@ -446,7 +406,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
 
                       return (
                         <div key={brand.id} className="rounded-lg border border-border overflow-hidden animate-fade-in">
-                          {/* Brand header */}
                           <button
                             onClick={() => {
                               setSelectedBusinessId(isBrandSelected ? null : brand.id);
@@ -471,7 +430,6 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
                             {isBrandSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
                           </button>
 
-                          {/* Expanded children */}
                           {isExpanded && hasChildren && (
                             <div className="border-t border-border bg-muted/30 px-3 py-2 space-y-1.5 animate-fade-in">
                               {brandProducts.length > 0 && (

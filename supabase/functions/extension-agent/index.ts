@@ -26,9 +26,9 @@ serve(async (req) => {
 
     // Check and increment action usage
     const { data: actionResult } = await supabase.rpc("increment_actions_used", { _user_id: user.id });
-    const actionCheck = actionResult as any;
-    if (actionCheck && !actionCheck.allowed) {
-      return new Response(JSON.stringify({ error: actionCheck.reason || "Action limit reached. Upgrade your plan." }), {
+    const result = actionResult as any;
+    if (result && !result.allowed) {
+      return new Response(JSON.stringify({ error: result.reason || "Action limit reached. Upgrade your plan." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -105,13 +105,12 @@ For multi-step tasks, return an array of actions:
 \`\`\`
 
 ## Guidelines
-- Use CSS selectors when possible, fall back to descriptive text (e.g. "the blue Submit button")
+- Use CSS selectors when possible, fall back to descriptive text
 - For complex pages, break tasks into small sequential steps
-- If you cannot determine how to complete a task from the visible page, use "respond" to ask the user for clarification
+- If you cannot determine how to complete a task, use "respond" to ask for clarification
 - Always include "reasoning" so the user understands each step
-- If the task involves sensitive actions (delete, purchase, send), warn the user first with a "respond" action before proceeding
-- When extracting data, be specific about what you're pulling and format it cleanly
-- You can reference the page content, form fields, and links provided above to make accurate selectors`;
+- If the task involves sensitive actions (delete, purchase, send), warn the user first
+- When extracting data, be specific about what you're pulling`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -131,6 +130,8 @@ For multi-step tasks, return an array of actions:
 
     if (!response.ok) {
       const status = response.status;
+      const errorBody = await response.text().catch(() => "");
+      console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -141,7 +142,6 @@ For multi-step tasks, return an array of actions:
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      console.error("AI gateway error: status", status);
       throw new Error("AI service unavailable");
     }
 
@@ -157,7 +157,7 @@ For multi-step tasks, return an array of actions:
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
-    console.error("browser-agent error occurred");
+    console.error("extension-agent error occurred");
     return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Plug2, Loader2, CheckCircle } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
+import { SyncPreferencesDialog } from "@/components/database/SyncPreferencesDialog";
 
 interface ConnectorDef {
   id: string;
@@ -23,9 +23,10 @@ interface ConnectorGridProps {
 }
 
 export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
-  const navigate = useNavigate();
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
+  const [showSyncPrefs, setShowSyncPrefs] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Check for OAuth return
   useEffect(() => {
@@ -36,15 +37,16 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     if (oauthSuccess) {
       toast.success(`${oauthSuccess.charAt(0).toUpperCase() + oauthSuccess.slice(1)} connected!`);
       window.history.replaceState({}, "", window.location.pathname);
-      // Successfully connected — navigate to app
-      navigate("/app", { replace: true });
+      // Show sync preferences dialog instead of redirecting
+      setConnectedProviders(prev => prev.includes(oauthSuccess) ? prev : [...prev, oauthSuccess]);
+      setShowSyncPrefs(true);
       return;
     }
     if (oauthError) {
       toast.error(`Connection failed: ${oauthError}`);
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [navigate]);
+  }, []);
 
   // Check existing connections
   useEffect(() => {
@@ -98,7 +100,11 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: connector.id, action: "get-auth-url" }),
+          body: JSON.stringify({
+            provider: connector.id,
+            action: "get-auth-url",
+            returnPath: window.location.pathname,
+          }),
         }
       );
 
@@ -115,6 +121,40 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
     setConnectingProvider(null);
   };
 
+  const handleSyncConfirm = async (
+    categories: { emails: boolean; events: boolean; files: boolean },
+    limits: { emails: number; events: number; files: number }
+  ) => {
+    setIsSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-provider-data`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ provider: "microsoft", categories, limits }),
+        }
+      );
+
+      if (response.ok) {
+        toast.success("Data synced successfully!");
+        setShowSyncPrefs(false);
+      } else {
+        const err = await response.json().catch(() => ({}));
+        toast.error(err.error || "Sync failed");
+      }
+    } catch (err) {
+      toast.error("Sync failed");
+    }
+    setIsSyncing(false);
+  };
 
   const isMobile = window.innerWidth < 640;
 
@@ -170,7 +210,13 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             return (
               <button
                 key={connector.id}
-                onClick={() => !isConnected && !isConnecting && handleConnect(connector)}
+                onClick={() => {
+                  if (isConnected) {
+                    setShowSyncPrefs(true);
+                  } else if (!isConnecting) {
+                    handleConnect(connector);
+                  }
+                }}
                 disabled={isConnecting}
                 style={{
                   display: "flex",
@@ -184,11 +230,11 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                     ? "rgba(74, 222, 128, 0.08)"
                     : "rgba(255,255,255,0.04)",
                   border: `1.5px solid ${isConnected ? "rgba(74, 222, 128, 0.3)" : "rgba(255,255,255,0.1)"}`,
-                  cursor: isConnecting ? "wait" : isConnected ? "default" : "pointer",
+                  cursor: isConnecting ? "wait" : "pointer",
                   transition: "all 0.3s ease",
                   animation: `fadeSlideUp 0.4s ease-out ${i * 0.1}s both`,
                 }}
-                className={!isConnected && !isConnecting ? "hover:scale-[1.05] active:scale-[0.97]" : ""}
+                className={!isConnecting ? "hover:scale-[1.05] active:scale-[0.97]" : ""}
                 onMouseEnter={(e) => {
                   if (!isConnected) {
                     (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(99, 102, 241, 0.4)";
@@ -226,7 +272,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
                       color: isConnected ? "rgba(74, 222, 128, 0.9)" : "#fff",
                     }}
                   >
-                    {isConnected ? "Connected" : connector.name}
+                    {isConnected ? "Connected — Configure Sync" : connector.name}
                   </span>
                   <span
                     style={{
@@ -245,6 +291,15 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
         </div>
       </div>
 
+      <SyncPreferencesDialog
+        open={showSyncPrefs}
+        onOpenChange={setShowSyncPrefs}
+        onConfirm={handleSyncConfirm}
+        isSyncing={isSyncing}
+        currentUsageBytes={0}
+        dataLimitBytes={1073741824}
+        planLabel="Free"
+      />
 
       <style>{`
         @keyframes fadeSlideUp {

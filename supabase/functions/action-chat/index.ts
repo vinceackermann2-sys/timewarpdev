@@ -199,7 +199,7 @@ ${frontendContext}
 - Be creative but accurate — always reference the actual data when generating content
 - If data is missing for a request, note what's needed
 - Format output in clean markdown ready to copy-paste
-- After each response, suggest 3 follow-up generation ideas formatted as: [SUGGEST:Idea 1|Idea 2|Idea 3]
+- **MANDATORY**: At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line with 3 follow-up ideas. Format: [SUGGEST:Idea 1|Idea 2|Idea 3] — do NOT omit this tag, do NOT wrap it in markdown formatting like bold or code blocks. Just the raw tag on its own line.
 
 When generating content, use real numbers, names, and details from the business data sources.`;
 
