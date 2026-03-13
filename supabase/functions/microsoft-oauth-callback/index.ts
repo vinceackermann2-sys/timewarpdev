@@ -24,6 +24,8 @@ serve(async (req) => {
     const returnPath = state.returnPath || "/";
     const frontendUrl = state.origin || Deno.env.get("FRONTEND_URL") || "https://timewarpdev.lovable.app";
 
+    if (!userId) throw new Error("No userId in state");
+
     // Exchange code for tokens
     const tokenResponse = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
       method: "POST",
