@@ -13,9 +13,6 @@ serve(async (req) => {
   const CLIENT_SECRET = Deno.env.get("MICROSOFT_CLIENT_SECRET")!;
   const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/microsoft-oauth-callback`;
 
-  // Parse the frontend URL from the referrer or use a default
-  const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://digital-guide-genie.lovable.app";
-
   if (error || !code || !stateParam) {
     return Response.redirect(`${frontendUrl}/?oauth_error=${error || "missing_code"}`, 302);
   }
