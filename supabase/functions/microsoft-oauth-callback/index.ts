@@ -14,7 +14,8 @@ serve(async (req) => {
   const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/microsoft-oauth-callback`;
 
   if (error || !code || !stateParam) {
-    return Response.redirect(`${frontendUrl}/?oauth_error=${error || "missing_code"}`, 302);
+    const fallbackUrl = Deno.env.get("FRONTEND_URL") || "https://timewarpdev.lovable.app";
+    return Response.redirect(`${fallbackUrl}/?oauth_error=${error || "missing_code"}`, 302);
   }
 
   try {
