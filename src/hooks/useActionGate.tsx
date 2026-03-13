@@ -42,8 +42,7 @@ export function ActionGateProvider({ children }: { children: ReactNode }) {
         plan: (data?.plan as string) ?? null,
       };
     },
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000, // 2 minutes instead of 30s
+    staleTime: 30 * 60 * 1000, // only changes when an action is used — refreshed manually via refreshUsage()
     refetchOnWindowFocus: false,
   });
 

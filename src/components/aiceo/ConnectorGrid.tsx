@@ -104,6 +104,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             provider: connector.id,
             action: "get-auth-url",
             returnPath: window.location.pathname,
+            origin: window.location.origin,
           }),
         }
       );

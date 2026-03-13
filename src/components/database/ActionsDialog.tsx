@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WandSparkles, Copy, Check, Loader2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSubscription } from "@/hooks/useSubscription";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,13 +19,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-
-const ACTION_LIMITS: Record<string, number> = {
-  co_founder: 100,
-  aristotle: 1000,
-  timewarp_og: Infinity,
-};
-const FREE_LIMIT = 20;
+import { useActionGate } from "@/hooks/useActionGate";
 
 type Tab = "upgrade" | "refer" | "invite";
 
@@ -38,28 +31,11 @@ interface ActionsDialogProps {
 export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
   const [activeTab, setActiveTab] = useState<Tab>("upgrade");
   const [copied, setCopied] = useState(false);
-  const { plan } = useSubscription();
+  const { remaining } = useActionGate();
   const { workspaces, sendInvite } = useWorkspace();
   const [selectedWsId, setSelectedWsId] = useState<string>("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [isSending, setIsSending] = useState(false);
-
-  const { data: subData } = useQuery({
-    queryKey: ["actions-used"],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { actions_used: 0, bonus_actions: 0 };
-      const { data } = await supabase
-        .from("user_subscriptions")
-        .select("actions_used, bonus_actions")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      return { actions_used: data?.actions_used ?? 0, bonus_actions: (data as any)?.bonus_actions ?? 0 };
-    },
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
 
   // Fetch or create referral code
   const { data: referralCode } = useQuery({
@@ -73,11 +49,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
     staleTime: Infinity,
   });
 
-  const actionsUsed = subData?.actions_used ?? 0;
-  const bonusActions = subData?.bonus_actions ?? 0;
-  const limit = plan ? ACTION_LIMITS[plan] ?? FREE_LIMIT : FREE_LIMIT;
-  const isUnlimited = limit === Infinity;
-  const remaining = isUnlimited ? Infinity : Math.max(0, limit + bonusActions - actionsUsed);
+  const isUnlimited = remaining === Infinity;
 
   // Auto-select first workspace
   useEffect(() => {

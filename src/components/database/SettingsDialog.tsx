@@ -186,7 +186,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
     }
   }, [open]);
 
-  // Load workspace members when selected
+  // Load workspace members when selected (once, no polling)
   useEffect(() => {
     if (!selectedWsId || !open) return;
     let mounted = true;
@@ -196,8 +196,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       if (mounted) { setWsMemberData(data); setLoadingMembers(false); }
     };
     void refresh();
-    const interval = setInterval(refresh, 10000);
-    return () => { mounted = false; clearInterval(interval); };
+    return () => { mounted = false; };
   }, [selectedWsId, open, loadMembersForWorkspace]);
 
   const checkConnections = useCallback(async () => {

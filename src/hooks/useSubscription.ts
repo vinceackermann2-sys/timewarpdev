@@ -49,8 +49,7 @@ export function useSubscription() {
       if (error) throw error;
       return data as SubscriptionData;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 5 * 60 * 1000, // check every 5 minutes instead of 1
+    staleTime: 30 * 60 * 1000, // 30 minutes — only changes on purchase/cancel
     refetchOnWindowFocus: false,
   });
 
