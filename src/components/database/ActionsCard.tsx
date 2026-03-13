@@ -1,44 +1,13 @@
 import { useState } from "react";
 import { WandSparkles } from "lucide-react";
-import { useSubscription } from "@/hooks/useSubscription";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useActionGate } from "@/hooks/useActionGate";
 import { ActionsDialog } from "./ActionsDialog";
-
-const ACTION_LIMITS: Record<string, number> = {
-  co_founder: 100,
-  aristotle: 1000,
-  timewarp_og: Infinity,
-};
-
-const FREE_LIMIT = 20;
 
 export function ActionsCard({ isCollapsed }: { isCollapsed: boolean }) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { plan } = useSubscription();
+  const { remaining } = useActionGate();
 
-  const { data: subData } = useQuery({
-    queryKey: ["actions-used"],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { actions_used: 0, bonus_actions: 0 };
-      const { data } = await supabase
-        .from("user_subscriptions")
-        .select("actions_used, bonus_actions")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      return { actions_used: data?.actions_used ?? 0, bonus_actions: (data as any)?.bonus_actions ?? 0 };
-    },
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const actionsUsed = subData?.actions_used ?? 0;
-  const bonusActions = subData?.bonus_actions ?? 0;
-  const limit = plan ? ACTION_LIMITS[plan] ?? FREE_LIMIT : FREE_LIMIT;
-  const isUnlimited = limit === Infinity;
-  const remaining = isUnlimited ? Infinity : Math.max(0, limit + bonusActions - actionsUsed);
+  const isUnlimited = remaining === Infinity;
 
   if (isCollapsed) {
     return null;

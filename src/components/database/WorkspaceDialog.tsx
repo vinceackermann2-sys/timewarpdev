@@ -93,7 +93,7 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
     }
   }, [open]);
 
-  // Load members when a workspace is selected + keep it fresh while dialog is open
+  // Load members when a workspace is selected (once, no polling)
   useEffect(() => {
     if (!selectedWsId || !open) return;
 
@@ -110,13 +110,8 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
 
     void refreshMembers();
 
-    const interval = setInterval(() => {
-      void refreshMembers();
-    }, 10000);
-
     return () => {
       isMounted = false;
-      clearInterval(interval);
     };
   }, [selectedWsId, open, loadMembersForWorkspace]);
 

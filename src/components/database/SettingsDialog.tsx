@@ -39,23 +39,10 @@ const ACTION_LIMITS_SETTINGS: Record<string, number> = {
 const FREE_LIMIT_SETTINGS = 20;
 
 function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
-  const { data } = useQuery({
+  const { data } = useQuery<{ actions_used: number; bonus_actions: number; plan: string | null }>({
     queryKey: ["actions-used"],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { actions_used: 0, bonus_actions: 0, plan: null as string | null };
-      const { data } = await supabase
-        .from("user_subscriptions")
-        .select("actions_used, bonus_actions, plan")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      return {
-        actions_used: data?.actions_used ?? 0,
-        bonus_actions: (data as any)?.bonus_actions ?? 0,
-        plan: (data?.plan as string) ?? null,
-      };
-    },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
   const used = data?.actions_used ?? 0;
   const bonus = data?.bonus_actions ?? 0;
@@ -199,7 +186,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
     }
   }, [open]);
 
-  // Load workspace members when selected
+  // Load workspace members when selected (once, no polling)
   useEffect(() => {
     if (!selectedWsId || !open) return;
     let mounted = true;
@@ -209,8 +196,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       if (mounted) { setWsMemberData(data); setLoadingMembers(false); }
     };
     void refresh();
-    const interval = setInterval(refresh, 10000);
-    return () => { mounted = false; clearInterval(interval); };
+    return () => { mounted = false; };
   }, [selectedWsId, open, loadMembersForWorkspace]);
 
   const checkConnections = useCallback(async () => {
@@ -237,7 +223,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       if (!session) return;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: providerId, action: "get-auth-url" }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: providerId, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin }) }
       );
       const data = await response.json();
       if (data.authUrl) window.location.href = data.authUrl;
