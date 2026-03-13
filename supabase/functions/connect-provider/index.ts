@@ -78,7 +78,7 @@ serve(async (req) => {
           if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
           const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read";
-          const state = btoa(JSON.stringify({ userId: user.id, returnPath }));
+          const state = btoa(JSON.stringify({ userId: user.id, returnPath, origin }));
           authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&response_mode=query`;
           break;
         }

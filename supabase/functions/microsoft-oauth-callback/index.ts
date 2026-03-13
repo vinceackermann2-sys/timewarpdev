@@ -22,8 +22,7 @@ serve(async (req) => {
     const state = JSON.parse(atob(stateParam));
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
-
-    if (!userId) throw new Error("No userId in state");
+    const frontendUrl = state.origin || Deno.env.get("FRONTEND_URL") || "https://timewarpdev.lovable.app";
 
     // Exchange code for tokens
     const tokenResponse = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {

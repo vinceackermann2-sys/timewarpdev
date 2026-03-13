@@ -39,7 +39,7 @@ const ACTION_LIMITS_SETTINGS: Record<string, number> = {
 const FREE_LIMIT_SETTINGS = 20;
 
 function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
-  const { data } = useQuery({
+  const { data } = useQuery<{ actions_used: number; bonus_actions: number; plan: string | null }>({
     queryKey: ["actions-used"],
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
