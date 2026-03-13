@@ -1,50 +1,54 @@
 
 
-## Problem
+## Plan: Reduce Cloud Usage & Fix Microsoft Redirect
 
-The `research-chat` and `action-chat` edge functions return 500 because the AI gateway responds with **400 Bad Request**. Root cause: when workspace data is loaded (up to 500 items with full `content` and `analyzed_content`), the system prompt exceeds the AI model's input token limit.
+### Problem Analysis
 
-The previous security fix also stripped the error body logging, making the 400 invisible — it just falls through to a generic 500.
+**Cloud usage (78% database):**
+- `actions-used` query polls every **2 minutes** across 3 components (ActionGateProvider, ActionsCard, ActionsDialog) — but action counts only change when an action is actually used
+- `useSubscription` calls the `check-subscription` **edge function** (which hits Stripe API) every **5 minutes** — but subscription status only changes on purchase/cancel
+- `SettingsDialog` and `WorkspaceDialog` poll workspace members every **10 seconds** via `setInterval`
+- `BusinessDNAContext` polls localStorage every interval (unnecessary DB-adjacent overhead)
 
-## Plan
+**Microsoft redirect:**
+- `microsoft-oauth-callback` uses `FRONTEND_URL` env var with fallback to `https://digital-guide-genie.lovable.app` (wrong/old URL)
+- Neither the published URL (`timewarpdev.lovable.app`) nor the preview URL is set as `FRONTEND_URL`
 
-### 1. Add context size limiting in both edge functions
+### Changes
 
-**Files**: `supabase/functions/research-chat/index.ts`, `supabase/functions/action-chat/index.ts`
+#### A. Eliminate all polling — switch to event-driven refreshes
 
-In `formatContextItems`, add a running character count and stop adding items once total context exceeds ~200,000 characters (~50k tokens). This prevents the system prompt from exceeding the model's context window.
+1. **`useSubscription.ts`** — Remove `refetchInterval`. Keep `staleTime: 30 * 60 * 1000` (30 min). Data is fetched once on mount and cached. The existing `refetch()` function is already exposed for manual refresh after checkout.
 
-```typescript
-function formatContextItems(items: any[]): string {
-  const MAX_CONTEXT_CHARS = 200000;
-  let context = "\n\n## User's Business Data\n\n";
-  let totalChars = 0;
-  // ... group by source as before ...
-  for (const item of sourceItems) {
-    const itemText = /* build item string */;
-    if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
-    context += itemText;
-    totalChars += itemText.length;
-  }
-  return context;
-}
-```
+2. **`useActionGate.tsx`** — Remove `refetchInterval`. The `refreshUsage()` function already exists and is called after each action. That's the only time the count changes.
 
-### 2. Add better error logging for debugging
+3. **`ActionsCard.tsx`** — Remove the **duplicate** `useQuery` for `actions-used`. Instead, consume the `useActionGate()` context which already has `remaining`. This eliminates a redundant query definition entirely.
 
-Log the actual status and a truncated response body when the AI gateway returns non-ok, so future issues are diagnosable:
+4. **`ActionsDialog.tsx`** — Same: remove duplicate `useQuery`, use `useActionGate()` for remaining count.
 
-```typescript
-if (!response.ok) {
-  const errorBody = await response.text().catch(() => "");
-  console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-  // ... existing status-specific handling ...
-}
-```
+5. **`SettingsDialog.tsx`** — Remove `PlanUsageSummary`'s duplicate query (it shares `actions-used` key, fine). Remove the **10-second `setInterval`** for workspace members — fetch once on workspace select, no polling.
 
-### 3. Truncate individual item content
+6. **`WorkspaceDialog.tsx`** — Remove the **10-second `setInterval`** for workspace members.
 
-Cap each item's `content` and `analyzed_content` to 2000 characters in `formatContextItems` to prevent a single large document from consuming the entire context budget.
+#### B. Fix Microsoft OAuth redirect
 
-This is a minimal, targeted fix — no frontend changes needed. Both edge functions get the same treatment.
+1. **Pass frontend origin in OAuth state** — In `ConnectorGrid.tsx` and `SettingsDialog.tsx`, include `origin: window.location.origin` in the request body to `connect-provider`.
+
+2. **`connect-provider/index.ts`** — Read `body.origin` and encode it into the OAuth state alongside `userId` and `returnPath`.
+
+3. **`microsoft-oauth-callback/index.ts`** — Read `origin` from the decoded state and use it as `frontendUrl` instead of the env var. Fall back to `FRONTEND_URL` or the published URL if not present.
+
+### Files to modify
+- `src/hooks/useSubscription.ts` — remove polling
+- `src/hooks/useActionGate.tsx` — remove polling  
+- `src/components/database/ActionsCard.tsx` — use context instead of duplicate query
+- `src/components/database/ActionsDialog.tsx` — use context instead of duplicate query
+- `src/components/database/SettingsDialog.tsx` — remove 10s interval, remove duplicate query
+- `src/components/database/WorkspaceDialog.tsx` — remove 10s interval
+- `src/components/aiceo/ConnectorGrid.tsx` — pass origin
+- `supabase/functions/connect-provider/index.ts` — pass origin in state
+- `supabase/functions/microsoft-oauth-callback/index.ts` — use origin from state
+
+### Impact
+This should reduce database server usage dramatically — from constant polling every 2-10 seconds to purely on-demand queries. No functionality changes; data still refreshes when it actually changes.
 
