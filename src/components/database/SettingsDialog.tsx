@@ -41,21 +41,8 @@ const FREE_LIMIT_SETTINGS = 20;
 function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
   const { data } = useQuery({
     queryKey: ["actions-used"],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { actions_used: 0, bonus_actions: 0, plan: null as string | null };
-      const { data } = await supabase
-        .from("user_subscriptions")
-        .select("actions_used, bonus_actions, plan")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      return {
-        actions_used: data?.actions_used ?? 0,
-        bonus_actions: (data as any)?.bonus_actions ?? 0,
-        plan: (data?.plan as string) ?? null,
-      };
-    },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
   const used = data?.actions_used ?? 0;
   const bonus = data?.bonus_actions ?? 0;
