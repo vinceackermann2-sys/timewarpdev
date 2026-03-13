@@ -69,6 +69,7 @@ serve(async (req) => {
     if (action === "get-auth-url") {
       const redirectBase = `${SUPABASE_URL}/functions/v1`;
       const returnPath = body.returnPath || "/";
+      const origin = body.origin || "";
       let authUrl = "";
 
       switch (provider) {
