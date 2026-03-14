@@ -139,31 +139,16 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
               <div>
                 <h3 className="text-base font-semibold text-foreground mb-1">Upgrade your plan</h3>
                 <p className="text-sm text-muted-foreground">
-                  Get more Actions by upgrading to a higher tier plan.
+                  Contact us to upgrade your plan and get more Actions.
                 </p>
               </div>
-              <div className="space-y-2">
-                {[
-                  { name: "Co-Founder", actions: 100, price: "$69/mo" },
-                  { name: "Aristotle", actions: 1000, price: "$109/mo" },
-                  { name: "TimeWarp OG", actions: "Unlimited", price: "$999/mo" },
-                ].map((tier) => (
-                  <div
-                    key={tier.name}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{tier.name}</p>
-                      <p className="text-xs text-muted-foreground">{tier.actions} Actions/month</p>
-                    </div>
-                    <Link to="/pricing" onClick={() => onOpenChange(false)}>
-                      <Button size="sm" variant="outline" className="text-xs gap-1.5">
-                        {tier.price}
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
-                    </Link>
-                  </div>
-                ))}
+              <div className="rounded-lg border border-border/50 bg-muted/20 p-6 text-center">
+                <p className="text-sm text-muted-foreground mb-4">
+                  For information about upgrading your plan, please contact our team.
+                </p>
+                <Button asChild>
+                  <Link to="/support">Contact Us</Link>
+                </Button>
               </div>
             </div>
           )}

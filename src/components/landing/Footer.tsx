@@ -28,8 +28,8 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Pricing
+                <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                  AI-CEO
                 </Link>
               </li>
               <li>

@@ -624,74 +624,14 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                 <div className="space-y-6">
                   <PlanUsageSummary fallbackPlan={currentPlan} />
 
-                  <div className="flex justify-center">
-                    <div className="inline-flex items-center rounded-full bg-muted p-1 gap-1">
-                      {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map(period => (
-                        <button key={period} onClick={() => setBilling(period)}
-                          className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-all capitalize",
-                            billing === period ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                          )}>
-                          {period}{period === "annually" && <span className="ml-1 text-xs text-primary font-semibold">-20%</span>}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    {/* Co Founder */}
-                    <div className={cn("relative rounded-xl border-2 bg-card p-5 flex flex-col", currentPlan === "co_founder" ? "border-green-500" : "border-border/60")}>
-                      {currentPlan === "co_founder" && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><Badge className="bg-green-500 text-white border-green-500 px-3 py-0.5 text-xs">Your Plan</Badge></div>}
-                      <div className="mb-3" />
-                      <h3 className="text-lg font-bold mb-1">Co Founder</h3>
-                      <p className="text-muted-foreground text-xs mb-4">For early-stage founders</p>
-                      <div className="mb-4"><span className="text-3xl font-bold">${prices.co_founder}</span><span className="text-muted-foreground text-sm"> / mo</span></div>
-                      <div className="space-y-2.5 flex-1 mb-4">
-                        {PLAN_FEATURES.map(f => (
-                          <div key={f.name} className="flex items-center justify-between"><span className="text-xs text-muted-foreground">{f.name}</span><FeatureValue value={f.co_founder} /></div>
-                        ))}
-                      </div>
-                      <Button variant="outline" size="sm" className="w-full" onClick={() => handleGetStarted("co_founder")} disabled={loadingPlan === "co_founder"}>
-                        {loadingPlan === "co_founder" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("co_founder")}
-                      </Button>
-                    </div>
-
-                    {/* Aristotle */}
-                    <div className={cn("relative rounded-xl border-2 bg-card p-5 flex flex-col", currentPlan === "aristotle" ? "border-green-500" : "border-primary")}>
-                      {currentPlan === "aristotle" ? (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2"><Badge className="bg-green-500 text-white border-green-500 px-3 py-0.5 text-xs">Your Plan</Badge></div>
-                      ) : (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2"><Badge className="bg-primary text-primary-foreground border-primary px-3 py-0.5 text-xs">Most Popular</Badge></div>
-                      )}
-                      <div className="mb-3" />
-                      <h3 className="text-lg font-bold mb-1">Aristotle</h3>
-                      <p className="text-muted-foreground text-xs mb-4">For growing businesses</p>
-                      <div className="mb-4"><span className="text-3xl font-bold">${prices.aristotle}</span><span className="text-muted-foreground text-sm"> / mo</span></div>
-                      <div className="space-y-2.5 flex-1 mb-4">
-                        {PLAN_FEATURES.map(f => (
-                          <div key={f.name} className="flex items-center justify-between"><span className="text-xs text-muted-foreground">{f.name}</span><FeatureValue value={f.aristotle} /></div>
-                        ))}
-                      </div>
-                      <Button size="sm" className="w-full" onClick={() => handleGetStarted("aristotle")} disabled={loadingPlan === "aristotle"}>
-                        {loadingPlan === "aristotle" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("aristotle")}
-                      </Button>
-                    </div>
-
-                    {/* TimeWarp OG */}
-                    <div className={cn("relative rounded-xl border-2 bg-card p-5 flex flex-col", currentPlan === "timewarp_og" ? "border-green-500" : "border-border/60")}>
-                      {currentPlan === "timewarp_og" && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><Badge className="bg-green-500 text-white border-green-500 px-3 py-0.5 text-xs">Your Plan</Badge></div>}
-                      <div className="flex gap-1.5 mb-3"><Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200 text-xs">Ends April 1st</Badge></div>
-                      <h3 className="text-lg font-bold mb-1">TimeWarp OG</h3>
-                      <p className="text-muted-foreground text-xs mb-4">Unlimited power</p>
-                      <div className="mb-4"><span className="text-3xl font-bold">${prices.timewarp_og}</span><span className="text-muted-foreground text-sm"> / mo</span></div>
-                      <div className="space-y-2.5 flex-1 mb-4">
-                        {PLAN_FEATURES.map(f => (
-                          <div key={f.name} className="flex items-center justify-between"><span className="text-xs text-muted-foreground">{f.name}</span><FeatureValue value={f.timewarp_og} /></div>
-                        ))}
-                      </div>
-                      <Button variant="outline" size="sm" className="w-full" onClick={() => handleGetStarted("timewarp_og")} disabled={loadingPlan === "timewarp_og"}>
-                        {loadingPlan === "timewarp_og" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("timewarp_og")}
-                      </Button>
-                    </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-8 text-center space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground">Questions about your plan?</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      For information about upgrading, downgrading, or any questions regarding your plan, please contact our team.
+                    </p>
+                    <Button asChild>
+                      <Link to="/support">Contact Us</Link>
+                    </Button>
                   </div>
 
                   {currentPlan && (
