@@ -12,9 +12,9 @@ interface SubscriptionData {
 
 const FREE_LIMITS = {
   dataBytes: 1 * 1024 * 1024 * 1024,
-  actionsPerMonth: 20,
+  actionsPerMonth: 0,
   devLine: false,
-  scaleAssistance: false,
+  priority: false,
 } as const;
 
 const PLAN_LIMITS = {
@@ -22,19 +22,19 @@ const PLAN_LIMITS = {
     dataBytes: 5 * 1024 * 1024 * 1024,
     actionsPerMonth: 100,
     devLine: false,
-    scaleAssistance: false,
+    priority: false,
   },
   aristotle: {
     dataBytes: 10 * 1024 * 1024 * 1024,
     actionsPerMonth: 1000,
     devLine: true,
-    scaleAssistance: false,
+    priority: false,
   },
   timewarp_og: {
     dataBytes: Infinity,
     actionsPerMonth: Infinity,
     devLine: true,
-    scaleAssistance: true,
+    priority: true,
   },
 } as const;
 
@@ -64,7 +64,7 @@ export function useSubscription() {
     hasActivePlan: subscription?.subscribed ?? false,
     subscriptionEnd: subscription?.subscription_end ?? null,
     canUseDevLine: limits.devLine,
-    canUseScaleAssistance: limits.scaleAssistance,
+    canUsePriority: limits.priority,
     getActionLimit: () => limits.actionsPerMonth,
     getDataLimit: () => limits.dataBytes,
   };

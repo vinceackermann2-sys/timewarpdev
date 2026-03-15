@@ -160,6 +160,24 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           actions_granted: boolean
@@ -543,6 +561,7 @@ export type Database = {
         Args: { _referral_code: string; _referred_user_id: string }
         Returns: Json
       }
+      decrement_og_spots: { Args: never; Returns: undefined }
       get_user_plan: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["subscription_plan"]

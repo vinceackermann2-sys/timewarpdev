@@ -37,7 +37,7 @@ const ACTION_LIMITS_SETTINGS: Record<string, number> = {
   aristotle: 1000,
   timewarp_og: Infinity,
 };
-const FREE_LIMIT_SETTINGS = 20;
+const FREE_LIMIT_SETTINGS = 0;
 
 function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
   const { data } = useQuery<{ actions_used: number; bonus_actions: number; plan: string | null }>({
@@ -115,7 +115,7 @@ const PLAN_FEATURES: { name: string; co_founder: string | boolean; aristotle: st
   { name: "AI CEO", co_founder: true, aristotle: true, timewarp_og: true },
   { name: "Business Brain", co_founder: true, aristotle: true, timewarp_og: true },
   { name: "Developer Line", co_founder: false, aristotle: true, timewarp_og: true },
-  { name: "Scale assistance", co_founder: false, aristotle: false, timewarp_og: true },
+  { name: "Priority", co_founder: false, aristotle: false, timewarp_og: true },
 ];
 
 const RANDOM_NAMES = [
