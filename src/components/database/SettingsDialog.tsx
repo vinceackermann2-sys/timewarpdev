@@ -115,7 +115,7 @@ const PLAN_FEATURES: { name: string; co_founder: string | boolean; aristotle: st
   { name: "AI CEO", co_founder: true, aristotle: true, timewarp_og: true },
   { name: "Business Brain", co_founder: true, aristotle: true, timewarp_og: true },
   { name: "Developer Line", co_founder: false, aristotle: true, timewarp_og: true },
-  { name: "Scale assistance", co_founder: false, aristotle: false, timewarp_og: true },
+  { name: "Priority", co_founder: false, aristotle: false, timewarp_og: true },
 ];
 
 const RANDOM_NAMES = [
