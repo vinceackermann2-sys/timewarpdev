@@ -56,6 +56,8 @@ import { SettingsDialog } from "./SettingsDialog";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
+import { UpgradeGateDialog } from "./UpgradeGateDialog";
+import { useFreePlanGate } from "@/hooks/useFreePlanGate";
 
 type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
 
