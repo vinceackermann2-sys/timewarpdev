@@ -22,19 +22,19 @@ const PLAN_LIMITS = {
     dataBytes: 5 * 1024 * 1024 * 1024,
     actionsPerMonth: 100,
     devLine: false,
-    scaleAssistance: false,
+    priority: false,
   },
   aristotle: {
     dataBytes: 10 * 1024 * 1024 * 1024,
     actionsPerMonth: 1000,
     devLine: true,
-    scaleAssistance: false,
+    priority: false,
   },
   timewarp_og: {
     dataBytes: Infinity,
     actionsPerMonth: Infinity,
     devLine: true,
-    scaleAssistance: true,
+    priority: true,
   },
 } as const;
 
