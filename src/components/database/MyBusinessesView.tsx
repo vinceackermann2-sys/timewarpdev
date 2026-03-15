@@ -407,5 +407,7 @@ function WorkspaceFooter() {
         </div>
       </div>
     </div>
+      <UpgradeGateDialog open={showGate} onOpenChange={closeGate} />
+    </>
   );
 }
