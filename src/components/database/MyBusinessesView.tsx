@@ -18,6 +18,8 @@ import { useBusinessDNA, BrandEntry } from "./BusinessDNAContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { WorkspaceDialog } from "./WorkspaceDialog";
+import { UpgradeGateDialog } from "./UpgradeGateDialog";
+import { useFreePlanGate } from "@/hooks/useFreePlanGate";
 
 interface MyBusinessesViewProps {
   onSelectBusiness: () => void;
