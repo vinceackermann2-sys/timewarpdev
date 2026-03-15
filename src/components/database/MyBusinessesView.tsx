@@ -361,7 +361,9 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
         onOpenChange={setShowWorkspaceSettings}
         userEmail={members.find(m => m.role === "owner")?.email || ""}
       />
+      <UpgradeGateDialog open={showGate} onOpenChange={closeGate} />
     </div>
+    </>
   );
 }
 
