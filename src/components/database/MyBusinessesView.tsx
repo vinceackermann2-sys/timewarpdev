@@ -29,6 +29,7 @@ interface MyBusinessesViewProps {
 export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusinessesViewProps) {
   const [search, setSearch] = useState("");
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
+  const { isFreeUser, showGate, openGate, closeGate } = useFreePlanGate();
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
   const [wsSearch, setWsSearch] = useState("");
   const [wsPopoverOpen, setWsPopoverOpen] = useState(false);
