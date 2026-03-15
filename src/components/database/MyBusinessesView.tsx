@@ -104,6 +104,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
   );
 
   return (
+    <>
     <div className="flex flex-col h-full items-center">
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-4 w-full max-w-3xl">
