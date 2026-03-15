@@ -233,7 +233,10 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setShowOptionsDialog(true)}
+              onClick={() => {
+                if (isFreeUser && wsBusinesses.length >= 1) { openGate(); return; }
+                setShowOptionsDialog(true);
+              }}
               className="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/40 bg-card/30 hover:bg-card/60 p-8 min-h-[200px] transition-colors cursor-pointer"
             >
               <div className="h-14 w-14 rounded-xl bg-muted/60 group-hover:bg-primary/10 border border-border/40 group-hover:border-primary/30 flex items-center justify-center transition-colors">
