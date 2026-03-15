@@ -12,9 +12,9 @@ interface SubscriptionData {
 
 const FREE_LIMITS = {
   dataBytes: 1 * 1024 * 1024 * 1024,
-  actionsPerMonth: 20,
+  actionsPerMonth: 0,
   devLine: false,
-  scaleAssistance: false,
+  priority: false,
 } as const;
 
 const PLAN_LIMITS = {
