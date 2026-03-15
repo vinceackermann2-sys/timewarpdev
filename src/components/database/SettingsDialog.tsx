@@ -37,7 +37,7 @@ const ACTION_LIMITS_SETTINGS: Record<string, number> = {
   aristotle: 1000,
   timewarp_og: Infinity,
 };
-const FREE_LIMIT_SETTINGS = 20;
+const FREE_LIMIT_SETTINGS = 0;
 
 function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
   const { data } = useQuery<{ actions_used: number; bonus_actions: number; plan: string | null }>({

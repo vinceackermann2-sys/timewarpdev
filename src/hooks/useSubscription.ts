@@ -64,7 +64,7 @@ export function useSubscription() {
     hasActivePlan: subscription?.subscribed ?? false,
     subscriptionEnd: subscription?.subscription_end ?? null,
     canUseDevLine: limits.devLine,
-    canUseScaleAssistance: limits.scaleAssistance,
+    canUsePriority: limits.priority,
     getActionLimit: () => limits.actionsPerMonth,
     getDataLimit: () => limits.dataBytes,
   };
