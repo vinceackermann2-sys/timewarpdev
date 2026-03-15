@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { WandSparkles, Copy, Check, Loader2, ExternalLink } from "lucide-react";
+import { WandSparkles, Copy, Check, Loader2, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +23,15 @@ import { useActionGate } from "@/hooks/useActionGate";
 
 type Tab = "upgrade" | "refer" | "invite";
 
+const ACTION_PACKS = [
+  { label: "50 Actions", price: "$15", priceId: "price_1TAvQkGKbzbe9CQLJzFOPcBL" },
+  { label: "100 Actions", price: "$30", priceId: "price_1TAvR5GKbzbe9CQLzPPcn891" },
+  { label: "150 Actions", price: "$45", priceId: "price_1TAvS9GKbzbe9CQLmpcVUOLW" },
+  { label: "200 Actions", price: "$60", priceId: "price_1TAvXcGKbzbe9CQLtQgY1kwy" },
+  { label: "300 Actions", price: "$85", priceId: "price_1TBAJTGKbzbe9CQLxrFmBDhw" },
+  { label: "400 Actions", price: "$100", priceId: "price_1TBAJoGKbzbe9CQLnIE5C2IC" },
+];
+
 interface ActionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,6 +45,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
   const [selectedWsId, setSelectedWsId] = useState<string>("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [purchasingPriceId, setPurchasingPriceId] = useState<string | null>(null);
 
   // Fetch or create referral code
   const { data: referralCode } = useQuery({
@@ -69,6 +79,23 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
     setCopied(true);
     toast.success("Referral link copied!");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePurchase = async (priceId: string) => {
+    setPurchasingPriceId(priceId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-action-purchase", {
+        body: { priceId },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (err: any) {
+      toast.error("Failed to start purchase. Please try again.");
+    } finally {
+      setPurchasingPriceId(null);
+    }
   };
 
   const handleInvite = async () => {
@@ -137,18 +164,40 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
           {activeTab === "upgrade" && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-base font-semibold text-foreground mb-1">Upgrade your plan</h3>
+                <h3 className="text-base font-semibold text-foreground mb-1">Purchase Action Packs</h3>
                 <p className="text-sm text-muted-foreground">
-                  Contact us to upgrade your plan and get more Actions.
+                  Buy additional actions instantly. Actions are added to your account balance.
                 </p>
               </div>
-              <div className="rounded-lg border border-border/50 bg-muted/20 p-6 text-center">
-                <p className="text-sm text-muted-foreground mb-4">
-                  For information about upgrading your plan, please contact our team.
+              <div className="grid grid-cols-2 gap-2.5">
+                {ACTION_PACKS.map((pack) => (
+                  <button
+                    key={pack.priceId}
+                    onClick={() => handlePurchase(pack.priceId)}
+                    disabled={purchasingPriceId !== null}
+                    className={cn(
+                      "flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-4 py-3 text-left transition-all hover:border-primary/50 hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{pack.label}</p>
+                      <p className="text-xs text-muted-foreground">{pack.price}</p>
+                    </div>
+                    {purchasingPriceId === pack.priceId ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : (
+                      <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                ))}
+              </div>
+              <div className="pt-2 border-t border-border/30">
+                <p className="text-xs text-muted-foreground text-center">
+                  Need a custom plan?{" "}
+                  <Link to="/support" className="text-primary hover:underline">
+                    Contact us
+                  </Link>
                 </p>
-                <Button asChild>
-                  <Link to="/support">Contact Us</Link>
-                </Button>
               </div>
             </div>
           )}
