@@ -65,7 +65,7 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const { plan: currentPlan } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
   const prices = PRICES[billing];
@@ -73,21 +73,8 @@ export default function PricingPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session);
-      if (session) {
-        checkSubscription();
-      }
     });
   }, []);
-
-  const checkSubscription = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("check-subscription");
-      if (error) throw error;
-      if (data?.plan) setCurrentPlan(data.plan);
-    } catch (e) {
-      console.error("Failed to check subscription:", e);
-    }
-  };
 
   const handleGetStarted = async (plan: PlanKey) => {
     if (!isLoggedIn) {

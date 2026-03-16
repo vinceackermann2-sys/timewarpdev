@@ -2,10 +2,11 @@ import { useState, useCallback } from "react";
 import { useSubscription } from "./useSubscription";
 
 export function useFreePlanGate() {
-  const { hasActivePlan } = useSubscription();
+  const { hasActivePlan, isLoading } = useSubscription();
   const [showGate, setShowGate] = useState(false);
 
-  const isFreeUser = !hasActivePlan;
+  // Don't gate while loading — prevents flash for paid users
+  const isFreeUser = !isLoading && !hasActivePlan;
 
   const openGate = useCallback(() => setShowGate(true), []);
   const closeGate = useCallback(() => setShowGate(false), []);
