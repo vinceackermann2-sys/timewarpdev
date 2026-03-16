@@ -7,12 +7,22 @@ import {
 import { Inbox, Bell } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import timewarpBetaImg from "@/assets/timewarp-beta-update.png";
 
 interface WhatsNewDropdownProps {
   isCollapsed: boolean;
 }
 
-const inboxItems: Array<{ id: number; title: string; message: string; time: string; unread: boolean }> = [];
+const inboxItems: Array<{ id: number; title: string; message: string; time: string; unread: boolean; image?: string }> = [
+  {
+    id: 1,
+    title: "Introducing TimeWarp Beta",
+    message: "If you've ever been at work and thought \"I wish someone could do my work for me\" — this one's for you!",
+    time: "Just now",
+    unread: true,
+    image: timewarpBetaImg,
+  },
+];
 
 const updateItems: Array<{ id: number; title: string; message: string; time: string; isNew: boolean }> = [];
 
@@ -69,7 +79,7 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
           </div>
 
           <TabsContent value="inbox" className="m-0">
-            <ScrollArea className="h-64">
+            <ScrollArea className="h-80">
               <div className="p-2 space-y-1">
                 {inboxItems.map((item) => (
                   <button
@@ -78,13 +88,20 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
                       item.unread ? 'bg-primary/5' : ''
                     }`}
                   >
+                    {item.image && (
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-full h-32 object-cover rounded-md mb-2"
+                      />
+                    )}
                     <div className="flex items-start gap-2">
                       {item.unread && (
                         <span className="h-2 w-2 bg-primary rounded-full mt-1.5 flex-shrink-0" />
                       )}
                       <div className={item.unread ? '' : 'pl-4'}>
                         <p className="text-sm font-medium">{item.title}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{item.message}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-3">{item.message}</p>
                         <p className="text-[10px] text-muted-foreground/60 mt-1">{item.time}</p>
                       </div>
                     </div>
