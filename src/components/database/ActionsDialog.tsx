@@ -169,28 +169,40 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                   Buy additional actions instantly. Actions are added to your account balance.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {ACTION_PACKS.map((pack) => (
-                  <button
-                    key={pack.priceId}
-                    onClick={() => handlePurchase(pack.priceId)}
-                    disabled={purchasingPriceId !== null}
-                    className={cn(
-                      "flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-4 py-3 text-left transition-all hover:border-primary/50 hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    )}
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{pack.label}</p>
-                      <p className="text-xs text-muted-foreground">{pack.price}</p>
-                    </div>
-                    {purchasingPriceId === pack.priceId ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    ) : (
-                      <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </button>
-                ))}
+
+              <div className="space-y-3">
+                <Select
+                  value={selectedPackId}
+                  onValueChange={setSelectedPackId}
+                >
+                  <SelectTrigger className="w-full bg-muted/30">
+                    <SelectValue placeholder="Choose an action pack" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACTION_PACKS.map((pack) => (
+                      <SelectItem key={pack.priceId} value={pack.priceId}>
+                        {pack.label} — {pack.price}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  className="w-full gap-2"
+                  onClick={() => selectedPackId && handlePurchase(selectedPackId)}
+                  disabled={!selectedPackId || purchasingPriceId !== null}
+                >
+                  {purchasingPriceId ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4" />
+                      Purchase {selectedPackId ? ACTION_PACKS.find(p => p.priceId === selectedPackId)?.label : "Actions"}
+                    </>
+                  )}
+                </Button>
               </div>
+
               <div className="pt-2 border-t border-border/30">
                 <p className="text-xs text-muted-foreground text-center">
                   Need a custom plan?{" "}
