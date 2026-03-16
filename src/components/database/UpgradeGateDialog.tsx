@@ -82,8 +82,8 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
 
           {/* Price */}
           <div className="text-center">
-            <div className="text-3xl font-black text-foreground">$799<span className="text-base font-normal text-muted-foreground">/mo</span></div>
-            <p className="text-xs text-muted-foreground mt-1">Billed monthly · Locked in forever</p>
+            <div className="text-3xl font-black text-foreground">$999<span className="text-base font-normal text-muted-foreground">/mo</span></div>
+            <p className="text-xs text-muted-foreground mt-1">Billed annually · Locked in forever</p>
           </div>
 
           {/* Deadline */}
