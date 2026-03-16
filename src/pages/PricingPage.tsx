@@ -48,7 +48,7 @@ const features: Feature[] = [
   { name: "AI CEO", co_founder: true, aristotle: true, timewarp_og: true },
   { name: "Business Brain", co_founder: true, aristotle: true, timewarp_og: true },
   { name: "Developer Line", co_founder: false, aristotle: true, timewarp_og: true },
-  { name: "Priority", co_founder: false, aristotle: false, timewarp_og: true },
+  { name: "Priority Support", co_founder: false, aristotle: false, timewarp_og: true },
 ];
 
 function FeatureValue({ value }: { value: string | boolean }) {
