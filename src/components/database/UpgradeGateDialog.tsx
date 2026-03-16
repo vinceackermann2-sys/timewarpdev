@@ -1,30 +1,41 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Crown, Clock, Flame } from "lucide-react";
+import { Crown, Clock, Flame, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface UpgradeGateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps) {
-  const [spotsLeft, setSpotsLeft] = useState<number | null>(null);
-  const navigate = useNavigate();
+const TW_OG_MONTHLY_PRICE_ID = "price_1T7WkLGKbzbe9CQLd7zjQtl7";
 
-  useEffect(() => {
-    if (!open) return;
-    supabase
-      .from("platform_config")
-      .select("value")
-      .eq("key", "og_spots_remaining")
-      .single()
-      .then(({ data }) => {
-        if (data?.value) setSpotsLeft(parseInt(data.value, 10));
+export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps) {
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handlePurchase = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { priceId: TW_OG_MONTHLY_PRICE_ID },
       });
-  }, [open]);
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (e: any) {
+      toast({
+        title: "Error",
+        description: e.message || "Failed to start checkout",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -56,7 +67,7 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
               TimeWarp <span style={{ color: "#fbbf24" }}>OG</span>
             </h2>
             <p className="text-sm text-slate-400 max-w-xs mx-auto">
-              Unlock unlimited actions, employees, data conversion, and priority support.
+              Get unlimited actions, employees, data conversion, and priority support.
             </p>
           </div>
         </div>
@@ -64,17 +75,15 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
         {/* Body */}
         <div className="px-6 pb-6 pt-4 space-y-4">
           {/* Spots badge */}
-          {spotsLeft !== null && (
-            <div className="flex items-center justify-center gap-2 text-sm font-semibold" style={{ color: spotsLeft <= 5 ? "#ef4444" : "#fbbf24" }}>
-              <Flame className="h-4 w-4" />
-              Only {spotsLeft} spot{spotsLeft !== 1 ? "s" : ""} left
-            </div>
-          )}
+          <div className="flex items-center justify-center gap-2 text-sm font-semibold" style={{ color: "#ef4444" }}>
+            <Flame className="h-4 w-4" />
+            Only 23 spots left
+          </div>
 
           {/* Price */}
           <div className="text-center">
             <div className="text-3xl font-black text-foreground">$799<span className="text-base font-normal text-muted-foreground">/mo</span></div>
-            <p className="text-xs text-muted-foreground mt-1">Billed annually · Locked in forever</p>
+            <p className="text-xs text-muted-foreground mt-1">Billed monthly · Locked in forever</p>
           </div>
 
           {/* Deadline */}
@@ -90,16 +99,14 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
               background: "linear-gradient(135deg, #f59e0b, #d97706)",
               color: "#000",
             }}
-            onClick={() => {
-              onOpenChange(false);
-              navigate("/timewarp-og");
-            }}
+            onClick={handlePurchase}
+            disabled={loading}
           >
-            Apply Now — No Credit Card Required
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Get TimeWarp OG — $799/mo"}
           </Button>
 
           <p className="text-[11px] text-muted-foreground text-center">
-            Free users can analyze one Business DNA. Upgrade for full access.
+            Free users can analyze one Business DNA. Subscribe for full access.
           </p>
         </div>
       </DialogContent>
