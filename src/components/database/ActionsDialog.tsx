@@ -46,6 +46,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
   const [inviteEmail, setInviteEmail] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [purchasingPriceId, setPurchasingPriceId] = useState<string | null>(null);
+  const [selectedPackId, setSelectedPackId] = useState<string>("");
 
   // Fetch or create referral code
   const { data: referralCode } = useQuery({
