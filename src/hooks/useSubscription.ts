@@ -10,7 +10,7 @@ interface SubscriptionData {
   subscription_end: string | null;
 }
 
-const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"] as const;
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 const FREE_LIMITS = {
   dataBytes: 1 * 1024 * 1024 * 1024,
@@ -59,7 +59,7 @@ export function useSubscription() {
       ]);
 
       const remoteSubscription = error ? null : (data as SubscriptionData | null);
-      const storedPlan = storedSubscription && ACTIVE_SUBSCRIPTION_STATUSES.includes(storedSubscription.status)
+      const storedPlan = storedSubscription && ACTIVE_SUBSCRIPTION_STATUSES.has(storedSubscription.status)
         ? (storedSubscription.plan as PlanType)
         : null;
 
