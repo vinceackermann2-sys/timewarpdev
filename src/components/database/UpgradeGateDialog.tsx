@@ -13,12 +13,15 @@ interface UpgradeGateDialogProps {
 const TW_OG_MONTHLY_PRICE_ID = "price_1T7WkLGKbzbe9CQLd7zjQtl7";
 
 const BENEFITS = [
-  "Unlimited Actions",
-  "AI Employees",
-  "Data Conversion",
-  "Priority Support",
-  "Dev Line Access",
-];
+  { label: "Team members", value: "infinite" },
+  { label: "Connected data", value: "infinite" },
+  { label: "Actions / month", value: "infinite" },
+  { label: "AI employees", value: "infinite" },
+  { label: "AI CEO", value: "check" },
+  { label: "Business Brain", value: "check" },
+  { label: "Developer Line", value: "check" },
+  { label: "Priority support", value: "check" },
+] as const;
 
 export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -47,19 +50,23 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden border-0">
-        {/* Header with gradient */}
-        <div className="relative px-8 pt-10 pb-8 text-center"
+      <DialogContent className="max-w-2xl p-0 overflow-hidden border-0">
+        <div
+          className="relative px-10 pt-12 pb-10 text-center"
           style={{
             background: "linear-gradient(135deg, #05070f 0%, #0d1528 50%, #0a1020 100%)",
           }}
         >
-          <div className="absolute inset-0 opacity-30" style={{
-            background: "radial-gradient(circle at 50% 0%, rgba(251,191,36,0.2) 0%, transparent 70%)",
-          }} />
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: "radial-gradient(circle at 50% 0%, rgba(251,191,36,0.2) 0%, transparent 70%)",
+            }}
+          />
 
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider mb-4"
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider mb-4"
               style={{
                 background: "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1))",
                 border: "1px solid rgba(251,191,36,0.3)",
@@ -70,49 +77,52 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
               Exclusive Early Access
             </div>
 
-            <h2 className="text-3xl font-black text-white mb-3" style={{ letterSpacing: "-0.03em" }}>
+            <h2 className="text-4xl font-black text-white" style={{ letterSpacing: "-0.03em" }}>
               TimeWarp <span style={{ color: "#fbbf24" }}>OG</span>
             </h2>
-            <p className="text-sm text-slate-400 max-w-sm mx-auto">
-              Get unlimited actions, employees, data conversion, and priority support.
-            </p>
           </div>
         </div>
 
-        {/* Body */}
-        <div className="px-8 pb-8 pt-5 space-y-5">
-          {/* Spots badge */}
+        <div className="px-10 pb-10 pt-6 space-y-6">
           <div className="flex items-center justify-center gap-2 text-sm font-semibold" style={{ color: "#ef4444" }}>
             <Flame className="h-4 w-4" />
             Only 23 spots left
           </div>
 
-          {/* Benefits list */}
-          <div className="space-y-2.5">
-            {BENEFITS.map((benefit) => (
-              <div key={benefit} className="flex items-center gap-3">
-                <div className="flex items-center justify-center h-5 w-5 rounded-full flex-shrink-0"
-                  style={{ background: "rgba(251,191,36,0.15)" }}
-                >
-                  <Check className="h-3 w-3" style={{ color: "#fbbf24" }} />
-                </div>
-                <span className="text-sm text-foreground">{benefit}</span>
+          <div className="rounded-2xl border border-border/50 bg-card/80 px-5 py-3">
+            {BENEFITS.map((benefit, index) => (
+              <div
+                key={benefit.label}
+                className={`grid grid-cols-[1fr_auto] items-center gap-4 py-3 ${
+                  index < BENEFITS.length - 1 ? "border-b border-border/50" : ""
+                }`}
+              >
+                <span className="text-base text-muted-foreground">{benefit.label}</span>
+                {benefit.value === "infinite" ? (
+                  <span
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-lg font-semibold text-primary"
+                    aria-label="Infinite"
+                  >
+                    ∞
+                  </span>
+                ) : (
+                  <Check className="h-5 w-5 text-primary" aria-hidden="true" />
+                )}
               </div>
             ))}
           </div>
 
-          {/* Price */}
           <div className="text-center pt-1">
-            <div className="text-3xl font-black text-foreground">$999<span className="text-base font-normal text-muted-foreground">/mo</span></div>
+            <div className="text-3xl font-black text-foreground">
+              $999<span className="text-base font-normal text-muted-foreground">/mo</span>
+            </div>
           </div>
 
-          {/* Deadline */}
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
             Offer ends April 1st, 2026
           </div>
 
-          {/* CTA */}
           <Button
             className="w-full h-12 text-sm font-bold"
             style={{

@@ -7,7 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Map Stripe product IDs to plan names
 const PRODUCT_TO_PLAN: Record<string, string> = {
   "prod_U5i7dXiix7U9sz": "co_founder",
   "prod_U5i8fBuKYbjGoZ": "co_founder",
@@ -19,6 +18,9 @@ const PRODUCT_TO_PLAN: Record<string, string> = {
   "prod_U5iBwG21WwMlvs": "timewarp_og",
   "prod_U5iCei9C5DGcAg": "timewarp_og",
 };
+
+const ACTIVE_DB_STATUSES = new Set(["active", "trialing", "past_due"]);
+const ACTIVE_STRIPE_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -44,11 +46,28 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
+    const { data: storedSubscription } = await supabaseClient
+      .from("user_subscriptions")
+      .select("plan, status")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const fallbackPlan = storedSubscription && ACTIVE_DB_STATUSES.has(storedSubscription.status)
+      ? storedSubscription.plan
+      : null;
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
     if (customers.data.length === 0) {
-      return new Response(JSON.stringify({ subscribed: false }), {
+      return new Response(JSON.stringify({
+        subscribed: Boolean(fallbackPlan),
+        plan: fallbackPlan,
+        product_id: null,
+        subscription_end: null,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -57,24 +76,26 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      status: "active",
-      limit: 1,
+      status: "all",
+      limit: 10,
     });
 
-    const hasActiveSub = subscriptions.data.length > 0;
-    let plan = null;
+    const activeSubscription = subscriptions.data.find((subscription) =>
+      ACTIVE_STRIPE_STATUSES.has(subscription.status)
+    );
+
+    let plan = fallbackPlan;
     let productId = null;
     let subscriptionEnd = null;
 
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      productId = subscription.items.data[0].price.product as string;
-      plan = PRODUCT_TO_PLAN[productId] || null;
+    if (activeSubscription) {
+      subscriptionEnd = new Date(activeSubscription.current_period_end * 1000).toISOString();
+      productId = activeSubscription.items.data[0]?.price.product as string | null;
+      plan = (productId ? PRODUCT_TO_PLAN[productId] : null) || fallbackPlan;
     }
 
     return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
+      subscribed: Boolean(activeSubscription || fallbackPlan),
       plan,
       product_id: productId,
       subscription_end: subscriptionEnd,
@@ -83,7 +104,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("check-subscription error occurred");
+    console.error("check-subscription error occurred", error);
     return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
