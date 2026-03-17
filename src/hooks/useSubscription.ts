@@ -10,6 +10,8 @@ interface SubscriptionData {
   subscription_end: string | null;
 }
 
+const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"] as const;
+
 const FREE_LIMITS = {
   dataBytes: 1 * 1024 * 1024 * 1024,
   actionsPerMonth: 0,
@@ -45,11 +47,50 @@ export function useSubscription() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
-      const { data, error } = await supabase.functions.invoke("check-subscription");
-      if (error) throw error;
-      return data as SubscriptionData;
+      const [{ data, error }, { data: storedSubscription, error: storedSubscriptionError }] = await Promise.all([
+        supabase.functions.invoke("check-subscription"),
+        supabase
+          .from("user_subscriptions")
+          .select("plan, status")
+          .eq("user_id", session.user.id)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      const remoteSubscription = error ? null : (data as SubscriptionData | null);
+      const storedPlan = storedSubscription && ACTIVE_SUBSCRIPTION_STATUSES.includes(storedSubscription.status)
+        ? (storedSubscription.plan as PlanType)
+        : null;
+
+      if (remoteSubscription?.subscribed || remoteSubscription?.plan) {
+        return remoteSubscription;
+      }
+
+      if (storedPlan) {
+        return {
+          subscribed: true,
+          plan: storedPlan,
+          product_id: remoteSubscription?.product_id ?? null,
+          subscription_end: remoteSubscription?.subscription_end ?? null,
+        };
+      }
+
+      if (error || storedSubscriptionError) {
+        console.warn("Subscription fallback used", {
+          remoteError: error?.message ?? null,
+          storedSubscriptionError: storedSubscriptionError?.message ?? null,
+        });
+      }
+
+      return remoteSubscription ?? {
+        subscribed: false,
+        plan: null,
+        product_id: null,
+        subscription_end: null,
+      };
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes — only changes on purchase/cancel
+    staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
