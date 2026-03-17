@@ -13,22 +13,22 @@ interface WhatsNewDropdownProps {
   isCollapsed: boolean;
 }
 
-const inboxItems: Array<{ id: number; title: string; message: string; time: string; unread: boolean; image?: string }> = [
+const inboxItems: Array<{ id: number; title: string; message: string; time: string; unread: boolean; image?: string }> = [];
+
+const updateItems: Array<{ id: number; title: string; message: string; time: string; isNew: boolean; image?: string }> = [
   {
     id: 1,
     title: "Introducing TimeWarp Beta",
     message: "If you've ever been at work and thought \"I wish someone could do my work for me\" — this one's for you!",
     time: "Just now",
-    unread: true,
+    isNew: true,
     image: timewarpBetaImg,
   },
 ];
 
-const updateItems: Array<{ id: number; title: string; message: string; time: string; isNew: boolean }> = [];
-
 export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
-  const [activeTab, setActiveTab] = useState("inbox");
-  const unreadCount = inboxItems.filter(i => i.unread).length + updateItems.filter(i => i.isNew).length;
+  const [activeTab, setActiveTab] = useState("updates");
+  const hasUnread = inboxItems.some(i => i.unread) || updateItems.some(i => i.isNew);
 
   return (
     <DropdownMenu>
@@ -40,10 +40,8 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
         >
           <div className="relative">
             <Inbox className="h-4 w-4 text-primary" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-primary text-[10px] font-medium rounded-full flex items-center justify-center text-primary-foreground">
-                {unreadCount}
-              </span>
+            {hasUnread && (
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-primary rounded-full" />
             )}
           </div>
           {!isCollapsed && <span className="text-sm">What's New</span>}
@@ -60,19 +58,15 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
               <TabsTrigger value="inbox" className="text-xs gap-1.5">
                 <Inbox className="h-3.5 w-3.5" />
                 Inbox
-                {inboxItems.filter(i => i.unread).length > 0 && (
-                  <span className="ml-1 h-4 w-4 bg-primary/20 text-primary text-[10px] rounded-full flex items-center justify-center">
-                    {inboxItems.filter(i => i.unread).length}
-                  </span>
+                {inboxItems.some(i => i.unread) && (
+                  <span className="ml-1 h-2 w-2 bg-primary rounded-full inline-block" />
                 )}
               </TabsTrigger>
               <TabsTrigger value="updates" className="text-xs gap-1.5">
                 <Bell className="h-3.5 w-3.5" />
                 Updates
-                {updateItems.filter(i => i.isNew).length > 0 && (
-                  <span className="ml-1 h-4 w-4 bg-accent/20 text-accent text-[10px] rounded-full flex items-center justify-center">
-                    {updateItems.filter(i => i.isNew).length}
-                  </span>
+                {updateItems.some(i => i.isNew) && (
+                  <span className="ml-1 h-2 w-2 bg-accent rounded-full inline-block" />
                 )}
               </TabsTrigger>
             </TabsList>
@@ -81,6 +75,9 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
           <TabsContent value="inbox" className="m-0">
             <ScrollArea className="h-80">
               <div className="p-2 space-y-1">
+                {inboxItems.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-8">No messages yet</p>
+                )}
                 {inboxItems.map((item) => (
                   <button
                     key={item.id}
@@ -88,13 +85,6 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
                       item.unread ? 'bg-primary/5' : ''
                     }`}
                   >
-                    {item.image && (
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-full h-32 object-cover rounded-md mb-2"
-                      />
-                    )}
                     <div className="flex items-start gap-2">
                       {item.unread && (
                         <span className="h-2 w-2 bg-primary rounded-full mt-1.5 flex-shrink-0" />
@@ -112,7 +102,7 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
           </TabsContent>
 
           <TabsContent value="updates" className="m-0">
-            <ScrollArea className="h-64">
+            <ScrollArea className="h-80">
               <div className="p-2 space-y-1">
                 {updateItems.map((item) => (
                   <button
@@ -121,13 +111,20 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
                       item.isNew ? 'bg-accent/5' : ''
                     }`}
                   >
+                    {item.image && (
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-full h-32 object-cover rounded-md mb-2"
+                      />
+                    )}
                     <div className="flex items-start gap-2">
                       {item.isNew && (
                         <span className="h-2 w-2 bg-accent rounded-full mt-1.5 flex-shrink-0" />
                       )}
                       <div className={item.isNew ? '' : 'pl-4'}>
                         <p className="text-sm font-medium">{item.title}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{item.message}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-3">{item.message}</p>
                         <p className="text-[10px] text-muted-foreground/60 mt-1">{item.time}</p>
                       </div>
                     </div>

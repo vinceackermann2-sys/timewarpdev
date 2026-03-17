@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Crown, Clock, Flame, Loader2 } from "lucide-react";
+import { Crown, Clock, Flame, Loader2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,6 +11,14 @@ interface UpgradeGateDialogProps {
 }
 
 const TW_OG_MONTHLY_PRICE_ID = "price_1T7WkLGKbzbe9CQLd7zjQtl7";
+
+const BENEFITS = [
+  "Unlimited Actions",
+  "AI Employees",
+  "Data Conversion",
+  "Priority Support",
+  "Dev Line Access",
+];
 
 export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -39,14 +47,13 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden border-0">
+      <DialogContent className="max-w-lg p-0 overflow-hidden border-0">
         {/* Header with gradient */}
-        <div className="relative px-6 pt-8 pb-6 text-center"
+        <div className="relative px-8 pt-10 pb-8 text-center"
           style={{
             background: "linear-gradient(135deg, #05070f 0%, #0d1528 50%, #0a1020 100%)",
           }}
         >
-          {/* Glow */}
           <div className="absolute inset-0 opacity-30" style={{
             background: "radial-gradient(circle at 50% 0%, rgba(251,191,36,0.2) 0%, transparent 70%)",
           }} />
@@ -63,27 +70,40 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
               Exclusive Early Access
             </div>
 
-            <h2 className="text-2xl font-black text-white mb-2" style={{ letterSpacing: "-0.03em" }}>
+            <h2 className="text-3xl font-black text-white mb-3" style={{ letterSpacing: "-0.03em" }}>
               TimeWarp <span style={{ color: "#fbbf24" }}>OG</span>
             </h2>
-            <p className="text-sm text-slate-400 max-w-xs mx-auto">
+            <p className="text-sm text-slate-400 max-w-sm mx-auto">
               Get unlimited actions, employees, data conversion, and priority support.
             </p>
           </div>
         </div>
 
         {/* Body */}
-        <div className="px-6 pb-6 pt-4 space-y-4">
+        <div className="px-8 pb-8 pt-5 space-y-5">
           {/* Spots badge */}
           <div className="flex items-center justify-center gap-2 text-sm font-semibold" style={{ color: "#ef4444" }}>
             <Flame className="h-4 w-4" />
             Only 23 spots left
           </div>
 
+          {/* Benefits list */}
+          <div className="space-y-2.5">
+            {BENEFITS.map((benefit) => (
+              <div key={benefit} className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-5 w-5 rounded-full flex-shrink-0"
+                  style={{ background: "rgba(251,191,36,0.15)" }}
+                >
+                  <Check className="h-3 w-3" style={{ color: "#fbbf24" }} />
+                </div>
+                <span className="text-sm text-foreground">{benefit}</span>
+              </div>
+            ))}
+          </div>
+
           {/* Price */}
-          <div className="text-center">
+          <div className="text-center pt-1">
             <div className="text-3xl font-black text-foreground">$999<span className="text-base font-normal text-muted-foreground">/mo</span></div>
-            <p className="text-xs text-muted-foreground mt-1">Billed annually · Locked in forever</p>
           </div>
 
           {/* Deadline */}
@@ -94,7 +114,7 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
 
           {/* CTA */}
           <Button
-            className="w-full h-11 text-sm font-bold"
+            className="w-full h-12 text-sm font-bold"
             style={{
               background: "linear-gradient(135deg, #f59e0b, #d97706)",
               color: "#000",
