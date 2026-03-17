@@ -380,7 +380,7 @@ function WorkspaceFooter() {
             <div className="space-y-2">
               <h4 className="font-semibold text-foreground" style={{ fontSize: 16 }}>Product</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors" style={{ fontSize: 14 }}>Pricing</Link></li>
+                <li><Link to="/" className="text-muted-foreground hover:text-foreground transition-colors" style={{ fontSize: 14 }}>AI-CEO</Link></li>
               </ul>
             </div>
             <div className="space-y-2">
