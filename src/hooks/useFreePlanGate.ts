@@ -11,7 +11,7 @@ export function useFreePlanGate() {
   const isFreeUser = isLoading ? null : (!hasActivePlan && !plan);
 
   const openGate = useCallback(() => {
-    if (!isFreeUser) return; // extra safety: never open for paid users
+    if (isFreeUser === false) return; // extra safety: never open for paid users
     setShowGate(true);
   }, [isFreeUser]);
   const closeGate = useCallback(() => setShowGate(false), []);
