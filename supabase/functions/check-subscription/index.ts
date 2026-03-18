@@ -89,7 +89,14 @@ serve(async (req) => {
     let subscriptionEnd = null;
 
     if (activeSubscription) {
-      subscriptionEnd = new Date(activeSubscription.current_period_end * 1000).toISOString();
+      try {
+        const endTs = activeSubscription.current_period_end;
+        if (endTs && typeof endTs === "number" && endTs > 0) {
+          subscriptionEnd = new Date(endTs * 1000).toISOString();
+        }
+      } catch (_) {
+        console.warn("Failed to parse subscription end date");
+      }
       productId = activeSubscription.items.data[0]?.price.product as string | null;
       plan = (productId ? PRODUCT_TO_PLAN[productId] : null) || fallbackPlan;
     }

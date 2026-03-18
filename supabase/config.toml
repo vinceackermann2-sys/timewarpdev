@@ -29,3 +29,17 @@ project_id = "ohvxqlxugqlzzbmfypiy"
     verify_jwt = false
   [functions.extension-agent]
     verify_jwt = false
+  [functions.create-checkout]
+    verify_jwt = false
+  [functions.check-subscription]
+    verify_jwt = false
+  [functions.customer-portal]
+    verify_jwt = false
+  [functions.create-action-purchase]
+    verify_jwt = false
+  [functions.create-referral]
+    verify_jwt = false
+  [functions.run-employee]
+    verify_jwt = false
+  [functions.categorize-dna]
+    verify_jwt = false
