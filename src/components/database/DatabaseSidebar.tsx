@@ -134,7 +134,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   <SidebarMenuButton 
                     isActive={currentView === "dataconversion"}
                     onClick={() => {
-                      if (isFreeUser === true) { openGate(); return; }
+                      if (isFreeUser === true || isFreeUser === null) { openGate(); return; }
                       onViewChange("dataconversion");
                     }}
                     tooltip="Data Conversion"
@@ -159,7 +159,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   <SidebarMenuButton 
                     isActive={currentView === "employees"}
                     onClick={() => {
-                      if (isFreeUser === true) { openGate(); return; }
+                      if (isFreeUser === true || isFreeUser === null) { openGate(); return; }
                       onViewChange("employees");
                     }}
                     tooltip="Employees"
