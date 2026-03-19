@@ -6,6 +6,45 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const htmlToText = (html: string) =>
+  html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const extractTitleFromHtml = (html: string) => {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return match?.[1]?.replace(/\s+/g, " ").trim() || "";
+};
+
+const fetchPageFallback = async (targetUrl: string) => {
+  const response = await fetch(targetUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0; +https://timewarpdev.com)",
+      Accept: "text/html,application/xhtml+xml",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Direct fetch failed with status ${response.status}`);
+  }
+
+  const html = await response.text();
+  return {
+    markdown: htmlToText(html),
+    metadata: {
+      title: extractTitleFromHtml(html),
+      sourceURL: targetUrl,
+      statusCode: response.status,
+    },
+  };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
