@@ -25,6 +25,17 @@ serve(async (req) => {
     const returnPath = state.returnPath || "/";
     if (!userId) throw new Error("No userId in state");
 
+    // Verify HMAC nonce to prevent state forgery
+    if (!state.nonce || !state.hmac) throw new Error("Missing CSRF nonce");
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw", encoder.encode(SUPABASE_SERVICE_ROLE_KEY),
+      { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+    );
+    const sigBuf = await crypto.subtle.sign("HMAC", key, encoder.encode(state.nonce + userId));
+    const expectedHmac = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    if (expectedHmac !== state.hmac) throw new Error("Invalid CSRF nonce");
+
     // Exchange code for tokens
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
