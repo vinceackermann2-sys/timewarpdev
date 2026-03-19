@@ -159,7 +159,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   <SidebarMenuButton 
                     isActive={currentView === "employees"}
                     onClick={() => {
-                      if (isFreeUser === true || isFreeUser === null) { openGate(); return; }
+                      if (shouldBlock()) { openGate(); return; }
                       onViewChange("employees");
                     }}
                     tooltip="Employees"
