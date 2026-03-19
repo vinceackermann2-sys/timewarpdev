@@ -36,6 +36,23 @@ serve(async (req) => {
 
     if (empError || !employee) throw new Error("Employee not found");
 
+    // Verify ownership or workspace membership
+    const isOwner = employee.user_id === user.id;
+    let isMember = false;
+    if (!isOwner && employee.workspace_id) {
+      const { data: memberCheck } = await supabase.rpc("is_workspace_member", {
+        _user_id: user.id,
+        _workspace_id: employee.workspace_id,
+      });
+      isMember = !!memberCheck;
+    }
+    if (!isOwner && !isMember) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Increment action usage
     const { data: usageResult } = await supabase.rpc("increment_actions_used", { _user_id: user.id });
     if (usageResult && !usageResult.allowed) {
