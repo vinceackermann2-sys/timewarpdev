@@ -6,6 +6,45 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const htmlToText = (html: string) =>
+  html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const extractTitleFromHtml = (html: string) => {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return match?.[1]?.replace(/\s+/g, " ").trim() || "";
+};
+
+const fetchPageFallback = async (targetUrl: string) => {
+  const response = await fetch(targetUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0; +https://timewarpdev.com)",
+      Accept: "text/html,application/xhtml+xml",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Direct fetch failed with status ${response.status}`);
+  }
+
+  const html = await response.text();
+  return {
+    markdown: htmlToText(html),
+    metadata: {
+      title: extractTitleFromHtml(html),
+      sourceURL: targetUrl,
+      statusCode: response.status,
+    },
+  };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -52,6 +91,9 @@ serve(async (req) => {
     console.log("Scraping URL:", formattedUrl, "Base URL:", baseUrl);
 
     // Step 1: Scrape with Firecrawl (desktop + branding) — use BASE URL for screenshots
+    let scrapeData: any = null;
+    let usedDirectFallback = false;
+
     const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: {
@@ -65,10 +107,10 @@ serve(async (req) => {
       }),
     });
 
-    let scrapeData = await scrapeResponse.json();
-    if (!scrapeResponse.ok) {
+    if (scrapeResponse.ok) {
+      scrapeData = await scrapeResponse.json();
+    } else {
       console.warn("Firecrawl scrape failed: status", scrapeResponse.status, "- retrying with lighter formats (no screenshot)");
-      // Retry without screenshot — it's the heaviest format and often causes 408 timeouts
       const retryResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: {
@@ -81,21 +123,39 @@ serve(async (req) => {
           onlyMainContent: false,
         }),
       });
-      scrapeData = await retryResponse.json();
-      if (!retryResponse.ok) {
+
+      if (retryResponse.ok) {
+        scrapeData = await retryResponse.json();
+        console.log("Retry succeeded without screenshot");
+      } else {
         console.error("Firecrawl retry also failed: status", retryResponse.status);
-        return new Response(
-          JSON.stringify({ success: false, error: `Scraping failed (status ${retryResponse.status}). The site may be blocking scrapers or timing out. Try a more specific product URL.` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        try {
+          const fallbackPage = await fetchPageFallback(formattedUrl);
+          usedDirectFallback = true;
+          scrapeData = {
+            data: {
+              markdown: fallbackPage.markdown,
+              metadata: fallbackPage.metadata,
+              branding: null,
+              screenshot: null,
+              links: [],
+            },
+          };
+          console.log("Falling back to direct HTML fetch for extraction");
+        } catch (fallbackError) {
+          console.error("Direct fetch fallback also failed:", fallbackError);
+          return new Response(
+            JSON.stringify({ success: false, error: `Scraping failed for ${formattedUrl}. The site may be blocking automated requests or timing out.` }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
-      console.log("Retry succeeded without screenshot");
     }
 
     // Also scrape the product page for content extraction
     let productMarkdown = "";
     let productMetadata: any = {};
-    if (baseUrl !== formattedUrl) {
+    if (!usedDirectFallback && baseUrl !== formattedUrl) {
       try {
         const productScrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
@@ -113,6 +173,10 @@ serve(async (req) => {
           const pd = await productScrapeRes.json();
           productMarkdown = pd.data?.markdown || pd.markdown || "";
           productMetadata = pd.data?.metadata || pd.metadata || {};
+        } else {
+          const fallbackPage = await fetchPageFallback(formattedUrl);
+          productMarkdown = fallbackPage.markdown;
+          productMetadata = fallbackPage.metadata;
         }
       } catch (e) {
         console.warn("Product page scrape failed (non-fatal):", e);

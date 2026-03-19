@@ -56,8 +56,6 @@ import { SettingsDialog } from "./SettingsDialog";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
-import { UpgradeGateDialog } from "./UpgradeGateDialog";
-import { useFreePlanGate } from "@/hooks/useFreePlanGate";
 
 type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
 
@@ -85,7 +83,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
-  const { shouldBlock, showGate, openGate, closeGate } = useFreePlanGate();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -133,10 +130,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     isActive={currentView === "dataconversion"}
-                    onClick={() => {
-                      if (shouldBlock()) { openGate(); return; }
-                      onViewChange("dataconversion");
-                    }}
+                    onClick={() => onViewChange("dataconversion")}
                     tooltip="Data Conversion"
                     className={currentView === "dataconversion" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
                   >
@@ -158,10 +152,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     isActive={currentView === "employees"}
-                    onClick={() => {
-                      if (shouldBlock()) { openGate(); return; }
-                      onViewChange("employees");
-                    }}
+                    onClick={() => onViewChange("employees")}
                     tooltip="Employees"
                     className={currentView === "employees" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
                   >
@@ -292,7 +283,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
         onOpenChange={setWorkspaceOpen}
         userEmail={userEmail}
       />
-      <UpgradeGateDialog open={showGate} onOpenChange={closeGate} />
     </>
   );
 }
