@@ -65,13 +65,31 @@ serve(async (req) => {
       }),
     });
 
-    const scrapeData = await scrapeResponse.json();
+    let scrapeData = await scrapeResponse.json();
     if (!scrapeResponse.ok) {
-      console.error("Firecrawl scrape failed: status", scrapeResponse.status);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to scrape page" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.warn("Firecrawl scrape failed: status", scrapeResponse.status, "- retrying with lighter formats (no screenshot)");
+      // Retry without screenshot — it's the heaviest format and often causes 408 timeouts
+      const retryResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: baseUrl,
+          formats: ["markdown", "links", "branding"],
+          onlyMainContent: false,
+        }),
+      });
+      scrapeData = await retryResponse.json();
+      if (!retryResponse.ok) {
+        console.error("Firecrawl retry also failed: status", retryResponse.status);
+        return new Response(
+          JSON.stringify({ success: false, error: `Scraping failed (status ${retryResponse.status}). The site may be blocking scrapers or timing out. Try a more specific product URL.` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.log("Retry succeeded without screenshot");
     }
 
     // Also scrape the product page for content extraction

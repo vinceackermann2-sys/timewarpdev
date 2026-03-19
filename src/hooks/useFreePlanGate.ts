@@ -10,11 +10,17 @@ export function useFreePlanGate() {
   // While loading, treat as potentially free to prevent bypassing the gate.
   const isFreeUser = isLoading ? null : (!hasActivePlan && !plan);
 
+  /** Returns true if the user should be blocked (free or still loading). */
+  const shouldBlock = useCallback((): boolean => {
+    // Block if still loading (fail-safe) or confirmed free
+    return isFreeUser === null || isFreeUser === true;
+  }, [isFreeUser]);
+
   const openGate = useCallback(() => {
     if (isFreeUser === false) return; // extra safety: never open for paid users
     setShowGate(true);
   }, [isFreeUser]);
   const closeGate = useCallback(() => setShowGate(false), []);
 
-  return { isFreeUser, showGate, openGate, closeGate };
+  return { isFreeUser, shouldBlock, showGate, openGate, closeGate };
 }

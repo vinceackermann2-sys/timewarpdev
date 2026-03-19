@@ -123,7 +123,16 @@ export function BrandingEditor({
 
   const handleExtract = async () => {
     if (!extractUrl.trim()) return;
-    if (!checkCanUseAction()) return;
+    // Allow free users' first business without action check
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { count } = await supabase
+        .from("user_business_data")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session.user.id);
+      const isFirstBusiness = !count || count === 0;
+      if (!isFirstBusiness && !checkCanUseAction()) return;
+    }
     setIsExtracting(true);
     try {
       const { data, error } = await supabase.functions.invoke("scrape-product", {
