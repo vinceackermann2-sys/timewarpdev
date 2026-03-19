@@ -168,9 +168,14 @@ const Database = () => {
           <MobileHeader />
           <main className="flex-1 overflow-hidden">
             {currentView === "dataconversion" && user && (
-              <BusinessDNAProvider>
-                <DataConversionView />
-              </BusinessDNAProvider>
+              <RestrictedFeatureGate
+                featureName="Data Conversion"
+                description="Free users can open this section from the menu, but using Data Conversion requires TimeWarp OG."
+              >
+                <BusinessDNAProvider>
+                  <DataConversionView />
+                </BusinessDNAProvider>
+              </RestrictedFeatureGate>
             )}
             {currentView === "aiceo" && user && (
               <TimeWarpAIView 
@@ -203,7 +208,12 @@ const Database = () => {
               </BusinessDNAProvider>
             )}
             {currentView === "employees" && user && (
-              <EmployeesView />
+              <RestrictedFeatureGate
+                featureName="Employees"
+                description="Free users can browse here from the menu, but creating and using AI Employees requires TimeWarp OG."
+              >
+                <EmployeesView />
+              </RestrictedFeatureGate>
             )}
           </main>
       </SidebarInset>

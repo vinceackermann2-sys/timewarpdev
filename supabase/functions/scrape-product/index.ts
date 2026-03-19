@@ -155,7 +155,7 @@ serve(async (req) => {
     // Also scrape the product page for content extraction
     let productMarkdown = "";
     let productMetadata: any = {};
-    if (baseUrl !== formattedUrl) {
+    if (!usedDirectFallback && baseUrl !== formattedUrl) {
       try {
         const productScrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
@@ -173,6 +173,10 @@ serve(async (req) => {
           const pd = await productScrapeRes.json();
           productMarkdown = pd.data?.markdown || pd.markdown || "";
           productMetadata = pd.data?.metadata || pd.metadata || {};
+        } else {
+          const fallbackPage = await fetchPageFallback(formattedUrl);
+          productMarkdown = fallbackPage.markdown;
+          productMetadata = fallbackPage.metadata;
         }
       } catch (e) {
         console.warn("Product page scrape failed (non-fatal):", e);

@@ -283,7 +283,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
         onOpenChange={setWorkspaceOpen}
         userEmail={userEmail}
       />
-      <UpgradeGateDialog open={showGate} onOpenChange={closeGate} />
     </>
   );
 }
