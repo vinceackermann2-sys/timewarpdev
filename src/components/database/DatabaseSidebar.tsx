@@ -130,10 +130,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     isActive={currentView === "dataconversion"}
-                    onClick={() => {
-                      if (shouldBlock()) { openGate(); return; }
-                      onViewChange("dataconversion");
-                    }}
+                    onClick={() => onViewChange("dataconversion")}
                     tooltip="Data Conversion"
                     className={currentView === "dataconversion" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
                   >
@@ -155,10 +152,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     isActive={currentView === "employees"}
-                    onClick={() => {
-                      if (shouldBlock()) { openGate(); return; }
-                      onViewChange("employees");
-                    }}
+                    onClick={() => onViewChange("employees")}
                     tooltip="Employees"
                     className={currentView === "employees" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
                   >
