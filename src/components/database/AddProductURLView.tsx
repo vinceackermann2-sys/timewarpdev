@@ -55,7 +55,16 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
 
   const handleContinue = async () => {
     if (!url.trim()) return;
-    if (!checkCanUseAction()) return;
+    // Allow free users' first business without action check
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { count } = await supabase
+        .from("user_business_data")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session.user.id);
+      const isFirstBusiness = !count || count === 0;
+      if (!isFirstBusiness && !checkCanUseAction()) return;
+    }
     setIsLoading(true);
     setStatus("Scraping product page...");
 
