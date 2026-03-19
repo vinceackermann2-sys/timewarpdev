@@ -72,13 +72,32 @@ serve(async (req) => {
       const origin = body.origin || "";
       let authUrl = "";
 
+      // Generate HMAC nonce to prevent CSRF / state forgery
+      const nonce = crypto.randomUUID();
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(SUPABASE_SERVICE_ROLE_KEY),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
+      );
+      const signatureBuffer = await crypto.subtle.sign(
+        "HMAC",
+        key,
+        encoder.encode(nonce + user.id),
+      );
+      const hmac = Array.from(new Uint8Array(signatureBuffer))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+
       switch (provider) {
         case "microsoft": {
           const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
           if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
           const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read";
-          const state = btoa(JSON.stringify({ userId: user.id, returnPath, origin }));
+          const state = btoa(JSON.stringify({ userId: user.id, returnPath, origin, nonce, hmac }));
           authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&response_mode=query`;
           break;
         }
@@ -87,7 +106,7 @@ serve(async (req) => {
           if (!clientId) throw new Error("GOOGLE_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/google-oauth-callback`;
           const scopes = "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly";
-          const state = btoa(JSON.stringify({ userId: user.id, returnPath }));
+          const state = btoa(JSON.stringify({ userId: user.id, returnPath, nonce, hmac }));
           authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&access_type=offline&prompt=consent`;
           break;
         }
@@ -96,7 +115,7 @@ serve(async (req) => {
           if (!clientId) throw new Error("SLACK_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/slack-oauth-callback`;
           const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read";
-          const state = btoa(JSON.stringify({ userId: user.id, returnPath }));
+          const state = btoa(JSON.stringify({ userId: user.id, returnPath, nonce, hmac }));
           authUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
           break;
         }
