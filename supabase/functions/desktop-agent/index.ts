@@ -41,7 +41,7 @@ serve(async (req) => {
     // Consume one action
     const { data: allowed, error: actionError } = await supabaseClient.rpc(
       "decrement_action",
-      { p_user_id: userId }
+      { user_id: userId }
     );
 
     if (actionError) {

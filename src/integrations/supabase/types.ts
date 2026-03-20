@@ -561,7 +561,7 @@ export type Database = {
         Args: { _referral_code: string; _referred_user_id: string }
         Returns: Json
       }
-      decrement_action: { Args: { p_user_id: string }; Returns: boolean }
+      decrement_action: { Args: { user_id: string }; Returns: boolean }
       decrement_og_spots: { Args: never; Returns: undefined }
       get_user_plan: {
         Args: { _user_id: string }
