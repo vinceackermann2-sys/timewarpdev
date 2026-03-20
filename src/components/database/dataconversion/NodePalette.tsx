@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
-import { useWorkspace } from "@/hooks/useWorkspace";
 import { nodeIconMap, type NodeItem } from "./types";
 
 const quickAccessNodes: NodeItem[] = [
