@@ -79,30 +79,21 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const [producedFiles, setProducedFiles] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
 
-  // Helper to split double-newline joined fields
-  const splitField = (val: string | null, index: number) => {
-    if (!val) return "";
-    const parts = val.split("\n\n");
-    return parts[index] || "";
-  };
-
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(employee.name);
   const [editRole, setEditRole] = useState(employee.role);
   const [editSopTitle, setEditSopTitle] = useState(employee.sop_title || "");
-  const [editPurposeWhy, setEditPurposeWhy] = useState(splitField(employee.sop_purpose, 0));
-  const [editPurposeProblem, setEditPurposeProblem] = useState(splitField(employee.sop_purpose, 1));
-  const [editScopeWhere, setEditScopeWhere] = useState(splitField(employee.sop_scope, 0));
-  const [editScopeWhen, setEditScopeWhen] = useState(splitField(employee.sop_scope, 1));
-  const [editDefinitions, setEditDefinitions] = useState<{ term: string; meaning: string }[]>(
-    Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []
-  );
+  const [editPurposeWhy, setEditPurposeWhy] = useState(employee.sop_purpose || "");
   const [editProcedure, setEditProcedure] = useState<string[]>(
     Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []
   );
-  const [editSafetyWarnings, setEditSafetyWarnings] = useState(splitField(employee.sop_safety_notes, 0));
-  const [editSafetyRisks, setEditSafetyRisks] = useState(splitField(employee.sop_safety_notes, 1));
+  const [editSafetyWarnings, setEditSafetyWarnings] = useState(
+    employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[0] || "" : ""
+  );
+  const [editSafetyRisks, setEditSafetyRisks] = useState(
+    employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[1] || "" : ""
+  );
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => { loadLogs(); loadProducedFiles(); }, [employee.id]);
@@ -151,20 +142,14 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
     setEditName(employee.name);
     setEditRole(employee.role);
     setEditSopTitle(employee.sop_title || "");
-    setEditPurposeWhy(splitField(employee.sop_purpose, 0));
-    setEditPurposeProblem(splitField(employee.sop_purpose, 1));
-    setEditScopeWhere(splitField(employee.sop_scope, 0));
-    setEditScopeWhen(splitField(employee.sop_scope, 1));
-    setEditDefinitions(Array.isArray(employee.sop_definitions) ? employee.sop_definitions.map((d: any) => ({ term: d.term || "", meaning: d.meaning || "" })) : []);
+    setEditPurposeWhy(employee.sop_purpose || "");
     setEditProcedure(Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []);
-    setEditSafetyWarnings(splitField(employee.sop_safety_notes, 0));
-    setEditSafetyRisks(splitField(employee.sop_safety_notes, 1));
+    setEditSafetyWarnings(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[0] || "" : "");
+    setEditSafetyRisks(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[1] || "" : "");
   };
 
   const handleSaveEdit = async () => {
     setSavingEdit(true);
-    const joinedPurpose = [editPurposeWhy.trim(), editPurposeProblem.trim()].filter(Boolean).join("\n\n") || null;
-    const joinedScope = [editScopeWhere.trim(), editScopeWhen.trim()].filter(Boolean).join("\n\n") || null;
     const joinedSafety = [editSafetyWarnings.trim(), editSafetyRisks.trim()].filter(Boolean).join("\n\n") || null;
     const { error } = await supabase
       .from("ai_employees" as any)
@@ -172,9 +157,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         name: editName.trim(),
         role: editRole.trim(),
         sop_title: editSopTitle.trim() || null,
-        sop_purpose: joinedPurpose,
-        sop_scope: joinedScope,
-        sop_definitions: editDefinitions.filter(d => d.term.trim()),
+        sop_purpose: editPurposeWhy.trim() || null,
         sop_procedure: editProcedure.filter(p => p.trim()),
         sop_safety_notes: joinedSafety,
         updated_at: new Date().toISOString(),
@@ -189,9 +172,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         name: editName.trim(),
         role: editRole.trim(),
         sop_title: editSopTitle.trim() || null,
-        sop_purpose: joinedPurpose,
-        sop_scope: joinedScope,
-        sop_definitions: editDefinitions.filter(d => d.term.trim()),
+        sop_purpose: editPurposeWhy.trim() || null,
         sop_procedure: editProcedure.filter(p => p.trim()),
         sop_safety_notes: joinedSafety,
       }));
@@ -634,32 +615,6 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 <Input value={editPurposeWhy} onChange={e => setEditPurposeWhy(e.target.value)} placeholder="e.g. To gather data-backed product research" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">What problem does it solve?</Label>
-                <Input value={editPurposeProblem} onChange={e => setEditPurposeProblem(e.target.value)} placeholder="e.g. Manual researching takes time" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Where does this procedure apply?</Label>
-                <Input value={editScopeWhere} onChange={e => setEditScopeWhere(e.target.value)} placeholder="e.g. Online" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">When does this procedure apply?</Label>
-                <Input value={editScopeWhen} onChange={e => setEditScopeWhen(e.target.value)} placeholder="e.g. During product confusion" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Definitions</Label>
-                <p className="text-xs text-muted-foreground">Technical terms or abbreviations used (optional).</p>
-                {editDefinitions.map((d, i) => (
-                  <div key={i} className="flex gap-2">
-                    <Input value={d.term} onChange={e => { const c = [...editDefinitions]; c[i] = { ...c[i], term: e.target.value }; setEditDefinitions(c); }} placeholder="Term" className="w-1/3" />
-                    <Input value={d.meaning} onChange={e => { const c = [...editDefinitions]; c[i] = { ...c[i], meaning: e.target.value }; setEditDefinitions(c); }} placeholder="Meaning" className="flex-1" />
-                    <Button variant="ghost" size="icon" onClick={() => setEditDefinitions(editDefinitions.filter((_, j) => j !== i))}><X className="h-3 w-3" /></Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => setEditDefinitions([...editDefinitions, { term: "", meaning: "" }])} className="gap-1">
-                  <Plus className="h-3 w-3" /> Add Definition
-                </Button>
-              </div>
-              <div className="space-y-2">
                 <Label className="text-sm font-medium">What are the step-by-step instructions?</Label>
                 <p className="text-xs text-muted-foreground">The core procedure this employee will follow, in order.</p>
                 {editProcedure.map((p, i) => (
@@ -685,30 +640,13 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
               </div>
             </div>
           ) : (
-            /* View Mode — one field per question, matching wizard */
+            /* View Mode — matching wizard fields only */
             <div className="space-y-6">
               <Section title="SOP Title">
                 <p className="font-medium">{employee.sop_title || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
               <Section title="Why does this procedure exist?">
-                <p>{splitField(employee.sop_purpose, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
-              </Section>
-              <Section title="What problem does it solve?">
-                <p>{splitField(employee.sop_purpose, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
-              </Section>
-              <Section title="Where does this procedure apply?">
-                <p>{splitField(employee.sop_scope, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
-              </Section>
-              <Section title="When does this procedure apply?">
-                <p>{splitField(employee.sop_scope, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
-              </Section>
-              <Section title="Definitions">
-                {employee.sop_definitions && employee.sop_definitions.length > 0
-                  ? renderList(employee.sop_definitions, (d) => (
-                      <span><strong>{d.term}:</strong> {d.meaning}</span>
-                    ))
-                  : <p className="text-muted-foreground italic">None</p>
-                }
+                <p>{employee.sop_purpose || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
               <Section title="Procedure">
                 {employee.sop_procedure && employee.sop_procedure.length > 0
@@ -717,10 +655,10 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 }
               </Section>
               <Section title="Safety warnings or regulations">
-                <p>{splitField(employee.sop_safety_notes, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+                <p>{(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[0] : "") || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
               <Section title="Risk considerations">
-                <p>{splitField(employee.sop_safety_notes, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+                <p>{(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[1] : "") || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
 
               {employee.sop_revision_history && employee.sop_revision_history.length > 0 && (
