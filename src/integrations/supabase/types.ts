@@ -365,6 +365,7 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          actions: number
           actions_used: number
           billing_period: Database["public"]["Enums"]["billing_period"]
           bonus_actions: number
@@ -377,6 +378,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          actions?: number
           actions_used?: number
           billing_period?: Database["public"]["Enums"]["billing_period"]
           bonus_actions?: number
@@ -389,6 +391,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actions?: number
           actions_used?: number
           billing_period?: Database["public"]["Enums"]["billing_period"]
           bonus_actions?: number
