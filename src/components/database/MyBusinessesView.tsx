@@ -31,10 +31,6 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
   const { isFreeUser, showGate, openGate, closeGate } = useFreePlanGate();
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
-  const [wsSearch, setWsSearch] = useState("");
-  const [wsPopoverOpen, setWsPopoverOpen] = useState(false);
-  const [showNewWsInput, setShowNewWsInput] = useState(false);
-  const [newWsName, setNewWsName] = useState("");
   const { brands, setBrands, products, setProducts, audiences, setAudiences, deleteBrand, isLoading: dnaLoading } = useBusinessDNA();
   const {
     workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace, createWorkspace,
