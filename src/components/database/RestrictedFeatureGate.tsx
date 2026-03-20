@@ -14,7 +14,8 @@ export function RestrictedFeatureGate({ featureName, description, children }: Re
   const { hasActivePlan, isLoading, plan } = useSubscription();
   const [showGate, setShowGate] = useState(false);
 
-  const isFreeUser = !hasActivePlan && !plan;
+  // Only compute after loading finishes to avoid false positives
+  const isFreeUser = !isLoading && !hasActivePlan && !plan;
 
   useEffect(() => {
     if (isFreeUser) {

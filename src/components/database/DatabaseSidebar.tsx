@@ -23,32 +23,32 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Database, 
-  FileText,
   RefreshCw, 
   Bot,
   LogOut,
   Dna,
-  PanelLeftClose,
   PanelLeft,
-  Sparkles,
   Settings,
   MessageSquare,
-  Users,
   ChevronsUpDown,
   User,
-  Inbox,
-  Bell,
   Sun,
   Moon,
   Monitor,
   Palette,
   CreditCard,
-  Check
+  Check,
+  Search,
+  Plus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { WhatsNewDropdown } from "./WhatsNewDropdown";
@@ -56,6 +56,7 @@ import { SettingsDialog } from "./SettingsDialog";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
 
@@ -71,6 +72,14 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
   const { state, toggleSidebar, setOpen } = useSidebar();
   const isCollapsed = state === "collapsed";
   const { theme, setTheme } = useTheme();
+
+  const {
+    workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace, createWorkspace,
+  } = useWorkspace();
+  const [wsPopoverOpen, setWsPopoverOpen] = useState(false);
+  const [wsSearch, setWsSearch] = useState("");
+  const [showNewWsInput, setShowNewWsInput] = useState(false);
+  const [newWsName, setNewWsName] = useState("");
 
   // Auto-collapse sidebar when in dataconversion view
   useEffect(() => {
@@ -166,12 +175,141 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
         </SidebarContent>
 
         <SidebarFooter className="border-t border-sidebar-border p-2 space-y-2">
+          {/* Workspace Chooser */}
+          {!isCollapsed ? (
+            <Popover open={wsPopoverOpen} onOpenChange={setWsPopoverOpen}>
+              <PopoverTrigger asChild>
+                <button className="w-full rounded-md transition-colors hover:bg-muted/50 p-2 flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-md bg-foreground flex items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-bold text-background">
+                      {(activeWorkspace?.workspaceName || "W").charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-xs font-semibold truncate">{activeWorkspace?.workspaceName || "Workspace"}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {activeWorkspace && activeWorkspace.memberCount > 1 ? "Team" : "Personal"}
+                    </p>
+                  </div>
+                  <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="start" className="w-64 p-0">
+                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Find workspace..."
+                    value={wsSearch}
+                    onChange={(e) => setWsSearch(e.target.value)}
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="py-1.5 max-h-[200px] overflow-y-auto">
+                  {workspaces
+                    .filter(ws => ws.workspaceName.toLowerCase().includes(wsSearch.toLowerCase()))
+                    .map(ws => (
+                      <button
+                        key={ws.workspaceId}
+                        onClick={() => { selectWorkspace(ws.workspaceId); setWsPopoverOpen(false); setWsSearch(""); }}
+                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="h-7 w-7 rounded-md bg-foreground flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-bold text-background">
+                            {ws.workspaceName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-sm font-medium truncate">{ws.workspaceName}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {ws.memberCount > 1 ? "Team workspace" : "Personal workspace"}
+                          </p>
+                        </div>
+                        {ws.workspaceId === activeWorkspaceId && (
+                          <Check className="h-4 w-4 text-foreground shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                </div>
+                <div className="border-t border-border/50 py-1.5">
+                  <button
+                    onClick={() => { setWsPopoverOpen(false); setWorkspaceOpen(true); }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors text-foreground"
+                  >
+                    See all workspaces
+                  </button>
+                  {showNewWsInput ? (
+                    <div className="px-3 py-2 flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Workspace name"
+                        value={newWsName}
+                        onChange={(e) => setNewWsName(e.target.value)}
+                        onKeyDown={async (e) => {
+                          if (e.key === "Enter" && newWsName.trim()) {
+                            const id = await createWorkspace(newWsName.trim());
+                            selectWorkspace(id);
+                            setNewWsName("");
+                            setShowNewWsInput(false);
+                            setWsPopoverOpen(false);
+                          }
+                        }}
+                        autoFocus
+                        className="flex-1 bg-transparent text-sm outline-none border-b border-border pb-0.5 placeholder:text-muted-foreground"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowNewWsInput(true)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors text-foreground flex items-center gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add new workspace
+                    </button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <Popover open={wsPopoverOpen} onOpenChange={setWsPopoverOpen}>
+              <PopoverTrigger asChild>
+                <button className="w-full p-2 flex justify-center" title={activeWorkspace?.workspaceName || "Workspace"}>
+                  <div className="h-7 w-7 rounded-md bg-foreground flex items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-bold text-background">
+                      {(activeWorkspace?.workspaceName || "W").charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" align="end" className="w-64 p-0">
+                <div className="py-1.5 max-h-[200px] overflow-y-auto">
+                  {workspaces.map(ws => (
+                    <button
+                      key={ws.workspaceId}
+                      onClick={() => { selectWorkspace(ws.workspaceId); setWsPopoverOpen(false); }}
+                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="h-7 w-7 rounded-md bg-foreground flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-bold text-background">
+                          {ws.workspaceName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium truncate">{ws.workspaceName}</p>
+                      {ws.workspaceId === activeWorkspaceId && (
+                        <Check className="h-4 w-4 text-foreground shrink-0 ml-auto" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
           {/* Actions Card */}
           <ActionsCard isCollapsed={isCollapsed} />
 
           {/* What's New Section */}
           <WhatsNewDropdown isCollapsed={isCollapsed} />
-
 
           {/* User Dropdown */}
           <DropdownMenu>
@@ -184,7 +322,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   <>
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-medium truncate">{userEmail}</p>
-                      
                     </div>
                     <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
                   </>
@@ -199,7 +336,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">{userEmail}</p>
-                  
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -214,7 +350,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 className="cursor-pointer"
                 onClick={() => {
                   setSettingsOpen(true);
-                  // Open to Plans & Billing tab
                   setTimeout(() => {
                     const event = new CustomEvent('settings-tab', { detail: 'billing' });
                     window.dispatchEvent(event);

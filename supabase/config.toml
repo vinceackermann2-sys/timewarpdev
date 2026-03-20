@@ -43,3 +43,5 @@ project_id = "ohvxqlxugqlzzbmfypiy"
     verify_jwt = false
   [functions.categorize-dna]
     verify_jwt = false
+  [functions.desktop-agent]
+    verify_jwt = false
