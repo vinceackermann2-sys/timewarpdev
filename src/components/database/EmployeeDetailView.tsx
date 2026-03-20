@@ -615,32 +615,6 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 <Input value={editPurposeWhy} onChange={e => setEditPurposeWhy(e.target.value)} placeholder="e.g. To gather data-backed product research" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">What problem does it solve?</Label>
-                <Input value={editPurposeProblem} onChange={e => setEditPurposeProblem(e.target.value)} placeholder="e.g. Manual researching takes time" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Where does this procedure apply?</Label>
-                <Input value={editScopeWhere} onChange={e => setEditScopeWhere(e.target.value)} placeholder="e.g. Online" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">When does this procedure apply?</Label>
-                <Input value={editScopeWhen} onChange={e => setEditScopeWhen(e.target.value)} placeholder="e.g. During product confusion" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Definitions</Label>
-                <p className="text-xs text-muted-foreground">Technical terms or abbreviations used (optional).</p>
-                {editDefinitions.map((d, i) => (
-                  <div key={i} className="flex gap-2">
-                    <Input value={d.term} onChange={e => { const c = [...editDefinitions]; c[i] = { ...c[i], term: e.target.value }; setEditDefinitions(c); }} placeholder="Term" className="w-1/3" />
-                    <Input value={d.meaning} onChange={e => { const c = [...editDefinitions]; c[i] = { ...c[i], meaning: e.target.value }; setEditDefinitions(c); }} placeholder="Meaning" className="flex-1" />
-                    <Button variant="ghost" size="icon" onClick={() => setEditDefinitions(editDefinitions.filter((_, j) => j !== i))}><X className="h-3 w-3" /></Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => setEditDefinitions([...editDefinitions, { term: "", meaning: "" }])} className="gap-1">
-                  <Plus className="h-3 w-3" /> Add Definition
-                </Button>
-              </div>
-              <div className="space-y-2">
                 <Label className="text-sm font-medium">What are the step-by-step instructions?</Label>
                 <p className="text-xs text-muted-foreground">The core procedure this employee will follow, in order.</p>
                 {editProcedure.map((p, i) => (
@@ -666,30 +640,13 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
               </div>
             </div>
           ) : (
-            /* View Mode — one field per question, matching wizard */
+            /* View Mode — matching wizard fields only */
             <div className="space-y-6">
               <Section title="SOP Title">
                 <p className="font-medium">{employee.sop_title || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
               <Section title="Why does this procedure exist?">
-                <p>{splitField(employee.sop_purpose, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
-              </Section>
-              <Section title="What problem does it solve?">
-                <p>{splitField(employee.sop_purpose, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
-              </Section>
-              <Section title="Where does this procedure apply?">
-                <p>{splitField(employee.sop_scope, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
-              </Section>
-              <Section title="When does this procedure apply?">
-                <p>{splitField(employee.sop_scope, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
-              </Section>
-              <Section title="Definitions">
-                {employee.sop_definitions && employee.sop_definitions.length > 0
-                  ? renderList(employee.sop_definitions, (d) => (
-                      <span><strong>{d.term}:</strong> {d.meaning}</span>
-                    ))
-                  : <p className="text-muted-foreground italic">None</p>
-                }
+                <p>{employee.sop_purpose || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
               <Section title="Procedure">
                 {employee.sop_procedure && employee.sop_procedure.length > 0
@@ -698,10 +655,10 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 }
               </Section>
               <Section title="Safety warnings or regulations">
-                <p>{splitField(employee.sop_safety_notes, 0) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+                <p>{(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[0] : "") || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
               <Section title="Risk considerations">
-                <p>{splitField(employee.sop_safety_notes, 1) || <span className="text-muted-foreground italic">Not specified</span>}</p>
+                <p>{(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[1] : "") || <span className="text-muted-foreground italic">Not specified</span>}</p>
               </Section>
 
               {employee.sop_revision_history && employee.sop_revision_history.length > 0 && (
