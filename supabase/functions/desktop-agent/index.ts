@@ -39,21 +39,21 @@ serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     // Consume one action
-    const { data: actionResult, error: actionError } = await supabaseClient.rpc(
-      "increment_actions_used",
-      { _user_id: userId }
+    const { data: allowed, error: actionError } = await supabaseClient.rpc(
+      "decrement_action",
+      { p_user_id: userId }
     );
 
     if (actionError) {
-      console.error("Action increment error:", actionError);
+      console.error("Action decrement error:", actionError);
       return new Response(JSON.stringify({ error: "Failed to consume action" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (actionResult && !actionResult.allowed) {
-      return new Response(JSON.stringify({ error: actionResult.reason || "Action limit reached. Upgrade for more." }), {
+    if (allowed === false) {
+      return new Response(JSON.stringify({ error: "Action limit reached. Upgrade for more." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
