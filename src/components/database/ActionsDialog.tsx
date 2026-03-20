@@ -182,7 +182,10 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                   <SelectContent>
                     {ACTION_PACKS.map((pack) => (
                       <SelectItem key={pack.priceId} value={pack.priceId}>
-                        {pack.label} — {pack.price}
+                        <span className="flex w-full items-center justify-between gap-4">
+                          <span>{pack.label}</span>
+                          <span className="text-muted-foreground">{pack.price}</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
