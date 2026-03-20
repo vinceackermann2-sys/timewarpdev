@@ -11,11 +11,11 @@ interface RestrictedFeatureGateProps {
 }
 
 export function RestrictedFeatureGate({ featureName, description, children }: RestrictedFeatureGateProps) {
-  const { hasActivePlan, isLoading, plan } = useSubscription();
+  const { subscription, isLoading } = useSubscription();
   const [showGate, setShowGate] = useState(false);
 
-  // Only compute after loading finishes to avoid false positives
-  const isFreeUser = !isLoading && !hasActivePlan && !plan;
+  // Only consider paid if Stripe confirms via product_id; auto-created DB rows have product_id=null
+  const isFreeUser = !isLoading && !subscription?.product_id;
 
   useEffect(() => {
     if (isFreeUser) {
