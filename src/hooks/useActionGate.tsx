@@ -33,16 +33,17 @@ export function ActionGateProvider({ children }: { children: ReactNode }) {
       if (!session) return { actions_used: 0, bonus_actions: 0, plan: null as string | null };
       const { data } = await supabase
         .from("user_subscriptions")
-        .select("actions_used, bonus_actions, plan")
+        .select("actions_used, bonus_actions, plan, status")
         .eq("user_id", session.user.id)
         .maybeSingle();
+      const isActive = data?.status && ["active", "trialing", "past_due"].includes(data.status);
       return {
         actions_used: data?.actions_used ?? 0,
         bonus_actions: (data as any)?.bonus_actions ?? 0,
-        plan: (data?.plan as string) ?? null,
+        plan: isActive ? (data?.plan as string) ?? null : null,
       };
     },
-    staleTime: 30 * 60 * 1000, // only changes when an action is used — refreshed manually via refreshUsage()
+    staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
