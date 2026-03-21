@@ -36,6 +36,17 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
   const lastKnownCount = useRef(0);
   const prevWorkspaceId = useRef<string | null>(null);
 
+  // Reload trigger — incremented when brands change in context
+  const [reloadKey, setReloadKey] = useState(0);
+  const brandsRef = useRef(brands);
+  useEffect(() => {
+    // Only trigger reload when brands array actually changes (not on first render)
+    if (brandsRef.current !== brands) {
+      brandsRef.current = brands;
+      setReloadKey(k => k + 1);
+    }
+  }, [brands]);
+
   // Load businesses for the active workspace
   useEffect(() => {
     if (!activeWorkspaceId) {
@@ -44,12 +55,21 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
       return;
     }
 
-    setWsBusinesses([]);
+    // Only clear businesses when workspace changes, not on brand reloads
+    if (prevWorkspaceId.current !== activeWorkspaceId) {
+      setWsBusinesses([]);
+    }
     setLoadingBiz(true);
     prevWorkspaceId.current = activeWorkspaceId;
 
     let cancelled = false;
     async function load() {
+      // Small delay on brand-triggered reloads to let DB write settle
+      if (reloadKey > 0) {
+        await new Promise(r => setTimeout(r, 800));
+      }
+      if (cancelled) return;
+
       const { data, error } = await supabase
         .from("user_business_data")
         .select("id, content, user_id")
@@ -58,6 +78,9 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
         .eq("source", "business-dna");
 
       if (cancelled) return;
+      if (error) {
+        console.error("Failed to load workspace businesses:", error.message);
+      }
       if (!error && data) {
         const parsed = data.map((row) => {
           try {
@@ -71,7 +94,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
     }
     load();
     return () => { cancelled = true; };
-  }, [activeWorkspaceId, brands, wsLoading]);
+  }, [activeWorkspaceId, wsLoading, reloadKey]);
 
   const handleDeleteBusiness = async (e: React.MouseEvent, brandId: string) => {
     e.stopPropagation();
