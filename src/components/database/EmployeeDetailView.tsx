@@ -253,7 +253,8 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const callRunEmployee = async (
     session: any,
     messages: Array<{ role: string; content: string }>,
-    pageContext: any
+    pageContext: any,
+    skipAction = false
   ): Promise<string> => {
     const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`, {
       method: "POST",
@@ -266,6 +267,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         employee_id: employee.id,
         messages,
         pageContext,
+        skip_action: skipAction,
       }),
       signal: abortRef.current?.signal,
     });
