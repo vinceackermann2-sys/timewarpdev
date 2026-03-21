@@ -93,7 +93,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
               className="orb-hero__icon-btn"
               onClick={() => setTheme(isDark ? "light" : "dark")}
             >
-              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+              {isDark ? <Moon size={20} /> : <Sun size={20} />}
             </button>
 
             <Link to="/auth" className="orb-hero__pill-link">
