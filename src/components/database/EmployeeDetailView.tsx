@@ -343,7 +343,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
         setCurrentStep(`Step ${step + 1}: Thinking…`);
         updateOverlay({ visible: true, employeeName: employee.name, currentStep: `Step ${step + 1}: Thinking…`, isPaused: false, isManualMode: false });
         await logStep("running", `Step ${step + 1}`, "Thinking…");
-        const aiResponse = await callRunEmployee(session, conversationHistory, pageContext);
+        const aiResponse = await callRunEmployee(session, conversationHistory, pageContext, step > 0);
 
         conversationHistory.push({ role: "assistant", content: aiResponse });
 
