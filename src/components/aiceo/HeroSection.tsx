@@ -93,7 +93,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
               className="orb-hero__icon-btn"
               onClick={() => setTheme(isDark ? "light" : "dark")}
             >
-              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+              {isDark ? <Moon size={20} /> : <Sun size={20} />}
             </button>
 
             <Link to="/auth" className="orb-hero__pill-link">
@@ -192,27 +192,27 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           --hero-bg-top: 222 47% 6%;
           --hero-bg-mid: 222 47% 10%;
           --hero-bg-bottom: 222 47% 16%;
-          --hero-glow: 216 80% 50%;
-          --hero-sphere-start: 220 30% 22%;
-          --hero-sphere-mid-1: 218 40% 28%;
-          --hero-sphere-mid-2: 216 50% 35%;
-          --hero-sphere-end: 214 60% 42%;
+          --hero-glow: 216 63% 53%;
+          --hero-sphere-start: 220 33% 35%;
+          --hero-sphere-mid-1: 222 56% 35%;
+          --hero-sphere-mid-2: 216 60% 49%;
+          --hero-sphere-end: 220 71% 41%;
           --hero-ink: 210 40% 96%;
           --hero-muted: 215 20% 65%;
           --hero-pill: 220 30% 20%;
           --hero-input-bg: 220 30% 12% / 0.88;
           --hero-input-text: 215 20% 65%;
-          --hero-connector-dim: 220 15% 40% / 0.3;
-          --hero-connector-mid: 220 18% 50% / 0.5;
-          --hero-connector-bright: 216 25% 60% / 0.7;
-          --hero-connector-peak: 216 80% 70%;
+          --hero-connector-dim: 220 33% 47% / 0.3;
+          --hero-connector-mid: 220 33% 55% / 0.5;
+          --hero-connector-bright: 216 50% 60% / 0.7;
+          --hero-connector-peak: 216 63% 53%;
         }
 
         .dark .orb-hero__bg-base {
           background:
-            radial-gradient(ellipse 80% 40% at 50% 0%, hsl(216 80% 50% / 0.15) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 30% at 20% 50%, hsl(216 80% 50% / 0.08) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 30% at 80% 50%, hsl(216 80% 50% / 0.08) 0%, transparent 50%);
+            radial-gradient(ellipse 80% 40% at 50% 0%, hsl(216 63% 53% / 0.15) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 30% at 20% 50%, hsl(216 63% 53% / 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 30% at 80% 50%, hsl(216 63% 53% / 0.08) 0%, transparent 50%);
         }
 
         .dark .orb-hero__icon-btn,
@@ -224,14 +224,14 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         .dark .orb-hero__sphere {
           box-shadow:
-            inset -10px -10px 30px hsl(0 0% 0% / 0.4),
-            inset 10px 10px 30px hsl(216 60% 50% / 0.15),
+            inset -10px -10px 30px hsl(0 0% 0% / 0.3),
+            inset 10px 10px 30px hsl(216 60% 50% / 0.3),
             0 0 120px hsl(var(--hero-glow) / 0.4);
         }
 
         .dark .orb-hero__input {
           background: hsl(var(--hero-input-bg));
-          box-shadow: 0 8px 48px hsl(216 80% 50% / 0.15), 0 2px 10px hsl(0 0% 0% / 0.3);
+          box-shadow: 0 8px 48px hsl(216 63% 53% / 0.15), 0 2px 10px hsl(0 0% 0% / 0.3);
           border: 1px solid hsl(0 0% 100% / 0.08);
         }
 
@@ -249,10 +249,6 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         .dark .orb-hero__grain {
           opacity: 0.15;
-        }
-
-        .dark .orb-hero__logo {
-          filter: brightness(1.5);
         }
 
         .orb-hero__header {
