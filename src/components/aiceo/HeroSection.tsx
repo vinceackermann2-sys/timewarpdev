@@ -169,6 +169,12 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           --hero-accent: 208 100% 60%;
           --hero-accent-strong: 211 78% 47%;
           --hero-pill: 0 0% 100%;
+          --hero-input-bg: 0 0% 100% / 0.84;
+          --hero-input-text: 215 17% 43%;
+          --hero-connector-dim: 240 10% 75% / 0.3;
+          --hero-connector-mid: 240 12% 82% / 0.6;
+          --hero-connector-bright: 240 15% 90% / 0.9;
+          --hero-connector-peak: 0 0% 100%;
           position: relative;
           width: 100%;
           height: 100vh;
@@ -179,6 +185,74 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           justify-content: flex-start;
           background: linear-gradient(180deg, hsl(var(--hero-bg-top)) 0%, hsl(var(--hero-bg-mid)) 45%, hsl(var(--hero-bg-bottom)) 100%);
           font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* ── Dark mode overrides ── */
+        .dark .orb-hero {
+          --hero-bg-top: 222 47% 6%;
+          --hero-bg-mid: 222 47% 10%;
+          --hero-bg-bottom: 222 47% 16%;
+          --hero-glow: 216 80% 50%;
+          --hero-sphere-start: 220 30% 22%;
+          --hero-sphere-mid-1: 218 40% 28%;
+          --hero-sphere-mid-2: 216 50% 35%;
+          --hero-sphere-end: 214 60% 42%;
+          --hero-ink: 210 40% 96%;
+          --hero-muted: 215 20% 65%;
+          --hero-pill: 220 30% 20%;
+          --hero-input-bg: 220 30% 12% / 0.88;
+          --hero-input-text: 215 20% 65%;
+          --hero-connector-dim: 220 15% 40% / 0.3;
+          --hero-connector-mid: 220 18% 50% / 0.5;
+          --hero-connector-bright: 216 25% 60% / 0.7;
+          --hero-connector-peak: 216 80% 70%;
+        }
+
+        .dark .orb-hero__bg-base {
+          background:
+            radial-gradient(ellipse 80% 40% at 50% 0%, hsl(216 80% 50% / 0.15) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 30% at 20% 50%, hsl(216 80% 50% / 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 30% at 80% 50%, hsl(216 80% 50% / 0.08) 0%, transparent 50%);
+        }
+
+        .dark .orb-hero__icon-btn,
+        .dark .orb-hero__pill-link {
+          color: hsl(var(--hero-ink));
+          background: hsl(var(--hero-pill) / 0.6);
+          box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.08);
+        }
+
+        .dark .orb-hero__sphere {
+          box-shadow:
+            inset -10px -10px 30px hsl(0 0% 0% / 0.4),
+            inset 10px 10px 30px hsl(216 60% 50% / 0.15),
+            0 0 120px hsl(var(--hero-glow) / 0.4);
+        }
+
+        .dark .orb-hero__input {
+          background: hsl(var(--hero-input-bg));
+          box-shadow: 0 8px 48px hsl(216 80% 50% / 0.15), 0 2px 10px hsl(0 0% 0% / 0.3);
+          border: 1px solid hsl(0 0% 100% / 0.08);
+        }
+
+        .dark .orb-hero__input input {
+          color: hsl(var(--hero-ink));
+        }
+
+        .dark .orb-hero__input input::placeholder {
+          color: hsl(var(--hero-input-text));
+        }
+
+        .dark .orb-hero__url-icon {
+          color: hsl(216 50% 50%);
+        }
+
+        .dark .orb-hero__grain {
+          opacity: 0.15;
+        }
+
+        .dark .orb-hero__logo {
+          filter: brightness(1.5);
         }
 
         .orb-hero__header {
@@ -207,6 +281,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           height: 64px;
           width: auto;
           display: block;
+          transition: filter 0.3s ease;
         }
 
         .orb-hero__nav-actions {
@@ -227,6 +302,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           backdrop-filter: blur(10px);
           border-radius: 999px;
           box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.28);
+          transition: background 0.3s ease, color 0.3s ease;
         }
 
         .orb-hero__icon-btn {
@@ -255,6 +331,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           box-shadow: 0 10px 28px hsl(208 100% 60% / 0.28);
           font-size: 0.95rem;
           font-weight: 700;
+          transition: box-shadow 0.3s ease;
         }
 
         .orb-hero__bg-base {
@@ -265,6 +342,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             radial-gradient(ellipse 80% 40% at 50% 0%, hsl(0 0% 100% / 0.5) 0%, transparent 60%),
             radial-gradient(ellipse 60% 30% at 20% 50%, hsl(0 0% 100% / 0.15) 0%, transparent 50%),
             radial-gradient(ellipse 60% 30% at 80% 50%, hsl(0 0% 100% / 0.15) 0%, transparent 50%);
+          transition: background 0.3s ease;
         }
 
         .orb-hero__grain {
@@ -274,6 +352,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           pointer-events: none;
           mix-blend-mode: soft-light;
           opacity: 0.3;
+          transition: opacity 0.3s ease;
         }
 
         .orb-hero__stage {
@@ -325,7 +404,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           border-radius: 49% 51% 50% 50% / 51% 49% 51% 49%;
           background:
             linear-gradient(transparent, transparent) padding-box,
-            conic-gradient(from 0deg, transparent 0%, hsl(240 10% 75% / 0.3) 6%, hsl(240 12% 82% / 0.6) 10%, hsl(240 15% 90% / 0.9) 14%, hsl(0 0% 100%) 18%, hsl(240 15% 90% / 0.9) 22%, hsl(240 12% 82% / 0.6) 26%, hsl(240 10% 75% / 0.3) 30%, transparent 34%, transparent 100%) border-box;
+            conic-gradient(from 0deg, transparent 0%, hsl(var(--hero-connector-dim)) 6%, hsl(var(--hero-connector-mid)) 10%, hsl(var(--hero-connector-bright)) 14%, hsl(var(--hero-connector-peak)) 18%, hsl(var(--hero-connector-bright)) 22%, hsl(var(--hero-connector-mid)) 26%, hsl(var(--hero-connector-dim)) 30%, transparent 34%, transparent 100%) border-box;
           animation: orb-edge-rotate 12s linear infinite;
         }
 
@@ -335,7 +414,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           border-radius: 51% 49% 49% 51% / 49% 51% 50% 50%;
           background:
             linear-gradient(transparent, transparent) padding-box,
-            conic-gradient(from 180deg, transparent 0%, hsl(240 10% 75% / 0.3) 6%, hsl(240 12% 82% / 0.6) 10%, hsl(240 15% 90% / 0.9) 14%, hsl(0 0% 100%) 18%, hsl(240 15% 90% / 0.9) 22%, hsl(240 12% 82% / 0.6) 26%, hsl(240 10% 75% / 0.3) 30%, transparent 34%, transparent 100%) border-box;
+            conic-gradient(from 180deg, transparent 0%, hsl(var(--hero-connector-dim)) 6%, hsl(var(--hero-connector-mid)) 10%, hsl(var(--hero-connector-bright)) 14%, hsl(var(--hero-connector-peak)) 18%, hsl(var(--hero-connector-bright)) 22%, hsl(var(--hero-connector-mid)) 26%, hsl(var(--hero-connector-dim)) 30%, transparent 34%, transparent 100%) border-box;
           animation: orb-edge-rotate 12s linear infinite;
         }
 
@@ -358,6 +437,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             inset -10px -10px 30px hsl(0 0% 0% / 0.1),
             inset 10px 10px 30px hsl(0 0% 100% / 0.8),
             0 0 120px hsl(var(--hero-glow) / 0.3);
+          transition: box-shadow 0.3s ease;
         }
 
         .orb-hero__content {
@@ -384,6 +464,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           color: hsl(var(--hero-ink));
           margin: 0;
           white-space: nowrap;
+          transition: color 0.3s ease;
         }
 
         .orb-hero__content h1 span {
@@ -400,6 +481,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           margin: 0;
           letter-spacing: 0.01em;
           white-space: nowrap;
+          transition: color 0.3s ease;
         }
 
         .orb-hero__input {
@@ -408,9 +490,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           width: 100%;
           padding: 14px 14px 14px 26px;
           border-radius: 22px;
-          background: hsl(0 0% 100% / 0.84);
+          background: hsl(var(--hero-input-bg));
           backdrop-filter: blur(20px);
           box-shadow: 0 8px 48px hsl(208 100% 60% / 0.2), 0 2px 10px hsl(0 0% 0% / 0.08);
+          transition: background 0.3s ease, box-shadow 0.3s ease;
         }
 
         .orb-hero__url-icon {
@@ -419,6 +502,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           margin-right: 14px;
           flex-shrink: 0;
           color: hsl(214 67% 80%);
+          transition: color 0.3s ease;
         }
 
         .orb-hero__input input {
@@ -427,17 +511,18 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           border: none;
           outline: none;
           background: transparent;
-          color: hsl(var(--hero-muted));
+          color: hsl(var(--hero-input-text));
           caret-color: hsl(var(--hero-accent));
           font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: 16px;
           font-weight: 400;
           white-space: nowrap;
           overflow: hidden;
+          transition: color 0.3s ease;
         }
 
         .orb-hero__input input::placeholder {
-          color: hsl(var(--hero-muted));
+          color: hsl(var(--hero-input-text));
         }
 
         .orb-hero__btn {
