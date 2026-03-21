@@ -106,6 +106,9 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) return;
 
+  // Always ensure we have a workspace_id — fall back to localStorage
+  const resolvedWorkspaceId = workspaceId || localStorage.getItem("preferred_workspace_id");
+
   const payload: any = {
     user_id: session.user.id,
     data_type: dataType,
@@ -115,14 +118,16 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
     is_analyzed: true,
   };
 
-  if (workspaceId) {
-    payload.workspace_id = workspaceId;
+  if (resolvedWorkspaceId) {
+    payload.workspace_id = resolvedWorkspaceId;
   }
 
   if (existingRowId) {
-    await supabase.from("user_business_data").update(payload).eq("id", existingRowId);
+    const { error } = await supabase.from("user_business_data").update(payload).eq("id", existingRowId);
+    if (error) console.error(`Failed to update ${dataType}:`, error.message);
   } else {
-    await supabase.from("user_business_data").insert(payload);
+    const { error } = await supabase.from("user_business_data").insert(payload);
+    if (error) console.error(`Failed to insert ${dataType}:`, error.message);
   }
 }
 

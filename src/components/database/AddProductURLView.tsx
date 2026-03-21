@@ -87,21 +87,27 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
 
       const extracted = data.extracted;
 
-      if (extracted.brand?.name) {
-        const b = extracted.brand;
-        const newBrand: BrandEntry = {
-          id: brandId,
-          name: b.name,
-          category: b.category || "Brand",
-          lastUpdated: now,
-          colors: b.colors || undefined,
-          typography: b.typography || undefined,
-          logoUrls: Array.isArray(b.logoUrls) ? b.logoUrls : [],
-          selectedLogo: 0,
-          visualIdentity: b.visualIdentity || undefined,
-        };
-        setBrands(prev => [...prev, newBrand]);
-      }
+      // Always create a brand entry — fall back to domain name or product name
+      const b = extracted.brand || {};
+      const fallbackName = (() => {
+        try {
+          const u = new URL(url.trim().startsWith("http") ? url.trim() : `https://${url.trim()}`);
+          return u.hostname.replace(/^www\./, "").split(".")[0];
+        } catch { return null; }
+      })();
+      const brandName = b.name || extracted.product?.name || fallbackName || "My Business";
+      const newBrand: BrandEntry = {
+        id: brandId,
+        name: brandName,
+        category: b.category || "Brand",
+        lastUpdated: now,
+        colors: b.colors || undefined,
+        typography: b.typography || undefined,
+        logoUrls: Array.isArray(b.logoUrls) ? b.logoUrls : [],
+        selectedLogo: 0,
+        visualIdentity: b.visualIdentity || undefined,
+      };
+      setBrands(prev => [...prev, newBrand]);
 
       const p = extracted.product || {};
       const newProduct: ProductEntry = {
