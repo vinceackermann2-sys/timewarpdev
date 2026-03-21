@@ -1,9 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Link2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Link2, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 
-export function HeroSection() {
+interface HeroSectionProps {
+  onRunClick?: () => void;
+}
+
+export function HeroSection({ onRunClick }: HeroSectionProps) {
   const navigate = useNavigate();
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [url, setUrl] = useState("");
   const [placeholder, setPlaceholder] = useState("");
   const placeholderUrls = useRef([
@@ -29,40 +36,79 @@ export function HeroSection() {
 
     const tick = () => {
       const current = placeholderUrls.current[urlIndex.current];
+
       if (!isDeleting.current) {
         charIndex.current += 1;
         setPlaceholder(current.slice(0, charIndex.current));
+
         if (charIndex.current >= current.length) {
           isDeleting.current = true;
           scheduleNext(2000, tick);
           return;
         }
+
         scheduleNext(140, tick);
         return;
       }
+
       charIndex.current -= 1;
       setPlaceholder(current.slice(0, charIndex.current));
+
       if (charIndex.current <= 0) {
         isDeleting.current = false;
         urlIndex.current = (urlIndex.current + 1) % placeholderUrls.current.length;
       }
+
       scheduleNext(55, tick);
     };
 
     scheduleNext(140, tick);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [url]);
 
   const handleAnalyze = () => {
+    if (onRunClick) {
+      onRunClick();
+      return;
+    }
+
     navigate("/auth?mode=signup");
   };
 
   return (
     <section className="orb-hero">
-      {/* Background */}
+      <header className="orb-hero__header">
+        <div className="orb-hero__header-inner">
+          <Link to="/" className="orb-hero__brand" aria-label="TimeWarp home">
+            <img src="/favicon.png" alt="TimeWarp" className="orb-hero__logo" />
+          </Link>
+
+          <div className="orb-hero__nav-actions">
+            <button
+              type="button"
+              aria-label="Toggle appearance"
+              className="orb-hero__icon-btn"
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+            >
+              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
+            <Link to="/auth" className="orb-hero__pill-link">
+              Log in
+            </Link>
+
+            <Link to="/auth?mode=signup" className="orb-hero__cta-link">
+              Get Started →
+            </Link>
+          </div>
+        </div>
+      </header>
+
       <div className="orb-hero__bg-base" />
 
-      {/* Grain overlay */}
       <svg className="orb-hero__grain" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
         <filter id="heroGrain">
           <feTurbulence type="fractalNoise" baseFrequency="0.88" numOctaves={4} stitchTiles="stitch" />
@@ -71,23 +117,18 @@ export function HeroSection() {
         <rect width="100%" height="100%" filter="url(#heroGrain)" opacity="0.3" />
       </svg>
 
-      {/* Orb Stage */}
       <div className="orb-hero__stage">
         <div className="orb-hero__wrapper">
-          {/* Glow aura */}
           <div className="orb-hero__glow-aura" />
 
-          {/* Silver connectors */}
           <div className="orb-hero__connectors">
             <div className="orb-hero__connector orb-hero__connector--1" />
             <div className="orb-hero__connector orb-hero__connector--2" />
           </div>
 
-          {/* Main orb sphere */}
           <div className="orb-hero__sphere" />
         </div>
 
-        {/* Content overlay on the orb */}
         <div className="orb-hero__content">
           <h1>
             The future of <span>business</span>
@@ -103,7 +144,7 @@ export function HeroSection() {
               onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
               placeholder={placeholder || "nike.com/shoes/air-max"}
             />
-            <button className="orb-hero__btn" onClick={handleAnalyze}>
+            <button type="button" className="orb-hero__btn" onClick={handleAnalyze}>
               <span>Activate CEO</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14M12 5l7 7-7 7" />
@@ -115,6 +156,19 @@ export function HeroSection() {
 
       <style>{`
         .orb-hero {
+          --hero-bg-top: 215 100% 97%;
+          --hero-bg-mid: 216 100% 90%;
+          --hero-bg-bottom: 216 100% 78%;
+          --hero-glow: 216 100% 76%;
+          --hero-sphere-start: 0 0% 100%;
+          --hero-sphere-mid-1: 214 100% 91%;
+          --hero-sphere-mid-2: 216 100% 76%;
+          --hero-sphere-end: 214 100% 65%;
+          --hero-ink: 219 41% 7%;
+          --hero-muted: 215 17% 43%;
+          --hero-accent: 208 100% 60%;
+          --hero-accent-strong: 211 78% 47%;
+          --hero-pill: 0 0% 100%;
           position: relative;
           width: 100%;
           height: 100vh;
@@ -123,8 +177,84 @@ export function HeroSection() {
           flex-direction: column;
           align-items: center;
           justify-content: flex-start;
-          background: linear-gradient(180deg, #eef4ff 0%, #cde0ff 45%, #90b8ff 100%);
+          background: linear-gradient(180deg, hsl(var(--hero-bg-top)) 0%, hsl(var(--hero-bg-mid)) 45%, hsl(var(--hero-bg-bottom)) 100%);
           font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .orb-hero__header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 100;
+          background: transparent;
+        }
+
+        .orb-hero__header-inner {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.25rem 2.5rem;
+        }
+
+        .orb-hero__brand {
+          display: flex;
+          align-items: center;
+        }
+
+        .orb-hero__logo {
+          height: 64px;
+          width: auto;
+          display: block;
+        }
+
+        .orb-hero__nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .orb-hero__icon-btn,
+        .orb-hero__pill-link {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          text-decoration: none;
+          color: hsl(var(--hero-ink));
+          background: hsl(var(--hero-pill) / 0.46);
+          backdrop-filter: blur(10px);
+          border-radius: 999px;
+          box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.28);
+        }
+
+        .orb-hero__icon-btn {
+          width: 40px;
+          height: 40px;
+          cursor: pointer;
+        }
+
+        .orb-hero__pill-link {
+          min-height: 40px;
+          padding: 0.5rem 1.1rem;
+          font-size: 0.95rem;
+          font-weight: 500;
+        }
+
+        .orb-hero__cta-link {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 40px;
+          padding: 0.55rem 1.15rem;
+          border-radius: 999px;
+          text-decoration: none;
+          color: hsl(0 0% 100%);
+          background: linear-gradient(135deg, hsl(197 100% 68%) 0%, hsl(var(--hero-accent)) 100%);
+          box-shadow: 0 10px 28px hsl(208 100% 60% / 0.28);
+          font-size: 0.95rem;
+          font-weight: 700;
         }
 
         .orb-hero__bg-base {
@@ -132,9 +262,9 @@ export function HeroSection() {
           inset: 0;
           z-index: 0;
           background:
-            radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255,255,255,0.5) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 30% at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 30% at 80% 50%, rgba(255,255,255,0.15) 0%, transparent 50%);
+            radial-gradient(ellipse 80% 40% at 50% 0%, hsl(0 0% 100% / 0.5) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 30% at 20% 50%, hsl(0 0% 100% / 0.15) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 30% at 80% 50%, hsl(0 0% 100% / 0.15) 0%, transparent 50%);
         }
 
         .orb-hero__grain {
@@ -146,7 +276,6 @@ export function HeroSection() {
           opacity: 0.3;
         }
 
-        /* ── Orb sizing ── */
         .orb-hero__stage {
           --sz: min(105vw, 1160px);
           position: absolute;
@@ -174,7 +303,7 @@ export function HeroSection() {
           position: absolute;
           border-radius: 50%;
           inset: calc(var(--sz) * -0.25);
-          background: radial-gradient(circle, rgba(133,176,255,0.30) 0%, transparent 70%);
+          background: radial-gradient(circle, hsl(var(--hero-glow) / 0.3) 0%, transparent 70%);
           animation: orb-pulse-slow 4s ease-in-out infinite;
         }
 
@@ -196,7 +325,7 @@ export function HeroSection() {
           border-radius: 49% 51% 50% 50% / 51% 49% 51% 49%;
           background:
             linear-gradient(transparent, transparent) padding-box,
-            conic-gradient(from 0deg, transparent 0%, rgba(180,180,200,0.30) 6%, rgba(200,200,220,0.60) 10%, rgba(220,220,240,0.90) 14%, rgba(255,255,255,1.00) 18%, rgba(220,220,240,0.90) 22%, rgba(200,200,220,0.60) 26%, rgba(180,180,200,0.30) 30%, transparent 34%, transparent 100%) border-box;
+            conic-gradient(from 0deg, transparent 0%, hsl(240 10% 75% / 0.3) 6%, hsl(240 12% 82% / 0.6) 10%, hsl(240 15% 90% / 0.9) 14%, hsl(0 0% 100%) 18%, hsl(240 15% 90% / 0.9) 22%, hsl(240 12% 82% / 0.6) 26%, hsl(240 10% 75% / 0.3) 30%, transparent 34%, transparent 100%) border-box;
           animation: orb-edge-rotate 12s linear infinite;
         }
 
@@ -206,7 +335,7 @@ export function HeroSection() {
           border-radius: 51% 49% 49% 51% / 49% 51% 50% 50%;
           background:
             linear-gradient(transparent, transparent) padding-box,
-            conic-gradient(from 180deg, transparent 0%, rgba(180,180,200,0.30) 6%, rgba(200,200,220,0.60) 10%, rgba(220,220,240,0.90) 14%, rgba(255,255,255,1.00) 18%, rgba(220,220,240,0.90) 22%, rgba(200,200,220,0.60) 26%, rgba(180,180,200,0.30) 30%, transparent 34%, transparent 100%) border-box;
+            conic-gradient(from 180deg, transparent 0%, hsl(240 10% 75% / 0.3) 6%, hsl(240 12% 82% / 0.6) 10%, hsl(240 15% 90% / 0.9) 14%, hsl(0 0% 100%) 18%, hsl(240 15% 90% / 0.9) 22%, hsl(240 12% 82% / 0.6) 26%, hsl(240 10% 75% / 0.3) 30%, transparent 34%, transparent 100%) border-box;
           animation: orb-edge-rotate 12s linear infinite;
         }
 
@@ -220,18 +349,17 @@ export function HeroSection() {
           overflow: hidden;
           z-index: 1;
           background: radial-gradient(circle at 30% 30%,
-            rgba(255,255,255,1) 0%,
-            rgba(209,227,255,1) 20%,
-            rgba(133,176,255,1) 50%,
-            rgba(90,148,255,1) 100%
+            hsl(var(--hero-sphere-start)) 0%,
+            hsl(var(--hero-sphere-mid-1)) 20%,
+            hsl(var(--hero-sphere-mid-2)) 50%,
+            hsl(var(--hero-sphere-end)) 100%
           );
           box-shadow:
-            inset -10px -10px 30px rgba(0,0,0,0.10),
-            inset 10px 10px 30px rgba(255,255,255,0.80),
-            0 0 120px rgba(133,176,255,0.30);
+            inset -10px -10px 30px hsl(0 0% 0% / 0.1),
+            inset 10px 10px 30px hsl(0 0% 100% / 0.8),
+            0 0 120px hsl(var(--hero-glow) / 0.3);
         }
 
-        /* ── Content overlay ── */
         .orb-hero__content {
           position: absolute;
           z-index: 20;
@@ -253,13 +381,13 @@ export function HeroSection() {
           font-weight: 800;
           letter-spacing: -0.03em;
           line-height: 1;
-          color: #0d1420;
+          color: hsl(var(--hero-ink));
           margin: 0;
           white-space: nowrap;
         }
 
         .orb-hero__content h1 span {
-          background: linear-gradient(135deg, #3399ff 0%, #1a6fd4 100%);
+          background: linear-gradient(135deg, hsl(var(--hero-accent)) 0%, hsl(var(--hero-accent-strong)) 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -268,7 +396,7 @@ export function HeroSection() {
         .orb-hero__content p {
           font-size: 19px;
           font-weight: 400;
-          color: #5a6a80;
+          color: hsl(var(--hero-muted));
           margin: 0;
           letter-spacing: 0.01em;
           white-space: nowrap;
@@ -277,12 +405,12 @@ export function HeroSection() {
         .orb-hero__input {
           display: flex;
           align-items: center;
-          background: rgba(255,255,255,0.84);
-          backdrop-filter: blur(20px);
-          border-radius: 22px;
-          padding: 14px 14px 14px 26px;
-          box-shadow: 0 8px 48px rgba(51,153,255,0.20), 0 2px 10px rgba(0,0,0,0.08);
           width: 100%;
+          padding: 14px 14px 14px 26px;
+          border-radius: 22px;
+          background: hsl(0 0% 100% / 0.84);
+          backdrop-filter: blur(20px);
+          box-shadow: 0 8px 48px hsl(208 100% 60% / 0.2), 0 2px 10px hsl(0 0% 0% / 0.08);
         }
 
         .orb-hero__url-icon {
@@ -290,53 +418,56 @@ export function HeroSection() {
           height: 22px;
           margin-right: 14px;
           flex-shrink: 0;
-          color: #a8c4f0;
+          color: hsl(214 67% 80%);
         }
 
         .orb-hero__input input {
           flex: 1;
+          min-width: 0;
           border: none;
           outline: none;
+          background: transparent;
+          color: hsl(var(--hero-muted));
+          caret-color: hsl(var(--hero-accent));
           font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: 16px;
           font-weight: 400;
-          color: #6a7a90;
-          background: transparent;
-          min-width: 0;
-          caret-color: #3399ff;
           white-space: nowrap;
           overflow: hidden;
         }
 
+        .orb-hero__input input::placeholder {
+          color: hsl(var(--hero-muted));
+        }
+
         .orb-hero__btn {
           flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
           padding: 13px 22px;
+          border: none;
           border-radius: 15px;
-          background: linear-gradient(135deg, #5bbfff, #3399ff);
-          color: #fff;
+          cursor: pointer;
+          color: hsl(0 0% 100%);
+          background: linear-gradient(135deg, hsl(197 100% 68%) 0%, hsl(var(--hero-accent)) 100%);
+          box-shadow: 0 3px 14px hsl(208 100% 60% / 0.38);
           font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: 15px;
           font-weight: 700;
-          border: none;
-          cursor: pointer;
-          box-shadow: 0 3px 14px rgba(51,153,255,0.38);
-          transition: transform 0.15s, box-shadow 0.15s;
           white-space: nowrap;
-          display: flex;
-          align-items: center;
-          gap: 7px;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
         .orb-hero__btn:hover {
           transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(51,153,255,0.48);
+          box-shadow: 0 6px 20px hsl(208 100% 60% / 0.48);
         }
 
         .orb-hero__btn:active {
           transform: scale(0.97);
         }
 
-        /* ── Animations ── */
         @keyframes orb-pulse-slow {
           0%, 100% { opacity: 0.2; }
           50% { opacity: 0.3; }
@@ -352,37 +483,69 @@ export function HeroSection() {
           to { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
         }
 
-        /* ── Mobile ── */
         @media (max-width: 640px) {
+          .orb-hero__header-inner {
+            padding: 0.75rem 1rem;
+          }
+
+          .orb-hero__logo {
+            height: 44px;
+          }
+
+          .orb-hero__nav-actions {
+            gap: 0.6rem;
+          }
+
+          .orb-hero__icon-btn {
+            width: 34px;
+            height: 34px;
+          }
+
+          .orb-hero__pill-link,
+          .orb-hero__cta-link {
+            min-height: 34px;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.9rem;
+          }
+
           .orb-hero__stage {
             --sz: min(160vw, 900px);
           }
+
           .orb-hero__content {
             width: clamp(280px, 85vw, 500px);
             gap: 12px;
           }
+
           .orb-hero__content h1 {
             font-size: clamp(28px, 7vw, 44px);
+            white-space: normal;
           }
+
           .orb-hero__content p {
             font-size: 15px;
+            white-space: normal;
           }
+
           .orb-hero__input {
             padding: 10px 10px 10px 18px;
             border-radius: 16px;
           }
-          .orb-hero__btn {
-            padding: 10px 16px;
-            font-size: 13px;
-            border-radius: 12px;
-          }
+
           .orb-hero__url-icon {
             width: 18px;
             height: 18px;
             margin-right: 10px;
           }
+
           .orb-hero__input input {
             font-size: 14px;
+          }
+
+          .orb-hero__btn {
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 13px;
           }
         }
       `}</style>
