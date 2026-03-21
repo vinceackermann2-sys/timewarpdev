@@ -103,6 +103,7 @@ const Index = () => {
 
   return (
     <>
+      <Header />
       <HeroSection />
       <ProductDescription />
     </>
