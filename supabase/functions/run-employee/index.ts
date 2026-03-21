@@ -24,7 +24,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { employee_id, messages, pageContext } = await req.json();
+    const { employee_id, messages, pageContext, skip_action } = await req.json();
     if (!employee_id) throw new Error("employee_id required");
 
     // Load employee
@@ -53,13 +53,15 @@ serve(async (req) => {
       });
     }
 
-    // Increment action usage
-    const { data: usageResult } = await supabase.rpc("increment_actions_used", { _user_id: user.id });
-    if (usageResult && !usageResult.allowed) {
-      return new Response(JSON.stringify({ error: usageResult.reason || "Action limit reached" }), {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Increment action usage (skip for subsequent calls in the same run)
+    if (!skip_action) {
+      const { data: usageResult } = await supabase.rpc("increment_actions_used", { _user_id: user.id });
+      if (usageResult && !usageResult.allowed) {
+        return new Response(JSON.stringify({ error: usageResult.reason || "Action limit reached" }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Load business context
