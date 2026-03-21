@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/useWorkspace";
-import { Plus } from "lucide-react";
+import { Plus, ExternalLink } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
@@ -175,10 +175,18 @@ export function EmployeesView() {
           <h1 className="text-2xl font-semibold">My Employees</h1>
           <p className="text-sm text-muted-foreground">{employees.length} AI employee{employees.length !== 1 ? "s" : ""}</p>
         </div>
-        <Button onClick={() => setShowWizard(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Employee
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="gap-2">
+            <a href="https://microsoftedge.microsoft.com/addons/detail/timewarp-%E2%80%93-ai-ceo/fajgkgjioehbiccafonfbdkjhoedceim" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4" />
+              Get Extension
+            </a>
+          </Button>
+          <Button onClick={() => setShowWizard(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Employee
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
