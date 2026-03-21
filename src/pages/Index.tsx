@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Header } from "@/components/landing/Header";
 import { HeroSection } from "@/components/aiceo/HeroSection";
 import { ProductDescription } from "@/components/landing/ProductDescription";
 import { LiveAnalysisView } from "@/components/dashboard/LiveAnalysisView";
@@ -102,6 +103,7 @@ const Index = () => {
 
   return (
     <>
+      <Header />
       <HeroSection />
       <ProductDescription />
     </>

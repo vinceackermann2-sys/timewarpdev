@@ -60,7 +60,7 @@ const AiCeo = () => {
 
   return (
     <>
-      <HeroSection onRunClick={() => navigate("/auth?mode=signup")} />
+      <HeroSection />
       <ProductDescription />
     </>
   );
