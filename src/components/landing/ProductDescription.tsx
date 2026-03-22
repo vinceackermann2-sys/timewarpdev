@@ -130,6 +130,7 @@ function HeroBanner() {
               })}
             </div>
           </div>
+        </div>
       </div>
 
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.2) 50%, transparent 100%)" }} />
