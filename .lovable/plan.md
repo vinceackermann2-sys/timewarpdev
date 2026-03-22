@@ -1,39 +1,29 @@
 
 
-## Plan: Add Annotated Arrows to Robot Image
+## Plan: Fix Annotation Visibility, Reposition, and Add Scroll Animations
 
-### Overview
-Add three white arrows with glassmorphic circle icons and labels pointing to the robot's head (brain), eyes (eye), and hands (computer) in the HeroBanner section. The arrows and labels will extend outside the pink grained card using CSS positioning.
-
-### Implementation
+### Changes
 
 **File: `src/components/landing/ProductDescription.tsx`**
 
-Modify the `HeroBanner` component's right-side image container:
+#### 1. Move annotations to the RIGHT side, make bigger, fix light mode visibility
 
-1. Remove `overflow-hidden` from the outer image wrapper div so arrows can extend outside the card
-2. Add a wrapper with `overflow-hidden` only on the inner card (to still clip the grain texture)
-3. Add three absolutely-positioned annotation elements, each consisting of:
-   - A glassmorphic circle icon (backdrop-blur, white/10 bg, white border, rounded-full)
-   - A small white label text
-   - A clean white SVG arrow/line pointing from the icon toward the respective body part
+- Move all three annotation groups from `left` positioning to `right` (e.g., `-right-48` instead of `-left-44`)
+- Reverse the layout order: arrow first (pointing left toward robot), then icon + text
+- Make icon circles bigger: `p-3.5` instead of `p-2.5`, icon size `w-6 h-6` instead of `w-4 h-4`
+- Fix light mode: change icon circle from `bg-white/10 border-white/30` to theme-aware styling: `bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/30` and icon/text colors to `text-foreground dark:text-white`
 
-**Annotation positions (approximate, using percentage-based positioning):**
-- **Brain / "Analyzing everything"** — top area, arrow points to head (~top 10-15%)
-- **Eye / "Sees everything"** — middle area, arrow points to eyes (~top 35-40%)
-- **Computer / "Executes from DNA"** — lower area, arrow points to hands (~top 65-70%)
+#### 2. Scroll-based image swap and icon reveal
 
-**Icons used from lucide-react:** `Brain`, `Eye`, `Monitor` (already have Brain and Eye imported, add Monitor)
-
-**Glassmorphic circle style:**
-```
-bg-white/10 backdrop-blur-md border border-white/30 rounded-full p-2
-```
-
-**Arrow style:** Simple white SVG lines with a small arrowhead, clean and minimal.
-
-**Responsive:** Hide annotations on mobile (`hidden md:flex`) to keep layout clean on small screens.
+- Save new robot image as `src/assets/timewarp-robot-2.png` (the uploaded AD_EVO_4.png)
+- Add an Intersection Observer (`useRef` + `useEffect`) on the HeroBanner section
+- Track scroll progress through the section using a scroll listener
+- When user scrolls into the banner area:
+  - Cross-fade from current robot image to new robot image (both absolutely positioned, opacity transitions based on scroll progress)
+  - The 3 annotation icons fade in with a staggered delay (opacity 0 → 1, slight translateX) triggered when section enters viewport
+- Use CSS transitions (`transition-all duration-700`) and state-driven class toggling for smooth animations
 
 ### Files Changed
-- `src/components/landing/ProductDescription.tsx` — Update HeroBanner with arrow annotations
+- `src/assets/timewarp-robot-2.png` — new image asset
+- `src/components/landing/ProductDescription.tsx` — annotation repositioning, sizing, theme colors, scroll animation logic
 
