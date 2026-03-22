@@ -366,7 +366,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           position: absolute;
           left: 50%;
           transform: translateX(-50%);
-          top: calc(var(--sz) * 0.08);
+          top: 0;
           width: var(--sz);
           height: var(--sz);
           display: flex;
