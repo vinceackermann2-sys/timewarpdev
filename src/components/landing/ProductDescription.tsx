@@ -7,6 +7,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import robotImg from "@/assets/timewarp-robot.png";
+import robotImg2 from "@/assets/timewarp-robot-2.png";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
