@@ -33,24 +33,14 @@ function HeroBanner() {
   const isMobile = useIsMobile();
   const sectionRef = useRef<HTMLElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setIsVisible(true);
-      },
-      { threshold: 0.2 }
-    );
-    observer.observe(section);
-
     const handleScroll = () => {
       const rect = section.getBoundingClientRect();
       const windowH = window.innerHeight;
-      // progress 0→1 as section scrolls through viewport
       const raw = 1 - (rect.top / windowH);
       setScrollProgress(Math.max(0, Math.min(1, raw)));
     };
@@ -59,23 +49,29 @@ function HeroBanner() {
     handleScroll();
 
     return () => {
-      observer.disconnect();
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
-  // Image crossfade: first image fades out, second fades in
-  const img1Opacity = Math.max(0, 1 - scrollProgress * 2.5);
-  const img2Opacity = Math.min(1, scrollProgress * 2.5);
+  // Scan-line reveal: clip the second image from top to bottom based on scroll
+  const scanPercent = Math.min(100, Math.max(0, (scrollProgress - 0.2) * 200));
+  // Icons sync with scroll progress
+  const iconProgress = Math.max(0, Math.min(1, (scrollProgress - 0.3) * 3));
+
+  const annotations = [
+    { icon: Brain, label: "Analyzing everything", top: "8%", delay: 0 },
+    { icon: Eye, label: "Logging everything", top: "38%", delay: 0.1 },
+    { icon: Monitor, label: "Powering your CEO", top: "65%", delay: 0.2 },
+  ];
 
   return (
     <section ref={sectionRef} className="relative z-10 py-20 lg:py-28 overflow-visible bg-background dark:bg-[hsl(0_0%_10%)]">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
       <div className="absolute pointer-events-none hidden dark:block" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-          {/* Left text */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl relative z-10">
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-6">
+          {/* Left text + icons stacked */}
           <div className="flex-1 flex flex-col justify-center">
             <h2
               className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white leading-tight mb-3"
@@ -83,14 +79,36 @@ function HeroBanner() {
             >
               Working should<br />be optional
             </h2>
-            <p className="text-lg sm:text-xl text-muted-foreground dark:text-white/60 font-medium">
+            <p className="text-lg sm:text-xl text-muted-foreground dark:text-white/60 font-medium mb-8">
               Meet TimeWarp
             </p>
+
+            {/* Annotations — right of text, stacked vertically */}
+            <div className="hidden md:flex flex-col gap-5">
+              {annotations.map((ann, i) => {
+                const itemProgress = Math.max(0, Math.min(1, (iconProgress - ann.delay) / 0.7));
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 transition-all duration-500"
+                    style={{
+                      opacity: itemProgress,
+                      transform: `translateX(${(1 - itemProgress) * 20}px)`,
+                    }}
+                  >
+                    <div className="p-3.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
+                      <ann.icon className="w-6 h-6 text-foreground dark:text-white" />
+                    </div>
+                    <span className="text-foreground/90 dark:text-white/90 text-sm font-medium whitespace-nowrap">{ann.label}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Right image with grain background + annotations */}
+          {/* Right image with grain background + arrow annotations */}
           <div className="relative flex-shrink-0 w-full md:w-[50%] flex items-end justify-center overflow-visible">
-            {/* Grain card with crossfading images */}
+            {/* Grain card with scan-line crossfade */}
             <div className="relative rounded-3xl overflow-hidden w-full" style={{ background: "#d56a87" }}>
               {!isMobile && (
                 <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40" style={{ mixBlendMode: "soft-light" }}>
@@ -98,70 +116,52 @@ function HeroBanner() {
                   <rect width="100%" height="100%" filter="url(#grain-hero-banner)" />
                 </svg>
               )}
-              {/* Image 1 — original */}
+              {/* Image 1 — original, always visible underneath */}
               <img
                 src={robotImg}
                 alt="TimeWarp AI Robot"
-                className="relative z-10 w-full object-contain transition-opacity duration-700"
-                style={{ display: "block", opacity: img1Opacity }}
+                className="relative z-10 w-full object-contain"
+                style={{ display: "block" }}
               />
-              {/* Image 2 — new, overlaid */}
+              {/* Image 2 — scan-line reveal from top */}
               <img
                 src={robotImg2}
                 alt="TimeWarp AI Robot Evolved"
-                className="absolute inset-0 z-10 w-full h-full object-contain transition-opacity duration-700"
-                style={{ opacity: img2Opacity }}
+                className="absolute inset-0 z-10 w-full h-full object-contain"
+                style={{ clipPath: `inset(0 0 ${100 - scanPercent}% 0)` }}
               />
             </div>
 
-            {/* Annotations — RIGHT side, outside the card */}
-            {/* Brain - top right */}
-            <div
-              className={`absolute -right-48 top-[8%] hidden md:flex items-center gap-3 z-20 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
-              style={{ transitionDelay: "200ms" }}
-            >
-              <svg width="60" height="20" viewBox="0 0 60 20" fill="none" className="shrink-0">
-                <path d="M60 10 H10 L15 5 M10 10 L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-foreground dark:text-white" />
-              </svg>
-              <div className="flex items-center gap-2.5">
-                <div className="p-3.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
-                  <Brain className="w-6 h-6 text-foreground dark:text-white" />
-                </div>
-                <span className="text-foreground/90 dark:text-white/90 text-sm font-medium whitespace-nowrap">Analyzing everything</span>
-              </div>
-            </div>
-
-            {/* Eye - middle right */}
-            <div
-              className={`absolute -right-40 top-[35%] hidden md:flex items-center gap-3 z-20 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
-              style={{ transitionDelay: "400ms" }}
-            >
-              <svg width="40" height="20" viewBox="0 0 40 20" fill="none" className="shrink-0">
-                <path d="M40 10 H10 L15 5 M10 10 L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-foreground dark:text-white" />
-              </svg>
-              <div className="flex items-center gap-2.5">
-                <div className="p-3.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
-                  <Eye className="w-6 h-6 text-foreground dark:text-white" />
-                </div>
-                <span className="text-foreground/90 dark:text-white/90 text-sm font-medium whitespace-nowrap">Sees everything</span>
-              </div>
-            </div>
-
-            {/* Monitor - bottom right */}
-            <div
-              className={`absolute -right-44 top-[65%] hidden md:flex items-center gap-3 z-20 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
-              style={{ transitionDelay: "600ms" }}
-            >
-              <svg width="50" height="20" viewBox="0 0 50 20" fill="none" className="shrink-0">
-                <path d="M50 10 H10 L15 5 M10 10 L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-foreground dark:text-white" />
-              </svg>
-              <div className="flex items-center gap-2.5">
-                <div className="p-3.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
-                  <Monitor className="w-6 h-6 text-foreground dark:text-white" />
-                </div>
-                <span className="text-foreground/90 dark:text-white/90 text-sm font-medium whitespace-nowrap">Executes from DNA</span>
-              </div>
-            </div>
+            {/* Arrow lines pointing from right side to head/eyes/hands */}
+            {annotations.map((ann, i) => {
+              const itemProgress = Math.max(0, Math.min(1, (iconProgress - ann.delay) / 0.7));
+              // Arrow endpoints: from right edge toward the body part
+              const yPos = ann.top;
+              return (
+                <svg
+                  key={i}
+                  className="absolute z-20 hidden md:block pointer-events-none"
+                  style={{
+                    top: yPos,
+                    right: "-12px",
+                    width: "60px",
+                    height: "24px",
+                    opacity: itemProgress,
+                    transition: "opacity 0.5s",
+                  }}
+                  viewBox="0 0 60 24"
+                  fill="none"
+                >
+                  <path
+                    d="M58 12 H8 L13 6 M8 12 L13 18"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              );
+            })}
           </div>
         </div>
       </div>
