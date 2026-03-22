@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
-import { DatabaseView } from "@/components/database/DatabaseView";
 import { DataConversionView } from "@/components/database/DataConversionView";
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { BusinessDNAView } from "@/components/database/BusinessDNAView";
@@ -17,6 +16,7 @@ import { EmployeesView } from "@/components/database/EmployeesView";
 import { RestrictedFeatureGate } from "@/components/database/RestrictedFeatureGate";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { getSafeSession } from "@/lib/authSession";
 
 function MobileHeader() {
   const { toggleSidebar } = useSidebar();
@@ -59,59 +59,70 @@ const Database = () => {
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
   const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
 
-  // Check for view parameter and pending task on mount
   useEffect(() => {
-    const viewParam = searchParams.get('view');
-    const autostart = searchParams.get('autostart');
-    const addProduct = searchParams.get('addProduct');
-    const productUrl = searchParams.get('url');
-    
-    if (viewParam === 'aiceo') {
-      setCurrentView('aiceo');
+    const viewParam = searchParams.get("view");
+    const autostart = searchParams.get("autostart");
+    const addProduct = searchParams.get("addProduct");
+    const productUrl = searchParams.get("url");
+
+    if (viewParam === "aiceo") {
+      setCurrentView("aiceo");
       localStorage.setItem("tw_current_view", "aiceo");
     }
 
-    // Auto-open Add Product flow from landing page analyze
-    if (addProduct === 'true') {
-      setCurrentView('businessdna');
+    if (addProduct === "true") {
+      setCurrentView("businessdna");
       localStorage.setItem("tw_current_view", "businessdna");
       setShowAddProduct(true);
       if (productUrl) {
-        sessionStorage.setItem('pendingProductUrl', productUrl);
+        sessionStorage.setItem("pendingProductUrl", productUrl);
       }
     }
-    
-    // Check for pending task from research flow
-    if (autostart === 'true') {
-      const storedTask = sessionStorage.getItem('pendingAgentTask');
+
+    if (autostart === "true") {
+      const storedTask = sessionStorage.getItem("pendingAgentTask");
       if (storedTask) {
         try {
           const task = JSON.parse(storedTask);
           setPendingTask(task);
-          sessionStorage.removeItem('pendingAgentTask');
+          sessionStorage.removeItem("pendingAgentTask");
         } catch (e) {
-          console.error('Failed to parse pending task:', e);
+          console.error("Failed to parse pending task:", e);
         }
       }
     }
   }, [searchParams]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
+    let isMounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
       setUser(session?.user ?? null);
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    const loadSession = async () => {
+      const session = await getSafeSession();
+      if (!isMounted) return;
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    };
+
+    void loadSession();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Check for uncelebrated referral completions (referrer side)
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/auth?redirect=/app", { replace: true });
+    }
+  }, [isLoading, user, navigate]);
+
   useEffect(() => {
     if (!user) return;
     const checkReferrerRewards = async () => {
@@ -129,7 +140,9 @@ const Database = () => {
           setShowReferrerCelebration(true);
           localStorage.setItem("celebrated_referral_ids", JSON.stringify([...celebrated, ...newIds]));
         }
-      } catch { /* ignore */ }
+      } catch {
+        // ignore
+      }
     };
     checkReferrerRewards();
   }, [user]);
@@ -143,7 +156,6 @@ const Database = () => {
   }
 
   if (!user) {
-    navigate("/");
     return null;
   }
 
@@ -159,8 +171,8 @@ const Database = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <DatabaseSidebar 
-          currentView={currentView} 
+        <DatabaseSidebar
+          currentView={currentView}
           onViewChange={handleViewChange}
           userEmail={user?.email || ""}
         />
@@ -178,33 +190,40 @@ const Database = () => {
               </RestrictedFeatureGate>
             )}
             {currentView === "aiceo" && user && (
-              <TimeWarpAIView 
+              <TimeWarpAIView
                 initialTask={pendingTask}
                 onTaskConsumed={() => setPendingTask(null)}
               />
             )}
             {currentView === "businessdna" && user && (
               <BusinessDNAProvider>
-                {showAddProduct
-                  ? <AddProductURLView 
-                      onBack={() => setShowAddProduct(false)} 
-                      onComplete={(newBrandId?: string) => { 
-                        setShowAddProduct(false); 
-                        setActiveBrandId(newBrandId || activeBrandId);
-                        setShowBusinessDNA(true); 
-                      }}
-                      activeBrandId={activeBrandId}
-                    />
-                  : showBusinessDNA && activeBrandId
-                    ? <BusinessDNAView 
-                        activeBrandId={activeBrandId} 
-                        onBack={() => { setShowBusinessDNA(false); setActiveBrandId(null); }} 
-                      />
-                    : <MyBusinessesView 
-                        onSelectBusiness={() => setShowAddProduct(true)} 
-                        onOpenBusiness={(brandId) => { setActiveBrandId(brandId); setShowBusinessDNA(true); }}
-                      />
-                }
+                {showAddProduct ? (
+                  <AddProductURLView
+                    onBack={() => setShowAddProduct(false)}
+                    onComplete={(newBrandId?: string) => {
+                      setShowAddProduct(false);
+                      setActiveBrandId(newBrandId || activeBrandId);
+                      setShowBusinessDNA(true);
+                    }}
+                    activeBrandId={activeBrandId}
+                  />
+                ) : showBusinessDNA && activeBrandId ? (
+                  <BusinessDNAView
+                    activeBrandId={activeBrandId}
+                    onBack={() => {
+                      setShowBusinessDNA(false);
+                      setActiveBrandId(null);
+                    }}
+                  />
+                ) : (
+                  <MyBusinessesView
+                    onSelectBusiness={() => setShowAddProduct(true)}
+                    onOpenBusiness={(brandId) => {
+                      setActiveBrandId(brandId);
+                      setShowBusinessDNA(true);
+                    }}
+                  />
+                )}
               </BusinessDNAProvider>
             )}
             {currentView === "employees" && user && (
@@ -216,14 +235,14 @@ const Database = () => {
               </RestrictedFeatureGate>
             )}
           </main>
-      </SidebarInset>
-      <ActionsCelebration
-        open={showReferrerCelebration}
-        onOpenChange={setShowReferrerCelebration}
-        actionsGranted={125}
-        reason="referral"
-      />
-    </div>
+        </SidebarInset>
+        <ActionsCelebration
+          open={showReferrerCelebration}
+          onOpenChange={setShowReferrerCelebration}
+          actionsGranted={125}
+          reason="referral"
+        />
+      </div>
     </SidebarProvider>
   );
 };

@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { HeroSection } from "@/components/aiceo/HeroSection";
 import { ProductDescription } from "@/components/landing/ProductDescription";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 import { Loader2 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { getSafeSession } from "@/lib/authSession";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
@@ -13,7 +13,6 @@ const AiCeo = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { setTheme } = useTheme();
 
-  // Force dark mode on landing page
   useEffect(() => {
     setTheme("dark");
   }, [setTheme]);
@@ -24,27 +23,30 @@ const AiCeo = () => {
     searchParams.has("oauth_success") ||
     searchParams.has("oauth_error");
 
-  useEffect(() => {
-    if (isOAuthReturn) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          navigate(`/app?${searchParams.toString()}`, { replace: true });
-        }
-      });
-    }
-  }, [isOAuthReturn, searchParams, navigate]);
-
-  const [showChat, setShowChat] = useState(isOAuthReturn);
+  const [showChat] = useState(isOAuthReturn);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !isOAuthReturn) {
-        navigate("/app", { replace: true });
-      } else {
-        setIsLoading(false);
+    let isMounted = true;
+
+    const loadSession = async () => {
+      const session = await getSafeSession();
+      if (!isMounted) return;
+
+      if (session?.user) {
+        const target = isOAuthReturn ? `/app?${searchParams.toString()}` : "/app";
+        navigate(target, { replace: true });
+        return;
       }
-    });
-  }, [navigate, isOAuthReturn]);
+
+      setIsLoading(false);
+    };
+
+    void loadSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate, isOAuthReturn, searchParams]);
 
   if (isLoading) {
     return (
