@@ -31,14 +31,51 @@ function GrainCard({ children, filterId, seed = 0 }: {children: React.ReactNode;
 /* ─────────────────────── Hero Banner ─────────────────────── */
 function HeroBanner() {
   const isMobile = useIsMobile();
+  const sectionRef = useRef<HTMLElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setIsVisible(true);
+      },
+      { threshold: 0.2 }
+    );
+    observer.observe(section);
+
+    const handleScroll = () => {
+      const rect = section.getBoundingClientRect();
+      const windowH = window.innerHeight;
+      // progress 0→1 as section scrolls through viewport
+      const raw = 1 - (rect.top / windowH);
+      setScrollProgress(Math.max(0, Math.min(1, raw)));
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  // Image crossfade: first image fades out, second fades in
+  const img1Opacity = Math.max(0, 1 - scrollProgress * 2.5);
+  const img2Opacity = Math.min(1, scrollProgress * 2.5);
+
   return (
-    <section className="relative z-10 py-20 lg:py-28 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
+    <section ref={sectionRef} className="relative z-10 py-20 lg:py-28 overflow-visible bg-background dark:bg-[hsl(0_0%_10%)]">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(51,153,255,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent 100%)" }} />
       <div className="absolute pointer-events-none hidden dark:block" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
         <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-          {/* Left text — no background */}
+          {/* Left text */}
           <div className="flex-1 flex flex-col justify-center">
             <h2
               className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white leading-tight mb-3"
@@ -52,47 +89,8 @@ function HeroBanner() {
           </div>
 
           {/* Right image with grain background + annotations */}
-          <div className="relative flex-shrink-0 w-full md:w-[50%] flex items-end justify-center">
-            {/* Annotations - hidden on mobile */}
-            {/* Brain - top left */}
-            <div className="absolute -left-44 top-[8%] hidden md:flex items-center gap-3 z-20">
-              <div className="flex items-center gap-2">
-                <div className="p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/30 shadow-lg">
-                  <Brain className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-white/90 text-sm font-medium whitespace-nowrap">Analyzing everything</span>
-              </div>
-              <svg width="60" height="20" viewBox="0 0 60 20" fill="none" className="shrink-0">
-                <path d="M0 10 H50 L45 5 M50 10 L45 15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-
-            {/* Eye - middle left */}
-            <div className="absolute -left-36 top-[35%] hidden md:flex items-center gap-3 z-20">
-              <div className="flex items-center gap-2">
-                <div className="p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/30 shadow-lg">
-                  <Eye className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-white/90 text-sm font-medium whitespace-nowrap">Sees everything</span>
-              </div>
-              <svg width="40" height="20" viewBox="0 0 40 20" fill="none" className="shrink-0">
-                <path d="M0 10 H30 L25 5 M30 10 L25 15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-
-            {/* Monitor - bottom left */}
-            <div className="absolute -left-40 top-[65%] hidden md:flex items-center gap-3 z-20">
-              <div className="flex items-center gap-2">
-                <div className="p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/30 shadow-lg">
-                  <Monitor className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-white/90 text-sm font-medium whitespace-nowrap">Executes from DNA</span>
-              </div>
-              <svg width="50" height="20" viewBox="0 0 50 20" fill="none" className="shrink-0">
-                <path d="M0 10 H40 L35 5 M40 10 L35 15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-
+          <div className="relative flex-shrink-0 w-full md:w-[50%] flex items-end justify-center overflow-visible">
+            {/* Grain card with crossfading images */}
             <div className="relative rounded-3xl overflow-hidden w-full" style={{ background: "#d56a87" }}>
               {!isMobile && (
                 <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40" style={{ mixBlendMode: "soft-light" }}>
@@ -100,12 +98,69 @@ function HeroBanner() {
                   <rect width="100%" height="100%" filter="url(#grain-hero-banner)" />
                 </svg>
               )}
+              {/* Image 1 — original */}
               <img
                 src={robotImg}
                 alt="TimeWarp AI Robot"
-                className="relative z-10 w-full object-contain"
-                style={{ display: "block" }}
+                className="relative z-10 w-full object-contain transition-opacity duration-700"
+                style={{ display: "block", opacity: img1Opacity }}
               />
+              {/* Image 2 — new, overlaid */}
+              <img
+                src={robotImg2}
+                alt="TimeWarp AI Robot Evolved"
+                className="absolute inset-0 z-10 w-full h-full object-contain transition-opacity duration-700"
+                style={{ opacity: img2Opacity }}
+              />
+            </div>
+
+            {/* Annotations — RIGHT side, outside the card */}
+            {/* Brain - top right */}
+            <div
+              className={`absolute -right-48 top-[8%] hidden md:flex items-center gap-3 z-20 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
+              style={{ transitionDelay: "200ms" }}
+            >
+              <svg width="60" height="20" viewBox="0 0 60 20" fill="none" className="shrink-0">
+                <path d="M60 10 H10 L15 5 M10 10 L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-foreground dark:text-white" />
+              </svg>
+              <div className="flex items-center gap-2.5">
+                <div className="p-3.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
+                  <Brain className="w-6 h-6 text-foreground dark:text-white" />
+                </div>
+                <span className="text-foreground/90 dark:text-white/90 text-sm font-medium whitespace-nowrap">Analyzing everything</span>
+              </div>
+            </div>
+
+            {/* Eye - middle right */}
+            <div
+              className={`absolute -right-40 top-[35%] hidden md:flex items-center gap-3 z-20 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
+              style={{ transitionDelay: "400ms" }}
+            >
+              <svg width="40" height="20" viewBox="0 0 40 20" fill="none" className="shrink-0">
+                <path d="M40 10 H10 L15 5 M10 10 L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-foreground dark:text-white" />
+              </svg>
+              <div className="flex items-center gap-2.5">
+                <div className="p-3.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
+                  <Eye className="w-6 h-6 text-foreground dark:text-white" />
+                </div>
+                <span className="text-foreground/90 dark:text-white/90 text-sm font-medium whitespace-nowrap">Sees everything</span>
+              </div>
+            </div>
+
+            {/* Monitor - bottom right */}
+            <div
+              className={`absolute -right-44 top-[65%] hidden md:flex items-center gap-3 z-20 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
+              style={{ transitionDelay: "600ms" }}
+            >
+              <svg width="50" height="20" viewBox="0 0 50 20" fill="none" className="shrink-0">
+                <path d="M50 10 H10 L15 5 M10 10 L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-foreground dark:text-white" />
+              </svg>
+              <div className="flex items-center gap-2.5">
+                <div className="p-3.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
+                  <Monitor className="w-6 h-6 text-foreground dark:text-white" />
+                </div>
+                <span className="text-foreground/90 dark:text-white/90 text-sm font-medium whitespace-nowrap">Executes from DNA</span>
+              </div>
             </div>
           </div>
         </div>
