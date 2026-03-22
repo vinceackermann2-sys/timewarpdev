@@ -2,7 +2,7 @@ import {
   Zap, Brain, Users, Building2, Rocket, TrendingUp,
   Clock, Eye, Heart, DollarSign, ArrowRight, Link2, Globe,
   CheckCircle, ChevronRight, Cpu, UserCheck, BarChart3,
-  Briefcase, Target, Shield, Calculator, Bot } from
+  Briefcase, Target, Shield, Calculator, Bot, Monitor } from
 "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
