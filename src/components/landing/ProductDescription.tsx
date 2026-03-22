@@ -2,7 +2,7 @@ import {
   Zap, Brain, Users, Building2, Rocket, TrendingUp,
   Clock, Eye, Heart, DollarSign, ArrowRight, Link2, Globe,
   CheckCircle, ChevronRight, Cpu, UserCheck, BarChart3,
-  Briefcase, Target, Shield, Calculator, Bot } from
+  Briefcase, Target, Shield, Calculator, Bot, Monitor } from
 "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -50,8 +50,48 @@ function HeroBanner() {
             </p>
           </div>
 
-          {/* Right image with grain background */}
+          {/* Right image with grain background + annotations */}
           <div className="relative flex-shrink-0 w-full md:w-[50%] flex items-end justify-center">
+            {/* Annotations - hidden on mobile */}
+            {/* Brain - top left */}
+            <div className="absolute -left-44 top-[8%] hidden md:flex items-center gap-3 z-20">
+              <div className="flex items-center gap-2">
+                <div className="p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/30 shadow-lg">
+                  <Brain className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-white/90 text-sm font-medium whitespace-nowrap">Analyzing everything</span>
+              </div>
+              <svg width="60" height="20" viewBox="0 0 60 20" fill="none" className="shrink-0">
+                <path d="M0 10 H50 L45 5 M50 10 L45 15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+
+            {/* Eye - middle left */}
+            <div className="absolute -left-36 top-[35%] hidden md:flex items-center gap-3 z-20">
+              <div className="flex items-center gap-2">
+                <div className="p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/30 shadow-lg">
+                  <Eye className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-white/90 text-sm font-medium whitespace-nowrap">Sees everything</span>
+              </div>
+              <svg width="40" height="20" viewBox="0 0 40 20" fill="none" className="shrink-0">
+                <path d="M0 10 H30 L25 5 M30 10 L25 15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+
+            {/* Monitor - bottom left */}
+            <div className="absolute -left-40 top-[65%] hidden md:flex items-center gap-3 z-20">
+              <div className="flex items-center gap-2">
+                <div className="p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/30 shadow-lg">
+                  <Monitor className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-white/90 text-sm font-medium whitespace-nowrap">Executes from DNA</span>
+              </div>
+              <svg width="50" height="20" viewBox="0 0 50 20" fill="none" className="shrink-0">
+                <path d="M0 10 H40 L35 5 M40 10 L35 15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+
             <div className="relative rounded-3xl overflow-hidden w-full" style={{ background: "#d56a87" }}>
               {!isMobile && (
                 <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40" style={{ mixBlendMode: "soft-light" }}>
