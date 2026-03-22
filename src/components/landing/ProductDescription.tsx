@@ -84,12 +84,12 @@ function HeroBanner() {
             </p>
           </div>
 
-          {/* Right: image card + icons below */}
-          <div className="flex-shrink-0 w-full md:w-[50%] flex flex-col items-center gap-6">
+          {/* Right: image card + icons on the right */}
+          <div className="flex-shrink-0 w-full md:w-[55%] flex items-center gap-6">
             {/* Grain card with scan-line crossfade */}
-            <div className="relative rounded-3xl overflow-hidden w-full" style={{ background: "#d56a87" }}>
+            <div className="relative rounded-3xl overflow-hidden w-full" style={{ background: "#c4788f" }}>
               {!isMobile && (
-                <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40" style={{ mixBlendMode: "soft-light" }}>
+                <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-50" style={{ mixBlendMode: "soft-light" }}>
                   <filter id="grain-hero-banner"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={42} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
                   <rect width="100%" height="100%" filter="url(#grain-hero-banner)" />
                 </svg>
@@ -108,8 +108,8 @@ function HeroBanner() {
               />
             </div>
 
-            {/* Three icons outside the card, text above icon */}
-            <div className="hidden md:flex items-start justify-center gap-10">
+            {/* Icons stacked vertically on the right side of the card */}
+            <div className="hidden md:flex flex-col items-center gap-8">
               {annotations.map((ann, i) => {
                 const itemProgress = Math.max(0, Math.min(1, (iconProgress - ann.delay) / 0.7));
                 return (
@@ -118,7 +118,7 @@ function HeroBanner() {
                     className="flex flex-col items-center gap-2 transition-all duration-500"
                     style={{
                       opacity: itemProgress,
-                      transform: `translateY(${(1 - itemProgress) * 16}px)`,
+                      transform: `translateX(${(1 - itemProgress) * 16}px)`,
                     }}
                   >
                     <span className="text-foreground/90 dark:text-white/90 text-sm font-semibold whitespace-nowrap">{ann.label}</span>
