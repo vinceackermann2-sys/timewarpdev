@@ -59,9 +59,9 @@ function HeroBanner() {
   const iconProgress = Math.max(0, Math.min(1, (scrollProgress - 0.3) * 3));
 
   const annotations = [
-    { icon: Brain, label: "Analyzing everything", top: "2%", left: "-140px", right: "auto", arrowDir: "right" as const, delay: 0 },
-    { icon: Eye, label: "Logging everything", top: "42%", left: "auto", right: "-140px", arrowDir: "left" as const, delay: 0.1 },
-    { icon: Monitor, label: "Powering your CEO", top: "78%", left: "-140px", right: "auto", arrowDir: "right" as const, delay: 0.2 },
+    { icon: Brain, label: "Analyzing everything", delay: 0 },
+    { icon: Eye, label: "Observing everything", delay: 0.1 },
+    { icon: Monitor, label: "Powering your CEO", delay: 0.2 },
   ];
 
   return (
@@ -84,8 +84,8 @@ function HeroBanner() {
             </p>
           </div>
 
-          {/* Right image with floating annotations around card */}
-          <div className="relative flex-shrink-0 w-full md:w-[50%] flex items-end justify-center overflow-visible">
+          {/* Right: image card + icons below */}
+          <div className="flex-shrink-0 w-full md:w-[50%] flex flex-col items-center gap-6">
             {/* Grain card with scan-line crossfade */}
             <div className="relative rounded-3xl overflow-hidden w-full" style={{ background: "#d56a87" }}>
               {!isMobile && (
@@ -94,14 +94,12 @@ function HeroBanner() {
                   <rect width="100%" height="100%" filter="url(#grain-hero-banner)" />
                 </svg>
               )}
-              {/* Image 1 — original robot, default visible */}
               <img
                 src={robotImg}
                 alt="TimeWarp AI Robot"
                 className="relative z-10 w-full object-contain"
                 style={{ display: "block" }}
               />
-              {/* Image 2 — blue robot, scan-line reveal from top */}
               <img
                 src={robotImg2}
                 alt="TimeWarp AI Robot Evolved"
@@ -110,50 +108,27 @@ function HeroBanner() {
               />
             </div>
 
-            {/* Floating annotation icons positioned around the card */}
-            {annotations.map((ann, i) => {
-              const itemProgress = Math.max(0, Math.min(1, (iconProgress - ann.delay) / 0.7));
-              const isRight = ann.arrowDir === "left";
-              return (
-                <div
-                  key={i}
-                  className="absolute z-20 hidden md:flex items-center gap-3 transition-all duration-500"
-                  style={{
-                    top: ann.top,
-                    left: ann.left,
-                    right: ann.right,
-                    opacity: itemProgress,
-                    transform: `translateX(${isRight ? (1 - itemProgress) * 20 : -(1 - itemProgress) * 20}px)`,
-                  }}
-                >
-                  {isRight ? (
-                    <>
-                      <svg width="70" height="24" viewBox="0 0 70 24" fill="none" className="pointer-events-none">
-                        <path d="M2 12 H60 L55 6 M60 12 L55 18" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <div className="flex items-center gap-3">
-                        <div className="p-4 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
-                          <ann.icon className="w-7 h-7 text-foreground dark:text-white" />
-                        </div>
-                        <span className="text-foreground/90 dark:text-white/90 text-base font-semibold whitespace-nowrap">{ann.label}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <span className="text-foreground/90 dark:text-white/90 text-base font-semibold whitespace-nowrap">{ann.label}</span>
-                        <div className="p-4 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
-                          <ann.icon className="w-7 h-7 text-foreground dark:text-white" />
-                        </div>
-                      </div>
-                      <svg width="70" height="24" viewBox="0 0 70 24" fill="none" className="pointer-events-none">
-                        <path d="M68 12 H10 L15 6 M10 12 L15 18" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </>
-                  )}
-                </div>
-              );
-            })}
+            {/* Three icons outside the card, text above icon */}
+            <div className="hidden md:flex items-start justify-center gap-10">
+              {annotations.map((ann, i) => {
+                const itemProgress = Math.max(0, Math.min(1, (iconProgress - ann.delay) / 0.7));
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center gap-2 transition-all duration-500"
+                    style={{
+                      opacity: itemProgress,
+                      transform: `translateY(${(1 - itemProgress) * 16}px)`,
+                    }}
+                  >
+                    <span className="text-foreground/90 dark:text-white/90 text-sm font-semibold whitespace-nowrap">{ann.label}</span>
+                    <div className="p-4 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
+                      <ann.icon className="w-7 h-7 text-foreground dark:text-white" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
