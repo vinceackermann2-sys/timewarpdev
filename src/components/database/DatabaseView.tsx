@@ -175,7 +175,16 @@ export function DatabaseView() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const cachedContextsRef = useRef<any[] | null>(null);
+  const cachedContextsTimeRef = useRef<number>(0);
+  const CONTEXT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   const buildContexts = useCallback(async () => {
+    // Return cached result if fresh
+    if (cachedContextsRef.current && Date.now() - cachedContextsTimeRef.current < CONTEXT_CACHE_TTL) {
+      return cachedContextsRef.current;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return [];
 
@@ -195,8 +204,9 @@ export function DatabaseView() {
 
     const { data: bizData, error } = await query;
 
+    let result: any[] = [];
     if (!error && bizData && bizData.length > 0) {
-      return [{
+      result = [{
         type: "business-db",
         label: "Business Data",
         content: {
@@ -210,7 +220,10 @@ export function DatabaseView() {
         }
       }];
     }
-    return [];
+
+    cachedContextsRef.current = result;
+    cachedContextsTimeRef.current = Date.now();
+    return result;
   }, []);
 
   const sendMessage = useCallback(async (content: string) => {
