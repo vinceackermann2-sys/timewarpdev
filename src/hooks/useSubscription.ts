@@ -55,8 +55,6 @@ export function useSubscription() {
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-        .limit(1)
-        .maybeSingle();
 
       if (error) {
         console.warn("Failed to fetch subscription from DB:", error.message);
