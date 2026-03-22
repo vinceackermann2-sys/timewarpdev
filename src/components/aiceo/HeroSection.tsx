@@ -352,9 +352,9 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         }
 
         .orb-hero__stage {
-          --sz: min(105vw, 1160px);
+          --sz: min(70vw, 720px);
           position: absolute;
-          bottom: 0;
+          bottom: 5vh;
           left: 50%;
           transform: translateX(-50%);
           width: var(--sz);
