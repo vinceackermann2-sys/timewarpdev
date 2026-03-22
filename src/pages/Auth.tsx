@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,22 +10,23 @@ import authBg from "@/assets/auth-bg.webp";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link as RouterLink } from "react-router-dom";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
+import { getSafeSession } from "@/lib/authSession";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [isSignUp, setIsSignUp] = useState(searchParams.get("mode") === "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationReason, setCelebrationReason] = useState<"referral" | "referred">("referred");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const quizDataFromNav = (location.state as any)?.quizData;
   const quizData =
@@ -39,12 +40,20 @@ const Auth = () => {
       }
     })();
 
-  // Store referral code from URL
+  const navigateToDashboard = () => {
+    const productUrl = searchParams.get("url");
+    if (productUrl) {
+      navigate(`/app?addProduct=true&url=${encodeURIComponent(productUrl)}`, { state: { quizData } });
+    } else {
+      navigate("/app", { state: { quizData } });
+    }
+  };
+
   const refCode = searchParams.get("ref");
   useEffect(() => {
     if (refCode) {
       localStorage.setItem("referral_code", refCode);
-      setIsSignUp(true); // Default to sign up for referred users
+      setIsSignUp(true);
     }
   }, [refCode]);
 
@@ -68,44 +77,46 @@ const Auth = () => {
             setShowCelebration(true);
             return true;
           }
-        } catch { /* ignore referral errors */ }
+        } catch {
+          // ignore referral errors
+        }
       }
       return false;
     };
 
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const celebrated = await processReferral(session.user.id);
-        if (celebrated) return; // navigation deferred to celebration dismiss
-        const redirect = searchParams.get("redirect");
-        if (redirect) { navigate(redirect); return; }
-        if (!quizData) { navigateToDashboard(); return; }
+    const handleAuthenticatedUser = async (userId: string) => {
+      const celebrated = await processReferral(userId);
+      if (celebrated) return;
+      const redirect = searchParams.get("redirect");
+      if (redirect) {
+        navigate(redirect, { replace: true });
+        return;
+      }
+      if (!quizData) {
+        navigateToDashboard();
       }
     };
-    checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        const celebrated = await processReferral(session.user.id);
-        if (celebrated) return; // navigation deferred to celebration dismiss
-        const redirect = searchParams.get("redirect");
-        if (redirect) { navigate(redirect); return; }
-        if (!quizData) { navigateToDashboard(); }
-      }
+    let isMounted = true;
+
+    const checkSession = async () => {
+      const session = await getSafeSession();
+      if (!isMounted || !session) return;
+      await handleAuthenticatedUser(session.user.id);
+    };
+
+    void checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted || !session) return;
+      await handleAuthenticatedUser(session.user.id);
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate, quizData]);
-
-  const navigateToDashboard = () => {
-    const productUrl = searchParams.get("url");
-    if (productUrl) {
-      navigate(`/app?addProduct=true&url=${encodeURIComponent(productUrl)}`, { state: { quizData } });
-    } else {
-      navigate("/app", { state: { quizData } });
-    }
-  };
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate, quizData, searchParams]);
 
   const validateForm = () => {
     if (!email || !password) {
@@ -128,8 +139,8 @@ const Auth = () => {
     setIsGoogleLoading(true);
     try {
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const session = await getSafeSession();
+
       if (!session?.user && quizData) {
         const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth` } });
         if (error) throw error;
@@ -140,34 +151,42 @@ const Auth = () => {
         if (error) throw error;
         return;
       }
-      
-      const scopes = quizData ? [
-        "https://www.googleapis.com/auth/gmail.send",
-        "https://www.googleapis.com/auth/gmail.compose",
-        "https://www.googleapis.com/auth/gmail.readonly",
-        "https://www.googleapis.com/auth/drive",
-        "https://www.googleapis.com/auth/calendar",
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/documents",
-        "https://www.googleapis.com/auth/forms.body.readonly",
-        "openid", "email", "profile",
-      ].join(" ") : "openid email profile";
+
+      const scopes = quizData
+        ? [
+            "https://www.googleapis.com/auth/gmail.send",
+            "https://www.googleapis.com/auth/gmail.compose",
+            "https://www.googleapis.com/auth/gmail.readonly",
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/calendar",
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/documents",
+            "https://www.googleapis.com/auth/forms.body.readonly",
+            "openid",
+            "email",
+            "profile",
+          ].join(" ")
+        : "openid email profile";
 
       const response = await fetch(`${SUPABASE_URL}/functions/v1/initiate-google-oauth`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ user_id: session.user.id, scopes, origin: window.location.origin }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to initiate Google OAuth");
       }
-      
+
       const { url } = await response.json();
       window.location.href = url;
     } catch (error: any) {
-      toast({ title: "Google sign-in failed", description: error.message || "Could not connect to Google. Please try again.", variant: "destructive" });
+      toast({
+        title: "Google sign-in failed",
+        description: error.message || "Could not connect to Google. Please try again.",
+        variant: "destructive",
+      });
       setIsGoogleLoading(false);
     }
   };
@@ -179,11 +198,21 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/` } });
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/` },
+        });
         if (error) {
           if (error.message.includes("already registered")) {
-            toast({ title: "Account exists", description: "This email is already registered. Please log in instead.", variant: "destructive" });
-          } else throw error;
+            toast({
+              title: "Account exists",
+              description: "This email is already registered. Please log in instead.",
+              variant: "destructive",
+            });
+          } else {
+            throw error;
+          }
         } else {
           toast({ title: "Account created!", description: "You're now signed in. Welcome to TimeWarp!" });
         }
@@ -191,8 +220,14 @@ const Auth = () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
-            toast({ title: "Invalid credentials", description: "Please check your email and password.", variant: "destructive" });
-          } else throw error;
+            toast({
+              title: "Invalid credentials",
+              description: "Please check your email and password.",
+              variant: "destructive",
+            });
+          } else {
+            throw error;
+          }
         }
       }
     } catch (error: any) {
@@ -202,13 +237,10 @@ const Auth = () => {
     }
   };
 
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-
   return (
     <div className="min-h-screen max-w-[1900px] mx-auto bg-background flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-5xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 bg-card">
-          {/* Left – Form */}
           <div className="p-6 sm:p-10 flex flex-col justify-center">
             <div className="hidden sm:flex items-center gap-2 mb-8">
               <img src="/favicon.png" alt="TimeWarp" className="h-9 w-9 rounded-lg object-cover" />
@@ -226,7 +258,6 @@ const Auth = () => {
                   : "Log in to your TimeWarp account"}
             </p>
 
-            {/* Google */}
             <Button
               type="button"
               variant={quizData ? "default" : "outline"}
@@ -238,10 +269,10 @@ const Auth = () => {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
               )}
               Continue with Google
@@ -278,7 +309,6 @@ const Auth = () => {
                     </div>
                   </div>
 
-
                   {isSignUp && (
                     <div className="flex items-start gap-3">
                       <Checkbox
@@ -308,9 +338,15 @@ const Auth = () => {
 
                 <div className="text-center text-sm mt-4">
                   {isSignUp ? (
-                    <>Already have an account?{" "}<button onClick={() => setIsSignUp(false)} className="text-primary hover:underline font-medium">Sign in here</button></>
+                    <>
+                      Already have an account?{" "}
+                      <button onClick={() => setIsSignUp(false)} className="text-primary hover:underline font-medium">Sign in here</button>
+                    </>
                   ) : (
-                    <>Don't have an account?{" "}<button onClick={() => setIsSignUp(true)} className="text-primary hover:underline font-medium">Sign up</button></>
+                    <>
+                      Don't have an account?{" "}
+                      <button onClick={() => setIsSignUp(true)} className="text-primary hover:underline font-medium">Sign up</button>
+                    </>
                   )}
                 </div>
               </>
@@ -323,7 +359,6 @@ const Auth = () => {
             )}
           </div>
 
-          {/* Right – Image */}
           <div className="hidden md:block relative">
             <img src={authBg} alt="" className="absolute inset-0 w-full h-full object-cover" />
           </div>
