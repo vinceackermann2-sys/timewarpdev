@@ -59,9 +59,16 @@ function HeroBanner() {
   const iconProgress = Math.max(0, Math.min(1, (scrollProgress - 0.3) * 3));
 
   const annotations = [
-    { icon: Brain, label: "Analyzing everything", top: "8%", delay: 0 },
-    { icon: Eye, label: "Logging everything", top: "38%", delay: 0.1 },
-    { icon: Monitor, label: "Powering your CEO", top: "65%", delay: 0.2 },
+    { icon: Brain, label: "Analyzing everything", top: "5%", left: "-70px", right: "auto", arrowDir: "right" as const },
+    { icon: Eye, label: "Logging everything", top: "42%", left: "auto", right: "-70px", arrowDir: "left" as const },
+    { icon: Monitor, label: "Powering your CEO", top: "78%", left: "-70px", right: "auto", arrowDir: "right" as const },
+  ];
+
+  // Target points on robot (approximate % from top-left of image)
+  const arrowTargets = [
+    { startX: 70, startY: 0, endX: 50, endY: 15 },   // top-left icon → head
+    { startX: -10, startY: 0, endX: 55, endY: 12 },   // mid-right icon → eyes
+    { startX: 70, startY: 0, endX: 55, endY: 12 },    // bottom-left icon → hands
   ];
 
   return (
@@ -71,7 +78,7 @@ function HeroBanner() {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl relative z-10">
         <div className="flex flex-col md:flex-row items-center gap-8 md:gap-6">
-          {/* Left text + icons stacked */}
+          {/* Left text */}
           <div className="flex-1 flex flex-col justify-center">
             <h2
               className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white leading-tight mb-3"
@@ -82,31 +89,9 @@ function HeroBanner() {
             <p className="text-lg sm:text-xl text-muted-foreground dark:text-white/60 font-medium mb-8">
               Meet TimeWarp
             </p>
-
-            {/* Annotations — right of text, stacked vertically */}
-            <div className="hidden md:flex flex-col gap-5">
-              {annotations.map((ann, i) => {
-                const itemProgress = Math.max(0, Math.min(1, (iconProgress - ann.delay) / 0.7));
-                return (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 transition-all duration-500"
-                    style={{
-                      opacity: itemProgress,
-                      transform: `translateX(${(1 - itemProgress) * 20}px)`,
-                    }}
-                  >
-                    <div className="p-3.5 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
-                      <ann.icon className="w-6 h-6 text-foreground dark:text-white" />
-                    </div>
-                    <span className="text-foreground/90 dark:text-white/90 text-sm font-medium whitespace-nowrap">{ann.label}</span>
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
-          {/* Right image with grain background + arrow annotations */}
+          {/* Right image with floating annotations around card */}
           <div className="relative flex-shrink-0 w-full md:w-[50%] flex items-end justify-center overflow-visible">
             {/* Grain card with scan-line crossfade */}
             <div className="relative rounded-3xl overflow-hidden w-full" style={{ background: "#d56a87" }}>
@@ -116,50 +101,67 @@ function HeroBanner() {
                   <rect width="100%" height="100%" filter="url(#grain-hero-banner)" />
                 </svg>
               )}
-              {/* Image 1 — original, always visible underneath */}
+              {/* Image 1 — blue robot, default visible */}
               <img
-                src={robotImg}
+                src={robotImg2}
                 alt="TimeWarp AI Robot"
                 className="relative z-10 w-full object-contain"
                 style={{ display: "block" }}
               />
-              {/* Image 2 — scan-line reveal from top */}
+              {/* Image 2 — original robot, scan-line reveal from top */}
               <img
-                src={robotImg2}
+                src={robotImg}
                 alt="TimeWarp AI Robot Evolved"
                 className="absolute inset-0 z-10 w-full h-full object-contain"
                 style={{ clipPath: `inset(0 0 ${100 - scanPercent}% 0)` }}
               />
             </div>
 
-            {/* Arrow lines pointing from right side to head/eyes/hands */}
+            {/* Floating annotation icons positioned around the card */}
             {annotations.map((ann, i) => {
-              const itemProgress = Math.max(0, Math.min(1, (iconProgress - ann.delay) / 0.7));
-              // Arrow endpoints: from right edge toward the body part
-              const yPos = ann.top;
+              const itemProgress = Math.max(0, Math.min(1, (iconProgress - (ann.top === "42%" ? 0.1 : ann.top === "78%" ? 0.2 : 0)) / 0.7));
+              const isRight = ann.arrowDir === "left"; // icon is on the right side
               return (
-                <svg
+                <div
                   key={i}
-                  className="absolute z-20 hidden md:block pointer-events-none"
+                  className="absolute z-20 hidden md:flex items-center gap-2 transition-all duration-500"
                   style={{
-                    top: yPos,
-                    right: "-12px",
-                    width: "60px",
-                    height: "24px",
+                    top: ann.top,
+                    left: ann.left,
+                    right: ann.right,
                     opacity: itemProgress,
-                    transition: "opacity 0.5s",
+                    transform: `translateX(${isRight ? (1 - itemProgress) * 20 : -(1 - itemProgress) * 20}px)`,
                   }}
-                  viewBox="0 0 60 24"
-                  fill="none"
                 >
-                  <path
-                    d="M58 12 H8 L13 6 M8 12 L13 18"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                  {/* Arrow pointing toward robot */}
+                  {isRight ? (
+                    // Icon on right, arrow points left
+                    <>
+                      <svg width="50" height="24" viewBox="0 0 50 24" fill="none" className="pointer-events-none">
+                        <path d="M2 12 H42 L37 6 M42 12 L37 18" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div className="flex items-center gap-2">
+                        <div className="p-3 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
+                          <ann.icon className="w-5 h-5 text-foreground dark:text-white" />
+                        </div>
+                        <span className="text-foreground/90 dark:text-white/90 text-xs font-medium whitespace-nowrap">{ann.label}</span>
+                      </div>
+                    </>
+                  ) : (
+                    // Icon on left, arrow points right
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-foreground/90 dark:text-white/90 text-xs font-medium whitespace-nowrap">{ann.label}</span>
+                        <div className="p-3 rounded-full bg-black/10 dark:bg-white/10 backdrop-blur-md border border-black/20 dark:border-white/30 shadow-lg">
+                          <ann.icon className="w-5 h-5 text-foreground dark:text-white" />
+                        </div>
+                      </div>
+                      <svg width="50" height="24" viewBox="0 0 50 24" fill="none" className="pointer-events-none">
+                        <path d="M48 12 H8 L13 6 M8 12 L13 18" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </>
+                  )}
+                </div>
               );
             })}
           </div>
