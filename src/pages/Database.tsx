@@ -100,15 +100,23 @@ const Database = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null);
+        setIsLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setIsLoading(false);
+    }).catch(() => {
+      setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Fallback timeout in case getSession hangs
+    const timeout = setTimeout(() => setIsLoading(false), 5000);
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Check for uncelebrated referral completions (referrer side)
