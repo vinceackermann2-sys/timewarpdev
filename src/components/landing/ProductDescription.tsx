@@ -36,36 +36,36 @@ function HeroBanner() {
       <div className="absolute pointer-events-none hidden dark:block" style={{ width: 600, height: 300, bottom: 0, left: "50%", transform: "translateX(-50%)", background: "radial-gradient(ellipse at center bottom, rgba(51,153,255,0.12) 0%, rgba(51,153,255,0.04) 40%, transparent 70%)", filter: "blur(40px)" }} />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-        <div
-          className="relative rounded-3xl overflow-hidden flex flex-col md:flex-row items-center"
-          style={{ background: "#d56a87" }}
-        >
-          {!isMobile && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40" style={{ mixBlendMode: "soft-light" }}>
-              <filter id="grain-hero-banner"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={42} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-              <rect width="100%" height="100%" filter="url(#grain-hero-banner)" />
-            </svg>
-          )}
-
-          <div className="relative z-10 flex-1 p-8 sm:p-12 lg:p-16 flex flex-col justify-center">
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          {/* Left text — no background */}
+          <div className="flex-1 flex flex-col justify-center">
             <h2
-              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-3"
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white leading-tight mb-3"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
               Working should<br />be optional
             </h2>
-            <p className="text-lg sm:text-xl text-white/70 font-medium">
+            <p className="text-lg sm:text-xl text-muted-foreground dark:text-white/60 font-medium">
               Meet TimeWarp
             </p>
           </div>
 
-          <div className="relative z-10 flex-shrink-0 w-full md:w-[45%] flex items-end justify-center">
-            <img
-              src={robotImg}
-              alt="TimeWarp AI Robot"
-              className="w-full max-w-[340px] md:max-w-none md:w-full object-contain"
-              style={{ display: "block" }}
-            />
+          {/* Right image with grain background */}
+          <div className="relative flex-shrink-0 w-full md:w-[50%] flex items-end justify-center">
+            <div className="relative rounded-3xl overflow-hidden w-full" style={{ background: "#d56a87" }}>
+              {!isMobile && (
+                <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40" style={{ mixBlendMode: "soft-light" }}>
+                  <filter id="grain-hero-banner"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={4} seed={42} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+                  <rect width="100%" height="100%" filter="url(#grain-hero-banner)" />
+                </svg>
+              )}
+              <img
+                src={robotImg}
+                alt="TimeWarp AI Robot"
+                className="relative z-10 w-full object-contain"
+                style={{ display: "block" }}
+              />
+            </div>
           </div>
         </div>
       </div>
