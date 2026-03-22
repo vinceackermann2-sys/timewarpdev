@@ -1,29 +1,32 @@
 
 
-## Plan: Fix Annotation Visibility, Reposition, and Add Scroll Animations
+## Plan: Swap Default Robot Image, Reposition Icons Around Card
 
-### Changes
+### Changes to `src/components/landing/ProductDescription.tsx`
 
-**File: `src/components/landing/ProductDescription.tsx`**
+#### 1. Swap robot images
+- Make `robotImg2` (blue robot) the default visible image
+- Make `robotImg` (original) the scan-reveal image that appears on scroll
+- Swap the `src` attributes on the two `<img>` tags
 
-#### 1. Move annotations to the RIGHT side, make bigger, fix light mode visibility
+#### 2. Reposition three icons around the card edges (not stacked together)
+- Remove the current left-side stacked icon column from the text area
+- Place all three icons as absolutely-positioned elements around the image card:
+  - **Brain / "Analyzing everything"** → top-left, outside the card (e.g., `top: 5%, left: -60px`)
+  - **Eye / "Logging everything"** → middle-right, outside the card (e.g., `top: 45%, right: -60px`)
+  - **Monitor / "Powering your CEO"** → bottom-left, outside the card (e.g., `top: 80%, left: -60px`)
+- Each icon still syncs its opacity/translate to `iconProgress` (appears with the scan filter)
 
-- Move all three annotation groups from `left` positioning to `right` (e.g., `-right-48` instead of `-left-44`)
-- Reverse the layout order: arrow first (pointing left toward robot), then icon + text
-- Make icon circles bigger: `p-3.5` instead of `p-2.5`, icon size `w-6 h-6` instead of `w-4 h-4`
-- Fix light mode: change icon circle from `bg-white/10 border-white/30` to theme-aware styling: `bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/30` and icon/text colors to `text-foreground dark:text-white`
+#### 3. Fix arrows to match new icon positions
+- **Top-left icon**: arrow points right and down toward the robot's head
+- **Middle-right icon**: arrow points left toward the robot's eyes
+- **Bottom-left icon**: arrow points right toward the robot's arm/hand
+- Use SVG lines with arrowheads, each with appropriate viewBox and path direction
 
-#### 2. Scroll-based image swap and icon reveal
-
-- Save new robot image as `src/assets/timewarp-robot-2.png` (the uploaded AD_EVO_4.png)
-- Add an Intersection Observer (`useRef` + `useEffect`) on the HeroBanner section
-- Track scroll progress through the section using a scroll listener
-- When user scrolls into the banner area:
-  - Cross-fade from current robot image to new robot image (both absolutely positioned, opacity transitions based on scroll progress)
-  - The 3 annotation icons fade in with a staggered delay (opacity 0 → 1, slight translateX) triggered when section enters viewport
-- Use CSS transitions (`transition-all duration-700`) and state-driven class toggling for smooth animations
+#### 4. Layout adjustment
+- Change the flex layout so text stays on the left (without icons) and the image container on the right holds all three floating annotations
+- The image container needs `overflow-visible` to allow icons to float outside
 
 ### Files Changed
-- `src/assets/timewarp-robot-2.png` — new image asset
-- `src/components/landing/ProductDescription.tsx` — annotation repositioning, sizing, theme colors, scroll animation logic
+- `src/components/landing/ProductDescription.tsx`
 
