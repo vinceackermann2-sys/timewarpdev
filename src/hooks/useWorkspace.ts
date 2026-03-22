@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 type WorkspaceRole = "owner" | "editor";
@@ -28,80 +29,81 @@ export interface WorkspaceInvitation {
   token: string;
 }
 
+const normalizeWorkspaceRole = (role: string): WorkspaceRole => {
+  if (role === "owner" || role === "editor") return role;
+  return "editor";
+};
+
+async function fetchWorkspaces(): Promise<WorkspaceInfo[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return [];
+
+  const { data: wsData, error } = await supabase.rpc("get_user_workspaces", {
+    _user_id: session.user.id,
+  });
+
+  if (error || !wsData || (wsData as any[]).length === 0) {
+    // Create default workspace if none exist
+    const newWorkspaceId = crypto.randomUUID();
+    const { error: wsError } = await supabase
+      .from("workspaces")
+      .insert({ id: newWorkspaceId, name: "My Workspace", created_by: session.user.id });
+
+    if (!wsError) {
+      await supabase
+        .from("workspace_members")
+        .insert({ workspace_id: newWorkspaceId, user_id: session.user.id, role: "owner" });
+
+      localStorage.setItem("preferred_workspace_id", newWorkspaceId);
+      return [{
+        workspaceId: newWorkspaceId,
+        workspaceName: "My Workspace",
+        role: "owner" as WorkspaceRole,
+        memberCount: 1,
+        createdAt: new Date().toISOString(),
+      }];
+    }
+    return [];
+  }
+
+  return (wsData as any[]).map((w) => ({
+    workspaceId: w.workspace_id,
+    workspaceName: w.workspace_name,
+    role: normalizeWorkspaceRole(w.role),
+    memberCount: Number(w.member_count),
+    createdAt: w.created_at,
+  }));
+}
+
 export function useWorkspace() {
-  const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([]);
-  // Initialize from localStorage immediately to avoid waiting for RPC
+  const queryClient = useQueryClient();
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
     () => localStorage.getItem("preferred_workspace_id")
   );
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [invitations, setInvitations] = useState<WorkspaceInvitation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const normalizeWorkspaceRole = (role: string): WorkspaceRole => {
-    if (role === "owner" || role === "editor") return role;
-    return "editor";
-  };
+  // Cached workspace list — shared across all components via React Query
+  const { data: workspaces = [], isLoading } = useQuery({
+    queryKey: ["workspaces"],
+    queryFn: fetchWorkspaces,
+    staleTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-  const loadWorkspaces = useCallback(async () => {
-    setIsLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) { setIsLoading(false); return; }
-
-    const { data: wsData, error } = await supabase.rpc("get_user_workspaces", {
-      _user_id: session.user.id,
-    });
-
-    if (error || !wsData || (wsData as any[]).length === 0) {
-      // Create default workspace if none exist
-      const newWorkspaceId = crypto.randomUUID();
-      const { error: wsError } = await supabase
-        .from("workspaces")
-        .insert({ id: newWorkspaceId, name: "My Workspace", created_by: session.user.id });
-
-      if (!wsError) {
-        await supabase
-          .from("workspace_members")
-          .insert({ workspace_id: newWorkspaceId, user_id: session.user.id, role: "owner" });
-
-        const ws: WorkspaceInfo = {
-          workspaceId: newWorkspaceId,
-          workspaceName: "My Workspace",
-          role: "owner",
-          memberCount: 1,
-          createdAt: new Date().toISOString(),
-        };
-        setWorkspaces([ws]);
-        setActiveWorkspaceId(newWorkspaceId);
-        localStorage.setItem("preferred_workspace_id", newWorkspaceId);
-      }
-      setIsLoading(false);
-      return;
-    }
-
-    const mapped: WorkspaceInfo[] = (wsData as any[]).map((w) => ({
-      workspaceId: w.workspace_id,
-      workspaceName: w.workspace_name,
-      role: normalizeWorkspaceRole(w.role),
-      memberCount: Number(w.member_count),
-      createdAt: w.created_at,
-    }));
-
-    setWorkspaces(mapped);
-
-    // Auto-select: preferred → first owned → first available
+  // Auto-select workspace when list loads
+  useEffect(() => {
+    if (workspaces.length === 0) return;
     const preferredId = localStorage.getItem("preferred_workspace_id");
-    const currentActive = preferredId && mapped.some(w => w.workspaceId === preferredId)
+    const current = preferredId && workspaces.some(w => w.workspaceId === preferredId)
       ? preferredId
-      : (mapped.find(w => w.role === "owner")?.workspaceId || mapped[0]?.workspaceId || null);
+      : (workspaces.find(w => w.role === "owner")?.workspaceId || workspaces[0]?.workspaceId || null);
 
-    if (currentActive) {
-      setActiveWorkspaceId(currentActive);
-      localStorage.setItem("preferred_workspace_id", currentActive);
+    if (current && current !== activeWorkspaceId) {
+      setActiveWorkspaceId(current);
+      localStorage.setItem("preferred_workspace_id", current);
     }
-
-    setIsLoading(false);
-  }, []);
+  }, [workspaces]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchWorkspaceMembersData = useCallback(async (wsId: string) => {
     const { data: membersData, error: membersError } = await supabase.rpc("get_workspace_members", {
@@ -118,7 +120,6 @@ export function useWorkspace() {
         }))
       : [];
 
-    // Fallback for cases where RPC returns empty due session/RPC edge cases
     if (mappedMembers.length === 0) {
       const { data: fallbackMembers, error: fallbackError } = await supabase
         .from("workspace_members")
@@ -160,19 +161,15 @@ export function useWorkspace() {
     return { members: mappedMembers, invitations: mappedInvitations };
   }, []);
 
-  // Load members for a specific workspace
   const loadMembers = useCallback(async (wsId: string) => {
     const data = await fetchWorkspaceMembersData(wsId);
     setMembers(data.members);
     setInvitations(data.invitations);
   }, [fetchWorkspaceMembersData]);
 
-  // Load members for a given workspace without changing global state (for dialog)
   const loadMembersForWorkspace = useCallback(async (wsId: string) => {
     return fetchWorkspaceMembersData(wsId);
   }, [fetchWorkspaceMembersData]);
-
-  useEffect(() => { loadWorkspaces(); }, [loadWorkspaces]);
 
   useEffect(() => {
     if (activeWorkspaceId) {
@@ -182,6 +179,10 @@ export function useWorkspace() {
       setInvitations([]);
     }
   }, [activeWorkspaceId, loadMembers]);
+
+  const invalidateWorkspaces = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+  }, [queryClient]);
 
   const selectWorkspace = useCallback((wsId: string) => {
     setActiveWorkspaceId(wsId);
@@ -202,9 +203,9 @@ export function useWorkspace() {
       .from("workspace_members")
       .insert({ workspace_id: newId, user_id: session.user.id, role: "owner" });
 
-    await loadWorkspaces();
+    invalidateWorkspaces();
     return newId;
-  }, [loadWorkspaces]);
+  }, [invalidateWorkspaces]);
 
   const sendInvite = useCallback(async (email: string, role: WorkspaceRole, wsId?: string) => {
     const targetWsId = wsId || activeWorkspaceId;
@@ -213,10 +214,8 @@ export function useWorkspace() {
       body: { email, role, workspaceId: targetWsId },
     });
     if (error) throw error;
-    // Treat "already invited" as success, not an error
     if (data?.error && data?.error !== "Already a member") throw new Error(data.error);
     if (data?.alreadyInvited) {
-      // Return data normally — caller can check alreadyInvited flag for messaging
       if (targetWsId === activeWorkspaceId) await loadMembers(activeWorkspaceId);
       return data;
     }
@@ -246,11 +245,10 @@ export function useWorkspace() {
   const renameWorkspace = useCallback(async (wsId: string, newName: string) => {
     const { error } = await supabase.from("workspaces").update({ name: newName }).eq("id", wsId);
     if (error) throw error;
-    await loadWorkspaces();
-  }, [loadWorkspaces]);
+    invalidateWorkspaces();
+  }, [invalidateWorkspaces]);
 
   const deleteWorkspace = useCallback(async (wsId: string) => {
-    // Delete members first, then workspace
     await supabase.from("workspace_invitations").delete().eq("workspace_id", wsId);
     await supabase.from("workspace_members").delete().eq("workspace_id", wsId);
     const { error } = await supabase.from("workspaces").delete().eq("id", wsId);
@@ -259,8 +257,8 @@ export function useWorkspace() {
       localStorage.removeItem("preferred_workspace_id");
       setActiveWorkspaceId(null);
     }
-    await loadWorkspaces();
-  }, [activeWorkspaceId, loadWorkspaces]);
+    invalidateWorkspaces();
+  }, [activeWorkspaceId, invalidateWorkspaces]);
 
   const activeWorkspace = workspaces.find(w => w.workspaceId === activeWorkspaceId) || null;
 
@@ -280,6 +278,6 @@ export function useWorkspace() {
     renameWorkspace,
     deleteWorkspace,
     loadMembersForWorkspace,
-    reload: loadWorkspaces,
+    reload: invalidateWorkspaces,
   };
 }
