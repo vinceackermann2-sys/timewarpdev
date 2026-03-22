@@ -41,54 +41,36 @@ const PLAN_LIMITS = {
 } as const;
 
 export function useSubscription() {
+  // Primary: read from DB table only (no edge function call)
   const { data: subscription, isLoading, refetch } = useQuery({
     queryKey: ["user-subscription"],
     queryFn: async (): Promise<SubscriptionData | null> => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
-      const [{ data, error }, { data: storedSubscription, error: storedSubscriptionError }] = await Promise.all([
-        supabase.functions.invoke("check-subscription"),
-        supabase
-          .from("user_subscriptions")
-          .select("plan, status")
-          .eq("user_id", session.user.id)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
+      const { data: storedSubscription, error } = await (supabase as any)
+        .from("user_subscriptions")
+        .select("plan, status")
+        .eq("user_id", session.user.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      const remoteSubscription = error ? null : (data as SubscriptionData | null);
-      const storedPlan = storedSubscription && ACTIVE_SUBSCRIPTION_STATUSES.has(storedSubscription.status)
-        ? (storedSubscription.plan as PlanType)
-        : null;
-
-      if (remoteSubscription?.subscribed || remoteSubscription?.plan) {
-        return remoteSubscription;
+      if (error) {
+        console.warn("Failed to fetch subscription from DB:", error.message);
+        return { subscribed: false, plan: null, product_id: null, subscription_end: null };
       }
 
-      if (storedPlan) {
+      if (storedSubscription && ACTIVE_SUBSCRIPTION_STATUSES.has(storedSubscription.status)) {
         return {
           subscribed: true,
-          plan: storedPlan,
-          product_id: remoteSubscription?.product_id ?? null,
-          subscription_end: remoteSubscription?.subscription_end ?? null,
+          plan: storedSubscription.plan as PlanType,
+          product_id: (storedSubscription as any).product_id ?? null,
+          subscription_end: (storedSubscription as any).subscription_end ?? null,
         };
       }
 
-      if (error || storedSubscriptionError) {
-        console.warn("Subscription fallback used", {
-          remoteError: error?.message ?? null,
-          storedSubscriptionError: storedSubscriptionError?.message ?? null,
-        });
-      }
-
-      return remoteSubscription ?? {
-        subscribed: false,
-        plan: null,
-        product_id: null,
-        subscription_end: null,
-      };
+      return { subscribed: false, plan: null, product_id: null, subscription_end: null };
     },
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
