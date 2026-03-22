@@ -439,7 +439,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         .orb-hero__content {
           position: absolute;
           z-index: 20;
-          top: 46%;
+          top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
           display: flex;
