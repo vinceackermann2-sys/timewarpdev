@@ -48,11 +48,13 @@ export function useSubscription() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
-      const { data: storedSubscription, error } = await supabase
+      const { data: storedSubscription, error } = await (supabase as any)
         .from("user_subscriptions")
-        .select("plan, status, product_id, subscription_end")
+        .select("plan, status")
         .eq("user_id", session.user.id)
         .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
         .limit(1)
         .maybeSingle();
 
