@@ -97,8 +97,8 @@ export function ProductDescription() {
         background: `linear-gradient(to bottom, hsl(230 30% 3%) 0%, hsl(228 28% 5%) 30%, hsl(225 25% 4%) 60%, hsl(230 30% 3%) 100%)`
       }} />
 
-      {/* ── Stat banner + Race animation (merged section) ── */}
-      <RaceAnimation inputUrl={inputUrl} navigate={navigate} />
+      {/* ── Hero Banner ── */}
+      <HeroBanner />
 
       {/* ── Evolution of Labor ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden bg-background dark:bg-[hsl(0_0%_10%)]">
