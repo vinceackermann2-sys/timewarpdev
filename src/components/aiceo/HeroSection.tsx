@@ -590,7 +590,8 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           }
 
           .orb-hero__stage {
-            --sz: min(160vw, 900px);
+            --sz: min(90vw, 500px);
+            bottom: 10vh;
           }
 
           .orb-hero__content {
