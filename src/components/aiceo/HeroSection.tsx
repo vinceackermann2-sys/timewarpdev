@@ -352,9 +352,9 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         }
 
         .orb-hero__stage {
-          --sz: min(105vw, 1160px);
+          --sz: min(70vw, 720px);
           position: absolute;
-          bottom: 0;
+          bottom: 5vh;
           left: 50%;
           transform: translateX(-50%);
           width: var(--sz);
@@ -366,7 +366,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           position: absolute;
           left: 50%;
           transform: translateX(-50%);
-          top: calc(var(--sz) * 0.08);
+          top: 0;
           width: var(--sz);
           height: var(--sz);
           display: flex;
@@ -439,7 +439,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         .orb-hero__content {
           position: absolute;
           z-index: 20;
-          top: 46%;
+          top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
           display: flex;
@@ -590,7 +590,8 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           }
 
           .orb-hero__stage {
-            --sz: min(160vw, 900px);
+            --sz: min(90vw, 500px);
+            bottom: 10vh;
           }
 
           .orb-hero__content {
