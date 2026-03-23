@@ -17,8 +17,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, isLoading } = useAuth();
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [showResearch, setShowResearch] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
