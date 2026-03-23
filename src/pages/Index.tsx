@@ -74,7 +74,7 @@ const Index = () => {
     );
   }
 
-  if (showResearch && quizData && isAuthenticated) {
+  if (showResearch && quizData && !!user) {
     return (
       <LiveAnalysisView
         role={quizData.role}
