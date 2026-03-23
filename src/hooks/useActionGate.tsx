@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, type ReactNode } from
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ActionsDialog } from "@/components/database/ActionsDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 const ACTION_LIMITS: Record<string, number> = {
   co_founder: 100,
@@ -25,16 +26,17 @@ const ActionGateContext = createContext<ActionGateContextType>({
 export function ActionGateProvider({ children }: { children: ReactNode }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const queryClient = useQueryClient();
+  const { user, isLoading: authLoading } = useAuth();
 
   const { data: subData } = useQuery({
-    queryKey: ["actions-used"],
+    queryKey: ["actions-used", user?.id],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { actions_used: 0, bonus_actions: 0, plan: null as string | null };
+      if (!user) return { actions_used: 0, bonus_actions: 0, plan: null as string | null };
+
       const { data } = await supabase
         .from("user_subscriptions")
         .select("actions_used, bonus_actions, plan, status")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .maybeSingle();
       const isActive = data?.status && ["active", "trialing", "past_due"].includes(data.status);
       return {
@@ -43,6 +45,7 @@ export function ActionGateProvider({ children }: { children: ReactNode }) {
         plan: isActive ? (data?.plan as string) ?? null : null,
       };
     },
+    enabled: !!user && !authLoading,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
@@ -68,7 +71,7 @@ export function ActionGateProvider({ children }: { children: ReactNode }) {
   return (
     <ActionGateContext.Provider value={{ remaining, checkCanUseAction, refreshUsage }}>
       {children}
-      <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
+      {showUpgrade ? <ActionsDialog open={showUpgrade} onOpenChange={setShowUpgrade} /> : null}
     </ActionGateContext.Provider>
   );
 }
