@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Link as RouterLink } from "react-router-dom";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { getSafeSession } from "@/lib/authSession";
+import { lovable } from "@/integrations/lovable";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
