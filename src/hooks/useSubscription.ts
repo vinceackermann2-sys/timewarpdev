@@ -42,12 +42,13 @@ const PLAN_LIMITS = {
 } as const;
 
 export function useSubscription() {
+  const { user, isLoading: authLoading } = useAuth();
+
   // Primary: read from DB table only (no edge function call)
-  const { data: subscription, isLoading, refetch } = useQuery({
-    queryKey: ["user-subscription"],
+  const { data: subscription, isLoading: queryLoading, refetch } = useQuery({
+    queryKey: ["user-subscription", user?.id],
     queryFn: async (): Promise<SubscriptionData | null> => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
+      if (!user) return null;
 
       const { data: storedSubscription, error } = await (supabase as any)
         .from("user_subscriptions")
