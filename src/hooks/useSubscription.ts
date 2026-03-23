@@ -53,7 +53,7 @@ export function useSubscription() {
       const { data: storedSubscription, error } = await (supabase as any)
         .from("user_subscriptions")
         .select("plan, status")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
