@@ -74,9 +74,12 @@ export function useSubscription() {
 
       return { subscribed: false, plan: null, product_id: null, subscription_end: null };
     },
+    enabled: !!user && !authLoading,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const isLoading = authLoading || queryLoading;
 
   const plan = subscription?.plan ?? null;
   const limits = plan ? PLAN_LIMITS[plan] : FREE_LIMITS;

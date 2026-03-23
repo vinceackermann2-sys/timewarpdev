@@ -60,7 +60,7 @@ export function EmployeesView() {
       if (activeWorkspaceId) {
         query = query.eq("workspace_id", activeWorkspaceId);
       } else {
-        query = query.eq("user_id", session.user.id);
+        query = query.eq("user_id", user.id);
       }
 
       const { data, error } = await Promise.race([

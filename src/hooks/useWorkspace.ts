@@ -37,6 +37,7 @@ const normalizeWorkspaceRole = (role: string): WorkspaceRole => {
 async function fetchWorkspaces(): Promise<WorkspaceInfo[]> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) return [];
+  const userId = session.user.id;
 
   const { data: wsData, error } = await supabase.rpc("get_user_workspaces", {
     _user_id: session.user.id,
