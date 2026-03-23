@@ -46,18 +46,12 @@ export function EmployeesView() {
   const [showWizard, setShowWizard] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<AIEmployee | null>(null);
   const { activeWorkspaceId } = useWorkspace();
+  const { user } = useAuth();
 
   const loadEmployees = async () => {
+    if (!user) { setIsLoading(false); return; }
     setIsLoading(true);
     try {
-      const sessionResult = await Promise.race([
-        supabase.auth.getSession(),
-        new Promise<null>((_, reject) => setTimeout(() => reject(new Error("timeout")), 6000)),
-      ]) as { data: { session: any } } | null;
-
-      const session = sessionResult?.data?.session;
-      if (!session?.user) { setIsLoading(false); return; }
-
       let query = supabase
         .from("ai_employees" as any)
         .select("*")
