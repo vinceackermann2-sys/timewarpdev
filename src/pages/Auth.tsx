@@ -143,10 +143,13 @@ const Auth = () => {
     setIsGoogleLoading(true);
     try {
       const session = await getSafeSession();
+      const oauthRedirect = `${window.location.origin}${searchParams.get("redirect") || "/app"}`;
 
       // Not signed in yet — use managed OAuth (no extra scopes needed)
       if (!session?.user) {
-        const result = await lovable.auth.signInWithOAuth("google");
+        const result = await lovable.auth.signInWithOAuth("google", {
+          redirect_uri: oauthRedirect,
+        });
 
         if (result.error) throw result.error;
         return;
