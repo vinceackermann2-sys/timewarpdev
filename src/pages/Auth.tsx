@@ -152,6 +152,7 @@ const Auth = () => {
 
       // Already signed in — use custom OAuth flow for extra scopes
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const scopes = quizData
         ? [
             "https://www.googleapis.com/auth/gmail.send",
             "https://www.googleapis.com/auth/gmail.compose",
