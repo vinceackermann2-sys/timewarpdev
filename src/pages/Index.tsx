@@ -47,10 +47,10 @@ const Index = () => {
   }, [searchParams, toast]);
 
   useEffect(() => {
-    if (googleConnected && isAuthenticated && quizData && !isLoading) {
+    if (googleConnected && !!user && quizData && !isLoading) {
       setShowResearch(true);
     }
-  }, [googleConnected, isAuthenticated, quizData, isLoading]);
+  }, [googleConnected, user, quizData, isLoading]);
 
   const handleResearchComplete = () => {
     setShowResearch(false);
