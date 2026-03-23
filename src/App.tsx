@@ -27,6 +27,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <AuthProvider>
               <ActionGateProvider>
                 <Routes>
                   <Route path="/" element={<AiCeo />} />
