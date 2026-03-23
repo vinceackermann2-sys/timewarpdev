@@ -57,7 +57,7 @@ async function fetchUserBusinessContext(userId: string, workspaceId?: string): P
 
   const { data: bizData } = await query
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(200);
 
   if (bizData && bizData.length > 0) {
     return formatContextItems(bizData);
