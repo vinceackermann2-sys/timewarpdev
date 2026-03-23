@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 type WorkspaceRole = "owner" | "editor";
 
@@ -34,13 +35,9 @@ const normalizeWorkspaceRole = (role: string): WorkspaceRole => {
   return "editor";
 };
 
-async function fetchWorkspaces(): Promise<WorkspaceInfo[]> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return [];
-  const userId = session.user.id;
-
+async function fetchWorkspaces(userId: string): Promise<WorkspaceInfo[]> {
   const { data: wsData, error } = await supabase.rpc("get_user_workspaces", {
-    _user_id: session.user.id,
+    _user_id: userId,
   });
 
   if (error || !wsData || (wsData as any[]).length === 0) {
@@ -48,12 +45,12 @@ async function fetchWorkspaces(): Promise<WorkspaceInfo[]> {
     const newWorkspaceId = crypto.randomUUID();
     const { error: wsError } = await supabase
       .from("workspaces")
-      .insert({ id: newWorkspaceId, name: "My Workspace", created_by: session.user.id });
+      .insert({ id: newWorkspaceId, name: "My Workspace", created_by: userId });
 
     if (!wsError) {
       await supabase
         .from("workspace_members")
-        .insert({ workspace_id: newWorkspaceId, user_id: session.user.id, role: "owner" });
+        .insert({ workspace_id: newWorkspaceId, user_id: userId, role: "owner" });
 
       localStorage.setItem("preferred_workspace_id", newWorkspaceId);
       return [{
@@ -78,6 +75,7 @@ async function fetchWorkspaces(): Promise<WorkspaceInfo[]> {
 
 export function useWorkspace() {
   const queryClient = useQueryClient();
+  const { user, isLoading: authLoading } = useAuth();
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
     () => localStorage.getItem("preferred_workspace_id")
   );
@@ -85,12 +83,24 @@ export function useWorkspace() {
   const [invitations, setInvitations] = useState<WorkspaceInvitation[]>([]);
 
   // Cached workspace list — shared across all components via React Query
-  const { data: workspaces = [], isLoading } = useQuery({
-    queryKey: ["workspaces"],
-    queryFn: fetchWorkspaces,
+  const { data: workspaces = [], isLoading: queryLoading } = useQuery({
+    queryKey: ["workspaces", user?.id],
+    queryFn: () => {
+      if (!user) return Promise.resolve([]);
+      return fetchWorkspaces(user.id);
+    },
+    enabled: !!user && !authLoading,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const isLoading = authLoading || queryLoading;
+
+  useEffect(() => {
+    if (authLoading || user) return;
+    setMembers([]);
+    setInvitations([]);
+  }, [authLoading, user]);
 
   // Auto-select workspace when list loads
   useEffect(() => {
@@ -173,13 +183,19 @@ export function useWorkspace() {
   }, [fetchWorkspaceMembersData]);
 
   useEffect(() => {
+    if (authLoading || !user) {
+      setMembers([]);
+      setInvitations([]);
+      return;
+    }
+
     if (activeWorkspaceId) {
       loadMembers(activeWorkspaceId);
     } else {
       setMembers([]);
       setInvitations([]);
     }
-  }, [activeWorkspaceId, loadMembers]);
+  }, [activeWorkspaceId, authLoading, loadMembers, user]);
 
   const invalidateWorkspaces = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["workspaces"] });
@@ -191,22 +207,21 @@ export function useWorkspace() {
   }, []);
 
   const createWorkspace = useCallback(async (name: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) throw new Error("Not authenticated");
+    if (!user) throw new Error("Not authenticated");
 
     const newId = crypto.randomUUID();
     const { error: wsError } = await supabase
       .from("workspaces")
-      .insert({ id: newId, name, created_by: session.user.id });
+      .insert({ id: newId, name, created_by: user.id });
     if (wsError) throw wsError;
 
     await supabase
       .from("workspace_members")
-      .insert({ workspace_id: newId, user_id: session.user.id, role: "owner" });
+      .insert({ workspace_id: newId, user_id: user.id, role: "owner" });
 
     invalidateWorkspaces();
     return newId;
-  }, [invalidateWorkspaces]);
+  }, [invalidateWorkspaces, user]);
 
   const sendInvite = useCallback(async (email: string, role: WorkspaceRole, wsId?: string) => {
     const targetWsId = wsId || activeWorkspaceId;
