@@ -30,16 +30,19 @@ const Auth = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const quizDataFromNav = (location.state as any)?.quizData;
-  const quizData =
-    quizDataFromNav ??
-    (() => {
-      try {
-        const raw = localStorage.getItem("quizData") || sessionStorage.getItem("quizData");
-        return raw ? JSON.parse(raw) : null;
-      } catch {
-        return null;
-      }
-    })();
+  // Only use stored quizData for passing to dashboard, not for UI display
+  const storedQuizData = (() => {
+    try {
+      const raw = localStorage.getItem("quizData") || sessionStorage.getItem("quizData");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+  // Show Google connect UI only when coming directly from quiz flow (nav state)
+  const quizData = quizDataFromNav;
+  // Data to pass forward to dashboard after auth
+  const quizDataForDashboard = quizDataFromNav ?? storedQuizData;
 
   const navigateToDashboard = () => {
     const productUrl = searchParams.get("url");
