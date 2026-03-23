@@ -47,9 +47,9 @@ const Auth = () => {
   const navigateToDashboard = () => {
     const productUrl = searchParams.get("url");
     if (productUrl) {
-      navigate(`/app?addProduct=true&url=${encodeURIComponent(productUrl)}`, { state: { quizData } });
+      navigate(`/app?addProduct=true&url=${encodeURIComponent(productUrl)}`, { state: { quizData: quizDataForDashboard } });
     } else {
-      navigate("/app", { state: { quizData } });
+      navigate("/app", { state: { quizData: quizDataForDashboard } });
     }
   };
 
