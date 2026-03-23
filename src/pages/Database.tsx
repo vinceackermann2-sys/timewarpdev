@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
 import { DataConversionView } from "@/components/database/DataConversionView";
@@ -16,7 +15,7 @@ import { EmployeesView } from "@/components/database/EmployeesView";
 import { RestrictedFeatureGate } from "@/components/database/RestrictedFeatureGate";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { getSafeSession } from "@/lib/authSession";
+import { useAuth } from "@/hooks/useAuth";
 
 function MobileHeader() {
   const { toggleSidebar } = useSidebar();
@@ -44,8 +43,7 @@ interface PendingTask {
 const Database = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem("tw_current_view");
     if (saved && ["dataconversion", "aiceo", "businessdna", "employees"].includes(saved)) {
@@ -93,36 +91,14 @@ const Database = () => {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMounted) return;
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
-
-    const loadSession = async () => {
-      const session = await getSafeSession();
-      if (!isMounted) return;
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    };
-
-    void loadSession();
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
+  // Redirect to auth if not authenticated
   useEffect(() => {
     if (!isLoading && !user) {
       navigate("/auth?redirect=/app", { replace: true });
     }
   }, [isLoading, user, navigate]);
 
+  // Check referrer rewards
   useEffect(() => {
     if (!user) return;
     const checkReferrerRewards = async () => {

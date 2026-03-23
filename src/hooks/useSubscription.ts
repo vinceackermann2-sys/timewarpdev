@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export type PlanType = "co_founder" | "aristotle" | "timewarp_og" | null;
 
@@ -41,17 +42,18 @@ const PLAN_LIMITS = {
 } as const;
 
 export function useSubscription() {
+  const { user, isLoading: authLoading } = useAuth();
+
   // Primary: read from DB table only (no edge function call)
-  const { data: subscription, isLoading, refetch } = useQuery({
-    queryKey: ["user-subscription"],
+  const { data: subscription, isLoading: queryLoading, refetch } = useQuery({
+    queryKey: ["user-subscription", user?.id],
     queryFn: async (): Promise<SubscriptionData | null> => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
+      if (!user) return null;
 
       const { data: storedSubscription, error } = await (supabase as any)
         .from("user_subscriptions")
         .select("plan, status")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -72,9 +74,12 @@ export function useSubscription() {
 
       return { subscribed: false, plan: null, product_id: null, subscription_end: null };
     },
+    enabled: !!user && !authLoading,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const isLoading = authLoading || queryLoading;
 
   const plan = subscription?.plan ?? null;
   const limits = plan ? PLAN_LIMITS[plan] : FREE_LIMITS;

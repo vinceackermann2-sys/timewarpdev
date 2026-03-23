@@ -4,9 +4,9 @@ import { HeroSection } from "@/components/aiceo/HeroSection";
 import { ProductDescription } from "@/components/landing/ProductDescription";
 import { LiveAnalysisView } from "@/components/dashboard/LiveAnalysisView";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface QuizData {
   role: string;
@@ -17,8 +17,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, isLoading } = useAuth();
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [showResearch, setShowResearch] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -48,25 +47,10 @@ const Index = () => {
   }, [searchParams, toast]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setIsAuthenticated(!!session);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (googleConnected && isAuthenticated && quizData && !isLoading) {
+    if (googleConnected && !!user && quizData && !isLoading) {
       setShowResearch(true);
     }
-  }, [googleConnected, isAuthenticated, quizData, isLoading]);
+  }, [googleConnected, user, quizData, isLoading]);
 
   const handleResearchComplete = () => {
     setShowResearch(false);
@@ -90,7 +74,7 @@ const Index = () => {
     );
   }
 
-  if (showResearch && quizData && isAuthenticated) {
+  if (showResearch && quizData && !!user) {
     return (
       <LiveAnalysisView
         role={quizData.role}

@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Link as RouterLink } from "react-router-dom";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { getSafeSession } from "@/lib/authSession";
+import { lovable } from "@/integrations/lovable";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -138,20 +139,19 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
       const session = await getSafeSession();
 
-      if (!session?.user && quizData) {
-        const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth` } });
-        if (error) throw error;
-        return;
-      }
+      // Not signed in yet — use managed OAuth (no extra scopes needed)
       if (!session?.user) {
-        const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/` } });
-        if (error) throw error;
+        const result = await lovable.auth.signInWithOAuth("google", {
+          redirect_uri: window.location.origin,
+        });
+        if (result.error) throw result.error;
         return;
       }
 
+      // Already signed in — use custom OAuth flow for extra scopes
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
       const scopes = quizData
         ? [
             "https://www.googleapis.com/auth/gmail.send",
