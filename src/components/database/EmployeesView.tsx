@@ -45,8 +45,8 @@ export function EmployeesView() {
   const [isLoading, setIsLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<AIEmployee | null>(null);
-  const { activeWorkspaceId } = useWorkspace();
-  const { user } = useAuth();
+  const { activeWorkspaceId, isLoading: workspaceLoading } = useWorkspace();
+  const { user, isLoading: authLoading } = useAuth();
 
   const loadEmployees = async () => {
     if (!user) { setIsLoading(false); return; }
@@ -80,8 +80,17 @@ export function EmployeesView() {
   };
 
   useEffect(() => {
+    if (authLoading || workspaceLoading) return;
     loadEmployees();
-  }, [activeWorkspaceId]);
+  }, [activeWorkspaceId, authLoading, workspaceLoading, user]);
+
+  if (authLoading || workspaceLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <Skeleton className="h-10 w-10 rounded-full" />
+      </div>
+    );
+  }
 
   const handleCreated = () => {
     setShowWizard(false);
