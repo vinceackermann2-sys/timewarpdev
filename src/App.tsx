@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { ActionGateProvider } from "@/hooks/useActionGate";
+import { AuthProvider } from "@/hooks/useAuth";
 import TimewarpOG from "./pages/TimewarpOG";
 import Auth from "./pages/Auth";
 import Database from "./pages/Database";
