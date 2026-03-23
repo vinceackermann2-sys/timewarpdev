@@ -143,9 +143,8 @@ const Auth = () => {
 
       // Not signed in yet — use managed OAuth (no extra scopes needed)
       if (!session?.user) {
-        const result = await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: window.location.origin,
-        });
+        const result = await lovable.auth.signInWithOAuth("google");
+
         if (result.error) throw result.error;
         return;
       }
