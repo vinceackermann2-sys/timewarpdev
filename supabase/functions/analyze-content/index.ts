@@ -483,7 +483,9 @@ Provide a structured analysis including: platform, content type (post, profile, 
       await updateBucketContext(supabaseAdmin, userId);
     }
 
-    return new Response(JSON.stringify({ success: true, analysis, extractedText: extractedText || null }), {
+    // Truncate extractedText in response — full version is already persisted in DB
+    const trimmedExtracted = extractedText ? extractedText.slice(0, 500) : null;
+    return new Response(JSON.stringify({ success: true, analysis, extractedText: trimmedExtracted }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
