@@ -519,7 +519,7 @@
 
   .dark {
     /* Dark theme - Blue Corp Pastel */
-    --background: 215 25% 8%;
+    --background: 0 0% 10%;
     --foreground: 0 0% 98%;
 
     --card: 215 20% 12%;
