@@ -58,6 +58,7 @@ const Database = () => {
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
   const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
