@@ -93,7 +93,7 @@ const Auth = () => {
       return false;
     };
 
-    const handleAuthenticatedUser = async (userId: string) => {
+    const handleAuthenticatedUser = async (userId: string, session: any) => {
       const celebrated = await processReferral(userId);
       if (celebrated) return;
       const redirect = searchParams.get("redirect");
@@ -101,8 +101,11 @@ const Auth = () => {
         navigate(redirect, { replace: true });
         return;
       }
+      // Detect brand-new user
+      const createdAt = new Date(session.user.created_at).getTime();
+      const isNewUser = Date.now() - createdAt < 30000;
       if (!quizData) {
-        navigateToDashboard();
+        navigateToDashboard(isNewUser);
       }
     };
 
