@@ -174,7 +174,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             </div>
 
             {/* Input area */}
-            <div className="flex flex-col items-center gap-4 w-full">
+            <div className="flex flex-col items-start gap-4 w-full">
               <div className="orb-hero__input">
                 <div className="orb-hero__url-row" onClick={() => { if (!isEditing) { setIsEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}>
                   <Globe className="orb-hero__url-icon" />
@@ -186,6 +186,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                      onBlur={() => { if (!url) setIsEditing(false); }}
                       placeholder="nike.com/shoes/air-max"
                       autoFocus
                     />
