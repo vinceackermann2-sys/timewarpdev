@@ -177,6 +177,7 @@ const Database = () => {
           onComplete={(agentName, brandId) => {
             setShowOnboarding(false);
             setOnboardingUrl(null);
+            queryClient.invalidateQueries({ queryKey: ["workspaces"] });
             if (brandId) {
               setCurrentView("businessdna");
               localStorage.setItem("tw_current_view", "businessdna");
