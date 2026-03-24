@@ -426,7 +426,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         /* ── Content — positioned inside the orb area ── */
         .orb-hero__content {
           position: absolute; z-index: 20;
-          top: 22%; left: 50%;
+          top: 55%; left: 50%;
           transform: translate(-50%, -50%);
           display: flex; flex-direction: column; align-items: center;
           text-align: center;
@@ -520,7 +520,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .orb-hero__pill-link, .orb-hero__cta-link { min-height: 34px; font-size: 0.8rem; padding: 0.4rem 0.9rem; }
 
           .orb-hero__stage { --sz: min(260vw, 1600px); }
-          .orb-hero__content { width: clamp(320px, 96vw, 500px); top: 50%; transform: translate(-50%, -50%); animation: orb-fade-up-mobile 0.8s ease-out both; }
+          .orb-hero__content { width: clamp(300px, 88vw, 440px); top: 50%; transform: translate(-50%, -50%); animation: orb-fade-up-mobile 0.8s ease-out both; }
           .orb-hero__content h1 { font-size: clamp(28px, 7vw, 44px); }
           .orb-hero__content p { font-size: 15px; }
 
