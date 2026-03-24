@@ -276,11 +276,13 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           --hero-bg-mid: 222 47% 10%;
           --hero-bg-bottom: 222 47% 16%;
           --hero-glow: 216 63% 53%;
-          --hero-ink: 210 40% 96%;
-          --hero-muted: 215 20% 65%;
-          --hero-pill: 220 30% 20%;
-          --hero-input-bg: 220 30% 12% / 0.88;
-          --hero-input-text: 215 20% 65%;
+          --hero-ink: 219 41% 7%;
+          --hero-muted: 215 17% 43%;
+          --hero-accent: 208 100% 60%;
+          --hero-accent-strong: 211 78% 47%;
+          --hero-pill: 0 0% 100%;
+          --hero-input-bg: 0 0% 100% / 0.84;
+          --hero-input-text: 215 17% 43%;
           --hero-connector-dim: 220 33% 47% / 0.3;
           --hero-connector-mid: 220 33% 55% / 0.5;
           --hero-connector-bright: 216 50% 60% / 0.7;
@@ -301,28 +303,29 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         .dark .orb-hero__icon-btn,
         .dark .orb-hero__pill-link {
           color: hsl(var(--hero-ink));
-          background: hsl(var(--hero-pill) / 0.6);
-          box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.08);
+          background: hsl(var(--hero-pill) / 0.46);
+          box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.28);
         }
 
         .dark .orb-hero__sphere {
           box-shadow:
-            inset -10px -10px 30px hsl(0 0% 0% / 0.3),
-            inset 10px 10px 30px hsl(216 60% 50% / 0.3),
-            0 0 120px hsl(var(--hero-glow) / 0.4);
+            inset -10px -10px 30px hsl(0 0% 0% / 0.1),
+            inset 10px 10px 30px hsl(0 0% 100% / 0.8),
+            0 0 120px hsl(var(--hero-glow) / 0.3);
         }
 
         .dark .orb-hero__input {
           background: hsl(var(--hero-input-bg));
-          box-shadow: 0 8px 48px hsl(216 63% 53% / 0.15), 0 2px 10px hsl(0 0% 0% / 0.3);
-          border: 1px solid hsl(0 0% 100% / 0.08);
+          backdrop-filter: blur(20px);
+          box-shadow: 0 8px 48px hsl(208 100% 60% / 0.2), 0 2px 10px hsl(0 0% 0% / 0.08);
+          border: none;
         }
 
         .dark .orb-hero__input input { color: hsl(var(--hero-ink)); }
         .dark .orb-hero__input input::placeholder { color: hsl(var(--hero-input-text)); }
-        .dark .orb-hero__url-icon { color: hsl(216 50% 50%); }
+        .dark .orb-hero__url-icon { color: hsl(214 67% 80%); }
 
-        .dark .orb-hero__bullets { background: hsl(220 30% 12% / 0.6); border-color: hsl(0 0% 100% / 0.1); }
+        .dark .orb-hero__bullets { background: hsl(0 0% 100% / 0.3); border-color: hsl(0 0% 100% / 0.6); }
         .dark .orb-hero__bullets span { color: hsl(var(--hero-muted)); }
 
         /* ── Header (unchanged) ── */
@@ -441,7 +444,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           transition: color 0.3s ease;
         }
         .dark .orb-hero__content h1 {
-          color: hsl(0 0% 100%);
+          color: hsl(0 0% 0%);
         }
         .orb-hero__content h1 span {
           color: inherit; background: none;
@@ -450,9 +453,6 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         .orb-hero__content p {
           font-size: 19px; font-weight: 400; color: hsl(var(--hero-muted));
           margin: 0; letter-spacing: 0.01em; transition: color 0.3s ease;
-        }
-        .dark .orb-hero__content p {
-          color: hsl(0 0% 80%);
         }
 
         /* ── Input bar ── */
