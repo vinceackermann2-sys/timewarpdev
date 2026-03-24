@@ -1,23 +1,34 @@
 
 
-## Plan: Enhanced Scanning Sources & Progress UX
+## Plan: Workspace auto-rename on onboarding + land on brand detail view
 
-### File: `src/components/database/BusinessDNAOnboarding.tsx`
+### What needs to happen
 
-### Change 1: Show actual sources being analyzed
-Replace the generic sources list with contextual, URL-derived sources. Extract the domain from the user's URL and generate realistic sub-page sources (e.g., `/about`, `/products`, `/pricing`, `/blog`) plus relevant third-party research sources (Google, LinkedIn, Crunchbase). The right card will show a running list of already-scanned sources (stacking up) instead of just flipping one at a time.
+1. **Workspace renamed to business name during onboarding Step 2** — After the brand is created (~line 280 in `BusinessDNAOnboarding.tsx`), read `preferred_workspace_id` from localStorage and update the workspace name to the brand name.
 
-### Change 2: Two-phase progress bar
-- **Phase 1 (0-80%)**: Rush from 0 to 80% in ~3 seconds using an ease-out curve — gives an immediate sense of speed.
-- **Phase 2 (80-100%)**: Progress from 80% is tied to real scrape completion. It creeps slowly while waiting, then jumps to 100% when `scrapeComplete` is true.
+2. **Invalidate workspace query after onboarding completes** — In `Database.tsx`, import `useQueryClient` and call `queryClient.invalidateQueries({ queryKey: ["workspaces"] })` inside the `onComplete` callback (~line 175) so the sidebar immediately shows the new workspace name.
 
-### Change 3: "What it's doing" examples below the flipping text
-Add a secondary area beneath the step icon + rotating text on the left card that shows concrete examples of extracted data in real-time. For step 1: rotating snippets like "Found 12 product features", "Identified 3 competitor brands", "Extracted pricing tiers". For step 2: "Creating brand profile...", "Mapping 5 audience segments", "Generating positioning strategy". These will be small pill/chip-style items that fade in below the main text.
+3. **Landing view already correct** — The existing `onComplete` already sets `activeBrandId` + `showBusinessDNA = true`, which renders `BusinessDNAView` (brand/audience/product detail tabs), not the business list. No change needed here.
 
-### Technical details
-- New `STEP_1_EXAMPLES` and `STEP_2_EXAMPLES` arrays with concrete action descriptions
-- New `ACTUAL_SOURCES` function that derives realistic page paths from the input URL domain
-- Scanned sources accumulate in a visible list (last 4-5 shown) rather than single flip
-- Progress `useEffect` rewritten with two-phase logic using `Math.min(80, ...)` for fast phase and `80 + (scrapeComplete ? 20 : slowCreep)` for real phase
-- All changes in a single file
+### File changes
+
+#### `src/components/database/BusinessDNAOnboarding.tsx`
+After `setBrands(prev => [...prev, newBrand])` (line 280), add:
+```typescript
+const workspaceId = localStorage.getItem("preferred_workspace_id");
+if (workspaceId) {
+  supabase.from("workspaces").update({ name: brandName }).eq("id", workspaceId);
+}
+```
+
+#### `src/pages/Database.tsx`
+- Import `useQueryClient` from `@tanstack/react-query`
+- Get `queryClient` via `useQueryClient()` inside the component
+- In the `onComplete` callback (line 175-184), add `queryClient.invalidateQueries({ queryKey: ["workspaces"] })` after setting the brand/view state
+
+### Summary
+- 2 files, ~6 lines added total
+- Workspace auto-renames to the business name extracted during scraping
+- Sidebar reflects the change immediately via cache invalidation
+- User lands on brand detail view (already working)
 
