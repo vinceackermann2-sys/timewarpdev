@@ -25,7 +25,7 @@ export default function ZipLifeAndWork() {
           <p className="text-muted-foreground font-medium text-sm text-center md:text-left uppercase tracking-wider">
             YOUR AGENT IS WORKING
           </p>
-          <div className="rounded-xl p-1.5 bg-black shadow-xl aspect-[3/4] md:aspect-[4/5] overflow-hidden relative group">
+          <div className="rounded-xl p-1.5 bg-black shadow-xl aspect-[3/4] overflow-hidden relative group">
             <div className="w-full h-full bg-gradient-to-b from-[#eef4f9] to-[#d6e4f0] rounded-lg relative overflow-hidden flex flex-col items-center pt-6 md:pt-10">
               {/* Gmail Window Mockup */}
               <div className="w-[92%] bg-white/95 backdrop-blur-sm rounded-lg shadow-xl flex flex-col overflow-hidden border border-white/60" style={{ height: '55%' }}>
