@@ -25,6 +25,8 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   const grainCanvasRef = useRef<HTMLCanvasElement>(null);
   const [typewriterText, setTypewriterText] = useState("");
   const [url, setUrl] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Grain effect
   useEffect(() => {
