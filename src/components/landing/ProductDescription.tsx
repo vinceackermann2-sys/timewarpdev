@@ -1,20 +1,67 @@
-import { Globe } from "lucide-react";
-import { useState } from "react";
+import { Globe, ArrowRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import ZipHowItWorks from "@/components/landing/ZipHowItWorks";
 import ZipLifeAndWork from "@/components/landing/ZipLifeAndWork";
 import ZipGreaterGood from "@/components/landing/ZipGreaterGood";
 
+const urls = [
+  "nike.com/shoes/air-max",
+  "apple.com/iphone",
+  "shopify.com/pricing",
+  "stripe.com/payments",
+  "notion.so/product",
+  "figma.com/design",
+  "airbnb.com/rooms",
+  "tesla.com/model3",
+];
+
 export function ProductDescription() {
   const navigate = useNavigate();
-  const [inputUrl, setInputUrl] = useState("");
+  const [typewriterText, setTypewriterText] = useState("");
 
-  const handleAnalyze = () => {
-    if (inputUrl.trim()) {
-      navigate(`/auth?mode=signup&url=${encodeURIComponent(inputUrl.trim())}`);
-    } else {
-      navigate("/auth?mode=signup");
-    }
+  // Typewriter effect
+  useEffect(() => {
+    let ui = 0;
+    let ci = 0;
+    let deleting = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const typeSpeed = 52;
+    const deleteSpeed = 28;
+    const pauseAfter = 1600;
+    const pauseBefore = 320;
+
+    const tick = () => {
+      const url = urls[ui];
+      if (!deleting) {
+        ci++;
+        setTypewriterText(url.slice(0, ci));
+        if (ci === url.length) {
+          deleting = true;
+          timeoutId = setTimeout(tick, pauseAfter);
+          return;
+        }
+        timeoutId = setTimeout(tick, typeSpeed);
+      } else {
+        ci--;
+        setTypewriterText(url.slice(0, ci));
+        if (ci === 0) {
+          deleting = false;
+          ui = (ui + 1) % urls.length;
+          timeoutId = setTimeout(tick, pauseBefore);
+          return;
+        }
+        timeoutId = setTimeout(tick, deleteSpeed);
+      }
+    };
+
+    timeoutId = setTimeout(tick, 600);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  const handleActivate = () => {
+    navigate("/auth?mode=signup");
   };
 
   return (
@@ -29,45 +76,131 @@ export function ProductDescription() {
       <ZipLifeAndWork />
       <ZipGreaterGood />
 
-      {/* ── Bottom CTA ── */}
-      <section className="relative z-10 py-24 lg:py-32 overflow-hidden text-center bg-background dark:bg-[hsl(0_0%_10%)]">
-        {/* Top glow — dark only */}
-        <div className="absolute pointer-events-none left-0 right-0 hidden dark:block" style={{ height: 400, top: 0, background: "radial-gradient(ellipse 80% 100% at center top, rgba(51,153,255,0.08) 0%, transparent 60%)" }} />
+      {/* ── Bottom CTA — Orb Style ── */}
+      <section
+        className="relative z-10 overflow-hidden bg-background"
+        style={{ height: "100vh" }}
+      >
+        {/* Background gradient */}
+        <div
+          className="absolute inset-0 z-0"
+          style={{
+            background: "radial-gradient(ellipse 150% 100% at 50% 100%, hsl(var(--primary)) 0%, hsl(var(--background)) 70%)",
+          }}
+        />
 
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Get to know your company's next decision </h3>
-          <p className="text-base text-muted-foreground dark:text-white/50 mb-12 max-w-xl mx-auto">Paste your website URL. Get your Business DNA in 60 seconds.</p>
+        {/* Orb Stage */}
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[50%] z-40"
+          style={{ width: "min(200vw, 2400px)", height: "min(200vw, 2400px)" }}
+        >
+          <div
+            className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
+            style={{
+              top: "calc(min(200vw, 2400px) * 0.08)",
+              width: "min(200vw, 2400px)",
+              height: "min(200vw, 2400px)",
+            }}
+          >
+            {/* Glow Aura */}
+            <div
+              className="absolute rounded-full animate-pulse-slow"
+              style={{
+                inset: "calc(min(200vw, 2400px) * -0.25)",
+                background: "radial-gradient(circle, var(--orb-glow) 0%, transparent 70%)",
+              }}
+            />
 
-          {/* Hero-style input card */}
-          <div className="max-w-xl mx-auto">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center rounded-[14px] p-2 sm:p-[0.5rem_0.5rem_0.5rem_1rem] sm:h-16 bg-card border border-border shadow-md dark:bg-[rgba(255,255,255,0.06)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
-              <div className="flex items-center flex-1 px-3 sm:px-0">
-                <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" style={{ color: "#3399ff" }} />
-                <input
-                  type="text"
-                  value={inputUrl}
-                  onChange={(e) => setInputUrl(e.target.value)}
-                  placeholder="https://YourBusiness.com"
-                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                  className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none py-3 sm:py-0"
-                  style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }} />
-              </div>
-              <button
-                onClick={handleAnalyze}
-                className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 sm:mt-0 h-12 sm:h-full"
-                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer" }}>
-                Analyze →
-              </button>
+            {/* Connectors */}
+            <div className="absolute inset-0">
+              <div
+                className="silver-connector silver-connector-1"
+                style={{
+                  inset: "calc(min(200vw, 2400px) * -0.012)",
+                  borderWidth: "calc(min(200vw, 2400px) * 0.022)",
+                }}
+              />
+              <div
+                className="silver-connector silver-connector-2"
+                style={{
+                  inset: "calc(min(200vw, 2400px) * -0.012)",
+                  borderWidth: "calc(min(200vw, 2400px) * 0.022)",
+                }}
+              />
             </div>
 
-            <div className="flex items-center justify-center gap-4 mt-5">
-              <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-[#22c55e]" />
-                <span className="text-xs text-muted-foreground dark:text-white/40">No credit card</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-[#3399ff]" />
-                <span className="text-xs text-muted-foreground dark:text-white/40">15-90 Seconds</span>
+            {/* Main Orb */}
+            <div
+              className="orb-container orb-core relative rounded-full overflow-hidden z-10 flex items-center justify-center"
+              style={{
+                width: "min(200vw, 2400px)",
+                height: "min(200vw, 2400px)",
+                minWidth: "min(200vw, 2400px)",
+                minHeight: "min(200vw, 2400px)",
+              }}
+            >
+              {/* Content inside Orb */}
+              <div
+                className="absolute z-20 flex flex-col items-center justify-center text-center"
+                style={{
+                  top: "22%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: "clamp(320px, 90%, 800px)",
+                }}
+              >
+                <div className="flex flex-col items-center gap-8 w-fit max-w-full">
+                  {/* Top Text */}
+                  <div className="flex flex-col items-center gap-4 w-full">
+                    <h3
+                      className="font-extrabold tracking-[-0.03em] leading-none text-foreground dark:text-black m-0"
+                      style={{
+                        fontSize: "clamp(40px, 5vw, 64px)",
+                        fontFamily: "'Playfair Display', serif",
+                      }}
+                    >
+                      Get to know your company's next decision
+                    </h3>
+                    <p className="text-[19px] font-normal text-muted-foreground dark:text-[#5a6a80] m-0 tracking-[0.01em]">
+                      Paste your website URL. Get your Business DNA in 60 seconds.
+                    </p>
+                  </div>
+
+                  {/* Bottom Input */}
+                  <div className="flex flex-col items-start gap-4 w-full">
+                    {/* Input Area */}
+                    <div className="flex items-center bg-background/80 dark:bg-white/84 backdrop-blur-[20px] rounded-[22px] p-[14px_14px_14px_26px] w-full shadow-[0_8px_48px_rgba(51,153,255,0.20),0_2px_10px_rgba(0,0,0,0.08)]">
+                      <Globe className="w-[22px] h-[22px] mr-[14px] shrink-0 text-primary/50" />
+
+                      <span className="flex items-center flex-1 min-w-0 text-left">
+                        <span className="text-[16px] font-normal text-muted-foreground whitespace-nowrap overflow-hidden">
+                          {typewriterText}
+                        </span>
+                        <span className="inline-block w-[2px] h-[1em] bg-primary ml-[1px] align-text-bottom animate-blink" />
+                      </span>
+
+                      <button
+                        onClick={handleActivate}
+                        className="btn-gradient shrink-0 px-[22px] py-[13px] rounded-[15px] text-white font-bold text-[15px] border-none cursor-pointer transition-all duration-150 whitespace-nowrap flex items-center gap-[7px] active:scale-95"
+                      >
+                        Activate CEO
+                        <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
+                      </button>
+                    </div>
+
+                    {/* Glass Card Bullet Points */}
+                    <div className="flex items-center self-start gap-5 bg-background/30 dark:bg-white/30 backdrop-blur-md border border-background/60 dark:border-white/60 rounded-full px-4 py-1.5 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        <span className="text-[14px] font-medium text-muted-foreground dark:text-[#5a6a80]">No credit card</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        <span className="text-[14px] font-medium text-muted-foreground dark:text-[#5a6a80]">15-90 seconds</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
