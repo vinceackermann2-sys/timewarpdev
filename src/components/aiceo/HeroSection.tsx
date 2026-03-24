@@ -519,10 +519,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .orb-hero__content { width: clamp(280px, 85vw, 500px); }
           .orb-hero__content h1 { font-size: clamp(28px, 7vw, 44px); }
           .orb-hero__content p { font-size: 15px; }
-          .orb-hero__input { padding: 10px 10px 10px 18px; border-radius: 16px; }
+          .orb-hero__input { padding: 12px 14px; border-radius: 16px; flex-wrap: wrap; }
           .orb-hero__url-icon { width: 18px; height: 18px; margin-right: 10px; }
           .orb-hero__input input { font-size: 14px; }
-          .orb-hero__btn { padding: 10px 16px; border-radius: 12px; font-size: 13px; }
+          .orb-hero__btn { padding: 12px 16px; border-radius: 12px; font-size: 14px; width: 100%; justify-content: center; }
           .orb-hero__bullets { gap: 12px; padding: 4px 12px; }
           .orb-hero__bullets span { font-size: 12px; }
         }
