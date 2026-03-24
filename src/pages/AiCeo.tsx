@@ -4,18 +4,12 @@ import { HeroSection } from "@/components/aiceo/HeroSection";
 import { ProductDescription } from "@/components/landing/ProductDescription";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 import { Loader2 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { getSafeSession } from "@/lib/authSession";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const { setTheme } = useTheme();
-
-  useEffect(() => {
-    setTheme("dark");
-  }, [setTheme]);
 
   const isOAuthReturn =
     searchParams.has("microsoft_connected") ||
