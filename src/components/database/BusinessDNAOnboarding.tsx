@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Telescope, Dna, ArrowRight, Globe, Sparkles, Check } from "lucide-react";
+import { Telescope, Dna, ArrowRight, Globe, Sparkles, Check, AlertCircle, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
@@ -17,12 +17,26 @@ const URL_EXAMPLES = [
   "figma.com/pricing",
 ];
 
+// Milestones that flip through during analysis
+const ANALYSIS_MILESTONES = [
+  "Resolving workspace",
+  "Connecting to website",
+  "Scraping homepage content",
+  "Analyzing page structure",
+  "Extracting brand identity",
+  "Identifying product data",
+  "Mapping audience signals",
+  "Processing visual assets",
+  "Building brand profile",
+  "Structuring product data",
+];
+
 function getActualSources(url: string): string[] {
   try {
     const u = new URL(url.startsWith("http") ? url : `https://${url}`);
     const host = u.hostname.replace(/^www\./, "");
     const path = u.pathname === "/" ? "" : u.pathname;
-    const sources = [host]; // homepage
+    const sources = [host];
     if (path && path !== "/") {
       sources.push(`${host}${path}`);
     }
@@ -46,11 +60,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // Real activity log
-  const [logMessages, setLogMessages] = useState<string[]>([]);
-  const addLog = useCallback((msg: string) => {
-    setLogMessages(prev => [...prev, msg]);
-  }, []);
+  // Flipping current task display
+  const [currentMilestone, setCurrentMilestone] = useState(0);
+  const [completedMilestones, setCompletedMilestones] = useState<string[]>([]);
 
   // Scanned sources tracking
   const [scannedSources, setScannedSources] = useState<string[]>([]);
@@ -62,6 +74,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const [scrapeError, setScrapeError] = useState(false);
   const [createdBrandId, setCreatedBrandId] = useState<string | undefined>();
   const [persistenceComplete, setPersistenceComplete] = useState(false);
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const workspaceIdRef = useRef<string | null>(null);
 
   // Get context setters
@@ -90,14 +103,28 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearInterval(interval);
   }, [step, urlInput]);
 
-  // Step 1: Fire scrape-product (and ensure workspace ID is set)
+  // Flip through milestones during steps 1-2
+  useEffect(() => {
+    if (step < 1 || step >= 3 || persistenceComplete) return;
+    const interval = setInterval(() => {
+      setCurrentMilestone(prev => {
+        const next = prev + 1;
+        if (next >= ANALYSIS_MILESTONES.length) return prev; // stay on last
+        // Push the previous one to completed
+        setCompletedMilestones(cm => [...cm, ANALYSIS_MILESTONES[prev]]);
+        return next;
+      });
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [step, persistenceComplete]);
+
+  // Step 1: Fire scrape-product
   useEffect(() => {
     if (step < 1 || !activeUrl) return;
     let cancelled = false;
     (async () => {
       try {
         // Resolve workspace
-        addLog("Resolving workspace...");
         let wsId = localStorage.getItem("preferred_workspace_id");
         if (!wsId) {
           const { data: { session } } = await supabase.auth.getSession();
@@ -110,17 +137,14 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           }
         }
         workspaceIdRef.current = wsId;
-        if (!cancelled) addLog("Workspace resolved");
 
         // Start scrape
-        if (!cancelled) addLog(`Scraping ${activeUrl.trim()}...`);
-        setScannedSources([allSources[0]]);
+        if (!cancelled) setScannedSources([allSources[0]]);
 
         const { data, error } = await supabase.functions.invoke("scrape-product", {
           body: { url: activeUrl.trim() },
         });
 
-        // Mark all sources as scanned
         if (!cancelled) {
           setScannedSources([...allSources]);
           setAllSourcesDone(true);
@@ -129,16 +153,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         if (cancelled) return;
         if (error || !data?.success) {
           console.error("Scrape failed:", error || data?.error);
-          addLog("Scrape failed — using fallback data");
           setScrapeError(true);
         } else {
           scrapeResult.current = data.extracted;
-          addLog("Extraction completed");
         }
       } catch (e) {
         if (!cancelled) {
           console.error("Scrape error:", e);
-          addLog("Scrape error — using fallback data");
           setScrapeError(true);
         }
       } finally {
@@ -148,10 +169,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
-  // Source accumulation — drip sources one by one during scrape
+  // Source accumulation
   useEffect(() => {
     if (step < 1 || step >= 3 || allSources.length <= 1 || allSourcesDone) return;
-    // Add second source after a delay if there is one
     const timer = setTimeout(() => {
       if (allSources.length > 1) {
         setScannedSources(prev => {
@@ -163,7 +183,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearTimeout(timer);
   }, [step, allSources.length, allSourcesDone]);
 
-  // Milestone-based progress
+  // Two-phase progress: rush to 80% during scrape, then 80-100% on real milestones
   useEffect(() => {
     if (step < 1 || step > 2) return;
     const startTime = Date.now();
@@ -171,19 +191,22 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       const elapsed = Date.now() - startTime;
       setProgress(prev => {
         if (persistenceComplete) return 100;
-        
-        if (step === 1) {
-          // Phase 1: scrape — go up to 65%
-          if (scrapeComplete) return Math.min(70, prev + 2);
-          // Rush to ~60 quickly
-          const t = Math.min(elapsed / 4000, 1);
-          const eased = 1 - Math.pow(1 - t, 3);
-          return Math.min(60, Math.round(eased * 60));
+
+        // Phase A: rush to 80% while scrape is running
+        if (!scrapeComplete) {
+          // Quick ease to 80%
+          const t = Math.min(elapsed / 8000, 1);
+          const eased = 1 - Math.pow(1 - t, 2.5);
+          return Math.min(78, Math.round(eased * 78));
         }
-        
-        // Step 2: extraction/build — 70 to 92, then wait for persistence
-        if (persistenceComplete) return 100;
-        return Math.min(92, prev + 0.2);
+
+        // Phase B: scrape done but persistence not yet — crawl 80 → 92
+        if (step === 1) {
+          return Math.min(80, prev + 1);
+        }
+
+        // Step 2: persistence phase — crawl 80 → 95
+        return Math.min(95, prev + 0.3);
       });
     }, 100);
     return () => clearInterval(timer);
@@ -199,7 +222,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     }
   }, [step, scrapeComplete]);
 
-  // Step 2: create entries directly in DB
+  // Step 2: create entries directly in DB with strict error handling
   useEffect(() => {
     if (step !== 2) return;
     let cancelled = false;
@@ -207,15 +230,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     (async () => {
       const wsId = workspaceIdRef.current;
       if (!wsId) {
-        addLog("Error: No workspace found");
-        setTimeout(() => setStep(3), 1000);
+        setPersistenceError("No workspace found. Please try again.");
         return;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        addLog("Error: Not authenticated");
-        setTimeout(() => setStep(3), 1000);
+        setPersistenceError("Not authenticated. Please sign in and try again.");
         return;
       }
       const userId = session.user.id;
@@ -229,7 +250,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       const audienceId = `audience-${Date.now()}`;
 
       // Build brand
-      addLog("Building brand profile...");
       const b = extracted.brand || {};
       const fallbackName = (() => {
         try {
@@ -251,7 +271,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       };
 
       // Build product
-      addLog("Structuring product data...");
       const p = extracted.product || {};
       const newProduct: ProductEntry = {
         ...DEFAULT_PRODUCT,
@@ -307,7 +326,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       // Build audience
       let newAudience: AudienceEntry | null = null;
       if (extracted.audience?.name) {
-        addLog("Creating audience persona...");
         const a = extracted.audience;
         newAudience = {
           ...DEFAULT_AUDIENCE,
@@ -343,8 +361,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
       if (cancelled) return;
 
-      // Direct DB persistence
-      addLog("Saving to database...");
+      // Direct DB persistence — strict: all required inserts must succeed
       const basePayload = {
         user_id: userId,
         source: "business-dna" as const,
@@ -352,46 +369,52 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         workspace_id: wsId,
       };
 
-      const insertPromises = [
-        supabase.from("user_business_data").insert({
-          ...basePayload,
-          data_type: "brand",
-          title: newBrand.name,
-          content: JSON.stringify(newBrand),
-        }),
-        supabase.from("user_business_data").insert({
-          ...basePayload,
-          data_type: "product",
-          title: newProduct.name,
-          content: JSON.stringify(newProduct),
-        }),
-      ];
-      if (newAudience) {
-        insertPromises.push(
-          supabase.from("user_business_data").insert({
-            ...basePayload,
-            data_type: "audience",
-            title: newAudience.name,
-            content: JSON.stringify(newAudience),
-          })
-        );
+      // Brand insert (required)
+      const { error: brandErr } = await supabase.from("user_business_data").insert({
+        ...basePayload,
+        data_type: "brand",
+        title: newBrand.name,
+        content: JSON.stringify(newBrand),
+      });
+      if (brandErr) {
+        console.error("Brand insert failed:", brandErr);
+        if (!cancelled) setPersistenceError("Failed to save brand. Please try again.");
+        return;
       }
 
-      const results = await Promise.all(insertPromises);
-      const anyError = results.find(r => r.error);
-      if (anyError?.error) {
-        console.error("DB insert error:", anyError.error);
-        addLog("Warning: Some data may not have saved");
-      } else {
-        addLog("Records saved successfully");
+      // Product insert (required)
+      const { error: productErr } = await supabase.from("user_business_data").insert({
+        ...basePayload,
+        data_type: "product",
+        title: newProduct.name,
+        content: JSON.stringify(newProduct),
+      });
+      if (productErr) {
+        console.error("Product insert failed:", productErr);
+        if (!cancelled) setPersistenceError("Failed to save product. Please try again.");
+        return;
       }
+
+      // Audience insert (optional — only if data exists)
+      if (newAudience) {
+        const { error: audErr } = await supabase.from("user_business_data").insert({
+          ...basePayload,
+          data_type: "audience",
+          title: newAudience.name,
+          content: JSON.stringify(newAudience),
+        });
+        if (audErr) {
+          console.error("Audience insert failed:", audErr);
+          // Non-fatal, continue
+        }
+      }
+
+      if (cancelled) return;
 
       // Rename workspace
-      addLog("Renaming workspace...");
       await supabase.from("workspaces").update({ name: brandName }).eq("id", wsId);
-      addLog("Workspace renamed");
 
-      // Also update context for immediate UI hydration
+      // Update context for immediate UI hydration
       if (contextAvailable) {
         setBrands(prev => [...prev, newBrand]);
         setProducts(prev => [...prev, newProduct]);
@@ -409,8 +432,22 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => { cancelled = true; };
   }, [step]);
 
+  // Retry handler for persistence errors
+  const handleRetry = useCallback(() => {
+    setPersistenceError(null);
+    setScrapeComplete(false);
+    setScrapeError(false);
+    setProgress(0);
+    setCurrentMilestone(0);
+    setCompletedMilestones([]);
+    setScannedSources([]);
+    setAllSourcesDone(false);
+    setStep(1);
+  }, []);
+
   const visibleSources = scannedSources.slice(-5);
-  const visibleLogs = logMessages.slice(-6);
+  const currentTask = ANALYSIS_MILESTONES[currentMilestone];
+  const recentCompleted = completedMilestones.slice(-3);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 font-sans overflow-hidden relative">
@@ -418,7 +455,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Top 3-bump progress bar — only show during steps 1-3 */}
+      {/* Top 3-bump progress bar */}
       {step >= 1 && (
         <div className="absolute top-0 left-0 w-full p-8 flex justify-center z-50">
           <div className="flex items-center gap-3 bg-card border border-border shadow-sm rounded-full px-5 py-3">
@@ -576,7 +613,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
-              {/* Left Card — Activity Log */}
+              {/* Left Card — Flipping Task Display */}
               <div className="bg-card rounded-3xl border border-border shadow-2xl shadow-primary/10 p-10 sm:p-14 flex flex-col items-center justify-center w-full md:w-1/2">
                 <div className="w-28 h-28 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 relative">
                   <AnimatePresence mode="wait">
@@ -614,33 +651,57 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   {step === 1 ? "Analyzing your business" : "Forging your business DNA"}
                 </h2>
 
-                {/* Real activity log */}
-                <div className="flex flex-col gap-1.5 w-full min-h-[100px] mt-2">
-                  <AnimatePresence>
-                    {visibleLogs.map((msg, i) => {
-                      const isLatest = i === visibleLogs.length - 1;
-                      return (
+                {/* Persistence error state */}
+                {persistenceError ? (
+                  <div className="flex flex-col items-center gap-3 w-full mt-2">
+                    <div className="flex items-center gap-2 text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">{persistenceError}</span>
+                    </div>
+                    <button
+                      onClick={handleRetry}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Try Again
+                    </button>
+                  </div>
+                ) : (
+                  /* Flipping current task + recent completed */
+                  <div className="flex flex-col gap-2 w-full min-h-[100px] mt-2">
+                    {/* Recently completed milestones (faded) */}
+                    <AnimatePresence>
+                      {recentCompleted.map((msg, i) => (
                         <motion.div
-                          key={`${msg}-${i}`}
+                          key={msg}
                           initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: isLatest ? 1 : 0.45, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.25 }}
+                          animate={{ opacity: 0.35, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.3 }}
                           className="flex items-center gap-2 text-sm"
                         >
-                          {isLatest ? (
-                            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
-                          ) : (
-                            <Check className="h-3 w-3 text-primary/60 shrink-0" />
-                          )}
-                          <span className={`${isLatest ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                            {msg}
-                          </span>
+                          <Check className="h-3 w-3 text-primary/60 shrink-0" />
+                          <span className="text-muted-foreground">{msg}</span>
                         </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </div>
+                      ))}
+                    </AnimatePresence>
+
+                    {/* Current active task — flips/crossfades */}
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={currentTask}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.35 }}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+                        <span className="text-foreground font-medium">{currentTask}</span>
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
 
               {/* Right Card: Sources */}
@@ -662,7 +723,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   )}
                 </div>
 
-                {/* Stacking scanned sources list */}
                 <div className="flex flex-col gap-2 w-full min-h-[140px]">
                   <AnimatePresence>
                     {visibleSources.map((source, i) => {
