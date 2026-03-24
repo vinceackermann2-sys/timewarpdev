@@ -146,84 +146,75 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
       {/* ── Orb stage ── */}
       <div className="orb-hero__stage">
         <div className="orb-hero__wrapper">
-          {/* Glow aura */}
           <div className="orb-hero__glow-aura" />
-
-          {/* Rotating connectors */}
           <div className="orb-hero__connectors">
             <div className="orb-hero__connector orb-hero__connector--1" />
             <div className="orb-hero__connector orb-hero__connector--2" />
           </div>
-
-          {/* Main sphere */}
           <div className="orb-hero__sphere" />
         </div>
+      </div>
 
-        {/* Content inside orb area */}
-        <div className="orb-hero__content orb-hero__content--mobile-fix">
-          <div className="flex flex-col items-center gap-6 w-full max-w-full">
-            {/* Top text */}
-            <div className="flex flex-col items-center gap-4 w-full">
-              <h1>
-                The future of <span>business</span>
-              </h1>
-              <p>
-                Levers pulled for you by{" "}
-                <span className="font-bold line-through">YOU</span>
-              </p>
-            </div>
+      {/* Content — sibling of stage, positioned relative to .orb-hero */}
+      <div className="orb-hero__content">
+        <div className="flex flex-col items-center gap-6 w-full max-w-full">
+          <div className="flex flex-col items-center gap-4 w-full">
+            <h1>
+              The future of <span>business</span>
+            </h1>
+            <p>
+              Levers pulled for you by{" "}
+              <span className="font-bold line-through">YOU</span>
+            </p>
+          </div>
 
-            {/* Input area */}
-            <div className="flex flex-col items-start gap-4 w-full">
-              <div className="orb-hero__input">
-                <div className="orb-hero__url-row" onClick={() => { if (!isEditing) { setIsEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}>
-                  <Globe className="orb-hero__url-icon" />
-
-                  {isEditing ? (
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                      onBlur={() => { if (!url) setIsEditing(false); }}
-                      placeholder="nike.com/shoes/air-max"
-                      autoFocus
-                    />
-                  ) : (
-                    <span className="flex items-center flex-1 min-w-0 text-left cursor-text">
-                      <span
-                        className="text-[16px] font-normal whitespace-nowrap overflow-hidden"
-                        style={{ color: "hsl(var(--hero-input-text))" }}
-                      >
-                        {typewriterText}
-                      </span>
-                      <span className="inline-block w-[2px] h-[1em] ml-[1px] align-text-bottom animate-blink"
-                        style={{ background: "hsl(var(--hero-accent))" }} />
+          <div className="flex flex-col items-start gap-4 w-full">
+            <div className="orb-hero__input">
+              <div className="orb-hero__url-row" onClick={() => { if (!isEditing) { setIsEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}>
+                <Globe className="orb-hero__url-icon" />
+                {isEditing ? (
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                    onBlur={() => { if (!url) setIsEditing(false); }}
+                    placeholder="nike.com/shoes/air-max"
+                    autoFocus
+                  />
+                ) : (
+                  <span className="flex items-center flex-1 min-w-0 text-left cursor-text">
+                    <span
+                      className="text-[16px] font-normal whitespace-nowrap overflow-hidden"
+                      style={{ color: "hsl(var(--hero-input-text))" }}
+                    >
+                      {typewriterText}
                     </span>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  className="orb-hero__btn"
-                  onClick={handleAnalyze}
-                >
-                  <span>Activate CEO</span>
-                  <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
-                </button>
+                    <span className="inline-block w-[2px] h-[1em] ml-[1px] align-text-bottom animate-blink"
+                      style={{ background: "hsl(var(--hero-accent))" }} />
+                  </span>
+                )}
               </div>
 
-              {/* Bullet points */}
-              <div className="orb-hero__bullets">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1 h-1 rounded-full" style={{ background: "hsl(var(--hero-accent))" }} />
-                  <span>No credit card</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1 h-1 rounded-full" style={{ background: "hsl(var(--hero-accent))" }} />
-                  <span>15-90 seconds</span>
-                </div>
+              <button
+                type="button"
+                className="orb-hero__btn"
+                onClick={handleAnalyze}
+              >
+                <span>Activate CEO</span>
+                <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
+              </button>
+            </div>
+
+            <div className="orb-hero__bullets">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1 h-1 rounded-full" style={{ background: "hsl(var(--hero-accent))" }} />
+                <span>No credit card</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1 h-1 rounded-full" style={{ background: "hsl(var(--hero-accent))" }} />
+                <span>15-90 seconds</span>
               </div>
             </div>
           </div>
