@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Telescope, Dna, ArrowRight, Globe, Sparkles } from "lucide-react";
+import { Telescope, Dna, ArrowRight, Globe, Sparkles, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
@@ -33,17 +33,55 @@ const STEP_2_TEXTS = [
   "Finalizing business profile...",
 ];
 
-const GENERIC_SOURCES = [
-  "pinterest.com/search",
-  "reddit.com/r/business",
-  "twitter.com/search",
-  "linkedin.com/company",
-  "news.ycombinator.com",
-  "instagram.com/explore",
-  "tiktok.com/search",
-  "crunchbase.com/organization",
-  "github.com/search",
+const STEP_1_EXAMPLES = [
+  "Extracting product features & pricing",
+  "Identified 3 competitor brands",
+  "Mapping brand color palette",
+  "Found 8 unique selling points",
+  "Analyzing customer review sentiment",
+  "Extracting social proof & testimonials",
+  "Scanning meta tags & SEO structure",
+  "Detected target demographic signals",
 ];
+
+const STEP_2_EXAMPLES = [
+  "Creating brand identity profile",
+  "Mapping 5 audience segments",
+  "Generating positioning strategy",
+  "Building competitive advantage matrix",
+  "Synthesizing brand voice guidelines",
+  "Structuring product catalog data",
+  "Defining ideal customer persona",
+  "Compiling market opportunity brief",
+];
+
+function getDomainSources(url: string): string[] {
+  try {
+    const u = new URL(url.startsWith("http") ? url : `https://${url}`);
+    const host = u.hostname.replace(/^www\./, "");
+    const path = u.pathname === "/" ? "" : u.pathname;
+    const pages = [
+      path || "/",
+      "/about",
+      "/products",
+      "/pricing",
+      "/blog",
+      "/contact",
+      "/features",
+    ];
+    const domainSources = pages.map((p) => `${host}${p}`);
+    const thirdParty = [
+      `google.com/search?q=${host}`,
+      `linkedin.com/company/${host.split(".")[0]}`,
+      `crunchbase.com/organization/${host.split(".")[0]}`,
+      `reddit.com/search?q=${host.split(".")[0]}`,
+      `twitter.com/search?q=${host.split(".")[0]}`,
+    ];
+    return [...domainSources, ...thirdParty];
+  } catch {
+    return [url, "google.com/search", "linkedin.com/company", "crunchbase.com"];
+  }
+}
 
 interface BusinessDNAOnboardingProps {
   productUrl?: string | null;
@@ -56,10 +94,14 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [step, setStep] = useState(initialUrl ? 1 : 0);
   const [textIndex, setTextIndex] = useState(0);
-  const [sourceIndex, setSourceIndex] = useState(0);
   const [agentName, setAgentName] = useState("");
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [exampleIndex, setExampleIndex] = useState(0);
+
+  // Scanned sources tracking
+  const [scannedSources, setScannedSources] = useState<string[]>([]);
+  const [currentSourceIdx, setCurrentSourceIdx] = useState(0);
 
   // Scrape state
   const scrapeResult = useRef<any>(null);
@@ -68,7 +110,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const [step1AnimDone, setStep1AnimDone] = useState(false);
   const [createdBrandId, setCreatedBrandId] = useState<string | undefined>();
 
-  // Get context setters (only available when wrapped in BusinessDNAProvider)
+  // Get context setters
   let contextAvailable = false;
   let setBrands: React.Dispatch<React.SetStateAction<BrandEntry[]>> = () => {};
   let setProducts: React.Dispatch<React.SetStateAction<ProductEntry[]>> = () => {};
@@ -80,23 +122,10 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     setAudiences = ctx.setAudiences;
     contextAvailable = true;
   } catch {
-    // No provider — will skip entity creation
+    // No provider
   }
 
-  // Build sources list: actual URL first, then generic
-  const sources = activeUrl
-    ? [
-        (() => {
-          try {
-            const u = new URL(activeUrl.startsWith("http") ? activeUrl : `https://${activeUrl}`);
-            return u.hostname.replace(/^www\./, "") + u.pathname;
-          } catch {
-            return activeUrl;
-          }
-        })(),
-        ...GENERIC_SOURCES,
-      ]
-    : GENERIC_SOURCES;
+  const allSources = activeUrl ? getDomainSources(activeUrl) : [];
 
   // URL placeholder rotation for step 0
   useEffect(() => {
@@ -107,12 +136,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearInterval(interval);
   }, [step, urlInput]);
 
-  // Step 1: Fire scrape-product if we have a URL and we're on step 1+
+  // Step 1: Fire scrape-product
   useEffect(() => {
-    if (step < 1 || !activeUrl) {
-      return;
-    }
-
+    if (step < 1 || !activeUrl) return;
     let cancelled = false;
     (async () => {
       try {
@@ -135,39 +161,62 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         if (!cancelled) setScrapeComplete(true);
       }
     })();
-
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
-  // Source rotation
+  // Source accumulation — add a new source every 1.2s
   useEffect(() => {
-    if (step < 3) {
-      const interval = setInterval(() => {
-        setSourceIndex((prev) => (prev + 1) % sources.length);
-      }, 800);
-      return () => clearInterval(interval);
-    }
-  }, [step, sources.length]);
+    if ((step !== 1 && step !== 2) || allSources.length === 0) return;
+    setScannedSources([]);
+    setCurrentSourceIdx(0);
+    const interval = setInterval(() => {
+      setCurrentSourceIdx((prev) => {
+        const next = prev + 1;
+        if (next >= allSources.length) {
+          clearInterval(interval);
+          return prev;
+        }
+        setScannedSources((s) => [...s, allSources[next]]);
+        return next;
+      });
+    }, 1200);
+    // Add first source immediately
+    setScannedSources([allSources[0]]);
+    return () => clearInterval(interval);
+  }, [step >= 1 && step < 3 ? 1 : 0, allSources.length]);
 
-  // Progress bar — adaptive to scrape completion
+  // Two-phase progress bar
   useEffect(() => {
+    if (step < 1 || step > 2) return;
     const startTime = Date.now();
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      let p: number;
-      if (step === 1) {
-        // Grow to ~45% over first 12s, then slow down
-        p = Math.min(45, Math.floor((elapsed / 12000) * 45));
-        if (scrapeComplete && step1AnimDone) p = 50;
-      } else if (step === 2) {
-        p = Math.min(50 + Math.floor(((Date.now() - startTime) / 6000) * 40), 90);
-      } else {
-        p = 100;
-      }
-      setProgress(p);
-    }, 100);
+      setProgress((prev) => {
+        if (prev < 80) {
+          // Phase 1: rush to 80% in ~3s with ease-out
+          const t = Math.min(elapsed / 3000, 1);
+          const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+          return Math.min(80, Math.round(eased * 80));
+        }
+        // Phase 2: slow crawl until scrape completes
+        if (scrapeComplete && step1AnimDone) return 100;
+        if (step === 2) return Math.min(99, prev + 0.15);
+        return Math.min(99, prev + 0.05);
+      });
+    }, 80);
     return () => clearInterval(timer);
   }, [step, scrapeComplete, step1AnimDone]);
+
+  // Example snippets rotation
+  useEffect(() => {
+    if (step < 1 || step > 2) return;
+    const examples = step === 1 ? STEP_1_EXAMPLES : STEP_2_EXAMPLES;
+    setExampleIndex(0);
+    const interval = setInterval(() => {
+      setExampleIndex((prev) => (prev + 1) % examples.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [step]);
 
   // Step 1 text animation
   useEffect(() => {
@@ -185,7 +234,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearInterval(interval);
   }, [step]);
 
-  // Transition from step 1 → 2 when both scrape and animation are done
+  // Transition from step 1 → 2
   useEffect(() => {
     if (step === 1 && step1AnimDone && scrapeComplete) {
       const timeout = setTimeout(() => {
@@ -200,7 +249,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   useEffect(() => {
     if (step !== 2) return;
 
-    // Create entries from scraped data
     if (contextAvailable && scrapeResult.current && !scrapeError) {
       const extracted = scrapeResult.current;
       const now = new Date().toLocaleDateString("en-US", {
@@ -321,7 +369,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       }
     }
 
-    // Step 2 text animation
     const interval = setInterval(() => {
       setTextIndex((prev) => {
         if (prev >= STEP_2_TEXTS.length - 1) {
@@ -334,6 +381,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     }, 1200);
     return () => clearInterval(interval);
   }, [step]);
+
+  const currentExamples = step === 1 ? STEP_1_EXAMPLES : STEP_2_EXAMPLES;
+  const visibleSources = scannedSources.slice(-5);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 font-sans overflow-hidden relative">
@@ -399,12 +449,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               <motion.div
                 className="h-full bg-primary"
                 initial={{ width: "0%" }}
-                animate={{ width: `${progress}%` }}
+                animate={{ width: `${Math.round(progress)}%` }}
                 transition={{ duration: 0.3, ease: "linear" }}
               />
             </div>
             <div className="flex justify-end w-full px-1">
-              <p className="text-sm font-bold text-primary">{progress}%</p>
+              <p className="text-sm font-bold text-primary">{Math.round(progress)}%</p>
             </div>
           </motion.div>
         </div>
@@ -556,6 +606,25 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                     </motion.p>
                   </AnimatePresence>
                 </div>
+
+                {/* Example snippets */}
+                <div className="mt-5 h-7 flex items-center justify-center overflow-hidden w-full">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={`example-${step}-${exampleIndex}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.25 }}
+                      className="flex items-center gap-2"
+                    >
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                      <span className="text-xs text-muted-foreground/70 font-medium">
+                        {currentExamples[exampleIndex % currentExamples.length]}
+                      </span>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
               </div>
 
               {/* Right Card: Sources */}
@@ -564,7 +633,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   <Globe className="w-6 h-6 text-primary" />
                 </div>
 
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-4">
                   <div className="text-sm font-bold tracking-widest text-foreground uppercase">
                     Scanning Sources
                   </div>
@@ -575,19 +644,46 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   </div>
                 </div>
 
-                <div className="h-6 flex items-center overflow-hidden w-full">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={sourceIndex}
-                      initial={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -10, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-sm font-medium text-muted-foreground flex items-center gap-2 w-full"
-                    >
-                      <span className="truncate">https://{sources[sourceIndex % sources.length]}</span>
-                    </motion.div>
+                {/* Stacking scanned sources list */}
+                <div className="flex flex-col gap-2 w-full min-h-[140px]">
+                  <AnimatePresence>
+                    {visibleSources.map((source, i) => {
+                      const isLatest = i === visibleSources.length - 1;
+                      return (
+                        <motion.div
+                          key={source}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: isLatest ? 1 : 0.5, x: 0 }}
+                          exit={{ opacity: 0, x: 10 }}
+                          transition={{ duration: 0.3 }}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          {isLatest ? (
+                            <div className="h-3.5 w-3.5 rounded-full border-2 border-primary flex items-center justify-center shrink-0">
+                              <motion.div
+                                className="h-1.5 w-1.5 rounded-full bg-primary"
+                                animate={{ scale: [1, 1.3, 1] }}
+                                transition={{ duration: 1, repeat: Infinity }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-3.5 w-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                              <Check className="h-2.5 w-2.5 text-primary" />
+                            </div>
+                          )}
+                          <span className={`truncate ${isLatest ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                            https://{source}
+                          </span>
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
+                </div>
+
+                <div className="mt-auto pt-4 border-t border-border/50 w-full">
+                  <p className="text-xs text-muted-foreground/60">
+                    {scannedSources.length} of {allSources.length} sources scanned
+                  </p>
                 </div>
               </div>
             </motion.div>
