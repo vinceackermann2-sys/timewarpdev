@@ -175,7 +175,6 @@ const Database = () => {
         <BusinessDNAOnboarding
           productUrl={onboardingUrl}
           onComplete={(agentName, brandId) => {
-            setShowOnboarding(false);
             setOnboardingUrl(null);
             queryClient.invalidateQueries({ queryKey: ["workspaces"] });
             if (brandId) {
@@ -184,6 +183,9 @@ const Database = () => {
               setActiveBrandId(brandId);
               setShowBusinessDNA(true);
             }
+            // Delay hiding onboarding until after state is set so the provider
+            // can reload with the new workspace data before rendering
+            setTimeout(() => setShowOnboarding(false), 100);
           }}
         />
       </BusinessDNAProvider>
