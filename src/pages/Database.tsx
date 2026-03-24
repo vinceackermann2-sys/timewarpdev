@@ -169,12 +169,21 @@ const Database = () => {
 
   if (showOnboarding) {
     return (
-      <BusinessDNAOnboarding
-        onComplete={(agentName) => {
-          sessionStorage.removeItem("tw_show_onboarding");
-          setShowOnboarding(false);
-        }}
-      />
+      <BusinessDNAProvider>
+        <BusinessDNAOnboarding
+          productUrl={onboardingUrl}
+          onComplete={(agentName, brandId) => {
+            setShowOnboarding(false);
+            setOnboardingUrl(null);
+            if (brandId) {
+              setCurrentView("businessdna");
+              localStorage.setItem("tw_current_view", "businessdna");
+              setActiveBrandId(brandId);
+              setShowBusinessDNA(true);
+            }
+          }}
+        />
+      </BusinessDNAProvider>
     );
   }
 
