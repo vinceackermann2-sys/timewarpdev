@@ -57,9 +57,7 @@ const Database = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
   const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    return sessionStorage.getItem("tw_show_onboarding") === "true";
-  });
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
