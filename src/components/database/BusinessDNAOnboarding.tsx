@@ -434,7 +434,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     setScrapeError(false);
     setProgress(0);
     setCurrentMilestone(0);
-    setCompletedMilestones([]);
     setScannedSources([]);
     setAllSourcesDone(false);
     setStep(1);
@@ -442,7 +441,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
   const visibleSources = scannedSources.slice(-5);
   const currentTask = ANALYSIS_MILESTONES[currentMilestone];
-  const recentCompleted = completedMilestones.slice(-3);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 font-sans overflow-hidden relative">
