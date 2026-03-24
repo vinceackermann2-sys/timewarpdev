@@ -426,7 +426,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         /* ── Content — positioned inside the orb area ── */
         .orb-hero__content {
           position: absolute; z-index: 20;
-          top: 22%; left: 50%;
+          top: 55%; left: 50%;
           transform: translate(-50%, -50%);
           display: flex; flex-direction: column; align-items: center;
           text-align: center;
