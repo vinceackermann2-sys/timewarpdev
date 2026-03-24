@@ -494,7 +494,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         /* ── Bullets ── */
         .orb-hero__bullets {
-          display: flex; align-items: center; justify-content: center; gap: 14px;
+          display: flex; align-items: center; gap: 14px;
           background: hsl(0 0% 100% / 0.3); backdrop-filter: blur(12px);
           border: 1px solid hsl(0 0% 100% / 0.6); border-radius: 999px;
           padding: 4px 14px;
