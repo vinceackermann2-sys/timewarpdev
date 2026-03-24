@@ -10,7 +10,7 @@ export default function ZipLifeAndWork() {
           <p className="text-muted-foreground font-medium text-sm text-center md:text-left uppercase tracking-wider">
             WHEN YOU'RE ENJOYING LIFE
           </p>
-          <div className="rounded-xl p-1.5 bg-foreground shadow-xl aspect-[3/4] overflow-hidden">
+          <div className="rounded-lg p-1 bg-foreground shadow-xl aspect-[3/4] overflow-hidden">
             <img
               src={familyVacation}
               alt="Family on vacation"
