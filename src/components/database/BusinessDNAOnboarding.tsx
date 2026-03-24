@@ -1,6 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Telescope, Dna, ArrowRight, Globe } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
+import { DEFAULT_PRODUCT } from "./ProductDetailView";
+import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
 
 const STEP_1_TEXTS = [
   "Scanning website architecture...",
@@ -18,7 +22,7 @@ const STEP_2_TEXTS = [
   "Finalizing business profile...",
 ];
 
-const SOURCES = [
+const GENERIC_SOURCES = [
   "pinterest.com/search",
   "reddit.com/r/business",
   "twitter.com/search",
@@ -31,10 +35,11 @@ const SOURCES = [
 ];
 
 interface BusinessDNAOnboardingProps {
-  onComplete: (agentName: string) => void;
+  productUrl?: string | null;
+  onComplete: (agentName: string, brandId?: string) => void;
 }
 
-export function BusinessDNAOnboarding({ onComplete }: BusinessDNAOnboardingProps) {
+export function BusinessDNAOnboarding({ productUrl, onComplete }: BusinessDNAOnboardingProps) {
   const [step, setStep] = useState(1);
   const [textIndex, setTextIndex] = useState(0);
   const [sourceIndex, setSourceIndex] = useState(0);
@@ -42,60 +47,270 @@ export function BusinessDNAOnboarding({ onComplete }: BusinessDNAOnboardingProps
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  // Scrape state
+  const scrapeResult = useRef<any>(null);
+  const [scrapeComplete, setScrapeComplete] = useState(false);
+  const [scrapeError, setScrapeError] = useState(false);
+  const [step1AnimDone, setStep1AnimDone] = useState(false);
+  const [createdBrandId, setCreatedBrandId] = useState<string | undefined>();
+
+  // Get context setters (only available when wrapped in BusinessDNAProvider)
+  let contextAvailable = false;
+  let setBrands: React.Dispatch<React.SetStateAction<BrandEntry[]>> = () => {};
+  let setProducts: React.Dispatch<React.SetStateAction<ProductEntry[]>> = () => {};
+  let setAudiences: React.Dispatch<React.SetStateAction<AudienceEntry[]>> = () => {};
+  try {
+    const ctx = useBusinessDNA();
+    setBrands = ctx.setBrands;
+    setProducts = ctx.setProducts;
+    setAudiences = ctx.setAudiences;
+    contextAvailable = true;
+  } catch {
+    // No provider — will skip entity creation
+  }
+
+  // Build sources list: actual URL first, then generic
+  const sources = productUrl
+    ? [
+        (() => {
+          try {
+            const u = new URL(productUrl.startsWith("http") ? productUrl : `https://${productUrl}`);
+            return u.hostname.replace(/^www\./, "") + u.pathname;
+          } catch {
+            return productUrl;
+          }
+        })(),
+        ...GENERIC_SOURCES,
+      ]
+    : GENERIC_SOURCES;
+
+  // Step 1: Fire scrape-product if we have a URL
+  useEffect(() => {
+    if (!productUrl) {
+      setScrapeComplete(true);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("scrape-product", {
+          body: { url: productUrl.trim() },
+        });
+        if (cancelled) return;
+        if (error || !data?.success) {
+          console.error("Scrape failed:", error || data?.error);
+          setScrapeError(true);
+        } else {
+          scrapeResult.current = data.extracted;
+        }
+      } catch (e) {
+        if (!cancelled) {
+          console.error("Scrape error:", e);
+          setScrapeError(true);
+        }
+      } finally {
+        if (!cancelled) setScrapeComplete(true);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [productUrl]);
+
+  // Source rotation
   useEffect(() => {
     if (step < 3) {
       const interval = setInterval(() => {
-        setSourceIndex((prev) => (prev + 1) % SOURCES.length);
+        setSourceIndex((prev) => (prev + 1) % sources.length);
       }, 800);
       return () => clearInterval(interval);
     }
-  }, [step]);
+  }, [step, sources.length]);
 
+  // Progress bar — adaptive to scrape completion
   useEffect(() => {
     const startTime = Date.now();
-    const duration = 13600;
-
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const p = Math.min(Math.floor((elapsed / duration) * 100), 100);
+      let p: number;
+      if (step === 1) {
+        // Grow to ~45% over first 12s, then slow down
+        p = Math.min(45, Math.floor((elapsed / 12000) * 45));
+        if (scrapeComplete && step1AnimDone) p = 50;
+      } else if (step === 2) {
+        p = Math.min(50 + Math.floor(((Date.now() - startTime) / 6000) * 40), 90);
+      } else {
+        p = 100;
+      }
       setProgress(p);
-      if (p >= 100) clearInterval(timer);
-    }, 50);
-
+    }, 100);
     return () => clearInterval(timer);
-  }, []);
+  }, [step, scrapeComplete, step1AnimDone]);
 
+  // Step 1 text animation
   useEffect(() => {
-    if (step === 1) {
-      const interval = setInterval(() => {
-        setTextIndex((prev) => {
-          if (prev >= STEP_1_TEXTS.length - 1) {
-            clearInterval(interval);
-            setTimeout(() => {
-              setStep(2);
-              setTextIndex(0);
-            }, 800);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 1200);
-      return () => clearInterval(interval);
-    } else if (step === 2) {
-      const interval = setInterval(() => {
-        setTextIndex((prev) => {
-          if (prev >= STEP_2_TEXTS.length - 1) {
-            clearInterval(interval);
-            setTimeout(() => {
-              setStep(3);
-            }, 800);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 1200);
-      return () => clearInterval(interval);
+    if (step !== 1) return;
+    const interval = setInterval(() => {
+      setTextIndex((prev) => {
+        if (prev >= STEP_1_TEXTS.length - 1) {
+          clearInterval(interval);
+          setStep1AnimDone(true);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [step]);
+
+  // Transition from step 1 → 2 when both scrape and animation are done
+  useEffect(() => {
+    if (step === 1 && step1AnimDone && scrapeComplete) {
+      const timeout = setTimeout(() => {
+        setStep(2);
+        setTextIndex(0);
+      }, 600);
+      return () => clearTimeout(timeout);
     }
+  }, [step, step1AnimDone, scrapeComplete]);
+
+  // Step 2: create entries + text animation
+  useEffect(() => {
+    if (step !== 2) return;
+
+    // Create entries from scraped data
+    if (contextAvailable && scrapeResult.current && !scrapeError) {
+      const extracted = scrapeResult.current;
+      const now = new Date().toLocaleDateString("en-US", {
+        year: "numeric", month: "short", day: "numeric",
+      });
+      const brandId = `brand-${Date.now()}`;
+      const productId = `product-${Date.now()}`;
+      const audienceId = `audience-${Date.now()}`;
+
+      const b = extracted.brand || {};
+      const fallbackName = (() => {
+        try {
+          const u = new URL(productUrl!.trim().startsWith("http") ? productUrl!.trim() : `https://${productUrl!.trim()}`);
+          return u.hostname.replace(/^www\./, "").split(".")[0];
+        } catch { return null; }
+      })();
+      const brandName = b.name || extracted.product?.name || fallbackName || "My Business";
+      const newBrand: BrandEntry = {
+        id: brandId,
+        name: brandName,
+        category: b.category || "Brand",
+        lastUpdated: now,
+        colors: b.colors || undefined,
+        typography: b.typography || undefined,
+        logoUrls: Array.isArray(b.logoUrls) ? b.logoUrls : [],
+        selectedLogo: 0,
+        visualIdentity: b.visualIdentity || undefined,
+      };
+      setBrands(prev => [...prev, newBrand]);
+      setCreatedBrandId(brandId);
+
+      const p = extracted.product || {};
+      const newProduct: ProductEntry = {
+        ...DEFAULT_PRODUCT,
+        id: productId,
+        name: p.name || "Imported Product",
+        category: p.category || "Consumer Product",
+        description: p.description || "",
+        features: p.features || [],
+        benefits: p.benefits || [],
+        painPoints: p.painPoints || [],
+        useCases: p.useCases || [],
+        targetScenarios: p.targetScenarios || [],
+        positioningStatement: p.positioningStatement || "",
+        uniqueSellingPoints: p.uniqueSellingPoints || [],
+        competitiveAdvantages: p.competitiveAdvantages || [],
+        commonObjections: p.commonObjections?.length
+          ? p.commonObjections.map((o: any) => ({ objection: o.objection || "", response: o.response || "" }))
+          : [],
+        proofPoints: p.proofPoints?.length
+          ? p.proofPoints.map((pp: any) => ({ category: pp.category || "", items: pp.items || [] }))
+          : [],
+        dosAndDonts: {
+          dos: p.dosAndDonts?.dos || [],
+          donts: p.dosAndDonts?.donts || [],
+        },
+        powerPhrases: p.powerPhrases || [],
+        powerWords: p.powerWords || [],
+        technicalLevel: p.technicalLevel || "",
+        refinementChecklist: p.refinementChecklist || [],
+        images: p.images?.length
+          ? p.images.map((imgUrl: string, i: number) => ({
+              id: `img-${i + 1}`,
+              url: imgUrl,
+              label: `Product Image ${i + 1}`,
+            }))
+          : DEFAULT_PRODUCT.images,
+        offers: p.offers?.length
+          ? p.offers.map((o: any, i: number) => ({
+              id: `offer-${i + 1}`,
+              title: o.title || `Offer ${i + 1}`,
+              originalPrice: o.originalPrice || "",
+              salePrice: o.salePrice || "",
+              discount: o.discount || "",
+              bundleDetails: o.bundleDetails || "",
+              freeGifts: o.freeGifts || [],
+              isPopular: o.isPopular || false,
+            }))
+          : DEFAULT_PRODUCT.offers,
+        lastUpdated: now,
+        brandId: brandId,
+      };
+      setProducts(prev => [...prev, newProduct]);
+
+      if (extracted.audience?.name) {
+        const a = extracted.audience;
+        const newAudience: AudienceEntry = {
+          ...DEFAULT_AUDIENCE,
+          id: audienceId,
+          name: a.name,
+          description: a.description || "",
+          buyingTriggers: a.buyingTriggers || [],
+          useCaseRequirements: a.useCaseRequirements || [],
+          keySuccessIndicators: a.keySuccessIndicators || [],
+          additionalCharacteristics: a.additionalCharacteristics || "",
+          positioningStatement: a.positioningStatement || "",
+          valuePropositions: a.valuePropositions || [],
+          engagementTriggers: a.engagementTriggers || [],
+          attentionHooks: a.attentionHooks || [],
+          commonObjections: a.commonObjections?.length
+            ? a.commonObjections.map((o: any) => ({ objection: o.objection || "", response: o.response || "" }))
+            : [],
+          proofPoints: a.proofPoints?.length
+            ? a.proofPoints.map((pp: any) => ({ category: pp.category || "", items: pp.items || [] }))
+            : [],
+          dosAndDonts: {
+            dos: a.dosAndDonts?.dos || [],
+            donts: a.dosAndDonts?.donts || [],
+          },
+          powerPhrases: a.powerPhrases || [],
+          powerWords: a.powerWords || [],
+          technicalLevel: a.technicalLevel || "",
+          refinementChecklist: a.refinementChecklist || [],
+          lastUpdated: now,
+          productIds: [productId],
+        };
+        setAudiences(prev => [...prev, newAudience]);
+      }
+    }
+
+    // Step 2 text animation
+    const interval = setInterval(() => {
+      setTextIndex((prev) => {
+        if (prev >= STEP_2_TEXTS.length - 1) {
+          clearInterval(interval);
+          setTimeout(() => setStep(3), 800);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1200);
+    return () => clearInterval(interval);
   }, [step]);
 
   return (
@@ -142,7 +357,7 @@ export function BusinessDNAOnboarding({ onComplete }: BusinessDNAOnboardingProps
               exit={{ opacity: 0, y: -10 }}
               className="text-2xl sm:text-3xl font-extrabold mb-6 tracking-tight text-center onboarding-text-shine"
             >
-              Forging your business DNA
+              {step === 1 ? "Researching your business" : "Setting up your business"}
             </motion.h1>
           )}
         </AnimatePresence>
@@ -158,7 +373,7 @@ export function BusinessDNAOnboarding({ onComplete }: BusinessDNAOnboardingProps
             >
               <div className="flex justify-center w-full mb-3 px-1">
                 <p className="text-sm font-medium text-muted-foreground">
-                  Deep business research in progress...
+                  {step === 1 ? "Deep business research in progress..." : "Building your business profile..."}
                 </p>
               </div>
               <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-2">
@@ -166,7 +381,7 @@ export function BusinessDNAOnboarding({ onComplete }: BusinessDNAOnboardingProps
                   className="h-full bg-primary"
                   initial={{ width: "0%" }}
                   animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.1, ease: "linear" }}
+                  transition={{ duration: 0.3, ease: "linear" }}
                 />
               </div>
               <div className="flex justify-end w-full px-1">
@@ -223,7 +438,7 @@ export function BusinessDNAOnboarding({ onComplete }: BusinessDNAOnboardingProps
                 </div>
 
                 <h2 className="text-lg sm:text-xl font-bold text-foreground text-center tracking-tight mb-3">
-                  {step === 1 ? "Researching your business" : "Forging your business DNA."}
+                  {step === 1 ? "Analyzing your business" : "Forging your business DNA"}
                 </h2>
 
                 <div className="h-6 flex items-center justify-center overflow-hidden w-full">
@@ -269,7 +484,7 @@ export function BusinessDNAOnboarding({ onComplete }: BusinessDNAOnboardingProps
                       transition={{ duration: 0.3 }}
                       className="text-sm font-medium text-muted-foreground flex items-center gap-2 w-full"
                     >
-                      <span className="truncate">https://{SOURCES[sourceIndex]}</span>
+                      <span className="truncate">https://{sources[sourceIndex % sources.length]}</span>
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -349,7 +564,7 @@ export function BusinessDNAOnboarding({ onComplete }: BusinessDNAOnboardingProps
                       className="w-full flex flex-col items-center"
                     >
                       <button
-                        onClick={() => onComplete(agentName.trim())}
+                        onClick={() => onComplete(agentName.trim(), createdBrandId)}
                         className="w-full bg-card border border-border shadow-sm text-foreground hover:bg-muted px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                       >
                         Take Me To {agentName.trim()}

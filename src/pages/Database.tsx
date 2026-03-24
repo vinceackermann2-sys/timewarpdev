@@ -69,23 +69,26 @@ const Database = () => {
 
     if (onboarding === "business-dna") {
       setShowOnboarding(true);
+      // Capture URL for onboarding scraping
+      if (productUrl) {
+        setOnboardingUrl(productUrl);
+      }
+      // Strip onboarding & addProduct params so refresh doesn't replay
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("onboarding");
+      newParams.delete("addProduct");
+      newParams.delete("url");
       const qs = newParams.toString();
       window.history.replaceState({}, "", `/app${qs ? `?${qs}` : ""}`);
-    }
-
-    if (viewParam === "aiceo") {
-      setCurrentView("aiceo");
-      localStorage.setItem("tw_current_view", "aiceo");
-    }
-
-    if (addProduct === "true") {
-      setCurrentView("businessdna");
-      localStorage.setItem("tw_current_view", "businessdna");
-      setShowAddProduct(true);
-      if (productUrl) {
-        sessionStorage.setItem("pendingProductUrl", productUrl);
+    } else {
+      // Only handle addProduct when NOT in onboarding flow
+      if (addProduct === "true") {
+        setCurrentView("businessdna");
+        localStorage.setItem("tw_current_view", "businessdna");
+        setShowAddProduct(true);
+        if (productUrl) {
+          sessionStorage.setItem("pendingProductUrl", productUrl);
+        }
       }
     }
 
