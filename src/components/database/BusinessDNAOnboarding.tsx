@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Telescope, Dna, ArrowRight, Globe, Sparkles, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,59 +17,16 @@ const URL_EXAMPLES = [
   "figma.com/pricing",
 ];
 
-const STEP_1_TEXTS = [
-  "Crawling website pages...",
-  "Extracting brand identity...",
-  "Mapping product catalog...",
-  "Profiling target audience...",
-  "Compiling business intelligence...",
-];
-
-const STEP_2_TEXTS = [
-  "Building brand profile...",
-  "Structuring product data...",
-  "Creating audience persona...",
-  "Generating positioning strategy...",
-  "Finalizing business DNA...",
-];
-
-const STEP_1_EXAMPLES = [
-  "Reading homepage content",
-  "Extracting product features & pricing",
-  "Scanning page metadata & structure",
-  "Mapping brand color palette",
-  "Parsing navigation & site structure",
-  "Extracting social proof & testimonials",
-  "Reading about page content",
-  "Detecting target demographic signals",
-];
-
-const STEP_2_EXAMPLES = [
-  "Creating brand identity profile",
-  "Structuring product catalog data",
-  "Defining ideal customer persona",
-  "Mapping value propositions",
-  "Synthesizing brand voice guidelines",
-  "Building audience engagement triggers",
-  "Compiling positioning strategy",
-  "Generating pain point analysis",
-];
-
-function getDomainSources(url: string): string[] {
+function getActualSources(url: string): string[] {
   try {
     const u = new URL(url.startsWith("http") ? url : `https://${url}`);
     const host = u.hostname.replace(/^www\./, "");
     const path = u.pathname === "/" ? "" : u.pathname;
-    const pages = [
-      path || "/",
-      "/about",
-      "/products",
-      "/pricing",
-      "/blog",
-      "/contact",
-      "/features",
-    ];
-    return pages.map((p) => `${host}${p}`);
+    const sources = [host]; // homepage
+    if (path && path !== "/") {
+      sources.push(`${host}${path}`);
+    }
+    return sources;
   } catch {
     return [url];
   }
@@ -85,22 +42,27 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const [urlInput, setUrlInput] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [step, setStep] = useState(initialUrl ? 1 : 0);
-  const [textIndex, setTextIndex] = useState(0);
   const [agentName, setAgentName] = useState("");
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [exampleIndex, setExampleIndex] = useState(0);
+
+  // Real activity log
+  const [logMessages, setLogMessages] = useState<string[]>([]);
+  const addLog = useCallback((msg: string) => {
+    setLogMessages(prev => [...prev, msg]);
+  }, []);
 
   // Scanned sources tracking
   const [scannedSources, setScannedSources] = useState<string[]>([]);
-  const [currentSourceIdx, setCurrentSourceIdx] = useState(0);
+  const [allSourcesDone, setAllSourcesDone] = useState(false);
 
   // Scrape state
   const scrapeResult = useRef<any>(null);
   const [scrapeComplete, setScrapeComplete] = useState(false);
   const [scrapeError, setScrapeError] = useState(false);
-  const [step1AnimDone, setStep1AnimDone] = useState(false);
   const [createdBrandId, setCreatedBrandId] = useState<string | undefined>();
+  const [persistenceComplete, setPersistenceComplete] = useState(false);
+  const workspaceIdRef = useRef<string | null>(null);
 
   // Get context setters
   let contextAvailable = false;
@@ -117,7 +79,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     // No provider
   }
 
-  const allSources = activeUrl ? getDomainSources(activeUrl) : [];
+  const allSources = activeUrl ? getActualSources(activeUrl) : [];
 
   // URL placeholder rotation for step 0
   useEffect(() => {
@@ -134,30 +96,49 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     let cancelled = false;
     (async () => {
       try {
-        // Ensure workspace ID is in localStorage before any entity creation
-        if (!localStorage.getItem("preferred_workspace_id")) {
+        // Resolve workspace
+        addLog("Resolving workspace...");
+        let wsId = localStorage.getItem("preferred_workspace_id");
+        if (!wsId) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
             const { data: wsData } = await supabase.rpc("get_user_workspaces", { _user_id: session.user.id });
             if (wsData && (wsData as any[]).length > 0) {
-              localStorage.setItem("preferred_workspace_id", (wsData as any[])[0].workspace_id);
+              wsId = (wsData as any[])[0].workspace_id;
+              localStorage.setItem("preferred_workspace_id", wsId!);
             }
           }
         }
+        workspaceIdRef.current = wsId;
+        if (!cancelled) addLog("Workspace resolved");
+
+        // Start scrape
+        if (!cancelled) addLog(`Scraping ${activeUrl.trim()}...`);
+        setScannedSources([allSources[0]]);
 
         const { data, error } = await supabase.functions.invoke("scrape-product", {
           body: { url: activeUrl.trim() },
         });
+
+        // Mark all sources as scanned
+        if (!cancelled) {
+          setScannedSources([...allSources]);
+          setAllSourcesDone(true);
+        }
+
         if (cancelled) return;
         if (error || !data?.success) {
           console.error("Scrape failed:", error || data?.error);
+          addLog("Scrape failed — using fallback data");
           setScrapeError(true);
         } else {
           scrapeResult.current = data.extracted;
+          addLog("Extraction completed");
         }
       } catch (e) {
         if (!cancelled) {
           console.error("Scrape error:", e);
+          addLog("Scrape error — using fallback data");
           setScrapeError(true);
         }
       } finally {
@@ -167,93 +148,79 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
-  // Source accumulation — add a new source every 1.2s
+  // Source accumulation — drip sources one by one during scrape
   useEffect(() => {
-    if ((step !== 1 && step !== 2) || allSources.length === 0) return;
-    setScannedSources([]);
-    setCurrentSourceIdx(0);
-    const interval = setInterval(() => {
-      setCurrentSourceIdx((prev) => {
-        const next = prev + 1;
-        if (next >= allSources.length) {
-          clearInterval(interval);
+    if (step < 1 || step >= 3 || allSources.length <= 1 || allSourcesDone) return;
+    // Add second source after a delay if there is one
+    const timer = setTimeout(() => {
+      if (allSources.length > 1) {
+        setScannedSources(prev => {
+          if (prev.length < allSources.length) return [...prev, allSources[prev.length]];
           return prev;
-        }
-        setScannedSources((s) => [...s, allSources[next]]);
-        return next;
-      });
-    }, 1200);
-    // Add first source immediately
-    setScannedSources([allSources[0]]);
-    return () => clearInterval(interval);
-  }, [step >= 1 && step < 3 ? 1 : 0, allSources.length]);
+        });
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [step, allSources.length, allSourcesDone]);
 
-  // Two-phase progress bar
+  // Milestone-based progress
   useEffect(() => {
     if (step < 1 || step > 2) return;
     const startTime = Date.now();
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      setProgress((prev) => {
-        if (prev < 80) {
-          // Phase 1: rush to 80% in ~3s with ease-out
-          const t = Math.min(elapsed / 3000, 1);
-          const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
-          return Math.min(80, Math.round(eased * 80));
+      setProgress(prev => {
+        if (persistenceComplete) return 100;
+        
+        if (step === 1) {
+          // Phase 1: scrape — go up to 65%
+          if (scrapeComplete) return Math.min(70, prev + 2);
+          // Rush to ~60 quickly
+          const t = Math.min(elapsed / 4000, 1);
+          const eased = 1 - Math.pow(1 - t, 3);
+          return Math.min(60, Math.round(eased * 60));
         }
-        // Phase 2: slow crawl until scrape completes
-        if (scrapeComplete && step1AnimDone) return 100;
-        if (step === 2) return Math.min(99, prev + 0.15);
-        return Math.min(99, prev + 0.05);
+        
+        // Step 2: extraction/build — 70 to 92, then wait for persistence
+        if (persistenceComplete) return 100;
+        return Math.min(92, prev + 0.2);
       });
-    }, 80);
+    }, 100);
     return () => clearInterval(timer);
-  }, [step, scrapeComplete, step1AnimDone]);
+  }, [step, scrapeComplete, persistenceComplete]);
 
-  // Example snippets rotation
+  // Transition from step 1 → 2 once scrape is done
   useEffect(() => {
-    if (step < 1 || step > 2) return;
-    const examples = step === 1 ? STEP_1_EXAMPLES : STEP_2_EXAMPLES;
-    setExampleIndex(0);
-    const interval = setInterval(() => {
-      setExampleIndex((prev) => (prev + 1) % examples.length);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [step]);
-
-  // Step 1 text animation
-  useEffect(() => {
-    if (step !== 1) return;
-    const interval = setInterval(() => {
-      setTextIndex((prev) => {
-        if (prev >= STEP_1_TEXTS.length - 1) {
-          clearInterval(interval);
-          setStep1AnimDone(true);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1200);
-    return () => clearInterval(interval);
-  }, [step]);
-
-  // Transition from step 1 → 2
-  useEffect(() => {
-    if (step === 1 && step1AnimDone && scrapeComplete) {
+    if (step === 1 && scrapeComplete) {
       const timeout = setTimeout(() => {
         setStep(2);
-        setTextIndex(0);
       }, 600);
       return () => clearTimeout(timeout);
     }
-  }, [step, step1AnimDone, scrapeComplete]);
+  }, [step, scrapeComplete]);
 
-  // Step 2: create entries + text animation
+  // Step 2: create entries directly in DB
   useEffect(() => {
     if (step !== 2) return;
+    let cancelled = false;
 
-    if (contextAvailable && scrapeResult.current && !scrapeError) {
-      const extracted = scrapeResult.current;
+    (async () => {
+      const wsId = workspaceIdRef.current;
+      if (!wsId) {
+        addLog("Error: No workspace found");
+        setTimeout(() => setStep(3), 1000);
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        addLog("Error: Not authenticated");
+        setTimeout(() => setStep(3), 1000);
+        return;
+      }
+      const userId = session.user.id;
+
+      const extracted = scrapeResult.current || {};
       const now = new Date().toLocaleDateString("en-US", {
         year: "numeric", month: "short", day: "numeric",
       });
@@ -261,6 +228,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       const productId = `product-${Date.now()}`;
       const audienceId = `audience-${Date.now()}`;
 
+      // Build brand
+      addLog("Building brand profile...");
       const b = extracted.brand || {};
       const fallbackName = (() => {
         try {
@@ -280,15 +249,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         selectedLogo: 0,
         visualIdentity: b.visualIdentity || undefined,
       };
-      setBrands(prev => [...prev, newBrand]);
-      setCreatedBrandId(brandId);
 
-      // Auto-rename workspace to the business name
-      const workspaceId = localStorage.getItem("preferred_workspace_id");
-      if (workspaceId) {
-        supabase.from("workspaces").update({ name: brandName }).eq("id", workspaceId);
-      }
-
+      // Build product
+      addLog("Structuring product data...");
       const p = extracted.product || {};
       const newProduct: ProductEntry = {
         ...DEFAULT_PRODUCT,
@@ -340,11 +303,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         lastUpdated: now,
         brandId: brandId,
       };
-      setProducts(prev => [...prev, newProduct]);
 
+      // Build audience
+      let newAudience: AudienceEntry | null = null;
       if (extracted.audience?.name) {
+        addLog("Creating audience persona...");
         const a = extracted.audience;
-        const newAudience: AudienceEntry = {
+        newAudience = {
           ...DEFAULT_AUDIENCE,
           id: audienceId,
           name: a.name,
@@ -374,25 +339,78 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           lastUpdated: now,
           productIds: [productId],
         };
-        setAudiences(prev => [...prev, newAudience]);
       }
-    }
 
-    const interval = setInterval(() => {
-      setTextIndex((prev) => {
-        if (prev >= STEP_2_TEXTS.length - 1) {
-          clearInterval(interval);
-          setTimeout(() => setStep(3), 800);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1200);
-    return () => clearInterval(interval);
+      if (cancelled) return;
+
+      // Direct DB persistence
+      addLog("Saving to database...");
+      const basePayload = {
+        user_id: userId,
+        source: "business-dna" as const,
+        is_analyzed: true,
+        workspace_id: wsId,
+      };
+
+      const insertPromises = [
+        supabase.from("user_business_data").insert({
+          ...basePayload,
+          data_type: "brand",
+          title: newBrand.name,
+          content: JSON.stringify(newBrand),
+        }),
+        supabase.from("user_business_data").insert({
+          ...basePayload,
+          data_type: "product",
+          title: newProduct.name,
+          content: JSON.stringify(newProduct),
+        }),
+      ];
+      if (newAudience) {
+        insertPromises.push(
+          supabase.from("user_business_data").insert({
+            ...basePayload,
+            data_type: "audience",
+            title: newAudience.name,
+            content: JSON.stringify(newAudience),
+          })
+        );
+      }
+
+      const results = await Promise.all(insertPromises);
+      const anyError = results.find(r => r.error);
+      if (anyError?.error) {
+        console.error("DB insert error:", anyError.error);
+        addLog("Warning: Some data may not have saved");
+      } else {
+        addLog("Records saved successfully");
+      }
+
+      // Rename workspace
+      addLog("Renaming workspace...");
+      await supabase.from("workspaces").update({ name: brandName }).eq("id", wsId);
+      addLog("Workspace renamed");
+
+      // Also update context for immediate UI hydration
+      if (contextAvailable) {
+        setBrands(prev => [...prev, newBrand]);
+        setProducts(prev => [...prev, newProduct]);
+        if (newAudience) setAudiences(prev => [...prev, newAudience]);
+      }
+
+      setCreatedBrandId(brandId);
+      setPersistenceComplete(true);
+
+      if (!cancelled) {
+        setTimeout(() => setStep(3), 800);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [step]);
 
-  const currentExamples = step === 1 ? STEP_1_EXAMPLES : STEP_2_EXAMPLES;
   const visibleSources = scannedSources.slice(-5);
+  const visibleLogs = logMessages.slice(-6);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 font-sans overflow-hidden relative">
@@ -449,11 +467,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
             animate={{ opacity: 1 }}
             className="flex flex-col items-center w-80 mt-2"
           >
-            <div className="flex justify-center w-full mb-3 px-1">
-              <p className="text-sm font-medium text-muted-foreground">
-                {step === 1 ? "Deep business research in progress..." : "Building your business profile..."}
-              </p>
-            </div>
             <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-2">
               <motion.div
                 className="h-full bg-primary"
@@ -563,7 +576,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
-              {/* Left Card */}
+              {/* Left Card — Activity Log */}
               <div className="bg-card rounded-3xl border border-border shadow-2xl shadow-primary/10 p-10 sm:p-14 flex flex-col items-center justify-center w-full md:w-1/2">
                 <div className="w-28 h-28 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 relative">
                   <AnimatePresence mode="wait">
@@ -601,37 +614,31 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   {step === 1 ? "Analyzing your business" : "Forging your business DNA"}
                 </h2>
 
-                <div className="h-6 flex items-center justify-center overflow-hidden w-full">
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={`${step}-${textIndex}`}
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -20, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-sm font-medium text-muted-foreground text-center"
-                    >
-                      {step === 1 ? STEP_1_TEXTS[textIndex] : STEP_2_TEXTS[textIndex]}
-                    </motion.p>
-                  </AnimatePresence>
-                </div>
-
-                {/* Example snippets */}
-                <div className="mt-5 h-7 flex items-center justify-center overflow-hidden w-full">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={`example-${step}-${exampleIndex}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.25 }}
-                      className="flex items-center gap-2"
-                    >
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                      <span className="text-xs text-muted-foreground/70 font-medium">
-                        {currentExamples[exampleIndex % currentExamples.length]}
-                      </span>
-                    </motion.div>
+                {/* Real activity log */}
+                <div className="flex flex-col gap-1.5 w-full min-h-[100px] mt-2">
+                  <AnimatePresence>
+                    {visibleLogs.map((msg, i) => {
+                      const isLatest = i === visibleLogs.length - 1;
+                      return (
+                        <motion.div
+                          key={`${msg}-${i}`}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: isLatest ? 1 : 0.45, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          {isLatest ? (
+                            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+                          ) : (
+                            <Check className="h-3 w-3 text-primary/60 shrink-0" />
+                          )}
+                          <span className={`${isLatest ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                            {msg}
+                          </span>
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
                 </div>
               </div>
@@ -646,18 +653,20 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   <div className="text-sm font-bold tracking-widest text-foreground uppercase">
                     Scanning Sources
                   </div>
-                  <div className="flex gap-1">
-                    <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} />
-                    <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }} />
-                    <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }} />
-                  </div>
+                  {!allSourcesDone && (
+                    <div className="flex gap-1">
+                      <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} />
+                      <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }} />
+                      <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Stacking scanned sources list */}
                 <div className="flex flex-col gap-2 w-full min-h-[140px]">
                   <AnimatePresence>
                     {visibleSources.map((source, i) => {
-                      const isLatest = i === visibleSources.length - 1;
+                      const isLatest = i === visibleSources.length - 1 && !allSourcesDone;
                       return (
                         <motion.div
                           key={source}
