@@ -660,26 +660,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                     </button>
                   </div>
                 ) : (
-                  /* Flipping current task + recent completed */
-                  <div className="flex flex-col gap-2 w-full min-h-[100px] mt-2">
-                    {/* Recently completed milestones (faded) */}
-                    <AnimatePresence>
-                      {recentCompleted.map((msg, i) => (
-                        <motion.div
-                          key={msg}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 0.35, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.3 }}
-                          className="flex items-center gap-2 text-sm"
-                        >
-                          <Check className="h-3 w-3 text-primary/60 shrink-0" />
-                          <span className="text-muted-foreground">{msg}</span>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-
-                    {/* Current active task — flips/crossfades */}
+                  /* Single flipping current task — no history stack */
+                  <div className="flex flex-col items-center justify-center w-full min-h-[60px] mt-2">
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={currentTask}
