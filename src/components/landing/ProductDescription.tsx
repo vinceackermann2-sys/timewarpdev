@@ -70,8 +70,8 @@ export function ProductDescription() {
         <div className="absolute pointer-events-none left-0 right-0 hidden dark:block" style={{ height: 400, top: 0, background: "radial-gradient(ellipse 80% 100% at center top, rgba(51,153,255,0.08) 0%, transparent 60%)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Get your agent to pull levers for you.</h3>
-          <p className="text-base text-muted-foreground dark:text-white/50 mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Put your agent to work</p>
+          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Ready to have levers pulled?</h3>
+          <p className="text-base text-muted-foreground dark:text-white/50 mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Paste your website URL.</p>
 
           {/* Hero-style input card */}
           <div className="max-w-xl mx-auto">
