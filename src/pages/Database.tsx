@@ -92,6 +92,11 @@ const Database = () => {
       }
     }
 
+    if (viewParam === "aiceo") {
+      setCurrentView("aiceo");
+      localStorage.setItem("tw_current_view", "aiceo");
+    }
+
     if (autostart === "true") {
       const storedTask = sessionStorage.getItem("pendingAgentTask");
       if (storedTask) {
