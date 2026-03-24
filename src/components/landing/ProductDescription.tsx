@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import ZipHowItWorks from "@/components/landing/ZipHowItWorks";
 import ZipLifeAndWork from "@/components/landing/ZipLifeAndWork";
-import ZipGreaterGood from "@/components/landing/ZipGreaterGood";
+
 
 export function ProductDescription() {
   const navigate = useNavigate();
