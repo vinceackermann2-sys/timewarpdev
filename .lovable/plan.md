@@ -1,43 +1,23 @@
 
-Goal: make Business DNA onboarding reliably appear right after a brand-new signup from the homepage popup.
 
-What I found
-- The current popup auth flow relies on `sessionStorage` (`tw_show_onboarding`) to trigger onboarding.
-- In `src/pages/Database.tsx`, `showOnboarding` is only read once during initial state setup.
-- In `src/components/landing/AuthDialog.tsx`, the onboarding flag is also set inside `onAuthStateChange`, which can happen after navigation starts.
-- That creates a race: `/app` can render before the flag is present, and because `Database` does not re-check it, onboarding never appears.
+## Plan: Enhanced Scanning Sources & Progress UX
 
-Plan
-1. Make the post-signup redirect explicit
-- Update the popup auth flow so true new signups navigate to `/app` with an explicit onboarding trigger in the URL (for example `?onboarding=business-dna`).
-- Keep normal logins going to plain `/app` so existing users are unaffected.
+### File: `src/components/database/BusinessDNAOnboarding.tsx`
 
-2. Make signup detection stricter
-- In `AuthDialog`, only mark onboarding for real new-account creation.
-- Prefer the successful signup response as the source of truth, and keep the recent `created_at` check only as a fallback for OAuth/new-session timing.
+### Change 1: Show actual sources being analyzed
+Replace the generic sources list with contextual, URL-derived sources. Extract the domain from the user's URL and generate realistic sub-page sources (e.g., `/about`, `/products`, `/pricing`, `/blog`) plus relevant third-party research sources (Google, LinkedIn, Crunchbase). The right card will show a running list of already-scanned sources (stacking up) instead of just flipping one at a time.
 
-3. Make `/app` react to onboarding after mount
-- In `src/pages/Database.tsx`, add an effect that watches `searchParams` and the current authenticated user.
-- If the onboarding URL flag is present, call `setShowOnboarding(true)` even if the component already mounted.
-- Continue supporting `sessionStorage` as a backup, but do not depend on it alone.
+### Change 2: Two-phase progress bar
+- **Phase 1 (0-80%)**: Rush from 0 to 80% in ~3 seconds using an ease-out curve — gives an immediate sense of speed.
+- **Phase 2 (80-100%)**: Progress from 80% is tied to real scrape completion. It creeps slowly while waiting, then jumps to 100% when `scrapeComplete` is true.
 
-4. Clear the trigger after it is consumed
-- Once onboarding is shown or completed, remove the storage flag and strip the onboarding query param so refreshes don’t replay it unexpectedly.
+### Change 3: "What it's doing" examples below the flipping text
+Add a secondary area beneath the step icon + rotating text on the left card that shows concrete examples of extracted data in real-time. For step 1: rotating snippets like "Found 12 product features", "Identified 3 competitor brands", "Extracted pricing tiers". For step 2: "Creating brand profile...", "Mapping 5 audience segments", "Generating positioning strategy". These will be small pill/chip-style items that fade in below the main text.
 
-5. Keep flows consistent across auth entry points
-- Review the full-page `/auth` route and reuse the same onboarding trigger logic there, so homepage popup signup and standard signup behave the same way.
+### Technical details
+- New `STEP_1_EXAMPLES` and `STEP_2_EXAMPLES` arrays with concrete action descriptions
+- New `ACTUAL_SOURCES` function that derives realistic page paths from the input URL domain
+- Scanned sources accumulate in a visible list (last 4-5 shown) rather than single flip
+- Progress `useEffect` rewritten with two-phase logic using `Math.min(80, ...)` for fast phase and `80 + (scrapeComplete ? 20 : slowCreep)` for real phase
+- All changes in a single file
 
-Technical details
-- Files to update:
-  - `src/components/landing/AuthDialog.tsx`
-  - `src/pages/Database.tsx`
-  - likely `src/pages/Auth.tsx` for consistency
-- No backend/database changes should be needed.
-- Main fix is state/redirect coordination, not the onboarding UI itself.
-
-Validation
-- Test email signup from both “Activate CEO” and “Analyze” on `/`
-- Confirm new users see Business DNA onboarding before the app shell
-- Confirm existing users logging in do not see onboarding
-- Confirm refresh/back button does not replay onboarding unexpectedly
-- Check the flow on mobile too
