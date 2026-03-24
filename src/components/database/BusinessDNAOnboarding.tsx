@@ -60,9 +60,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // Flipping current task display
+  // Flipping current task display — single line only
   const [currentMilestone, setCurrentMilestone] = useState(0);
-  const [completedMilestones, setCompletedMilestones] = useState<string[]>([]);
 
   // Scanned sources tracking
   const [scannedSources, setScannedSources] = useState<string[]>([]);
@@ -103,15 +102,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearInterval(interval);
   }, [step, urlInput]);
 
-  // Flip through milestones during steps 1-2
+  // Flip through milestones during steps 1-2 — single line only, no history
   useEffect(() => {
     if (step < 1 || step >= 3 || persistenceComplete) return;
     const interval = setInterval(() => {
       setCurrentMilestone(prev => {
         const next = prev + 1;
-        if (next >= ANALYSIS_MILESTONES.length) return prev; // stay on last
-        // Push the previous one to completed
-        setCompletedMilestones(cm => [...cm, ANALYSIS_MILESTONES[prev]]);
+        if (next >= ANALYSIS_MILESTONES.length) return prev;
         return next;
       });
     }, 2200);
@@ -183,33 +180,31 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearTimeout(timer);
   }, [step, allSources.length, allSourcesDone]);
 
-  // Two-phase progress: rush to 80% during scrape, then 80-100% on real milestones
+  // Smooth progress animation using requestAnimationFrame
   useEffect(() => {
     if (step < 1 || step > 2) return;
     const startTime = Date.now();
-    const timer = setInterval(() => {
+    let rafId: number;
+    const tick = () => {
       const elapsed = Date.now() - startTime;
       setProgress(prev => {
         if (persistenceComplete) return 100;
 
-        // Phase A: rush to 80% while scrape is running
+        // Phase A: smooth ease to 80% over ~15s while scrape is running
         if (!scrapeComplete) {
-          // Quick ease to 80%
-          const t = Math.min(elapsed / 8000, 1);
-          const eased = 1 - Math.pow(1 - t, 2.5);
-          return Math.min(78, Math.round(eased * 78));
+          const t = Math.min(elapsed / 15000, 1);
+          const eased = 1 - Math.pow(1 - t, 3); // cubic deceleration
+          return Math.min(80, eased * 80);
         }
 
-        // Phase B: scrape done but persistence not yet — crawl 80 → 92
-        if (step === 1) {
-          return Math.min(80, prev + 1);
-        }
-
-        // Step 2: persistence phase — crawl 80 → 95
-        return Math.min(95, prev + 0.3);
+        // Phase B: scrape done, crawl toward 95
+        const crawl = prev + 0.15;
+        return Math.min(95, crawl);
       });
-    }, 100);
-    return () => clearInterval(timer);
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, [step, scrapeComplete, persistenceComplete]);
 
   // Transition from step 1 → 2 once scrape is done
@@ -234,12 +229,18 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         return;
       }
 
+      // Refresh session to ensure valid JWT (fixes 403 after signup)
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        setPersistenceError("Not authenticated. Please sign in and try again.");
-        return;
+        // Retry once after a short delay
+        await new Promise(r => setTimeout(r, 1500));
+        const { data: { session: retrySession } } = await supabase.auth.getSession();
+        if (!retrySession?.user) {
+          setPersistenceError("Not authenticated. Please sign in and try again.");
+          return;
+        }
       }
-      const userId = session.user.id;
+      const userId = (await supabase.auth.getSession()).data.session!.user.id;
 
       const extracted = scrapeResult.current || {};
       const now = new Date().toLocaleDateString("en-US", {
@@ -369,13 +370,21 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         workspace_id: wsId,
       };
 
-      // Brand insert (required)
-      const { error: brandErr } = await supabase.from("user_business_data").insert({
+      // Brand insert (required) — with 403 retry
+      const brandPayload = {
         ...basePayload,
         data_type: "brand",
         title: newBrand.name,
         content: JSON.stringify(newBrand),
-      });
+      };
+      let { error: brandErr } = await supabase.from("user_business_data").insert(brandPayload);
+      if (brandErr && (brandErr.code === '42501' || brandErr.message?.includes('row-level security'))) {
+        console.warn("Brand insert 403 — retrying with fresh session...");
+        await new Promise(r => setTimeout(r, 1500));
+        await supabase.auth.getSession(); // refresh token
+        const retry = await supabase.from("user_business_data").insert(brandPayload);
+        brandErr = retry.error;
+      }
       if (brandErr) {
         console.error("Brand insert failed:", brandErr);
         if (!cancelled) setPersistenceError("Failed to save brand. Please try again.");
@@ -411,8 +420,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
       if (cancelled) return;
 
-      // Rename workspace
-      await supabase.from("workspaces").update({ name: brandName }).eq("id", wsId);
+      // Rename workspace — wrapped in try/catch to handle 409 conflicts
+      try {
+        await supabase.from("workspaces").update({ name: brandName }).eq("id", wsId);
+      } catch (wsErr) {
+        console.warn("Workspace rename failed (non-fatal):", wsErr);
+      }
 
       // Update context for immediate UI hydration
       if (contextAvailable) {
@@ -439,7 +452,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     setScrapeError(false);
     setProgress(0);
     setCurrentMilestone(0);
-    setCompletedMilestones([]);
     setScannedSources([]);
     setAllSourcesDone(false);
     setStep(1);
@@ -447,7 +459,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
   const visibleSources = scannedSources.slice(-5);
   const currentTask = ANALYSIS_MILESTONES[currentMilestone];
-  const recentCompleted = completedMilestones.slice(-3);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 font-sans overflow-hidden relative">
@@ -667,26 +678,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                     </button>
                   </div>
                 ) : (
-                  /* Flipping current task + recent completed */
-                  <div className="flex flex-col gap-2 w-full min-h-[100px] mt-2">
-                    {/* Recently completed milestones (faded) */}
-                    <AnimatePresence>
-                      {recentCompleted.map((msg, i) => (
-                        <motion.div
-                          key={msg}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 0.35, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.3 }}
-                          className="flex items-center gap-2 text-sm"
-                        >
-                          <Check className="h-3 w-3 text-primary/60 shrink-0" />
-                          <span className="text-muted-foreground">{msg}</span>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-
-                    {/* Current active task — flips/crossfades */}
+                  /* Single flipping current task — no history stack */
+                  <div className="flex flex-col items-center justify-center w-full min-h-[60px] mt-2">
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={currentTask}
