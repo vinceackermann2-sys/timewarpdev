@@ -5,11 +5,14 @@ import { ProductDescription } from "@/components/landing/ProductDescription";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 import { Loader2 } from "lucide-react";
 import { getSafeSession } from "@/lib/authSession";
+import { AuthDialog } from "@/components/landing/AuthDialog";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authProductUrl, setAuthProductUrl] = useState<string | undefined>();
 
   const isOAuthReturn =
     searchParams.has("microsoft_connected") ||
@@ -42,6 +45,11 @@ const AiCeo = () => {
     };
   }, [navigate, isOAuthReturn, searchParams]);
 
+  const handleAuthRequest = (productUrl?: string) => {
+    setAuthProductUrl(productUrl);
+    setAuthOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -56,8 +64,9 @@ const AiCeo = () => {
 
   return (
     <>
-      <HeroSection />
-      <ProductDescription />
+      <HeroSection onAuthRequest={handleAuthRequest} />
+      <ProductDescription onAuthRequest={handleAuthRequest} />
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} productUrl={authProductUrl} />
     </>
   );
 };

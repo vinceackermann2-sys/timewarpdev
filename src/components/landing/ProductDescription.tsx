@@ -6,11 +6,19 @@ import ZipHowItWorks from "@/components/landing/ZipHowItWorks";
 import ZipLifeAndWork from "@/components/landing/ZipLifeAndWork";
 
 
-export function ProductDescription() {
+interface ProductDescriptionProps {
+  onAuthRequest?: (productUrl?: string) => void;
+}
+
+export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
   const navigate = useNavigate();
   const [inputUrl, setInputUrl] = useState("");
 
   const handleAnalyze = () => {
+    if (onAuthRequest) {
+      onAuthRequest(inputUrl.trim() || undefined);
+      return;
+    }
     if (inputUrl.trim()) {
       navigate(`/auth?mode=signup&url=${encodeURIComponent(inputUrl.trim())}`);
     } else {
