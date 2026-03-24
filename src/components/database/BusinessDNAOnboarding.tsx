@@ -370,13 +370,21 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         workspace_id: wsId,
       };
 
-      // Brand insert (required)
-      const { error: brandErr } = await supabase.from("user_business_data").insert({
+      // Brand insert (required) — with 403 retry
+      const brandPayload = {
         ...basePayload,
         data_type: "brand",
         title: newBrand.name,
         content: JSON.stringify(newBrand),
-      });
+      };
+      let { error: brandErr } = await supabase.from("user_business_data").insert(brandPayload);
+      if (brandErr && (brandErr.code === '42501' || brandErr.message?.includes('row-level security'))) {
+        console.warn("Brand insert 403 — retrying with fresh session...");
+        await new Promise(r => setTimeout(r, 1500));
+        await supabase.auth.getSession(); // refresh token
+        const retry = await supabase.from("user_business_data").insert(brandPayload);
+        brandErr = retry.error;
+      }
       if (brandErr) {
         console.error("Brand insert failed:", brandErr);
         if (!cancelled) setPersistenceError("Failed to save brand. Please try again.");
@@ -412,8 +420,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
       if (cancelled) return;
 
-      // Rename workspace
-      await supabase.from("workspaces").update({ name: brandName }).eq("id", wsId);
+      // Rename workspace — wrapped in try/catch to handle 409 conflicts
+      try {
+        await supabase.from("workspaces").update({ name: brandName }).eq("id", wsId);
+      } catch (wsErr) {
+        console.warn("Workspace rename failed (non-fatal):", wsErr);
+      }
 
       // Update context for immediate UI hydration
       if (contextAvailable) {
