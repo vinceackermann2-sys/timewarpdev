@@ -58,6 +58,7 @@ const Database = () => {
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
   const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
@@ -68,24 +69,32 @@ const Database = () => {
 
     if (onboarding === "business-dna") {
       setShowOnboarding(true);
+      // Capture URL for onboarding scraping
+      if (productUrl) {
+        setOnboardingUrl(productUrl);
+      }
+      // Strip onboarding & addProduct params so refresh doesn't replay
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("onboarding");
+      newParams.delete("addProduct");
+      newParams.delete("url");
       const qs = newParams.toString();
       window.history.replaceState({}, "", `/app${qs ? `?${qs}` : ""}`);
+    } else {
+      // Only handle addProduct when NOT in onboarding flow
+      if (addProduct === "true") {
+        setCurrentView("businessdna");
+        localStorage.setItem("tw_current_view", "businessdna");
+        setShowAddProduct(true);
+        if (productUrl) {
+          sessionStorage.setItem("pendingProductUrl", productUrl);
+        }
+      }
     }
 
     if (viewParam === "aiceo") {
       setCurrentView("aiceo");
       localStorage.setItem("tw_current_view", "aiceo");
-    }
-
-    if (addProduct === "true") {
-      setCurrentView("businessdna");
-      localStorage.setItem("tw_current_view", "businessdna");
-      setShowAddProduct(true);
-      if (productUrl) {
-        sessionStorage.setItem("pendingProductUrl", productUrl);
-      }
     }
 
     if (autostart === "true") {
@@ -160,12 +169,21 @@ const Database = () => {
 
   if (showOnboarding) {
     return (
-      <BusinessDNAOnboarding
-        onComplete={(agentName) => {
-          sessionStorage.removeItem("tw_show_onboarding");
-          setShowOnboarding(false);
-        }}
-      />
+      <BusinessDNAProvider>
+        <BusinessDNAOnboarding
+          productUrl={onboardingUrl}
+          onComplete={(agentName, brandId) => {
+            setShowOnboarding(false);
+            setOnboardingUrl(null);
+            if (brandId) {
+              setCurrentView("businessdna");
+              localStorage.setItem("tw_current_view", "businessdna");
+              setActiveBrandId(brandId);
+              setShowBusinessDNA(true);
+            }
+          }}
+        />
+      </BusinessDNAProvider>
     );
   }
 
