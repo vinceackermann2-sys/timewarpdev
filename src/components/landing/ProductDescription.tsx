@@ -55,7 +55,7 @@ export function ProductDescription() {
               <button
                 onClick={handleAnalyze}
                 className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 sm:mt-0 h-12 sm:h-full"
-                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer" }}>
+                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, cursor: "pointer" }}>
                 Analyze →
               </button>
             </div>
