@@ -464,6 +464,9 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           box-shadow: 0 8px 48px hsl(208 100% 60% / 0.2), 0 2px 10px hsl(0 0% 0% / 0.08);
           transition: background 0.3s ease, box-shadow 0.3s ease;
         }
+        .orb-hero__url-row {
+          display: flex; align-items: center; flex: 1; min-width: 0; min-height: 28px;
+        }
         .orb-hero__url-icon {
           width: 22px; height: 22px; margin-right: 14px; flex-shrink: 0;
           color: hsl(214 67% 80%); transition: color 0.3s ease;
@@ -520,7 +523,15 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .orb-hero__content { width: clamp(280px, 85vw, 500px); }
           .orb-hero__content h1 { font-size: clamp(28px, 7vw, 44px); }
           .orb-hero__content p { font-size: 15px; }
-          .orb-hero__input { padding: 12px 14px; border-radius: 16px; flex-wrap: wrap; }
+
+          .orb-hero__input {
+            flex-direction: column; align-items: stretch; gap: 10px;
+            padding: 14px; border-radius: 20px;
+          }
+          .orb-hero__url-row {
+            background: hsl(0 0% 100% / 0.5); border-radius: 12px;
+            padding: 10px 14px; min-height: 44px;
+          }
           .orb-hero__url-icon { width: 18px; height: 18px; margin-right: 10px; }
           .orb-hero__input input { font-size: 14px; }
           .orb-hero__btn { padding: 12px 16px; border-radius: 12px; font-size: 14px; width: 100%; justify-content: center; }
