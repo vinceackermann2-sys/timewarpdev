@@ -27,7 +27,7 @@ export function ProductDescription() {
       {/* ── New Zip Sections ── */}
       <ZipHowItWorks />
       <ZipLifeAndWork />
-      <ZipGreaterGood />
+      
 
       {/* ── Bottom CTA ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden text-center bg-background dark:bg-[hsl(0_0%_10%)]">
