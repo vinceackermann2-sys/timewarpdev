@@ -444,7 +444,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           transition: color 0.3s ease;
         }
         .dark .orb-hero__content h1 {
-          color: hsl(0 0% 100%);
+          color: hsl(0 0% 0%);
         }
         .orb-hero__content h1 span {
           color: inherit; background: none;
@@ -453,9 +453,6 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         .orb-hero__content p {
           font-size: 19px; font-weight: 400; color: hsl(var(--hero-muted));
           margin: 0; letter-spacing: 0.01em; transition: color 0.3s ease;
-        }
-        .dark .orb-hero__content p {
-          color: hsl(0 0% 80%);
         }
 
         /* ── Input bar ── */
