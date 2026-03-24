@@ -176,11 +176,12 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             {/* Input area */}
             <div className="flex flex-col items-center gap-4 w-full">
               <div className="orb-hero__input">
-                <div className="orb-hero__url-row" onClick={() => !url && setUrl("")}>
+                <div className="orb-hero__url-row" onClick={() => { if (!isEditing) { setIsEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}>
                   <Globe className="orb-hero__url-icon" />
 
-                  {url !== undefined && url !== "" ? (
+                  {isEditing ? (
                     <input
+                      ref={inputRef}
                       type="text"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
