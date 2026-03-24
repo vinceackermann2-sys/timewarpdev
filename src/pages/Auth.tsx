@@ -44,13 +44,18 @@ const Auth = () => {
   // Data to pass forward to dashboard after auth
   const quizDataForDashboard = quizDataFromNav ?? storedQuizData;
 
-  const navigateToDashboard = () => {
+  const navigateToDashboard = (isNewUser = false) => {
+    const params = new URLSearchParams();
     const productUrl = searchParams.get("url");
     if (productUrl) {
-      navigate(`/app?addProduct=true&url=${encodeURIComponent(productUrl)}`, { state: { quizData: quizDataForDashboard } });
-    } else {
-      navigate("/app", { state: { quizData: quizDataForDashboard } });
+      params.set("addProduct", "true");
+      params.set("url", productUrl);
     }
+    if (isNewUser) {
+      params.set("onboarding", "business-dna");
+    }
+    const qs = params.toString();
+    navigate(`/app${qs ? `?${qs}` : ""}`, { state: { quizData: quizDataForDashboard } });
   };
 
   const refCode = searchParams.get("ref");
