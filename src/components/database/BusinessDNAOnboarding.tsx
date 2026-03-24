@@ -341,32 +341,34 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Top 3-bump progress bar */}
-      <div className="absolute top-0 left-0 w-full p-8 flex justify-center z-50">
-        <div className="flex items-center gap-3 bg-card border border-border shadow-sm rounded-full px-5 py-3">
-          {[1, 2, 3].map((i, index) => (
-            <div key={i} className="flex items-center gap-3">
-              <motion.div
-                layout
-                className={`rounded-full transition-all duration-500 ${
-                  step === i
-                    ? "w-10 h-2.5 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
-                    : step > i
-                      ? "w-2.5 h-2.5 bg-primary"
-                      : "w-2.5 h-2.5 bg-muted"
-                }`}
-              />
-              {index < 2 && (
-                <div
-                  className={`h-[2px] w-8 sm:w-12 transition-colors duration-500 ${
-                    step > i ? "bg-primary/50" : "bg-muted"
+      {/* Top 3-bump progress bar — only show during steps 1-3 */}
+      {step >= 1 && (
+        <div className="absolute top-0 left-0 w-full p-8 flex justify-center z-50">
+          <div className="flex items-center gap-3 bg-card border border-border shadow-sm rounded-full px-5 py-3">
+            {[1, 2, 3].map((i, index) => (
+              <div key={i} className="flex items-center gap-3">
+                <motion.div
+                  layout
+                  className={`rounded-full transition-all duration-500 ${
+                    step === i
+                      ? "w-10 h-2.5 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+                      : step > i
+                        ? "w-2.5 h-2.5 bg-primary"
+                        : "w-2.5 h-2.5 bg-muted"
                   }`}
                 />
-              )}
-            </div>
-          ))}
+                {index < 2 && (
+                  <div
+                    className={`h-[2px] w-8 sm:w-12 transition-colors duration-500 ${
+                      step > i ? "bg-primary/50" : "bg-muted"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Header & Progress */}
       <div className="flex flex-col items-center mb-8 mt-12">
