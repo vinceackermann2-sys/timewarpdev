@@ -139,6 +139,17 @@ const Database = () => {
     return null;
   }
 
+  if (showOnboarding) {
+    return (
+      <BusinessDNAOnboarding
+        onComplete={(agentName) => {
+          sessionStorage.removeItem("tw_show_onboarding");
+          setShowOnboarding(false);
+        }}
+      />
+    );
+  }
+
   const handleViewChange = (view: View) => {
     if (!user) {
       navigate("/auth?redirect=/app");
