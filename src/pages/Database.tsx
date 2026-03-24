@@ -45,6 +45,7 @@ interface PendingTask {
 const Database = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem("tw_current_view");
