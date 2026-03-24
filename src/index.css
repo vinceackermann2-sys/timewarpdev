@@ -156,24 +156,7 @@
   50% { transform: scale(1.05); filter: brightness(1.1); }
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-.animate-blink {
-  animation: blink 0.7s step-end infinite;
-}
-
-.btn-gradient {
-  background: linear-gradient(135deg, #5bbfff, #3399ff);
-  box-shadow: 0 3px 14px rgba(51,153,255,0.38);
-}
-.btn-gradient:hover {
-  box-shadow: 0 6px 20px rgba(51,153,255,0.48);
-}
-
-
+@keyframes pulse-slow {
   0%, 100% { opacity: 0.2; }
   50% { opacity: 0.3; }
 }
