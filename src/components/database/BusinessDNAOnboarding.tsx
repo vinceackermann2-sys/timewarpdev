@@ -69,17 +69,9 @@ function getDomainSources(url: string): string[] {
       "/contact",
       "/features",
     ];
-    const domainSources = pages.map((p) => `${host}${p}`);
-    const thirdParty = [
-      `google.com/search?q=${host}`,
-      `linkedin.com/company/${host.split(".")[0]}`,
-      `crunchbase.com/organization/${host.split(".")[0]}`,
-      `reddit.com/search?q=${host.split(".")[0]}`,
-      `twitter.com/search?q=${host.split(".")[0]}`,
-    ];
-    return [...domainSources, ...thirdParty];
+    return pages.map((p) => `${host}${p}`);
   } catch {
-    return [url, "google.com/search", "linkedin.com/company", "crunchbase.com"];
+    return [url];
   }
 }
 
