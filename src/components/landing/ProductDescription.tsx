@@ -59,6 +59,7 @@ export function ProductDescription() {
               For centuries, human potential has been chained to the desk, bound by the necessity of economic survival. By replacing the CEO and the operational workforce with autonomous intelligence, we are accelerating the transition to a post-labor economy.
             </p>
           </div>
+        </div>
       </section>
 
       {/* ── Bottom CTA ── */}
