@@ -10,7 +10,7 @@ export default function ZipLifeAndWork() {
           <p className="text-muted-foreground font-medium text-sm text-center md:text-left uppercase tracking-wider">
             WHEN YOU'RE ENJOYING LIFE
           </p>
-          <div className="rounded-xl p-1.5 bg-foreground shadow-xl aspect-[3/4] overflow-hidden">
+          <div className="rounded-lg p-1 bg-foreground shadow-xl aspect-[3/4] overflow-hidden">
             <img
               src={familyVacation}
               alt="Family on vacation"
@@ -25,7 +25,7 @@ export default function ZipLifeAndWork() {
           <p className="text-muted-foreground font-medium text-sm text-center md:text-left uppercase tracking-wider">
             YOUR AGENT IS WORKING
           </p>
-          <div className="rounded-xl p-1.5 bg-black shadow-xl aspect-[3/4] overflow-hidden relative group">
+          <div className="rounded-lg p-1 bg-black shadow-xl aspect-[3/4] overflow-hidden relative group">
             <div className="w-full h-full bg-gradient-to-b from-[#eef4f9] to-[#d6e4f0] rounded-lg relative overflow-hidden flex flex-col items-center pt-6 md:pt-10">
               {/* Gmail Window Mockup */}
               <div className="w-[92%] bg-white/95 backdrop-blur-sm rounded-lg shadow-xl flex flex-col overflow-hidden border border-white/60" style={{ height: '55%' }}>
