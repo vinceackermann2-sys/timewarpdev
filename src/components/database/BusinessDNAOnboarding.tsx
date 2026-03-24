@@ -46,7 +46,7 @@ const GENERIC_SOURCES = [
 ];
 
 interface BusinessDNAOnboardingProps {
-  activeUrl?: string | null;
+  productUrl?: string | null;
   onComplete: (agentName: string, brandId?: string) => void;
 }
 
