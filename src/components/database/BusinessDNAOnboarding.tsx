@@ -1,10 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Telescope, Dna, ArrowRight, Globe } from "lucide-react";
+import { Telescope, Dna, ArrowRight, Globe, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
+
+const URL_EXAMPLES = [
+  "nike.com/air-max-90",
+  "apple.com/iphone-16-pro",
+  "tesla.com/model-3",
+  "dyson.com/airwrap",
+  "allbirds.com/tree-runners",
+  "glossier.com/boy-brow",
+  "notion.so/product",
+  "figma.com/pricing",
+];
 
 const STEP_1_TEXTS = [
   "Scanning website architecture...",
