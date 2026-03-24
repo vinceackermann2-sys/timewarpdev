@@ -101,6 +101,10 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
       onRunClick();
       return;
     }
+    if (onAuthRequest) {
+      onAuthRequest(url || undefined);
+      return;
+    }
     navigate("/auth?mode=signup");
   };
 
