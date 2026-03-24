@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 
 interface HeroSectionProps {
   onRunClick?: () => void;
+  onAuthRequest?: (productUrl?: string) => void;
 }
 
 const urls = [
