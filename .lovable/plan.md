@@ -1,35 +1,43 @@
 
+Goal: make Business DNA onboarding reliably appear right after a brand-new signup from the homepage popup.
 
-## Plan: Replace Landing Page with Zip Content
+What I found
+- The current popup auth flow relies on `sessionStorage` (`tw_show_onboarding`) to trigger onboarding.
+- In `src/pages/Database.tsx`, `showOnboarding` is only read once during initial state setup.
+- In `src/components/landing/AuthDialog.tsx`, the onboarding flag is also set inside `onAuthStateChange`, which can happen after navigation starts.
+- That creates a race: `/app` can render before the flag is present, and because `Database` does not re-check it, onboarding never appears.
 
-### What Changes
+Plan
+1. Make the post-signup redirect explicit
+- Update the popup auth flow so true new signups navigate to `/app` with an explicit onboarding trigger in the URL (for example `?onboarding=business-dna`).
+- Keep normal logins going to plain `/app` so existing users are unaffected.
 
-Replace the middle content of the homepage (`/`) with the 4 sections from the uploaded zip, while keeping:
-- **Keep**: The existing orb hero with sticky header (HeroSection.tsx) 
-- **Keep**: The bottom CTA ("Get to know your company's next decision" + URL input + footer) from ProductDescription.tsx
-- **Replace**: Everything between the hero and bottom CTA (HeroBanner, Evolution of Labor, Value Exchange loop, Why AI CEO wins, Who is TimeWarp for) with the zip's sections
+2. Make signup detection stricter
+- In `AuthDialog`, only mark onboarding for real new-account creation.
+- Prefer the successful signup response as the source of truth, and keep the recent `created_at` check only as a fallback for OAuth/new-session timing.
 
-### New Sections (from zip)
+3. Make `/app` react to onboarding after mount
+- In `src/pages/Database.tsx`, add an effect that watches `searchParams` and the current authenticated user.
+- If the onboarding URL flag is present, call `setShowOnboarding(true)` even if the component already mounted.
+- Continue supporting `sessionStorage` as a backup, but do not depend on it alone.
 
-1. **HowItWorks** - 4-step animated phone mockup with auto-advancing screens (Enter URL → Extract DNA → Deploy AI → Execute)
-2. **LifeAndWork** - Two side-by-side photo cards ("When you're enjoying life" / "Your agent is working")
-3. **GreaterGood** - "This Is TimeWarp" section with two hover cards (You are offline / Your CEO is working)
+4. Clear the trigger after it is consumed
+- Once onboarding is shown or completed, remove the storage flag and strip the onboarding query param so refreshes don’t replay it unexpectedly.
 
-### Technical Details
+5. Keep flows consistent across auth entry points
+- Review the full-page `/auth` route and reuse the same onboarding trigger logic there, so homepage popup signup and standard signup behave the same way.
 
-**New dependency**: `motion` (framer-motion) package — used by HowItWorks and GreaterGood for AnimatePresence, motion.div, and whileHover animations.
+Technical details
+- Files to update:
+  - `src/components/landing/AuthDialog.tsx`
+  - `src/pages/Database.tsx`
+  - likely `src/pages/Auth.tsx` for consistency
+- No backend/database changes should be needed.
+- Main fix is state/redirect coordination, not the onboarding UI itself.
 
-**Files to create:**
-- `src/components/landing/ZipHowItWorks.tsx` — Adapted HowItWorks component (4-step phone mockup with animated screens)
-- `src/components/landing/ZipLifeAndWork.tsx` — Two photo cards section
-- `src/components/landing/ZipGreaterGood.tsx` — "This Is TimeWarp" hover cards
-
-**Files to modify:**
-- `src/components/landing/ProductDescription.tsx` — Remove HeroBanner, Evolution of Labor, Autonomy Loop, Why AI CEO wins, Who is TimeWarp for sections. Replace with imports of the 3 new zip components. Keep the bottom CTA and footer unchanged.
-
-**Adaptations needed:**
-- Convert Tailwind v4 class syntax to v3 (the project uses tailwind.config.ts)
-- Add `animate-pulse-slow` keyframes to index.css (or reuse existing ones)
-- Add orb-related CSS for the mini orb in HowItWorks step 4 (silver connectors, etc.) — these already exist in the project's index.css from the hero
-- The zip uses `bg-slate-50`, `text-slate-900` etc. (light-only). Adapt to support dark mode using existing project patterns (`bg-background`, `dark:bg-[hsl(...)]`)
-
+Validation
+- Test email signup from both “Activate CEO” and “Analyze” on `/`
+- Confirm new users see Business DNA onboarding before the app shell
+- Confirm existing users logging in do not see onboarding
+- Confirm refresh/back button does not replay onboarding unexpectedly
+- Check the flow on mobile too
