@@ -172,21 +172,22 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             </div>
 
             {/* Input area */}
-            <div className="flex flex-col items-start gap-4 w-full">
+            <div className="flex flex-col items-center gap-4 w-full">
               <div className="orb-hero__input">
-                <div className="orb-hero__url-row">
+                <div className="orb-hero__url-row" onClick={() => !url && setUrl("")}>
                   <Globe className="orb-hero__url-icon" />
 
-                  {url ? (
+                  {url !== undefined && url !== "" ? (
                     <input
                       type="text"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
                       placeholder="nike.com/shoes/air-max"
+                      autoFocus
                     />
                   ) : (
-                    <span className="flex items-center flex-1 min-w-0 text-left cursor-text" onClick={() => setUrl("")}>
+                    <span className="flex items-center flex-1 min-w-0 text-left cursor-text">
                       <span
                         className="text-[16px] font-normal whitespace-nowrap overflow-hidden"
                         style={{ color: "hsl(var(--hero-input-text))" }}
@@ -211,12 +212,12 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
               {/* Bullet points */}
               <div className="orb-hero__bullets">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: "hsl(var(--hero-accent))" }} />
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1 h-1 rounded-full" style={{ background: "hsl(var(--hero-accent))" }} />
                   <span>No credit card</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: "hsl(var(--hero-accent))" }} />
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1 h-1 rounded-full" style={{ background: "hsl(var(--hero-accent))" }} />
                   <span>15-90 seconds</span>
                 </div>
               </div>
