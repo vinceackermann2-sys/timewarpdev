@@ -180,33 +180,31 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearTimeout(timer);
   }, [step, allSources.length, allSourcesDone]);
 
-  // Two-phase progress: rush to 80% during scrape, then 80-100% on real milestones
+  // Smooth progress animation using requestAnimationFrame
   useEffect(() => {
     if (step < 1 || step > 2) return;
     const startTime = Date.now();
-    const timer = setInterval(() => {
+    let rafId: number;
+    const tick = () => {
       const elapsed = Date.now() - startTime;
       setProgress(prev => {
         if (persistenceComplete) return 100;
 
-        // Phase A: rush to 80% while scrape is running
+        // Phase A: smooth ease to 80% over ~15s while scrape is running
         if (!scrapeComplete) {
-          // Quick ease to 80%
-          const t = Math.min(elapsed / 8000, 1);
-          const eased = 1 - Math.pow(1 - t, 2.5);
-          return Math.min(78, Math.round(eased * 78));
+          const t = Math.min(elapsed / 15000, 1);
+          const eased = 1 - Math.pow(1 - t, 3); // cubic deceleration
+          return Math.min(80, eased * 80);
         }
 
-        // Phase B: scrape done but persistence not yet — crawl 80 → 92
-        if (step === 1) {
-          return Math.min(80, prev + 1);
-        }
-
-        // Step 2: persistence phase — crawl 80 → 95
-        return Math.min(95, prev + 0.3);
+        // Phase B: scrape done, crawl toward 95
+        const crawl = prev + 0.15;
+        return Math.min(95, crawl);
       });
-    }, 100);
-    return () => clearInterval(timer);
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, [step, scrapeComplete, persistenceComplete]);
 
   // Transition from step 1 → 2 once scrape is done
