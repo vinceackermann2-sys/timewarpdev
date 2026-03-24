@@ -620,6 +620,26 @@
   }
 }
 
+.force-light {
+  --background: 210 40% 98%;
+  --foreground: 215 25% 15%;
+  --card: 210 40% 99%;
+  --card-foreground: 215 25% 15%;
+  --primary: 210 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 20% 40%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 210 20% 88%;
+  --muted-foreground: 215 15% 35%;
+  --accent: 210 100% 95%;
+  --accent-foreground: 210 100% 40%;
+  --border: 210 20% 85%;
+  --input: 210 20% 85%;
+  --ring: 210 100% 50%;
+  --destructive: 0 72% 50%;
+  --destructive-foreground: 0 85% 97%;
+}
+
 @layer base {
   * {
     @apply border-border;
