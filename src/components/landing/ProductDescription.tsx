@@ -31,7 +31,7 @@ export function ProductDescription() {
       
 
       {/* ── Making Work Optional ── */}
-      <section className="relative z-10 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_6%)]">
+      <section className="relative z-10 py-24 lg:py-32 bg-background dark:bg-[#1a1a1a]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
           {/* Text */}
           <div className="space-y-6 max-w-3xl mb-12">
