@@ -60,9 +60,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // Flipping current task display
+  // Flipping current task display — single line only
   const [currentMilestone, setCurrentMilestone] = useState(0);
-  const [completedMilestones, setCompletedMilestones] = useState<string[]>([]);
 
   // Scanned sources tracking
   const [scannedSources, setScannedSources] = useState<string[]>([]);
