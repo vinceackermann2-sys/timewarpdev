@@ -436,7 +436,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         .orb-hero__content h1 {
           font-size: clamp(40px, 5vw, 64px);
-          font-weight: 500; letter-spacing: -0.03em; line-height: 1;
+          font-weight: 700; letter-spacing: -0.03em; line-height: 1;
           color: hsl(0 0% 0%); margin: 0;
           transition: color 0.3s ease;
         }
