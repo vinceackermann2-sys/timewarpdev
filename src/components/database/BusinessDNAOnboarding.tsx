@@ -46,7 +46,7 @@ const GENERIC_SOURCES = [
 ];
 
 interface BusinessDNAOnboardingProps {
-  productUrl?: string | null;
+  activeUrl?: string | null;
   onComplete: (agentName: string, brandId?: string) => void;
 }
 
@@ -84,14 +84,14 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   }
 
   // Build sources list: actual URL first, then generic
-  const sources = productUrl
+  const sources = activeUrl
     ? [
         (() => {
           try {
-            const u = new URL(productUrl.startsWith("http") ? productUrl : `https://${productUrl}`);
+            const u = new URL(activeUrl.startsWith("http") ? activeUrl : `https://${activeUrl}`);
             return u.hostname.replace(/^www\./, "") + u.pathname;
           } catch {
-            return productUrl;
+            return activeUrl;
           }
         })(),
         ...GENERIC_SOURCES,
@@ -100,7 +100,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
   // Step 1: Fire scrape-product if we have a URL
   useEffect(() => {
-    if (!productUrl) {
+    if (!activeUrl) {
       setScrapeComplete(true);
       return;
     }
@@ -109,7 +109,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     (async () => {
       try {
         const { data, error } = await supabase.functions.invoke("scrape-product", {
-          body: { url: productUrl.trim() },
+          body: { url: activeUrl.trim() },
         });
         if (cancelled) return;
         if (error || !data?.success) {
@@ -129,7 +129,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     })();
 
     return () => { cancelled = true; };
-  }, [productUrl]);
+  }, [activeUrl]);
 
   // Source rotation
   useEffect(() => {
@@ -205,7 +205,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       const b = extracted.brand || {};
       const fallbackName = (() => {
         try {
-          const u = new URL(productUrl!.trim().startsWith("http") ? productUrl!.trim() : `https://${productUrl!.trim()}`);
+          const u = new URL(activeUrl!.trim().startsWith("http") ? activeUrl!.trim() : `https://${activeUrl!.trim()}`);
           return u.hostname.replace(/^www\./, "").split(".")[0];
         } catch { return null; }
       })();
