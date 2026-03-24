@@ -370,12 +370,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         </div>
       )}
 
-      {/* Header & Progress */}
-      <div className="flex flex-col items-center mb-8 mt-12">
-        <AnimatePresence mode="wait">
-          {step < 3 && (
+      {/* Header & Progress — steps 1-2 only */}
+      {step >= 1 && step < 3 && (
+        <div className="flex flex-col items-center mb-8 mt-12">
+          <AnimatePresence mode="wait">
             <motion.h1
-              key="loading-title"
+              key={`title-${step}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -383,42 +383,119 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
             >
               {step === 1 ? "Researching your business" : "Setting up your business"}
             </motion.h1>
-          )}
-        </AnimatePresence>
+          </AnimatePresence>
 
-        <AnimatePresence mode="wait">
-          {step < 3 && (
-            <motion.div
-              key="loading-progress"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center w-80 mt-2"
-            >
-              <div className="flex justify-center w-full mb-3 px-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {step === 1 ? "Deep business research in progress..." : "Building your business profile..."}
-                </p>
-              </div>
-              <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-2">
-                <motion.div
-                  className="h-full bg-primary"
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.3, ease: "linear" }}
-                />
-              </div>
-              <div className="flex justify-end w-full px-1">
-                <p className="text-sm font-bold text-primary">{progress}%</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center w-80 mt-2"
+          >
+            <div className="flex justify-center w-full mb-3 px-1">
+              <p className="text-sm font-medium text-muted-foreground">
+                {step === 1 ? "Deep business research in progress..." : "Building your business profile..."}
+              </p>
+            </div>
+            <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-2">
+              <motion.div
+                className="h-full bg-primary"
+                initial={{ width: "0%" }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3, ease: "linear" }}
+              />
+            </div>
+            <div className="flex justify-end w-full px-1">
+              <p className="text-sm font-bold text-primary">{progress}%</p>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <div className="max-w-5xl w-full relative z-10 px-4">
         <AnimatePresence mode="wait">
-          {step < 3 && (
+          {/* Step 0: URL Input */}
+          {step === 0 && (
+            <motion.div
+              key="url-input"
+              className="w-full max-w-2xl mx-auto text-center space-y-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="space-y-3 py-4">
+                <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
+                  <Globe className="h-7 w-7 text-primary" />
+                </div>
+                <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                  Enter your company URL
+                </h1>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  We'll analyze your website and build your Business DNA automatically.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-muted/40 border border-border/40 p-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Globe className="h-6 w-6 text-primary/70" />
+                  </div>
+                  <div className="relative flex-1">
+                    <input
+                      type="url"
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && urlInput.trim()) {
+                          setActiveUrl(urlInput.trim());
+                          setStep(1);
+                        }
+                      }}
+                      className="w-full h-12 text-base border-0 bg-transparent focus:outline-none text-foreground px-3"
+                      autoFocus
+                    />
+                    {!urlInput && (
+                      <div className="absolute inset-0 flex items-center pointer-events-none pl-3">
+                        <AnimatePresence mode="wait">
+                          <motion.span
+                            key={placeholderIndex}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 0.4, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.3 }}
+                            className="text-base text-muted-foreground"
+                          >
+                            {URL_EXAMPLES[placeholderIndex]}
+                          </motion.span>
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (urlInput.trim()) {
+                        setActiveUrl(urlInput.trim());
+                        setStep(1);
+                      }
+                    }}
+                    disabled={!urlInput.trim()}
+                    className="h-12 px-6 rounded-xl bg-primary/80 hover:bg-primary text-primary-foreground font-medium text-base flex items-center gap-2 disabled:opacity-50 transition-all"
+                  >
+                    Continue
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 mt-2 ml-1">
+                  <Sparkles className="h-3 w-3 text-muted-foreground/50" />
+                  <span className="text-xs text-muted-foreground/60">
+                    Paste your website or product page URL
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Steps 1-2: Analysis cards */}
+          {step >= 1 && step < 3 && (
             <motion.div
               key="analyzing-container"
               className="flex flex-col md:flex-row gap-6 w-full items-stretch justify-center mx-auto"
