@@ -74,20 +74,25 @@ const Database = () => {
       const qs = newParams.toString();
       window.history.replaceState({}, "", `/app${qs ? `?${qs}` : ""}`);
     }
+  }, [searchParams]);
 
-    if (viewParam === "aiceo") {
-      setCurrentView("aiceo");
-      localStorage.setItem("tw_current_view", "aiceo");
+  // Fallback: detect brand-new user from OAuth redirect (no onboarding param)
+  useEffect(() => {
+    if (!user || showOnboarding) return;
+    const alreadyShown = sessionStorage.getItem("tw_onboarding_shown");
+    if (alreadyShown) return;
+    const createdAt = new Date(user.created_at).getTime();
+    if (Date.now() - createdAt < 30000) {
+      sessionStorage.setItem("tw_onboarding_shown", "true");
+      setShowOnboarding(true);
     }
+  }, [user, showOnboarding]);
 
-    if (addProduct === "true") {
-      setCurrentView("businessdna");
-      localStorage.setItem("tw_current_view", "businessdna");
-      setShowAddProduct(true);
-      if (productUrl) {
-        sessionStorage.setItem("pendingProductUrl", productUrl);
-      }
-    }
+  useEffect(() => {
+    const viewParam = searchParams.get("view");
+    const autostart = searchParams.get("autostart");
+    const addProduct = searchParams.get("addProduct");
+    const productUrl = searchParams.get("url");
 
     if (autostart === "true") {
       const storedTask = sessionStorage.getItem("pendingAgentTask");
