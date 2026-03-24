@@ -57,15 +57,23 @@ const Database = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
   const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    return sessionStorage.getItem("tw_show_onboarding") === "true";
-  });
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
     const autostart = searchParams.get("autostart");
     const addProduct = searchParams.get("addProduct");
     const productUrl = searchParams.get("url");
+    const onboarding = searchParams.get("onboarding");
+
+    if (onboarding === "business-dna") {
+      setShowOnboarding(true);
+      // Strip the param so refresh doesn't replay
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("onboarding");
+      const qs = newParams.toString();
+      window.history.replaceState({}, "", `/app${qs ? `?${qs}` : ""}`);
+    }
 
     if (viewParam === "aiceo") {
       setCurrentView("aiceo");

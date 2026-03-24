@@ -44,13 +44,18 @@ const Auth = () => {
   // Data to pass forward to dashboard after auth
   const quizDataForDashboard = quizDataFromNav ?? storedQuizData;
 
-  const navigateToDashboard = () => {
+  const navigateToDashboard = (isNewUser = false) => {
+    const params = new URLSearchParams();
     const productUrl = searchParams.get("url");
     if (productUrl) {
-      navigate(`/app?addProduct=true&url=${encodeURIComponent(productUrl)}`, { state: { quizData: quizDataForDashboard } });
-    } else {
-      navigate("/app", { state: { quizData: quizDataForDashboard } });
+      params.set("addProduct", "true");
+      params.set("url", productUrl);
     }
+    if (isNewUser) {
+      params.set("onboarding", "business-dna");
+    }
+    const qs = params.toString();
+    navigate(`/app${qs ? `?${qs}` : ""}`, { state: { quizData: quizDataForDashboard } });
   };
 
   const refCode = searchParams.get("ref");
@@ -88,7 +93,7 @@ const Auth = () => {
       return false;
     };
 
-    const handleAuthenticatedUser = async (userId: string) => {
+    const handleAuthenticatedUser = async (userId: string, session: any) => {
       const celebrated = await processReferral(userId);
       if (celebrated) return;
       const redirect = searchParams.get("redirect");
@@ -96,8 +101,11 @@ const Auth = () => {
         navigate(redirect, { replace: true });
         return;
       }
+      // Detect brand-new user
+      const createdAt = new Date(session.user.created_at).getTime();
+      const isNewUser = Date.now() - createdAt < 30000;
       if (!quizData) {
-        navigateToDashboard();
+        navigateToDashboard(isNewUser);
       }
     };
 
@@ -106,14 +114,14 @@ const Auth = () => {
     const checkSession = async () => {
       const session = await getSafeSession();
       if (!isMounted || !session) return;
-      await handleAuthenticatedUser(session.user.id);
+      await handleAuthenticatedUser(session.user.id, session);
     };
 
     void checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted || !session) return;
-      await handleAuthenticatedUser(session.user.id);
+      await handleAuthenticatedUser(session.user.id, session);
     });
 
     return () => {
@@ -219,6 +227,7 @@ const Auth = () => {
             throw error;
           }
         } else {
+          // onAuthStateChange will handle redirect with onboarding param
           toast({ title: "Account created!", description: "You're now signed in. Welcome to TimeWarp!" });
         }
       } else {
