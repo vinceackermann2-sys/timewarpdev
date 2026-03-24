@@ -180,7 +180,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                     onChange={(e) => setUrl(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
                     onBlur={() => { if (!url) setIsEditing(false); }}
-                    placeholder="nike.com/shoes/air-max"
+                    placeholder="enter your url"
                     autoFocus
                   />
                 ) : (
