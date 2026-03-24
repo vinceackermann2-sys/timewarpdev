@@ -174,7 +174,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             </div>
 
             {/* Input area */}
-            <div className="flex flex-col items-center gap-4 w-full">
+            <div className="flex flex-col items-start gap-4 w-full">
               <div className="orb-hero__input">
                 <div className="orb-hero__url-row" onClick={() => { if (!isEditing) { setIsEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}>
                   <Globe className="orb-hero__url-icon" />
@@ -186,6 +186,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                      onBlur={() => { if (!url) setIsEditing(false); }}
                       placeholder="nike.com/shoes/air-max"
                       autoFocus
                     />
@@ -524,7 +525,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .orb-hero__pill-link, .orb-hero__cta-link { min-height: 34px; font-size: 0.8rem; padding: 0.4rem 0.9rem; }
 
           .orb-hero__stage { --sz: min(260vw, 1600px); }
-          .orb-hero__content { width: clamp(300px, 92vw, 500px); }
+          .orb-hero__content { width: clamp(300px, 94vw, 500px); top: 18%; }
           .orb-hero__content h1 { font-size: clamp(28px, 7vw, 44px); }
           .orb-hero__content p { font-size: 15px; }
 
@@ -539,7 +540,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .orb-hero__url-icon { width: 18px; height: 18px; margin-right: 10px; }
           .orb-hero__input input { font-size: 14px; }
           .orb-hero__btn { padding: 12px 16px; border-radius: 12px; font-size: 14px; width: 100%; justify-content: center; }
-          .orb-hero__bullets { gap: 10px; padding: 3px 10px; }
+          .orb-hero__bullets { gap: 10px; padding: 3px 10px; align-self: center; }
           .orb-hero__bullets span { font-size: 11px; }
         }
       `}</style>
