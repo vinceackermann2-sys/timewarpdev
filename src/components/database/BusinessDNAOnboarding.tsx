@@ -1,10 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Telescope, Dna, ArrowRight, Globe } from "lucide-react";
+import { Telescope, Dna, ArrowRight, Globe, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
+
+const URL_EXAMPLES = [
+  "nike.com/air-max-90",
+  "apple.com/iphone-16-pro",
+  "tesla.com/model-3",
+  "dyson.com/airwrap",
+  "allbirds.com/tree-runners",
+  "glossier.com/boy-brow",
+  "notion.so/product",
+  "figma.com/pricing",
+];
 
 const STEP_1_TEXTS = [
   "Scanning website architecture...",
@@ -39,8 +50,11 @@ interface BusinessDNAOnboardingProps {
   onComplete: (agentName: string, brandId?: string) => void;
 }
 
-export function BusinessDNAOnboarding({ productUrl, onComplete }: BusinessDNAOnboardingProps) {
-  const [step, setStep] = useState(1);
+export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: BusinessDNAOnboardingProps) {
+  const [activeUrl, setActiveUrl] = useState<string | null>(initialUrl || null);
+  const [urlInput, setUrlInput] = useState("");
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [step, setStep] = useState(initialUrl ? 1 : 0);
   const [textIndex, setTextIndex] = useState(0);
   const [sourceIndex, setSourceIndex] = useState(0);
   const [agentName, setAgentName] = useState("");
@@ -70,24 +84,32 @@ export function BusinessDNAOnboarding({ productUrl, onComplete }: BusinessDNAOnb
   }
 
   // Build sources list: actual URL first, then generic
-  const sources = productUrl
+  const sources = activeUrl
     ? [
         (() => {
           try {
-            const u = new URL(productUrl.startsWith("http") ? productUrl : `https://${productUrl}`);
+            const u = new URL(activeUrl.startsWith("http") ? activeUrl : `https://${activeUrl}`);
             return u.hostname.replace(/^www\./, "") + u.pathname;
           } catch {
-            return productUrl;
+            return activeUrl;
           }
         })(),
         ...GENERIC_SOURCES,
       ]
     : GENERIC_SOURCES;
 
-  // Step 1: Fire scrape-product if we have a URL
+  // URL placeholder rotation for step 0
   useEffect(() => {
-    if (!productUrl) {
-      setScrapeComplete(true);
+    if (step !== 0 || urlInput) return;
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % URL_EXAMPLES.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [step, urlInput]);
+
+  // Step 1: Fire scrape-product if we have a URL and we're on step 1+
+  useEffect(() => {
+    if (step < 1 || !activeUrl) {
       return;
     }
 
@@ -95,7 +117,7 @@ export function BusinessDNAOnboarding({ productUrl, onComplete }: BusinessDNAOnb
     (async () => {
       try {
         const { data, error } = await supabase.functions.invoke("scrape-product", {
-          body: { url: productUrl.trim() },
+          body: { url: activeUrl.trim() },
         });
         if (cancelled) return;
         if (error || !data?.success) {
@@ -115,7 +137,7 @@ export function BusinessDNAOnboarding({ productUrl, onComplete }: BusinessDNAOnb
     })();
 
     return () => { cancelled = true; };
-  }, [productUrl]);
+  }, [activeUrl, step]);
 
   // Source rotation
   useEffect(() => {
@@ -191,7 +213,7 @@ export function BusinessDNAOnboarding({ productUrl, onComplete }: BusinessDNAOnb
       const b = extracted.brand || {};
       const fallbackName = (() => {
         try {
-          const u = new URL(productUrl!.trim().startsWith("http") ? productUrl!.trim() : `https://${productUrl!.trim()}`);
+          const u = new URL(activeUrl!.trim().startsWith("http") ? activeUrl!.trim() : `https://${activeUrl!.trim()}`);
           return u.hostname.replace(/^www\./, "").split(".")[0];
         } catch { return null; }
       })();
@@ -319,39 +341,41 @@ export function BusinessDNAOnboarding({ productUrl, onComplete }: BusinessDNAOnb
       <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Top 3-bump progress bar */}
-      <div className="absolute top-0 left-0 w-full p-8 flex justify-center z-50">
-        <div className="flex items-center gap-3 bg-card border border-border shadow-sm rounded-full px-5 py-3">
-          {[1, 2, 3].map((i, index) => (
-            <div key={i} className="flex items-center gap-3">
-              <motion.div
-                layout
-                className={`rounded-full transition-all duration-500 ${
-                  step === i
-                    ? "w-10 h-2.5 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
-                    : step > i
-                      ? "w-2.5 h-2.5 bg-primary"
-                      : "w-2.5 h-2.5 bg-muted"
-                }`}
-              />
-              {index < 2 && (
-                <div
-                  className={`h-[2px] w-8 sm:w-12 transition-colors duration-500 ${
-                    step > i ? "bg-primary/50" : "bg-muted"
+      {/* Top 3-bump progress bar — only show during steps 1-3 */}
+      {step >= 1 && (
+        <div className="absolute top-0 left-0 w-full p-8 flex justify-center z-50">
+          <div className="flex items-center gap-3 bg-card border border-border shadow-sm rounded-full px-5 py-3">
+            {[1, 2, 3].map((i, index) => (
+              <div key={i} className="flex items-center gap-3">
+                <motion.div
+                  layout
+                  className={`rounded-full transition-all duration-500 ${
+                    step === i
+                      ? "w-10 h-2.5 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+                      : step > i
+                        ? "w-2.5 h-2.5 bg-primary"
+                        : "w-2.5 h-2.5 bg-muted"
                   }`}
                 />
-              )}
-            </div>
-          ))}
+                {index < 2 && (
+                  <div
+                    className={`h-[2px] w-8 sm:w-12 transition-colors duration-500 ${
+                      step > i ? "bg-primary/50" : "bg-muted"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Header & Progress */}
-      <div className="flex flex-col items-center mb-8 mt-12">
-        <AnimatePresence mode="wait">
-          {step < 3 && (
+      {/* Header & Progress — steps 1-2 only */}
+      {step >= 1 && step < 3 && (
+        <div className="flex flex-col items-center mb-8 mt-12">
+          <AnimatePresence mode="wait">
             <motion.h1
-              key="loading-title"
+              key={`title-${step}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -359,42 +383,119 @@ export function BusinessDNAOnboarding({ productUrl, onComplete }: BusinessDNAOnb
             >
               {step === 1 ? "Researching your business" : "Setting up your business"}
             </motion.h1>
-          )}
-        </AnimatePresence>
+          </AnimatePresence>
 
-        <AnimatePresence mode="wait">
-          {step < 3 && (
-            <motion.div
-              key="loading-progress"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center w-80 mt-2"
-            >
-              <div className="flex justify-center w-full mb-3 px-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {step === 1 ? "Deep business research in progress..." : "Building your business profile..."}
-                </p>
-              </div>
-              <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-2">
-                <motion.div
-                  className="h-full bg-primary"
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.3, ease: "linear" }}
-                />
-              </div>
-              <div className="flex justify-end w-full px-1">
-                <p className="text-sm font-bold text-primary">{progress}%</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center w-80 mt-2"
+          >
+            <div className="flex justify-center w-full mb-3 px-1">
+              <p className="text-sm font-medium text-muted-foreground">
+                {step === 1 ? "Deep business research in progress..." : "Building your business profile..."}
+              </p>
+            </div>
+            <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-2">
+              <motion.div
+                className="h-full bg-primary"
+                initial={{ width: "0%" }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3, ease: "linear" }}
+              />
+            </div>
+            <div className="flex justify-end w-full px-1">
+              <p className="text-sm font-bold text-primary">{progress}%</p>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <div className="max-w-5xl w-full relative z-10 px-4">
         <AnimatePresence mode="wait">
-          {step < 3 && (
+          {/* Step 0: URL Input */}
+          {step === 0 && (
+            <motion.div
+              key="url-input"
+              className="w-full max-w-2xl mx-auto text-center space-y-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="space-y-3 py-4">
+                <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
+                  <Globe className="h-7 w-7 text-primary" />
+                </div>
+                <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                  Enter your company URL
+                </h1>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  We'll analyze your website and build your Business DNA automatically.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-muted/40 border border-border/40 p-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Globe className="h-6 w-6 text-primary/70" />
+                  </div>
+                  <div className="relative flex-1">
+                    <input
+                      type="url"
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && urlInput.trim()) {
+                          setActiveUrl(urlInput.trim());
+                          setStep(1);
+                        }
+                      }}
+                      className="w-full h-12 text-base border-0 bg-transparent focus:outline-none text-foreground px-3"
+                      autoFocus
+                    />
+                    {!urlInput && (
+                      <div className="absolute inset-0 flex items-center pointer-events-none pl-3">
+                        <AnimatePresence mode="wait">
+                          <motion.span
+                            key={placeholderIndex}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 0.4, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.3 }}
+                            className="text-base text-muted-foreground"
+                          >
+                            {URL_EXAMPLES[placeholderIndex]}
+                          </motion.span>
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (urlInput.trim()) {
+                        setActiveUrl(urlInput.trim());
+                        setStep(1);
+                      }
+                    }}
+                    disabled={!urlInput.trim()}
+                    className="h-12 px-6 rounded-xl bg-primary/80 hover:bg-primary text-primary-foreground font-medium text-base flex items-center gap-2 disabled:opacity-50 transition-all"
+                  >
+                    Continue
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 mt-2 ml-1">
+                  <Sparkles className="h-3 w-3 text-muted-foreground/50" />
+                  <span className="text-xs text-muted-foreground/60">
+                    Paste your website or product page URL
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Steps 1-2: Analysis cards */}
+          {step >= 1 && step < 3 && (
             <motion.div
               key="analyzing-container"
               className="flex flex-col md:flex-row gap-6 w-full items-stretch justify-center mx-auto"
