@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import ZipHowItWorks from "@/components/landing/ZipHowItWorks";
 import ZipLifeAndWork from "@/components/landing/ZipLifeAndWork";
-import ZipGreaterGood from "@/components/landing/ZipGreaterGood";
+
 
 export function ProductDescription() {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export function ProductDescription() {
       {/* ── New Zip Sections ── */}
       <ZipHowItWorks />
       <ZipLifeAndWork />
-      <ZipGreaterGood />
+      
 
       {/* ── Bottom CTA ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden text-center bg-background dark:bg-[hsl(0_0%_10%)]">
@@ -35,8 +35,8 @@ export function ProductDescription() {
         <div className="absolute pointer-events-none left-0 right-0 hidden dark:block" style={{ height: 400, top: 0, background: "radial-gradient(ellipse 80% 100% at center top, rgba(51,153,255,0.08) 0%, transparent 60%)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Get to know your company's next decision </h3>
-          <p className="text-base text-muted-foreground dark:text-white/50 mb-12 max-w-xl mx-auto">Paste your website URL. Get your Business DNA in 60 seconds.</p>
+          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Get to know your company's next decision </h3>
+          <p className="text-base text-muted-foreground dark:text-white/50 mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Paste your website URL. Get your Business DNA in 60 seconds.</p>
 
           {/* Hero-style input card */}
           <div className="max-w-xl mx-auto">
@@ -50,12 +50,12 @@ export function ProductDescription() {
                   placeholder="https://YourBusiness.com"
                   onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
                   className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none py-3 sm:py-0"
-                  style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }} />
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1rem" }} />
               </div>
               <button
                 onClick={handleAnalyze}
                 className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 sm:mt-0 h-12 sm:h-full"
-                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Outfit', sans-serif", fontWeight: 500, cursor: "pointer" }}>
+                style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, cursor: "pointer" }}>
                 Analyze →
               </button>
             </div>
