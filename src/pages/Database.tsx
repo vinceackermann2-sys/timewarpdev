@@ -13,6 +13,7 @@ import { Loader2, Menu } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { EmployeesView } from "@/components/database/EmployeesView";
 import { RestrictedFeatureGate } from "@/components/database/RestrictedFeatureGate";
+import { BusinessDNAOnboarding } from "@/components/database/BusinessDNAOnboarding";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,6 +57,9 @@ const Database = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
   const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return sessionStorage.getItem("tw_show_onboarding") === "true";
+  });
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
@@ -133,6 +137,17 @@ const Database = () => {
 
   if (!user) {
     return null;
+  }
+
+  if (showOnboarding) {
+    return (
+      <BusinessDNAOnboarding
+        onComplete={(agentName) => {
+          sessionStorage.removeItem("tw_show_onboarding");
+          setShowOnboarding(false);
+        }}
+      />
+    );
   }
 
   const handleViewChange = (view: View) => {
