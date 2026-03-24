@@ -161,7 +161,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         {/* Content inside orb area */}
         <div className="orb-hero__content">
-          <div className="flex flex-col items-center gap-8 w-fit max-w-full">
+          <div className="flex flex-col items-center gap-6 w-full max-w-full">
             {/* Top text */}
             <div className="flex flex-col items-center gap-4 w-full">
               <h1>
