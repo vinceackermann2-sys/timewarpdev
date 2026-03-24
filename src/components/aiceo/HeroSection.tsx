@@ -451,6 +451,9 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           font-size: 19px; font-weight: 400; color: hsl(var(--hero-muted));
           margin: 0; letter-spacing: 0.01em; transition: color 0.3s ease;
         }
+        .dark .orb-hero__content p {
+          color: hsl(0 0% 80%);
+        }
 
         /* ── Input bar ── */
         .orb-hero__input {
