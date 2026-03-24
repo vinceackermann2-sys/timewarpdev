@@ -38,12 +38,17 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
     }
   }, [open, defaultMode]);
 
-  const navigateToDashboard = () => {
+  const navigateToDashboard = (isNewUser = false) => {
+    const params = new URLSearchParams();
     if (productUrl) {
-      navigate(`/app?addProduct=true&url=${encodeURIComponent(productUrl)}`);
-    } else {
-      navigate("/app");
+      params.set("addProduct", "true");
+      params.set("url", productUrl);
     }
+    if (isNewUser) {
+      params.set("onboarding", "business-dna");
+    }
+    const qs = params.toString();
+    navigate(`/app${qs ? `?${qs}` : ""}`);
   };
 
   useEffect(() => {
