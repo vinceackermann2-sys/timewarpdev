@@ -128,12 +128,23 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearInterval(interval);
   }, [step, urlInput]);
 
-  // Step 1: Fire scrape-product
+  // Step 1: Fire scrape-product (and ensure workspace ID is set)
   useEffect(() => {
     if (step < 1 || !activeUrl) return;
     let cancelled = false;
     (async () => {
       try {
+        // Ensure workspace ID is in localStorage before any entity creation
+        if (!localStorage.getItem("preferred_workspace_id")) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { data: wsData } = await supabase.rpc("get_user_workspaces", { _user_id: session.user.id });
+            if (wsData && (wsData as any[]).length > 0) {
+              localStorage.setItem("preferred_workspace_id", (wsData as any[])[0].workspace_id);
+            }
+          }
+        }
+
         const { data, error } = await supabase.functions.invoke("scrape-product", {
           body: { url: activeUrl.trim() },
         });
