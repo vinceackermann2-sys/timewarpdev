@@ -529,7 +529,8 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .orb-hero__pill-link, .orb-hero__cta-link { min-height: 34px; font-size: 0.8rem; padding: 0.4rem 0.9rem; }
 
           .orb-hero__stage { --sz: min(260vw, 1600px); }
-          .orb-hero__content--mobile-fix { position: absolute; top: auto; bottom: auto; }
+          .orb-hero__stage { --sz: min(260vw, 1600px); position: static; }
+          .orb-hero__content { position: absolute; width: clamp(320px, 96vw, 500px); top: 50%; left: 50%; transform: translate(-50%, -50%); animation: orb-fade-up-mobile 0.8s ease-out both; }
           .orb-hero__content h1 { font-size: clamp(28px, 7vw, 44px); }
           .orb-hero__content p { font-size: 15px; }
 
