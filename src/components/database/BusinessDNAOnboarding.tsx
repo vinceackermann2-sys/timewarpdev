@@ -98,10 +98,18 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       ]
     : GENERIC_SOURCES;
 
-  // Step 1: Fire scrape-product if we have a URL
+  // URL placeholder rotation for step 0
   useEffect(() => {
-    if (!activeUrl) {
-      setScrapeComplete(true);
+    if (step !== 0 || urlInput) return;
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % URL_EXAMPLES.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [step, urlInput]);
+
+  // Step 1: Fire scrape-product if we have a URL and we're on step 1+
+  useEffect(() => {
+    if (step < 1 || !activeUrl) {
       return;
     }
 
