@@ -441,7 +441,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           transition: color 0.3s ease;
         }
         .dark .orb-hero__content h1 {
-          color: hsl(0 0% 0%);
+          color: hsl(0 0% 100%);
+        }
+        .dark .orb-hero__content p {
+          color: hsl(0 0% 80%);
         }
         .orb-hero__content h1 span {
           color: inherit; background: none;
