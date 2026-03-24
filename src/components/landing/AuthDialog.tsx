@@ -57,17 +57,11 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted || !session) return;
-      // Mark onboarding for new signups (email or OAuth)
-      if (isSignUp || _event === "SIGNED_IN") {
-        // Check if user was just created (created_at within last 30 seconds)
-        const createdAt = new Date(session.user.created_at).getTime();
-        const now = Date.now();
-        if (now - createdAt < 30000) {
-          sessionStorage.setItem("tw_show_onboarding", "true");
-        }
-      }
+      // Detect brand-new user (created within last 30s)
+      const createdAt = new Date(session.user.created_at).getTime();
+      const isNewUser = Date.now() - createdAt < 30000;
       onOpenChange(false);
-      navigateToDashboard();
+      navigateToDashboard(isNewUser);
     });
 
     return () => {
