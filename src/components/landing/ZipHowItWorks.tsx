@@ -157,8 +157,8 @@ const Screen4 = () => {
 };
 
 const PhoneMockup = ({ activeStep }: { activeStep: number }) => (
-  <div className="force-light relative mx-auto w-[280px] h-[580px] sm:w-[320px] sm:h-[650px] bg-card rounded-[3rem] border-[8px] border-foreground shadow-2xl overflow-hidden flex-shrink-0">
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-foreground rounded-b-2xl z-20" />
+  <div className="force-light relative mx-auto w-[280px] h-[580px] sm:w-[320px] sm:h-[650px] bg-card rounded-[3rem] border-[8px] border-foreground dark:border-[#b0b0b0] shadow-2xl overflow-hidden flex-shrink-0">
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-foreground dark:bg-[#b0b0b0] rounded-b-2xl z-20" />
     <div className="relative w-full h-full bg-card flex flex-col">
       <div className="pt-10 px-5 pb-4 z-20 relative bg-card/90 backdrop-blur-md border-b border-border/50">
         <div className="flex gap-1.5">
