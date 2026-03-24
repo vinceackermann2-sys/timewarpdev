@@ -68,7 +68,6 @@ const Database = () => {
 
     if (onboarding === "business-dna") {
       setShowOnboarding(true);
-      // Strip the param so refresh doesn't replay
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("onboarding");
       const qs = newParams.toString();
@@ -102,6 +101,18 @@ const Database = () => {
       }
     }
   }, [searchParams]);
+
+  // Fallback: detect brand-new user from OAuth redirect (no onboarding param)
+  useEffect(() => {
+    if (!user || showOnboarding) return;
+    const alreadyShown = sessionStorage.getItem("tw_onboarding_shown");
+    if (alreadyShown) return;
+    const createdAt = new Date(user.created_at).getTime();
+    if (Date.now() - createdAt < 30000) {
+      sessionStorage.setItem("tw_onboarding_shown", "true");
+      setShowOnboarding(true);
+    }
+  }, [user, showOnboarding]);
 
   // Redirect to auth if not authenticated
   useEffect(() => {
