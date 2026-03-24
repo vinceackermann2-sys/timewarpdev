@@ -30,6 +30,40 @@ export function ProductDescription() {
       <ZipLifeAndWork />
       
 
+      {/* ── Making Work Optional ── */}
+      <section className="relative z-10 py-24 lg:py-32 bg-background dark:bg-[hsl(0_0%_6%)]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Image */}
+            <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[16/10]">
+              <img
+                src={futureCity}
+                alt="A futuristic city representing the post-labor economy"
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            </div>
+
+            {/* Text */}
+            <div className="space-y-6">
+              <h2
+                className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground dark:text-white"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                Making work optional.
+              </h2>
+              <p
+                className="text-lg text-muted-foreground dark:text-white/60 leading-relaxed"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                For centuries, human potential has been chained to the desk, bound by the necessity of economic survival. By replacing the CEO and the operational workforce with autonomous intelligence, we are accelerating the transition to a post-labor economy.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Bottom CTA ── */}
       <section className="relative z-10 py-24 lg:py-32 overflow-hidden text-center bg-background dark:bg-[hsl(0_0%_10%)]">
         {/* Top glow — dark only */}
