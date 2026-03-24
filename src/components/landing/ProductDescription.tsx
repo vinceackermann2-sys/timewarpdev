@@ -50,7 +50,7 @@ export function ProductDescription() {
                   placeholder="https://YourBusiness.com"
                   onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
                   className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none py-3 sm:py-0"
-                  style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1rem" }} />
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1rem" }} />
               </div>
               <button
                 onClick={handleAnalyze}
