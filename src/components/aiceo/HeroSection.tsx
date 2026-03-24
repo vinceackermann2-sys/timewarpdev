@@ -25,6 +25,8 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
   const grainCanvasRef = useRef<HTMLCanvasElement>(null);
   const [typewriterText, setTypewriterText] = useState("");
   const [url, setUrl] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Grain effect
   useEffect(() => {
@@ -54,7 +56,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
   // Typewriter effect
   useEffect(() => {
-    if (url) return;
+    if (isEditing) return;
     let ui = 0;
     let ci = 0;
     let deleting = false;
@@ -91,7 +93,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
     timeoutId = setTimeout(tick, 600);
     return () => clearTimeout(timeoutId);
-  }, [url]);
+  }, [isEditing]);
 
   const handleAnalyze = () => {
     if (onRunClick) {
@@ -174,11 +176,12 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             {/* Input area */}
             <div className="flex flex-col items-center gap-4 w-full">
               <div className="orb-hero__input">
-                <div className="orb-hero__url-row" onClick={() => !url && setUrl("")}>
+                <div className="orb-hero__url-row" onClick={() => { if (!isEditing) { setIsEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}>
                   <Globe className="orb-hero__url-icon" />
 
-                  {url !== undefined && url !== "" ? (
+                  {isEditing ? (
                     <input
+                      ref={inputRef}
                       type="text"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
@@ -494,7 +497,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         /* ── Bullets ── */
         .orb-hero__bullets {
-          display: flex; align-items: center; justify-content: center; gap: 14px;
+          display: flex; align-items: center; gap: 14px;
           background: hsl(0 0% 100% / 0.3); backdrop-filter: blur(12px);
           border: 1px solid hsl(0 0% 100% / 0.6); border-radius: 999px;
           padding: 4px 14px;
