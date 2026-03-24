@@ -161,7 +161,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         {/* Content inside orb area */}
         <div className="orb-hero__content">
-          <div className="flex flex-col items-center gap-8 w-fit max-w-full">
+          <div className="flex flex-col items-center gap-6 w-full max-w-full">
             {/* Top text */}
             <div className="flex flex-col items-center gap-4 w-full">
               <h1>
@@ -525,13 +525,13 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .orb-hero__pill-link, .orb-hero__cta-link { min-height: 34px; font-size: 0.8rem; padding: 0.4rem 0.9rem; }
 
           .orb-hero__stage { --sz: min(260vw, 1600px); }
-          .orb-hero__content { width: clamp(300px, 94vw, 500px); top: 18%; }
+          .orb-hero__content { width: clamp(320px, 96vw, 500px); top: 50%; transform: translate(-50%, -50%); }
           .orb-hero__content h1 { font-size: clamp(28px, 7vw, 44px); }
           .orb-hero__content p { font-size: 15px; }
 
           .orb-hero__input {
             flex-direction: column; align-items: stretch; gap: 10px;
-            padding: 14px; border-radius: 20px;
+            padding: 14px; border-radius: 20px; width: 100%;
           }
           .orb-hero__url-row {
             background: hsl(0 0% 100% / 0.5); border-radius: 12px;
