@@ -494,14 +494,14 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
         /* ── Bullets ── */
         .orb-hero__bullets {
-          display: flex; align-items: center; gap: 20px;
+          display: flex; align-items: center; justify-content: center; gap: 14px;
           background: hsl(0 0% 100% / 0.3); backdrop-filter: blur(12px);
           border: 1px solid hsl(0 0% 100% / 0.6); border-radius: 999px;
-          padding: 6px 16px;
+          padding: 4px 14px;
           box-shadow: 0 4px 24px hsl(0 0% 0% / 0.04);
         }
         .orb-hero__bullets span {
-          font-size: 14px; font-weight: 500; color: hsl(var(--hero-muted));
+          font-size: 12px; font-weight: 500; color: hsl(var(--hero-muted));
         }
 
         /* ── Keyframes ── */
@@ -521,7 +521,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .orb-hero__pill-link, .orb-hero__cta-link { min-height: 34px; font-size: 0.8rem; padding: 0.4rem 0.9rem; }
 
           .orb-hero__stage { --sz: min(260vw, 1600px); }
-          .orb-hero__content { width: clamp(280px, 85vw, 500px); }
+          .orb-hero__content { width: clamp(300px, 92vw, 500px); }
           .orb-hero__content h1 { font-size: clamp(28px, 7vw, 44px); }
           .orb-hero__content p { font-size: 15px; }
 
@@ -536,8 +536,8 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           .orb-hero__url-icon { width: 18px; height: 18px; margin-right: 10px; }
           .orb-hero__input input { font-size: 14px; }
           .orb-hero__btn { padding: 12px 16px; border-radius: 12px; font-size: 14px; width: 100%; justify-content: center; }
-          .orb-hero__bullets { gap: 12px; padding: 4px 12px; }
-          .orb-hero__bullets span { font-size: 12px; }
+          .orb-hero__bullets { gap: 10px; padding: 3px 10px; }
+          .orb-hero__bullets span { font-size: 11px; }
         }
       `}</style>
     </section>
