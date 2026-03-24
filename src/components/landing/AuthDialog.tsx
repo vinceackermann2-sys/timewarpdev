@@ -124,7 +124,6 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
             throw error;
           }
         } else {
-          sessionStorage.setItem("tw_show_onboarding", "true");
           toast({ title: "Account created!", description: "You're now signed in. Welcome to TimeWarp!" });
         }
       } else {

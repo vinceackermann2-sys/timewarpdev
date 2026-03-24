@@ -227,6 +227,7 @@ const Auth = () => {
             throw error;
           }
         } else {
+          // onAuthStateChange will handle redirect with onboarding param
           toast({ title: "Account created!", description: "You're now signed in. Welcome to TimeWarp!" });
         }
       } else {
