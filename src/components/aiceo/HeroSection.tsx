@@ -19,7 +19,7 @@ const urls = [
   "tesla.com/model3",
 ];
 
-export function HeroSection({ onRunClick }: HeroSectionProps) {
+export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
   const navigate = useNavigate();
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
