@@ -519,7 +519,7 @@
 
   .dark {
     /* Dark theme - Blue Corp Pastel */
-    --background: 215 25% 8%;
+    --background: 0 0% 10%;
     --foreground: 0 0% 98%;
 
     --card: 215 20% 12%;
@@ -568,23 +568,23 @@
     --shadow-glow: 0 0 12px hsl(210 100% 60% / 0.08);
     --shadow-glow-lg: 0 0 24px hsl(210 100% 60% / 0.1);
 
-    /* Orb tokens - dark */
-    --orb-core-start: rgba(60, 80, 120, 1);
-    --orb-core-mid1: rgba(40, 70, 140, 1);
-    --orb-core-mid2: rgba(50, 100, 200, 1);
-    --orb-core-end: rgba(30, 70, 180, 1);
-    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.3);
-    --orb-shadow-inner-light: rgba(100, 150, 255, 0.3);
-    --orb-shadow-outer: rgba(50, 100, 220, 0.4);
-    --orb-glow: rgba(50, 100, 220, 0.4);
-    --orb-trail-dim: rgba(80, 100, 160, 0.3);
-    --orb-trail-mid: rgba(100, 120, 180, 0.5);
-    --orb-trail-bright: rgba(120, 150, 220, 0.7);
-    --orb-trail-peak: rgba(150, 180, 255, 0.9);
-    --orb-trail-bg: hsl(215 25% 8%);
-    --orb-shine: rgba(150, 180, 255, 0.6);
-    --orb-shine-mid: rgba(120, 160, 255, 0.4);
-    --orb-shine-fade: rgba(100, 140, 230, 0.2);
+    /* Orb tokens - dark (same as light to keep orb bright) */
+    --orb-core-start: rgba(255, 255, 255, 1);
+    --orb-core-mid1: rgba(209, 227, 255, 1);
+    --orb-core-mid2: rgba(133, 176, 255, 1);
+    --orb-core-end: rgba(74, 134, 255, 1);
+    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.1);
+    --orb-shadow-inner-light: rgba(255, 255, 255, 0.8);
+    --orb-shadow-outer: rgba(133, 176, 255, 0.3);
+    --orb-glow: rgba(133, 176, 255, 0.3);
+    --orb-trail-dim: rgba(180, 180, 200, 0.3);
+    --orb-trail-mid: rgba(200, 200, 220, 0.6);
+    --orb-trail-bright: rgba(220, 220, 240, 0.9);
+    --orb-trail-peak: rgba(255, 255, 255, 1);
+    --orb-trail-bg: hsl(0 0% 10%);
+    --orb-shine: rgba(255, 255, 255, 1);
+    --orb-shine-mid: rgba(255, 255, 255, 0.9);
+    --orb-shine-fade: rgba(255, 255, 255, 0.5);
 
     /* Browser chrome colors - dark */
     --browser-bg: 215 25% 8%;
