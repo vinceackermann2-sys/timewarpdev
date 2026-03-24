@@ -114,14 +114,14 @@ const Auth = () => {
     const checkSession = async () => {
       const session = await getSafeSession();
       if (!isMounted || !session) return;
-      await handleAuthenticatedUser(session.user.id);
+      await handleAuthenticatedUser(session.user.id, session);
     };
 
     void checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted || !session) return;
-      await handleAuthenticatedUser(session.user.id);
+      await handleAuthenticatedUser(session.user.id, session);
     });
 
     return () => {
