@@ -287,7 +287,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           --hero-connector-peak: 216 63% 53%;
           --hero-sphere-core: radial-gradient(
             circle at center,
-            #7a3a4a 0%, #6a3555 30%, #3a6a9a 70%, #1a2a40 100%
+            #ee8878 0%, #d56a87 30%, #8ebcf0 70%, #ffffff 100%
           );
         }
 
