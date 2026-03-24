@@ -18,41 +18,41 @@ const URL_EXAMPLES = [
 ];
 
 const STEP_1_TEXTS = [
-  "Scanning website architecture...",
-  "Extracting core value propositions...",
-  "Identifying market opportunities...",
-  "Analyzing competitor landscape...",
-  "Mapping target audience...",
+  "Crawling website pages...",
+  "Extracting brand identity...",
+  "Mapping product catalog...",
+  "Profiling target audience...",
+  "Compiling business intelligence...",
 ];
 
 const STEP_2_TEXTS = [
-  "Synthesizing brand voice...",
-  "Structuring core offerings...",
-  "Defining unique selling points...",
+  "Building brand profile...",
+  "Structuring product data...",
+  "Creating audience persona...",
   "Generating positioning strategy...",
-  "Finalizing business profile...",
+  "Finalizing business DNA...",
 ];
 
 const STEP_1_EXAMPLES = [
+  "Reading homepage content",
   "Extracting product features & pricing",
-  "Identified 3 competitor brands",
+  "Scanning page metadata & structure",
   "Mapping brand color palette",
-  "Found 8 unique selling points",
-  "Analyzing customer review sentiment",
+  "Parsing navigation & site structure",
   "Extracting social proof & testimonials",
-  "Scanning meta tags & SEO structure",
-  "Detected target demographic signals",
+  "Reading about page content",
+  "Detecting target demographic signals",
 ];
 
 const STEP_2_EXAMPLES = [
   "Creating brand identity profile",
-  "Mapping 5 audience segments",
-  "Generating positioning strategy",
-  "Building competitive advantage matrix",
-  "Synthesizing brand voice guidelines",
   "Structuring product catalog data",
   "Defining ideal customer persona",
-  "Compiling market opportunity brief",
+  "Mapping value propositions",
+  "Synthesizing brand voice guidelines",
+  "Building audience engagement triggers",
+  "Compiling positioning strategy",
+  "Generating pain point analysis",
 ];
 
 function getDomainSources(url: string): string[] {
@@ -69,17 +69,9 @@ function getDomainSources(url: string): string[] {
       "/contact",
       "/features",
     ];
-    const domainSources = pages.map((p) => `${host}${p}`);
-    const thirdParty = [
-      `google.com/search?q=${host}`,
-      `linkedin.com/company/${host.split(".")[0]}`,
-      `crunchbase.com/organization/${host.split(".")[0]}`,
-      `reddit.com/search?q=${host.split(".")[0]}`,
-      `twitter.com/search?q=${host.split(".")[0]}`,
-    ];
-    return [...domainSources, ...thirdParty];
+    return pages.map((p) => `${host}${p}`);
   } catch {
-    return [url, "google.com/search", "linkedin.com/company", "crunchbase.com"];
+    return [url];
   }
 }
 
@@ -136,12 +128,23 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearInterval(interval);
   }, [step, urlInput]);
 
-  // Step 1: Fire scrape-product
+  // Step 1: Fire scrape-product (and ensure workspace ID is set)
   useEffect(() => {
     if (step < 1 || !activeUrl) return;
     let cancelled = false;
     (async () => {
       try {
+        // Ensure workspace ID is in localStorage before any entity creation
+        if (!localStorage.getItem("preferred_workspace_id")) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { data: wsData } = await supabase.rpc("get_user_workspaces", { _user_id: session.user.id });
+            if (wsData && (wsData as any[]).length > 0) {
+              localStorage.setItem("preferred_workspace_id", (wsData as any[])[0].workspace_id);
+            }
+          }
+        }
+
         const { data, error } = await supabase.functions.invoke("scrape-product", {
           body: { url: activeUrl.trim() },
         });
