@@ -75,7 +75,7 @@ export function ProductDescription() {
 
           {/* Hero-style input card */}
           <div className="max-w-xl mx-auto">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center rounded-[14px] p-2 sm:p-[0.5rem_0.5rem_0.5rem_1rem] sm:h-16 bg-card border border-border shadow-md dark:bg-[rgba(255,255,255,0.06)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center rounded-[14px] p-2 sm:p-[0.5rem_0.5rem_0.5rem_1rem] sm:h-16 bg-card border border-border dark:bg-[rgba(255,255,255,0.06)] dark:border-[rgba(255,255,255,0.1)]">
               <div className="flex items-center flex-1 px-3 sm:px-0">
                 <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" style={{ color: "#3399ff" }} />
                 <input
@@ -95,7 +95,7 @@ export function ProductDescription() {
               </button>
             </div>
 
-            <div className="flex items-center justify-center gap-4 mt-5">
+            <div className="flex items-center justify-start gap-4 mt-5">
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-[#22c55e]" />
                 <span className="text-xs text-muted-foreground dark:text-white/40">No credit card</span>
