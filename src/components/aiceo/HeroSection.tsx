@@ -515,6 +515,10 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
           from { opacity: 0; transform: translate(-50%, -50%) translateY(18px); }
           to { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
         }
+        @keyframes orb-fade-up-mobile {
+          from { opacity: 0; transform: translate(-50%, -60%) translateY(18px); }
+          to { opacity: 1; transform: translate(-50%, -60%) translateY(0); }
+        }
 
         /* ── Mobile ── */
         @media (max-width: 640px) {
