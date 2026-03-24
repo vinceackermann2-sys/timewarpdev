@@ -93,7 +93,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
     timeoutId = setTimeout(tick, 600);
     return () => clearTimeout(timeoutId);
-  }, [url]);
+  }, [isEditing]);
 
   const handleAnalyze = () => {
     if (onRunClick) {
