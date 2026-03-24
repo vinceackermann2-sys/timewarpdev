@@ -229,12 +229,18 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         return;
       }
 
+      // Refresh session to ensure valid JWT (fixes 403 after signup)
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        setPersistenceError("Not authenticated. Please sign in and try again.");
-        return;
+        // Retry once after a short delay
+        await new Promise(r => setTimeout(r, 1500));
+        const { data: { session: retrySession } } = await supabase.auth.getSession();
+        if (!retrySession?.user) {
+          setPersistenceError("Not authenticated. Please sign in and try again.");
+          return;
+        }
       }
-      const userId = session.user.id;
+      const userId = (await supabase.auth.getSession()).data.session!.user.id;
 
       const extracted = scrapeResult.current || {};
       const now = new Date().toLocaleDateString("en-US", {
