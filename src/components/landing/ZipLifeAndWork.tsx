@@ -1,20 +1,20 @@
 import { Menu, Search, HelpCircle, Settings, Grid, Pencil, Inbox, Star, Clock, Send, File, ChevronDown, Square, RefreshCw, MoreVertical, Calendar, CheckSquare, Plus, Brain, Bell } from "lucide-react";
+import familyVacation from "@/assets/family-vacation.jpeg";
 
 export default function ZipLifeAndWork() {
   return (
     <section className="py-24 lg:py-32 bg-background relative z-10 flex justify-center items-center">
-      <div className="max-w-6xl w-full mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+      <div className="max-w-4xl w-full mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
         {/* Left Card */}
         <div className="flex flex-col gap-4">
           <p className="text-muted-foreground font-medium text-sm text-center md:text-left uppercase tracking-wider">
             WHEN YOU'RE ENJOYING LIFE
           </p>
-          <div className="rounded-xl p-1.5 bg-foreground shadow-xl aspect-[3/4] md:aspect-[4/5] overflow-hidden">
+          <div className="rounded-xl p-1.5 bg-foreground shadow-xl aspect-[3/4] overflow-hidden">
             <img
-              src="https://images.unsplash.com/photo-1544367567-0f2fcb046ebf?q=80&w=1000&auto=format&fit=crop"
-              alt="CEO with family on vacation"
+              src={familyVacation}
+              alt="Family on vacation"
               className="w-full h-full object-cover rounded-lg"
-              referrerPolicy="no-referrer"
               loading="lazy"
             />
           </div>
@@ -25,7 +25,7 @@ export default function ZipLifeAndWork() {
           <p className="text-muted-foreground font-medium text-sm text-center md:text-left uppercase tracking-wider">
             YOUR AGENT IS WORKING
           </p>
-          <div className="rounded-xl p-1.5 bg-black shadow-xl aspect-[3/4] md:aspect-[4/5] overflow-hidden relative group">
+          <div className="rounded-xl p-1.5 bg-black shadow-xl aspect-[3/4] overflow-hidden relative group">
             <div className="w-full h-full bg-gradient-to-b from-[#eef4f9] to-[#d6e4f0] rounded-lg relative overflow-hidden flex flex-col items-center pt-6 md:pt-10">
               {/* Gmail Window Mockup */}
               <div className="w-[92%] bg-white/95 backdrop-blur-sm rounded-lg shadow-xl flex flex-col overflow-hidden border border-white/60" style={{ height: '55%' }}>
