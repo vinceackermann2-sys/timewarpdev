@@ -68,31 +68,25 @@ const Database = () => {
 
     if (onboarding === "business-dna") {
       setShowOnboarding(true);
-      // Strip the param so refresh doesn't replay
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("onboarding");
       const qs = newParams.toString();
       window.history.replaceState({}, "", `/app${qs ? `?${qs}` : ""}`);
     }
-  }, [searchParams]);
 
-  // Fallback: detect brand-new user from OAuth redirect (no onboarding param)
-  useEffect(() => {
-    if (!user || showOnboarding) return;
-    const alreadyShown = sessionStorage.getItem("tw_onboarding_shown");
-    if (alreadyShown) return;
-    const createdAt = new Date(user.created_at).getTime();
-    if (Date.now() - createdAt < 30000) {
-      sessionStorage.setItem("tw_onboarding_shown", "true");
-      setShowOnboarding(true);
+    if (viewParam === "aiceo") {
+      setCurrentView("aiceo");
+      localStorage.setItem("tw_current_view", "aiceo");
     }
-  }, [user, showOnboarding]);
 
-  useEffect(() => {
-    const viewParam = searchParams.get("view");
-    const autostart = searchParams.get("autostart");
-    const addProduct = searchParams.get("addProduct");
-    const productUrl = searchParams.get("url");
+    if (addProduct === "true") {
+      setCurrentView("businessdna");
+      localStorage.setItem("tw_current_view", "businessdna");
+      setShowAddProduct(true);
+      if (productUrl) {
+        sessionStorage.setItem("pendingProductUrl", productUrl);
+      }
+    }
 
     if (autostart === "true") {
       const storedTask = sessionStorage.getItem("pendingAgentTask");
@@ -107,6 +101,18 @@ const Database = () => {
       }
     }
   }, [searchParams]);
+
+  // Fallback: detect brand-new user from OAuth redirect (no onboarding param)
+  useEffect(() => {
+    if (!user || showOnboarding) return;
+    const alreadyShown = sessionStorage.getItem("tw_onboarding_shown");
+    if (alreadyShown) return;
+    const createdAt = new Date(user.created_at).getTime();
+    if (Date.now() - createdAt < 30000) {
+      sessionStorage.setItem("tw_onboarding_shown", "true");
+      setShowOnboarding(true);
+    }
+  }, [user, showOnboarding]);
 
   // Redirect to auth if not authenticated
   useEffect(() => {
