@@ -102,15 +102,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearInterval(interval);
   }, [step, urlInput]);
 
-  // Flip through milestones during steps 1-2
+  // Flip through milestones during steps 1-2 — single line only, no history
   useEffect(() => {
     if (step < 1 || step >= 3 || persistenceComplete) return;
     const interval = setInterval(() => {
       setCurrentMilestone(prev => {
         const next = prev + 1;
-        if (next >= ANALYSIS_MILESTONES.length) return prev; // stay on last
-        // Push the previous one to completed
-        setCompletedMilestones(cm => [...cm, ANALYSIS_MILESTONES[prev]]);
+        if (next >= ANALYSIS_MILESTONES.length) return prev;
         return next;
       });
     }, 2200);
