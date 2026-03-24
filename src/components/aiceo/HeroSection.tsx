@@ -437,12 +437,15 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
         .orb-hero__content h1 {
           font-size: clamp(40px, 5vw, 64px);
           font-weight: 800; letter-spacing: -0.03em; line-height: 1;
-          color: hsl(var(--hero-ink)); margin: 0;
+          color: hsl(0 0% 0%); margin: 0;
           transition: color 0.3s ease;
         }
+        .dark .orb-hero__content h1 {
+          color: hsl(0 0% 100%);
+        }
         .orb-hero__content h1 span {
-          background: linear-gradient(135deg, hsl(var(--hero-accent)) 0%, hsl(var(--hero-accent-strong)) 100%);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+          color: inherit; background: none;
+          -webkit-background-clip: unset; -webkit-text-fill-color: unset; background-clip: unset;
         }
         .orb-hero__content p {
           font-size: 19px; font-weight: 400; color: hsl(var(--hero-muted));
