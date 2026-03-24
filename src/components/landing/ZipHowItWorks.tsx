@@ -197,7 +197,7 @@ export default function ZipHowItWorks() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="max-w-xl">
-            <h3 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground mb-6 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h3 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground mb-6 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               How we clone your genius.
             </h3>
             <p className="text-xl text-muted-foreground leading-relaxed">Millions of data points analyzed in seconds.</p>
