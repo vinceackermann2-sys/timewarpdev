@@ -50,8 +50,11 @@ interface BusinessDNAOnboardingProps {
   onComplete: (agentName: string, brandId?: string) => void;
 }
 
-export function BusinessDNAOnboarding({ productUrl, onComplete }: BusinessDNAOnboardingProps) {
-  const [step, setStep] = useState(1);
+export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: BusinessDNAOnboardingProps) {
+  const [activeUrl, setActiveUrl] = useState<string | null>(initialUrl || null);
+  const [urlInput, setUrlInput] = useState("");
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [step, setStep] = useState(initialUrl ? 1 : 0);
   const [textIndex, setTextIndex] = useState(0);
   const [sourceIndex, setSourceIndex] = useState(0);
   const [agentName, setAgentName] = useState("");
