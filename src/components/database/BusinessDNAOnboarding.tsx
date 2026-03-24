@@ -280,6 +280,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       setBrands(prev => [...prev, newBrand]);
       setCreatedBrandId(brandId);
 
+      // Auto-rename workspace to the business name
+      const workspaceId = localStorage.getItem("preferred_workspace_id");
+      if (workspaceId) {
+        supabase.from("workspaces").update({ name: brandName }).eq("id", workspaceId);
+      }
+
       const p = extracted.product || {};
       const newProduct: ProductEntry = {
         ...DEFAULT_PRODUCT,

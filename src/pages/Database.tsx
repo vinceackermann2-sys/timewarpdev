@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
@@ -44,6 +45,7 @@ interface PendingTask {
 const Database = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem("tw_current_view");
@@ -175,6 +177,7 @@ const Database = () => {
           onComplete={(agentName, brandId) => {
             setShowOnboarding(false);
             setOnboardingUrl(null);
+            queryClient.invalidateQueries({ queryKey: ["workspaces"] });
             if (brandId) {
               setCurrentView("businessdna");
               localStorage.setItem("tw_current_view", "businessdna");
