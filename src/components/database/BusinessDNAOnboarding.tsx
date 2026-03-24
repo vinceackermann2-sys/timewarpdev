@@ -137,7 +137,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     })();
 
     return () => { cancelled = true; };
-  }, [activeUrl]);
+  }, [activeUrl, step]);
 
   // Source rotation
   useEffect(() => {
