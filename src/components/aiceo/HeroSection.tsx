@@ -174,29 +174,30 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
             {/* Input area */}
             <div className="flex flex-col items-start gap-4 w-full">
               <div className="orb-hero__input">
-                <Globe className="orb-hero__url-icon" />
+                <div className="orb-hero__url-row">
+                  <Globe className="orb-hero__url-icon" />
 
-                {url ? (
-                  <input
-                    type="text"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                    placeholder="nike.com/shoes/air-max"
-                  />
-                ) : (
-                  <span className="flex items-center flex-1 min-w-0 text-left">
-                    <span
-                      className="text-[16px] font-normal whitespace-nowrap overflow-hidden"
-                      style={{ color: "hsl(var(--hero-input-text))" }}
-                      onClick={() => setUrl("")}
-                    >
-                      {typewriterText}
+                  {url ? (
+                    <input
+                      type="text"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                      placeholder="nike.com/shoes/air-max"
+                    />
+                  ) : (
+                    <span className="flex items-center flex-1 min-w-0 text-left cursor-text" onClick={() => setUrl("")}>
+                      <span
+                        className="text-[16px] font-normal whitespace-nowrap overflow-hidden"
+                        style={{ color: "hsl(var(--hero-input-text))" }}
+                      >
+                        {typewriterText}
+                      </span>
+                      <span className="inline-block w-[2px] h-[1em] ml-[1px] align-text-bottom animate-blink"
+                        style={{ background: "hsl(var(--hero-accent))" }} />
                     </span>
-                    <span className="inline-block w-[2px] h-[1em] ml-[1px] align-text-bottom animate-blink"
-                      style={{ background: "hsl(var(--hero-accent))" }} />
-                  </span>
-                )}
+                  )}
+                </div>
 
                 <button
                   type="button"
