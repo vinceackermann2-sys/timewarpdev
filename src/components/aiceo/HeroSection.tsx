@@ -56,7 +56,7 @@ export function HeroSection({ onRunClick }: HeroSectionProps) {
 
   // Typewriter effect
   useEffect(() => {
-    if (url) return;
+    if (isEditing) return;
     let ui = 0;
     let ci = 0;
     let deleting = false;
