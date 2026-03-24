@@ -50,7 +50,7 @@ export function ProductDescription() {
           </div>
 
           {/* Full-width Image */}
-          <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[16/7]">
+          <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[4/3] sm:aspect-[16/7]">
             <img
               src={futureCity}
               alt="A futuristic city representing the post-labor economy"
