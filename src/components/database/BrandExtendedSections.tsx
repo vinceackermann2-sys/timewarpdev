@@ -307,8 +307,18 @@ export function BrandExtendedSections({
           base.moodboard.push({ id: `mood-${base.moodboard.length}`, url: null });
         }
       }
-      // Pre-populate illustrations from extracted URLs
-      if (initialData.illustrationUrls?.length) {
+      // Pre-populate illustrations from SVGs (preferred) or URLs
+      if (initialData.illustrationSvgs?.length) {
+        base.illustrations = initialData.illustrationSvgs.map((svg, i) => ({
+          id: `illust-${i}`,
+          url: null,
+          svgContent: svg,
+          label: i === 0 ? "Brand icons & symbols set" : "Website pattern / texture",
+        }));
+        if (base.illustrations.length < 2) {
+          base.illustrations.push({ id: `illust-${base.illustrations.length}`, url: null, label: "Add illustration" });
+        }
+      } else if (initialData.illustrationUrls?.length) {
         base.illustrations = initialData.illustrationUrls.map((url, i) => ({
           id: `illust-${i}`,
           url,
