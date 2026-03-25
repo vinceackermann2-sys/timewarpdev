@@ -51,7 +51,8 @@ serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+    const { url, mode } = await req.json();
+    const isCoreMode = mode === "core";
     if (!url) {
       return new Response(
         JSON.stringify({ success: false, error: "URL is required" }),
