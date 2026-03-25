@@ -12,14 +12,14 @@ import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
 
 const URL_EXAMPLES = [
-  "nike.com/air-max-90",
+  "tesla.com",
+  "nike.com",
   "apple.com/iphone-16-pro",
-  "tesla.com/model-3",
-  "dyson.com/airwrap",
-  "allbirds.com/tree-runners",
+  "dyson.com",
+  "allbirds.com",
   "glossier.com/boy-brow",
-  "notion.so/product",
-  "figma.com/pricing",
+  "notion.so",
+  "figma.com",
 ];
 
 interface AddProductURLViewProps {
@@ -82,12 +82,10 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
         year: "numeric", month: "short", day: "numeric",
       });
       const brandId = `brand-${Date.now()}`;
-      const productId = `product-${Date.now()}`;
-      const audienceId = `audience-${Date.now()}`;
 
       const extracted = data.extracted;
 
-      // Always create a brand entry — fall back to domain name or product name
+      // Always create a brand entry
       const b = extracted.brand || {};
       const fallbackName = (() => {
         try {
@@ -95,7 +93,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
           return u.hostname.replace(/^www\./, "").split(".")[0];
         } catch { return null; }
       })();
-      const brandName = b.name || extracted.product?.name || fallbackName || "My Business";
+      const brandName = b.name || extracted.products?.[0]?.name || extracted.product?.name || fallbackName || "My Business";
       const newBrand: BrandEntry = {
         id: brandId,
         name: brandName,
@@ -109,11 +107,12 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
       };
       setBrands(prev => [...prev, newBrand]);
 
-      const p = extracted.product || {};
-      const newProduct: ProductEntry = {
+      // Build products array (handle both array and single format)
+      const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
+      const newProducts: ProductEntry[] = productsRaw.slice(0, 5).map((p: any, i: number) => ({
         ...DEFAULT_PRODUCT,
-        id: productId,
-        name: p.name || "Imported Product",
+        id: `product-${Date.now()}-${i}`,
+        name: p.name || `Imported Product ${i + 1}`,
         category: p.category || "Consumer Product",
         description: p.description || "",
         features: p.features || [],
@@ -139,16 +138,16 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
         technicalLevel: p.technicalLevel || "",
         refinementChecklist: p.refinementChecklist || [],
         images: p.images?.length
-          ? p.images.map((imgUrl: string, i: number) => ({
-              id: `img-${i + 1}`,
+          ? p.images.map((imgUrl: string, j: number) => ({
+              id: `img-${j + 1}`,
               url: imgUrl,
-              label: `Product Image ${i + 1}`,
+              label: `Product Image ${j + 1}`,
             }))
           : DEFAULT_PRODUCT.images,
         offers: p.offers?.length
-          ? p.offers.map((o: any, i: number) => ({
-              id: `offer-${i + 1}`,
-              title: o.title || `Offer ${i + 1}`,
+          ? p.offers.map((o: any, j: number) => ({
+              id: `offer-${j + 1}`,
+              title: o.title || `Offer ${j + 1}`,
               originalPrice: o.originalPrice || "",
               salePrice: o.salePrice || "",
               discount: o.discount || "",
@@ -158,17 +157,20 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
             }))
           : DEFAULT_PRODUCT.offers,
         lastUpdated: now,
-        brandId: activeBrandId || (extracted.brand?.name ? brandId : undefined),
-      };
-      setProducts(prev => [...prev, newProduct]);
+        brandId: activeBrandId || brandId,
+      }));
+      setProducts(prev => [...prev, ...newProducts]);
 
-      const finalBrandId = activeBrandId || (extracted.brand?.name ? brandId : undefined);
+      const finalBrandId = activeBrandId || brandId;
 
-      if (extracted.audience?.name) {
-        const a = extracted.audience;
-        const newAudience: AudienceEntry = {
+      // Build audiences array
+      const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
+      const newAudiences: AudienceEntry[] = audiencesRaw
+        .filter((a: any) => a?.name)
+        .slice(0, 5)
+        .map((a: any, i: number) => ({
           ...DEFAULT_AUDIENCE,
-          id: audienceId,
+          id: `audience-${Date.now()}-${i}`,
           name: a.name,
           description: a.description || "",
           buyingTriggers: a.buyingTriggers || [],
@@ -194,16 +196,18 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
           technicalLevel: a.technicalLevel || "",
           refinementChecklist: a.refinementChecklist || [],
           lastUpdated: now,
-          productIds: [productId],
-        };
-        setAudiences(prev => [...prev, newAudience]);
+          productIds: newProducts[i] ? [newProducts[i].id] : [],
+        }));
+      if (newAudiences.length > 0) {
+        setAudiences(prev => [...prev, ...newAudiences]);
       }
 
       setIsDone(true);
-      setStatus("Done! Product imported successfully.");
+      const productNames = newProducts.map(p => p.name).join(", ");
+      setStatus(`Done! ${newProducts.length} product${newProducts.length > 1 ? 's' : ''} imported.`);
       toast({
-        title: "Product imported",
-        description: `${extracted.product?.name || "Product"} has been added to your Business DNA.`,
+        title: "Products imported",
+        description: `${productNames} added to your Business DNA.`,
       });
 
       setTimeout(() => onComplete(finalBrandId || undefined), 1500);

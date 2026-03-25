@@ -90,6 +90,16 @@ serve(async (req) => {
 
     console.log("Scraping URL:", formattedUrl, "Base URL:", baseUrl);
 
+    // Detect company-level URL vs specific product page
+    const isCompanyUrl = (() => {
+      try {
+        const u = new URL(formattedUrl);
+        const path = u.pathname.replace(/\/+$/g, '');
+        return !path || path === '';
+      } catch { return false; }
+    })();
+    console.log("URL type:", isCompanyUrl ? "company" : "product");
+
     // Step 1: Scrape with Firecrawl (desktop + branding) — use BASE URL for screenshots
     let scrapeData: any = null;
     let usedDirectFallback = false;
@@ -152,10 +162,69 @@ serve(async (req) => {
       }
     }
 
-    // Also scrape the product page for content extraction
+    // For company URLs: discover product pages via Map API
     let productMarkdown = "";
     let productMetadata: any = {};
-    if (!usedDirectFallback && baseUrl !== formattedUrl) {
+    let productPageContents: { url: string; markdown: string }[] = [];
+
+    if (isCompanyUrl) {
+      try {
+        console.log("Company URL detected — mapping site for product pages...");
+        const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ url: formattedUrl, search: "product", limit: 200 }),
+        });
+        if (mapRes.ok) {
+          const mapData = await mapRes.json();
+          const allUrls: string[] = (mapData.links || []).filter((u: string) => u && u.startsWith("http"));
+          console.log("Map found", allUrls.length, "URLs");
+          if (allUrls.length > 0) {
+            const pickResText = await (await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-lite",
+                messages: [{ role: "user", content: `From these URLs, select up to 5 that are individual PRODUCT pages (pages showcasing a specific product or service for sale/subscription). Exclude category/collection pages, blog posts, about/legal/career/support pages.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return [].\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
+              }),
+            })).text();
+            try {
+              const pickData = JSON.parse(pickResText);
+              const raw = pickData.choices?.[0]?.message?.content || "";
+              const arrMatch = raw.match(/\[[\s\S]*?\]/);
+              if (arrMatch) {
+                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, 5);
+                console.log("AI selected", selected.length, "product pages:", selected);
+                const scrapeResults = await Promise.allSettled(
+                  selected.map(async (pUrl: string) => {
+                    try {
+                      const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: pUrl, formats: ["markdown"], onlyMainContent: true }),
+                      });
+                      if (res.ok) {
+                        const d = await res.json();
+                        return { url: pUrl, markdown: d.data?.markdown || d.markdown || "" };
+                      }
+                      const fb = await fetchPageFallback(pUrl);
+                      return { url: pUrl, markdown: fb.markdown };
+                    } catch { return null; }
+                  })
+                );
+                productPageContents = scrapeResults
+                  .filter((r): r is PromiseFulfilledResult<{ url: string; markdown: string }> => r.status === 'fulfilled' && !!r.value)
+                  .map(r => r.value);
+                console.log("Scraped", productPageContents.length, "product pages");
+              }
+            } catch (e) { console.warn("Product selection parse error:", e); }
+          }
+        } else {
+          console.warn("Map API failed:", mapRes.status);
+        }
+      } catch (e) { console.warn("Map API error (non-fatal):", e); }
+    } else if (!usedDirectFallback && baseUrl !== formattedUrl) {
+      // Single product URL: scrape the specific product page
       try {
         const productScrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
@@ -184,12 +253,22 @@ serve(async (req) => {
     }
 
     const homepageMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
-    const markdown = productMarkdown || homepageMarkdown;
-    const metadata = productMarkdown ? productMetadata : (scrapeData.data?.metadata || scrapeData.metadata || {});
+    let markdown: string;
+    let metadata: any;
+
+    if (isCompanyUrl && productPageContents.length > 0) {
+      markdown = `--- HOMEPAGE: ${baseUrl} ---\n${homepageMarkdown.slice(0, 5000)}\n\n` +
+        productPageContents.map(p => `--- PRODUCT PAGE: ${p.url} ---\n${p.markdown.slice(0, 5000)}`).join('\n\n');
+      metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
+    } else {
+      markdown = productMarkdown || homepageMarkdown;
+      metadata = productMarkdown ? productMetadata : (scrapeData.data?.metadata || scrapeData.metadata || {});
+    }
+
     const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
     const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
 
-    console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot);
+    console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot, "productPages:", productPageContents.length);
     if (firecrawlBranding) console.log("Firecrawl branding data found");
 
     // Step 1b: Mobile screenshot (parallel) — use BASE URL
@@ -418,9 +497,52 @@ Example:
 
 ═══════════════════════════════════════
 
+═══════════════════════════════════════
+🎨 BRANDING DNA FORMULAS & EXAMPLES
+═══════════════════════════════════════
+
+1. PRIMARY LOGO
+Formula: [MARK TYPE] + [WHAT IT SYMBOLISES] + [WHERE IT MUST WORK] + [WHAT BREAKS IT]
+Example: "Wordmark logo in deep blue. Symbolises clarity and precision. Must work at 32px favicon, full-width header, and white/dark backgrounds. Never stretch, recolour, or place on busy backgrounds."
+
+2. BRAND COLORS
+Formula: [PRIMARY EMOTION] + [COLOR ROLE] + [WHAT IT MUST NEVER DO] + [ACCESSIBILITY RULE]
+Example: "Primary #3B82F6 → Trust + action. Used on all CTAs and highlights. Never used as background behind small text. Minimum 4.5:1 contrast ratio."
+
+3. TYPOGRAPHY
+Formula: [FONT PERSONALITY] + [HIERARCHY RULES] + [WHAT IT MUST NEVER BE] + [BRAND VOICE IT EXPRESSES]
+
+4. MOODBOARD
+Formula: [WORLD THE BRAND LIVES IN] + [LIGHTING & TEXTURE] + [WHAT IT FEELS LIKE] + [WHAT IT MUST NEVER FEEL LIKE]
+Example: "The brand lives in a world of precision and possibility — dark UI interfaces, glowing data lines. Lighting is cool, controlled, intentional. Looking at it should feel like stepping into the future. It must never feel warm, rustic, or human-casual."
+
+5. ILLUSTRATIONS
+Formula: [STYLE FINGERPRINT] + [WHERE THEY'RE USED] + [WHAT THEY COMMUNICATE] + [WHAT MAKES THEM OWNABLE]
+Example: "Flat-vector with thin strokes and blue/gray palette. Used for explainer graphics, empty states, and social posts. Ownable because of the consistent node/network motif."
+
+6. IMAGE GUIDELINES
+Formula: [WHAT TO SHOOT/USE] + [LIGHTING RULE] + [SUBJECT RULE] + [WHAT TO NEVER SHOW]
+
+7. WEBSITE & DIGITAL
+Formula: [LAYOUT PHILOSOPHY] + [CONTENT HIERARCHY] + [EMOTIONAL JOURNEY] + [WHAT ONE PAGE MUST ALWAYS DO]
+Example: "Minimalist grid with generous white space. Content flows: problem → mechanism → solution → proof → CTA. Every page must end with one clear, frictionless next action."
+
+8. BUTTONS & UI ELEMENTS
+Formula: [HIERARCHY RULE] + [SHAPE LANGUAGE] + [COLOR SYSTEM] + [WHAT INTERACTION FEELS LIKE]
+Example: "Primary = filled blue, white text, 6px radius → 'Take this action now'. Secondary = outlined. Hover darkens 10% — feels responsive, confident, not flashy."
+
+9. SOCIAL MEDIA
+Formula: [CONTENT PILLARS] + [VISUAL RULES] + [TONE OF VOICE] + [WHAT SUCCESS LOOKS LIKE PER FORMAT]
+
+═══════════════════════════════════════
+
+${isCompanyUrl && productPageContents.length > 0
+  ? `MULTI-PRODUCT MODE: Multiple product pages from the same company are provided below. Extract up to ${productPageContents.length} products (one per page) and one matching audience per product. All share a single brand.`
+  : `SINGLE-PRODUCT MODE: Extract exactly one product and one audience from the page content below. Return arrays with exactly 1 element each.`}
+
 JSON structure to return:
 {
-  "product": {
+  "products": [{
     "name": "",
     "category": "",
     "description": "",
@@ -441,7 +563,7 @@ JSON structure to return:
     "refinementChecklist": [],
     "images": [],
     "offers": [{"title": "", "originalPrice": "", "salePrice": "", "discount": "", "bundleDetails": "", "freeGifts": [], "isPopular": false}]
-  },
+  }],
   "brand": {
     "name": "",
     "category": "",
@@ -458,13 +580,16 @@ JSON structure to return:
     },
     "logoUrls": [],
     "visualIdentity": {
+      "logoDescription": "",
+      "moodboardDescription": "",
+      "illustrationGuidelines": "",
       "imageGuidelines": [{"rule": "", "example": ""}],
       "websiteRules": [],
       "buttonRules": [],
       "socialMediaRules": []
     }
   },
-  "audience": {
+  "audiences": [{
     "name": "",
     "description": "",
     "avatarPrompt": "",
@@ -483,7 +608,7 @@ JSON structure to return:
     "powerWords": [],
     "technicalLevel": "",
     "refinementChecklist": []
-  }
+  }]
 }
 
 IMPORTANT RULES:
@@ -495,13 +620,8 @@ IMPORTANT RULES:
 - For brand colors: extract the dominant primary, secondary, background, and text colors visible on the page (use hex format)
 - For brand typography: identify the main font family, describe the style, and estimate the dominant weight (300-700)
 - For brand logoUrls: extract ONLY actual logo image URLs (not product photos). Look for images with 'logo' in the URL or alt text.
-- For brand visualIdentity: infer image guidelines (photography rules & examples), website design rules, button/UI rules (corner radius, styles), and social media content rules based on what you observe on the page. Be specific and actionable — not generic.
-
-VISUAL IDENTITY EXTRACTION RULES:
-- imageGuidelines: Describe the photography style, composition, and imagery approach used on the page. Each rule should have a concrete example.
-- websiteRules: Layout patterns, spacing, color usage, header/footer styling, responsive hints visible on the page.
-- buttonRules: Corner radius, fill styles, hover patterns, sizing conventions observed.
-- socialMediaRules: Infer from the brand's tone, imagery style, and content approach what their social media presence should look like.
+- For brand visualIdentity: apply the Branding DNA formulas above to fill logoDescription, moodboardDescription, illustrationGuidelines, imageGuidelines, websiteRules, buttonRules, and socialMediaRules. Be specific and actionable — not generic.
+- For multi-product mode: create one entry per product page. Each product gets a matching audience.
 
 Page URL: ${formattedUrl}
 Page title: ${metadata.title || "Unknown"}
@@ -510,7 +630,7 @@ ${firecrawlBranding ? `Firecrawl extracted branding data (use this as primary so
 ${JSON.stringify(firecrawlBranding, null, 2)}
 
 ` : ""}Page content:
-${markdown.slice(0, 15000)}`;
+${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -570,6 +690,24 @@ ${markdown.slice(0, 15000)}`;
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // ══════════════════════════════════════════════════
+    // NORMALIZE: Ensure products[] and audiences[] arrays exist
+    // ══════════════════════════════════════════════════
+    if (extracted.products && !extracted.product) {
+      extracted.product = extracted.products[0] || {};
+    }
+    if (extracted.product && !extracted.products) {
+      extracted.products = [extracted.product];
+    }
+    if (extracted.audiences && !extracted.audience) {
+      extracted.audience = extracted.audiences[0] || null;
+    }
+    if (extracted.audience && !extracted.audiences) {
+      extracted.audiences = [extracted.audience];
+    }
+    if (!extracted.products) extracted.products = [];
+    if (!extracted.audiences) extracted.audiences = [];
 
     // ══════════════════════════════════════════════════
     // POST-EXTRACTION: Merge branding + generate assets
@@ -639,7 +777,7 @@ ${markdown.slice(0, 15000)}`;
       }
     }
 
-    // ── Moodboard: Download from Pinterest ──
+    // ── Moodboard: Search web for aesthetic images, AI fallback ──
     const moodboardPromise = (async () => {
       try {
         const audienceDesc = extracted.audience?.description || "general consumers";
@@ -650,7 +788,7 @@ ${markdown.slice(0, 15000)}`;
         const productDescription = (extracted.product?.description || '').slice(0, 200);
 
         // Step 1: Generate 6 aesthetic search terms using AI
-        console.log("Generating Pinterest moodboard aesthetic terms...");
+        console.log("Generating moodboard aesthetic terms...");
         const termsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -658,21 +796,16 @@ ${markdown.slice(0, 15000)}`;
             model: "google/gemini-2.5-flash-lite",
             messages: [{
               role: "user",
-              content: `Generate exactly 6 audience aesthetic search terms for a Pinterest moodboard.
+              content: `Generate exactly 6 aesthetic search terms for a moodboard.
 
 Use this framework for each term:
 [audience visual/product scene] + [trust feeling/emotion] + premium minimal e-commerce
 
-Example for a hair product targeting aging adults:
-"hairdryer hold up + soothing pink background + premium minimal e-commerce"
-
-The terms should capture the audience's emotional world, lifestyle aspirations, and the product's visual context — combined with a premium minimal e-commerce aesthetic.
-
 Brand: "${brandName}" (${brandCategory})
 Product: ${productDescription}
 Target audience: ${audienceDesc.split('.').slice(0, 3).join('.')}
-Audience pain points: ${audiencePainPoints || 'general consumer frustrations'}
-Audience power phrases: ${audiencePowerPhrases || 'convenience, quality, trust'}
+Pain points: ${audiencePainPoints || 'general consumer frustrations'}
+Power phrases: ${audiencePowerPhrases || 'convenience, quality, trust'}
 
 Return ONLY a JSON array of 6 phrases. No explanation.`
             }],
@@ -699,17 +832,15 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
             `editorial product photography + reliability + premium minimal e-commerce`,
           ];
         }
-        console.log("Pinterest moodboard terms:", aestheticTerms);
+        console.log("Moodboard terms:", aestheticTerms);
 
-        // Step 2: Search Pinterest for each term, extract i.pinimg.com URLs
-        const pinImgRegex = /https?:\/\/i\.pinimg\.com\/[^\s)"']+\.(?:jpg|jpeg|png|webp)/gi;
-        const highResPatterns = ['/originals/', '/736x/', '/564x/'];
-        const lowResPatterns = ['/75x/', '/60x/', '/150x/'];
+        // Step 2: Search the web for each term, extract image URLs from results
+        const imgUrlRegex = /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
 
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
             try {
-              console.log(`Searching Pinterest for: ${term}`);
+              console.log(`Searching for: ${term}`);
               const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -717,84 +848,45 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `site:pinterest.com ${term}`,
+                  query: `${term} aesthetic photography`,
                   limit: 5,
+                  scrapeOptions: { formats: ["markdown"] },
                 }),
               });
 
               if (!searchRes.ok) {
-                console.warn(`Pinterest search failed for "${term}": ${searchRes.status}`);
+                console.warn(`Search failed for "${term}": ${searchRes.status}`);
                 return null;
               }
 
               const searchData = await searchRes.json();
               const results = searchData.data || [];
 
-              // Collect all i.pinimg.com URLs from search result markdown snippets
-              const allPinUrls: string[] = [];
+              // Collect image URLs from search results' markdown content and metadata
+              const allImgUrls: string[] = [];
               for (const r of results) {
-                const markdown: string = r.markdown || r.description || "";
+                // Check metadata for og:image
+                if (r.metadata?.ogImage) allImgUrls.push(r.metadata.ogImage);
+                // Extract from markdown content
+                const content: string = r.markdown || r.description || "";
+                imgUrlRegex.lastIndex = 0;
                 let match;
-                pinImgRegex.lastIndex = 0;
-                while ((match = pinImgRegex.exec(markdown)) !== null) {
-                  allPinUrls.push(match[0]);
+                while ((match = imgUrlRegex.exec(content)) !== null) {
+                  allImgUrls.push(match[0]);
                 }
               }
 
-              // Prefer high-res images
-              const highRes = allPinUrls.find(url =>
-                highResPatterns.some(p => url.includes(p)) &&
-                !lowResPatterns.some(p => url.includes(p))
+              // Filter out tiny/icon images
+              const goodImg = allImgUrls.find(url =>
+                !url.includes('/icon') && !url.includes('/favicon') &&
+                !url.includes('/logo') && url.length > 30
               );
-              if (highRes) {
-                console.log(`✓ Found high-res Pinterest image for "${term}": ${highRes.slice(0, 80)}...`);
-                return highRes;
+              if (goodImg) {
+                console.log(`✓ Found moodboard image for "${term}": ${goodImg.slice(0, 80)}...`);
+                return goodImg;
               }
 
-              // Accept any non-low-res pin image
-              const anyGood = allPinUrls.find(url =>
-                !lowResPatterns.some(p => url.includes(p))
-              );
-              if (anyGood) {
-                console.log(`✓ Found Pinterest image for "${term}": ${anyGood.slice(0, 80)}...`);
-                return anyGood;
-              }
-
-              // Fallback: scrape the first Pinterest pin page for markdown
-              const firstPinUrl = results.find((r: any) => r.url?.includes("pinterest.com/pin/"))?.url;
-              if (firstPinUrl) {
-                console.log(`Scraping Pinterest pin page: ${firstPinUrl}`);
-                const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    url: firstPinUrl,
-                    formats: ["markdown"],
-                    waitFor: 2000,
-                  }),
-                });
-
-                if (scrapeRes.ok) {
-                  const scrapeData = await scrapeRes.json();
-                  const md: string = (scrapeData.data?.markdown || scrapeData.markdown || "");
-                  pinImgRegex.lastIndex = 0;
-                  const pinUrls: string[] = [];
-                  let m;
-                  while ((m = pinImgRegex.exec(md)) !== null) {
-                    pinUrls.push(m[0]);
-                  }
-                  const best = pinUrls.find(url => !lowResPatterns.some(p => url.includes(p)));
-                  if (best) {
-                    console.log(`✓ Found Pinterest image from pin scrape: ${best.slice(0, 80)}...`);
-                    return best;
-                  }
-                }
-              }
-
-              console.warn(`No Pinterest image found for "${term}"`);
+              console.warn(`No image found for "${term}"`);
               return null;
             } catch (e) {
               console.warn(`Moodboard error for "${term}":`, e);
@@ -807,8 +899,38 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
           .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
           .map(r => r.value);
 
+        // Step 3: AI generation fallback for missing slots
+        const missing = 6 - moodboardUrls.length;
+        if (missing > 0) {
+          console.log(`Generating ${missing} moodboard images with AI...`);
+          const fallbackTerms = aestheticTerms.slice(moodboardUrls.length, moodboardUrls.length + missing);
+          const fallbackResults = await Promise.allSettled(
+            fallbackTerms.map(async (term) => {
+              try {
+                const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    model: "google/gemini-2.5-flash-image",
+                    messages: [{ role: "user", content: `Create a beautiful moodboard reference image for a ${brandCategory} brand called "${brandName}". Aesthetic: ${term}. Professional, editorial quality. No text, no logos, no watermarks. Pure visual mood and atmosphere.` }],
+                    modalities: ["image", "text"],
+                  }),
+                });
+                if (res.ok) {
+                  const d = await res.json();
+                  return d.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
+                }
+                return null;
+              } catch { return null; }
+            })
+          );
+          for (const r of fallbackResults) {
+            if (r.status === 'fulfilled' && r.value) moodboardUrls.push(r.value);
+          }
+        }
+
         extracted.brand.visualIdentity.moodboardUrls = moodboardUrls;
-        console.log("Final Pinterest moodboard count:", moodboardUrls.length);
+        console.log("Final moodboard count:", moodboardUrls.length);
       } catch (e) {
         console.error("Moodboard pipeline error:", e);
         extracted.brand.visualIdentity.moodboardUrls = [];
@@ -1267,7 +1389,7 @@ The image should capture a dynamic moment — the product being actively used, d
     console.log("Extraction successful:", extracted.product?.name, "logos:", extracted.brand?.logoUrls?.length || 0);
 
     return new Response(
-      JSON.stringify({ success: true, extracted }),
+      JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 0 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
