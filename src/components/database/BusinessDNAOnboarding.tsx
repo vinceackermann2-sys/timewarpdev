@@ -437,30 +437,30 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const currentTask = ANALYSIS_MILESTONES[currentMilestone];
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 font-sans overflow-hidden relative">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-2 sm:p-4 font-sans overflow-hidden relative">
       {/* Background Lights */}
       <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Top 3-bump progress bar */}
       {step >= 1 && (
-        <div className="absolute top-0 left-0 w-full p-8 flex justify-center z-50">
-          <div className="flex items-center gap-3 bg-card border border-border shadow-sm rounded-full px-5 py-3">
+        <div className="absolute top-0 left-0 w-full p-4 sm:p-8 flex justify-center z-50">
+          <div className="flex items-center gap-2 sm:gap-3 bg-card border border-border shadow-sm rounded-full px-4 sm:px-5 py-2.5 sm:py-3">
             {[1, 2, 3].map((i, index) => (
-              <div key={i} className="flex items-center gap-3">
+              <div key={i} className="flex items-center gap-2 sm:gap-3">
                 <motion.div
                   layout
                   className={`rounded-full transition-all duration-500 ${
                     step === i
-                      ? "w-10 h-2.5 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+                      ? "w-8 sm:w-10 h-2 sm:h-2.5 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
                       : step > i
-                        ? "w-2.5 h-2.5 bg-primary"
-                        : "w-2.5 h-2.5 bg-muted"
+                        ? "w-2 sm:w-2.5 h-2 sm:h-2.5 bg-primary"
+                        : "w-2 sm:w-2.5 h-2 sm:h-2.5 bg-muted"
                   }`}
                 />
                 {index < 2 && (
                   <div
-                    className={`h-[2px] w-8 sm:w-12 transition-colors duration-500 ${
+                    className={`h-[2px] w-6 sm:w-12 transition-colors duration-500 ${
                       step > i ? "bg-primary/50" : "bg-muted"
                     }`}
                   />
@@ -473,14 +473,14 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
       {/* Header & Progress — steps 1-2 only */}
       {step >= 1 && step < 3 && (
-        <div className="flex flex-col items-center mb-8 mt-12">
+        <div className="flex flex-col items-center mb-4 sm:mb-8 mt-14 sm:mt-12">
           <AnimatePresence mode="wait">
             <motion.h1
               key={`title-${step}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="text-2xl sm:text-3xl font-extrabold mb-6 tracking-tight text-center onboarding-text-shine"
+              className="text-xl sm:text-3xl font-extrabold mb-4 sm:mb-6 tracking-tight text-center onboarding-text-shine"
             >
               {step === 1 ? "Researching your business" : "Setting up your business"}
             </motion.h1>
@@ -489,7 +489,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center w-80 mt-2"
+            className="flex flex-col items-center w-64 sm:w-80 mt-1 sm:mt-2"
           >
             <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-2">
               <motion.div
@@ -506,7 +506,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         </div>
       )}
 
-      <div className="max-w-5xl w-full relative z-10 px-4">
+      <div className="max-w-5xl w-full relative z-10 px-2 sm:px-4">
         <AnimatePresence mode="wait">
           {/* Step 0: URL Input */}
           {step === 0 && (
@@ -518,24 +518,24 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
-              <div className="space-y-3 py-4">
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
-                  <Globe className="h-7 w-7 text-primary" />
+              <div className="space-y-2 sm:space-y-3 py-2 sm:py-4">
+                <div className="mx-auto h-11 w-11 sm:h-14 sm:w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 sm:mb-4">
+                  <Globe className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
                 </div>
-                <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
                   Enter your company URL
                 </h1>
-                <p className="text-muted-foreground max-w-md mx-auto">
+                <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
                   We'll analyze your website and build your Business DNA automatically.
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-muted/40 border border-border/40 p-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Globe className="h-6 w-6 text-primary/70" />
+              <div className="rounded-2xl bg-muted/40 border border-border/40 p-2.5 sm:p-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Globe className="h-5 w-5 sm:h-6 sm:w-6 text-primary/70" />
                   </div>
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 min-w-0">
                     <input
                       type="url"
                       value={urlInput}
@@ -546,11 +546,11 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                           setStep(1);
                         }
                       }}
-                      className="w-full h-12 text-base border-0 bg-transparent focus:outline-none text-foreground px-3"
+                      className="w-full h-10 sm:h-12 text-sm sm:text-base border-0 bg-transparent focus:outline-none text-foreground px-2 sm:px-3"
                       autoFocus
                     />
                     {!urlInput && (
-                      <div className="absolute inset-0 flex items-center pointer-events-none pl-3">
+                      <div className="absolute inset-0 flex items-center pointer-events-none pl-2 sm:pl-3">
                         <AnimatePresence mode="wait">
                           <motion.span
                             key={placeholderIndex}
@@ -558,7 +558,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                             animate={{ opacity: 0.4, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.3 }}
-                            className="text-base text-muted-foreground"
+                            className="text-sm sm:text-base text-muted-foreground truncate"
                           >
                             {URL_EXAMPLES[placeholderIndex]}
                           </motion.span>
@@ -574,9 +574,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                       }
                     }}
                     disabled={!urlInput.trim()}
-                    className="h-12 px-6 rounded-xl bg-primary/80 hover:bg-primary text-primary-foreground font-medium text-base flex items-center gap-2 disabled:opacity-50 transition-all"
+                    className="h-10 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary/80 hover:bg-primary text-primary-foreground font-medium text-sm sm:text-base flex items-center gap-2 disabled:opacity-50 transition-all shrink-0"
                   >
-                    Continue
+                    <span className="hidden sm:inline">Continue</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -590,19 +590,18 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
             </motion.div>
           )}
 
-          {/* Steps 1-2: Analysis cards */}
           {step >= 1 && step < 3 && (
             <motion.div
               key="analyzing-container"
-              className="flex flex-col md:flex-row gap-6 w-full items-stretch justify-center mx-auto"
+              className="flex flex-col md:flex-row gap-4 sm:gap-6 w-full items-stretch justify-center mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
               {/* Left Card — Flipping Task Display */}
-              <div className="bg-card rounded-3xl border border-border shadow-2xl shadow-primary/10 p-10 sm:p-14 flex flex-col items-center justify-center w-full md:w-1/2">
-                <div className="w-28 h-28 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 relative">
+              <div className="bg-card rounded-2xl sm:rounded-3xl border border-border shadow-2xl shadow-primary/10 p-5 sm:p-10 md:p-14 flex flex-col items-center justify-center w-full md:w-1/2">
+                <div className="w-16 h-16 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl bg-primary/10 flex items-center justify-center mb-4 sm:mb-8 relative">
                   <AnimatePresence mode="wait">
                     {step === 1 ? (
                       <motion.div
@@ -613,7 +612,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                         transition={{ type: "spring", stiffness: 200, damping: 20 }}
                         className="absolute"
                       >
-                        <Telescope className="w-14 h-14 text-primary" />
+                        <Telescope className="w-8 h-8 sm:w-14 sm:h-14 text-primary" />
                       </motion.div>
                     ) : (
                       <motion.div
@@ -624,17 +623,17 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                         transition={{ type: "spring", stiffness: 200, damping: 20 }}
                         className="absolute"
                       >
-                        <Dna className="w-14 h-14 text-primary" />
+                        <Dna className="w-8 h-8 sm:w-14 sm:h-14 text-primary" />
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
 
-                <div className="text-sm font-bold tracking-widest text-muted-foreground mb-4 uppercase">
+                <div className="text-xs sm:text-sm font-bold tracking-widest text-muted-foreground mb-2 sm:mb-4 uppercase">
                   STEP {step} OF 3
                 </div>
 
-                <h2 className="text-lg sm:text-xl font-bold text-foreground text-center tracking-tight mb-3">
+                <h2 className="text-base sm:text-xl font-bold text-foreground text-center tracking-tight mb-2 sm:mb-3">
                   {step === 1 ? "Analyzing your business" : "Forging your business DNA"}
                 </h2>
 
@@ -655,7 +654,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   </div>
                 ) : (
                   /* Single flipping current task — no history stack */
-                  <div className="flex flex-col items-center justify-center w-full min-h-[60px] mt-2">
+                  <div className="flex flex-col items-center justify-center w-full min-h-[40px] sm:min-h-[60px] mt-1 sm:mt-2">
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={currentTask}
@@ -663,7 +662,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
                         transition={{ duration: 0.35 }}
-                        className="flex items-center gap-2 text-sm"
+                        className="flex items-center gap-2 text-xs sm:text-sm"
                       >
                         <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
                         <span className="text-foreground font-medium">{currentTask}</span>
@@ -674,13 +673,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               </div>
 
               {/* Right Card: Sources */}
-              <div className="bg-card rounded-3xl border border-border shadow-2xl shadow-primary/10 p-8 sm:p-10 flex flex-col items-start justify-start w-full md:w-1/2">
-                <div className="mb-6">
-                  <Globe className="w-6 h-6 text-primary" />
+              <div className="bg-card rounded-2xl sm:rounded-3xl border border-border shadow-2xl shadow-primary/10 p-5 sm:p-8 md:p-10 flex flex-col items-start justify-start w-full md:w-1/2">
+                <div className="mb-4 sm:mb-6">
+                  <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
 
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="text-sm font-bold tracking-widest text-foreground uppercase">
+                <div className="flex items-center gap-3 mb-3 sm:mb-4">
+                  <div className="text-xs sm:text-sm font-bold tracking-widest text-foreground uppercase">
                     Scanning Sources
                   </div>
                   {!allSourcesDone && (
@@ -692,7 +691,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2 w-full min-h-[140px]">
+                <div className="flex flex-col gap-2 w-full min-h-[80px] sm:min-h-[140px]">
                   <AnimatePresence>
                     {visibleSources.map((source, i) => {
                       const isLatest = i === visibleSources.length - 1 && !allSourcesDone;
@@ -703,19 +702,19 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                           animate={{ opacity: isLatest ? 1 : 0.5, x: 0 }}
                           exit={{ opacity: 0, x: 10 }}
                           transition={{ duration: 0.3 }}
-                          className="flex items-center gap-2 text-sm"
+                          className="flex items-center gap-2 text-xs sm:text-sm"
                         >
                           {isLatest ? (
-                            <div className="h-3.5 w-3.5 rounded-full border-2 border-primary flex items-center justify-center shrink-0">
+                            <div className="h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full border-2 border-primary flex items-center justify-center shrink-0">
                               <motion.div
-                                className="h-1.5 w-1.5 rounded-full bg-primary"
+                                className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-primary"
                                 animate={{ scale: [1, 1.3, 1] }}
                                 transition={{ duration: 1, repeat: Infinity }}
                               />
                             </div>
                           ) : (
-                            <div className="h-3.5 w-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                              <Check className="h-2.5 w-2.5 text-primary" />
+                            <div className="h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                              <Check className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-primary" />
                             </div>
                           )}
                           <span className={`truncate ${isLatest ? "text-foreground font-medium" : "text-muted-foreground"}`}>
@@ -727,7 +726,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   </AnimatePresence>
                 </div>
 
-                <div className="mt-auto pt-4 border-t border-border/50 w-full">
+                <div className="mt-auto pt-3 sm:pt-4 border-t border-border/50 w-full">
                   <p className="text-xs text-muted-foreground/60">
                     {scannedSources.length} of {allSources.length} sources scanned
                   </p>
@@ -739,13 +738,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           {step === 3 && (
             <motion.div
               key="result-card"
-              className="w-full max-w-md mx-auto flex flex-col items-center"
+              className="w-full max-w-sm sm:max-w-md mx-auto flex flex-col items-center px-2"
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
             >
               {/* Orb */}
-              <div className="orb-stage mb-12 mt-4">
+              <div className="orb-stage mb-8 sm:mb-12 mt-2 sm:mt-4 scale-75 sm:scale-100 origin-center">
                 <div className="orb-wrapper">
                   <div className="orb-glow-aura"></div>
                   <div className="orb-connectors">
@@ -757,7 +756,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               </div>
 
               {/* Agent Name Input */}
-              <div className="w-full flex flex-col items-center min-h-[120px] justify-center">
+              <div className="w-full flex flex-col items-center min-h-[100px] sm:min-h-[120px] justify-center">
                 <AnimatePresence mode="wait">
                   {!isNameSubmitted ? (
                     <motion.div
@@ -769,7 +768,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                     >
                       <label
                         htmlFor="agentName"
-                        className="flex items-center justify-center text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wide"
+                        className="flex items-center justify-center text-xs sm:text-sm font-bold text-muted-foreground mb-3 sm:mb-4 uppercase tracking-wide"
                       >
                         Agent Name
                       </label>
@@ -784,7 +783,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                           }
                         }}
                         placeholder=""
-                        className="w-full px-5 py-4 text-center text-lg bg-card border-2 border-border rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none text-foreground font-medium shadow-sm"
+                        className="w-full px-4 sm:px-5 py-3 sm:py-4 text-center text-base sm:text-lg bg-card border-2 border-border rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none text-foreground font-medium shadow-sm"
                         autoFocus
                       />
                       <AnimatePresence>
@@ -793,7 +792,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
-                            className="text-center text-xs text-muted-foreground mt-3"
+                            className="text-center text-xs text-muted-foreground mt-2 sm:mt-3"
                           >
                             Press Enter to continue
                           </motion.p>
@@ -809,10 +808,10 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                     >
                       <button
                         onClick={() => onComplete(agentName.trim(), createdBrandId)}
-                        className="w-full bg-card border border-border shadow-sm text-foreground hover:bg-muted px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                        className="w-full bg-card border border-border shadow-sm text-foreground hover:bg-muted px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                       >
                         Take Me To {agentName.trim()}
-                        <ArrowRight className="w-5 h-5 text-primary" />
+                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                       </button>
                     </motion.div>
                   )}
