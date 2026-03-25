@@ -87,7 +87,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const [persistenceComplete, setPersistenceComplete] = useState(false);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const workspaceIdRef = useRef<string | null>(null);
-  const resolvedUserIdRef = useRef<string | null>(null);
+  
 
   // Refs for progress animation to avoid stale closures
   const scrapeCompleteRef = useRef(false);
