@@ -152,8 +152,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           return;
         }
 
-        // Store workspace ID from localStorage if available
-        workspaceIdRef.current = localStorage.getItem("preferred_workspace_id");
+        // Don't trust localStorage — let the edge function resolve workspace server-side
+        workspaceIdRef.current = null;
 
         // Start scrape
         if (!cancelled) setScannedSources([allSources[0]]);
