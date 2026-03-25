@@ -46,56 +46,14 @@ function getActualSources(url: string): string[] {
   }
 }
 
-/** Wait for a valid authenticated session, retrying up to maxAttempts times.
- *  Uses setSession to force the client to adopt the fresh tokens. */
-async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<{ userId: string; } | null> {
+/** Wait for a valid authenticated session (just needs a token for the edge function). */
+async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<string | null> {
   for (let i = 0; i < maxAttempts; i++) {
-    try {
-      // Try refreshSession first — this forces a fresh JWT from the server
-      const { data: refreshData } = await supabase.auth.refreshSession();
-      if (refreshData?.session) {
-        // Force the client to adopt these tokens immediately
-        await supabase.auth.setSession({
-          access_token: refreshData.session.access_token,
-          refresh_token: refreshData.session.refresh_token,
-        });
-        if (refreshData.session.user?.id) {
-          return { userId: refreshData.session.user.id };
-        }
-      }
-    } catch {
-      // refreshSession can fail if there's no session at all
-    }
-
-    // Fallback to getSession
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        return { userId: session.user.id };
-      }
-    } catch {
-      // ignore
-    }
-
-    if (i < maxAttempts - 1) {
-      await new Promise(r => setTimeout(r, delayMs));
-    }
-  }
-  return null;
-}
-
-/** Resolve workspace ID, waiting for trigger-created workspace to appear */
-async function resolveWorkspaceId(userId: string, maxAttempts = 5): Promise<string | null> {
-  for (let i = 0; i < maxAttempts; i++) {
-    const { data: wsData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
-    if (wsData && (wsData as any[]).length > 0) {
-      const wsId = (wsData as any[])[0].workspace_id;
-      localStorage.setItem("preferred_workspace_id", wsId);
-      return wsId;
-    }
-    if (i < maxAttempts - 1) {
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-    }
+      if (session?.access_token) return session.access_token;
+    } catch { /* ignore */ }
+    if (i < maxAttempts - 1) await new Promise(r => setTimeout(r, delayMs));
   }
   return null;
 }
@@ -129,7 +87,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const [persistenceComplete, setPersistenceComplete] = useState(false);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const workspaceIdRef = useRef<string | null>(null);
-  const resolvedUserIdRef = useRef<string | null>(null);
+  
 
   // Refs for progress animation to avoid stale closures
   const scrapeCompleteRef = useRef(false);
@@ -184,8 +142,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     (async () => {
       try {
         // Wait for auth session to settle (critical for new signups)
-        const authResult = await waitForSession();
-        if (!authResult) {
+        const token = await waitForSession();
+        if (!token) {
           if (!cancelled) {
             setScrapeError(true);
             setScrapeComplete(true);
@@ -193,14 +151,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           }
           return;
         }
-        resolvedUserIdRef.current = authResult.userId;
 
-        // Resolve workspace with retries
-        let wsId = localStorage.getItem("preferred_workspace_id");
-        if (!wsId) {
-          wsId = await resolveWorkspaceId(authResult.userId);
-        }
-        workspaceIdRef.current = wsId;
+        // Store workspace ID from localStorage if available
+        workspaceIdRef.current = localStorage.getItem("preferred_workspace_id");
 
         // Start scrape
         if (!cancelled) setScannedSources([allSources[0]]);
@@ -271,7 +224,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       } else {
         // Phase B: scrape done, slowly crawl from current value toward 95
         // Use progressRef to avoid stale closure — always increment from real value
-        next = Math.min(95, progressRef.current + 0.008);
+        next = Math.min(95, progressRef.current + 0.05);
       }
 
       progressRef.current = next;
@@ -292,36 +245,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     }
   }, [step, scrapeComplete, scrapeError]);
 
-  // Step 2: create entries directly in DB with robust retry
+  // Step 2: persist via edge function (bypasses RLS with service role)
   useEffect(() => {
     if (step !== 2) return;
     let cancelled = false;
 
     (async () => {
-      const wsId = workspaceIdRef.current;
-
-      // If workspace wasn't resolved yet, try again
-      if (!wsId && resolvedUserIdRef.current) {
-        const retryWsId = await resolveWorkspaceId(resolvedUserIdRef.current);
-        if (retryWsId) {
-          workspaceIdRef.current = retryWsId;
-        }
-      }
-
-      const finalWsId = workspaceIdRef.current;
-      if (!finalWsId) {
-        setPersistenceError("No workspace found. Please try again.");
-        return;
-      }
-
-      // Get fresh session with forced refresh
-      const sessionResult = await waitForSession(4, 2000);
-      if (!sessionResult) {
-        setPersistenceError("Not authenticated. Please sign in and try again.");
-        return;
-      }
-      const userId = sessionResult.userId;
-
       const extracted = scrapeResult.current || {};
       const now = new Date().toLocaleDateString("en-US", {
         year: "numeric", month: "short", day: "numeric",
@@ -442,100 +371,28 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
       if (cancelled) return;
 
-      // Direct DB persistence with exponential backoff retry for RLS errors
-      const MAX_INSERT_RETRIES = 4;
-
-      async function insertWithRetry(payload: any, label: string): Promise<{ error: any }> {
-        for (let attempt = 0; attempt < MAX_INSERT_RETRIES; attempt++) {
-          // Force fresh session before each retry attempt
-          if (attempt > 0) {
-            console.log(`${label} retry attempt ${attempt + 1}...`);
-            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-            try {
-              const { data: refreshData } = await supabase.auth.refreshSession();
-              if (refreshData?.session) {
-                await supabase.auth.setSession({
-                  access_token: refreshData.session.access_token,
-                  refresh_token: refreshData.session.refresh_token,
-                });
-              }
-            } catch {
-              // best effort
-            }
-          }
-
-          const { error } = await supabase.from("user_business_data").insert(payload);
-
-          if (!error) return { error: null };
-
-          const isRlsError = error.code === '42501' || error.message?.includes('row-level security');
-          if (isRlsError && attempt < MAX_INSERT_RETRIES - 1) {
-            console.warn(`${label} RLS error (attempt ${attempt + 1}) — will retry`);
-            continue;
-          }
-
-          return { error };
-        }
-        return { error: new Error(`${label} failed after ${MAX_INSERT_RETRIES} attempts`) };
-      }
-
-      const basePayload = {
-        user_id: userId,
-        source: "business-dna" as const,
-        is_analyzed: true,
-        workspace_id: finalWsId,
-      };
-
-      // Brand insert (required)
-      const { error: brandErr } = await insertWithRetry({
-        ...basePayload,
-        data_type: "brand",
-        title: newBrand.name,
-        content: JSON.stringify(newBrand),
-      }, "Brand insert");
-
-      if (brandErr) {
-        console.error("Brand insert failed:", brandErr);
-        if (!cancelled) setPersistenceError("Failed to save brand. Please try again.");
-        return;
-      }
-
-      // Product insert (required)
-      const { error: productErr } = await insertWithRetry({
-        ...basePayload,
-        data_type: "product",
-        title: newProduct.name,
-        content: JSON.stringify(newProduct),
-      }, "Product insert");
-
-      if (productErr) {
-        console.error("Product insert failed:", productErr);
-        if (!cancelled) setPersistenceError("Failed to save product. Please try again.");
-        return;
-      }
-
-      // Audience insert (optional — only if data exists)
-      if (newAudience) {
-        const { error: audErr } = await insertWithRetry({
-          ...basePayload,
-          data_type: "audience",
-          title: newAudience.name,
-          content: JSON.stringify(newAudience),
-        }, "Audience insert");
-
-        if (audErr) {
-          console.error("Audience insert failed:", audErr);
-          // Non-fatal, continue
-        }
-      }
+      // Call edge function — uses service role to bypass RLS
+      const { data, error } = await supabase.functions.invoke("save-onboarding", {
+        body: {
+          brandData: newBrand,
+          productData: newProduct,
+          audienceData: newAudience,
+          workspaceId: workspaceIdRef.current,
+          brandName,
+        },
+      });
 
       if (cancelled) return;
 
-      // Rename workspace — wrapped in try/catch to handle 409 conflicts
-      try {
-        await supabase.from("workspaces").update({ name: brandName }).eq("id", finalWsId);
-      } catch (wsErr) {
-        console.warn("Workspace rename failed (non-fatal):", wsErr);
+      if (error || !data?.success) {
+        console.error("save-onboarding failed:", error || data?.error);
+        setPersistenceError(data?.error || "Failed to save brand. Please try again.");
+        return;
+      }
+
+      // Store workspace ID from response
+      if (data.workspaceId) {
+        localStorage.setItem("preferred_workspace_id", data.workspaceId);
       }
 
       // Update context for immediate UI hydration
