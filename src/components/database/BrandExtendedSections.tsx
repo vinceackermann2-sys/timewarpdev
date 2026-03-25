@@ -384,6 +384,7 @@ export function BrandExtendedSections({
                   socialMediaRules: data.socialMediaRules,
                   moodboardUrls: data.moodboard.filter(s => s.url).map(s => s.url!),
                   illustrationUrls: data.illustrations.filter(s => s.url).map(s => s.url!),
+                  illustrationSvgs: data.illustrations.filter(s => s.svgContent).map(s => s.svgContent!),
                   websiteScreenshot: initialData?.websiteScreenshot,
                   mobileScreenshot: initialData?.mobileScreenshot,
                   guidelineImageUrls: initialData?.guidelineImageUrls,
