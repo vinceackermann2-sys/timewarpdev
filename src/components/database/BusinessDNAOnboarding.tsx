@@ -447,11 +447,21 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
       async function insertWithRetry(payload: any, label: string): Promise<{ error: any }> {
         for (let attempt = 0; attempt < MAX_INSERT_RETRIES; attempt++) {
-          // Force fresh session before each attempt
+          // Force fresh session before each retry attempt
           if (attempt > 0) {
             console.log(`${label} retry attempt ${attempt + 1}...`);
             await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-            await supabase.auth.refreshSession();
+            try {
+              const { data: refreshData } = await supabase.auth.refreshSession();
+              if (refreshData?.session) {
+                await supabase.auth.setSession({
+                  access_token: refreshData.session.access_token,
+                  refresh_token: refreshData.session.refresh_token,
+                });
+              }
+            } catch {
+              // best effort
+            }
           }
 
           const { error } = await supabase.from("user_business_data").insert(payload);
