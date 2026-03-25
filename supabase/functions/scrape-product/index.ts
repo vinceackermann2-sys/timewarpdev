@@ -90,6 +90,16 @@ serve(async (req) => {
 
     console.log("Scraping URL:", formattedUrl, "Base URL:", baseUrl);
 
+    // Detect company-level URL vs specific product page
+    const isCompanyUrl = (() => {
+      try {
+        const u = new URL(formattedUrl);
+        const path = u.pathname.replace(/\/+$/g, '');
+        return !path || path === '';
+      } catch { return false; }
+    })();
+    console.log("URL type:", isCompanyUrl ? "company" : "product");
+
     // Step 1: Scrape with Firecrawl (desktop + branding) — use BASE URL for screenshots
     let scrapeData: any = null;
     let usedDirectFallback = false;
