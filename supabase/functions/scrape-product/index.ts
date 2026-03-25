@@ -677,14 +677,56 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
 
     let extracted;
     try {
-      const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        extracted = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON found in AI response");
+      // Strip markdown code blocks first
+      let cleaned = rawContent
+        .replace(/```json\s*/gi, "")
+        .replace(/```\s*/g, "")
+        .trim();
+
+      // Find JSON boundaries
+      const jsonStart = cleaned.indexOf("{");
+      const jsonEnd = cleaned.lastIndexOf("}");
+
+      if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) {
+        throw new Error("No JSON object found in AI response");
       }
+
+      cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+
+      try {
+        extracted = JSON.parse(cleaned);
+      } catch (firstErr) {
+        // Fix common AI JSON issues: trailing commas, control chars
+        cleaned = cleaned
+          .replace(/,\s*}/g, "}")
+          .replace(/,\s*]/g, "]")
+          .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === "\n" || ch === "\t" ? ch : "");
+
+        try {
+          extracted = JSON.parse(cleaned);
+        } catch (secondErr) {
+          // Truncation detection — unbalanced braces
+          const openB = (cleaned.match(/{/g) || []).length;
+          const closeB = (cleaned.match(/}/g) || []).length;
+          if (openB !== closeB) {
+            // Try to close missing braces
+            const missing = openB - closeB;
+            for (let i = 0; i < missing; i++) cleaned += "}";
+            // Also close any open arrays
+            const openArr = (cleaned.match(/\[/g) || []).length;
+            const closeArr = (cleaned.match(/]/g) || []).length;
+            for (let i = 0; i < openArr - closeArr; i++) cleaned += "]";
+            cleaned = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
+            extracted = JSON.parse(cleaned);
+          } else {
+            throw secondErr;
+          }
+        }
+      }
+      console.log("JSON extraction successful");
     } catch (parseErr) {
-      console.error("JSON parse error in AI response");
+      console.error("JSON parse error in AI response:", (parseErr as Error).message);
+      console.error("Raw content length:", rawContent.length, "First 500 chars:", rawContent.slice(0, 500));
       return new Response(
         JSON.stringify({ success: false, error: "Failed to parse extracted data" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
