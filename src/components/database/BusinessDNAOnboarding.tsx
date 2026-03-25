@@ -46,56 +46,14 @@ function getActualSources(url: string): string[] {
   }
 }
 
-/** Wait for a valid authenticated session, retrying up to maxAttempts times.
- *  Uses setSession to force the client to adopt the fresh tokens. */
-async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<{ userId: string; } | null> {
+/** Wait for a valid authenticated session (just needs a token for the edge function). */
+async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<string | null> {
   for (let i = 0; i < maxAttempts; i++) {
-    try {
-      // Try refreshSession first — this forces a fresh JWT from the server
-      const { data: refreshData } = await supabase.auth.refreshSession();
-      if (refreshData?.session) {
-        // Force the client to adopt these tokens immediately
-        await supabase.auth.setSession({
-          access_token: refreshData.session.access_token,
-          refresh_token: refreshData.session.refresh_token,
-        });
-        if (refreshData.session.user?.id) {
-          return { userId: refreshData.session.user.id };
-        }
-      }
-    } catch {
-      // refreshSession can fail if there's no session at all
-    }
-
-    // Fallback to getSession
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        return { userId: session.user.id };
-      }
-    } catch {
-      // ignore
-    }
-
-    if (i < maxAttempts - 1) {
-      await new Promise(r => setTimeout(r, delayMs));
-    }
-  }
-  return null;
-}
-
-/** Resolve workspace ID, waiting for trigger-created workspace to appear */
-async function resolveWorkspaceId(userId: string, maxAttempts = 5): Promise<string | null> {
-  for (let i = 0; i < maxAttempts; i++) {
-    const { data: wsData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
-    if (wsData && (wsData as any[]).length > 0) {
-      const wsId = (wsData as any[])[0].workspace_id;
-      localStorage.setItem("preferred_workspace_id", wsId);
-      return wsId;
-    }
-    if (i < maxAttempts - 1) {
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-    }
+      if (session?.access_token) return session.access_token;
+    } catch { /* ignore */ }
+    if (i < maxAttempts - 1) await new Promise(r => setTimeout(r, delayMs));
   }
   return null;
 }
