@@ -916,7 +916,7 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
             try {
-              console.log(`Searching for: ${term}`);
+              console.log(`Searching Pinterest for: ${term}`);
               const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -924,26 +924,24 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `${term} aesthetic photography`,
+                  query: `site:pinterest.com ${term}`,
                   limit: 5,
-                  scrapeOptions: { formats: ["markdown"] },
+                  scrapeOptions: { formats: ["markdown", "links"] },
                 }),
               });
 
               if (!searchRes.ok) {
-                console.warn(`Search failed for "${term}": ${searchRes.status}`);
+                console.warn(`Pinterest search failed for "${term}": ${searchRes.status}`);
                 return null;
               }
 
               const searchData = await searchRes.json();
               const results = searchData.data || [];
 
-              // Collect image URLs from search results' markdown content and metadata
+              // Extract Pinterest image URLs from results
               const allImgUrls: string[] = [];
               for (const r of results) {
-                // Check metadata for og:image
                 if (r.metadata?.ogImage) allImgUrls.push(r.metadata.ogImage);
-                // Extract from markdown content
                 const content: string = r.markdown || r.description || "";
                 imgUrlRegex.lastIndex = 0;
                 let match;
@@ -952,7 +950,16 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                 }
               }
 
-              // Filter out tiny/icon images
+              // Prefer Pinterest CDN images (i.pinimg.com)
+              const pinterestImg = allImgUrls.find(url =>
+                url.includes('pinimg.com') && !url.includes('/75x') && !url.includes('/140x')
+              );
+              if (pinterestImg) {
+                console.log(`✓ Found Pinterest moodboard image for "${term}": ${pinterestImg.slice(0, 80)}...`);
+                return pinterestImg;
+              }
+
+              // Fallback to any good image from Pinterest results
               const goodImg = allImgUrls.find(url =>
                 !url.includes('/icon') && !url.includes('/favicon') &&
                 !url.includes('/logo') && url.length > 30
@@ -962,7 +969,7 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                 return goodImg;
               }
 
-              console.warn(`No image found for "${term}"`);
+              console.warn(`No Pinterest image found for "${term}"`);
               return null;
             } catch (e) {
               console.warn(`Moodboard error for "${term}":`, e);
