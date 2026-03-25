@@ -8,9 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, Mail, Lock, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link as RouterLink } from "react-router-dom";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getSafeSession } from "@/lib/authSession";
 import { lovable } from "@/integrations/lovable";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 interface AuthDialogProps {
   open: boolean;
