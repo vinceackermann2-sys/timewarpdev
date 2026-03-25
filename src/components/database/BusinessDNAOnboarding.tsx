@@ -142,8 +142,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     (async () => {
       try {
         // Wait for auth session to settle (critical for new signups)
-        const authResult = await waitForSession();
-        if (!authResult) {
+        const token = await waitForSession();
+        if (!token) {
           if (!cancelled) {
             setScrapeError(true);
             setScrapeComplete(true);
@@ -151,14 +151,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           }
           return;
         }
-        resolvedUserIdRef.current = authResult.userId;
 
-        // Resolve workspace with retries
-        let wsId = localStorage.getItem("preferred_workspace_id");
-        if (!wsId) {
-          wsId = await resolveWorkspaceId(authResult.userId);
-        }
-        workspaceIdRef.current = wsId;
+        // Store workspace ID from localStorage if available
+        workspaceIdRef.current = localStorage.getItem("preferred_workspace_id");
 
         // Start scrape
         if (!cancelled) setScannedSources([allSources[0]]);
