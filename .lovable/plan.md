@@ -1,40 +1,73 @@
 
+Diagnosis
 
-## Plan: Fix onboarding persistence by moving DB inserts to a backend function
+The current failure is not the same old client-side RLS problem anymore. The save step is now failing inside the backend function itself.
 
-### Root cause
+What’s actually happening:
+- `save-onboarding` is returning HTTP 500.
+- The backend logs show the exact cause:
+  - `insert or update on table "user_business_data" violates foreign key constraint "user_business_data_workspace_id_fkey"`
+  - The function is trying to save with a `workspace_id` that does not exist.
+- I also checked the database:
+  - the current user does have a real workspace
+  - but the `workspace_id` being passed from onboarding is a different, nonexistent one
 
-The 403 errors happen because `auth.uid()` in RLS policies is null/stale during the seconds after signup. Despite retries with `refreshSession` and `setSession`, the client-side JWT never becomes valid fast enough for the RLS check `user_id = auth.uid() AND is_workspace_member(auth.uid(), workspace_id)` to pass. This is a well-known race condition with `immediate_login_after_signup`.
+Why it works through Business DNA but not onboarding:
+- Business DNA runs after the normal workspace state has loaded and been normalized.
+- Onboarding runs earlier and currently trusts `localStorage.getItem("preferred_workspace_id")`.
+- If that local value is stale from an older session/account/deleted workspace, onboarding sends a bad workspace id to `save-onboarding`.
+- `save-onboarding` currently trusts that client-provided id and inserts with it directly, so the foreign key fails and the whole save aborts.
+- That is why manual creation works, while onboarding does not.
 
-Retrying harder on the client won't fix this — the JWT propagation delay is server-side.
+Also:
+- the `feature_collector.js` deprecation warning is unrelated to the save failure
+- the current blocking bug is the invalid workspace id path
+- there is still a separate intermittent `scrape-product` JSON parse issue in logs, but the specific error you’re seeing now is the invalid workspace save path
 
-### Solution
+Implementation plan
 
-Move the brand/product/audience persistence to a new edge function that uses the **service role key** to bypass RLS. This matches the existing pattern used by other edge functions in this project (subscription management, AI agents, etc.).
+1. Fix `save-onboarding` so it never trusts the client workspace id blindly
+- File: `supabase/functions/save-onboarding/index.ts`
+- Treat `workspaceId` from the request as a hint only
+- Resolve the user’s real workspace server-side using `get_user_workspaces`
+- If the provided `workspaceId` is not one of the user’s actual workspaces, ignore it
+- If no workspace exists yet, create one server-side and add the user as owner before inserting business data
+- Only insert brand/product/audience after a verified workspace id exists
+- Return the resolved workspace id actually used
 
-### Changes
+2. Stop onboarding from sending stale workspace ids
+- File: `src/components/database/BusinessDNAOnboarding.tsx`
+- Remove the early `localStorage`-based workspace capture as the source of truth
+- Call `save-onboarding` without a workspace id, or only with a validated one
+- After success, store the backend-returned workspace id in localStorage
+- Use that returned workspace id for the rest of the onboarding completion flow
 
-#### 1. New edge function: `supabase/functions/save-onboarding/index.ts`
-- Accepts: `{ brandData, productData, audienceData, workspaceId }` in the request body
-- Extracts user ID from the Authorization header JWT (verify the token, get the `sub` claim)
-- If no workspace_id provided, queries `get_user_workspaces` to find one
-- Inserts brand, product, audience rows into `user_business_data` using service role client
-- Renames workspace to match brand name
-- Returns `{ success: true, brandId }` on success
+3. Make the app resilient to cross-account stale local state
+- Likely files: `src/hooks/useWorkspace.ts` and/or logout/auth flow
+- Clear or overwrite `preferred_workspace_id` when it does not belong to the signed-in user
+- This prevents an old browser session from poisoning onboarding for a newly signed-up account
 
-#### 2. Update `src/components/database/BusinessDNAOnboarding.tsx`
-- Replace the entire `insertWithRetry` / step 2 block with a single call: `supabase.functions.invoke("save-onboarding", { body: { ... } })`
-- Remove `waitForSession`, `resolveWorkspaceId`, and the exponential backoff retry logic — no longer needed since the edge function handles auth via service role
-- Keep the progress animation and milestone flipping as-is
-- On success response, update context and transition to step 3
-- On error, show retry UI
+4. Tighten the progress bar so it matches the real phases
+- File: `src/components/database/BusinessDNAOnboarding.tsx`
+- Keep scrape progress for phase 1
+- During save phase, move from ~80 to low 90s only while the backend save request is in flight
+- Jump to 100 only after the backend confirms success
+- If save fails, freeze below completion and show the error immediately instead of appearing stuck
 
-#### 3. Progress bar fix
-- The progress bar currently stalls because phase B (`scrapeComplete && !persistenceComplete`) increments by 0.008 per frame which is ~0.48/sec — too slow to be noticeable
-- Increase the crawl rate to 0.05 per frame so it visibly moves from ~75% to 95% over ~7 seconds
-- This ensures the bar always appears to be progressing
+5. Secondary stabilization pass for scrape
+- File: `supabase/functions/scrape-product/index.ts`
+- Recheck the AI-response JSON parsing path because logs still show intermittent parse failures
+- This is not the current save blocker, but it can still break onboarding on some runs
 
-### Files to create/edit
-- `supabase/functions/save-onboarding/index.ts` (new)
-- `src/components/database/BusinessDNAOnboarding.tsx` (simplify step 2)
+Files to edit
+- `supabase/functions/save-onboarding/index.ts`
+- `src/components/database/BusinessDNAOnboarding.tsx`
+- `src/hooks/useWorkspace.ts`
+- possibly the logout/auth cleanup path if needed
+- optionally `supabase/functions/scrape-product/index.ts`
 
+Expected result
+- Onboarding will save into a real workspace every time
+- New businesses created through onboarding will appear the same way as businesses created manually
+- The 500 from `save-onboarding` will be eliminated
+- The progress bar will no longer hang at 80/95 while the save is failing underneath
