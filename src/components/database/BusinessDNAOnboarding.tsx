@@ -200,39 +200,37 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearTimeout(timer);
   }, [step, allSources.length, allSourcesDone]);
 
-  // Smooth progress animation — continuous lerp with stall protection
+  // Smooth progress animation — never stops, always creeping forward
   useEffect(() => {
     if (step < 1 || step > 2) return;
     let rafId: number;
-    let lastVisibleChange = Date.now();
-    let lastRenderedProgress = 0;
+    let lastTime = performance.now();
 
-    const tick = () => {
+    const tick = (now: number) => {
+      const dt = (now - lastTime) / 1000; // delta in seconds
+      lastTime = now;
+
       if (persistenceCompleteRef.current) {
-        progressRef.current = 100;
-        setProgress(100);
-        return; // stop RAF loop
-      }
-
-      // Determine ceiling based on current phase
-      const ceiling = scrapeCompleteRef.current ? 95 : 80;
-
-      // Lerp toward ceiling — always closing ~3% of the gap per frame
-      let next = progressRef.current + (ceiling - progressRef.current) * 0.03;
-
-      // Guarantee: if bar hasn't moved ≥0.5% in 2 seconds, force a bump
-      const now = Date.now();
-      if (next - lastRenderedProgress < 0.5) {
-        if (now - lastVisibleChange > 2000) {
-          next = Math.min(ceiling - 0.5, progressRef.current + 0.8);
-          lastVisibleChange = now;
+        // Quickly animate to 100
+        const next = progressRef.current + (100 - progressRef.current) * 0.15;
+        progressRef.current = next >= 99.5 ? 100 : next;
+        setProgress(progressRef.current);
+        if (progressRef.current < 100) {
+          rafId = requestAnimationFrame(tick);
         }
-      } else {
-        lastVisibleChange = now;
-        lastRenderedProgress = next;
+        return;
       }
 
-      next = Math.min(ceiling, next);
+      // Asymptotic approach — ceiling rises with phase, bar never fully stops
+      // Phase 1 (scraping): ceiling 75, Phase 2 (persisting): ceiling 95
+      const ceiling = scrapeCompleteRef.current ? 95 : 75;
+      const remaining = ceiling - progressRef.current;
+
+      // Base speed: ~1.5% per second, slowing as we approach ceiling
+      // Minimum speed: 0.08% per second so bar never appears stalled
+      const speed = Math.max(0.08, remaining * 0.025);
+      const next = Math.min(ceiling - 0.1, progressRef.current + speed * dt);
+
       progressRef.current = next;
       setProgress(next);
       rafId = requestAnimationFrame(tick);
