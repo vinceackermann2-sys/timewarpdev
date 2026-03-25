@@ -254,22 +254,28 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     let rafId: number;
     const tick = () => {
       const elapsed = Date.now() - startTime;
-      setProgress(prev => {
-        if (persistenceCompleteRef.current) {
-          return 100;
-        }
 
-        // Phase A: smooth ease to 75% over ~20s while scrape is running
-        if (!scrapeCompleteRef.current) {
-          const t = Math.min(elapsed / 20000, 1);
-          const eased = 1 - Math.pow(1 - t, 3); // cubic deceleration
-          return Math.min(75, eased * 75);
-        }
+      if (persistenceCompleteRef.current) {
+        progressRef.current = 100;
+        setProgress(100);
+        return; // stop RAF loop
+      }
 
-        // Phase B: scrape done, slowly crawl toward 95 (~0.5% per second at 60fps)
-        const crawl = prev + 0.008;
-        return Math.min(95, crawl);
-      });
+      let next: number;
+
+      // Phase A: smooth ease to 75% over ~20s while scrape is running
+      if (!scrapeCompleteRef.current) {
+        const t = Math.min(elapsed / 20000, 1);
+        const eased = 1 - Math.pow(1 - t, 3); // cubic deceleration
+        next = Math.min(75, eased * 75);
+      } else {
+        // Phase B: scrape done, slowly crawl from current value toward 95
+        // Use progressRef to avoid stale closure — always increment from real value
+        next = Math.min(95, progressRef.current + 0.008);
+      }
+
+      progressRef.current = next;
+      setProgress(next);
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
