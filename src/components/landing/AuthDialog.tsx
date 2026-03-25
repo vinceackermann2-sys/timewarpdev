@@ -113,10 +113,10 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/` },
+          options: { emailRedirectTo: `${window.location.origin}/app` },
         });
         if (error) {
           if (error.message.includes("already registered")) {
@@ -125,6 +125,12 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
             throw error;
           }
         } else {
+          // If email confirmation is required, user won't have a session yet
+          if (!data.session) {
+            toast({ title: "Check your email!", description: "We've sent a verification link to your email. Please confirm to continue." });
+            onOpenChange(false);
+            return;
+          }
           toast({ title: "Account created!", description: "You're now signed in. Welcome to TimeWarp!" });
         }
       } else {
