@@ -46,14 +46,22 @@ function getActualSources(url: string): string[] {
   }
 }
 
-/** Wait for a valid authenticated session, retrying up to maxAttempts times */
+/** Wait for a valid authenticated session, retrying up to maxAttempts times.
+ *  Uses setSession to force the client to adopt the fresh tokens. */
 async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<{ userId: string; } | null> {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       // Try refreshSession first — this forces a fresh JWT from the server
       const { data: refreshData } = await supabase.auth.refreshSession();
-      if (refreshData?.session?.user?.id) {
-        return { userId: refreshData.session.user.id };
+      if (refreshData?.session) {
+        // Force the client to adopt these tokens immediately
+        await supabase.auth.setSession({
+          access_token: refreshData.session.access_token,
+          refresh_token: refreshData.session.refresh_token,
+        });
+        if (refreshData.session.user?.id) {
+          return { userId: refreshData.session.user.id };
+        }
       }
     } catch {
       // refreshSession can fail if there's no session at all
