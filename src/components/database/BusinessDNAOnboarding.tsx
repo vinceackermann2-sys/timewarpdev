@@ -262,10 +262,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         year: "numeric", month: "short", day: "numeric",
       });
       const brandId = `brand-${Date.now()}`;
-      const productId = `product-${Date.now()}`;
-      const audienceId = `audience-${Date.now()}`;
 
-      // Build brand
+      // Build brand (always single)
       const b = extracted.brand || {};
       const fallbackName = (() => {
         try {
@@ -273,7 +271,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           return u.hostname.replace(/^www\./, "").split(".")[0];
         } catch { return null; }
       })();
-      const brandName = b.name || extracted.product?.name || fallbackName || "My Business";
+      const brandName = b.name || extracted.products?.[0]?.name || extracted.product?.name || fallbackName || "My Business";
       const newBrand: BrandEntry = {
         id: brandId,
         name: brandName,
@@ -286,12 +284,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         visualIdentity: b.visualIdentity || undefined,
       };
 
-      // Build product
-      const p = extracted.product || {};
-      const newProduct: ProductEntry = {
+      // Build products array
+      const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
+      const newProducts: ProductEntry[] = productsRaw.slice(0, 5).map((p: any, i: number) => ({
         ...DEFAULT_PRODUCT,
-        id: productId,
-        name: p.name || "Imported Product",
+        id: `product-${Date.now()}-${i}`,
+        name: p.name || `Imported Product ${i + 1}`,
         category: p.category || "Consumer Product",
         description: p.description || "",
         features: p.features || [],
@@ -317,16 +315,16 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         technicalLevel: p.technicalLevel || "",
         refinementChecklist: p.refinementChecklist || [],
         images: p.images?.length
-          ? p.images.map((imgUrl: string, i: number) => ({
-              id: `img-${i + 1}`,
+          ? p.images.map((imgUrl: string, j: number) => ({
+              id: `img-${j + 1}`,
               url: imgUrl,
-              label: `Product Image ${i + 1}`,
+              label: `Product Image ${j + 1}`,
             }))
           : DEFAULT_PRODUCT.images,
         offers: p.offers?.length
-          ? p.offers.map((o: any, i: number) => ({
-              id: `offer-${i + 1}`,
-              title: o.title || `Offer ${i + 1}`,
+          ? p.offers.map((o: any, j: number) => ({
+              id: `offer-${j + 1}`,
+              title: o.title || `Offer ${j + 1}`,
               originalPrice: o.originalPrice || "",
               salePrice: o.salePrice || "",
               discount: o.discount || "",
@@ -337,15 +335,16 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           : DEFAULT_PRODUCT.offers,
         lastUpdated: now,
         brandId: brandId,
-      };
+      }));
 
-      // Build audience
-      let newAudience: AudienceEntry | null = null;
-      if (extracted.audience?.name) {
-        const a = extracted.audience;
-        newAudience = {
+      // Build audiences array
+      const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
+      const newAudiences: AudienceEntry[] = audiencesRaw
+        .filter((a: any) => a?.name)
+        .slice(0, 5)
+        .map((a: any, i: number) => ({
           ...DEFAULT_AUDIENCE,
-          id: audienceId,
+          id: `audience-${Date.now()}-${i}`,
           name: a.name,
           description: a.description || "",
           buyingTriggers: a.buyingTriggers || [],
@@ -371,19 +370,22 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           technicalLevel: a.technicalLevel || "",
           refinementChecklist: a.refinementChecklist || [],
           lastUpdated: now,
-          productIds: [productId],
-        };
-      }
+          productIds: newProducts[i] ? [newProducts[i].id] : [],
+        }));
 
       if (cancelled) return;
 
-      // Call edge function — uses service role to bypass RLS
-      // Don't send workspaceId — let server resolve it to avoid stale localStorage IDs
+      // Call edge function — pass arrays
       const { data, error } = await supabase.functions.invoke("save-onboarding", {
         body: {
           brandData: newBrand,
-          productData: newProduct,
-          audienceData: newAudience,
+          productsData: newProducts.map(p => ({
+            name: p.name, category: p.category, description: p.description,
+            features: p.features, benefits: p.benefits,
+          })),
+          audiencesData: newAudiences.map(a => ({
+            name: a.name, description: a.description,
+          })),
           brandName,
         },
       });
@@ -404,8 +406,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       // Update context for immediate UI hydration
       if (contextAvailable) {
         setBrands(prev => [...prev, newBrand]);
-        setProducts(prev => [...prev, newProduct]);
-        if (newAudience) setAudiences(prev => [...prev, newAudience]);
+        setProducts(prev => [...prev, ...newProducts]);
+        if (newAudiences.length > 0) setAudiences(prev => [...prev, ...newAudiences]);
       }
 
       setCreatedBrandId(brandId);

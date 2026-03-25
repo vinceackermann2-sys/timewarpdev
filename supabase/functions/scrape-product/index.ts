@@ -1379,7 +1379,7 @@ The image should capture a dynamic moment — the product being actively used, d
     console.log("Extraction successful:", extracted.product?.name, "logos:", extracted.brand?.logoUrls?.length || 0);
 
     return new Response(
-      JSON.stringify({ success: true, extracted }),
+      JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 0 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

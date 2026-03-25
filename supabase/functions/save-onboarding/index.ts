@@ -41,7 +41,7 @@ serve(async (req) => {
     // Service role client — bypasses RLS
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    const { brandData, productData, audienceData, workspaceId: hintWsId, brandName } = await req.json();
+    const { brandData, productData, productsData, audienceData, audiencesData, workspaceId: hintWsId, brandName } = await req.json();
 
     // --- Resolve workspace server-side (never trust client blindly) ---
     let wsId: string | null = null;
@@ -51,16 +51,14 @@ serve(async (req) => {
     const userWorkspaces = (wsData as any[]) || [];
 
     if (userWorkspaces.length > 0) {
-      // If the client hint matches one of the user's real workspaces, use it
       if (hintWsId && userWorkspaces.some((w: any) => w.workspace_id === hintWsId)) {
         wsId = hintWsId;
       } else {
-        // Otherwise pick the first (owner workspace preferred by the RPC ordering)
         wsId = userWorkspaces[0].workspace_id;
       }
     }
 
-    // If user has zero workspaces (edge case: trigger didn't fire), create one
+    // If user has zero workspaces, create one
     if (!wsId) {
       console.log("No workspace found for user, creating one server-side...");
       const newWsId = crypto.randomUUID();
@@ -71,7 +69,6 @@ serve(async (req) => {
       });
 
       if (createErr) {
-        // Could be a race with the trigger — retry fetch
         console.warn("Workspace create conflict, re-fetching:", createErr.message);
         const { data: retryData } = await admin.rpc("get_user_workspaces", { _user_id: userId });
         if (retryData && (retryData as any[]).length > 0) {
@@ -83,7 +80,6 @@ serve(async (req) => {
           );
         }
       } else {
-        // Add user as owner
         await admin.from("workspace_members").insert({
           workspace_id: newWsId,
           user_id: userId,
@@ -118,30 +114,38 @@ serve(async (req) => {
       );
     }
 
-    // Insert product
-    const { error: productErr } = await admin.from("user_business_data").insert({
-      ...basePayload,
-      data_type: "product",
-      title: productData?.name || "Imported Product",
-      content: JSON.stringify(productData),
-    });
-
-    if (productErr) {
-      console.error("Product insert failed:", productErr);
+    // Insert products (support both single productData and array productsData)
+    const allProducts = productsData || (productData ? [productData] : []);
+    for (const prod of allProducts) {
+      const { error: productErr } = await admin.from("user_business_data").insert({
+        ...basePayload,
+        data_type: "product",
+        title: prod?.name || "Imported Product",
+        content: JSON.stringify(prod),
+      });
+      if (productErr) {
+        console.error("Product insert failed:", productErr);
+      }
     }
 
-    // Insert audience (optional)
-    if (audienceData) {
+    // Insert audiences (support both single audienceData and array audiencesData)
+    const allAudiences = audiencesData || (audienceData ? [audienceData] : []);
+    for (const aud of allAudiences) {
+      if (!aud) continue;
       const { error: audErr } = await admin.from("user_business_data").insert({
         ...basePayload,
         data_type: "audience",
-        title: audienceData?.name || "Target Audience",
-        content: JSON.stringify(audienceData),
+        title: aud?.name || "Target Audience",
+        content: JSON.stringify(aud),
       });
-
       if (audErr) {
         console.error("Audience insert failed:", audErr);
       }
+    }
+
+    // Rename workspace to brand name
+    if (brandName) {
+      await admin.from("workspaces").update({ name: brandName }).eq("id", wsId);
     }
 
     // Rename workspace to brand name
