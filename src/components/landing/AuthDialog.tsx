@@ -8,9 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, Mail, Lock, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link as RouterLink } from "react-router-dom";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getSafeSession } from "@/lib/authSession";
 import { lovable } from "@/integrations/lovable";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 interface AuthDialogProps {
   open: boolean;
@@ -145,7 +146,8 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 border-border/50 bg-card overflow-hidden [&>button]:hidden">
+      <DialogContent className="sm:max-w-md p-0 gap-0 border-border/50 bg-card overflow-hidden [&>button]:hidden" aria-describedby={undefined}>
+        <VisuallyHidden.Root><DialogTitle>{isSignUp ? "Create account" : "Sign in"}</DialogTitle></VisuallyHidden.Root>
         <div className="p-6 sm:p-8">
           <button
             onClick={() => onOpenChange(false)}

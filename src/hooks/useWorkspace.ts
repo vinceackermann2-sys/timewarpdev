@@ -41,27 +41,55 @@ async function fetchWorkspaces(userId: string): Promise<WorkspaceInfo[]> {
   });
 
   if (error || !wsData || (wsData as any[]).length === 0) {
-    // Create default workspace if none exist
+    // For brand-new users, the create_default_workspace trigger may not have
+    // propagated yet. Wait briefly and re-check before creating a duplicate.
+    await new Promise(r => setTimeout(r, 1500));
+    const { data: retryData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
+    if (retryData && (retryData as any[]).length > 0) {
+      return (retryData as any[]).map((w: any) => ({
+        workspaceId: w.workspace_id,
+        workspaceName: w.workspace_name,
+        role: normalizeWorkspaceRole(w.role),
+        memberCount: Number(w.member_count),
+        createdAt: w.created_at,
+      }));
+    }
+
+    // Still empty — create workspace, but handle 409 conflict gracefully
     const newWorkspaceId = crypto.randomUUID();
     const { error: wsError } = await supabase
       .from("workspaces")
       .insert({ id: newWorkspaceId, name: "My Workspace", created_by: userId });
 
-    if (!wsError) {
-      await supabase
-        .from("workspace_members")
-        .insert({ workspace_id: newWorkspaceId, user_id: userId, role: "owner" });
-
-      localStorage.setItem("preferred_workspace_id", newWorkspaceId);
-      return [{
-        workspaceId: newWorkspaceId,
-        workspaceName: "My Workspace",
-        role: "owner" as WorkspaceRole,
-        memberCount: 1,
-        createdAt: new Date().toISOString(),
-      }];
+    if (wsError) {
+      // 409 conflict = workspace already exists from trigger; re-fetch
+      if (wsError.code === '23505' || wsError.message?.includes('duplicate') || wsError.message?.includes('conflict')) {
+        const { data: conflictData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
+        if (conflictData && (conflictData as any[]).length > 0) {
+          return (conflictData as any[]).map((w: any) => ({
+            workspaceId: w.workspace_id,
+            workspaceName: w.workspace_name,
+            role: normalizeWorkspaceRole(w.role),
+            memberCount: Number(w.member_count),
+            createdAt: w.created_at,
+          }));
+        }
+      }
+      return [];
     }
-    return [];
+
+    await supabase
+      .from("workspace_members")
+      .insert({ workspace_id: newWorkspaceId, user_id: userId, role: "owner" });
+
+    localStorage.setItem("preferred_workspace_id", newWorkspaceId);
+    return [{
+      workspaceId: newWorkspaceId,
+      workspaceName: "My Workspace",
+      role: "owner" as WorkspaceRole,
+      memberCount: 1,
+      createdAt: new Date().toISOString(),
+    }];
   }
 
   return (wsData as any[]).map((w) => ({

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Crown, Clock, Flame, Loader2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,7 +51,8 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden border-0">
+      <DialogContent className="max-w-2xl p-0 overflow-hidden border-0" aria-describedby={undefined}>
+        <VisuallyHidden.Root><DialogTitle>Upgrade to TimeWarp OG</DialogTitle></VisuallyHidden.Root>
         <div
           className="relative px-10 pt-12 pb-10 text-center"
           style={{

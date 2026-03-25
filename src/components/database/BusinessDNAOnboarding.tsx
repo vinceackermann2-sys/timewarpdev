@@ -207,15 +207,15 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => cancelAnimationFrame(rafId);
   }, [step, scrapeComplete, persistenceComplete]);
 
-  // Transition from step 1 → 2 once scrape is done
+  // Transition from step 1 → 2 ONLY if scrape succeeded (not on error)
   useEffect(() => {
-    if (step === 1 && scrapeComplete) {
+    if (step === 1 && scrapeComplete && !scrapeError) {
       const timeout = setTimeout(() => {
         setStep(2);
       }, 600);
       return () => clearTimeout(timeout);
     }
-  }, [step, scrapeComplete]);
+  }, [step, scrapeComplete, scrapeError]);
 
   // Step 2: create entries directly in DB with strict error handling
   useEffect(() => {

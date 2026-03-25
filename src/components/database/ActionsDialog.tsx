@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WandSparkles, Copy, Check, Loader2, ShoppingCart } from "lucide-react";
@@ -125,7 +127,8 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl bg-card border-border p-0 gap-0 overflow-hidden">
+      <DialogContent className="sm:max-w-xl bg-card border-border p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
+        <VisuallyHidden.Root><DialogTitle>Get more Actions</DialogTitle></VisuallyHidden.Root>
         {/* Header */}
         <div className="text-center pt-8 pb-4 px-6">
           <div className="flex items-center justify-center gap-3 mb-3">
