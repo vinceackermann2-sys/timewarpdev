@@ -152,8 +152,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           return;
         }
 
-        // Store workspace ID from localStorage if available
-        workspaceIdRef.current = localStorage.getItem("preferred_workspace_id");
+        // Don't trust localStorage — let the edge function resolve workspace server-side
+        workspaceIdRef.current = null;
 
         // Start scrape
         if (!cancelled) setScannedSources([allSources[0]]);
@@ -372,12 +372,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       if (cancelled) return;
 
       // Call edge function — uses service role to bypass RLS
+      // Don't send workspaceId — let server resolve it to avoid stale localStorage IDs
       const { data, error } = await supabase.functions.invoke("save-onboarding", {
         body: {
           brandData: newBrand,
           productData: newProduct,
           audienceData: newAudience,
-          workspaceId: workspaceIdRef.current,
           brandName,
         },
       });
