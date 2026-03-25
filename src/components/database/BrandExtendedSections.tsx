@@ -13,6 +13,7 @@ interface ImageSlot {
   id: string;
   url: string | null;
   label?: string;
+  svgContent?: string;
 }
 
 interface GuidelineRule {
