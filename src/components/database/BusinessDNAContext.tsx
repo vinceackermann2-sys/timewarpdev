@@ -147,6 +147,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
     localStorage.getItem("preferred_workspace_id")
   );
+  const loadedWorkspaceRef = useRef<string | null>(null);
 
   // Keep in sync with localStorage changes from useWorkspace hook
   useEffect(() => {
@@ -169,8 +170,15 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
   // Load from DB on mount or when workspace changes
   useEffect(() => {
+    // Skip reload if we already have data for this workspace
+    if (loadedWorkspaceRef.current === activeWorkspaceId && !isLoading) return;
+
     async function load() {
-      setIsLoading(true);
+      // Only show loading skeleton on first load or workspace switch
+      const isWorkspaceSwitch = loadedWorkspaceRef.current !== activeWorkspaceId;
+      if (isWorkspaceSwitch) {
+        setIsLoading(true);
+      }
       const [b, p, a] = await Promise.all([
         loadEntities<BrandEntry>("brand", activeWorkspaceId),
         loadEntities<ProductEntry>("product", activeWorkspaceId),
@@ -182,6 +190,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setPrevBrands(b);
       setPrevProducts(p);
       setPrevAudiences(a);
+      loadedWorkspaceRef.current = activeWorkspaceId;
       setIsLoading(false);
     }
     load();
