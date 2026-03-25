@@ -287,8 +287,8 @@ serve(async (req) => {
     console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot, "productPages:", productPageContents.length);
     if (firecrawlBranding) console.log("Firecrawl branding data found");
 
-    // Step 1b: Mobile screenshot (parallel) — use BASE URL
-    const mobileScreenshotPromise = (async () => {
+    // Step 1b: Mobile screenshot (parallel) — use BASE URL — skip in core mode
+    const mobileScreenshotPromise = isCoreMode ? Promise.resolve(null) : (async () => {
       try {
         console.log("Fetching mobile screenshot for base URL...");
         const mobileRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
