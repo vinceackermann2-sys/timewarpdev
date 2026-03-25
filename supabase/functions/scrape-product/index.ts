@@ -178,8 +178,23 @@ serve(async (req) => {
         });
         if (mapRes.ok) {
           const mapData = await mapRes.json();
-          const allUrls: string[] = (mapData.links || []).filter((u: string) => u && u.startsWith("http"));
-          console.log("Map found", allUrls.length, "URLs");
+          // Filter URLs: same domain only, exclude non-product paths
+          const parsedBase = new URL(formattedUrl);
+          const baseDomain = parsedBase.hostname.replace(/^www\./, '');
+          const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com)/i;
+          const allUrls: string[] = (mapData.links || [])
+            .filter((u: string) => {
+              if (!u || !u.startsWith("http")) return false;
+              try {
+                const pu = new URL(u);
+                const linkDomain = pu.hostname.replace(/^www\./, '');
+                if (linkDomain !== baseDomain) return false;
+                if (excludePatterns.test(pu.pathname)) return false;
+                if (pu.pathname === '/' || pu.pathname === '') return false;
+                return true;
+              } catch { return false; }
+            });
+          console.log("Map found", allUrls.length, "filtered URLs (from", (mapData.links || []).length, "total)");
           if (allUrls.length > 0) {
             const pickResText = await (await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
