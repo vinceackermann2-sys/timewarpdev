@@ -51,7 +51,8 @@ serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+    const { url, mode } = await req.json();
+    const isCoreMode = mode === "core";
     if (!url) {
       return new Response(
         JSON.stringify({ success: false, error: "URL is required" }),
@@ -177,8 +178,23 @@ serve(async (req) => {
         });
         if (mapRes.ok) {
           const mapData = await mapRes.json();
-          const allUrls: string[] = (mapData.links || []).filter((u: string) => u && u.startsWith("http"));
-          console.log("Map found", allUrls.length, "URLs");
+          // Filter URLs: same domain only, exclude non-product paths
+          const parsedBase = new URL(formattedUrl);
+          const baseDomain = parsedBase.hostname.replace(/^www\./, '');
+          const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com)/i;
+          const allUrls: string[] = (mapData.links || [])
+            .filter((u: string) => {
+              if (!u || !u.startsWith("http")) return false;
+              try {
+                const pu = new URL(u);
+                const linkDomain = pu.hostname.replace(/^www\./, '');
+                if (linkDomain !== baseDomain) return false;
+                if (excludePatterns.test(pu.pathname)) return false;
+                if (pu.pathname === '/' || pu.pathname === '') return false;
+                return true;
+              } catch { return false; }
+            });
+          console.log("Map found", allUrls.length, "filtered URLs (from", (mapData.links || []).length, "total)");
           if (allUrls.length > 0) {
             const pickResText = await (await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
@@ -271,8 +287,8 @@ serve(async (req) => {
     console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot, "productPages:", productPageContents.length);
     if (firecrawlBranding) console.log("Firecrawl branding data found");
 
-    // Step 1b: Mobile screenshot (parallel) — use BASE URL
-    const mobileScreenshotPromise = (async () => {
+    // Step 1b: Mobile screenshot (parallel) — use BASE URL — skip in core mode
+    const mobileScreenshotPromise = isCoreMode ? Promise.resolve(null) : (async () => {
       try {
         console.log("Fetching mobile screenshot for base URL...");
         const mobileRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -817,6 +833,24 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
           extracted.brand.visualIdentity = { ...extracted.brand.visualIdentity, ...vi };
         }
       }
+    }
+
+    // ══════════════════════════════════════════════
+    // CORE MODE: Return immediately with structured data only
+    // ══════════════════════════════════════════════
+    if (isCoreMode) {
+      // Brand name fallback
+      if (!extracted.brand?.name || extracted.brand.name === "") {
+        extracted.brand = extracted.brand || {};
+        extracted.brand.name = extracted.products?.[0]?.name || metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business";
+      }
+
+      console.log("Core mode — returning immediately:", extracted.brand?.name, "products:", extracted.products?.length || 0);
+
+      return new Response(
+        JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ── Moodboard: Search web for aesthetic images, AI fallback ──

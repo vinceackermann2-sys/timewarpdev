@@ -70,7 +70,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
     setStatus("Scraping product page...");
 
     try {
-      const { data, error } = await invokeEdgeFunction("scrape-product", { url: url.trim() });
+      const { data, error } = await invokeEdgeFunction("scrape-product", { url: url.trim(), mode: "core" });
 
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to extract product data");
