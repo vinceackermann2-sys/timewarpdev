@@ -37,6 +37,7 @@ interface VisualIdentityInitial {
   socialMediaRules?: string[];
   moodboardUrls?: string[];
   illustrationUrls?: string[];
+  illustrationSvgs?: string[];
   websiteScreenshot?: string;
   mobileScreenshot?: string;
   guidelineImageUrls?: string[];
