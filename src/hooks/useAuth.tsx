@@ -24,12 +24,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    let lastUserId: string | null = null;
 
     // 1. Listen for auth changes (set up BEFORE getSession per Supabase docs)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
+      const newUserId = session?.user?.id ?? null;
+      // Clear stale workspace when a different user signs in
+      if (newUserId && lastUserId && newUserId !== lastUserId) {
+        localStorage.removeItem("preferred_workspace_id");
+      }
+      if (_event === "SIGNED_OUT") {
+        localStorage.removeItem("preferred_workspace_id");
+      }
+      lastUserId = newUserId;
       setState({ session, user: session?.user ?? null, isLoading: false });
     });
 
