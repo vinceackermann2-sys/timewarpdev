@@ -9,7 +9,7 @@ import { AudienceDetailView } from "@/components/database/AudienceDetailView";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusinessDNA, AudienceEntry } from "@/components/database/BusinessDNAContext";
 import { ConnectionDialog } from "@/components/database/ConnectionDialog";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
 import { useToast } from "@/hooks/use-toast";
 
 export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
@@ -36,9 +36,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
     setStatus("Scraping page for audience data...");
 
     try {
-      const { data, error } = await supabase.functions.invoke("scrape-product", {
-        body: { url: url.trim() },
-      });
+      const { data, error } = await invokeEdgeFunction("scrape-product", { url: url.trim() });
 
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to extract audience data");

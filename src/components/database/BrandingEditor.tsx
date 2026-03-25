@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useActionGate } from "@/hooks/useActionGate";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
 import { useToast } from "@/hooks/use-toast";
 import {
   Globe, ImageIcon, Palette, Type, Upload, X, Check, RefreshCw, Save, Pencil,
@@ -135,9 +136,7 @@ export function BrandingEditor({
     }
     setIsExtracting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("scrape-product", {
-        body: { url: extractUrl.trim() },
-      });
+      const { data, error } = await invokeEdgeFunction("scrape-product", { url: extractUrl.trim() });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Extraction failed");
 

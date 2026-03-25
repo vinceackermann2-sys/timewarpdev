@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Telescope, Dna, ArrowRight, Globe, Sparkles, Check, AlertCircle, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
@@ -159,9 +160,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         // Start scrape
         if (!cancelled) setScannedSources([allSources[0]]);
 
-        const { data, error } = await supabase.functions.invoke("scrape-product", {
-          body: { url: activeUrl.trim() },
-        });
+        const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim() });
 
         if (!cancelled) {
           setScannedSources([...allSources]);

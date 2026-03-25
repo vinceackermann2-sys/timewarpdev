@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
@@ -69,9 +70,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
     setStatus("Scraping product page...");
 
     try {
-      const { data, error } = await supabase.functions.invoke("scrape-product", {
-        body: { url: url.trim() },
-      });
+      const { data, error } = await invokeEdgeFunction("scrape-product", { url: url.trim() });
 
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to extract product data");
