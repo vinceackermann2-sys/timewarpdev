@@ -518,24 +518,24 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
-              <div className="space-y-3 py-4">
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
-                  <Globe className="h-7 w-7 text-primary" />
+              <div className="space-y-2 sm:space-y-3 py-2 sm:py-4">
+                <div className="mx-auto h-11 w-11 sm:h-14 sm:w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 sm:mb-4">
+                  <Globe className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
                 </div>
-                <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
                   Enter your company URL
                 </h1>
-                <p className="text-muted-foreground max-w-md mx-auto">
+                <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
                   We'll analyze your website and build your Business DNA automatically.
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-muted/40 border border-border/40 p-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Globe className="h-6 w-6 text-primary/70" />
+              <div className="rounded-2xl bg-muted/40 border border-border/40 p-2.5 sm:p-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Globe className="h-5 w-5 sm:h-6 sm:w-6 text-primary/70" />
                   </div>
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 min-w-0">
                     <input
                       type="url"
                       value={urlInput}
@@ -546,11 +546,11 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                           setStep(1);
                         }
                       }}
-                      className="w-full h-12 text-base border-0 bg-transparent focus:outline-none text-foreground px-3"
+                      className="w-full h-10 sm:h-12 text-sm sm:text-base border-0 bg-transparent focus:outline-none text-foreground px-2 sm:px-3"
                       autoFocus
                     />
                     {!urlInput && (
-                      <div className="absolute inset-0 flex items-center pointer-events-none pl-3">
+                      <div className="absolute inset-0 flex items-center pointer-events-none pl-2 sm:pl-3">
                         <AnimatePresence mode="wait">
                           <motion.span
                             key={placeholderIndex}
@@ -558,7 +558,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                             animate={{ opacity: 0.4, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.3 }}
-                            className="text-base text-muted-foreground"
+                            className="text-sm sm:text-base text-muted-foreground truncate"
                           >
                             {URL_EXAMPLES[placeholderIndex]}
                           </motion.span>
@@ -574,9 +574,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                       }
                     }}
                     disabled={!urlInput.trim()}
-                    className="h-12 px-6 rounded-xl bg-primary/80 hover:bg-primary text-primary-foreground font-medium text-base flex items-center gap-2 disabled:opacity-50 transition-all"
+                    className="h-10 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary/80 hover:bg-primary text-primary-foreground font-medium text-sm sm:text-base flex items-center gap-2 disabled:opacity-50 transition-all shrink-0"
                   >
-                    Continue
+                    <span className="hidden sm:inline">Continue</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
