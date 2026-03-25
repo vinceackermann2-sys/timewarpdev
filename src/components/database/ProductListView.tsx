@@ -35,9 +35,7 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
     setStatus("Scraping product page...");
 
     try {
-      const { data, error } = await supabase.functions.invoke("scrape-product", {
-        body: { url: url.trim() },
-      });
+      const { data, error } = await invokeEdgeFunction("scrape-product", { url: url.trim() });
 
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to extract product data");
