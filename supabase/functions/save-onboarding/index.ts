@@ -41,23 +41,59 @@ serve(async (req) => {
     // Service role client — bypasses RLS
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    const { brandData, productData, audienceData, workspaceId, brandName } = await req.json();
+    const { brandData, productData, audienceData, workspaceId: hintWsId, brandName } = await req.json();
 
-    // Resolve workspace if not provided
-    let wsId = workspaceId;
-    if (!wsId) {
-      const { data: wsData } = await admin.rpc("get_user_workspaces", { _user_id: userId });
-      if (wsData && (wsData as any[]).length > 0) {
-        wsId = (wsData as any[])[0].workspace_id;
+    // --- Resolve workspace server-side (never trust client blindly) ---
+    let wsId: string | null = null;
+
+    // Fetch user's actual workspaces
+    const { data: wsData } = await admin.rpc("get_user_workspaces", { _user_id: userId });
+    const userWorkspaces = (wsData as any[]) || [];
+
+    if (userWorkspaces.length > 0) {
+      // If the client hint matches one of the user's real workspaces, use it
+      if (hintWsId && userWorkspaces.some((w: any) => w.workspace_id === hintWsId)) {
+        wsId = hintWsId;
+      } else {
+        // Otherwise pick the first (owner workspace preferred by the RPC ordering)
+        wsId = userWorkspaces[0].workspace_id;
       }
     }
 
+    // If user has zero workspaces (edge case: trigger didn't fire), create one
     if (!wsId) {
-      return new Response(
-        JSON.stringify({ success: false, error: "No workspace found" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.log("No workspace found for user, creating one server-side...");
+      const newWsId = crypto.randomUUID();
+      const { error: createErr } = await admin.from("workspaces").insert({
+        id: newWsId,
+        name: brandName || "My Workspace",
+        created_by: userId,
+      });
+
+      if (createErr) {
+        // Could be a race with the trigger — retry fetch
+        console.warn("Workspace create conflict, re-fetching:", createErr.message);
+        const { data: retryData } = await admin.rpc("get_user_workspaces", { _user_id: userId });
+        if (retryData && (retryData as any[]).length > 0) {
+          wsId = (retryData as any[])[0].workspace_id;
+        } else {
+          return new Response(
+            JSON.stringify({ success: false, error: "Could not resolve workspace" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } else {
+        // Add user as owner
+        await admin.from("workspace_members").insert({
+          workspace_id: newWsId,
+          user_id: userId,
+          role: "owner",
+        });
+        wsId = newWsId;
+      }
     }
+
+    console.log("Resolved workspace:", wsId, "for user:", userId);
 
     const basePayload = {
       user_id: userId,
@@ -92,7 +128,6 @@ serve(async (req) => {
 
     if (productErr) {
       console.error("Product insert failed:", productErr);
-      // Non-fatal — brand is already saved
     }
 
     // Insert audience (optional)
@@ -106,7 +141,6 @@ serve(async (req) => {
 
       if (audErr) {
         console.error("Audience insert failed:", audErr);
-        // Non-fatal
       }
     }
 
