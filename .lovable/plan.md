@@ -1,74 +1,41 @@
 
-Goal: fix new-user onboarding so it always creates the business, keeps progress believable, and stops the failing scrape/persistence chain.
 
-What I found
-- The immediate blocker is not just auth: `scrape-product` is returning 500 before persistence finishes.
-- Edge logs pinpoint the 500 at `scrape-product/index.ts` around the AI response parse path (`Unexpected end of JSON input`), so the function is trying to parse an empty/truncated JSON body.
-- After that failure, onboarding still proceeds into step 2 and attempts inserts with incomplete state. That leads to the 403 brand insert loop and an empty business.
-- The 409 on `workspaces` is likely from duplicate workspace creation in `useWorkspace.ts` when the initial workspace list is temporarily empty for a brand-new account.
-- The 403 `/logout` is a side symptom of auth churn during signup, not the main cause of the missing business.
-- There are also accessibility warnings from dialogs that should be cleaned up, but they are not causing onboarding failure.
+## Plan: Fix onboarding — redeploy edge function + auth race condition
 
-Implementation plan
+### Problem chain
 
-1. Fix the edge function 500 first
-- File: `supabase/functions/scrape-product/index.ts`
-- Harden every external `fetch(...).json()` call that can receive an empty/non-JSON body.
-- Especially fix the AI extraction response handling near the logged failure point:
-  - read `await response.text()` first
-  - guard against empty bodies
-  - `JSON.parse` inside try/catch
-  - return a structured error instead of throwing
-- Apply the same defensive parsing to Firecrawl and other AI calls in this function where needed.
+1. **`scrape-product` is not responding** — the CORS error ("No 'Access-Control-Allow-Origin' header is present") means the function crashes before returning anything. No edge function logs exist, confirming the function either isn't deployed or fails at boot. The CORS headers in the code are correct — the function just never executes.
 
-2. Stop onboarding from continuing after scrape failure
-- File: `src/components/database/BusinessDNAOnboarding.tsx`
-- Make step progression strict:
-  - if `scrape-product` fails, do not advance into persistence
-  - show retry state immediately
-- Right now `scrapeComplete` is set in `finally`, which allows step 2 even on failure. Change that so step 2 only starts when extracted data is valid.
+2. **403 on `user_business_data` inserts** — after scrape fails, onboarding proceeds to persistence (it shouldn't, but does). The RLS INSERT policy requires `auth.uid() = user_id`. For brand-new signups, `auth.uid()` can be null/stale during the first few seconds. The `waitForSession` + `refreshSession` retry logic is present but may not be working because the `supabase` client's internal token is out of sync.
 
-3. Fix the new-user auth/workspace race before inserts
-- Files: `src/components/database/BusinessDNAOnboarding.tsx`, `src/hooks/useWorkspace.ts`
-- In onboarding, resolve a fresh session right before DB writes and use that `session.user.id`.
-- Keep the retry for 403, but only after confirming scrape succeeded.
-- In `useWorkspace.ts`, stop auto-creating a workspace when RPC briefly returns empty for a new user unless it’s clearly missing after a safer re-check. This should eliminate the 409 conflict path.
+3. **Progress bar stalls** — the `requestAnimationFrame` loop uses refs correctly now, but the `setProgress` callback still uses a stale `prev` value for the crawl phase. When `prev` is 0 (initial) and phase B triggers, the crawl from 0 is imperceptible.
 
-4. Make onboarding persistence verifiable
-- File: `src/components/database/BusinessDNAOnboarding.tsx`
-- Insert brand/product/audience only after:
-  - valid extracted payload exists
-  - workspace id exists
-  - authenticated session exists
-- Capture insert results explicitly and only mark completion once required rows succeed.
-- If any required insert fails, keep the user in onboarding with a clear retry state.
+### Changes
 
-5. Make progress/logging reflect real phases
-- File: `src/components/database/BusinessDNAOnboarding.tsx`
-- Tie the flipping text to actual phases:
-  - resolving workspace
-  - scraping site
-  - extracting business data
-  - saving brand/product/audience
-  - finalizing workspace
-- Make progress phase-based:
-  - 0–80 only while scrape is actively running
-  - 80–95 during confirmed persistence
-  - 100 only after inserts and finalization succeed
-- If scrape fails, freeze below completion and show the error state instead of moving on.
+#### 1. Redeploy `scrape-product` edge function
+- Use the deploy tool to redeploy `scrape-product`
+- Test it with the invoke tool immediately after
+- If it fails, check logs for boot errors and fix
 
-6. Clean up the dialog accessibility warnings
-- Files with `DialogContent` lacking title/description, starting with:
-  - `src/components/landing/AuthDialog.tsx`
-  - likely `src/components/database/UpgradeGateDialog.tsx`
-  - likely `src/components/database/ActionsDialog.tsx`
-  - likely `src/components/database/EmployeeDetailView.tsx`
-- Add `DialogTitle` and either `DialogDescription` or `aria-describedby={undefined}` where appropriate.
-- This won’t fix onboarding, but it will remove the repeated console noise.
+#### 2. Fix the auth insert path (file: `BusinessDNAOnboarding.tsx`)
+- In step 2's persistence block, instead of relying on `supabase.auth.refreshSession()` inside `insertWithRetry`, call `supabase.auth.setSession()` with the access/refresh tokens obtained from `waitForSession` to force the client to use the correct JWT
+- Alternative simpler fix: use `supabase.auth.getUser()` as the definitive check — if it returns a user, the token is valid; if not, the session truly isn't ready
 
-Expected result
-- New users can complete onboarding without the scrape crashing.
-- The business rows are actually created in the workspace before onboarding exits.
-- Backing out of Business DNA still shows the created business.
-- Progress and flipping logs match the real backend state.
-- Console noise is reduced to actionable issues only.
+#### 3. Stop step 2 from running if scrape failed
+- The current guard `if (step === 1 && scrapeComplete && !scrapeError)` correctly blocks step transition on error
+- But the scrape error from CORS throws a `FunctionsFetchError` which may not be caught properly — ensure the catch block in step 1 sets `scrapeError = true` for network-level failures too (it does, but verify the error UI shows)
+
+#### 4. Fix progress bar continuity
+- In the `setProgress` callback, track a separate `phaseB_startProgress` ref that captures `progress` when scrape completes, so the crawl starts from the actual current value (e.g. 72%) rather than relying on `prev` which can be stale in the RAF loop
+- This ensures smooth transition from phase A to phase B without jumping or stalling
+
+### Files to edit
+- `supabase/functions/scrape-product/index.ts` — redeploy (no code changes needed, CORS is correct)
+- `src/components/database/BusinessDNAOnboarding.tsx` — auth fix + progress fix
+
+### Expected result
+- Edge function responds correctly, scrape succeeds
+- Brand/product/audience inserts succeed for new users
+- Progress bar moves smoothly from 0→100%
+- Errors show retry UI instead of silently failing
+
