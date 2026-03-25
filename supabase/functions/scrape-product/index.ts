@@ -152,10 +152,69 @@ serve(async (req) => {
       }
     }
 
-    // Also scrape the product page for content extraction
+    // For company URLs: discover product pages via Map API
     let productMarkdown = "";
     let productMetadata: any = {};
-    if (!usedDirectFallback && baseUrl !== formattedUrl) {
+    let productPageContents: { url: string; markdown: string }[] = [];
+
+    if (isCompanyUrl) {
+      try {
+        console.log("Company URL detected — mapping site for product pages...");
+        const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ url: formattedUrl, search: "product", limit: 200 }),
+        });
+        if (mapRes.ok) {
+          const mapData = await mapRes.json();
+          const allUrls: string[] = (mapData.links || []).filter((u: string) => u && u.startsWith("http"));
+          console.log("Map found", allUrls.length, "URLs");
+          if (allUrls.length > 0) {
+            const pickResText = await (await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-lite",
+                messages: [{ role: "user", content: `From these URLs, select up to 5 that are individual PRODUCT pages (pages showcasing a specific product or service for sale/subscription). Exclude category/collection pages, blog posts, about/legal/career/support pages.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return [].\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
+              }),
+            })).text();
+            try {
+              const pickData = JSON.parse(pickResText);
+              const raw = pickData.choices?.[0]?.message?.content || "";
+              const arrMatch = raw.match(/\[[\s\S]*?\]/);
+              if (arrMatch) {
+                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, 5);
+                console.log("AI selected", selected.length, "product pages:", selected);
+                const scrapeResults = await Promise.allSettled(
+                  selected.map(async (pUrl: string) => {
+                    try {
+                      const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: pUrl, formats: ["markdown"], onlyMainContent: true }),
+                      });
+                      if (res.ok) {
+                        const d = await res.json();
+                        return { url: pUrl, markdown: d.data?.markdown || d.markdown || "" };
+                      }
+                      const fb = await fetchPageFallback(pUrl);
+                      return { url: pUrl, markdown: fb.markdown };
+                    } catch { return null; }
+                  })
+                );
+                productPageContents = scrapeResults
+                  .filter((r): r is PromiseFulfilledResult<{ url: string; markdown: string }> => r.status === 'fulfilled' && !!r.value)
+                  .map(r => r.value);
+                console.log("Scraped", productPageContents.length, "product pages");
+              }
+            } catch (e) { console.warn("Product selection parse error:", e); }
+          }
+        } else {
+          console.warn("Map API failed:", mapRes.status);
+        }
+      } catch (e) { console.warn("Map API error (non-fatal):", e); }
+    } else if (!usedDirectFallback && baseUrl !== formattedUrl) {
+      // Single product URL: scrape the specific product page
       try {
         const productScrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
@@ -184,12 +243,22 @@ serve(async (req) => {
     }
 
     const homepageMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
-    const markdown = productMarkdown || homepageMarkdown;
-    const metadata = productMarkdown ? productMetadata : (scrapeData.data?.metadata || scrapeData.metadata || {});
+    let markdown: string;
+    let metadata: any;
+
+    if (isCompanyUrl && productPageContents.length > 0) {
+      markdown = `--- HOMEPAGE: ${baseUrl} ---\n${homepageMarkdown.slice(0, 5000)}\n\n` +
+        productPageContents.map(p => `--- PRODUCT PAGE: ${p.url} ---\n${p.markdown.slice(0, 5000)}`).join('\n\n');
+      metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
+    } else {
+      markdown = productMarkdown || homepageMarkdown;
+      metadata = productMarkdown ? productMetadata : (scrapeData.data?.metadata || scrapeData.metadata || {});
+    }
+
     const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
     const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
 
-    console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot);
+    console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot, "productPages:", productPageContents.length);
     if (firecrawlBranding) console.log("Firecrawl branding data found");
 
     // Step 1b: Mobile screenshot (parallel) — use BASE URL
