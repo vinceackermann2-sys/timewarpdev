@@ -487,9 +487,52 @@ Example:
 
 ═══════════════════════════════════════
 
+═══════════════════════════════════════
+🎨 BRANDING DNA FORMULAS & EXAMPLES
+═══════════════════════════════════════
+
+1. PRIMARY LOGO
+Formula: [MARK TYPE] + [WHAT IT SYMBOLISES] + [WHERE IT MUST WORK] + [WHAT BREAKS IT]
+Example: "Wordmark logo in deep blue. Symbolises clarity and precision. Must work at 32px favicon, full-width header, and white/dark backgrounds. Never stretch, recolour, or place on busy backgrounds."
+
+2. BRAND COLORS
+Formula: [PRIMARY EMOTION] + [COLOR ROLE] + [WHAT IT MUST NEVER DO] + [ACCESSIBILITY RULE]
+Example: "Primary #3B82F6 → Trust + action. Used on all CTAs and highlights. Never used as background behind small text. Minimum 4.5:1 contrast ratio."
+
+3. TYPOGRAPHY
+Formula: [FONT PERSONALITY] + [HIERARCHY RULES] + [WHAT IT MUST NEVER BE] + [BRAND VOICE IT EXPRESSES]
+
+4. MOODBOARD
+Formula: [WORLD THE BRAND LIVES IN] + [LIGHTING & TEXTURE] + [WHAT IT FEELS LIKE] + [WHAT IT MUST NEVER FEEL LIKE]
+Example: "The brand lives in a world of precision and possibility — dark UI interfaces, glowing data lines. Lighting is cool, controlled, intentional. Looking at it should feel like stepping into the future. It must never feel warm, rustic, or human-casual."
+
+5. ILLUSTRATIONS
+Formula: [STYLE FINGERPRINT] + [WHERE THEY'RE USED] + [WHAT THEY COMMUNICATE] + [WHAT MAKES THEM OWNABLE]
+Example: "Flat-vector with thin strokes and blue/gray palette. Used for explainer graphics, empty states, and social posts. Ownable because of the consistent node/network motif."
+
+6. IMAGE GUIDELINES
+Formula: [WHAT TO SHOOT/USE] + [LIGHTING RULE] + [SUBJECT RULE] + [WHAT TO NEVER SHOW]
+
+7. WEBSITE & DIGITAL
+Formula: [LAYOUT PHILOSOPHY] + [CONTENT HIERARCHY] + [EMOTIONAL JOURNEY] + [WHAT ONE PAGE MUST ALWAYS DO]
+Example: "Minimalist grid with generous white space. Content flows: problem → mechanism → solution → proof → CTA. Every page must end with one clear, frictionless next action."
+
+8. BUTTONS & UI ELEMENTS
+Formula: [HIERARCHY RULE] + [SHAPE LANGUAGE] + [COLOR SYSTEM] + [WHAT INTERACTION FEELS LIKE]
+Example: "Primary = filled blue, white text, 6px radius → 'Take this action now'. Secondary = outlined. Hover darkens 10% — feels responsive, confident, not flashy."
+
+9. SOCIAL MEDIA
+Formula: [CONTENT PILLARS] + [VISUAL RULES] + [TONE OF VOICE] + [WHAT SUCCESS LOOKS LIKE PER FORMAT]
+
+═══════════════════════════════════════
+
+${isCompanyUrl && productPageContents.length > 0
+  ? `MULTI-PRODUCT MODE: Multiple product pages from the same company are provided below. Extract up to ${productPageContents.length} products (one per page) and one matching audience per product. All share a single brand.`
+  : `SINGLE-PRODUCT MODE: Extract exactly one product and one audience from the page content below. Return arrays with exactly 1 element each.`}
+
 JSON structure to return:
 {
-  "product": {
+  "products": [{
     "name": "",
     "category": "",
     "description": "",
@@ -510,7 +553,7 @@ JSON structure to return:
     "refinementChecklist": [],
     "images": [],
     "offers": [{"title": "", "originalPrice": "", "salePrice": "", "discount": "", "bundleDetails": "", "freeGifts": [], "isPopular": false}]
-  },
+  }],
   "brand": {
     "name": "",
     "category": "",
@@ -527,13 +570,16 @@ JSON structure to return:
     },
     "logoUrls": [],
     "visualIdentity": {
+      "logoDescription": "",
+      "moodboardDescription": "",
+      "illustrationGuidelines": "",
       "imageGuidelines": [{"rule": "", "example": ""}],
       "websiteRules": [],
       "buttonRules": [],
       "socialMediaRules": []
     }
   },
-  "audience": {
+  "audiences": [{
     "name": "",
     "description": "",
     "avatarPrompt": "",
@@ -552,7 +598,7 @@ JSON structure to return:
     "powerWords": [],
     "technicalLevel": "",
     "refinementChecklist": []
-  }
+  }]
 }
 
 IMPORTANT RULES:
@@ -564,13 +610,8 @@ IMPORTANT RULES:
 - For brand colors: extract the dominant primary, secondary, background, and text colors visible on the page (use hex format)
 - For brand typography: identify the main font family, describe the style, and estimate the dominant weight (300-700)
 - For brand logoUrls: extract ONLY actual logo image URLs (not product photos). Look for images with 'logo' in the URL or alt text.
-- For brand visualIdentity: infer image guidelines (photography rules & examples), website design rules, button/UI rules (corner radius, styles), and social media content rules based on what you observe on the page. Be specific and actionable — not generic.
-
-VISUAL IDENTITY EXTRACTION RULES:
-- imageGuidelines: Describe the photography style, composition, and imagery approach used on the page. Each rule should have a concrete example.
-- websiteRules: Layout patterns, spacing, color usage, header/footer styling, responsive hints visible on the page.
-- buttonRules: Corner radius, fill styles, hover patterns, sizing conventions observed.
-- socialMediaRules: Infer from the brand's tone, imagery style, and content approach what their social media presence should look like.
+- For brand visualIdentity: apply the Branding DNA formulas above to fill logoDescription, moodboardDescription, illustrationGuidelines, imageGuidelines, websiteRules, buttonRules, and socialMediaRules. Be specific and actionable — not generic.
+- For multi-product mode: create one entry per product page. Each product gets a matching audience.
 
 Page URL: ${formattedUrl}
 Page title: ${metadata.title || "Unknown"}
@@ -579,7 +620,7 @@ ${firecrawlBranding ? `Firecrawl extracted branding data (use this as primary so
 ${JSON.stringify(firecrawlBranding, null, 2)}
 
 ` : ""}Page content:
-${markdown.slice(0, 15000)}`;
+${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
