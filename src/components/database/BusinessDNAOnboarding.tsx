@@ -741,16 +741,10 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
             >
-              {/* Orb */}
-              <div className="orb-stage mb-8 sm:mb-12 mt-2 sm:mt-4 scale-75 sm:scale-100 origin-center">
-                <div className="orb-wrapper">
-                  <div className="orb-glow-aura"></div>
-                  <div className="orb-connectors">
-                    <div className="silver-connector silver-connector-1"></div>
-                    <div className="silver-connector silver-connector-2"></div>
-                  </div>
-                  <div className="orb-container"></div>
-                </div>
+              {/* Business Brain Orb */}
+              <div className="mb-8 sm:mb-12 mt-2 sm:mt-4">
+                <BusinessBrainOrb size={120} className="sm:hidden" />
+                <BusinessBrainOrb size={160} className="hidden sm:flex" />
               </div>
 
               {/* Agent Name Input */}
