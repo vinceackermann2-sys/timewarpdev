@@ -202,81 +202,81 @@ const Database = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <DatabaseSidebar
-          currentView={currentView}
-          onViewChange={handleViewChange}
-          userEmail={user?.email || ""}
-        />
-        <SidebarInset className="flex flex-col flex-1">
-          <MobileHeader />
-          <main className="flex-1 overflow-hidden">
-            {currentView === "dataconversion" && user && (
-              <RestrictedFeatureGate
-                featureName="Data Conversion"
-                description="Free users can open this section from the menu, but using Data Conversion requires TimeWarp OG."
-              >
-                <BusinessDNAProvider>
+    <BusinessDNAProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <DatabaseSidebar
+            currentView={currentView}
+            onViewChange={handleViewChange}
+            userEmail={user?.email || ""}
+          />
+          <SidebarInset className="flex flex-col flex-1">
+            <MobileHeader />
+            <main className="flex-1 overflow-hidden">
+              {currentView === "dataconversion" && user && (
+                <RestrictedFeatureGate
+                  featureName="Data Conversion"
+                  description="Free users can open this section from the menu, but using Data Conversion requires TimeWarp OG."
+                >
                   <DataConversionView />
-                </BusinessDNAProvider>
-              </RestrictedFeatureGate>
-            )}
-            {currentView === "aiceo" && user && (
-              <TimeWarpAIView
-                initialTask={pendingTask}
-                onTaskConsumed={() => setPendingTask(null)}
-              />
-            )}
-            {currentView === "businessdna" && user && (
-              <BusinessDNAProvider>
-                {showAddProduct ? (
-                  <AddProductURLView
-                    onBack={() => setShowAddProduct(false)}
-                    onComplete={(newBrandId?: string) => {
-                      setShowAddProduct(false);
-                      setActiveBrandId(newBrandId || activeBrandId);
-                      setShowBusinessDNA(true);
-                    }}
-                    activeBrandId={activeBrandId}
-                  />
-                ) : showBusinessDNA && activeBrandId ? (
-                  <BusinessDNAView
-                    activeBrandId={activeBrandId}
-                    onBack={() => {
-                      setShowBusinessDNA(false);
-                      setActiveBrandId(null);
-                    }}
-                  />
-                ) : (
-                  <MyBusinessesView
-                    onSelectBusiness={() => setShowAddProduct(true)}
-                    onOpenBusiness={(brandId) => {
-                      setActiveBrandId(brandId);
-                      setShowBusinessDNA(true);
-                    }}
-                  />
-                )}
-              </BusinessDNAProvider>
-            )}
-            {currentView === "employees" && user && (
-              <RestrictedFeatureGate
-                featureName="Employees"
-                description="Free users can browse here from the menu, but creating and using AI Employees requires TimeWarp OG."
-              >
-                <EmployeesView />
-              </RestrictedFeatureGate>
-            )}
-          </main>
-        </SidebarInset>
-        <ActionsCelebration
-          open={showReferrerCelebration}
-          onOpenChange={setShowReferrerCelebration}
-          actionsGranted={125}
-          reason="referral"
-        />
-      </div>
-    </SidebarProvider>
+                </RestrictedFeatureGate>
+              )}
+              {currentView === "aiceo" && user && (
+                <TimeWarpAIView
+                  initialTask={pendingTask}
+                  onTaskConsumed={() => setPendingTask(null)}
+                />
+              )}
+              {currentView === "businessdna" && user && (
+                <>
+                  {showAddProduct ? (
+                    <AddProductURLView
+                      onBack={() => setShowAddProduct(false)}
+                      onComplete={(newBrandId?: string) => {
+                        setShowAddProduct(false);
+                        setActiveBrandId(newBrandId || activeBrandId);
+                        setShowBusinessDNA(true);
+                      }}
+                      activeBrandId={activeBrandId}
+                    />
+                  ) : showBusinessDNA && activeBrandId ? (
+                    <BusinessDNAView
+                      activeBrandId={activeBrandId}
+                      onBack={() => {
+                        setShowBusinessDNA(false);
+                        setActiveBrandId(null);
+                      }}
+                    />
+                  ) : (
+                    <MyBusinessesView
+                      onSelectBusiness={() => setShowAddProduct(true)}
+                      onOpenBusiness={(brandId) => {
+                        setActiveBrandId(brandId);
+                        setShowBusinessDNA(true);
+                      }}
+                    />
+                  )}
+                </>
+              )}
+              {currentView === "employees" && user && (
+                <RestrictedFeatureGate
+                  featureName="Employees"
+                  description="Free users can browse here from the menu, but creating and using AI Employees requires TimeWarp OG."
+                >
+                  <EmployeesView />
+                </RestrictedFeatureGate>
+              )}
+            </main>
+          </SidebarInset>
+          <ActionsCelebration
+            open={showReferrerCelebration}
+            onOpenChange={setShowReferrerCelebration}
+            actionsGranted={125}
+            reason="referral"
+          />
+        </div>
+      </SidebarProvider>
+    </BusinessDNAProvider>
   );
 };
 
