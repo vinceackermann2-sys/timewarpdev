@@ -562,6 +562,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     setScrapeComplete(false);
     setScrapeError(false);
     setProgress(0);
+    progressRef.current = 0;
     setCurrentMilestone(0);
     setScannedSources([]);
     setAllSourcesDone(false);
