@@ -160,9 +160,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         // Start scrape
         if (!cancelled) setScannedSources([allSources[0]]);
 
-        const { data, error } = await supabase.functions.invoke("scrape-product", {
-          body: { url: activeUrl.trim() },
-        });
+        const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim() });
 
         if (!cancelled) {
           setScannedSources([...allSources]);
