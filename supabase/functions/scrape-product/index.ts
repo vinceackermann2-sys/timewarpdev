@@ -682,6 +682,24 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
     }
 
     // ══════════════════════════════════════════════════
+    // NORMALIZE: Ensure products[] and audiences[] arrays exist
+    // ══════════════════════════════════════════════════
+    if (extracted.products && !extracted.product) {
+      extracted.product = extracted.products[0] || {};
+    }
+    if (extracted.product && !extracted.products) {
+      extracted.products = [extracted.product];
+    }
+    if (extracted.audiences && !extracted.audience) {
+      extracted.audience = extracted.audiences[0] || null;
+    }
+    if (extracted.audience && !extracted.audiences) {
+      extracted.audiences = [extracted.audience];
+    }
+    if (!extracted.products) extracted.products = [];
+    if (!extracted.audiences) extracted.audiences = [];
+
+    // ══════════════════════════════════════════════════
     // POST-EXTRACTION: Merge branding + generate assets
     // ══════════════════════════════════════════════════
 
