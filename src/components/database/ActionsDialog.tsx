@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WandSparkles, Copy, Check, Loader2, ShoppingCart } from "lucide-react";

@@ -146,7 +146,8 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 border-border/50 bg-card overflow-hidden [&>button]:hidden">
+      <DialogContent className="sm:max-w-md p-0 gap-0 border-border/50 bg-card overflow-hidden [&>button]:hidden" aria-describedby={undefined}>
+        <VisuallyHidden.Root><DialogTitle>{isSignUp ? "Create account" : "Sign in"}</DialogTitle></VisuallyHidden.Root>
         <div className="p-6 sm:p-8">
           <button
             onClick={() => onOpenChange(false)}

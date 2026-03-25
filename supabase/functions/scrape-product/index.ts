@@ -534,7 +534,25 @@ ${markdown.slice(0, 15000)}`;
       );
     }
 
-    const aiData = await aiResponse.json();
+    // Defensive: read as text first to avoid "Unexpected end of JSON input"
+    const aiBodyText = await aiResponse.text();
+    if (!aiBodyText || !aiBodyText.trim()) {
+      console.error("AI extraction returned empty body");
+      return new Response(
+        JSON.stringify({ success: false, error: "AI extraction returned empty response" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    let aiData: any;
+    try {
+      aiData = JSON.parse(aiBodyText);
+    } catch (jsonErr) {
+      console.error("AI extraction response is not valid JSON:", (jsonErr as Error).message);
+      return new Response(
+        JSON.stringify({ success: false, error: "AI extraction returned invalid response" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     const rawContent = aiData.choices?.[0]?.message?.content || "";
 
     let extracted;
