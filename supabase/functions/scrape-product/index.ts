@@ -767,7 +767,7 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
       }
     }
 
-    // ── Moodboard: Download from Pinterest ──
+    // ── Moodboard: Search web for aesthetic images, AI fallback ──
     const moodboardPromise = (async () => {
       try {
         const audienceDesc = extracted.audience?.description || "general consumers";
@@ -778,7 +778,7 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
         const productDescription = (extracted.product?.description || '').slice(0, 200);
 
         // Step 1: Generate 6 aesthetic search terms using AI
-        console.log("Generating Pinterest moodboard aesthetic terms...");
+        console.log("Generating moodboard aesthetic terms...");
         const termsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -786,21 +786,16 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
             model: "google/gemini-2.5-flash-lite",
             messages: [{
               role: "user",
-              content: `Generate exactly 6 audience aesthetic search terms for a Pinterest moodboard.
+              content: `Generate exactly 6 aesthetic search terms for a moodboard.
 
 Use this framework for each term:
 [audience visual/product scene] + [trust feeling/emotion] + premium minimal e-commerce
 
-Example for a hair product targeting aging adults:
-"hairdryer hold up + soothing pink background + premium minimal e-commerce"
-
-The terms should capture the audience's emotional world, lifestyle aspirations, and the product's visual context — combined with a premium minimal e-commerce aesthetic.
-
 Brand: "${brandName}" (${brandCategory})
 Product: ${productDescription}
 Target audience: ${audienceDesc.split('.').slice(0, 3).join('.')}
-Audience pain points: ${audiencePainPoints || 'general consumer frustrations'}
-Audience power phrases: ${audiencePowerPhrases || 'convenience, quality, trust'}
+Pain points: ${audiencePainPoints || 'general consumer frustrations'}
+Power phrases: ${audiencePowerPhrases || 'convenience, quality, trust'}
 
 Return ONLY a JSON array of 6 phrases. No explanation.`
             }],
@@ -827,17 +822,15 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
             `editorial product photography + reliability + premium minimal e-commerce`,
           ];
         }
-        console.log("Pinterest moodboard terms:", aestheticTerms);
+        console.log("Moodboard terms:", aestheticTerms);
 
-        // Step 2: Search Pinterest for each term, extract i.pinimg.com URLs
-        const pinImgRegex = /https?:\/\/i\.pinimg\.com\/[^\s)"']+\.(?:jpg|jpeg|png|webp)/gi;
-        const highResPatterns = ['/originals/', '/736x/', '/564x/'];
-        const lowResPatterns = ['/75x/', '/60x/', '/150x/'];
+        // Step 2: Search the web for each term, extract image URLs from results
+        const imgUrlRegex = /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
 
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
             try {
-              console.log(`Searching Pinterest for: ${term}`);
+              console.log(`Searching for: ${term}`);
               const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
                 method: "POST",
                 headers: {
@@ -845,84 +838,45 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  query: `site:pinterest.com ${term}`,
+                  query: `${term} aesthetic photography`,
                   limit: 5,
+                  scrapeOptions: { formats: ["markdown"] },
                 }),
               });
 
               if (!searchRes.ok) {
-                console.warn(`Pinterest search failed for "${term}": ${searchRes.status}`);
+                console.warn(`Search failed for "${term}": ${searchRes.status}`);
                 return null;
               }
 
               const searchData = await searchRes.json();
               const results = searchData.data || [];
 
-              // Collect all i.pinimg.com URLs from search result markdown snippets
-              const allPinUrls: string[] = [];
+              // Collect image URLs from search results' markdown content and metadata
+              const allImgUrls: string[] = [];
               for (const r of results) {
-                const markdown: string = r.markdown || r.description || "";
+                // Check metadata for og:image
+                if (r.metadata?.ogImage) allImgUrls.push(r.metadata.ogImage);
+                // Extract from markdown content
+                const content: string = r.markdown || r.description || "";
+                imgUrlRegex.lastIndex = 0;
                 let match;
-                pinImgRegex.lastIndex = 0;
-                while ((match = pinImgRegex.exec(markdown)) !== null) {
-                  allPinUrls.push(match[0]);
+                while ((match = imgUrlRegex.exec(content)) !== null) {
+                  allImgUrls.push(match[0]);
                 }
               }
 
-              // Prefer high-res images
-              const highRes = allPinUrls.find(url =>
-                highResPatterns.some(p => url.includes(p)) &&
-                !lowResPatterns.some(p => url.includes(p))
+              // Filter out tiny/icon images
+              const goodImg = allImgUrls.find(url =>
+                !url.includes('/icon') && !url.includes('/favicon') &&
+                !url.includes('/logo') && url.length > 30
               );
-              if (highRes) {
-                console.log(`✓ Found high-res Pinterest image for "${term}": ${highRes.slice(0, 80)}...`);
-                return highRes;
+              if (goodImg) {
+                console.log(`✓ Found moodboard image for "${term}": ${goodImg.slice(0, 80)}...`);
+                return goodImg;
               }
 
-              // Accept any non-low-res pin image
-              const anyGood = allPinUrls.find(url =>
-                !lowResPatterns.some(p => url.includes(p))
-              );
-              if (anyGood) {
-                console.log(`✓ Found Pinterest image for "${term}": ${anyGood.slice(0, 80)}...`);
-                return anyGood;
-              }
-
-              // Fallback: scrape the first Pinterest pin page for markdown
-              const firstPinUrl = results.find((r: any) => r.url?.includes("pinterest.com/pin/"))?.url;
-              if (firstPinUrl) {
-                console.log(`Scraping Pinterest pin page: ${firstPinUrl}`);
-                const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    url: firstPinUrl,
-                    formats: ["markdown"],
-                    waitFor: 2000,
-                  }),
-                });
-
-                if (scrapeRes.ok) {
-                  const scrapeData = await scrapeRes.json();
-                  const md: string = (scrapeData.data?.markdown || scrapeData.markdown || "");
-                  pinImgRegex.lastIndex = 0;
-                  const pinUrls: string[] = [];
-                  let m;
-                  while ((m = pinImgRegex.exec(md)) !== null) {
-                    pinUrls.push(m[0]);
-                  }
-                  const best = pinUrls.find(url => !lowResPatterns.some(p => url.includes(p)));
-                  if (best) {
-                    console.log(`✓ Found Pinterest image from pin scrape: ${best.slice(0, 80)}...`);
-                    return best;
-                  }
-                }
-              }
-
-              console.warn(`No Pinterest image found for "${term}"`);
+              console.warn(`No image found for "${term}"`);
               return null;
             } catch (e) {
               console.warn(`Moodboard error for "${term}":`, e);
@@ -935,8 +889,38 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
           .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
           .map(r => r.value);
 
+        // Step 3: AI generation fallback for missing slots
+        const missing = 6 - moodboardUrls.length;
+        if (missing > 0) {
+          console.log(`Generating ${missing} moodboard images with AI...`);
+          const fallbackTerms = aestheticTerms.slice(moodboardUrls.length, moodboardUrls.length + missing);
+          const fallbackResults = await Promise.allSettled(
+            fallbackTerms.map(async (term) => {
+              try {
+                const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    model: "google/gemini-2.5-flash-image",
+                    messages: [{ role: "user", content: `Create a beautiful moodboard reference image for a ${brandCategory} brand called "${brandName}". Aesthetic: ${term}. Professional, editorial quality. No text, no logos, no watermarks. Pure visual mood and atmosphere.` }],
+                    modalities: ["image", "text"],
+                  }),
+                });
+                if (res.ok) {
+                  const d = await res.json();
+                  return d.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
+                }
+                return null;
+              } catch { return null; }
+            })
+          );
+          for (const r of fallbackResults) {
+            if (r.status === 'fulfilled' && r.value) moodboardUrls.push(r.value);
+          }
+        }
+
         extracted.brand.visualIdentity.moodboardUrls = moodboardUrls;
-        console.log("Final Pinterest moodboard count:", moodboardUrls.length);
+        console.log("Final moodboard count:", moodboardUrls.length);
       } catch (e) {
         console.error("Moodboard pipeline error:", e);
         extracted.brand.visualIdentity.moodboardUrls = [];
