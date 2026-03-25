@@ -13,6 +13,7 @@ interface ImageSlot {
   id: string;
   url: string | null;
   label?: string;
+  svgContent?: string;
 }
 
 interface GuidelineRule {
@@ -37,6 +38,7 @@ interface VisualIdentityInitial {
   socialMediaRules?: string[];
   moodboardUrls?: string[];
   illustrationUrls?: string[];
+  illustrationSvgs?: string[];
   websiteScreenshot?: string;
   mobileScreenshot?: string;
   guidelineImageUrls?: string[];
@@ -305,8 +307,18 @@ export function BrandExtendedSections({
           base.moodboard.push({ id: `mood-${base.moodboard.length}`, url: null });
         }
       }
-      // Pre-populate illustrations from extracted URLs
-      if (initialData.illustrationUrls?.length) {
+      // Pre-populate illustrations from SVGs (preferred) or URLs
+      if (initialData.illustrationSvgs?.length) {
+        base.illustrations = initialData.illustrationSvgs.map((svg, i) => ({
+          id: `illust-${i}`,
+          url: null,
+          svgContent: svg,
+          label: i === 0 ? "Brand icons & symbols set" : "Website pattern / texture",
+        }));
+        if (base.illustrations.length < 2) {
+          base.illustrations.push({ id: `illust-${base.illustrations.length}`, url: null, label: "Add illustration" });
+        }
+      } else if (initialData.illustrationUrls?.length) {
         base.illustrations = initialData.illustrationUrls.map((url, i) => ({
           id: `illust-${i}`,
           url,
@@ -372,6 +384,7 @@ export function BrandExtendedSections({
                   socialMediaRules: data.socialMediaRules,
                   moodboardUrls: data.moodboard.filter(s => s.url).map(s => s.url!),
                   illustrationUrls: data.illustrations.filter(s => s.url).map(s => s.url!),
+                  illustrationSvgs: data.illustrations.filter(s => s.svgContent).map(s => s.svgContent!),
                   websiteScreenshot: initialData?.websiteScreenshot,
                   mobileScreenshot: initialData?.mobileScreenshot,
                   guidelineImageUrls: initialData?.guidelineImageUrls,
@@ -425,11 +438,23 @@ export function BrandExtendedSections({
           <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               {data.illustrations.map((slot) => (
-                <EditableImageSlot
-                  key={slot.id} slot={slot} aspect="aspect-square" isEditing={isEditing}
-                  onUpload={(id, file) => handleImageUpload(id, file, "illustrations")}
-                  onRemove={(id) => handleImageRemove(id, "illustrations")}
-                />
+                slot.svgContent ? (
+                  <div key={slot.id} className="aspect-square rounded-lg border border-border/50 overflow-hidden bg-card p-2 relative">
+                    <div
+                      className="w-full h-full"
+                      dangerouslySetInnerHTML={{ __html: slot.svgContent }}
+                    />
+                    {slot.label && (
+                      <span className="absolute bottom-1 left-2 text-[10px] text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded">{slot.label}</span>
+                    )}
+                  </div>
+                ) : (
+                  <EditableImageSlot
+                    key={slot.id} slot={slot} aspect="aspect-square" isEditing={isEditing}
+                    onUpload={(id, file) => handleImageUpload(id, file, "illustrations")}
+                    onRemove={(id) => handleImageRemove(id, "illustrations")}
+                  />
+                )
               ))}
             </div>
             {isEditing && (
