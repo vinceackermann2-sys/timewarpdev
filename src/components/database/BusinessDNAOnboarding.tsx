@@ -437,30 +437,30 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   const currentTask = ANALYSIS_MILESTONES[currentMilestone];
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 font-sans overflow-hidden relative">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-2 sm:p-4 font-sans overflow-hidden relative">
       {/* Background Lights */}
       <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Top 3-bump progress bar */}
       {step >= 1 && (
-        <div className="absolute top-0 left-0 w-full p-8 flex justify-center z-50">
-          <div className="flex items-center gap-3 bg-card border border-border shadow-sm rounded-full px-5 py-3">
+        <div className="absolute top-0 left-0 w-full p-4 sm:p-8 flex justify-center z-50">
+          <div className="flex items-center gap-2 sm:gap-3 bg-card border border-border shadow-sm rounded-full px-4 sm:px-5 py-2.5 sm:py-3">
             {[1, 2, 3].map((i, index) => (
-              <div key={i} className="flex items-center gap-3">
+              <div key={i} className="flex items-center gap-2 sm:gap-3">
                 <motion.div
                   layout
                   className={`rounded-full transition-all duration-500 ${
                     step === i
-                      ? "w-10 h-2.5 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+                      ? "w-8 sm:w-10 h-2 sm:h-2.5 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
                       : step > i
-                        ? "w-2.5 h-2.5 bg-primary"
-                        : "w-2.5 h-2.5 bg-muted"
+                        ? "w-2 sm:w-2.5 h-2 sm:h-2.5 bg-primary"
+                        : "w-2 sm:w-2.5 h-2 sm:h-2.5 bg-muted"
                   }`}
                 />
                 {index < 2 && (
                   <div
-                    className={`h-[2px] w-8 sm:w-12 transition-colors duration-500 ${
+                    className={`h-[2px] w-6 sm:w-12 transition-colors duration-500 ${
                       step > i ? "bg-primary/50" : "bg-muted"
                     }`}
                   />
@@ -473,14 +473,14 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
       {/* Header & Progress — steps 1-2 only */}
       {step >= 1 && step < 3 && (
-        <div className="flex flex-col items-center mb-8 mt-12">
+        <div className="flex flex-col items-center mb-4 sm:mb-8 mt-14 sm:mt-12">
           <AnimatePresence mode="wait">
             <motion.h1
               key={`title-${step}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="text-2xl sm:text-3xl font-extrabold mb-6 tracking-tight text-center onboarding-text-shine"
+              className="text-xl sm:text-3xl font-extrabold mb-4 sm:mb-6 tracking-tight text-center onboarding-text-shine"
             >
               {step === 1 ? "Researching your business" : "Setting up your business"}
             </motion.h1>
@@ -489,7 +489,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center w-80 mt-2"
+            className="flex flex-col items-center w-64 sm:w-80 mt-1 sm:mt-2"
           >
             <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-2">
               <motion.div
@@ -506,7 +506,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
         </div>
       )}
 
-      <div className="max-w-5xl w-full relative z-10 px-4">
+      <div className="max-w-5xl w-full relative z-10 px-2 sm:px-4">
         <AnimatePresence mode="wait">
           {/* Step 0: URL Input */}
           {step === 0 && (
