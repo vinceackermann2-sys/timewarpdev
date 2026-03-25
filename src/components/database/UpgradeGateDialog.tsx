@@ -51,7 +51,8 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden border-0">
+      <DialogContent className="max-w-2xl p-0 overflow-hidden border-0" aria-describedby={undefined}>
+        <VisuallyHidden.Root><DialogTitle>Upgrade to TimeWarp OG</DialogTitle></VisuallyHidden.Root>
         <div
           className="relative px-10 pt-12 pb-10 text-center"
           style={{
