@@ -55,17 +55,19 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
       return;
     }
 
-    // Only clear businesses when workspace changes, not on brand reloads
-    if (prevWorkspaceId.current !== activeWorkspaceId) {
+    const isWorkspaceSwitch = prevWorkspaceId.current !== activeWorkspaceId;
+
+    // Only clear businesses and show skeletons on actual workspace change
+    if (isWorkspaceSwitch) {
       setWsBusinesses([]);
+      setLoadingBiz(true);
     }
-    setLoadingBiz(true);
     prevWorkspaceId.current = activeWorkspaceId;
 
     let cancelled = false;
     async function load() {
       // Small delay on brand-triggered reloads to let DB write settle
-      if (reloadKey > 0) {
+      if (reloadKey > 0 && !isWorkspaceSwitch) {
         await new Promise(r => setTimeout(r, 800));
       }
       if (cancelled) return;
