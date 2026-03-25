@@ -46,14 +46,22 @@ function getActualSources(url: string): string[] {
   }
 }
 
-/** Wait for a valid authenticated session, retrying up to maxAttempts times */
+/** Wait for a valid authenticated session, retrying up to maxAttempts times.
+ *  Uses setSession to force the client to adopt the fresh tokens. */
 async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<{ userId: string; } | null> {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       // Try refreshSession first — this forces a fresh JWT from the server
       const { data: refreshData } = await supabase.auth.refreshSession();
-      if (refreshData?.session?.user?.id) {
-        return { userId: refreshData.session.user.id };
+      if (refreshData?.session) {
+        // Force the client to adopt these tokens immediately
+        await supabase.auth.setSession({
+          access_token: refreshData.session.access_token,
+          refresh_token: refreshData.session.refresh_token,
+        });
+        if (refreshData.session.user?.id) {
+          return { userId: refreshData.session.user.id };
+        }
       }
     } catch {
       // refreshSession can fail if there's no session at all
@@ -126,6 +134,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   // Refs for progress animation to avoid stale closures
   const scrapeCompleteRef = useRef(false);
   const persistenceCompleteRef = useRef(false);
+  const progressRef = useRef(0); // tracks real progress value for phase transitions
   useEffect(() => { scrapeCompleteRef.current = scrapeComplete; }, [scrapeComplete]);
   useEffect(() => { persistenceCompleteRef.current = persistenceComplete; }, [persistenceComplete]);
 
@@ -245,22 +254,28 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     let rafId: number;
     const tick = () => {
       const elapsed = Date.now() - startTime;
-      setProgress(prev => {
-        if (persistenceCompleteRef.current) {
-          return 100;
-        }
 
-        // Phase A: smooth ease to 75% over ~20s while scrape is running
-        if (!scrapeCompleteRef.current) {
-          const t = Math.min(elapsed / 20000, 1);
-          const eased = 1 - Math.pow(1 - t, 3); // cubic deceleration
-          return Math.min(75, eased * 75);
-        }
+      if (persistenceCompleteRef.current) {
+        progressRef.current = 100;
+        setProgress(100);
+        return; // stop RAF loop
+      }
 
-        // Phase B: scrape done, slowly crawl toward 95 (~0.5% per second at 60fps)
-        const crawl = prev + 0.008;
-        return Math.min(95, crawl);
-      });
+      let next: number;
+
+      // Phase A: smooth ease to 75% over ~20s while scrape is running
+      if (!scrapeCompleteRef.current) {
+        const t = Math.min(elapsed / 20000, 1);
+        const eased = 1 - Math.pow(1 - t, 3); // cubic deceleration
+        next = Math.min(75, eased * 75);
+      } else {
+        // Phase B: scrape done, slowly crawl from current value toward 95
+        // Use progressRef to avoid stale closure — always increment from real value
+        next = Math.min(95, progressRef.current + 0.008);
+      }
+
+      progressRef.current = next;
+      setProgress(next);
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
@@ -432,11 +447,21 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
 
       async function insertWithRetry(payload: any, label: string): Promise<{ error: any }> {
         for (let attempt = 0; attempt < MAX_INSERT_RETRIES; attempt++) {
-          // Force fresh session before each attempt
+          // Force fresh session before each retry attempt
           if (attempt > 0) {
             console.log(`${label} retry attempt ${attempt + 1}...`);
             await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-            await supabase.auth.refreshSession();
+            try {
+              const { data: refreshData } = await supabase.auth.refreshSession();
+              if (refreshData?.session) {
+                await supabase.auth.setSession({
+                  access_token: refreshData.session.access_token,
+                  refresh_token: refreshData.session.refresh_token,
+                });
+              }
+            } catch {
+              // best effort
+            }
           }
 
           const { error } = await supabase.from("user_business_data").insert(payload);
@@ -537,6 +562,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     setScrapeComplete(false);
     setScrapeError(false);
     setProgress(0);
+    progressRef.current = 0;
     setCurrentMilestone(0);
     setScannedSources([]);
     setAllSourcesDone(false);
