@@ -8,14 +8,14 @@ import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 
 const URL_EXAMPLES = [
-  "nike.com/air-max-90",
+  "tesla.com",
+  "nike.com",
   "apple.com/iphone-16-pro",
-  "tesla.com/model-3",
-  "dyson.com/airwrap",
-  "allbirds.com/tree-runners",
+  "dyson.com",
+  "allbirds.com",
   "glossier.com/boy-brow",
-  "notion.so/product",
-  "figma.com/pricing",
+  "notion.so",
+  "figma.com",
 ];
 
 // Milestones that flip through during analysis
