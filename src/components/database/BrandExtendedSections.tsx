@@ -437,11 +437,23 @@ export function BrandExtendedSections({
           <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               {data.illustrations.map((slot) => (
-                <EditableImageSlot
-                  key={slot.id} slot={slot} aspect="aspect-square" isEditing={isEditing}
-                  onUpload={(id, file) => handleImageUpload(id, file, "illustrations")}
-                  onRemove={(id) => handleImageRemove(id, "illustrations")}
-                />
+                slot.svgContent ? (
+                  <div key={slot.id} className="aspect-square rounded-lg border border-border/50 overflow-hidden bg-card p-2 relative">
+                    <div
+                      className="w-full h-full"
+                      dangerouslySetInnerHTML={{ __html: slot.svgContent }}
+                    />
+                    {slot.label && (
+                      <span className="absolute bottom-1 left-2 text-[10px] text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded">{slot.label}</span>
+                    )}
+                  </div>
+                ) : (
+                  <EditableImageSlot
+                    key={slot.id} slot={slot} aspect="aspect-square" isEditing={isEditing}
+                    onUpload={(id, file) => handleImageUpload(id, file, "illustrations")}
+                    onRemove={(id) => handleImageRemove(id, "illustrations")}
+                  />
+                )
               ))}
             </div>
             {isEditing && (
