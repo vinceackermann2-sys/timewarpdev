@@ -590,19 +590,18 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
             </motion.div>
           )}
 
-          {/* Steps 1-2: Analysis cards */}
           {step >= 1 && step < 3 && (
             <motion.div
               key="analyzing-container"
-              className="flex flex-col md:flex-row gap-6 w-full items-stretch justify-center mx-auto"
+              className="flex flex-col md:flex-row gap-4 sm:gap-6 w-full items-stretch justify-center mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
               {/* Left Card — Flipping Task Display */}
-              <div className="bg-card rounded-3xl border border-border shadow-2xl shadow-primary/10 p-10 sm:p-14 flex flex-col items-center justify-center w-full md:w-1/2">
-                <div className="w-28 h-28 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 relative">
+              <div className="bg-card rounded-2xl sm:rounded-3xl border border-border shadow-2xl shadow-primary/10 p-5 sm:p-10 md:p-14 flex flex-col items-center justify-center w-full md:w-1/2">
+                <div className="w-16 h-16 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl bg-primary/10 flex items-center justify-center mb-4 sm:mb-8 relative">
                   <AnimatePresence mode="wait">
                     {step === 1 ? (
                       <motion.div
@@ -613,7 +612,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                         transition={{ type: "spring", stiffness: 200, damping: 20 }}
                         className="absolute"
                       >
-                        <Telescope className="w-14 h-14 text-primary" />
+                        <Telescope className="w-8 h-8 sm:w-14 sm:h-14 text-primary" />
                       </motion.div>
                     ) : (
                       <motion.div
@@ -624,17 +623,17 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                         transition={{ type: "spring", stiffness: 200, damping: 20 }}
                         className="absolute"
                       >
-                        <Dna className="w-14 h-14 text-primary" />
+                        <Dna className="w-8 h-8 sm:w-14 sm:h-14 text-primary" />
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
 
-                <div className="text-sm font-bold tracking-widest text-muted-foreground mb-4 uppercase">
+                <div className="text-xs sm:text-sm font-bold tracking-widest text-muted-foreground mb-2 sm:mb-4 uppercase">
                   STEP {step} OF 3
                 </div>
 
-                <h2 className="text-lg sm:text-xl font-bold text-foreground text-center tracking-tight mb-3">
+                <h2 className="text-base sm:text-xl font-bold text-foreground text-center tracking-tight mb-2 sm:mb-3">
                   {step === 1 ? "Analyzing your business" : "Forging your business DNA"}
                 </h2>
 
@@ -655,7 +654,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   </div>
                 ) : (
                   /* Single flipping current task — no history stack */
-                  <div className="flex flex-col items-center justify-center w-full min-h-[60px] mt-2">
+                  <div className="flex flex-col items-center justify-center w-full min-h-[40px] sm:min-h-[60px] mt-1 sm:mt-2">
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={currentTask}
@@ -663,7 +662,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
                         transition={{ duration: 0.35 }}
-                        className="flex items-center gap-2 text-sm"
+                        className="flex items-center gap-2 text-xs sm:text-sm"
                       >
                         <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
                         <span className="text-foreground font-medium">{currentTask}</span>
@@ -674,13 +673,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               </div>
 
               {/* Right Card: Sources */}
-              <div className="bg-card rounded-3xl border border-border shadow-2xl shadow-primary/10 p-8 sm:p-10 flex flex-col items-start justify-start w-full md:w-1/2">
-                <div className="mb-6">
-                  <Globe className="w-6 h-6 text-primary" />
+              <div className="bg-card rounded-2xl sm:rounded-3xl border border-border shadow-2xl shadow-primary/10 p-5 sm:p-8 md:p-10 flex flex-col items-start justify-start w-full md:w-1/2">
+                <div className="mb-4 sm:mb-6">
+                  <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
 
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="text-sm font-bold tracking-widest text-foreground uppercase">
+                <div className="flex items-center gap-3 mb-3 sm:mb-4">
+                  <div className="text-xs sm:text-sm font-bold tracking-widest text-foreground uppercase">
                     Scanning Sources
                   </div>
                   {!allSourcesDone && (
@@ -692,7 +691,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2 w-full min-h-[140px]">
+                <div className="flex flex-col gap-2 w-full min-h-[80px] sm:min-h-[140px]">
                   <AnimatePresence>
                     {visibleSources.map((source, i) => {
                       const isLatest = i === visibleSources.length - 1 && !allSourcesDone;
@@ -703,19 +702,19 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                           animate={{ opacity: isLatest ? 1 : 0.5, x: 0 }}
                           exit={{ opacity: 0, x: 10 }}
                           transition={{ duration: 0.3 }}
-                          className="flex items-center gap-2 text-sm"
+                          className="flex items-center gap-2 text-xs sm:text-sm"
                         >
                           {isLatest ? (
-                            <div className="h-3.5 w-3.5 rounded-full border-2 border-primary flex items-center justify-center shrink-0">
+                            <div className="h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full border-2 border-primary flex items-center justify-center shrink-0">
                               <motion.div
-                                className="h-1.5 w-1.5 rounded-full bg-primary"
+                                className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-primary"
                                 animate={{ scale: [1, 1.3, 1] }}
                                 transition={{ duration: 1, repeat: Infinity }}
                               />
                             </div>
                           ) : (
-                            <div className="h-3.5 w-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                              <Check className="h-2.5 w-2.5 text-primary" />
+                            <div className="h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                              <Check className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-primary" />
                             </div>
                           )}
                           <span className={`truncate ${isLatest ? "text-foreground font-medium" : "text-muted-foreground"}`}>
@@ -727,7 +726,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                   </AnimatePresence>
                 </div>
 
-                <div className="mt-auto pt-4 border-t border-border/50 w-full">
+                <div className="mt-auto pt-3 sm:pt-4 border-t border-border/50 w-full">
                   <p className="text-xs text-muted-foreground/60">
                     {scannedSources.length} of {allSources.length} sources scanned
                   </p>
