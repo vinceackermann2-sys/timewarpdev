@@ -271,7 +271,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
       } else {
         // Phase B: scrape done, slowly crawl from current value toward 95
         // Use progressRef to avoid stale closure — always increment from real value
-        next = Math.min(95, progressRef.current + 0.008);
+        next = Math.min(95, progressRef.current + 0.05);
       }
 
       progressRef.current = next;
