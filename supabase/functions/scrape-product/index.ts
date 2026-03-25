@@ -835,6 +835,24 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
       }
     }
 
+    // ══════════════════════════════════════════════
+    // CORE MODE: Return immediately with structured data only
+    // ══════════════════════════════════════════════
+    if (isCoreMode) {
+      // Brand name fallback
+      if (!extracted.brand?.name || extracted.brand.name === "") {
+        extracted.brand = extracted.brand || {};
+        extracted.brand.name = extracted.products?.[0]?.name || metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business";
+      }
+
+      console.log("Core mode — returning immediately:", extracted.brand?.name, "products:", extracted.products?.length || 0);
+
+      return new Response(
+        JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── Moodboard: Search web for aesthetic images, AI fallback ──
     const moodboardPromise = (async () => {
       try {
