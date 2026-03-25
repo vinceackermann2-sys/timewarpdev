@@ -9,8 +9,7 @@ import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import startBusinessBg from "@/assets/start-business-bg.webp";
 import addBusinessBg from "@/assets/add-business-bg.webp";
-import { useBusinessDNA, BrandEntry } from "./BusinessDNAContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useBusinessDNA } from "./BusinessDNAContext";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { UpgradeGateDialog } from "./UpgradeGateDialog";
@@ -26,85 +25,22 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
   const { isFreeUser, showGate, openGate, closeGate } = useFreePlanGate();
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
-  const { brands, setBrands, products, setProducts, audiences, setAudiences, deleteBrand, isLoading: dnaLoading } = useBusinessDNA();
+  const { brands, deleteBrand, isLoading: dnaLoading } = useBusinessDNA();
   const {
-    workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace, createWorkspace,
+    workspaces, activeWorkspaceId, activeWorkspace,
     members, isLoading: wsLoading,
   } = useWorkspace();
-  const [wsBusinesses, setWsBusinesses] = useState<BrandEntry[]>([]);
-  const [loadingBiz, setLoadingBiz] = useState(true);
   const lastKnownCount = useRef(0);
-  const prevWorkspaceId = useRef<string | null>(null);
 
-  // Reload trigger — incremented when brands change in context
-  const [reloadKey, setReloadKey] = useState(0);
-  const brandsRef = useRef(brands);
   useEffect(() => {
-    // Only trigger reload when brands array actually changes (not on first render)
-    if (brandsRef.current !== brands) {
-      brandsRef.current = brands;
-      setReloadKey(k => k + 1);
+    if (brands.length > 0) {
+      lastKnownCount.current = brands.length;
     }
   }, [brands]);
 
-  // Load businesses for the active workspace
-  useEffect(() => {
-    if (!activeWorkspaceId) {
-      setWsBusinesses([]);
-      if (!wsLoading) setLoadingBiz(false);
-      return;
-    }
-
-    const isWorkspaceSwitch = prevWorkspaceId.current !== activeWorkspaceId;
-
-    // Only clear businesses and show skeletons on actual workspace change
-    if (isWorkspaceSwitch) {
-      setWsBusinesses([]);
-      setLoadingBiz(true);
-    }
-    prevWorkspaceId.current = activeWorkspaceId;
-
-    let cancelled = false;
-    async function load() {
-      // Small delay on brand-triggered reloads to let DB write settle
-      if (reloadKey > 0 && !isWorkspaceSwitch) {
-        await new Promise(r => setTimeout(r, 800));
-      }
-      if (cancelled) return;
-
-      const { data, error } = await supabase
-        .from("user_business_data")
-        .select("id, content, user_id")
-        .eq("workspace_id", activeWorkspaceId!)
-        .eq("data_type", "brand")
-        .eq("source", "business-dna");
-
-      if (cancelled) return;
-      if (error) {
-        console.error("Failed to load workspace businesses:", error.message);
-      }
-      if (!error && data) {
-        const parsed = data.map((row) => {
-          try {
-            return { ...JSON.parse(row.content || "{}"), _rowId: row.id, _ownerId: row.user_id } as BrandEntry & { _ownerId: string };
-          } catch { return null; }
-        }).filter(Boolean) as (BrandEntry & { _ownerId: string })[];
-        lastKnownCount.current = parsed.length;
-        setWsBusinesses(parsed);
-      }
-      setLoadingBiz(false);
-    }
-    load();
-    return () => { cancelled = true; };
-  }, [activeWorkspaceId, wsLoading, reloadKey]);
-
-  const handleDeleteBusiness = async (e: React.MouseEvent, brandId: string) => {
-    e.stopPropagation();
-    await deleteBrand(brandId);
-  };
-
   const isOwner = activeWorkspace?.role === "owner";
   const isLoading = wsLoading && !activeWorkspaceId;
+  const loadingBiz = dnaLoading && brands.length === 0;
 
   // Show loader while workspace is being auto-selected
   if (isLoading) {
@@ -115,9 +51,14 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
     );
   }
 
-  const filteredBrands = wsBusinesses.filter(b =>
+  const filteredBrands = brands.filter(b =>
     b.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleDeleteBusiness = async (e: React.MouseEvent, brandId: string) => {
+    e.stopPropagation();
+    await deleteBrand(brandId);
+  };
 
   return (
     <>
@@ -157,7 +98,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                if (isFreeUser && wsBusinesses.length >= 1) { openGate(); return; }
+                if (isFreeUser && brands.length >= 1) { openGate(); return; }
                 setShowOptionsDialog(true);
               }}
               className="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/40 bg-card/30 hover:bg-card/60 p-8 min-h-[200px] transition-colors cursor-pointer"
