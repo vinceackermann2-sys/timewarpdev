@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 
 const URL_EXAMPLES = [
   "nike.com/air-max-90",
