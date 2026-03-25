@@ -39,11 +39,14 @@ async function _doGetSession(): Promise<Session | null> {
 
     console.error("Failed to restore auth session:", isTransport ? "(transport/timeout)" : error);
 
-    // Clear broken local session so the app doesn't loop
-    try {
-      await supabase.auth.signOut({ scope: "local" });
-    } catch {
-      // best-effort
+    // Only clear session on non-transport errors (don't wipe a valid session
+    // during transient network issues or signup race conditions)
+    if (!isTransport) {
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        // best-effort
+      }
     }
 
     return null;
