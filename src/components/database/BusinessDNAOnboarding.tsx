@@ -200,37 +200,44 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
     return () => clearTimeout(timer);
   }, [step, allSources.length, allSourcesDone]);
 
-  // Smooth progress animation using requestAnimationFrame with refs
+  // Smooth progress animation — continuous lerp with stall protection
   useEffect(() => {
     if (step < 1 || step > 2) return;
-    const startTime = Date.now();
     let rafId: number;
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
+    let lastVisibleChange = Date.now();
+    let lastRenderedProgress = 0;
 
+    const tick = () => {
       if (persistenceCompleteRef.current) {
         progressRef.current = 100;
         setProgress(100);
         return; // stop RAF loop
       }
 
-      let next: number;
+      // Determine ceiling based on current phase
+      const ceiling = scrapeCompleteRef.current ? 95 : 80;
 
-      // Phase A: smooth ease to 75% over ~20s while scrape is running
-      if (!scrapeCompleteRef.current) {
-        const t = Math.min(elapsed / 20000, 1);
-        const eased = 1 - Math.pow(1 - t, 3); // cubic deceleration
-        next = Math.min(75, eased * 75);
+      // Lerp toward ceiling — always closing ~3% of the gap per frame
+      let next = progressRef.current + (ceiling - progressRef.current) * 0.03;
+
+      // Guarantee: if bar hasn't moved ≥0.5% in 2 seconds, force a bump
+      const now = Date.now();
+      if (next - lastRenderedProgress < 0.5) {
+        if (now - lastVisibleChange > 2000) {
+          next = Math.min(ceiling - 0.5, progressRef.current + 0.8);
+          lastVisibleChange = now;
+        }
       } else {
-        // Phase B: scrape done, slowly crawl from current value toward 95
-        // Use progressRef to avoid stale closure — always increment from real value
-        next = Math.min(95, progressRef.current + 0.05);
+        lastVisibleChange = now;
+        lastRenderedProgress = next;
       }
 
+      next = Math.min(ceiling, next);
       progressRef.current = next;
       setProgress(next);
       rafId = requestAnimationFrame(tick);
     };
+
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [step]);
