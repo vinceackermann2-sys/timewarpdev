@@ -1077,126 +1077,103 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
       }
     }
 
-    // ── Generate icon grid + pattern sheet — NO TEXT allowed ──
+    // ── Generate icon grid + pattern sheet as SVG CODE ──
     aiImagePromises.push((async () => {
       try {
-        console.log("Generating brand icon grid and pattern sheet...");
-        const illustrationUrls: string[] = [];
-        const ssUrl = websiteScreenshot
-          ? (typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
-              ? websiteScreenshot
-              : `data:image/png;base64,${websiteScreenshot}`)
-          : null;
-
-        const audienceBuyingTriggers = (extracted.audience?.buyingTriggers || []).slice(0, 3).join('; ');
-        const productBenefits = (extracted.product?.benefits || []).slice(0, 4).join('; ');
-        const productUseCases = (extracted.product?.useCases || []).slice(0, 3).join('; ');
-        
-        // Image 1: Icon grid — ICONS ONLY, NO TEXT whatsoever
-        const iconsMessages: any[] = [
-          { role: "system", content: "You are an image generator. ABSOLUTE RULE: Never include any text, letters, numbers, labels, captions, or words of any kind in generated images. Output pure visual graphics only. No annotations, no watermarks, no signatures." },
-          {
-          role: "user",
-          content: ssUrl ? [
-            { type: "text", text: `Study this website screenshot for visual style reference only. Create a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
-
-CRITICAL RULE — ZERO TEXT: Do NOT include any labels, captions, titles, watermarks, or any form of written language beneath, beside, or on top of the icons. The output must contain ZERO readable characters. No letters. No numbers. No words. Pure graphic symbols only.
-
-The icons must represent concepts from the AUDIENCE's world and the PRODUCT's benefits:
-- Product benefits: ${productBenefits || 'quality, convenience, value'}
-- Audience needs: ${audienceBuyingTriggers || 'ease of use, time saving, reliability'}
-- Use cases: ${productUseCases || 'daily use, convenience'}
-
-Each icon should symbolize a benefit, pain point, or use case (e.g., clock for speed, shield for protection, heart for care, target for precision, thumbs-up for ease).
-- Drawn in a clean style using the brand's color palette: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
-- Well-separated with generous spacing
-- Mix of outlined and filled styles
-- ABSOLUTELY NO TEXT, NO LABELS, NO CAPTIONS, NO LETTERS, NO NUMBERS. White background.
-Brand: "${brandName}", category: ${brandCategory}` },
-            { type: "image_url", image_url: { url: ssUrl } }
-          ] : `Generate a set of 12 individual icons arranged in a clean 3-column × 4-row grid on a white background.
-
-CRITICAL RULE — ZERO TEXT: Do NOT include any labels, captions, titles, watermarks, or any form of written language beneath, beside, or on top of the icons. The output must contain ZERO readable characters. Pure graphic symbols only.
-
-Icons should represent: ${productBenefits || 'quality, convenience, value'} and audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}. Brand: "${brandName}", category: ${brandCategory}. Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}. Mix of outlined and filled styles. Clean, professional. ABSOLUTELY NO TEXT, NO LABELS, NO LETTERS, NO NUMBERS.`
-        }];
-
-        const iconsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
-            messages: iconsMessages,
-            modalities: ["image", "text"],
-          }),
-        });
-        if (iconsRes.ok) {
-          const d = await iconsRes.json();
-          const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (img) {
-            illustrationUrls.push(img);
-            console.log("✓ Generated icon grid");
-          }
-        }
-
-        // Image 2: Pattern sheet — NO TEXT allowed
+        console.log("Generating brand illustrations as SVG code...");
+        const productBenefits = (extracted.product?.benefits || []).slice(0, 6).join('; ');
+        const audienceBuyingTriggers = (extracted.audience?.buyingTriggers || []).slice(0, 4).join('; ');
         const audiencePowerWords = (extracted.audience?.powerWords || []).slice(0, 5).join(', ');
-        const patternMessages: any[] = [
-          { role: "system", content: "You are an image generator. ABSOLUTE RULE: Never include any text, letters, numbers, labels, captions, or words of any kind in generated images. Output pure visual graphics only. No annotations, no watermarks, no signatures." },
-          {
-          role: "user",
-          content: ssUrl ? [
-            { type: "text", text: `Study this website screenshot for color reference. Create a pattern reference sheet showing 2-3 distinct decorative patterns/backgrounds stacked vertically.
 
-CRITICAL RULE — ZERO TEXT: The output must contain ZERO readable characters. Do NOT include any labels, captions, titles, watermarks, signatures, annotations, or any form of written language anywhere in the image. Pure abstract visual patterns only.
-
-These patterns should evoke the EMOTIONAL WORLD of the target audience:
-- Audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}
-- Emotional keywords: ${audiencePowerWords || 'trust, comfort, confidence'}
-- Brand tone: ${extracted.product?.positioningStatement?.slice(0, 150) || brandCategory}
-
-Include:
-1. A flowing, organic wave/curve pattern using the brand's color palette — evoking the audience's aspirational feelings
-2. A geometric/abstract section showing rounded shapes or decorative elements that feel approachable and on-brand
-3. A subtle tileable texture suitable for website section backgrounds
-
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}.
-Each pattern clearly separated. Professional quality. ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO LABELS, NO WATERMARKS.` },
-            { type: "image_url", image_url: { url: ssUrl } }
-          ] : `Generate a pattern reference sheet for "${brandName}" targeting audience: ${(extracted.audience?.description || '').split('.').slice(0, 2).join('.')}. Emotional keywords: ${audiencePowerWords || 'trust, comfort'}.
-
-CRITICAL RULE — ZERO TEXT: The output must contain ZERO readable characters. No labels, no captions, no titles, no watermarks, no signatures, no annotations. Pure abstract visual patterns only.
-
-Show 2-3 distinct patterns stacked vertically:
-1. Flowing organic wave/curve pattern with gradients in brand colors
-2. Geometric/abstract section with rounded shapes
-3. Subtle tileable texture for backgrounds
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}, background ${brandColors.background || '#fff'}. Professional, modern. ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO LABELS.`
-        }];
-
-        const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        // Image 1: Icon grid as SVG
+        const iconSvgRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
-            messages: patternMessages,
-            modalities: ["image", "text"],
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: `Generate a complete, valid SVG string (viewBox="0 0 600 800") containing a 3×4 grid of 12 icons representing these product/audience concepts:
+
+Product benefits: ${productBenefits || 'quality, convenience, value'}
+Audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}
+Brand: "${brandName}", category: ${brandCategory}
+Primary color: ${brandColors.primary || '#333333'}
+Secondary color: ${brandColors.secondary || '#666666'}
+
+Requirements:
+- Each icon is a simple, clean SVG path/shape (clock, shield, heart, target, checkmark, star, etc.)
+- Arranged in a 3-column × 4-row grid with generous spacing
+- Mix of outlined (stroke, no fill) and filled styles
+- Use ONLY the brand's primary and secondary colors
+- Each icon ~80×80px in a cell, centered
+- NO text elements, NO <text> tags whatsoever
+- Clean, professional, minimal line style
+
+Return ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown, no explanation.`
+            }],
           }),
         });
-        if (patternRes.ok) {
-          const d = await patternRes.json();
-          const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (img) {
-            illustrationUrls.push(img);
-            console.log("✓ Generated pattern sheet");
+
+        const illustrationSvgs: string[] = [];
+        if (iconSvgRes.ok) {
+          const d = await iconSvgRes.json();
+          const raw = d.choices?.[0]?.message?.content || "";
+          const svgMatch = raw.match(/<svg[\s\S]*?<\/svg>/i);
+          if (svgMatch) {
+            illustrationSvgs.push(svgMatch[0]);
+            console.log("✓ Generated icon grid SVG");
           }
         }
 
-        if (illustrationUrls.length > 0) {
-          extracted.brand.visualIdentity.illustrationUrls = illustrationUrls;
-          console.log("Generated", illustrationUrls.length, "illustrations");
+        // Image 2: Pattern sheet as SVG
+        const patternSvgRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: `Generate a complete, valid SVG string (viewBox="0 0 600 900") containing a pattern reference sheet with 3 distinct decorative patterns stacked vertically.
+
+Brand: "${brandName}"
+Audience emotional keywords: ${audiencePowerWords || 'trust, comfort, confidence'}
+Primary color: ${brandColors.primary || '#333333'}
+Secondary color: ${brandColors.secondary || '#666666'}
+Background: ${brandColors.background || '#ffffff'}
+
+The 3 patterns (each ~600×280px, separated by a gap):
+1. A flowing, organic wave/curve pattern using gradients of the brand colors — smooth, modern, aspirational
+2. A geometric/abstract section with rounded shapes, dots, or decorative elements — approachable and on-brand
+3. A subtle tileable texture using thin lines or micro-patterns — suitable for website section backgrounds
+
+Requirements:
+- Use SVG <path>, <circle>, <rect>, <line>, <polygon> elements
+- Use <defs> with <linearGradient> or <radialGradient> for color blends
+- NO <text> tags, NO letters, NO numbers
+- Clean, professional, modern feel
+- Use only the brand color palette
+
+Return ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown, no explanation.`
+            }],
+          }),
+        });
+
+        if (patternSvgRes.ok) {
+          const d = await patternSvgRes.json();
+          const raw = d.choices?.[0]?.message?.content || "";
+          const svgMatch = raw.match(/<svg[\s\S]*?<\/svg>/i);
+          if (svgMatch) {
+            illustrationSvgs.push(svgMatch[0]);
+            console.log("✓ Generated pattern sheet SVG");
+          }
         }
-      } catch (e) { console.error("Illustration gen error:", e); }
+
+        if (illustrationSvgs.length > 0) {
+          extracted.brand.visualIdentity.illustrationSvgs = illustrationSvgs;
+          console.log("Generated", illustrationSvgs.length, "SVG illustrations");
+        }
+      } catch (e) { console.error("Illustration SVG gen error:", e); }
     })());
 
     // ── Audience Avatar: Generate a portrait based on audience description ──
