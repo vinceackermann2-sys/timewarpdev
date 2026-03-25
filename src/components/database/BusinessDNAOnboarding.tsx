@@ -738,13 +738,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
           {step === 3 && (
             <motion.div
               key="result-card"
-              className="w-full max-w-md mx-auto flex flex-col items-center"
+              className="w-full max-w-sm sm:max-w-md mx-auto flex flex-col items-center px-2"
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
             >
               {/* Orb */}
-              <div className="orb-stage mb-12 mt-4">
+              <div className="orb-stage mb-8 sm:mb-12 mt-2 sm:mt-4 scale-75 sm:scale-100 origin-center">
                 <div className="orb-wrapper">
                   <div className="orb-glow-aura"></div>
                   <div className="orb-connectors">
@@ -756,7 +756,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
               </div>
 
               {/* Agent Name Input */}
-              <div className="w-full flex flex-col items-center min-h-[120px] justify-center">
+              <div className="w-full flex flex-col items-center min-h-[100px] sm:min-h-[120px] justify-center">
                 <AnimatePresence mode="wait">
                   {!isNameSubmitted ? (
                     <motion.div
@@ -768,7 +768,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                     >
                       <label
                         htmlFor="agentName"
-                        className="flex items-center justify-center text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wide"
+                        className="flex items-center justify-center text-xs sm:text-sm font-bold text-muted-foreground mb-3 sm:mb-4 uppercase tracking-wide"
                       >
                         Agent Name
                       </label>
@@ -783,7 +783,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                           }
                         }}
                         placeholder=""
-                        className="w-full px-5 py-4 text-center text-lg bg-card border-2 border-border rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none text-foreground font-medium shadow-sm"
+                        className="w-full px-4 sm:px-5 py-3 sm:py-4 text-center text-base sm:text-lg bg-card border-2 border-border rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none text-foreground font-medium shadow-sm"
                         autoFocus
                       />
                       <AnimatePresence>
@@ -792,7 +792,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
-                            className="text-center text-xs text-muted-foreground mt-3"
+                            className="text-center text-xs text-muted-foreground mt-2 sm:mt-3"
                           >
                             Press Enter to continue
                           </motion.p>
@@ -808,10 +808,10 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
                     >
                       <button
                         onClick={() => onComplete(agentName.trim(), createdBrandId)}
-                        className="w-full bg-card border border-border shadow-sm text-foreground hover:bg-muted px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                        className="w-full bg-card border border-border shadow-sm text-foreground hover:bg-muted px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                       >
                         Take Me To {agentName.trim()}
-                        <ArrowRight className="w-5 h-5 text-primary" />
+                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                       </button>
                     </motion.div>
                   )}
