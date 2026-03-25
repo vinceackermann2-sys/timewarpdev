@@ -1,43 +1,74 @@
 
+Goal: fix new-user onboarding so it always creates the business, keeps progress believable, and stops the failing scrape/persistence chain.
 
-## Plan: Fix onboarding progress, flipping text, and 403 persistence failure
+What I found
+- The immediate blocker is not just auth: `scrape-product` is returning 500 before persistence finishes.
+- Edge logs pinpoint the 500 at `scrape-product/index.ts` around the AI response parse path (`Unexpected end of JSON input`), so the function is trying to parse an empty/truncated JSON body.
+- After that failure, onboarding still proceeds into step 2 and attempts inserts with incomplete state. That leads to the 403 brand insert loop and an empty business.
+- The 409 on `workspaces` is likely from duplicate workspace creation in `useWorkspace.ts` when the initial workspace list is temporarily empty for a brand-new account.
+- The 403 `/logout` is a side symptom of auth churn during signup, not the main cause of the missing business.
+- There are also accessibility warnings from dialogs that should be cleaned up, but they are not causing onboarding failure.
 
-### Root causes identified
+Implementation plan
 
-1. **Progress bar not congruent**: Time-based animation caps at 78% in 8 seconds, then crawls 1% at a time. Feels stuck and disconnected from actual work.
+1. Fix the edge function 500 first
+- File: `supabase/functions/scrape-product/index.ts`
+- Harden every external `fetch(...).json()` call that can receive an empty/non-JSON body.
+- Especially fix the AI extraction response handling near the logged failure point:
+  - read `await response.text()` first
+  - guard against empty bodies
+  - `JSON.parse` inside try/catch
+  - return a structured error instead of throwing
+- Apply the same defensive parsing to Firecrawl and other AI calls in this function where needed.
 
-2. **Logging doesn't flip**: Currently stacks completed milestones as a history list. User wants a single line that flips/crossfades through tasks — not a growing list.
+2. Stop onboarding from continuing after scrape failure
+- File: `src/components/database/BusinessDNAOnboarding.tsx`
+- Make step progression strict:
+  - if `scrape-product` fails, do not advance into persistence
+  - show retry state immediately
+- Right now `scrapeComplete` is set in `finally`, which allows step 2 even on failure. Change that so step 2 only starts when extracted data is valid.
 
-3. **Brand insert fails with 403**: Console shows `Failed to load resource: 403` on `user_business_data` and `Brand insert failed`. The RLS INSERT policy requires `auth.uid()` to match `user_id`. After `immediate_login_after_signup`, the Supabase client may still hold a stale/empty session. The code calls `getSession()` but the token may not yet be refreshed. Fix: call `getSession()` right before insert and use the returned session's user ID, plus add a small retry if the first attempt 403s.
+3. Fix the new-user auth/workspace race before inserts
+- Files: `src/components/database/BusinessDNAOnboarding.tsx`, `src/hooks/useWorkspace.ts`
+- In onboarding, resolve a fresh session right before DB writes and use that `session.user.id`.
+- Keep the retry for 403, but only after confirming scrape succeeded.
+- In `useWorkspace.ts`, stop auto-creating a workspace when RPC briefly returns empty for a new user unless it’s clearly missing after a safer re-check. This should eliminate the 409 conflict path.
 
-4. **409 on workspaces**: Likely the workspace rename hitting a conflict. Non-critical but should be handled gracefully.
+4. Make onboarding persistence verifiable
+- File: `src/components/database/BusinessDNAOnboarding.tsx`
+- Insert brand/product/audience only after:
+  - valid extracted payload exists
+  - workspace id exists
+  - authenticated session exists
+- Capture insert results explicitly and only mark completion once required rows succeed.
+- If any required insert fails, keep the user in onboarding with a clear retry state.
 
-### Changes
+5. Make progress/logging reflect real phases
+- File: `src/components/database/BusinessDNAOnboarding.tsx`
+- Tie the flipping text to actual phases:
+  - resolving workspace
+  - scraping site
+  - extracting business data
+  - saving brand/product/audience
+  - finalizing workspace
+- Make progress phase-based:
+  - 0–80 only while scrape is actively running
+  - 80–95 during confirmed persistence
+  - 100 only after inserts and finalization succeed
+- If scrape fails, freeze below completion and show the error state instead of moving on.
 
-#### File: `src/components/database/BusinessDNAOnboarding.tsx`
+6. Clean up the dialog accessibility warnings
+- Files with `DialogContent` lacking title/description, starting with:
+  - `src/components/landing/AuthDialog.tsx`
+  - likely `src/components/database/UpgradeGateDialog.tsx`
+  - likely `src/components/database/ActionsDialog.tsx`
+  - likely `src/components/database/EmployeeDetailView.tsx`
+- Add `DialogTitle` and either `DialogDescription` or `aria-describedby={undefined}` where appropriate.
+- This won’t fix onboarding, but it will remove the repeated console noise.
 
-**1. Fix flipping text — single line only, no history stack**
-- Remove `completedMilestones` state and `recentCompleted` rendering
-- Keep only `currentMilestone` index cycling through `ANALYSIS_MILESTONES`
-- Render a single `AnimatePresence mode="wait"` block that crossfades between milestone strings
-- No check marks, no history list — just one flipping line
-
-**2. Fix progress bar — smooth continuous animation**
-- Replace the choppy interval-based approach with a smooth animation:
-  - Phase A (scrape running): ease from 0% to 80% over ~15 seconds using a deceleration curve
-  - Phase B (scrape done, persistence running): slowly crawl from 80% to 95%
-  - Phase C (persistence complete): snap to 100%
-- Use `requestAnimationFrame` or a tighter interval with smoother math instead of jumping by integer increments
-
-**3. Fix 403 on insert — refresh session before persisting**
-- In step 2's async block, before inserting, call `await supabase.auth.getSession()` to get a fresh token
-- If the first brand insert returns a 403/401 error, wait 1 second and retry once with a fresh `getSession()` call
-- This handles the race condition where `immediate_login_after_signup` hasn't fully propagated the JWT
-- Log the retry so it's visible in console for debugging
-
-**4. Handle workspace 409 gracefully**
-- Wrap the workspace rename in a try/catch, don't block completion on it
-
-### Files to edit
-- `src/components/database/BusinessDNAOnboarding.tsx`
-
+Expected result
+- New users can complete onboarding without the scrape crashing.
+- The business rows are actually created in the workspace before onboarding exits.
+- Backing out of Business DNA still shows the created business.
+- Progress and flipping logs match the real backend state.
+- Console noise is reduced to actionable issues only.
