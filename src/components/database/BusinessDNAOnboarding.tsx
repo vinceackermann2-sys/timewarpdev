@@ -134,6 +134,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: Bu
   // Refs for progress animation to avoid stale closures
   const scrapeCompleteRef = useRef(false);
   const persistenceCompleteRef = useRef(false);
+  const progressRef = useRef(0); // tracks real progress value for phase transitions
   useEffect(() => { scrapeCompleteRef.current = scrapeComplete; }, [scrapeComplete]);
   useEffect(() => { persistenceCompleteRef.current = persistenceComplete; }, [persistenceComplete]);
 
