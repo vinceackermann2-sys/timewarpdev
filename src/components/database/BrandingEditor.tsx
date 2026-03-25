@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useActionGate } from "@/hooks/useActionGate";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
 import { useToast } from "@/hooks/use-toast";
 import {
   Globe, ImageIcon, Palette, Type, Upload, X, Check, RefreshCw, Save, Pencil,
