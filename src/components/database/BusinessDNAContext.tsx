@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_PRODUCT, ProductData } from "@/components/database/ProductDetailView";
 import { DEFAULT_AUDIENCE, AudienceData } from "@/components/database/AudienceDetailView";
