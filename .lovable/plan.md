@@ -1,41 +1,40 @@
 
 
-## Plan: Fix onboarding — redeploy edge function + auth race condition
+## Plan: Fix onboarding persistence by moving DB inserts to a backend function
 
-### Problem chain
+### Root cause
 
-1. **`scrape-product` is not responding** — the CORS error ("No 'Access-Control-Allow-Origin' header is present") means the function crashes before returning anything. No edge function logs exist, confirming the function either isn't deployed or fails at boot. The CORS headers in the code are correct — the function just never executes.
+The 403 errors happen because `auth.uid()` in RLS policies is null/stale during the seconds after signup. Despite retries with `refreshSession` and `setSession`, the client-side JWT never becomes valid fast enough for the RLS check `user_id = auth.uid() AND is_workspace_member(auth.uid(), workspace_id)` to pass. This is a well-known race condition with `immediate_login_after_signup`.
 
-2. **403 on `user_business_data` inserts** — after scrape fails, onboarding proceeds to persistence (it shouldn't, but does). The RLS INSERT policy requires `auth.uid() = user_id`. For brand-new signups, `auth.uid()` can be null/stale during the first few seconds. The `waitForSession` + `refreshSession` retry logic is present but may not be working because the `supabase` client's internal token is out of sync.
+Retrying harder on the client won't fix this — the JWT propagation delay is server-side.
 
-3. **Progress bar stalls** — the `requestAnimationFrame` loop uses refs correctly now, but the `setProgress` callback still uses a stale `prev` value for the crawl phase. When `prev` is 0 (initial) and phase B triggers, the crawl from 0 is imperceptible.
+### Solution
+
+Move the brand/product/audience persistence to a new edge function that uses the **service role key** to bypass RLS. This matches the existing pattern used by other edge functions in this project (subscription management, AI agents, etc.).
 
 ### Changes
 
-#### 1. Redeploy `scrape-product` edge function
-- Use the deploy tool to redeploy `scrape-product`
-- Test it with the invoke tool immediately after
-- If it fails, check logs for boot errors and fix
+#### 1. New edge function: `supabase/functions/save-onboarding/index.ts`
+- Accepts: `{ brandData, productData, audienceData, workspaceId }` in the request body
+- Extracts user ID from the Authorization header JWT (verify the token, get the `sub` claim)
+- If no workspace_id provided, queries `get_user_workspaces` to find one
+- Inserts brand, product, audience rows into `user_business_data` using service role client
+- Renames workspace to match brand name
+- Returns `{ success: true, brandId }` on success
 
-#### 2. Fix the auth insert path (file: `BusinessDNAOnboarding.tsx`)
-- In step 2's persistence block, instead of relying on `supabase.auth.refreshSession()` inside `insertWithRetry`, call `supabase.auth.setSession()` with the access/refresh tokens obtained from `waitForSession` to force the client to use the correct JWT
-- Alternative simpler fix: use `supabase.auth.getUser()` as the definitive check — if it returns a user, the token is valid; if not, the session truly isn't ready
+#### 2. Update `src/components/database/BusinessDNAOnboarding.tsx`
+- Replace the entire `insertWithRetry` / step 2 block with a single call: `supabase.functions.invoke("save-onboarding", { body: { ... } })`
+- Remove `waitForSession`, `resolveWorkspaceId`, and the exponential backoff retry logic — no longer needed since the edge function handles auth via service role
+- Keep the progress animation and milestone flipping as-is
+- On success response, update context and transition to step 3
+- On error, show retry UI
 
-#### 3. Stop step 2 from running if scrape failed
-- The current guard `if (step === 1 && scrapeComplete && !scrapeError)` correctly blocks step transition on error
-- But the scrape error from CORS throws a `FunctionsFetchError` which may not be caught properly — ensure the catch block in step 1 sets `scrapeError = true` for network-level failures too (it does, but verify the error UI shows)
+#### 3. Progress bar fix
+- The progress bar currently stalls because phase B (`scrapeComplete && !persistenceComplete`) increments by 0.008 per frame which is ~0.48/sec — too slow to be noticeable
+- Increase the crawl rate to 0.05 per frame so it visibly moves from ~75% to 95% over ~7 seconds
+- This ensures the bar always appears to be progressing
 
-#### 4. Fix progress bar continuity
-- In the `setProgress` callback, track a separate `phaseB_startProgress` ref that captures `progress` when scrape completes, so the crawl starts from the actual current value (e.g. 72%) rather than relying on `prev` which can be stale in the RAF loop
-- This ensures smooth transition from phase A to phase B without jumping or stalling
-
-### Files to edit
-- `supabase/functions/scrape-product/index.ts` — redeploy (no code changes needed, CORS is correct)
-- `src/components/database/BusinessDNAOnboarding.tsx` — auth fix + progress fix
-
-### Expected result
-- Edge function responds correctly, scrape succeeds
-- Brand/product/audience inserts succeed for new users
-- Progress bar moves smoothly from 0→100%
-- Errors show retry UI instead of silently failing
+### Files to create/edit
+- `supabase/functions/save-onboarding/index.ts` (new)
+- `src/components/database/BusinessDNAOnboarding.tsx` (simplify step 2)
 
