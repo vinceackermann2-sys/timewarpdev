@@ -433,7 +433,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
             audiencePowerWords: (firstAudience.powerWords || []).slice(0, 5).join(", "),
             productBenefits: (firstProduct.benefits || []).slice(0, 6).join("; "),
             buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
-            websiteUrl: url,
+            websiteUrl: activeUrl || "",
           }).then((res) => {
             console.log("Brand enrichment result:", res.data);
             if (res.data?.success && refreshBrand) {
