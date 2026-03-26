@@ -66,6 +66,7 @@ interface BusinessDNAContextType {
   deleteBrand: (brandId: string) => Promise<void>;
   deleteProduct: (productId: string) => Promise<void>;
   deleteAudience: (audienceId: string) => Promise<void>;
+  reloadData: () => Promise<void>;
 }
 
 const BusinessDNAContext = createContext<BusinessDNAContextType | null>(null);
