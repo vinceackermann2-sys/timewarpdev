@@ -283,22 +283,28 @@ export function BrandExtendedSections({
   initialData?: VisualIdentityInitial;
   brandColors?: BrandColorsProps;
 }) {
+  const toArr = <T,>(v: unknown): T[] => Array.isArray(v) ? v : [];
   const [data, setData] = useState<VisualIdentityData>(() => {
     const base = { ...DEFAULT_DATA };
     if (initialData) {
-      if (initialData.imageGuidelines?.length) {
-        base.imageGuidelines = initialData.imageGuidelines.map((g, i) => ({
+      const rawGuidelines = toArr<any>(initialData.imageGuidelines);
+      if (rawGuidelines.length) {
+        base.imageGuidelines = rawGuidelines.map((g, i) => ({
           id: `ig-${i}`,
-          rule: g.rule,
-          example: g.example,
+          rule: g?.rule || "",
+          example: g?.example,
         }));
       }
-      if (initialData.websiteRules?.length) base.websiteRules = initialData.websiteRules;
-      if (initialData.buttonRules?.length) base.buttonRules = initialData.buttonRules;
-      if (initialData.socialMediaRules?.length) base.socialMediaRules = initialData.socialMediaRules;
+      const rawWebsite = toArr<string>(initialData.websiteRules);
+      if (rawWebsite.length) base.websiteRules = rawWebsite;
+      const rawButton = toArr<string>(initialData.buttonRules);
+      if (rawButton.length) base.buttonRules = rawButton;
+      const rawSocial = toArr<string>(initialData.socialMediaRules);
+      if (rawSocial.length) base.socialMediaRules = rawSocial;
       // Pre-populate moodboard from extracted URLs
-      if (initialData.moodboardUrls?.length) {
-        base.moodboard = initialData.moodboardUrls.map((url, i) => ({
+      const rawMoodboard = toArr<string>(initialData.moodboardUrls);
+      if (rawMoodboard.length) {
+        base.moodboard = rawMoodboard.map((url, i) => ({
           id: `mood-${i}`,
           url,
         }));
@@ -308,8 +314,10 @@ export function BrandExtendedSections({
         }
       }
       // Pre-populate illustrations from SVGs (preferred) or URLs
-      if (initialData.illustrationSvgs?.length) {
-        base.illustrations = initialData.illustrationSvgs.map((svg, i) => ({
+      const rawSvgs = toArr<string>(initialData.illustrationSvgs);
+      const rawIllustUrls = toArr<string>(initialData.illustrationUrls);
+      if (rawSvgs.length) {
+        base.illustrations = rawSvgs.map((svg, i) => ({
           id: `illust-${i}`,
           url: null,
           svgContent: svg,
@@ -318,8 +326,8 @@ export function BrandExtendedSections({
         if (base.illustrations.length < 2) {
           base.illustrations.push({ id: `illust-${base.illustrations.length}`, url: null, label: "Add illustration" });
         }
-      } else if (initialData.illustrationUrls?.length) {
-        base.illustrations = initialData.illustrationUrls.map((url, i) => ({
+      } else if (rawIllustUrls.length) {
+        base.illustrations = rawIllustUrls.map((url, i) => ({
           id: `illust-${i}`,
           url,
           label: `Illustration ${i + 1}`,
