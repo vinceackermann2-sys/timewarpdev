@@ -402,6 +402,7 @@ export function DatabaseView() {
   const handleConnectComplete = () => {
     sessionStorage.setItem("businessDnaDismissed", "true");
     setHasConnected(true);
+    _cachedHasConnected = true;
   };
 
   const handleModeSwitch = (mode: ChatMode) => {
