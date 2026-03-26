@@ -153,6 +153,11 @@ export function DatabaseView() {
     checkConnections();
   }, []);
 
+  // Sync messages to module-level cache
+  useEffect(() => {
+    _cachedChatMessages[chatMode] = messages.filter((m: any) => !m.isStreaming);
+  }, [messages, chatMode]);
+
   // Loading data check
   useEffect(() => {
     const timer = setTimeout(() => setIsLoadingData(false), 500);
