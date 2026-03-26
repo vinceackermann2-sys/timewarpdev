@@ -659,6 +659,7 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 16000,
         messages: [
           { role: "user", content: extractionPrompt },
         ],
@@ -724,20 +725,28 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
         try {
           extracted = JSON.parse(cleaned);
         } catch (secondErr) {
-          // Truncation detection — unbalanced braces
-          const openB = (cleaned.match(/{/g) || []).length;
-          const closeB = (cleaned.match(/}/g) || []).length;
-          if (openB !== closeB) {
-            // Try to close missing braces
-            const missing = openB - closeB;
-            for (let i = 0; i < missing; i++) cleaned += "}";
-            // Also close any open arrays
-            const openArr = (cleaned.match(/\[/g) || []).length;
-            const closeArr = (cleaned.match(/]/g) || []).length;
-            for (let i = 0; i < openArr - closeArr; i++) cleaned += "]";
-            cleaned = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
-            extracted = JSON.parse(cleaned);
-          } else {
+          // Aggressive truncation repair
+          // Strip back to last cleanly closed property
+          let repaired = cleaned;
+          // Remove trailing incomplete string/value (cut back to last comma, ] or })
+          repaired = repaired.replace(/,\s*"[^"]*"?\s*:\s*("[^"]*)?$/, "");
+          repaired = repaired.replace(/,\s*"[^"]*$/, "");
+          repaired = repaired.replace(/,\s*\[?[^\[\]{}]*$/, "");
+          // Remove dangling commas
+          repaired = repaired.replace(/,\s*$/, "");
+          // Close unbalanced brackets
+          const openArr = (repaired.match(/\[/g) || []).length;
+          const closeArr = (repaired.match(/]/g) || []).length;
+          for (let i = 0; i < openArr - closeArr; i++) repaired += "]";
+          repaired = repaired.replace(/,\s*]/g, "]");
+          const openB = (repaired.match(/{/g) || []).length;
+          const closeB = (repaired.match(/}/g) || []).length;
+          for (let i = 0; i < openB - closeB; i++) repaired += "}";
+          repaired = repaired.replace(/,\s*}/g, "}");
+          try {
+            extracted = JSON.parse(repaired);
+            console.log("JSON recovered after truncation repair");
+          } catch (thirdErr) {
             throw secondErr;
           }
         }
