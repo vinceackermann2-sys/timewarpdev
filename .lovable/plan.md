@@ -1,28 +1,39 @@
 
 
-# Fix: Duplicate Businesses Created During Onboarding
+# Fix: White Page After Onboarding — Incomplete Data Persisted
 
 ## Root Cause
 
-Double insertion — the `save-onboarding` edge function inserts brand/products/audiences into the DB, then `BusinessDNAOnboarding` appends them to context state via `setBrands(prev => [...prev, newBrand])`. The context's sync effects (brands/products/audiences `useEffect`) detect these as new items (no `_rowId`) and insert them into the DB **again**, creating duplicates. When loading duplicates with the same logical ID, detail views break (white page).
+The `save-onboarding` call at line 384 strips products and audiences down to only 5-6 fields:
+```js
+productsData: newProducts.map(p => ({
+  name: p.name, category: p.category, description: p.description,
+  features: p.features, benefits: p.benefits,
+}))
+```
+
+But the full `newProducts` array has 20+ fields (painPoints, useCases, offers, images, etc.). After `reloadData()` loads the stripped data from the database, the detail views crash because fields like `offers` or `images` are `undefined` instead of arrays.
 
 ## Fix
 
-**In `BusinessDNAOnboarding.tsx` (lines 412-416):** Instead of manually appending to context state, force a reload from the database. This ensures loaded items have `_rowId` set, so the sync effects won't re-insert them.
+**File: `src/components/database/BusinessDNAOnboarding.tsx` (~lines 380-393)**
 
-1. Add a `reloadData` function to `BusinessDNAContext` that resets `loadedWorkspaceRef` and re-fetches from DB
-2. In `BusinessDNAOnboarding`, after `save-onboarding` succeeds and `localStorage` is updated with `preferred_workspace_id`, call `reloadData()` instead of `setBrands/setProducts/setAudiences`
+Send the **complete** brand, product, and audience objects to `save-onboarding` instead of cherry-picked subsets:
 
-### Changes
+```js
+body: {
+  brandData: newBrand,
+  productsData: newProducts,
+  audiencesData: newAudiences,
+  brandName,
+}
+```
 
-**File: `src/components/database/BusinessDNAContext.tsx`**
-- Add a `reloadData` method to the context that clears `loadedWorkspaceRef.current` and triggers a fresh load from the database
-- Expose it in the context type and provider value
+This ensures the database contains the full data structure. The detail views' existing `toArr()` guards handle any AI-returned non-array fields, but the core issue is that most fields are simply absent from the DB.
 
-**File: `src/components/database/BusinessDNAOnboarding.tsx`**
-- Replace lines 412-416 (manual `setBrands`/`setProducts`/`setAudiences` appends) with a single call to `reloadData()` from the context
-- This ensures all items come back with `_rowId`, preventing the sync effects from creating duplicates
+## Files
 
-**File: `supabase/functions/save-onboarding/index.ts`**
-- Remove duplicate workspace rename block (lines 151-153 are an exact copy of 147-149)
+| File | Change |
+|------|--------|
+| `src/components/database/BusinessDNAOnboarding.tsx` | Send full product/audience objects to save-onboarding instead of stripped subsets |
 
