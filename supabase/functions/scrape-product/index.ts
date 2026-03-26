@@ -44,6 +44,114 @@ const parseStringArrayFromAiText = (raw: string): string[] => {
   }
 };
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const OFFER_STOPWORDS = new Set([
+  "the", "and", "for", "with", "your", "from", "that", "this", "into", "over", "only",
+  "just", "more", "less", "have", "will", "when", "then", "than", "each", "per", "our",
+  "you", "now", "get", "new", "all", "any", "are", "not", "but", "can", "one", "two",
+]);
+
+const OFFER_CUE_REGEX = /\b(save|sale|deal|offer|discount|bundle|gift|free|shipping|subscribe|bonus|bogo|limited|off)\b/i;
+
+const normalizeSearchText = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^\p{L}\p{N}%$€£¥]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const hasPageEvidenceForOfferField = (
+  rawPageText: string,
+  normalizedPageText: string,
+  value: unknown,
+) => {
+  if (typeof value !== "string" || !value.trim()) return false;
+
+  const raw = value.trim();
+  const normalized = normalizeSearchText(raw);
+  if (!normalized) return false;
+
+  if (normalized.length >= 8 && normalizedPageText.includes(normalized)) {
+    return true;
+  }
+
+  const numericParts = raw.match(/\d+(?:[.,]\d+)?/g)?.map((part) => part.replace(/,/g, "")) || [];
+
+  if (raw.includes("%") && numericParts.some((part) => rawPageText.includes(`${part}%`) || rawPageText.includes(`${part} %`))) {
+    return true;
+  }
+
+  for (const part of numericParts) {
+    const priceRegex = new RegExp(`(?:[$€£¥]\\s*)?${escapeRegExp(part)}(?:\\.00)?(?:\\s*(?:usd|eur|gbp|aud|cad|dollars?|pounds?|euros?))?`, "i");
+    if (priceRegex.test(rawPageText)) {
+      return true;
+    }
+  }
+
+  const tokens = normalized
+    .split(" ")
+    .filter((token) => token.length > 3 && !OFFER_STOPWORDS.has(token) && !/^\d+$/.test(token));
+
+  if (tokens.length === 0) return false;
+
+  const matchedCount = tokens.filter((token) => normalizedPageText.includes(token)).length;
+  return matchedCount >= Math.min(2, tokens.length);
+};
+
+const sanitizeOffer = (offer: any, rawPageText: string, normalizedPageText: string) => {
+  if (!offer || typeof offer !== "object") return null;
+
+  const title = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.title) ? String(offer.title).trim() : "";
+  const originalPrice = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.originalPrice) ? String(offer.originalPrice).trim() : "";
+  const salePrice = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.salePrice) ? String(offer.salePrice).trim() : "";
+  const discount = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.discount) ? String(offer.discount).trim() : "";
+  const bundleDetails = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.bundleDetails) ? String(offer.bundleDetails).trim() : "";
+  const freeGifts = Array.isArray(offer.freeGifts)
+    ? offer.freeGifts
+        .filter((gift) => hasPageEvidenceForOfferField(rawPageText, normalizedPageText, gift))
+        .map((gift) => String(gift).trim())
+    : [];
+
+  const hasStrongEvidence = Boolean(originalPrice || salePrice || discount || bundleDetails || freeGifts.length > 0);
+  const hasSupportedTitleOnly = Boolean(title && OFFER_CUE_REGEX.test(title));
+
+  if (!hasStrongEvidence && !hasSupportedTitleOnly) {
+    return null;
+  }
+
+  return {
+    title,
+    originalPrice,
+    salePrice,
+    discount,
+    bundleDetails,
+    freeGifts,
+    isPopular: Boolean(offer.isPopular) && /\b(most popular|best seller|bestseller|popular choice|top seller)\b/i.test(rawPageText),
+  };
+};
+
+const sanitizeExtractedOffers = (markdown: string, extracted: any) => {
+  const rawPageText = typeof markdown === "string" ? markdown.toLowerCase() : "";
+  const normalizedPageText = normalizeSearchText(markdown || "");
+  const sanitize = (product: any) => {
+    if (!product || typeof product !== "object") return;
+    product.offers = Array.isArray(product.offers)
+      ? product.offers
+          .map((offer) => sanitizeOffer(offer, rawPageText, normalizedPageText))
+          .filter(Boolean)
+      : [];
+  };
+
+  if (Array.isArray(extracted?.products)) {
+    extracted.products.forEach(sanitize);
+  }
+  if (extracted?.product) {
+    sanitize(extracted.product);
+  }
+};
+
 const collectSearchImageUrls = (results: any[]): string[] => {
   const imgUrlRegex = /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
   const collected: string[] = [];
@@ -707,7 +815,7 @@ JSON structure to return:
     "technicalLevel": "",
     "refinementChecklist": [],
     "images": [],
-    "offers": [{"title": "", "originalPrice": "", "salePrice": "", "discount": "", "bundleDetails": "", "freeGifts": [], "isPopular": false}]
+    "offers": []
   }],
   "brand": {
     "name": "",
@@ -760,6 +868,8 @@ IMPORTANT RULES:
 - NEVER copy example data into your output. The examples above are for FORMAT reference only. "Scrubby", "dog grooming gloves", and all example content must NEVER appear in your output.
 - If you cannot find real data for a field from the page content, leave it as an empty string or empty array. Do NOT fabricate or hallucinate data.
 - Offers should only contain pricing/deals actually found on the page. If none found, return an empty array.
+- For offers, NEVER infer, rewrite, borrow, or generalize pricing/deals from examples, competitor norms, or unrelated pages. Only keep offers explicitly shown in the scraped page content.
+- Never return placeholder offer objects. If there is no verified offer, return "offers": [].
 - Follow the formula EXACTLY for each field — match the tone and specificity of the examples
 - Every output should feel like it was written by a direct-response copywriter, not a generic AI
 - For audience fields, infer from the product's marketing language, tone, and who they're clearly targeting
@@ -907,6 +1017,7 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
     }
     if (!extracted.products) extracted.products = [];
     if (!extracted.audiences) extracted.audiences = [];
+    sanitizeExtractedOffers(markdown, extracted);
 
     // ══════════════════════════════════════════════════
     // POST-EXTRACTION: Merge branding + generate assets
