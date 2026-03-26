@@ -37,6 +37,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
   const [isResending, setIsResending] = useState(false);
+  const [pollExhausted, setPollExhausted] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -94,17 +95,26 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
   const startVerificationPolling = (userEmail: string) => {
     setVerificationEmail(userEmail);
     setShowVerification(true);
+    setPollExhausted(false);
     if (productUrl) sessionStorage.setItem("pending_product_url", productUrl);
 
-    // Poll every 3s — onAuthStateChange will handle navigation
+    let attempts = 0;
     pollRef.current = setInterval(async () => {
+      if (document.hidden) return; // skip while tab is not visible
+      attempts++;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           clearInterval(pollRef.current!);
           pollRef.current = null;
+          return;
         }
       } catch {}
+      if (attempts >= 3) {
+        clearInterval(pollRef.current!);
+        pollRef.current = null;
+        setPollExhausted(true);
+      }
     }, 3000);
   };
 
@@ -206,9 +216,11 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
                 <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <Mail className="h-8 w-8 text-primary" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
-                </div>
+                {!pollExhausted && (
+                  <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                  </div>
+                )}
               </div>
 
               <h2 className="text-xl font-bold text-foreground mb-2">Check your email</h2>
@@ -218,7 +230,9 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
               <p className="text-sm font-medium text-foreground mb-6">{verificationEmail}</p>
 
               <p className="text-xs text-muted-foreground mb-6">
-                Click the link in your email to verify your account. This page will update automatically.
+                {pollExhausted
+                  ? "Didn't receive the email? Click below to resend."
+                  : "Click the link in your email to verify your account. This page will update automatically."}
               </p>
 
               <Button
