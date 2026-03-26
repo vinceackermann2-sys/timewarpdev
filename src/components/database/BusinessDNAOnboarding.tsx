@@ -825,14 +825,14 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
                             try {
                               const { data: existing } = await supabase
                                 .from("user_business_data")
-                                .select("metadata")
+                                .select("content")
                                 .eq("id", createdBrandId)
                                 .single();
-                              const meta = (existing?.metadata as Record<string, any>) || {};
-                              meta.agentName = agentName.trim();
+                              const brandData = JSON.parse(existing?.content || "{}");
+                              brandData.agentName = agentName.trim();
                               await supabase
                                 .from("user_business_data")
-                                .update({ metadata: meta })
+                                .update({ content: JSON.stringify(brandData) })
                                 .eq("id", createdBrandId);
                             } catch { /* best effort */ }
                           }
