@@ -22,6 +22,122 @@ const extractTitleFromHtml = (html: string) => {
   return match?.[1]?.replace(/\s+/g, " ").trim() || "";
 };
 
+const parseStringArrayFromAiText = (raw: string): string[] => {
+  if (!raw) return [];
+
+  const cleaned = raw
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const arrayStart = cleaned.indexOf("[");
+  const arrayEnd = cleaned.lastIndexOf("]");
+  if (arrayStart === -1 || arrayEnd === -1 || arrayEnd <= arrayStart) return [];
+
+  try {
+    const parsed = JSON.parse(cleaned.slice(arrayStart, arrayEnd + 1));
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const collectSearchImageUrls = (results: any[]): string[] => {
+  const imgUrlRegex = /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
+  const collected: string[] = [];
+
+  for (const result of Array.isArray(results) ? results : []) {
+    const directCandidates = [
+      result?.metadata?.ogImage,
+      result?.metadata?.image,
+      result?.image,
+      result?.thumbnail,
+      result?.url,
+    ];
+
+    for (const candidate of directCandidates) {
+      if (typeof candidate === "string" && candidate.startsWith("http")) {
+        collected.push(candidate);
+      }
+    }
+
+    const textBlobs = [
+      result?.markdown,
+      result?.description,
+      result?.html,
+      JSON.stringify(result?.links || []),
+    ];
+
+    for (const blob of textBlobs) {
+      if (typeof blob !== "string" || !blob) continue;
+      imgUrlRegex.lastIndex = 0;
+      let match;
+      while ((match = imgUrlRegex.exec(blob)) !== null) {
+        collected.push(match[0]);
+      }
+    }
+  }
+
+  return [...new Set(collected)].filter(Boolean);
+};
+
+const pickMoodboardImage = (urls: string[]): string | null => {
+  const pinterestImg = urls.find((url) =>
+    url.includes("pinimg.com") &&
+    !url.includes("/75x") &&
+    !url.includes("/140x") &&
+    !url.includes("/236x")
+  );
+  if (pinterestImg) return pinterestImg;
+
+  return (
+    urls.find((url) =>
+      !url.includes("/icon") &&
+      !url.includes("/favicon") &&
+      !url.includes("/logo") &&
+      url.length > 30
+    ) || null
+  );
+};
+
+const generateMoodboardFallbackImages = async (
+  terms: string[],
+  brandName: string,
+  brandCategory: string,
+  LOVABLE_API_KEY: string,
+) => {
+  const results = await Promise.allSettled(
+    terms.map(async (term) => {
+      try {
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-3.1-flash-image-preview",
+            messages: [{
+              role: "user",
+              content: `Create a premium editorial moodboard reference image for a ${brandCategory} brand named "${brandName}". Aesthetic direction: ${term}. High-end photography feel, strong composition, rich texture, no text, no logos, no UI, no watermarks.`
+            }],
+            modalities: ["image", "text"],
+          }),
+        });
+
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  return results
+    .filter((result): result is PromiseFulfilledResult<string> => result.status === "fulfilled" && !!result.value)
+    .map((result) => result.value);
+};
+
 const fetchPageFallback = async (targetUrl: string) => {
   const response = await fetch(targetUrl, {
     headers: {
@@ -1005,10 +1121,7 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
           if (termsRes.ok) {
             const termsData = await termsRes.json();
             const termsRaw = termsData.choices?.[0]?.message?.content || "";
-            try {
-              const arrMatch = termsRaw.match(/\[[\s\S]*?\]/);
-              if (arrMatch) aestheticTerms = JSON.parse(arrMatch[0]);
-            } catch (e) { console.warn("[Core] Terms parse error:", e); }
+            aestheticTerms = parseStringArrayFromAiText(termsRaw);
           }
 
           if (aestheticTerms.length === 0) {
@@ -1022,7 +1135,6 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
             ];
           }
 
-          const imgUrlRegex = /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
           const moodboardResults = await Promise.allSettled(
             aestheticTerms.slice(0, 6).map(async (term) => {
               try {
@@ -1034,8 +1146,8 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                   },
                   body: JSON.stringify({
                     query: `site:pinterest.com ${term}`,
-                    limit: 5,
-                    scrapeOptions: { formats: ["markdown", "links"] },
+                    limit: 8,
+                    scrapeOptions: { formats: ["markdown", "html"] },
                   }),
                 });
 
@@ -1043,35 +1155,28 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
 
                 const searchData = await searchRes.json();
                 const results = searchData.data || [];
-
-                const allImgUrls: string[] = [];
-                for (const r of results) {
-                  if (r.metadata?.ogImage) allImgUrls.push(r.metadata.ogImage);
-                  const content: string = r.markdown || r.description || "";
-                  imgUrlRegex.lastIndex = 0;
-                  let match;
-                  while ((match = imgUrlRegex.exec(content)) !== null) {
-                    allImgUrls.push(match[0]);
-                  }
-                }
-
-                const pinterestImg = allImgUrls.find(url =>
-                  url.includes('pinimg.com') && !url.includes('/75x') && !url.includes('/140x')
-                );
-                if (pinterestImg) return pinterestImg;
-
-                const goodImg = allImgUrls.find(url =>
-                  !url.includes('/icon') && !url.includes('/favicon') &&
-                  !url.includes('/logo') && url.length > 30
-                );
-                return goodImg || null;
+                const allImgUrls = collectSearchImageUrls(results);
+                return pickMoodboardImage(allImgUrls);
               } catch { return null; }
             })
           );
 
-          const moodboardUrls = moodboardResults
+          let moodboardUrls = moodboardResults
             .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
             .map(r => r.value);
+
+          const missing = Math.max(0, 6 - moodboardUrls.length);
+          if (missing > 0) {
+            console.log(`[Core] Generating ${missing} fallback moodboard images...`);
+            const fallbackTerms = aestheticTerms.slice(0, 6).slice(moodboardUrls.length, moodboardUrls.length + missing);
+            const fallbackUrls = await generateMoodboardFallbackImages(
+              fallbackTerms,
+              coreBrandName,
+              coreBrandCategory,
+              LOVABLE_API_KEY,
+            );
+            moodboardUrls = [...new Set([...moodboardUrls, ...fallbackUrls])].slice(0, 6);
+          }
 
           extracted.brand.visualIdentity.moodboardUrls = moodboardUrls;
           console.log("[Core] Final moodboard count:", moodboardUrls.length);
@@ -1131,10 +1236,7 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
         if (termsRes.ok) {
           const termsData = await termsRes.json();
           const termsRaw = termsData.choices?.[0]?.message?.content || "";
-          try {
-            const arrMatch = termsRaw.match(/\[[\s\S]*?\]/);
-            if (arrMatch) aestheticTerms = JSON.parse(arrMatch[0]);
-          } catch (e) { console.warn("Terms parse error:", e); }
+          aestheticTerms = parseStringArrayFromAiText(termsRaw);
         }
 
         if (aestheticTerms.length === 0) {
@@ -1150,8 +1252,6 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
         console.log("Moodboard terms:", aestheticTerms);
 
         // Step 2: Search the web for each term, extract image URLs from results
-        const imgUrlRegex = /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
-
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
             try {
@@ -1164,8 +1264,8 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
                 },
                 body: JSON.stringify({
                   query: `site:pinterest.com ${term}`,
-                  limit: 5,
-                  scrapeOptions: { formats: ["markdown", "links"] },
+                  limit: 8,
+                  scrapeOptions: { formats: ["markdown", "html"] },
                 }),
               });
 
@@ -1177,35 +1277,11 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
               const searchData = await searchRes.json();
               const results = searchData.data || [];
 
-              // Extract Pinterest image URLs from results
-              const allImgUrls: string[] = [];
-              for (const r of results) {
-                if (r.metadata?.ogImage) allImgUrls.push(r.metadata.ogImage);
-                const content: string = r.markdown || r.description || "";
-                imgUrlRegex.lastIndex = 0;
-                let match;
-                while ((match = imgUrlRegex.exec(content)) !== null) {
-                  allImgUrls.push(match[0]);
-                }
-              }
-
-              // Prefer Pinterest CDN images (i.pinimg.com)
-              const pinterestImg = allImgUrls.find(url =>
-                url.includes('pinimg.com') && !url.includes('/75x') && !url.includes('/140x')
-              );
+              const allImgUrls = collectSearchImageUrls(results);
+              const pinterestImg = pickMoodboardImage(allImgUrls);
               if (pinterestImg) {
                 console.log(`✓ Found Pinterest moodboard image for "${term}": ${pinterestImg.slice(0, 80)}...`);
                 return pinterestImg;
-              }
-
-              // Fallback to any good image from Pinterest results
-              const goodImg = allImgUrls.find(url =>
-                !url.includes('/icon') && !url.includes('/favicon') &&
-                !url.includes('/logo') && url.length > 30
-              );
-              if (goodImg) {
-                console.log(`✓ Found moodboard image for "${term}": ${goodImg.slice(0, 80)}...`);
-                return goodImg;
               }
 
               console.warn(`No Pinterest image found for "${term}"`);
@@ -1226,32 +1302,16 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
         if (missing > 0) {
           console.log(`Generating ${missing} moodboard images with AI...`);
           const fallbackTerms = aestheticTerms.slice(moodboardUrls.length, moodboardUrls.length + missing);
-          const fallbackResults = await Promise.allSettled(
-            fallbackTerms.map(async (term) => {
-              try {
-                const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                  method: "POST",
-                  headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    model: "google/gemini-2.5-flash-image",
-                    messages: [{ role: "user", content: `Create a beautiful moodboard reference image for a ${brandCategory} brand called "${brandName}". Aesthetic: ${term}. Professional, editorial quality. No text, no logos, no watermarks. Pure visual mood and atmosphere.` }],
-                    modalities: ["image", "text"],
-                  }),
-                });
-                if (res.ok) {
-                  const d = await res.json();
-                  return d.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
-                }
-                return null;
-              } catch { return null; }
-            })
+          const fallbackResults = await generateMoodboardFallbackImages(
+            fallbackTerms,
+            brandName,
+            brandCategory,
+            LOVABLE_API_KEY,
           );
-          for (const r of fallbackResults) {
-            if (r.status === 'fulfilled' && r.value) moodboardUrls.push(r.value);
-          }
+          moodboardUrls.push(...fallbackResults);
         }
 
-        extracted.brand.visualIdentity.moodboardUrls = moodboardUrls;
+        extracted.brand.visualIdentity.moodboardUrls = [...new Set(moodboardUrls)].slice(0, 6);
         console.log("Final moodboard count:", moodboardUrls.length);
       } catch (e) {
         console.error("Moodboard pipeline error:", e);
