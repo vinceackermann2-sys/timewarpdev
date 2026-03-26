@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { Typewriter } from "@/components/ui/typewriter";
 import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,10 +16,10 @@ import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
 const URL_EXAMPLES = [
   "tesla.com",
   "nike.com",
-  "apple.com/iphone-16-pro",
+  "apple.com",
   "dyson.com",
   "allbirds.com",
-  "glossier.com/boy-brow",
+  "glossier.com",
   "notion.so",
   "figma.com",
 ];
@@ -253,7 +254,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
             Add a new product
           </h1>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Paste your product page URL and we'll extract everything automatically.
+            Paste your company url and we'll extract everything automatically.
           </p>
         </motion.div>
 
@@ -281,18 +282,17 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
               {/* Animated placeholder */}
               {!url && (
                 <div className="absolute inset-0 flex items-center pointer-events-none pl-3">
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={placeholderIndex}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 0.4, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-base text-muted-foreground"
-                    >
-                      {URL_EXAMPLES[placeholderIndex]}
-                    </motion.span>
-                  </AnimatePresence>
+                  <Typewriter
+                    text={URL_EXAMPLES}
+                    speed={60}
+                    deleteSpeed={30}
+                    waitTime={1500}
+                    loop
+                    className="text-base text-muted-foreground/40"
+                    showCursor
+                    cursorChar="|"
+                    cursorClassName="ml-0.5 text-muted-foreground/30"
+                  />
                 </div>
               )}
             </div>
