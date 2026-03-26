@@ -71,7 +71,7 @@ interface BusinessDNAOnboardingProps {
   onBack?: () => void;
 }
 
-export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: BusinessDNAOnboardingProps) {
+export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAddBusiness, activeBrandId, onBack }: BusinessDNAOnboardingProps) {
   const [activeUrl, setActiveUrl] = useState<string | null>(initialUrl || null);
   const [urlInput, setUrlInput] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
