@@ -37,6 +37,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
   const [isResending, setIsResending] = useState(false);
+  const [pollExhausted, setPollExhausted] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
