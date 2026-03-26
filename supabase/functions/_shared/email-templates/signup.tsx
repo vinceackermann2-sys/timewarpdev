@@ -50,7 +50,7 @@ export const SignupEmail = ({
           ) to get started:
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Get Started
+          Verify
         </Button>
         <Text style={footer}>
           If you didn't create an account, you can safely ignore this email.
