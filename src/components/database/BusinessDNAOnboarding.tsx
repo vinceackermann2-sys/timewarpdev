@@ -601,7 +601,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
                 <div className="flex items-center gap-1.5 mt-2 ml-1">
                   <Sparkles className="h-3 w-3 text-muted-foreground/50" />
                   <span className="text-xs text-muted-foreground/60">
-                    Paste your website or product page URL
+                    Paste your company url
                   </span>
                 </div>
               </div>
