@@ -169,7 +169,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
       if (isSignUp) {
         const { error, data } = await supabase.auth.signUp({
           email, password,
-          options: { emailRedirectTo: `${window.location.origin}/app` },
+          options: { emailRedirectTo: `${window.location.origin}/app?onboarding=business-dna` },
         });
         if (error) {
           if (error.message.includes("already registered")) {
