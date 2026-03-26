@@ -628,6 +628,9 @@ JSON structure to return:
 }
 
 IMPORTANT RULES:
+- NEVER copy example data into your output. The examples above are for FORMAT reference only. "Scrubby", "dog grooming gloves", and all example content must NEVER appear in your output.
+- If you cannot find real data for a field from the page content, leave it as an empty string or empty array. Do NOT fabricate or hallucinate data.
+- Offers should only contain pricing/deals actually found on the page. If none found, return an empty array.
 - Follow the formula EXACTLY for each field — match the tone and specificity of the examples
 - Every output should feel like it was written by a direct-response copywriter, not a generic AI
 - For audience fields, infer from the product's marketing language, tone, and who they're clearly targeting
