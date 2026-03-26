@@ -107,7 +107,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
   // Get context setters
   let contextAvailable = false;
-  let reloadData: () => Promise<void> = async () => {};
+  let reloadData: () => Promise<{ brands: BrandEntry[]; products: ProductEntry[]; audiences: AudienceEntry[] }> = async () => ({ brands: [], products: [], audiences: [] });
   let brands: BrandEntry[] = [];
   let refreshBrand: ((brandId: string) => Promise<void>) | null = null;
   try {
