@@ -420,12 +420,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
       setPersistenceComplete(true);
 
       if (!cancelled) {
-        if (isAddBusiness) {
-          // Skip agent naming — auto-complete after a short delay
-          setTimeout(() => onComplete("", finalBrandId), 1200);
-        } else {
-          setTimeout(() => setStep(3), 800);
-        }
+        // Always show step 3 for agent naming
+        setTimeout(() => setStep(3), 800);
       }
     })();
 
