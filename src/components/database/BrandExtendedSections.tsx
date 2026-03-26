@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   ImageIcon, LayoutGrid, MonitorSmartphone, MousePointerClick, Paintbrush,
   Pencil, Save, X, Upload, Plus, Trash2,
