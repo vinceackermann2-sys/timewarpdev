@@ -73,7 +73,8 @@ export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistory
           const dbMessages = data.messages as T[];
           if (dbMessages && dbMessages.length > 0) {
             setMessages(dbMessages);
-            // Sync localStorage
+            // Sync caches
+            memoryCache.set(key, { messages: dbMessages, dbRowId: data.id });
             localStorage.setItem(`chat_history_${nodeId}`, JSON.stringify(dbMessages));
           }
         }
