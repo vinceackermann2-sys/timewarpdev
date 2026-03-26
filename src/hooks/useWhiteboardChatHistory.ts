@@ -37,11 +37,13 @@ export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistory
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dbRowIdRef = useRef<string | null>(cached?.dbRowId ?? null);
 
-  // Load from DB on mount
+  // Load from DB on mount — skip if we already have a memory cache hit
   useEffect(() => {
+    if (cached) {
+      setIsLoaded(true);
+      return;
+    }
     let cancelled = false;
-
-    const loadFromDb = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user || cancelled) {
