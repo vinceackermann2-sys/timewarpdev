@@ -253,7 +253,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
             Add a new product
           </h1>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Paste your product page URL and we'll extract everything automatically.
+            Paste your company url and we'll extract everything automatically.
           </p>
         </motion.div>
 
