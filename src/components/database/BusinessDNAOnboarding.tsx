@@ -7,6 +7,7 @@ import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./Busin
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { Typewriter } from "@/components/ui/typewriter";
 
 const URL_EXAMPLES = [
   "tesla.com",
