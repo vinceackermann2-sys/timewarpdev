@@ -102,40 +102,53 @@ const pickMoodboardImage = (urls: string[]): string | null => {
   );
 };
 
-const generateMoodboardFallbackImages = async (
-  terms: string[],
-  brandName: string,
-  brandCategory: string,
-  LOVABLE_API_KEY: string,
-) => {
-  const results = await Promise.allSettled(
-    terms.map(async (term) => {
-      try {
-        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-3.1-flash-image-preview",
-            messages: [{
-              role: "user",
-              content: `Create a premium editorial moodboard reference image for a ${brandCategory} brand named "${brandName}". Aesthetic direction: ${term}. High-end photography feel, strong composition, rich texture, no text, no logos, no UI, no watermarks.`
-            }],
-            modalities: ["image", "text"],
-          }),
-        });
+const scrapePinterestForImages = async (
+  term: string,
+  FIRECRAWL_API_KEY: string,
+): Promise<string[]> => {
+  const pinImgRegex = /https?:\/\/i\.pinimg\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
+  const encodedQuery = encodeURIComponent(term);
+  const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodedQuery}`;
 
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
-      } catch {
-        return null;
-      }
-    })
-  );
+  try {
+    const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: pinterestUrl,
+        formats: ["html"],
+        waitFor: 3000,
+      }),
+    });
 
-  return results
-    .filter((result): result is PromiseFulfilledResult<string> => result.status === "fulfilled" && !!result.value)
-    .map((result) => result.value);
+    if (!res.ok) {
+      console.warn(`Pinterest scrape failed for "${term}": ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const html: string = data.data?.html || data.html || "";
+
+    const found: string[] = [];
+    let match;
+    pinImgRegex.lastIndex = 0;
+    while ((match = pinImgRegex.exec(html)) !== null) {
+      const url = match[0];
+      // Skip tiny thumbnails
+      if (url.includes("/75x") || url.includes("/140x") || url.includes("/170x")) continue;
+      // Prefer originals or large sizes
+      found.push(url);
+    }
+
+    // Deduplicate
+    return [...new Set(found)];
+  } catch (e) {
+    console.warn(`Pinterest scrape error for "${term}":`, e);
+    return [];
+  }
 };
 
 const fetchPageFallback = async (targetUrl: string) => {
@@ -1138,25 +1151,8 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
           const moodboardResults = await Promise.allSettled(
             aestheticTerms.slice(0, 6).map(async (term) => {
               try {
-                const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    query: `site:pinterest.com ${term}`,
-                    limit: 8,
-                    scrapeOptions: { formats: ["markdown", "html"] },
-                  }),
-                });
-
-                if (!searchRes.ok) return null;
-
-                const searchData = await searchRes.json();
-                const results = searchData.data || [];
-                const allImgUrls = collectSearchImageUrls(results);
-                return pickMoodboardImage(allImgUrls);
+                const imgs = await scrapePinterestForImages(term, FIRECRAWL_API_KEY);
+                return imgs.length > 0 ? imgs[0] : null;
               } catch { return null; }
             })
           );
@@ -1164,19 +1160,6 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
           let moodboardUrls = moodboardResults
             .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
             .map(r => r.value);
-
-          const missing = Math.max(0, 6 - moodboardUrls.length);
-          if (missing > 0) {
-            console.log(`[Core] Generating ${missing} fallback moodboard images...`);
-            const fallbackTerms = aestheticTerms.slice(0, 6).slice(moodboardUrls.length, moodboardUrls.length + missing);
-            const fallbackUrls = await generateMoodboardFallbackImages(
-              fallbackTerms,
-              coreBrandName,
-              coreBrandCategory,
-              LOVABLE_API_KEY,
-            );
-            moodboardUrls = [...new Set([...moodboardUrls, ...fallbackUrls])].slice(0, 6);
-          }
 
           extracted.brand.visualIdentity.moodboardUrls = moodboardUrls;
           console.log("[Core] Final moodboard count:", moodboardUrls.length);
@@ -1255,35 +1238,12 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
         const moodboardResults = await Promise.allSettled(
           aestheticTerms.slice(0, 6).map(async (term) => {
             try {
-              console.log(`Searching Pinterest for: ${term}`);
-              const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  query: `site:pinterest.com ${term}`,
-                  limit: 8,
-                  scrapeOptions: { formats: ["markdown", "html"] },
-                }),
-              });
-
-              if (!searchRes.ok) {
-                console.warn(`Pinterest search failed for "${term}": ${searchRes.status}`);
-                return null;
+              console.log(`Scraping Pinterest for: ${term}`);
+              const imgs = await scrapePinterestForImages(term, FIRECRAWL_API_KEY);
+              if (imgs.length > 0) {
+                console.log(`✓ Found Pinterest image for "${term}": ${imgs[0].slice(0, 80)}...`);
+                return imgs[0];
               }
-
-              const searchData = await searchRes.json();
-              const results = searchData.data || [];
-
-              const allImgUrls = collectSearchImageUrls(results);
-              const pinterestImg = pickMoodboardImage(allImgUrls);
-              if (pinterestImg) {
-                console.log(`✓ Found Pinterest moodboard image for "${term}": ${pinterestImg.slice(0, 80)}...`);
-                return pinterestImg;
-              }
-
               console.warn(`No Pinterest image found for "${term}"`);
               return null;
             } catch (e) {
@@ -1296,20 +1256,6 @@ Return ONLY a JSON array of 6 phrases. No explanation.`
         const moodboardUrls = moodboardResults
           .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
           .map(r => r.value);
-
-        // Step 3: AI generation fallback for missing slots
-        const missing = 6 - moodboardUrls.length;
-        if (missing > 0) {
-          console.log(`Generating ${missing} moodboard images with AI...`);
-          const fallbackTerms = aestheticTerms.slice(moodboardUrls.length, moodboardUrls.length + missing);
-          const fallbackResults = await generateMoodboardFallbackImages(
-            fallbackTerms,
-            brandName,
-            brandCategory,
-            LOVABLE_API_KEY,
-          );
-          moodboardUrls.push(...fallbackResults);
-        }
 
         extracted.brand.visualIdentity.moodboardUrls = [...new Set(moodboardUrls)].slice(0, 6);
         console.log("Final moodboard count:", moodboardUrls.length);
