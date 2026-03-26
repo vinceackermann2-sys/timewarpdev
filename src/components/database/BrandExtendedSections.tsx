@@ -364,7 +364,7 @@ export function BrandExtendedSections({
       return next;
     });
   }, [initialData?.moodboardUrls, initialData?.illustrationSvgs]);
-
+  const isEditing = externalEditing ?? false;
 
 
   const handleImageUpload = (slotId: string, file: File, section: "moodboard" | "illustrations") => {
