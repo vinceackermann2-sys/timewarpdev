@@ -1,81 +1,65 @@
 
+Issue identified: the scrape is failing inside `scrape-product`, not in the onboarding UI.
 
-# Plan: Two-Phase Scrape — Moodboard (Pinterest), Illustrations (SVG code), Screenshot
+What the errors actually mean:
+- `500 /functions/v1/scrape-product` + `Failed to parse extracted data` is the real blocker.
+- The edge logs show the model returned a very large JSON payload (`Raw content length: 62572`) and parsing broke near the end (`Expected ',' or ']' ... position 61714`).
+- This happens because company-mode scraping is still asking one model response to return too much at once: shared brand + up to 5 products + 5 audiences + detailed branding rules.
+- `409` is a separate workspace race already handled in `useWorkspace.ts`; it is not the scrape failure.
+- `403 /logout` is a stale session cleanup issue; also not the scrape failure.
+- The `feature_collector` warning is unrelated.
 
-## Problem
+Do I know what the issue is?
+Yes. The current monolithic extraction strategy is too large/fragile for some sites, so the model returns malformed JSON and the whole scrape fails.
 
-Core mode currently strips moodboard URLs, illustration SVGs, and base64 screenshots to prevent response payload crashes. The user wants all three to work after onboarding:
-- **Moodboard**: Real Pinterest images
-- **Illustrations**: Code-generated SVGs (icon grid + pattern sheet)
-- **Website & Digital**: Firecrawl screenshot
+Plan
 
-## Approach: Two-Phase Architecture
+1. Refactor `scrape-product` into smaller extraction passes
+- Keep Firecrawl scrape/map as-is.
+- For company URLs, stop generating one giant JSON blob.
+- Extract:
+  - brand once from homepage + branding data
+  - one product + one audience per selected product page in separate AI calls
+- Merge the results server-side into the existing `{ brand, products, audiences }` shape.
 
-**Phase 1 (core mode — synchronous, during onboarding):** Return lightweight structured data only (brand, products, audiences, colors, typography, logos, text rules). This is what already works.
+2. Add a reusable robust JSON parser in `scrape-product`
+- Centralize the existing cleanup logic into helpers:
+  - strip code fences
+  - isolate JSON boundaries
+  - repair trailing commas/control chars
+  - detect truncation via brace/bracket mismatch
+- If parsing still fails, retry that one smaller extraction call instead of failing the whole scrape.
 
-**Phase 2 (enrich — triggered automatically after business is saved):** A new edge function `enrich-brand` fetches heavy assets (Pinterest moodboard, SVG illustrations, screenshot) and patches the brand record in `user_business_data` directly via service role. The frontend polls or listens for updates and refreshes the brand data.
+3. Shrink prompt/input size
+- Reduce per-call markdown size substantially.
+- Replace the giant “formula manual” prompt with a shorter schema-focused prompt for each pass.
+- For company URLs, keep page-specific context only for the current product page being analyzed.
 
-## Changes
+4. Make failures partial, not fatal
+- If one product page fails to parse, skip it and continue with the others.
+- Only fail the whole request if brand extraction fails or zero valid products are produced.
+- This will stabilize both onboarding and add-business flows.
 
-### 1. New edge function: `supabase/functions/enrich-brand/index.ts`
-- Accepts `{ brandRowId, brandName, brandCategory, brandColors, audienceDesc, websiteUrl }`
-- Runs three parallel pipelines:
-  - **Moodboard**: Generate aesthetic terms via AI, scrape Pinterest for each term using existing `scrapePinterestForImages` logic, collect up to 6 images
-  - **Illustrations**: Generate 2 SVGs (icon grid + pattern sheet) using existing AI prompts from `scrape-product`
-  - **Screenshot**: Scrape the website URL with Firecrawl `formats: ["screenshot"]`, store as remote URL or base64
-- Reads the existing `content` JSON from `user_business_data` by `brandRowId`
-- Merges `moodboardUrls`, `illustrationSvgs`, and `websiteScreenshot` into `visualIdentity`
-- Updates the row via service role
-- Returns `{ success: true }` with summary of what was enriched
+5. Normalize all returned fields before responding
+- Force all array fields to arrays and object fields to objects.
+- Apply the same defensive shaping before returning core-mode data so UI code never receives malformed collections.
 
-### 2. Update `src/components/database/BusinessDNAOnboarding.tsx`
-- After `reloadData()` succeeds in step 2, fire-and-forget call to `enrich-brand` with the brand's row ID and metadata
-- The enrichment runs in background; user proceeds to agent naming (step 3) immediately
-- No blocking wait
+6. Keep onboarding/add-business UI mostly unchanged
+- `BusinessDNAOnboarding.tsx` and `AddProductURLView.tsx` already consume the shared `scrape-product` core response.
+- I’ll only adjust error handling if needed so they show a clean extraction failure when zero usable data comes back.
 
-### 3. Update `src/components/database/BusinessDNAContext.tsx`
-- After enrich-brand completes, the context needs to reflect updated data
-- Add a `refreshBrand(brandId)` method that re-fetches a single brand row and merges it into state
-- The onboarding component calls this after enrich-brand returns
+Files to update
+- `supabase/functions/scrape-product/index.ts`
+  - split extraction into brand pass + per-product passes
+  - add robust JSON parsing/retry helpers
+  - downgrade partial parse failures to non-fatal
+  - normalize merged output before returning
+- `src/components/database/BusinessDNAOnboarding.tsx`
+  - minor resilience only if needed for partial results
+- `src/components/database/AddProductURLView.tsx`
+  - minor resilience only if needed for partial results
 
-### 4. Keep `scrape-product` core mode as-is
-- Still strips moodboard, illustrations, screenshots
-- This ensures the onboarding call never crashes
-
-## Technical Details
-
-### enrich-brand edge function structure
-```
-POST /functions/v1/enrich-brand
-Body: {
-  brandRowId: string,       // _rowId from user_business_data
-  brandName: string,
-  brandCategory: string,
-  brandColors: { primary, secondary, background, text },
-  audienceDesc: string,
-  audiencePowerWords: string,
-  websiteUrl: string
-}
-```
-
-The function uses `SUPABASE_SERVICE_ROLE_KEY` to read and update the brand row. It runs the three asset pipelines in parallel using `Promise.allSettled`, so partial failures don't block other assets.
-
-### Flow sequence
-```text
-Onboarding Step 1 → scrape-product (core) → lightweight data
-Onboarding Step 2 → save-onboarding → persist brand/products/audiences
-                   → reloadData() → get _rowId
-                   → fire enrich-brand (background)
-Onboarding Step 3 → agent naming (user sees this immediately)
-                   → enrich-brand completes → refreshBrand()
-                   → moodboard + illustrations + screenshot appear in brand view
-```
-
-## Files
-
-| File | Change |
-|------|--------|
-| `supabase/functions/enrich-brand/index.ts` | New edge function: Pinterest moodboard, SVG illustrations, website screenshot |
-| `src/components/database/BusinessDNAOnboarding.tsx` | After save, call enrich-brand with brand metadata; refresh brand on completion |
-| `src/components/database/BusinessDNAContext.tsx` | Add `refreshBrand(brandId)` to re-fetch single brand row from DB |
-
+Expected result
+- Onboarding and add-business scraping stop failing on large company sites like Apple.
+- Brand/product/audience data still comes back in full structure, but assembled from smaller reliable calls.
+- 409/403 noise may still appear occasionally, but they will no longer block the scrape flow.
