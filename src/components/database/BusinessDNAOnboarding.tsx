@@ -819,7 +819,25 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
                       className="w-full flex flex-col items-center"
                     >
                       <button
-                        onClick={() => onComplete(agentName.trim(), createdBrandId)}
+                        onClick={async () => {
+                          // Persist agent name to the brand record
+                          if (createdBrandId && agentName.trim()) {
+                            try {
+                              const { data: existing } = await supabase
+                                .from("user_business_data")
+                                .select("metadata")
+                                .eq("id", createdBrandId)
+                                .single();
+                              const meta = (existing?.metadata as Record<string, any>) || {};
+                              meta.agentName = agentName.trim();
+                              await supabase
+                                .from("user_business_data")
+                                .update({ metadata: meta })
+                                .eq("id", createdBrandId);
+                            } catch { /* best effort */ }
+                          }
+                          onComplete(agentName.trim(), createdBrandId);
+                        }}
                         className="w-full bg-card border border-border shadow-sm text-foreground hover:bg-muted px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                       >
                         Take Me To {agentName.trim()}
