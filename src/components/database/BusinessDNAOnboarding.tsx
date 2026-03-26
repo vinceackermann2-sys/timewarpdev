@@ -381,13 +381,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
       const { data, error } = await supabase.functions.invoke("save-onboarding", {
         body: {
           brandData: newBrand,
-          productsData: newProducts.map(p => ({
-            name: p.name, category: p.category, description: p.description,
-            features: p.features, benefits: p.benefits,
-          })),
-          audiencesData: newAudiences.map(a => ({
-            name: a.name, description: a.description,
-          })),
+          productsData: newProducts,
+          audiencesData: newAudiences,
           brandName,
         },
       });
