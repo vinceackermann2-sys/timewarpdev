@@ -106,6 +106,13 @@ export function BusinessDataListView() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) { setIsLoading(false); return; }
 
+        // If cache is for the same user, skip fetch
+        if (_cachedItems && _cachedUserId === session.user.id) {
+          setItems(_cachedItems);
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error } = await (supabase as any)
           .from("user_business_data")
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
@@ -113,7 +120,11 @@ export function BusinessDataListView() {
           .order("created_at", { ascending: false })
           .limit(200);
 
-        if (!error && data) setItems(data);
+        if (!error && data) {
+          _cachedItems = data;
+          _cachedUserId = session.user.id;
+          setItems(data);
+        }
       } catch (err) {
         console.error("Failed to fetch business data:", err);
       } finally {
