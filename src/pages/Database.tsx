@@ -8,13 +8,12 @@ import { DataConversionView } from "@/components/database/DataConversionView";
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { BusinessDNAView } from "@/components/database/BusinessDNAView";
 import { MyBusinessesView } from "@/components/database/MyBusinessesView";
-import { AddProductURLView } from "@/components/database/AddProductURLView";
+import { BusinessDNAOnboarding } from "@/components/database/BusinessDNAOnboarding";
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2, Menu } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { EmployeesView } from "@/components/database/EmployeesView";
 import { RestrictedFeatureGate } from "@/components/database/RestrictedFeatureGate";
-import { BusinessDNAOnboarding } from "@/components/database/BusinessDNAOnboarding";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -230,14 +229,15 @@ const Database = () => {
               {currentView === "businessdna" && user && (
                 <>
                   {showAddProduct ? (
-                    <AddProductURLView
+                    <BusinessDNAOnboarding
+                      isAddBusiness
+                      activeBrandId={activeBrandId}
                       onBack={() => setShowAddProduct(false)}
-                      onComplete={(newBrandId?: string) => {
+                      onComplete={(_agentName, newBrandId) => {
                         setShowAddProduct(false);
                         setActiveBrandId(newBrandId || activeBrandId);
                         setShowBusinessDNA(true);
                       }}
-                      activeBrandId={activeBrandId}
                     />
                   ) : showBusinessDNA && activeBrandId ? (
                     <BusinessDNAView
