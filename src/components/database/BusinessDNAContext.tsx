@@ -217,6 +217,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     setActiveWorkspaceId(wsId);
     loadedWorkspaceRef.current = wsId;
     setIsLoading(false);
+    return { brands: b, products: p, audiences: a };
   };
 
   // Direct delete functions that await DB deletion before updating state

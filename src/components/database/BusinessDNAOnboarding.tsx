@@ -408,8 +408,10 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
       }
 
       // Reload from DB to get proper _rowId values and avoid duplicate insertions
+      let reloadedBrands: any[] = [];
       if (contextAvailable) {
-        await reloadData();
+        const result = await reloadData();
+        reloadedBrands = result.brands;
       }
 
       const finalBrandId = isAddBusiness && activeBrandId ? activeBrandId : brandId;
@@ -418,9 +420,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
       // Fire-and-forget: enrich brand with heavy assets (moodboard, illustrations, screenshot)
       if (contextAvailable) {
-        const reloadedBrands = brands;
-        const brandRow = reloadedBrands.find(b => b.id === finalBrandId);
+        const brandRow = reloadedBrands.find((b: any) => b.id === finalBrandId);
         const rowId = (brandRow as any)?._rowId;
+        console.log("Enrich-brand: brandRow found?", !!brandRow, "rowId:", rowId);
         if (rowId) {
           const firstProduct = productsRaw[0] || {};
           const firstAudience = audiencesRaw[0] || {};
