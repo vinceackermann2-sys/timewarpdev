@@ -82,7 +82,7 @@ export function BusinessDatabaseNode({
         source: (p as any).source || "canvas",
         title: p.name || "Product",
         content: null,
-        analyzed_content: p.tagline || p.description || null,
+        analyzed_content: (p as any).tagline || p.description || null,
         is_analyzed: true,
         created_at: (p as any).created_at || null,
       }));
