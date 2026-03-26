@@ -6,12 +6,26 @@ interface UseChatHistoryOptions {
   chatType: "research" | "action";
 }
 
+// Module-level in-memory cache — survives component unmount/remount
+const memoryCache = new Map<string, { messages: any[]; dbRowId: string | null }>();
+
+function cacheKey(nodeId: string, chatType: string) {
+  return `${chatType}:${nodeId}`;
+}
+
 /**
  * Persists whiteboard chat history to the database, scoped by workspace.
+ * Uses an in-memory cache so re-mounting the node is instant.
  * Falls back to localStorage for unauthenticated users.
  */
 export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistoryOptions) {
+  const key = cacheKey(nodeId, chatType);
+  const cached = memoryCache.get(key);
+
   const [messages, setMessages] = useState<T[]>(() => {
+    // 1. In-memory cache (fastest, survives navigation)
+    if (cached && cached.messages.length > 0) return cached.messages as T[];
+    // 2. localStorage fallback
     try {
       const saved = localStorage.getItem(`chat_history_${nodeId}`);
       return saved ? JSON.parse(saved) : [];
@@ -19,12 +33,16 @@ export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistory
       return [];
     }
   });
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(!!cached);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dbRowIdRef = useRef<string | null>(null);
+  const dbRowIdRef = useRef<string | null>(cached?.dbRowId ?? null);
 
-  // Load from DB on mount
+  // Load from DB on mount — skip if we already have a memory cache hit
   useEffect(() => {
+    if (cached) {
+      setIsLoaded(true);
+      return;
+    }
     let cancelled = false;
 
     const loadFromDb = async () => {
@@ -57,7 +75,7 @@ export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistory
           const dbMessages = data.messages as T[];
           if (dbMessages && dbMessages.length > 0) {
             setMessages(dbMessages);
-            // Sync localStorage
+            memoryCache.set(key, { messages: dbMessages, dbRowId: data.id });
             localStorage.setItem(`chat_history_${nodeId}`, JSON.stringify(dbMessages));
           }
         }
@@ -74,8 +92,9 @@ export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistory
 
   // Debounced save to DB whenever messages change
   const saveToDb = useCallback(async (msgs: T[]) => {
-    // Always keep localStorage in sync
+    // Keep in-memory + localStorage in sync
     if (msgs.length > 0) {
+      memoryCache.set(key, { messages: msgs, dbRowId: dbRowIdRef.current });
       localStorage.setItem(`chat_history_${nodeId}`, JSON.stringify(msgs));
     }
 
