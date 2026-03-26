@@ -225,7 +225,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center h-full px-6">
+    <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-120px)] h-full px-6">
       {/* Back button — absolute so it doesn't affect centering */}
       <div className="absolute top-4 left-4">
         <Button variant="ghost" size="sm" onClick={onBack} disabled={isLoading}>
