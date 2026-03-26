@@ -11,10 +11,10 @@ import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 const URL_EXAMPLES = [
   "tesla.com",
   "nike.com",
-  "apple.com/iphone-16-pro",
+  "apple.com",
   "dyson.com",
   "allbirds.com",
-  "glossier.com/boy-brow",
+  "glossier.com",
   "notion.so",
   "figma.com",
 ];
