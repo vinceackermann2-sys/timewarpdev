@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   ImageIcon, LayoutGrid, MonitorSmartphone, MousePointerClick, Paintbrush,
   Pencil, Save, X, Upload, Plus, Trash2,
@@ -339,7 +339,33 @@ export function BrandExtendedSections({
     }
     return base;
   });
+  // Re-sync when initialData changes (e.g. after background enrichment)
+  useEffect(() => {
+    if (!initialData) return;
+    setData(prev => {
+      const next = { ...prev };
+      const rawMoodboard = toArr<string>(initialData.moodboardUrls);
+      if (rawMoodboard.length && !prev.moodboard.some(s => s.url)) {
+        next.moodboard = rawMoodboard.map((url, i) => ({ id: `mood-${i}`, url }));
+        while (next.moodboard.length < 6) {
+          next.moodboard.push({ id: `mood-${next.moodboard.length}`, url: null });
+        }
+      }
+      const rawSvgs = toArr<string>(initialData.illustrationSvgs);
+      if (rawSvgs.length && !prev.illustrations.some(s => s.svgContent)) {
+        next.illustrations = rawSvgs.map((svg, i) => ({
+          id: `illust-${i}`, url: null, svgContent: svg,
+          label: i === 0 ? "Brand icons & symbols set" : "Website pattern / texture",
+        }));
+        if (next.illustrations.length < 2) {
+          next.illustrations.push({ id: `illust-${next.illustrations.length}`, url: null, label: "Add illustration" });
+        }
+      }
+      return next;
+    });
+  }, [initialData?.moodboardUrls, initialData?.illustrationSvgs]);
   const isEditing = externalEditing ?? false;
+
 
   const handleImageUpload = (slotId: string, file: File, section: "moodboard" | "illustrations") => {
     const url = URL.createObjectURL(file);

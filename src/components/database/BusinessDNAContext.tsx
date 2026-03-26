@@ -66,7 +66,7 @@ interface BusinessDNAContextType {
   deleteBrand: (brandId: string) => Promise<void>;
   deleteProduct: (productId: string) => Promise<void>;
   deleteAudience: (audienceId: string) => Promise<void>;
-  reloadData: () => Promise<void>;
+  reloadData: () => Promise<{ brands: BrandEntry[]; products: ProductEntry[]; audiences: AudienceEntry[] }>;
   refreshBrand: (brandId: string) => Promise<void>;
 }
 
@@ -217,6 +217,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     setActiveWorkspaceId(wsId);
     loadedWorkspaceRef.current = wsId;
     setIsLoading(false);
+    return { brands: b, products: p, audiences: a };
   };
 
   // Direct delete functions that await DB deletion before updating state
