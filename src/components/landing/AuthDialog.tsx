@@ -94,17 +94,26 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
   const startVerificationPolling = (userEmail: string) => {
     setVerificationEmail(userEmail);
     setShowVerification(true);
+    setPollExhausted(false);
     if (productUrl) sessionStorage.setItem("pending_product_url", productUrl);
 
-    // Poll every 3s — onAuthStateChange will handle navigation
+    let attempts = 0;
     pollRef.current = setInterval(async () => {
+      if (document.hidden) return; // skip while tab is not visible
+      attempts++;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           clearInterval(pollRef.current!);
           pollRef.current = null;
+          return;
         }
       } catch {}
+      if (attempts >= 3) {
+        clearInterval(pollRef.current!);
+        pollRef.current = null;
+        setPollExhausted(true);
+      }
     }, 3000);
   };
 
