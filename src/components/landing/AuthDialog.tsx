@@ -216,9 +216,11 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
                 <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <Mail className="h-8 w-8 text-primary" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
-                </div>
+                {!pollExhausted && (
+                  <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                  </div>
+                )}
               </div>
 
               <h2 className="text-xl font-bold text-foreground mb-2">Check your email</h2>
@@ -228,7 +230,9 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
               <p className="text-sm font-medium text-foreground mb-6">{verificationEmail}</p>
 
               <p className="text-xs text-muted-foreground mb-6">
-                Click the link in your email to verify your account. This page will update automatically.
+                {pollExhausted
+                  ? "Didn't receive the email? Click below to resend."
+                  : "Click the link in your email to verify your account. This page will update automatically."}
               </p>
 
               <Button
