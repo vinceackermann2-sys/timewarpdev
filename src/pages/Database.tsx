@@ -230,14 +230,15 @@ const Database = () => {
               {currentView === "businessdna" && user && (
                 <>
                   {showAddProduct ? (
-                    <AddProductURLView
+                    <BusinessDNAOnboarding
+                      isAddBusiness
+                      activeBrandId={activeBrandId}
                       onBack={() => setShowAddProduct(false)}
-                      onComplete={(newBrandId?: string) => {
+                      onComplete={(_agentName, newBrandId) => {
                         setShowAddProduct(false);
                         setActiveBrandId(newBrandId || activeBrandId);
                         setShowBusinessDNA(true);
                       }}
-                      activeBrandId={activeBrandId}
                     />
                   ) : showBusinessDNA && activeBrandId ? (
                     <BusinessDNAView

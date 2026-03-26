@@ -524,12 +524,22 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
           {step === 0 && (
             <motion.div
               key="url-input"
-              className="w-full max-w-2xl mx-auto text-center space-y-8"
+              className="w-full max-w-2xl mx-auto text-center space-y-8 relative"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
+              {/* Back button for add-business mode */}
+              {isAddBusiness && onBack && (
+                <button
+                  onClick={onBack}
+                  className="absolute -top-2 left-0 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowRight className="h-4 w-4 rotate-180" />
+                  Back
+                </button>
+              )}
               <div className="space-y-2 sm:space-y-3 py-2 sm:py-4">
                 <div className="mx-auto h-11 w-11 sm:h-14 sm:w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 sm:mb-4">
                   <Globe className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
