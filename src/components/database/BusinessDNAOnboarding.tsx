@@ -107,14 +107,10 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
   // Get context setters
   let contextAvailable = false;
-  let setBrands: React.Dispatch<React.SetStateAction<BrandEntry[]>> = () => {};
-  let setProducts: React.Dispatch<React.SetStateAction<ProductEntry[]>> = () => {};
-  let setAudiences: React.Dispatch<React.SetStateAction<AudienceEntry[]>> = () => {};
+  let reloadData: () => Promise<void> = async () => {};
   try {
     const ctx = useBusinessDNA();
-    setBrands = ctx.setBrands;
-    setProducts = ctx.setProducts;
-    setAudiences = ctx.setAudiences;
+    reloadData = ctx.reloadData;
     contextAvailable = true;
   } catch {
     // No provider
