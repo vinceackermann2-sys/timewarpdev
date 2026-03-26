@@ -108,9 +108,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
   // Get context setters
   let contextAvailable = false;
   let reloadData: () => Promise<void> = async () => {};
+  let brands: BrandEntry[] = [];
+  let refreshBrand: ((brandId: string) => Promise<void>) | null = null;
   try {
     const ctx = useBusinessDNA();
     reloadData = ctx.reloadData;
+    brands = ctx.brands;
+    refreshBrand = ctx.refreshBrand;
     contextAvailable = true;
   } catch {
     // No provider
