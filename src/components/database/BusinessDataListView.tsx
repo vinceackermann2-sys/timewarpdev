@@ -55,7 +55,7 @@ function formatBytes(bytes: number): string {
 
 // Module-level in-memory cache so the Database tab loads instantly on re-visit
 let _cachedItems: DataItem[] | null = null;
-let _cachedUserId: string | null = null;
+let _cachedCacheKey: string | null = null;
 
 export function BusinessDataListView() {
   const [items, setItems] = useState<DataItem[]>(_cachedItems ?? []);
