@@ -420,12 +420,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
       setPersistenceComplete(true);
 
       if (!cancelled) {
-        if (isAddBusiness) {
-          // Skip agent naming — auto-complete after a short delay
-          setTimeout(() => onComplete("", finalBrandId), 1200);
-        } else {
-          setTimeout(() => setStep(3), 800);
-        }
+        // Always show step 3 for agent naming
+        setTimeout(() => setStep(3), 800);
       }
     })();
 
@@ -823,7 +819,25 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
                       className="w-full flex flex-col items-center"
                     >
                       <button
-                        onClick={() => onComplete(agentName.trim(), createdBrandId)}
+                        onClick={async () => {
+                          // Persist agent name to the brand record
+                          if (createdBrandId && agentName.trim()) {
+                            try {
+                              const { data: existing } = await supabase
+                                .from("user_business_data")
+                                .select("content")
+                                .eq("id", createdBrandId)
+                                .single();
+                              const brandData = JSON.parse(existing?.content || "{}");
+                              brandData.agentName = agentName.trim();
+                              await supabase
+                                .from("user_business_data")
+                                .update({ content: JSON.stringify(brandData) })
+                                .eq("id", createdBrandId);
+                            } catch { /* best effort */ }
+                          }
+                          onComplete(agentName.trim(), createdBrandId);
+                        }}
                         className="w-full bg-card border border-border shadow-sm text-foreground hover:bg-muted px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                       >
                         Take Me To {agentName.trim()}
