@@ -257,7 +257,7 @@ export function BusinessDataListView() {
           .single();
 
         if (!error && data) {
-          setItems(prev => [data, ...prev]);
+          setItems(prev => { const next = [data, ...prev]; _cachedItems = next; return next; });
         }
       }
       toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
