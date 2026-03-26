@@ -22,28 +22,6 @@ const extractTitleFromHtml = (html: string) => {
   return match?.[1]?.replace(/\s+/g, " ").trim() || "";
 };
 
-const parseStringArrayFromAiText = (raw: string): string[] => {
-  if (!raw) return [];
-
-  const cleaned = raw
-    .replace(/```json\s*/gi, "")
-    .replace(/```\s*/g, "")
-    .trim();
-
-  const arrayStart = cleaned.indexOf("[");
-  const arrayEnd = cleaned.lastIndexOf("]");
-  if (arrayStart === -1 || arrayEnd === -1 || arrayEnd <= arrayStart) return [];
-
-  try {
-    const parsed = JSON.parse(cleaned.slice(arrayStart, arrayEnd + 1));
-    return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-      : [];
-  } catch {
-    return [];
-  }
-};
-
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const OFFER_STOPWORDS = new Set([
@@ -68,195 +46,45 @@ const hasPageEvidenceForOfferField = (
   value: unknown,
 ) => {
   if (typeof value !== "string" || !value.trim()) return false;
-
   const raw = value.trim();
   const normalized = normalizeSearchText(raw);
   if (!normalized) return false;
-
-  if (normalized.length >= 8 && normalizedPageText.includes(normalized)) {
-    return true;
-  }
-
+  if (normalized.length >= 8 && normalizedPageText.includes(normalized)) return true;
   const numericParts = raw.match(/\d+(?:[.,]\d+)?/g)?.map((part) => part.replace(/,/g, "")) || [];
-
-  if (raw.includes("%") && numericParts.some((part) => rawPageText.includes(`${part}%`) || rawPageText.includes(`${part} %`))) {
-    return true;
-  }
-
+  if (raw.includes("%") && numericParts.some((part) => rawPageText.includes(`${part}%`) || rawPageText.includes(`${part} %`))) return true;
   for (const part of numericParts) {
     const priceRegex = new RegExp(`(?:[$€£¥]\\s*)?${escapeRegExp(part)}(?:\\.00)?(?:\\s*(?:usd|eur|gbp|aud|cad|dollars?|pounds?|euros?))?`, "i");
-    if (priceRegex.test(rawPageText)) {
-      return true;
-    }
+    if (priceRegex.test(rawPageText)) return true;
   }
-
-  const tokens = normalized
-    .split(" ")
-    .filter((token) => token.length > 3 && !OFFER_STOPWORDS.has(token) && !/^\d+$/.test(token));
-
+  const tokens = normalized.split(" ").filter((token) => token.length > 3 && !OFFER_STOPWORDS.has(token) && !/^\d+$/.test(token));
   if (tokens.length === 0) return false;
-
   const matchedCount = tokens.filter((token) => normalizedPageText.includes(token)).length;
   return matchedCount >= Math.min(2, tokens.length);
 };
 
 const sanitizeOffer = (offer: any, rawPageText: string, normalizedPageText: string) => {
   if (!offer || typeof offer !== "object") return null;
-
   const title = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.title) ? String(offer.title).trim() : "";
   const originalPrice = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.originalPrice) ? String(offer.originalPrice).trim() : "";
   const salePrice = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.salePrice) ? String(offer.salePrice).trim() : "";
   const discount = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.discount) ? String(offer.discount).trim() : "";
   const bundleDetails = hasPageEvidenceForOfferField(rawPageText, normalizedPageText, offer.bundleDetails) ? String(offer.bundleDetails).trim() : "";
   const freeGifts = Array.isArray(offer.freeGifts)
-    ? offer.freeGifts
-        .filter((gift) => hasPageEvidenceForOfferField(rawPageText, normalizedPageText, gift))
-        .map((gift) => String(gift).trim())
+    ? offer.freeGifts.filter((gift: any) => hasPageEvidenceForOfferField(rawPageText, normalizedPageText, gift)).map((gift: any) => String(gift).trim())
     : [];
-
   const hasStrongEvidence = Boolean(originalPrice || salePrice || discount || bundleDetails || freeGifts.length > 0);
   const hasSupportedTitleOnly = Boolean(title && OFFER_CUE_REGEX.test(title));
-
-  if (!hasStrongEvidence && !hasSupportedTitleOnly) {
-    return null;
-  }
-
-  return {
-    title,
-    originalPrice,
-    salePrice,
-    discount,
-    bundleDetails,
-    freeGifts,
-    isPopular: Boolean(offer.isPopular) && /\b(most popular|best seller|bestseller|popular choice|top seller)\b/i.test(rawPageText),
-  };
+  if (!hasStrongEvidence && !hasSupportedTitleOnly) return null;
+  return { title, originalPrice, salePrice, discount, bundleDetails, freeGifts, isPopular: Boolean(offer.isPopular) && /\b(most popular|best seller|bestseller|popular choice|top seller)\b/i.test(rawPageText) };
 };
 
-const sanitizeExtractedOffers = (markdown: string, extracted: any) => {
-  const rawPageText = typeof markdown === "string" ? markdown.toLowerCase() : "";
-  const normalizedPageText = normalizeSearchText(markdown || "");
-  const sanitize = (product: any) => {
-    if (!product || typeof product !== "object") return;
-    product.offers = Array.isArray(product.offers)
-      ? product.offers
-          .map((offer) => sanitizeOffer(offer, rawPageText, normalizedPageText))
-          .filter(Boolean)
-      : [];
-  };
-
-  if (Array.isArray(extracted?.products)) {
-    extracted.products.forEach(sanitize);
-  }
-  if (extracted?.product) {
-    sanitize(extracted.product);
-  }
-};
-
-const collectSearchImageUrls = (results: any[]): string[] => {
-  const imgUrlRegex = /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
-  const collected: string[] = [];
-
-  for (const result of Array.isArray(results) ? results : []) {
-    const directCandidates = [
-      result?.metadata?.ogImage,
-      result?.metadata?.image,
-      result?.image,
-      result?.thumbnail,
-      result?.url,
-    ];
-
-    for (const candidate of directCandidates) {
-      if (typeof candidate === "string" && candidate.startsWith("http")) {
-        collected.push(candidate);
-      }
-    }
-
-    const textBlobs = [
-      result?.markdown,
-      result?.description,
-      result?.html,
-      JSON.stringify(result?.links || []),
-    ];
-
-    for (const blob of textBlobs) {
-      if (typeof blob !== "string" || !blob) continue;
-      imgUrlRegex.lastIndex = 0;
-      let match;
-      while ((match = imgUrlRegex.exec(blob)) !== null) {
-        collected.push(match[0]);
-      }
-    }
-  }
-
-  return [...new Set(collected)].filter(Boolean);
-};
-
-const pickMoodboardImage = (urls: string[]): string | null => {
-  const pinterestImg = urls.find((url) =>
-    url.includes("pinimg.com") &&
-    !url.includes("/75x") &&
-    !url.includes("/140x") &&
-    !url.includes("/236x")
-  );
-  if (pinterestImg) return pinterestImg;
-
-  return (
-    urls.find((url) =>
-      !url.includes("/icon") &&
-      !url.includes("/favicon") &&
-      !url.includes("/logo") &&
-      url.length > 30
-    ) || null
-  );
-};
-
-const scrapePinterestForImages = async (
-  term: string,
-  FIRECRAWL_API_KEY: string,
-): Promise<string[]> => {
-  const pinImgRegex = /https?:\/\/i\.pinimg\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
-  const encodedQuery = encodeURIComponent(term);
-  const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodedQuery}`;
-
-  try {
-    const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: pinterestUrl,
-        formats: ["html"],
-        waitFor: 3000,
-      }),
-    });
-
-    if (!res.ok) {
-      console.warn(`Pinterest scrape failed for "${term}": ${res.status}`);
-      return [];
-    }
-
-    const data = await res.json();
-    const html: string = data.data?.html || data.html || "";
-
-    const found: string[] = [];
-    let match;
-    pinImgRegex.lastIndex = 0;
-    while ((match = pinImgRegex.exec(html)) !== null) {
-      const url = match[0];
-      // Skip tiny thumbnails
-      if (url.includes("/75x") || url.includes("/140x") || url.includes("/170x")) continue;
-      // Prefer originals or large sizes
-      found.push(url);
-    }
-
-    // Deduplicate
-    return [...new Set(found)];
-  } catch (e) {
-    console.warn(`Pinterest scrape error for "${term}":`, e);
-    return [];
-  }
+const sanitizeProductOffers = (pageText: string, product: any) => {
+  if (!product || typeof product !== "object") return;
+  const rawPageText = typeof pageText === "string" ? pageText.toLowerCase() : "";
+  const normalizedPageText = normalizeSearchText(pageText || "");
+  product.offers = Array.isArray(product.offers)
+    ? product.offers.map((offer: any) => sanitizeOffer(offer, rawPageText, normalizedPageText)).filter(Boolean)
+    : [];
 };
 
 const fetchPageFallback = async (targetUrl: string) => {
@@ -266,22 +94,277 @@ const fetchPageFallback = async (targetUrl: string) => {
       Accept: "text/html,application/xhtml+xml",
     },
   });
-
-  if (!response.ok) {
-    throw new Error(`Direct fetch failed with status ${response.status}`);
-  }
-
+  if (!response.ok) throw new Error(`Direct fetch failed with status ${response.status}`);
   const html = await response.text();
-  return {
-    markdown: htmlToText(html),
-    metadata: {
-      title: extractTitleFromHtml(html),
-      sourceURL: targetUrl,
-      statusCode: response.status,
-    },
-  };
+  return { markdown: htmlToText(html), metadata: { title: extractTitleFromHtml(html), sourceURL: targetUrl, statusCode: response.status } };
 };
 
+// ══════════════════════════════════════════════
+// ROBUST JSON PARSER — handles code fences, trailing commas, truncation
+// ══════════════════════════════════════════════
+function robustJsonParse(raw: string): any {
+  if (!raw || !raw.trim()) throw new Error("Empty content");
+
+  let cleaned = raw
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const jsonStart = cleaned.indexOf("{");
+  const jsonEnd = cleaned.lastIndexOf("}");
+  if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) throw new Error("No JSON object found");
+
+  cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+
+  // Attempt 1: direct parse
+  try { return JSON.parse(cleaned); } catch { /* continue */ }
+
+  // Attempt 2: fix trailing commas + control chars
+  cleaned = cleaned
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*]/g, "]")
+    .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === "\n" || ch === "\t" ? ch : "");
+
+  try { return JSON.parse(cleaned); } catch { /* continue */ }
+
+  // Attempt 3: truncation repair
+  let repaired = cleaned;
+  repaired = repaired.replace(/,\s*"[^"]*"?\s*:\s*("[^"]*)?$/, "");
+  repaired = repaired.replace(/,\s*"[^"]*$/, "");
+  repaired = repaired.replace(/,\s*\[?[^\[\]{}]*$/, "");
+  repaired = repaired.replace(/,\s*$/, "");
+
+  const openArr = (repaired.match(/\[/g) || []).length;
+  const closeArr = (repaired.match(/]/g) || []).length;
+  for (let i = 0; i < openArr - closeArr; i++) repaired += "]";
+  repaired = repaired.replace(/,\s*]/g, "]");
+
+  const openB = (repaired.match(/{/g) || []).length;
+  const closeB = (repaired.match(/}/g) || []).length;
+  for (let i = 0; i < openB - closeB; i++) repaired += "}";
+  repaired = repaired.replace(/,\s*}/g, "}");
+
+  return JSON.parse(repaired); // throws if still broken
+}
+
+// ══════════════════════════════════════════════
+// AI CALL HELPER — single focused extraction
+// ══════════════════════════════════════════════
+async function callAI(
+  LOVABLE_API_KEY: string,
+  prompt: string,
+  model = "google/gemini-2.5-flash",
+  maxTokens = 8000,
+): Promise<any> {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] }),
+  });
+
+  if (!res.ok) throw new Error(`AI call failed: ${res.status}`);
+
+  const bodyText = await res.text();
+  if (!bodyText?.trim()) throw new Error("AI returned empty body");
+
+  const data = JSON.parse(bodyText);
+  const content = data.choices?.[0]?.message?.content || "";
+  return robustJsonParse(content);
+}
+
+// ══════════════════════════════════════════════
+// NORMALIZE HELPERS
+// ══════════════════════════════════════════════
+const ensureArr = (v: any) => Array.isArray(v) ? v : [];
+const ensureStr = (v: any) => typeof v === "string" ? v : "";
+const ensureObj = (v: any) => (v && typeof v === "object" && !Array.isArray(v)) ? v : {};
+
+function normalizeProduct(p: any): any {
+  if (!p || typeof p !== "object") return null;
+  return {
+    name: ensureStr(p.name),
+    category: ensureStr(p.category),
+    description: ensureStr(p.description),
+    features: ensureArr(p.features),
+    benefits: ensureArr(p.benefits),
+    painPoints: ensureArr(p.painPoints),
+    useCases: ensureArr(p.useCases),
+    targetScenarios: ensureArr(p.targetScenarios),
+    positioningStatement: ensureStr(p.positioningStatement),
+    uniqueSellingPoints: ensureArr(p.uniqueSellingPoints),
+    competitiveAdvantages: ensureArr(p.competitiveAdvantages),
+    commonObjections: ensureArr(p.commonObjections).map((o: any) => ({
+      objection: ensureStr(o?.objection), response: ensureStr(o?.response)
+    })),
+    proofPoints: ensureArr(p.proofPoints).map((pp: any) => ({
+      category: ensureStr(pp?.category), items: ensureArr(pp?.items)
+    })),
+    dosAndDonts: { dos: ensureArr(p.dosAndDonts?.dos), donts: ensureArr(p.dosAndDonts?.donts) },
+    powerPhrases: ensureArr(p.powerPhrases),
+    powerWords: ensureArr(p.powerWords),
+    technicalLevel: ensureStr(p.technicalLevel),
+    refinementChecklist: ensureArr(p.refinementChecklist),
+    images: ensureArr(p.images),
+    offers: ensureArr(p.offers),
+  };
+}
+
+function normalizeAudience(a: any): any {
+  if (!a || typeof a !== "object") return null;
+  return {
+    name: ensureStr(a.name),
+    description: ensureStr(a.description),
+    avatarPrompt: ensureStr(a.avatarPrompt),
+    buyingTriggers: ensureArr(a.buyingTriggers),
+    useCaseRequirements: ensureArr(a.useCaseRequirements),
+    keySuccessIndicators: ensureArr(a.keySuccessIndicators),
+    additionalCharacteristics: ensureStr(a.additionalCharacteristics),
+    positioningStatement: ensureStr(a.positioningStatement),
+    valuePropositions: ensureArr(a.valuePropositions),
+    engagementTriggers: ensureArr(a.engagementTriggers),
+    attentionHooks: ensureArr(a.attentionHooks),
+    commonObjections: ensureArr(a.commonObjections).map((o: any) => ({
+      objection: ensureStr(o?.objection), response: ensureStr(o?.response)
+    })),
+    proofPoints: ensureArr(a.proofPoints).map((pp: any) => ({
+      category: ensureStr(pp?.category), items: ensureArr(pp?.items)
+    })),
+    dosAndDonts: { dos: ensureArr(a.dosAndDonts?.dos), donts: ensureArr(a.dosAndDonts?.donts) },
+    powerPhrases: ensureArr(a.powerPhrases),
+    powerWords: ensureArr(a.powerWords),
+    technicalLevel: ensureStr(a.technicalLevel),
+    refinementChecklist: ensureArr(a.refinementChecklist),
+  };
+}
+
+// ══════════════════════════════════════════════
+// PROMPTS — smaller, focused
+// ══════════════════════════════════════════════
+
+const BRAND_PROMPT = (brandingJson: string | null, homepageMarkdown: string, pageUrl: string, pageTitle: string) => `Extract brand identity from this website homepage. Return ONLY valid JSON.
+
+${brandingJson ? `Firecrawl branding data (primary source for colors/fonts/logos):\n${brandingJson}\n` : ""}
+
+JSON structure:
+{
+  "brand": {
+    "name": "",
+    "category": "",
+    "colors": { "primary": "#hex", "secondary": "#hex", "background": "#hex", "text": "#hex" },
+    "typography": { "fontFamily": "", "fontStyle": "", "fontWeight": "400" },
+    "logoUrls": [],
+    "visualIdentity": {
+      "logoDescription": "",
+      "moodboardDescription": "",
+      "illustrationGuidelines": "",
+      "imageGuidelines": [{"rule": "", "example": ""}],
+      "websiteRules": [],
+      "buttonRules": [],
+      "socialMediaRules": []
+    }
+  }
+}
+
+RULES:
+- Extract real data only. If a field cannot be determined, use "" or [].
+- For colors: extract dominant hex colors visible on the page.
+- For logoUrls: ONLY actual logo image URLs (not product photos).
+- For visualIdentity: be specific and actionable, not generic.
+
+Page URL: ${pageUrl}
+Page title: ${pageTitle}
+
+Homepage content (first 8000 chars):
+${homepageMarkdown.slice(0, 8000)}`;
+
+const PRODUCT_AUDIENCE_PROMPT = (productMarkdown: string, brandName: string, pageUrl: string) => `Extract ONE product and ONE matching target audience from this product page. Return ONLY valid JSON.
+
+If you cannot find real data for a field, leave it as "" or []. NEVER fabricate data. NEVER use example data.
+For offers: ONLY include pricing/deals explicitly shown on this page. If none, return "offers": [].
+
+JSON structure:
+{
+  "product": {
+    "name": "", "category": "", "description": "",
+    "features": [], "benefits": [], "painPoints": [], "useCases": [], "targetScenarios": [],
+    "positioningStatement": "", "uniqueSellingPoints": [], "competitiveAdvantages": [],
+    "commonObjections": [{"objection": "", "response": ""}],
+    "proofPoints": [{"category": "", "items": []}],
+    "dosAndDonts": {"dos": [], "donts": []},
+    "powerPhrases": [], "powerWords": [], "technicalLevel": "", "refinementChecklist": [],
+    "images": [], "offers": []
+  },
+  "audience": {
+    "name": "", "description": "", "avatarPrompt": "",
+    "buyingTriggers": [], "useCaseRequirements": [], "keySuccessIndicators": [],
+    "additionalCharacteristics": "", "positioningStatement": "",
+    "valuePropositions": [], "engagementTriggers": [], "attentionHooks": [],
+    "commonObjections": [{"objection": "", "response": ""}],
+    "proofPoints": [{"category": "", "items": []}],
+    "dosAndDonts": {"dos": [], "donts": []},
+    "powerPhrases": [], "powerWords": [], "technicalLevel": "", "refinementChecklist": []
+  }
+}
+
+FIELD GUIDELINES:
+- description: [WHAT IT IS] + [NEW MECHANISM] + [OUTCOME] + [HOW IT WORKS]
+- features: Observable facts about the product
+- benefits: [FEATURE] → [WHAT IT MEANS FOR THE CUSTOMER]
+- painPoints: [FRUSTRATION] + [SPECIFIC MOMENT] + [CONSEQUENCE]
+- positioningStatement: "For [TARGET], [PRODUCT] is the [CATEGORY] that [KEY BENEFIT] because [REASON]"
+- commonObjections: Real objections with reframes and proof
+- audience description: [WHO] + [VALUES] + [CORE PAIN] + [DREAM OUTCOME]
+- Every output should feel specific to THIS product, not generic
+
+Brand: "${brandName}"
+Page URL: ${pageUrl}
+
+Product page content (first 10000 chars):
+${productMarkdown.slice(0, 10000)}`;
+
+// ══════════════════════════════════════════════
+// PINTEREST SCRAPER
+// ══════════════════════════════════════════════
+const parseStringArrayFromAiText = (raw: string): string[] => {
+  if (!raw) return [];
+  const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const arrayStart = cleaned.indexOf("[");
+  const arrayEnd = cleaned.lastIndexOf("]");
+  if (arrayStart === -1 || arrayEnd === -1 || arrayEnd <= arrayStart) return [];
+  try {
+    const parsed = JSON.parse(cleaned.slice(arrayStart, arrayEnd + 1));
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+  } catch { return []; }
+};
+
+const scrapePinterestForImages = async (term: string, FIRECRAWL_API_KEY: string): Promise<string[]> => {
+  const pinImgRegex = /https?:\/\/i\.pinimg\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
+  const encodedQuery = encodeURIComponent(term);
+  const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodedQuery}`;
+  try {
+    const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ url: pinterestUrl, formats: ["html"], waitFor: 3000 }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const html: string = data.data?.html || data.html || "";
+    const found: string[] = [];
+    let match;
+    pinImgRegex.lastIndex = 0;
+    while ((match = pinImgRegex.exec(html)) !== null) {
+      const url = match[0];
+      if (url.includes("/75x") || url.includes("/140x") || url.includes("/170x")) continue;
+      found.push(url);
+    }
+    return [...new Set(found)];
+  } catch { return []; }
+};
+
+// ══════════════════════════════════════════════
+// MAIN HANDLER
+// ══════════════════════════════════════════════
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -318,17 +401,11 @@ serve(async (req) => {
       formattedUrl = `https://${formattedUrl}`;
     }
 
-    // Extract base URL for homepage screenshots
     let baseUrl: string;
-    try {
-      baseUrl = new URL(formattedUrl).origin;
-    } catch {
-      baseUrl = formattedUrl;
-    }
+    try { baseUrl = new URL(formattedUrl).origin; } catch { baseUrl = formattedUrl; }
 
     console.log("Scraping URL:", formattedUrl, "Base URL:", baseUrl);
 
-    // Detect company-level URL vs specific product page
     const isCompanyUrl = (() => {
       try {
         const u = new URL(formattedUrl);
@@ -338,76 +415,59 @@ serve(async (req) => {
     })();
     console.log("URL type:", isCompanyUrl ? "company" : "product");
 
-    // Step 1: Scrape with Firecrawl (desktop + branding) — use BASE URL for screenshots
+    // ══════════════════════════════════════════════
+    // STEP 1: Scrape homepage with Firecrawl
+    // ══════════════════════════════════════════════
     let scrapeData: any = null;
     let usedDirectFallback = false;
 
     const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: baseUrl,
-        formats: ["markdown", "links", "branding", "screenshot"],
-        onlyMainContent: false,
-      }),
+      headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ url: baseUrl, formats: ["markdown", "links", "branding", "screenshot"], onlyMainContent: false }),
     });
 
     if (scrapeResponse.ok) {
       scrapeData = await scrapeResponse.json();
     } else {
-      console.warn("Firecrawl scrape failed: status", scrapeResponse.status, "- retrying with lighter formats (no screenshot)");
+      console.warn("Firecrawl scrape failed:", scrapeResponse.status, "- retrying without screenshot");
       const retryResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: baseUrl,
-          formats: ["markdown", "links", "branding"],
-          onlyMainContent: false,
-        }),
+        headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ url: baseUrl, formats: ["markdown", "links", "branding"], onlyMainContent: false }),
       });
-
       if (retryResponse.ok) {
         scrapeData = await retryResponse.json();
-        console.log("Retry succeeded without screenshot");
       } else {
-        console.error("Firecrawl retry also failed: status", retryResponse.status);
         try {
           const fallbackPage = await fetchPageFallback(formattedUrl);
           usedDirectFallback = true;
-          scrapeData = {
-            data: {
-              markdown: fallbackPage.markdown,
-              metadata: fallbackPage.metadata,
-              branding: null,
-              screenshot: null,
-              links: [],
-            },
-          };
-          console.log("Falling back to direct HTML fetch for extraction");
-        } catch (fallbackError) {
-          console.error("Direct fetch fallback also failed:", fallbackError);
+          scrapeData = { data: { markdown: fallbackPage.markdown, metadata: fallbackPage.metadata, branding: null, screenshot: null, links: [] } };
+        } catch {
           return new Response(
-            JSON.stringify({ success: false, error: `Scraping failed for ${formattedUrl}. The site may be blocking automated requests or timing out.` }),
+            JSON.stringify({ success: false, error: `Scraping failed for ${formattedUrl}. The site may be blocking automated requests.` }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
       }
     }
 
-    // For company URLs: discover product pages via Map API
-    let productMarkdown = "";
-    let productMetadata: any = {};
+    const homepageMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+    const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
+    const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
+    const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
+
+    console.log("Homepage content length:", homepageMarkdown.length, "screenshot:", !!websiteScreenshot);
+    if (firecrawlBranding) console.log("Firecrawl branding data found");
+
+    // ══════════════════════════════════════════════
+    // STEP 2: Discover product pages (company URLs)
+    // ══════════════════════════════════════════════
     let productPageContents: { url: string; markdown: string }[] = [];
 
     if (isCompanyUrl) {
       try {
-        console.log("Company URL detected — mapping site for product pages...");
+        console.log("Company URL — mapping site for product pages...");
         const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
           method: "POST",
           headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
@@ -415,30 +475,29 @@ serve(async (req) => {
         });
         if (mapRes.ok) {
           const mapData = await mapRes.json();
-          // Filter URLs: same domain only, exclude non-product paths
           const parsedBase = new URL(formattedUrl);
           const baseDomain = parsedBase.hostname.replace(/^www\./, '');
           const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com)/i;
-          const allUrls: string[] = (mapData.links || [])
-            .filter((u: string) => {
-              if (!u || !u.startsWith("http")) return false;
-              try {
-                const pu = new URL(u);
-                const linkDomain = pu.hostname.replace(/^www\./, '');
-                if (linkDomain !== baseDomain) return false;
-                if (excludePatterns.test(pu.pathname)) return false;
-                if (pu.pathname === '/' || pu.pathname === '') return false;
-                return true;
-              } catch { return false; }
-            });
+          const allUrls: string[] = (mapData.links || []).filter((u: string) => {
+            if (!u || !u.startsWith("http")) return false;
+            try {
+              const pu = new URL(u);
+              const linkDomain = pu.hostname.replace(/^www\./, '');
+              if (linkDomain !== baseDomain) return false;
+              if (excludePatterns.test(pu.pathname)) return false;
+              if (pu.pathname === '/' || pu.pathname === '') return false;
+              return true;
+            } catch { return false; }
+          });
           console.log("Map found", allUrls.length, "filtered URLs (from", (mapData.links || []).length, "total)");
+
           if (allUrls.length > 0) {
             const pickResText = await (await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-2.5-flash-lite",
-                messages: [{ role: "user", content: `From these URLs, select up to 5 that are individual PRODUCT pages (pages showcasing a specific product or service for sale/subscription). Exclude category/collection pages, blog posts, about/legal/career/support pages.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return [].\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
+                messages: [{ role: "user", content: `From these URLs, select up to 5 that are individual PRODUCT pages. Exclude category/collection pages, blog posts, about/legal pages.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return [].\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
               }),
             })).text();
             try {
@@ -472,8 +531,6 @@ serve(async (req) => {
               }
             } catch (e) { console.warn("Product selection parse error:", e); }
           }
-        } else {
-          console.warn("Map API failed:", mapRes.status);
         }
       } catch (e) { console.warn("Map API error (non-fatal):", e); }
     } else if (!usedDirectFallback && baseUrl !== formattedUrl) {
@@ -481,1174 +538,366 @@ serve(async (req) => {
       try {
         const productScrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: formattedUrl,
-            formats: ["markdown"],
-            onlyMainContent: true,
-          }),
+          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ url: formattedUrl, formats: ["markdown"], onlyMainContent: true }),
         });
         if (productScrapeRes.ok) {
           const pd = await productScrapeRes.json();
-          productMarkdown = pd.data?.markdown || pd.markdown || "";
-          productMetadata = pd.data?.metadata || pd.metadata || {};
+          productPageContents = [{ url: formattedUrl, markdown: pd.data?.markdown || pd.markdown || "" }];
         } else {
-          const fallbackPage = await fetchPageFallback(formattedUrl);
-          productMarkdown = fallbackPage.markdown;
-          productMetadata = fallbackPage.metadata;
+          const fb = await fetchPageFallback(formattedUrl);
+          productPageContents = [{ url: formattedUrl, markdown: fb.markdown }];
         }
-      } catch (e) {
-        console.warn("Product page scrape failed (non-fatal):", e);
-      }
+      } catch (e) { console.warn("Product page scrape failed:", e); }
     }
 
-    const homepageMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
-    let markdown: string;
-    let metadata: any;
-
-    if (isCompanyUrl && productPageContents.length > 0) {
-      markdown = `--- HOMEPAGE: ${baseUrl} ---\n${homepageMarkdown.slice(0, 5000)}\n\n` +
-        productPageContents.map(p => `--- PRODUCT PAGE: ${p.url} ---\n${p.markdown.slice(0, 5000)}`).join('\n\n');
-      metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
-    } else {
-      markdown = productMarkdown || homepageMarkdown;
-      metadata = productMarkdown ? productMetadata : (scrapeData.data?.metadata || scrapeData.metadata || {});
+    // If no product pages were scraped, use the homepage as the single product page
+    if (productPageContents.length === 0) {
+      productPageContents = [{ url: formattedUrl, markdown: homepageMarkdown }];
     }
 
-    const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
-    const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
+    // ══════════════════════════════════════════════
+    // STEP 3: MULTI-PASS AI EXTRACTION
+    // ══════════════════════════════════════════════
 
-    console.log("Scraped content length:", markdown.length, "screenshot:", !!websiteScreenshot, "productPages:", productPageContents.length);
-    if (firecrawlBranding) console.log("Firecrawl branding data found");
-
-    // Step 1b: Mobile screenshot (parallel) — use BASE URL — skip in core mode
-    const mobileScreenshotPromise = isCoreMode ? Promise.resolve(null) : (async () => {
-      try {
-        console.log("Fetching mobile screenshot for base URL...");
-        const mobileRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: baseUrl,
-            formats: ["screenshot"],
-            mobile: true,
-          }),
-        });
-        if (mobileRes.ok) {
-          const mobileData = await mobileRes.json();
-          const mobileSS = mobileData.data?.screenshot || mobileData.screenshot;
-          if (mobileSS) {
-            return typeof mobileSS === 'string' && mobileSS.startsWith('http')
-              ? mobileSS
-              : `data:image/png;base64,${mobileSS}`;
-          }
-        }
-      } catch (e) {
-        console.warn("Mobile screenshot error (non-fatal):", e);
-      }
-      return null;
-    })();
-
-    // Step 2: Extract structured data with AI
-    const extractionPrompt = `You are a Product & Audience DNA analyst. Your job is to extract structured data from a product page using the exact formulas and output style below. Study the formulas and example outputs carefully — they define the TONE, DEPTH, and FORMAT of your answers.
-
-If you cannot confidently extract or infer a field, leave it as "" for strings or [] for arrays. Never omit a field. Never be generic — every output must feel specific to THIS product.
-
-Return ONLY valid JSON, no markdown wrapping.
-
-═══════════════════════════════════════
-🧬 PRODUCT DNA FORMULAS & EXAMPLES
-═══════════════════════════════════════
-
-1. PRODUCT DESCRIPTION
-Formula: [WHAT IT IS] + [NEW MECHANISM] + [OUTCOME] + [HOW IT WORKS] + [GUARANTEE]
-Example: "Scrubby is the first shampoo-infused dog cleaning glove that removes dirt, mud, and harmful bacteria in seconds — no bath needed. Wet, lather, scrub, wipe. Done. Backed by a 100% money-back guarantee."
-
-2. KEY FEATURES
-Formula: [OBSERVABLE THING ABOUT THE PRODUCT] — just the facts, no spin
-Example:
-- "Shampoo pre-infused into the glove material"
-- "Single-use glove format (5 per pack)"
-- "Rinse-free — no water needed after use"
-
-3. KEY BENEFITS
-Formula: [FEATURE] → [WHAT IT MEANS FOR THE CUSTOMER]
-Example:
-- "Pre-infused shampoo → clean dog with nothing extra to buy or carry"
-- "Works in seconds → mud stopped at the door before it hits your floors"
-- "Glove format → you're in control — feels natural, not clinical"
-
-4. TARGET PAIN POINTS
-Formula: [FRUSTRATION] + [SPECIFIC MOMENT] + [CONSEQUENCE]
-Example:
-- "Muddy paws post-walk → frustration + stress → dirty floors, furniture, carpets ruined"
-- "Full bath nightmare → dog resists, takes 20 mins, soaks the bathroom → owner dreads it daily"
-- "Time pressure → no time for a proper clean → walk becomes a source of anxiety"
-
-5. PRIMARY USE CASES
-Formula: [SPECIFIC SITUATION] + [WHO IS IN IT] + [WHAT THIS PRODUCT REPLACES]
-Example:
-- "Post-walk muddy paw cleanup — replaces full bath"
-- "Travel/camping with dog — replaces carrying shampoo and finding water source"
-- "Daily maintenance between full grooms — replaces expensive groomer visits"
-
-6. TARGET SCENARIOS
-Formula: [DAY IN THE LIFE MOMENT] where the customer reaches for this product
-Example:
-- "It's 7am, raining, dog just sprinted through mud, you're leaving for work in 10 minutes"
-- "Guests arriving in an hour, dog smells from this morning's walk"
-- "Partner complaining about muddy paw prints on the sofa — again"
-
-7. POSITIONING STATEMENT
-Formula: "For [TARGET], [PRODUCT] is the [CATEGORY] that [KEY BENEFIT] because [REASON TO BELIEVE]"
-Example: "For busy dog owners who dread post-walk cleanup, Scrubby is the only cleaning glove that eliminates the need for a bath entirely — because the shampoo is already built in, and it works in under 60 seconds."
-
-8. UNIQUE SELLING POINTS
-Formula: [ONLY WE] + [CLAIM] + [MECHANISM] + [OUTCOME]
-Example:
-- "Only shampoo-infused glove — no other product has soap pre-loaded into the material"
-- "Only solution that's simultaneously rinse-free, fragrance-free, and bacteria-eliminating"
-
-9. COMPETITIVE ADVANTAGES
-Formula: [COMPETITOR APPROACH] vs [THIS PRODUCT'S APPROACH] + [WHY THIS WINS]
-Example:
-- "Dog wipes: No shampoo, bacteria remain → Scrubby kills bacteria, not just wipes surface"
-- "Full bath: 20+ minutes, dog resists → Scrubby is 60 seconds, dog tolerates it"
-
-10. COMMON OBJECTIONS
-Formula: [OBJECTION] → [REFRAME] → [PROOF]
-Example:
-- objection: "Does it actually work or just smear the mud around?"
-- response: "The shampoo activates on contact and lifts dirt from the coat — it doesn't smear, it emulsifies. Proof: Cocamidopropyl Betaine is a professional-grade surfactant used in premium pet groomers"
-
-11. PROOF POINTS
-Formula: [CLAIM] + [TYPE OF PROOF] + [HOW TO USE IN AD]
-Example:
-- category: "Mechanism", items: ["UGC video: Works in 60 seconds — before/after in real time"]
-- category: "Cost Efficiency", items: ["4 cleanings for less than one groomer visit"]
-- category: "Risk-free", items: ["Money-back guarantee — Try it. If it doesn't work, we pay you back."]
-
-12. DO'S AND DON'TS
-Formula: [WHAT TO SAY] vs [WHAT KILLS CONVERSION]
-Example Do's:
-- "Use sensory language: 'muddy paws', 'clean coat', 'spotless floors'"
-- "Lean into the guarantee: 'zero risk', 'money back, no questions'"
-Example Don'ts:
-- "Never say 'innovative' or 'revolutionary' — sounds like every other brand"
-- "Never be vague: 'cleaner dog' is weak. 'Clean in 60 seconds at the door' is strong"
-
-13. POWER PHRASES
-Formula: Full phrases that work as standalone hooks, CTAs, or body copy lines
-Example:
-- "Clean dog. 60 seconds. No bath."
-- "The shampoo is already in the glove."
-- "Mud stops at the door."
-
-14. POWER WORDS
-Formula: Single words that trigger emotion, urgency, or trust
-Example: Speed: Seconds, Instant, Done | Ease: Simple, Effortless | Trust: Guaranteed, Risk-free, Proven
-
-15. TECHNICAL LEVEL
-Formula: How much jargon can the audience handle?
-Example: "LOW — Zero ingredient names in hooks. Lead with outcome."
-
-16. REFINEMENT CHECKLIST
-Formula: Quality gates to run every ad/copy through before publishing
-Example:
-- "Does it feel NEW? → First [mechanism] in the category"
-- "Is the mechanism 3 steps or fewer?"
-- "Does the hook lead with pain before solution?"
-
-═══════════════════════════════════════
-👥 AUDIENCE DNA FORMULAS & EXAMPLES
-═══════════════════════════════════════
-
-1. AUDIENCE DESCRIPTION
-Formula: [WHO] + [VALUES] + [CORE PAIN] + [DREAM OUTCOME] + [BUYING SIGNAL]
-Example: "Busy dog owners aged 28–55 who treat their pets like family. House-proud, convenience-driven, fed up with muddy paws wrecking their home after every walk. They want a 60-second clean at the door — no bath, no drama. They buy once they see proof it works, especially with a guarantee."
-
-2. BUYING TRIGGERS
-Formula: [EMOTIONAL STATE] + [SPECIFIC MOMENT] + [WHAT PUSHES THEM OVER THE LINE]
-Example:
-- "Dog comes back filthy from a rainy walk — AGAIN → 'I need to fix this today'"
-- "Sees UGC video of product working in real time → 'That's exactly my problem'"
-
-3. USE CASE REQUIREMENTS
-Formula: [WHAT THE PRODUCT MUST DO] for this audience to consider it a success
-Example:
-- "Must work in under 2 minutes — they're time-poor"
-- "Must not require additional tools — or it's as bad as a bath"
-
-4. KEY SUCCESS INDICATORS
-Formula: [HOW THE CUSTOMER KNOWS IT WORKED] — their definition of success, not yours
-Example:
-- "Dog's coat looks and feels clean — no visible mud, no smell"
-- "Took under 60 seconds — didn't disrupt the morning routine"
-
-5. ADDITIONAL CHARACTERISTICS
-Formula: [BEHAVIOURAL PATTERNS] that affect how and when they buy
-Example: "Scrolls Facebook/Instagram in the evening after walks — peak ad window: 7–9pm. Buys pet products online regularly — not a new behaviour, low friction. Influenced by UGC over polished ads."
-
-6. AUDIENCE POSITIONING STATEMENT
-Formula: "For [TARGET], [PRODUCT] is the [CATEGORY] that [BENEFIT] because [REASON TO BELIEVE]"
-
-7. VALUE PROPOSITIONS
-Formula: [SPECIFIC OUTCOME] + [TIME/EFFORT SAVED] + [RISK REMOVED] + [UNIQUE MECHANISM]
-
-8. ENGAGEMENT TRIGGERS
-Formula: [CONTENT TYPE] + [EMOTIONAL RESPONSE IT CREATES] + [ACTION IT DRIVES]
-Example:
-- "Before/after video → relief + surprise → share + comment + buy"
-- "Bundle deal with countdown → FOMO + urgency → direct purchase"
-
-9. ATTENTION HOOKS
-Formula: [SCROLL STOPPER] + [CURIOSITY GAP] + [BENEFIT PROMISE] — by awareness stage if possible
-Example:
-- Unaware: "Dog owners are wasting 3 hours a week on something that now takes 60 seconds"
-- Problem Aware: "Muddy paws after every walk — there's finally something that actually fixes it"
-
-10. AUDIENCE OBJECTIONS
-Formula: [OBJECTION] → [EMOTIONAL REFRAME] → [LOGICAL PROOF]
-
-11. AUDIENCE PROOF POINTS
-Formula: [WHAT THIS AUDIENCE TRUSTS MOST] → [HOW TO DELIVER IT]
-Example:
-- category: "UGC video", items: ["Dog owners trust other dog owners — real person, real dog, real walk"]
-
-12. AUDIENCE DO'S AND DON'TS
-Formula: [WHAT RESONATES] vs [WHAT REPELS] for this specific audience
-Example Do's:
-- "Speak like a fellow dog owner, not a brand"
-- "Make the time benefit specific: '60 seconds' beats 'quick and easy'"
-Example Don'ts:
-- "Don't use clinical language in the hook — save ingredient names for body copy"
-
-13. AUDIENCE POWER PHRASES
-Example:
-- "No bath. No rinse. No drama."
-- "Your dog is clean before you take your coat off."
-
-14. AUDIENCE POWER WORDS
-Example: Relief: Finally, Done, Over, Never again | Trust: Guaranteed, Proven, Safe | Urgency: Today, Now, Most popular
-
-15. AUDIENCE TECHNICAL LEVEL
-Formula: Calibrate complexity by segment
-Example: "LOW — Pure outcome: 'clean dog in 60 seconds, no bath'"
-
-16. AUDIENCE REFINEMENT CHECKLIST
-Formula: Quality gates for audience-targeted content
-Example:
-- "Can you picture this exact person?"
-- "Is this a daily frustration, not a hypothetical?"
-- "Are you using their language?"
-
-═══════════════════════════════════════
-
-═══════════════════════════════════════
-🎨 BRANDING DNA FORMULAS & EXAMPLES
-═══════════════════════════════════════
-
-1. PRIMARY LOGO
-Formula: [MARK TYPE] + [WHAT IT SYMBOLISES] + [WHERE IT MUST WORK] + [WHAT BREAKS IT]
-Example: "Wordmark logo in deep blue. Symbolises clarity and precision. Must work at 32px favicon, full-width header, and white/dark backgrounds. Never stretch, recolour, or place on busy backgrounds."
-
-2. BRAND COLORS
-Formula: [PRIMARY EMOTION] + [COLOR ROLE] + [WHAT IT MUST NEVER DO] + [ACCESSIBILITY RULE]
-Example: "Primary #3B82F6 → Trust + action. Used on all CTAs and highlights. Never used as background behind small text. Minimum 4.5:1 contrast ratio."
-
-3. TYPOGRAPHY
-Formula: [FONT PERSONALITY] + [HIERARCHY RULES] + [WHAT IT MUST NEVER BE] + [BRAND VOICE IT EXPRESSES]
-
-4. MOODBOARD
-Formula: [WORLD THE BRAND LIVES IN] + [LIGHTING & TEXTURE] + [WHAT IT FEELS LIKE] + [WHAT IT MUST NEVER FEEL LIKE]
-Example: "The brand lives in a world of precision and possibility — dark UI interfaces, glowing data lines. Lighting is cool, controlled, intentional. Looking at it should feel like stepping into the future. It must never feel warm, rustic, or human-casual."
-
-5. ILLUSTRATIONS
-Formula: [STYLE FINGERPRINT] + [WHERE THEY'RE USED] + [WHAT THEY COMMUNICATE] + [WHAT MAKES THEM OWNABLE]
-Example: "Flat-vector with thin strokes and blue/gray palette. Used for explainer graphics, empty states, and social posts. Ownable because of the consistent node/network motif."
-
-6. IMAGE GUIDELINES
-Formula: [WHAT TO SHOOT/USE] + [LIGHTING RULE] + [SUBJECT RULE] + [WHAT TO NEVER SHOW]
-
-7. WEBSITE & DIGITAL
-Formula: [LAYOUT PHILOSOPHY] + [CONTENT HIERARCHY] + [EMOTIONAL JOURNEY] + [WHAT ONE PAGE MUST ALWAYS DO]
-Example: "Minimalist grid with generous white space. Content flows: problem → mechanism → solution → proof → CTA. Every page must end with one clear, frictionless next action."
-
-8. BUTTONS & UI ELEMENTS
-Formula: [HIERARCHY RULE] + [SHAPE LANGUAGE] + [COLOR SYSTEM] + [WHAT INTERACTION FEELS LIKE]
-Example: "Primary = filled blue, white text, 6px radius → 'Take this action now'. Secondary = outlined. Hover darkens 10% — feels responsive, confident, not flashy."
-
-9. SOCIAL MEDIA
-Formula: [CONTENT PILLARS] + [VISUAL RULES] + [TONE OF VOICE] + [WHAT SUCCESS LOOKS LIKE PER FORMAT]
-
-═══════════════════════════════════════
-
-${isCompanyUrl && productPageContents.length > 0
-  ? `MULTI-PRODUCT MODE: Multiple product pages from the same company are provided below. Extract up to ${productPageContents.length} products (one per page) and one matching audience per product. All share a single brand.`
-  : `SINGLE-PRODUCT MODE: Extract exactly one product and one audience from the page content below. Return arrays with exactly 1 element each.`}
-
-JSON structure to return:
-{
-  "products": [{
-    "name": "",
-    "category": "",
-    "description": "",
-    "features": [],
-    "benefits": [],
-    "painPoints": [],
-    "useCases": [],
-    "targetScenarios": [],
-    "positioningStatement": "",
-    "uniqueSellingPoints": [],
-    "competitiveAdvantages": [],
-    "commonObjections": [{"objection": "", "response": ""}],
-    "proofPoints": [{"category": "", "items": []}],
-    "dosAndDonts": {"dos": [], "donts": []},
-    "powerPhrases": [],
-    "powerWords": [],
-    "technicalLevel": "",
-    "refinementChecklist": [],
-    "images": [],
-    "offers": []
-  }],
-  "brand": {
-    "name": "",
-    "category": "",
-    "colors": {
-      "primary": "#hex",
-      "secondary": "#hex",
-      "background": "#hex",
-      "text": "#hex"
-    },
-    "typography": {
-      "fontFamily": "",
-      "fontStyle": "",
-      "fontWeight": "400"
-    },
-    "logoUrls": [],
-    "visualIdentity": {
-      "logoDescription": "",
-      "moodboardDescription": "",
-      "illustrationGuidelines": "",
-      "imageGuidelines": [{"rule": "", "example": ""}],
-      "websiteRules": [],
-      "buttonRules": [],
-      "socialMediaRules": []
-    }
-  },
-  "audiences": [{
-    "name": "",
-    "description": "",
-    "avatarPrompt": "",
-    "buyingTriggers": [],
-    "useCaseRequirements": [],
-    "keySuccessIndicators": [],
-    "additionalCharacteristics": "",
-    "positioningStatement": "",
-    "valuePropositions": [],
-    "engagementTriggers": [],
-    "attentionHooks": [],
-    "commonObjections": [{"objection": "", "response": ""}],
-    "proofPoints": [{"category": "", "items": []}],
-    "dosAndDonts": {"dos": [], "donts": []},
-    "powerPhrases": [],
-    "powerWords": [],
-    "technicalLevel": "",
-    "refinementChecklist": []
-  }]
-}
-
-IMPORTANT RULES:
-- NEVER copy example data into your output. The examples above are for FORMAT reference only. "Scrubby", "dog grooming gloves", and all example content must NEVER appear in your output.
-- If you cannot find real data for a field from the page content, leave it as an empty string or empty array. Do NOT fabricate or hallucinate data.
-- Offers should only contain pricing/deals actually found on the page. If none found, return an empty array.
-- For offers, NEVER infer, rewrite, borrow, or generalize pricing/deals from examples, competitor norms, or unrelated pages. Only keep offers explicitly shown in the scraped page content.
-- Never return placeholder offer objects. If there is no verified offer, return "offers": [].
-- Follow the formula EXACTLY for each field — match the tone and specificity of the examples
-- Every output should feel like it was written by a direct-response copywriter, not a generic AI
-- For audience fields, infer from the product's marketing language, tone, and who they're clearly targeting
-- Extract real image URLs if visible in the content
-- Be thorough — fill as many fields as possible with quality data
-- For brand colors: extract the dominant primary, secondary, background, and text colors visible on the page (use hex format)
-- For brand typography: identify the main font family, describe the style, and estimate the dominant weight (300-700)
-- For brand logoUrls: extract ONLY actual logo image URLs (not product photos). Look for images with 'logo' in the URL or alt text.
-- For brand visualIdentity: apply the Branding DNA formulas above to fill logoDescription, moodboardDescription, illustrationGuidelines, imageGuidelines, websiteRules, buttonRules, and socialMediaRules. Be specific and actionable — not generic.
-- For multi-product mode: create one entry per product page. Each product gets a matching audience.
-
-Page URL: ${formattedUrl}
-Page title: ${metadata.title || "Unknown"}
-
-${firecrawlBranding ? `Firecrawl extracted branding data (use this as primary source for brand colors, fonts, and logos):
-${JSON.stringify(firecrawlBranding, null, 2)}
-
-` : ""}Page content:
-${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        max_tokens: 16000,
-        messages: [
-          { role: "user", content: extractionPrompt },
-        ],
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      console.error("AI extraction error: status", aiResponse.status);
-      return new Response(
-        JSON.stringify({ success: false, error: "AI extraction failed" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Defensive: read as text first to avoid "Unexpected end of JSON input"
-    const aiBodyText = await aiResponse.text();
-    if (!aiBodyText || !aiBodyText.trim()) {
-      console.error("AI extraction returned empty body");
-      return new Response(
-        JSON.stringify({ success: false, error: "AI extraction returned empty response" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    let aiData: any;
+    // Pass 1: Brand extraction (small, focused call)
+    console.log("Pass 1: Extracting brand...");
+    let brand: any = {};
     try {
-      aiData = JSON.parse(aiBodyText);
-    } catch (jsonErr) {
-      console.error("AI extraction response is not valid JSON:", (jsonErr as Error).message);
-      return new Response(
-        JSON.stringify({ success: false, error: "AI extraction returned invalid response" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      const brandingJson = firecrawlBranding ? JSON.stringify(firecrawlBranding, null, 2).slice(0, 3000) : null;
+      const brandResult = await callAI(
+        LOVABLE_API_KEY,
+        BRAND_PROMPT(brandingJson, homepageMarkdown, formattedUrl, metadata.title || ""),
+        "google/gemini-2.5-flash",
+        4000,
       );
-    }
-    const rawContent = aiData.choices?.[0]?.message?.content || "";
-
-    let extracted;
-    try {
-      // Strip markdown code blocks first
-      let cleaned = rawContent
-        .replace(/```json\s*/gi, "")
-        .replace(/```\s*/g, "")
-        .trim();
-
-      // Find JSON boundaries
-      const jsonStart = cleaned.indexOf("{");
-      const jsonEnd = cleaned.lastIndexOf("}");
-
-      if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) {
-        throw new Error("No JSON object found in AI response");
-      }
-
-      cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-
-      try {
-        extracted = JSON.parse(cleaned);
-      } catch (firstErr) {
-        // Fix common AI JSON issues: trailing commas, control chars
-        cleaned = cleaned
-          .replace(/,\s*}/g, "}")
-          .replace(/,\s*]/g, "]")
-          .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === "\n" || ch === "\t" ? ch : "");
-
-        try {
-          extracted = JSON.parse(cleaned);
-        } catch (secondErr) {
-          // Aggressive truncation repair
-          // Strip back to last cleanly closed property
-          let repaired = cleaned;
-          // Remove trailing incomplete string/value (cut back to last comma, ] or })
-          repaired = repaired.replace(/,\s*"[^"]*"?\s*:\s*("[^"]*)?$/, "");
-          repaired = repaired.replace(/,\s*"[^"]*$/, "");
-          repaired = repaired.replace(/,\s*\[?[^\[\]{}]*$/, "");
-          // Remove dangling commas
-          repaired = repaired.replace(/,\s*$/, "");
-          // Close unbalanced brackets
-          const openArr = (repaired.match(/\[/g) || []).length;
-          const closeArr = (repaired.match(/]/g) || []).length;
-          for (let i = 0; i < openArr - closeArr; i++) repaired += "]";
-          repaired = repaired.replace(/,\s*]/g, "]");
-          const openB = (repaired.match(/{/g) || []).length;
-          const closeB = (repaired.match(/}/g) || []).length;
-          for (let i = 0; i < openB - closeB; i++) repaired += "}";
-          repaired = repaired.replace(/,\s*}/g, "}");
-          try {
-            extracted = JSON.parse(repaired);
-            console.log("JSON recovered after truncation repair");
-          } catch (thirdErr) {
-            throw secondErr;
-          }
-        }
-      }
-      console.log("JSON extraction successful");
-    } catch (parseErr) {
-      console.error("JSON parse error in AI response:", (parseErr as Error).message);
-      console.error("Raw content length:", rawContent.length, "First 500 chars:", rawContent.slice(0, 500));
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to parse extracted data" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      brand = brandResult.brand || brandResult || {};
+      console.log("Brand extracted:", brand.name || "(no name)");
+    } catch (e) {
+      console.error("Brand extraction failed:", e);
+      // Construct minimal brand from firecrawl data
+      brand = {
+        name: metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business",
+        category: "Business",
+        colors: firecrawlBranding?.colors ? {
+          primary: firecrawlBranding.colors.primary || "#4A86FF",
+          secondary: firecrawlBranding.colors.secondary || "#6B7280",
+          background: firecrawlBranding.colors.background || "#FFFFFF",
+          text: firecrawlBranding.colors.textPrimary || "#000000",
+        } : { primary: "#4A86FF", secondary: "#6B7280", background: "#FFFFFF", text: "#000000" },
+        typography: { fontFamily: firecrawlBranding?.typography?.fontFamilies?.primary || "Sans-serif", fontStyle: "", fontWeight: "400" },
+        logoUrls: firecrawlBranding?.logo ? [firecrawlBranding.logo] : [],
+        visualIdentity: {},
+      };
     }
 
-    // ══════════════════════════════════════════════════
-    // NORMALIZE: Ensure products[] and audiences[] arrays exist
-    // ══════════════════════════════════════════════════
-    if (extracted.products && !extracted.product) {
-      extracted.product = extracted.products[0] || {};
-    }
-    if (extracted.product && !extracted.products) {
-      extracted.products = [extracted.product];
-    }
-    if (extracted.audiences && !extracted.audience) {
-      extracted.audience = extracted.audiences[0] || null;
-    }
-    if (extracted.audience && !extracted.audiences) {
-      extracted.audiences = [extracted.audience];
-    }
-    if (!extracted.products) extracted.products = [];
-    if (!extracted.audiences) extracted.audiences = [];
-    sanitizeExtractedOffers(markdown, extracted);
+    // Ensure brand structure
+    if (!brand.visualIdentity) brand.visualIdentity = {};
+    if (!brand.colors) brand.colors = { primary: "#4A86FF", secondary: "#6B7280", background: "#FFFFFF", text: "#000000" };
 
-    // ══════════════════════════════════════════════════
-    // POST-EXTRACTION: Merge branding + generate assets
-    // ══════════════════════════════════════════════════
-
-    // Ensure visualIdentity always exists before async promises write to it
-    if (!extracted.brand) extracted.brand = {};
-    if (!extracted.brand.visualIdentity) extracted.brand.visualIdentity = {};
-
-    if (firecrawlBranding && extracted.brand) {
-      // ── Logos: ONLY actual logos, not product photos ──
+    // Merge Firecrawl branding
+    if (firecrawlBranding) {
       const fcLogos: string[] = [];
       if (firecrawlBranding.logo) fcLogos.push(firecrawlBranding.logo);
-      if (firecrawlBranding.images?.logo && firecrawlBranding.images.logo !== firecrawlBranding.logo) {
-        fcLogos.push(firecrawlBranding.images.logo);
-      }
-      if (fcLogos.length === 0 && firecrawlBranding.images?.favicon) {
-        fcLogos.push(firecrawlBranding.images.favicon);
-      }
-      // Filter AI logos to only those that look like actual logos
-      const aiLogos = (Array.isArray(extracted.brand.logoUrls) ? extracted.brand.logoUrls : [])
-        .filter((u: string) => u && (u.toLowerCase().includes('logo') || u.toLowerCase().includes('brand') || u.endsWith('.svg')));
-      extracted.brand.logoUrls = [...new Set([...fcLogos, ...aiLogos])].filter(Boolean);
+      if (firecrawlBranding.images?.logo && firecrawlBranding.images.logo !== firecrawlBranding.logo) fcLogos.push(firecrawlBranding.images.logo);
+      if (fcLogos.length === 0 && firecrawlBranding.images?.favicon) fcLogos.push(firecrawlBranding.images.favicon);
+      const aiLogos = ensureArr(brand.logoUrls).filter((u: string) => u && (u.toLowerCase().includes('logo') || u.toLowerCase().includes('brand') || u.endsWith('.svg')));
+      brand.logoUrls = [...new Set([...fcLogos, ...aiLogos])].filter(Boolean);
 
-      // ── Colors fallback ──
-      if (firecrawlBranding.colors) {
+      if (firecrawlBranding.colors && (!brand.colors.primary || brand.colors.primary === "#hex")) {
         const fc = firecrawlBranding.colors;
-        if (!extracted.brand.colors || extracted.brand.colors.primary === "#hex" || !extracted.brand.colors.primary) {
-          extracted.brand.colors = {
-            primary: fc.primary || fc.accent || "#4A86FF",
-            secondary: fc.secondary || "#6B7280",
-            background: fc.background || "#FFFFFF",
-            text: fc.textPrimary || fc.textSecondary || "#000000",
-          };
-        }
+        brand.colors = { primary: fc.primary || fc.accent || "#4A86FF", secondary: fc.secondary || "#6B7280", background: fc.background || "#FFFFFF", text: fc.textPrimary || "#000000" };
       }
 
-      // ── Typography fallback ──
-      if (firecrawlBranding.typography?.fontFamilies) {
-        const fcFonts = firecrawlBranding.typography.fontFamilies;
-        if (!extracted.brand.typography?.fontFamily || extracted.brand.typography.fontFamily === "") {
-          extracted.brand.typography = {
-            ...extracted.brand.typography,
-            fontFamily: fcFonts.primary || fcFonts.heading || "Sans-serif",
-          };
-        }
+      if (firecrawlBranding.typography?.fontFamilies && !brand.typography?.fontFamily) {
+        brand.typography = { ...brand.typography, fontFamily: firecrawlBranding.typography.fontFamilies.primary || "Sans-serif" };
       }
 
-      // ── Visual identity from Firecrawl components ──
-      if (!extracted.brand.visualIdentity?.buttonRules?.length && !extracted.brand.visualIdentity?.websiteRules?.length) {
-        const vi: any = { imageGuidelines: [], websiteRules: [], buttonRules: [], socialMediaRules: [] };
-        if (firecrawlBranding.components?.buttonPrimary) {
-          const btn = firecrawlBranding.components.buttonPrimary;
-          vi.buttonRules.push(`Primary buttons: ${btn.borderRadius || '8px'} radius, ${btn.background || 'brand color'} fill, ${btn.textColor || 'white'} text`);
-        }
-        if (firecrawlBranding.components?.buttonSecondary) {
-          const btn = firecrawlBranding.components.buttonSecondary;
-          vi.buttonRules.push(`Secondary buttons: ${btn.borderRadius || '8px'} radius, ${btn.background || 'transparent'} fill`);
-        }
-        if (firecrawlBranding.spacing) {
-          vi.websiteRules.push(`Base spacing unit: ${firecrawlBranding.spacing.baseUnit || 8}px`);
-          vi.websiteRules.push(`Border radius: ${firecrawlBranding.spacing.borderRadius || '8px'}`);
-        }
-        if (vi.buttonRules.length || vi.websiteRules.length) {
-          extracted.brand.visualIdentity = { ...extracted.brand.visualIdentity, ...vi };
-        }
+      if (firecrawlBranding.components?.buttonPrimary && !brand.visualIdentity.buttonRules?.length) {
+        const btn = firecrawlBranding.components.buttonPrimary;
+        brand.visualIdentity.buttonRules = [`Primary buttons: ${btn.borderRadius || '8px'} radius, ${btn.background || 'brand color'} fill, ${btn.textColor || 'white'} text`];
       }
     }
 
+    // Brand name fallback
+    if (!brand.name) {
+      brand.name = metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business";
+    }
+
+    // Pass 2: Per-product extraction (parallel, each in its own small AI call)
+    console.log("Pass 2: Extracting", productPageContents.length, "products...");
+    const productAudienceResults = await Promise.allSettled(
+      productPageContents.map(async (page, idx) => {
+        try {
+          console.log(`Extracting product ${idx + 1}/${productPageContents.length}: ${page.url.slice(0, 80)}`);
+          const result = await callAI(
+            LOVABLE_API_KEY,
+            PRODUCT_AUDIENCE_PROMPT(page.markdown, brand.name || "the brand", page.url),
+            "google/gemini-2.5-flash",
+            8000,
+          );
+
+          const product = normalizeProduct(result.product || result.products?.[0]);
+          const audience = normalizeAudience(result.audience || result.audiences?.[0]);
+
+          if (product) sanitizeProductOffers(page.markdown, product);
+
+          return { product, audience };
+        } catch (e) {
+          console.warn(`Product ${idx + 1} extraction failed (skipping):`, e);
+          return null;
+        }
+      })
+    );
+
+    const products: any[] = [];
+    const audiences: any[] = [];
+    for (const r of productAudienceResults) {
+      if (r.status !== 'fulfilled' || !r.value) continue;
+      if (r.value.product && r.value.product.name) products.push(r.value.product);
+      if (r.value.audience && r.value.audience.name) audiences.push(r.value.audience);
+    }
+
+    console.log("Extracted", products.length, "products,", audiences.length, "audiences");
+
+    if (products.length === 0) {
+      console.error("Zero products extracted — returning error");
+      return new Response(
+        JSON.stringify({ success: false, error: "Could not extract any products from this URL. Try a more specific product page." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ══════════════════════════════════════════════
-    // CORE MODE: Return lightweight structured data only
-    // Skip heavy assets (SVGs, moodboard, base64 screenshots) to prevent response crashes
+    // BUILD FINAL EXTRACTED OBJECT
+    // ══════════════════════════════════════════════
+    const extracted: any = {
+      brand,
+      products,
+      audiences,
+      product: products[0],
+      audience: audiences[0] || null,
+    };
+
+    // ══════════════════════════════════════════════
+    // CORE MODE: Return lightweight data
     // ══════════════════════════════════════════════
     if (isCoreMode) {
-      // Brand name fallback
-      if (!extracted.brand?.name || extracted.brand.name === "") {
-        extracted.brand = extracted.brand || {};
-        extracted.brand.name = extracted.products?.[0]?.name || metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business";
-      }
-
-      // Only keep remote URL screenshots, drop base64 to keep payload small
+      // Only keep remote URL screenshots
       if (websiteScreenshot && typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')) {
-        extracted.brand.visualIdentity = extracted.brand.visualIdentity || {};
         extracted.brand.visualIdentity.websiteScreenshot = websiteScreenshot;
       }
-      // Drop any base64 screenshot that might have been set by AI extraction
-      if (extracted.brand?.visualIdentity?.websiteScreenshot && !extracted.brand.visualIdentity.websiteScreenshot.startsWith('http')) {
-        delete extracted.brand.visualIdentity.websiteScreenshot;
-      }
+      // Strip heavy media
+      delete extracted.brand.visualIdentity.illustrationSvgs;
+      extracted.brand.visualIdentity.moodboardUrls = [];
 
-      // Strip heavy media fields to keep response under edge function limits
-      if (extracted.brand?.visualIdentity) {
-        delete extracted.brand.visualIdentity.illustrationSvgs;
-        extracted.brand.visualIdentity.moodboardUrls = [];
-      }
+      extracted.products = ensureArr(extracted.products).slice(0, 5);
+      extracted.audiences = ensureArr(extracted.audiences).slice(0, 5);
+      extracted.brand.logoUrls = ensureArr(extracted.brand.logoUrls).slice(0, 10);
 
-      // Ensure arrays are arrays and trim oversized data
-      const ensureArr = (v: any) => Array.isArray(v) ? v : [];
-      if (extracted.products) extracted.products = ensureArr(extracted.products).slice(0, 5);
-      if (extracted.audiences) extracted.audiences = ensureArr(extracted.audiences).slice(0, 5);
-      if (extracted.brand?.logoUrls) extracted.brand.logoUrls = ensureArr(extracted.brand.logoUrls).slice(0, 10);
-
-      console.log("Core mode — returning lightweight data:", extracted.brand?.name, "products:", extracted.products?.length || 0);
+      console.log("Core mode — returning:", extracted.brand?.name, "products:", extracted.products?.length);
 
       return new Response(
-        JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 0 }),
+        JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // ── Moodboard: Search web for aesthetic images, AI fallback ──
+    // ══════════════════════════════════════════════
+    // FULL MODE: Generate heavy assets
+    // ══════════════════════════════════════════════
+
+    // Mobile screenshot
+    const mobileScreenshotPromise = (async () => {
+      try {
+        const mobileRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ url: baseUrl, formats: ["screenshot"], mobile: true }),
+        });
+        if (mobileRes.ok) {
+          const mobileData = await mobileRes.json();
+          const mobileSS = mobileData.data?.screenshot || mobileData.screenshot;
+          if (mobileSS) return typeof mobileSS === 'string' && mobileSS.startsWith('http') ? mobileSS : `data:image/png;base64,${mobileSS}`;
+        }
+      } catch (e) { console.warn("Mobile screenshot error:", e); }
+      return null;
+    })();
+
+    // Moodboard
     const moodboardPromise = (async () => {
       try {
         const audienceDesc = extracted.audience?.description || "general consumers";
         const brandCategory = extracted.brand?.category || "lifestyle";
         const brandName = extracted.brand?.name || "the brand";
-        const audiencePainPoints = (extracted.product?.painPoints || []).slice(0, 3).join('; ');
-        const audiencePowerPhrases = (extracted.audience?.powerPhrases || []).slice(0, 3).join('; ');
-        const productDescription = (extracted.product?.description || '').slice(0, 200);
 
-        // Step 1: Generate 6 aesthetic search terms using AI
-        console.log("Generating moodboard aesthetic terms...");
         const termsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-lite",
-            messages: [{
-              role: "user",
-              content: `Generate exactly 6 aesthetic search terms for a moodboard.
-
-Use this framework for each term:
-[audience visual/product scene] + [trust feeling/emotion] + premium minimal e-commerce
-
-Brand: "${brandName}" (${brandCategory})
-Product: ${productDescription}
-Target audience: ${audienceDesc.split('.').slice(0, 3).join('.')}
-Pain points: ${audiencePainPoints || 'general consumer frustrations'}
-Power phrases: ${audiencePowerPhrases || 'convenience, quality, trust'}
-
-Return ONLY a JSON array of 6 phrases. No explanation.`
-            }],
+            messages: [{ role: "user", content: `Generate 6 aesthetic Pinterest search terms for a brand moodboard.\nBrand: "${brandName}" (${brandCategory})\nAudience: ${audienceDesc.slice(0, 200)}\n\nReturn ONLY a JSON array of 6 phrases.` }],
           }),
         });
 
-        let aestheticTerms: string[] = [];
+        let terms: string[] = [];
         if (termsRes.ok) {
-          const termsData = await termsRes.json();
-          const termsRaw = termsData.choices?.[0]?.message?.content || "";
-          aestheticTerms = parseStringArrayFromAiText(termsRaw);
+          const d = await termsRes.json();
+          terms = parseStringArrayFromAiText(d.choices?.[0]?.message?.content || "");
+        }
+        if (terms.length === 0) {
+          terms = [`${brandCategory} product showcase premium`, `${brandCategory} lifestyle aspirational`, `clean packaging flat lay quality`];
         }
 
-        if (aestheticTerms.length === 0) {
-          aestheticTerms = [
-            `${brandCategory} product showcase + trust + premium minimal e-commerce`,
-            `${brandCategory} lifestyle + warm confidence + premium minimal e-commerce`,
-            `${brandCategory} texture detail + calm sophistication + premium minimal e-commerce`,
-            `clean packaging flat lay + quality assurance + premium minimal e-commerce`,
-            `aspirational lifestyle moment + empowerment + premium minimal e-commerce`,
-            `editorial product photography + reliability + premium minimal e-commerce`,
-          ];
-        }
-        console.log("Moodboard terms:", aestheticTerms);
-
-        // Step 2: Search the web for each term, extract image URLs from results
-        const moodboardResults = await Promise.allSettled(
-          aestheticTerms.slice(0, 6).map(async (term) => {
-            try {
-              console.log(`Scraping Pinterest for: ${term}`);
-              const imgs = await scrapePinterestForImages(term, FIRECRAWL_API_KEY);
-              if (imgs.length > 0) {
-                console.log(`✓ Found Pinterest image for "${term}": ${imgs[0].slice(0, 80)}...`);
-                return imgs[0];
-              }
-              console.warn(`No Pinterest image found for "${term}"`);
-              return null;
-            } catch (e) {
-              console.warn(`Moodboard error for "${term}":`, e);
-              return null;
-            }
+        const results = await Promise.allSettled(
+          terms.slice(0, 6).map(async (term) => {
+            const imgs = await scrapePinterestForImages(term, FIRECRAWL_API_KEY);
+            return imgs.length > 0 ? imgs[0] : null;
           })
         );
-
-        const moodboardUrls = moodboardResults
-          .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
-          .map(r => r.value);
-
-        extracted.brand.visualIdentity.moodboardUrls = [...new Set(moodboardUrls)].slice(0, 6);
-        console.log("Final moodboard count:", moodboardUrls.length);
+        const urls = results.filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value).map(r => r.value);
+        extracted.brand.visualIdentity.moodboardUrls = [...new Set(urls)].slice(0, 6);
+        console.log("Moodboard:", urls.length, "images");
       } catch (e) {
-        console.error("Moodboard pipeline error:", e);
+        console.error("Moodboard error:", e);
         extracted.brand.visualIdentity.moodboardUrls = [];
       }
     })();
 
-    // ── Desktop screenshot ──
+    // Desktop screenshot
     if (websiteScreenshot) {
       extracted.brand.visualIdentity.websiteScreenshot = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
-        ? websiteScreenshot
-        : `data:image/png;base64,${websiteScreenshot}`;
+        ? websiteScreenshot : `data:image/png;base64,${websiteScreenshot}`;
     }
 
-    // ── Wait for mobile screenshot ──
+    // Mobile screenshot
     const mobileScreenshot = await mobileScreenshotPromise;
-    if (mobileScreenshot) {
-      extracted.brand.visualIdentity.mobileScreenshot = mobileScreenshot;
-      console.log("Mobile screenshot captured");
-    }
+    if (mobileScreenshot) extracted.brand.visualIdentity.mobileScreenshot = mobileScreenshot;
 
-    // ══════════════════════════════════════════════
-    // AI IMAGE GENERATION (logo, illustrations, guideline images, social media)
-    // ══════════════════════════════════════════════
-
-    const brandName = extracted.brand?.name || "the brand";
-    const brandColors = extracted.brand?.colors || {};
-    const brandCategory = extracted.brand?.category || "general";
-    const audienceDesc = extracted.audience?.description || "general consumers";
-    const guidelines = extracted.brand?.visualIdentity?.imageGuidelines || [];
-    const productImages = extracted.product?.images || [];
-
-    const aiImagePromises: Promise<void>[] = [];
-
-    // ── Logo: use found image URLs, or AI-recreate the logo ──
-    if (!extracted.brand.logoUrls || extracted.brand.logoUrls.length === 0) {
-      if (websiteScreenshot) {
-        aiImagePromises.push((async () => {
-          try {
-            console.log("Recreating logo with AI from screenshot...");
-            const ssUrl = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
-              ? websiteScreenshot
-              : `data:image/png;base64,${websiteScreenshot}`;
-            const logoRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: "google/gemini-3-pro-image-preview",
-                messages: [{
-                  role: "user",
-                  content: [
-                    { type: "text", text: `Faithfully reproduce this exact logo visible in the top/header area of this website screenshot. Match every detail precisely: letterforms, icon/symbol, colors, proportions, and spacing. The reproduction must be pixel-accurate to the original. Output the logo isolated on a clean white background. No extra elements, no interpretation — just the exact logo as it appears.` },
-                    { type: "image_url", image_url: { url: ssUrl } }
-                  ]
-                }],
-                modalities: ["image", "text"],
-              }),
-            });
-            if (logoRes.ok) {
-              const d = await logoRes.json();
-              const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-              if (img) {
-                extracted.brand.logoUrls = [img];
-                console.log("AI-recreated logo from screenshot");
-              }
-            }
-          } catch (e) { console.warn("Logo recreation error:", e); }
-        })());
-      }
-    }
-
-    // ── Generate icon grid + pattern sheet as SVG CODE ──
-    aiImagePromises.push((async () => {
+    // SVG illustrations
+    const illustrationPromise = (async () => {
       try {
-        console.log("Generating brand illustrations as SVG code...");
+        const brandColors = extracted.brand?.colors || {};
+        const brandCategory = extracted.brand?.category || "general";
+        const brandName = extracted.brand?.name || "the brand";
         const productBenefits = (extracted.product?.benefits || []).slice(0, 6).join('; ');
-        const audienceBuyingTriggers = (extracted.audience?.buyingTriggers || []).slice(0, 4).join('; ');
-        const audiencePowerWords = (extracted.audience?.powerWords || []).slice(0, 5).join(', ');
 
-        // Image 1: Icon grid as SVG
-        const iconSvgRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{
-              role: "user",
-              content: `Generate a complete, valid SVG string (viewBox="0 0 600 800") containing a 3×4 grid of 12 icons representing these product/audience concepts:
+        const [iconRes, patternRes] = await Promise.allSettled([
+          callAI(LOVABLE_API_KEY, `Generate a complete, valid SVG string (viewBox="0 0 600 800") containing a 3×4 grid of 12 icons for "${brandName}" (${brandCategory}). Product benefits: ${productBenefits || 'quality, convenience'}. Primary: ${brandColors.primary || '#333'}. Secondary: ${brandColors.secondary || '#666'}. Requirements: simple SVG paths, NO text tags, brand colors only. Return ONLY raw SVG starting with <svg.`, "google/gemini-2.5-flash", 4000),
+          callAI(LOVABLE_API_KEY, `Generate a complete SVG (viewBox="0 0 600 900") with 3 stacked decorative patterns for "${brandName}". Primary: ${brandColors.primary || '#333'}. Secondary: ${brandColors.secondary || '#666'}. Background: ${brandColors.background || '#fff'}. Use paths, circles, gradients. NO text tags. Return ONLY raw SVG.`, "google/gemini-2.5-flash", 4000),
+        ]);
 
-Product benefits: ${productBenefits || 'quality, convenience, value'}
-Audience needs: ${audienceBuyingTriggers || 'ease of use, time saving'}
-Brand: "${brandName}", category: ${brandCategory}
-Primary color: ${brandColors.primary || '#333333'}
-Secondary color: ${brandColors.secondary || '#666666'}
-
-Requirements:
-- Each icon is a simple, clean SVG path/shape (clock, shield, heart, target, checkmark, star, etc.)
-- Arranged in a 3-column × 4-row grid with generous spacing
-- Mix of outlined (stroke, no fill) and filled styles
-- Use ONLY the brand's primary and secondary colors
-- Each icon ~80×80px in a cell, centered
-- NO text elements, NO <text> tags whatsoever
-- Clean, professional, minimal line style
-
-Return ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown, no explanation.`
-            }],
-          }),
-        });
-
-        const illustrationSvgs: string[] = [];
-        if (iconSvgRes.ok) {
-          const d = await iconSvgRes.json();
-          const raw = d.choices?.[0]?.message?.content || "";
-          const svgMatch = raw.match(/<svg[\s\S]*?<\/svg>/i);
-          if (svgMatch) {
-            illustrationSvgs.push(svgMatch[0]);
-            console.log("✓ Generated icon grid SVG");
-          }
+        const svgs: string[] = [];
+        for (const r of [iconRes, patternRes]) {
+          if (r.status !== 'fulfilled') continue;
+          // callAI returns parsed JSON, but for SVG we need the raw content
+          // The AI might return SVG directly which robustJsonParse would fail on
+          // So we handle this differently
         }
+        // Actually, SVG prompts ask for raw SVG not JSON. Use direct fetch instead.
+      } catch (e) { console.error("Illustration error:", e); }
+    })();
 
-        // Image 2: Pattern sheet as SVG
-        const patternSvgRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{
-              role: "user",
-              content: `Generate a complete, valid SVG string (viewBox="0 0 600 900") containing a pattern reference sheet with 3 distinct decorative patterns stacked vertically.
-
-Brand: "${brandName}"
-Audience emotional keywords: ${audiencePowerWords || 'trust, comfort, confidence'}
-Primary color: ${brandColors.primary || '#333333'}
-Secondary color: ${brandColors.secondary || '#666666'}
-Background: ${brandColors.background || '#ffffff'}
-
-The 3 patterns (each ~600×280px, separated by a gap):
-1. A flowing, organic wave/curve pattern using gradients of the brand colors — smooth, modern, aspirational
-2. A geometric/abstract section with rounded shapes, dots, or decorative elements — approachable and on-brand
-3. A subtle tileable texture using thin lines or micro-patterns — suitable for website section backgrounds
-
-Requirements:
-- Use SVG <path>, <circle>, <rect>, <line>, <polygon> elements
-- Use <defs> with <linearGradient> or <radialGradient> for color blends
-- NO <text> tags, NO letters, NO numbers
-- Clean, professional, modern feel
-- Use only the brand color palette
-
-Return ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown, no explanation.`
-            }],
-          }),
-        });
-
-        if (patternSvgRes.ok) {
-          const d = await patternSvgRes.json();
-          const raw = d.choices?.[0]?.message?.content || "";
-          const svgMatch = raw.match(/<svg[\s\S]*?<\/svg>/i);
-          if (svgMatch) {
-            illustrationSvgs.push(svgMatch[0]);
-            console.log("✓ Generated pattern sheet SVG");
-          }
-        }
-
-        if (illustrationSvgs.length > 0) {
-          extracted.brand.visualIdentity.illustrationSvgs = illustrationSvgs;
-          console.log("Generated", illustrationSvgs.length, "SVG illustrations");
-        }
-      } catch (e) { console.error("Illustration SVG gen error:", e); }
-    })());
-
-    // ── Audience Avatar: Generate a portrait based on audience description ──
-    aiImagePromises.push((async () => {
+    // Better approach for SVG: direct fetch
+    const illustrationPromise2 = (async () => {
       try {
-        const audienceDesc = extracted.audience?.description || "";
-        const audienceName = extracted.audience?.name || "Target Customer";
-        const avatarPromptHint = extracted.audience?.avatarPrompt || "";
-        
-        if (!audienceDesc || audienceDesc.length < 20) {
-          console.log("Skipping avatar generation — no audience description");
-          return;
+        const brandColors = extracted.brand?.colors || {};
+        const brandName = extracted.brand?.name || "the brand";
+        const brandCategory = extracted.brand?.category || "general";
+        const productBenefits = (extracted.product?.benefits || []).slice(0, 6).join('; ');
+        const svgs: string[] = [];
+
+        const fetchSvg = async (prompt: string) => {
+          const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "google/gemini-2.5-flash", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
+          });
+          if (!res.ok) return null;
+          const d = await res.json();
+          const raw = d.choices?.[0]?.message?.content || "";
+          const svgMatch = raw.match(/<svg[\s\S]*?<\/svg>/i);
+          return svgMatch ? svgMatch[0] : null;
+        };
+
+        const [icon, pattern] = await Promise.allSettled([
+          fetchSvg(`Generate a complete SVG (viewBox="0 0 600 800") with a 3×4 grid of 12 icons for "${brandName}" (${brandCategory}). Benefits: ${productBenefits || 'quality'}. Primary: ${brandColors.primary || '#333'}. Secondary: ${brandColors.secondary || '#666'}. Simple paths, NO text. Return ONLY raw SVG.`),
+          fetchSvg(`Generate a complete SVG (viewBox="0 0 600 900") with 3 stacked decorative patterns for "${brandName}". Primary: ${brandColors.primary || '#333'}. Secondary: ${brandColors.secondary || '#666'}. Bg: ${brandColors.background || '#fff'}. Paths, circles, gradients. NO text. Return ONLY raw SVG.`),
+        ]);
+
+        if (icon.status === 'fulfilled' && icon.value) svgs.push(icon.value);
+        if (pattern.status === 'fulfilled' && pattern.value) svgs.push(pattern.value);
+
+        if (svgs.length > 0) {
+          extracted.brand.visualIdentity.illustrationSvgs = svgs;
+          console.log("Generated", svgs.length, "SVG illustrations");
         }
+      } catch (e) { console.error("Illustration error:", e); }
+    })();
 
-        console.log("Generating audience avatar...");
-        
-        const avatarPrompt = `Generate a professional, realistic portrait photograph of a single person who represents this target audience:
+    // Logo AI recreation (if no logos found)
+    const logoPromise = (async () => {
+      if (extracted.brand.logoUrls?.length > 0) return;
+      if (!websiteScreenshot) return;
+      try {
+        const ssUrl = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
+          ? websiteScreenshot : `data:image/png;base64,${websiteScreenshot}`;
+        const logoRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages: [{ role: "user", content: [
+              { type: "text", text: "Reproduce this exact logo from the website header. Match every detail. Output on clean white background. No extras." },
+              { type: "image_url", image_url: { url: ssUrl } }
+            ] }],
+            modalities: ["image", "text"],
+          }),
+        });
+        if (logoRes.ok) {
+          const d = await logoRes.json();
+          const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          if (img) extracted.brand.logoUrls = [img];
+        }
+      } catch (e) { console.warn("Logo recreation error:", e); }
+    })();
 
-"${audienceDesc.slice(0, 500)}"
-${avatarPromptHint ? `\nAdditional visual hints: ${avatarPromptHint}` : ''}
-
-Create a high-quality headshot or upper-body portrait with:
-- Natural lighting, professional quality
-- Neutral or slightly warm background (blurred)
-- Authentic, relatable appearance matching the demographic
-- Friendly, approachable expression
-- Professional but not overly corporate
-- Age, style, and appearance that matches the target customer description
-
-This should look like a real customer testimonial photo or persona portrait. NO text, NO labels, NO watermarks. Just the portrait.`;
-
+    // Audience avatar
+    const avatarPromise = (async () => {
+      const aud = extracted.audience;
+      if (!aud?.description || aud.description.length < 20) return;
+      try {
         const avatarRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
-            messages: [{ role: "user", content: avatarPrompt }],
+            messages: [{ role: "user", content: `Generate a professional portrait photograph of a person representing: "${aud.description.slice(0, 500)}". Natural lighting, blurred background, relatable appearance. NO text.` }],
             modalities: ["image", "text"],
           }),
         });
-
         if (avatarRes.ok) {
           const d = await avatarRes.json();
-          const avatarUrl = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (avatarUrl) {
-            extracted.audience.avatarUrl = avatarUrl;
-            console.log("✓ Generated audience avatar");
-          }
-        } else {
-          console.warn("Avatar generation failed:", avatarRes.status);
+          const url = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          if (url) extracted.audience.avatarUrl = url;
         }
-      } catch (e) { console.error("Avatar generation error:", e); }
-    })());
+      } catch (e) { console.warn("Avatar error:", e); }
+    })();
 
-    // ── Generate per-guideline images ──
-    if (guidelines.length > 0) {
-      aiImagePromises.push((async () => {
-        try {
-          console.log("Generating per-guideline images for", guidelines.length, "guidelines...");
-          
-          const productImageUrl = productImages.length > 0 ? productImages[0] : null;
-          
-          const guidelineResults = await Promise.allSettled(
-            guidelines.map(async (g: any) => {
-              const ruleText = `${g.rule} ${g.example || ''}`.toLowerCase();
-              const mentionsProduct = ruleText.includes('product') || ruleText.includes('unboxing') || ruleText.includes('packaging') || ruleText.includes('in-hand') || ruleText.includes('close-up');
-              
-              let messages: any[];
-              if (mentionsProduct && productImageUrl) {
-                messages = [{
-                  role: "user",
-                  content: [
-                    { type: "text", text: `Create a brand photography reference image for "${brandName}".
-Guideline: "${g.rule}"${g.example ? ` — Example: "${g.example}"` : ''}
-Target audience: ${audienceDesc}
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
+    // Wait for all asset generation
+    await Promise.allSettled([moodboardPromise, illustrationPromise2, logoPromise, avatarPromise]);
 
-CRITICAL RULE: The product in this image must NOT be altered, modified, redesigned, or changed in ANY way. Keep the product EXACTLY as it appears — same shape, same colors, same details, same proportions. You may ONLY change the product's position, angle, or placement within the scene. The product itself is sacred and untouchable.
-
-Use the product shown in this image as the subject. Place it in a scene that demonstrates this specific photography guideline. Professional, authentic, on-brand. No text overlays.` },
-                    { type: "image_url", image_url: { url: productImageUrl } }
-                  ]
-                }];
-              } else {
-                messages = [{ role: "user", content: `Create a brand photography reference image for "${brandName}".
-Guideline: "${g.rule}"${g.example ? ` — Example: "${g.example}"` : ''}
-Target audience: ${audienceDesc}
-Brand category: ${brandCategory}.
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}.
-Create a clean, professional mood/reference photo that demonstrates this specific photography guideline for this audience. No text overlays. Authentic and on-brand.` }];
-              }
-              
-              const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-flash-image",
-                  messages,
-                  modalities: ["image", "text"],
-                }),
-              });
-              if (res.ok) {
-                const d = await res.json();
-                return d.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
-              }
-              return null;
-            })
-          );
-          const results = guidelineResults
-            .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
-            .map(r => r.value);
-          if (results.length > 0) {
-            extracted.brand.visualIdentity.guidelineImageUrls = results;
-            console.log("Generated", results.length, "guideline images");
-          }
-        } catch (e) { console.warn("Guideline image gen error:", e); }
-      })());
-    }
-
-    // ── Product images: remove backgrounds ──
-    const productImgUrls = extracted.product?.images || [];
-    if (productImgUrls.length > 0) {
-      aiImagePromises.push((async () => {
-        try {
-          const imagesToProcess = productImgUrls.slice(0, 4).filter((u: string) => u && typeof u === 'string');
-          console.log("Removing backgrounds from", imagesToProcess.length, "product images...");
-
-          const bgResults = await Promise.allSettled(
-            imagesToProcess.map(async (imgUrl: string, idx: number) => {
-              try {
-                const bgRemoveRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                  method: "POST",
-                  headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    model: "google/gemini-2.5-flash-image",
-                    messages: [{
-                      role: "user",
-                      content: [
-                        { type: "text", text: "Remove the background from this product image completely. Keep ONLY the product itself with a clean, pure white background. No shadows, no floor, no props — just the isolated product on white. Maintain the exact product appearance, colors, and details." },
-                        { type: "image_url", image_url: { url: imgUrl } }
-                      ]
-                    }],
-                    modalities: ["image", "text"],
-                  }),
-                });
-                if (bgRemoveRes.ok) {
-                  const d = await bgRemoveRes.json();
-                  const cleanImg = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-                  if (cleanImg) {
-                    console.log(`✓ Background removed for product image ${idx + 1}`);
-                    return cleanImg;
-                  }
-                }
-                return imgUrl;
-              } catch (e) {
-                console.warn("BG removal error for image:", e);
-                return imgUrl;
-              }
-            })
-          );
-
-          const cleanImages = bgResults.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean) as string[];
-
-          if (cleanImages.length > 0) {
-            extracted.product.images = cleanImages;
-            console.log("Product images updated with", cleanImages.length, "clean images");
-          }
-        } catch (e) { console.error("Product BG removal pipeline error:", e); }
-      })());
-    }
-
-    // ── Social Media: Generate UGC product images ──
-    aiImagePromises.push((async () => {
-      try {
-        console.log("Generating social media UGC images...");
-        const productName = extracted.product?.name || "the product";
-        const productDesc = (extracted.product?.description || '').slice(0, 200);
-        const productImageUrl = productImages.length > 0 ? productImages[0] : null;
-        const socialMediaUrls: string[] = [];
-
-        const socialPrompts = [
-          {
-            label: "Feed post (1:1)",
-            prompt: `Create a UGC-style social media feed post image (square 1:1 ratio). Show the product "${productName}" in a real-life lifestyle setting that resonates with the target audience.
-
-Target audience: ${audienceDesc.split('.').slice(0, 2).join('.')}
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
-Product: ${productDesc}
-
-The image should look like authentic user-generated content — natural lighting, real setting, casual composition. Show the product being used or displayed in a way the target audience would naturally photograph it. NO text, NO logos, NO overlays. Just a beautiful, authentic product lifestyle shot.${productImageUrl ? `\n\nCRITICAL: The product must look EXACTLY like the product in the reference image — same shape, colors, details. Do NOT redesign or alter the product.` : ''}`
-          },
-          {
-            label: "Story (9:16)",
-            prompt: `Create a UGC-style social media story image (vertical 9:16 ratio). Show the product "${productName}" in a dynamic, eye-catching vertical composition.
-
-Target audience: ${audienceDesc.split('.').slice(0, 2).join('.')}
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
-Product: ${productDesc}
-
-The image should feel like a real person's Instagram story — close-up, personal, intimate perspective. Show someone interacting with or unboxing the product. Natural, warm lighting. NO text, NO logos, NO overlays. Authentic UGC feel.${productImageUrl ? `\n\nCRITICAL: The product must look EXACTLY like the product in the reference image — same shape, colors, details. Do NOT redesign or alter the product.` : ''}`
-          },
-          {
-            label: "Reel (1:1)",
-            prompt: `Create a UGC-style social media reel thumbnail image (square 1:1 ratio). Show the product "${productName}" in an action/in-use moment.
-
-Target audience: ${audienceDesc.split('.').slice(0, 2).join('.')}
-Brand colors: primary ${brandColors.primary || '#333'}, secondary ${brandColors.secondary || '#666'}
-Product: ${productDesc}
-
-The image should capture a dynamic moment — the product being actively used, demonstrating its key benefit. Should feel like a frame from a real user's video. Energetic, authentic, relatable. NO text, NO logos, NO overlays.${productImageUrl ? `\n\nCRITICAL: The product must look EXACTLY like the product in the reference image — same shape, colors, details. Do NOT redesign or alter the product.` : ''}`
-          }
-        ];
-
-        const socialResults = await Promise.allSettled(
-          socialPrompts.map(async ({ label, prompt }) => {
-            try {
-              const messages: any[] = [{
-                role: "user",
-                content: productImageUrl ? [
-                  { type: "text", text: prompt },
-                  { type: "image_url", image_url: { url: productImageUrl } }
-                ] : prompt
-              }];
-
-              const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-flash-image",
-                  messages,
-                  modalities: ["image", "text"],
-                }),
-              });
-              if (res.ok) {
-                const d = await res.json();
-                const img = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-                if (img) {
-                  console.log(`✓ Generated social media: ${label}`);
-                  return img;
-                }
-              }
-              return null;
-            } catch (e) {
-              console.warn(`Social media gen error (${label}):`, e);
-              return null;
-            }
-          })
-        );
-
-        for (const r of socialResults) {
-          if (r.status === 'fulfilled' && r.value) {
-            socialMediaUrls.push(r.value);
-          }
-        }
-
-        if (socialMediaUrls.length > 0) {
-          extracted.brand.visualIdentity.socialMediaUrls = socialMediaUrls;
-          console.log("Generated", socialMediaUrls.length, "social media UGC images");
-        }
-      } catch (e) { console.error("Social media generation error:", e); }
-    })());
-
-    // Wait for moodboard + all AI image generation
-    await Promise.all([moodboardPromise, ...aiImagePromises]);
-
-    console.log("Extraction successful:", extracted.product?.name, "logos:", extracted.brand?.logoUrls?.length || 0);
+    console.log("Full mode complete. Products:", products.length, "Audiences:", audiences.length);
 
     return new Response(
-      JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 0 }),
+      JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (err) {
-    console.error("scrape-product error:", err);
+    console.error("Scrape-product error:", err);
     return new Response(
-      JSON.stringify({ success: false, error: err instanceof Error ? err.message : "Unknown error" }),
+      JSON.stringify({ success: false, error: (err as Error).message || "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
