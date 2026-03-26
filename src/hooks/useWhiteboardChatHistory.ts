@@ -6,12 +6,26 @@ interface UseChatHistoryOptions {
   chatType: "research" | "action";
 }
 
+// Module-level in-memory cache — survives component unmount/remount
+const memoryCache = new Map<string, { messages: any[]; dbRowId: string | null }>();
+
+function cacheKey(nodeId: string, chatType: string) {
+  return `${chatType}:${nodeId}`;
+}
+
 /**
  * Persists whiteboard chat history to the database, scoped by workspace.
+ * Uses an in-memory cache so re-mounting the node is instant.
  * Falls back to localStorage for unauthenticated users.
  */
 export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistoryOptions) {
+  const key = cacheKey(nodeId, chatType);
+  const cached = memoryCache.get(key);
+
   const [messages, setMessages] = useState<T[]>(() => {
+    // 1. In-memory cache (fastest, survives navigation)
+    if (cached && cached.messages.length > 0) return cached.messages as T[];
+    // 2. localStorage fallback
     try {
       const saved = localStorage.getItem(`chat_history_${nodeId}`);
       return saved ? JSON.parse(saved) : [];
@@ -19,9 +33,9 @@ export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistory
       return [];
     }
   });
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(!!cached);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dbRowIdRef = useRef<string | null>(null);
+  const dbRowIdRef = useRef<string | null>(cached?.dbRowId ?? null);
 
   // Load from DB on mount
   useEffect(() => {
