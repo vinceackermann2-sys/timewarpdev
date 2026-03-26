@@ -1,72 +1,81 @@
 
-Root cause: onboarding is not primarily failing because of Pinterest itself or a true CORS misconfiguration. The `scrape-product` function is crashing while sending its response.
 
-What the code and logs show:
-- `BusinessDNAOnboarding.tsx` calls `invokeEdgeFunction("scrape-product", { url, mode: "core" })`.
-- The edge function already includes correct CORS headers and an `OPTIONS` handler.
-- Recent logs show:
-  - `Core mode — returning with assets: ...`
-  - then immediately `Http: connection closed before message completed`
-- That means the function finishes the work, but the response body is too heavy or unstable while being streamed back.
-- In core mode it is currently returning:
-  - full extracted product/audience data
-  - website screenshot as base64 data URL
-  - generated SVG illustration code
-  - moodboard URLs
-- The browser then reports this as a failed fetch / missing CORS header, because the runtime aborts before the final headers/body complete.
+# Plan: Two-Phase Scrape — Moodboard (Pinterest), Illustrations (SVG code), Screenshot
 
-Why it breaks onboarding specifically:
-- Onboarding uses `mode: "core"`, and that path is now doing too much asset work before returning.
-- The biggest likely payload offenders are:
-  1. base64 `websiteScreenshot`
-  2. large inline `illustrationSvgs`
-  3. possibly oversized extracted text-derived fields across multiple products
+## Problem
 
-Fix plan:
-1. Slim down the `scrape-product` core-mode response
-   - Do not return base64 screenshots inline in onboarding responses.
-   - Return only lightweight structured business data needed to create the business.
-   - Keep core mode focused on: brand, products, audiences, colors, typography, logo URLs, text rules.
+Core mode currently strips moodboard URLs, illustration SVGs, and base64 screenshots to prevent response payload crashes. The user wants all three to work after onboarding:
+- **Moodboard**: Real Pinterest images
+- **Illustrations**: Code-generated SVGs (icon grid + pattern sheet)
+- **Website & Digital**: Firecrawl screenshot
 
-2. Remove heavy asset generation from the synchronous onboarding request
-   - Skip illustration SVG generation during core mode.
-   - Skip moodboard generation during core mode.
-   - Skip mobile screenshot generation during core mode.
-   - Keep these for the full non-core scrape path, or load them later after onboarding.
+## Approach: Two-Phase Architecture
 
-3. Make branding safe but lightweight
-   - Preserve branding text fields and color/font/logo extraction.
-   - If a screenshot exists, only keep it if it is already a remote URL; do not wrap base64 into `data:image/...`.
-   - If Firecrawl only returns base64 screenshot data, drop it from core mode instead of sending it to the client.
+**Phase 1 (core mode — synchronous, during onboarding):** Return lightweight structured data only (brand, products, audiences, colors, typography, logos, text rules). This is what already works.
 
-4. Add a strict response sanitizer before returning core mode
-   - Trim any oversized arrays to safe limits.
-   - Ensure `products`, `audiences`, `logoUrls`, and rules arrays are arrays.
-   - Remove undefined / null-heavy optional media fields from the core response.
+**Phase 2 (enrich — triggered automatically after business is saved):** A new edge function `enrich-brand` fetches heavy assets (Pinterest moodboard, SVG illustrations, screenshot) and patches the brand record in `user_business_data` directly via service role. The frontend polls or listens for updates and refreshes the brand data.
 
-5. Make onboarding resilient to partial branding
-   - In `BusinessDNAOnboarding.tsx`, accept missing screenshot / moodboard / illustration assets without treating that as failure.
-   - Continue saving the business if structured brand/product/audience data is present.
+## Changes
 
-6. Keep Pinterest failure non-blocking
-   - The 403s from Pinterest scraping are real, but they are not the direct cause of the onboarding crash.
-   - Moodboard loading should never block business creation.
-   - If Pinterest continues to fail, leave `moodboardUrls: []` and let the brand still be created.
+### 1. New edge function: `supabase/functions/enrich-brand/index.ts`
+- Accepts `{ brandRowId, brandName, brandCategory, brandColors, audienceDesc, websiteUrl }`
+- Runs three parallel pipelines:
+  - **Moodboard**: Generate aesthetic terms via AI, scrape Pinterest for each term using existing `scrapePinterestForImages` logic, collect up to 6 images
+  - **Illustrations**: Generate 2 SVGs (icon grid + pattern sheet) using existing AI prompts from `scrape-product`
+  - **Screenshot**: Scrape the website URL with Firecrawl `formats: ["screenshot"]`, store as remote URL or base64
+- Reads the existing `content` JSON from `user_business_data` by `brandRowId`
+- Merges `moodboardUrls`, `illustrationSvgs`, and `websiteScreenshot` into `visualIdentity`
+- Updates the row via service role
+- Returns `{ success: true }` with summary of what was enriched
 
-7. Verify after implementation
-   - Test onboarding from the homepage and from add-business flow.
-   - Confirm `scrape-product` core mode returns 200 reliably.
-   - Confirm business creation succeeds even when moodboard is empty.
-   - Confirm no white screen after opening the created business.
+### 2. Update `src/components/database/BusinessDNAOnboarding.tsx`
+- After `reloadData()` succeeds in step 2, fire-and-forget call to `enrich-brand` with the brand's row ID and metadata
+- The enrichment runs in background; user proceeds to agent naming (step 3) immediately
+- No blocking wait
 
-Files to update:
-- `supabase/functions/scrape-product/index.ts`
-  - reduce core-mode payload
-  - skip heavy asset generation in core mode
-  - avoid inline base64 screenshot return in core mode
-- `src/components/database/BusinessDNAOnboarding.tsx`
-  - tolerate missing media assets in onboarding result
-  - continue persistence with lightweight branding data
+### 3. Update `src/components/database/BusinessDNAContext.tsx`
+- After enrich-brand completes, the context needs to reflect updated data
+- Add a `refreshBrand(brandId)` method that re-fetches a single brand row and merges it into state
+- The onboarding component calls this after enrich-brand returns
 
-Technical note:
-The “No 'Access-Control-Allow-Origin' header” message is a symptom here, not the real root cause. Since the function already sets CORS headers, the missing-header error appears because the edge runtime aborts the response before completion. The real fix is to reduce/stabilize the payload returned by `scrape-product` in onboarding/core mode.
+### 4. Keep `scrape-product` core mode as-is
+- Still strips moodboard, illustrations, screenshots
+- This ensures the onboarding call never crashes
+
+## Technical Details
+
+### enrich-brand edge function structure
+```
+POST /functions/v1/enrich-brand
+Body: {
+  brandRowId: string,       // _rowId from user_business_data
+  brandName: string,
+  brandCategory: string,
+  brandColors: { primary, secondary, background, text },
+  audienceDesc: string,
+  audiencePowerWords: string,
+  websiteUrl: string
+}
+```
+
+The function uses `SUPABASE_SERVICE_ROLE_KEY` to read and update the brand row. It runs the three asset pipelines in parallel using `Promise.allSettled`, so partial failures don't block other assets.
+
+### Flow sequence
+```text
+Onboarding Step 1 → scrape-product (core) → lightweight data
+Onboarding Step 2 → save-onboarding → persist brand/products/audiences
+                   → reloadData() → get _rowId
+                   → fire enrich-brand (background)
+Onboarding Step 3 → agent naming (user sees this immediately)
+                   → enrich-brand completes → refreshBrand()
+                   → moodboard + illustrations + screenshot appear in brand view
+```
+
+## Files
+
+| File | Change |
+|------|--------|
+| `supabase/functions/enrich-brand/index.ts` | New edge function: Pinterest moodboard, SVG illustrations, website screenshot |
+| `src/components/database/BusinessDNAOnboarding.tsx` | After save, call enrich-brand with brand metadata; refresh brand on completion |
+| `src/components/database/BusinessDNAContext.tsx` | Add `refreshBrand(brandId)` to re-fetch single brand row from DB |
+
