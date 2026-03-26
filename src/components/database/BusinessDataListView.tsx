@@ -196,7 +196,7 @@ export function BusinessDataListView() {
           .eq("user_id", session.user.id)
           .order("created_at", { ascending: false })
           .limit(200);
-        if (refreshed) setItems(refreshed);
+        if (refreshed) { _cachedItems = refreshed; setItems(refreshed); }
       } else {
         toast.error(data.error || "Sync failed");
       }
