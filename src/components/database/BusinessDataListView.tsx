@@ -55,7 +55,7 @@ function formatBytes(bytes: number): string {
 
 // Module-level in-memory cache so the Database tab loads instantly on re-visit
 let _cachedItems: DataItem[] | null = null;
-let _cachedUserId: string | null = null;
+let _cachedCacheKey: string | null = null;
 
 export function BusinessDataListView() {
   const [items, setItems] = useState<DataItem[]>(_cachedItems ?? []);
@@ -106,23 +106,33 @@ export function BusinessDataListView() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) { setIsLoading(false); return; }
 
-        // If cache is for the same user, skip fetch
-        if (_cachedItems && _cachedUserId === session.user.id) {
+        const wsId = localStorage.getItem("preferred_workspace_id");
+        const currentKey = `${session.user.id}:${wsId || "personal"}`;
+
+        // If cache matches current user+workspace, skip fetch
+        if (_cachedItems && _cachedCacheKey === currentKey) {
           setItems(_cachedItems);
           setIsLoading(false);
           return;
         }
 
-        const { data, error } = await (supabase as any)
+        let query = (supabase as any)
           .from("user_business_data")
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
-          .eq("user_id", session.user.id)
           .order("created_at", { ascending: false })
           .limit(200);
 
+        if (wsId) {
+          query = query.eq("workspace_id", wsId);
+        } else {
+          query = query.eq("user_id", session.user.id);
+        }
+
+        const { data, error } = await query;
+
         if (!error && data) {
           _cachedItems = data;
-          _cachedUserId = session.user.id;
+          _cachedCacheKey = currentKey;
           setItems(data);
         }
       } catch (err) {

@@ -94,21 +94,27 @@ function parseGenerationResponse(text: string): {
   return { steps, content, documentLinks, suggestions: suggestions.slice(0, 3) };
 }
 
+// Module-level cache for chat messages across view switches
+let _cachedChatMessages: { research: Message[]; generation: Message[] } = { research: [], generation: [] };
+let _cachedHasConnected: boolean | null = null;
+
 export function DatabaseView() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => _cachedChatMessages["research"]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [hasConnected, setHasConnected] = useState(false);
-  const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+  const [hasConnected, setHasConnected] = useState(_cachedHasConnected ?? false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(_cachedHasConnected === null);
   const [chatMode, setChatMode] = useState<ChatMode>("research");
   const [showModeSelector, setShowModeSelector] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const modeSelectorRef = useRef<HTMLDivElement>(null);
   const { checkCanUseAction } = useActionGate();
 
-  // Check DB for existing connections
+  // Check DB for existing connections — skip if already cached
   useEffect(() => {
+    if (_cachedHasConnected !== null) return;
+
     const checkConnections = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -122,6 +128,7 @@ export function DatabaseView() {
         const dismissed = sessionStorage.getItem("businessDnaDismissed");
         if (dismissed === "true") {
           setHasConnected(true);
+          _cachedHasConnected = true;
           setIsCheckingConnection(false);
           return;
         }
@@ -148,6 +155,11 @@ export function DatabaseView() {
 
     checkConnections();
   }, []);
+
+  // Sync messages to module-level cache
+  useEffect(() => {
+    _cachedChatMessages[chatMode] = messages.filter((m: any) => !m.isStreaming);
+  }, [messages, chatMode]);
 
   // Loading data check
   useEffect(() => {
@@ -393,12 +405,15 @@ export function DatabaseView() {
   const handleConnectComplete = () => {
     sessionStorage.setItem("businessDnaDismissed", "true");
     setHasConnected(true);
+    _cachedHasConnected = true;
   };
 
   const handleModeSwitch = (mode: ChatMode) => {
     if (mode !== chatMode) {
+      // Save current messages before switching
+      _cachedChatMessages[chatMode] = messages.filter((m: any) => !m.isStreaming);
       setChatMode(mode);
-      setMessages([]);
+      setMessages(_cachedChatMessages[mode]);
     }
     setShowModeSelector(false);
   };
