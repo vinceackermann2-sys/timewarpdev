@@ -94,13 +94,17 @@ function parseGenerationResponse(text: string): {
   return { steps, content, documentLinks, suggestions: suggestions.slice(0, 3) };
 }
 
+// Module-level cache for chat messages across view switches
+let _cachedChatMessages: { research: Message[]; generation: Message[] } = { research: [], generation: [] };
+let _cachedHasConnected: boolean | null = null;
+
 export function DatabaseView() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => _cachedChatMessages["research"]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [hasConnected, setHasConnected] = useState(false);
-  const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+  const [hasConnected, setHasConnected] = useState(_cachedHasConnected ?? false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(_cachedHasConnected === null);
   const [chatMode, setChatMode] = useState<ChatMode>("research");
   const [showModeSelector, setShowModeSelector] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
