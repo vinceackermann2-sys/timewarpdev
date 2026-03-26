@@ -1017,6 +1017,7 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
     }
     if (!extracted.products) extracted.products = [];
     if (!extracted.audiences) extracted.audiences = [];
+    sanitizeExtractedOffers(markdown, extracted);
 
     // ══════════════════════════════════════════════════
     // POST-EXTRACTION: Merge branding + generate assets
