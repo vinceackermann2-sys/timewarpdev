@@ -569,18 +569,17 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
                     />
                     {!urlInput && (
                       <div className="absolute inset-0 flex items-center pointer-events-none pl-2 sm:pl-3">
-                        <AnimatePresence mode="wait">
-                          <motion.span
-                            key={placeholderIndex}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 0.4, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            transition={{ duration: 0.3 }}
-                            className="text-sm sm:text-base text-muted-foreground truncate"
-                          >
-                            {URL_EXAMPLES[placeholderIndex]}
-                          </motion.span>
-                        </AnimatePresence>
+                        <Typewriter
+                          text={URL_EXAMPLES}
+                          speed={60}
+                          deleteSpeed={30}
+                          waitTime={1500}
+                          loop
+                          className="text-sm sm:text-base text-muted-foreground/40 truncate"
+                          showCursor
+                          cursorChar="|"
+                          cursorClassName="ml-0.5 text-muted-foreground/30"
+                        />
                       </div>
                     )}
                   </div>

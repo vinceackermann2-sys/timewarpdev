@@ -281,18 +281,17 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
               {/* Animated placeholder */}
               {!url && (
                 <div className="absolute inset-0 flex items-center pointer-events-none pl-3">
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={placeholderIndex}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 0.4, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-base text-muted-foreground"
-                    >
-                      {URL_EXAMPLES[placeholderIndex]}
-                    </motion.span>
-                  </AnimatePresence>
+                  <Typewriter
+                    text={URL_EXAMPLES}
+                    speed={60}
+                    deleteSpeed={30}
+                    waitTime={1500}
+                    loop
+                    className="text-base text-muted-foreground/40"
+                    showCursor
+                    cursorChar="|"
+                    cursorClassName="ml-0.5 text-muted-foreground/30"
+                  />
                 </div>
               )}
             </div>
