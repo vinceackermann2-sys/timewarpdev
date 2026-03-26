@@ -358,36 +358,37 @@ export function ProductDetailView({
 }) {
   const { userName } = useBusinessDNA();
   const [editingSection, setEditingSection] = useState<string | null>(null);
+  const toArr = <T,>(v: unknown): T[] => Array.isArray(v) ? v : [];
   const safeProduct: ProductData = {
     ...DEFAULT_PRODUCT,
     ...product,
-    features: product.features || [],
-    benefits: product.benefits || [],
-    painPoints: product.painPoints || [],
-    useCases: product.useCases || [],
-    targetScenarios: product.targetScenarios || [],
-    uniqueSellingPoints: product.uniqueSellingPoints || [],
-    competitiveAdvantages: product.competitiveAdvantages || [],
-    commonObjections: (product.commonObjections || []).map(o => ({
+    features: toArr(product.features),
+    benefits: toArr(product.benefits),
+    painPoints: toArr(product.painPoints),
+    useCases: toArr(product.useCases),
+    targetScenarios: toArr(product.targetScenarios),
+    uniqueSellingPoints: toArr(product.uniqueSellingPoints),
+    competitiveAdvantages: toArr(product.competitiveAdvantages),
+    commonObjections: toArr<any>(product.commonObjections).map(o => ({
       objection: o?.objection || "",
       response: o?.response || "",
     })),
-    proofPoints: (product.proofPoints || []).map(pp => ({
+    proofPoints: toArr<any>(product.proofPoints).map(pp => ({
       category: pp?.category || "General",
-      items: pp?.items || [],
+      items: toArr(pp?.items),
     })),
     dosAndDonts: {
-      dos: product.dosAndDonts?.dos || [],
-      donts: product.dosAndDonts?.donts || [],
+      dos: toArr(product.dosAndDonts?.dos),
+      donts: toArr(product.dosAndDonts?.donts),
     },
-    powerPhrases: product.powerPhrases || [],
-    powerWords: product.powerWords || [],
+    powerPhrases: toArr(product.powerPhrases),
+    powerWords: toArr(product.powerWords),
     technicalLevel: product.technicalLevel || "",
-    refinementChecklist: product.refinementChecklist || [],
-    images: product.images || [],
-    offers: (product.offers || []).map(o => ({
+    refinementChecklist: toArr(product.refinementChecklist),
+    images: toArr(product.images),
+    offers: toArr<any>(product.offers).map(o => ({
       ...o,
-      freeGifts: o?.freeGifts || [],
+      freeGifts: toArr(o?.freeGifts),
     })),
   };
   const [data, setData] = useState<ProductData>(safeProduct);
