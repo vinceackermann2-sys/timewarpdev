@@ -212,7 +212,7 @@ export function BusinessDataListView() {
     setDeletingId(itemId);
     try {
       await supabase.from("user_business_data").delete().eq("id", itemId);
-      setItems(prev => prev.filter(i => i.id !== itemId));
+      setItems(prev => { const next = prev.filter(i => i.id !== itemId); _cachedItems = next; return next; });
       if (expandedId === itemId) setExpandedId(null);
       toast.success("Data item deleted");
     } catch {
