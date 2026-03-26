@@ -839,7 +839,7 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
     }
 
     // ══════════════════════════════════════════════
-    // CORE MODE: Return immediately with structured data only
+    // CORE MODE: Return with structured data + illustrations + moodboard
     // ══════════════════════════════════════════════
     if (isCoreMode) {
       // Brand name fallback
@@ -858,7 +858,224 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
         }
       }
 
-      console.log("Core mode — returning immediately:", extracted.brand?.name, "products:", extracted.products?.length || 0);
+      // ── Generate illustrations (SVG code) + moodboard in parallel ──
+      const coreBrandName = extracted.brand?.name || "the brand";
+      const coreBrandCategory = extracted.brand?.category || "lifestyle";
+      const coreBrandColors = extracted.brand?.colors || {};
+      const coreAudienceDesc = extracted.audience?.description || "general consumers";
+      const coreProductDesc = (extracted.product?.description || '').slice(0, 200);
+      const coreProductBenefits = (extracted.product?.benefits || []).slice(0, 6).join('; ');
+      const coreAudienceTriggers = (extracted.audience?.buyingTriggers || []).slice(0, 4).join('; ');
+      const coreAudiencePowerWords = (extracted.audience?.powerWords || []).slice(0, 5).join(', ');
+
+      const coreAssetPromises: Promise<void>[] = [];
+
+      // ── Illustrations: icon grid + pattern sheet as SVG ──
+      coreAssetPromises.push((async () => {
+        try {
+          console.log("[Core] Generating brand illustrations as SVG code...");
+          const iconSvgRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{
+                role: "user",
+                content: `Generate a complete, valid SVG string (viewBox="0 0 600 800") containing a 3×4 grid of 12 icons representing these product/audience concepts:
+
+Product benefits: ${coreProductBenefits || 'quality, convenience, value'}
+Audience needs: ${coreAudienceTriggers || 'ease of use, time saving'}
+Brand: "${coreBrandName}", category: ${coreBrandCategory}
+Primary color: ${coreBrandColors.primary || '#333333'}
+Secondary color: ${coreBrandColors.secondary || '#666666'}
+
+Requirements:
+- Each icon is a simple, clean SVG path/shape (clock, shield, heart, target, checkmark, star, etc.)
+- Arranged in a 3-column × 4-row grid with generous spacing
+- Mix of outlined (stroke, no fill) and filled styles
+- Use ONLY the brand's primary and secondary colors
+- Each icon ~80×80px in a cell, centered
+- NO text elements, NO <text> tags whatsoever
+- Clean, professional, minimal line style
+
+Return ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown, no explanation.`
+              }],
+            }),
+          });
+
+          const illustrationSvgs: string[] = [];
+          if (iconSvgRes.ok) {
+            const d = await iconSvgRes.json();
+            const raw = d.choices?.[0]?.message?.content || "";
+            const svgMatch = raw.match(/<svg[\s\S]*?<\/svg>/i);
+            if (svgMatch) {
+              illustrationSvgs.push(svgMatch[0]);
+              console.log("[Core] ✓ Generated icon grid SVG");
+            }
+          }
+
+          const patternSvgRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{
+                role: "user",
+                content: `Generate a complete, valid SVG string (viewBox="0 0 600 900") containing a pattern reference sheet with 3 distinct decorative patterns stacked vertically.
+
+Brand: "${coreBrandName}"
+Audience emotional keywords: ${coreAudiencePowerWords || 'trust, comfort, confidence'}
+Primary color: ${coreBrandColors.primary || '#333333'}
+Secondary color: ${coreBrandColors.secondary || '#666666'}
+Background: ${coreBrandColors.background || '#ffffff'}
+
+The 3 patterns (each ~600×280px, separated by a gap):
+1. A flowing, organic wave/curve pattern using gradients of the brand colors
+2. A geometric/abstract section with rounded shapes, dots, or decorative elements
+3. A subtle tileable texture using thin lines or micro-patterns
+
+Requirements:
+- Use SVG <path>, <circle>, <rect>, <line>, <polygon> elements
+- Use <defs> with <linearGradient> or <radialGradient> for color blends
+- NO <text> tags, NO letters, NO numbers
+- Clean, professional, modern feel
+- Use only the brand color palette
+
+Return ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown, no explanation.`
+              }],
+            }),
+          });
+
+          if (patternSvgRes.ok) {
+            const d = await patternSvgRes.json();
+            const raw = d.choices?.[0]?.message?.content || "";
+            const svgMatch = raw.match(/<svg[\s\S]*?<\/svg>/i);
+            if (svgMatch) {
+              illustrationSvgs.push(svgMatch[0]);
+              console.log("[Core] ✓ Generated pattern sheet SVG");
+            }
+          }
+
+          if (illustrationSvgs.length > 0) {
+            extracted.brand.visualIdentity.illustrationSvgs = illustrationSvgs;
+          }
+        } catch (e) { console.error("[Core] Illustration SVG gen error:", e); }
+      })());
+
+      // ── Moodboard: search Pinterest for aesthetic images ──
+      coreAssetPromises.push((async () => {
+        try {
+          console.log("[Core] Generating moodboard...");
+          const audiencePainPoints = (extracted.product?.painPoints || []).slice(0, 3).join('; ');
+          const audiencePowerPhrases = (extracted.audience?.powerPhrases || []).slice(0, 3).join('; ');
+
+          const termsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-lite",
+              messages: [{
+                role: "user",
+                content: `Generate exactly 6 aesthetic search terms for a moodboard.
+
+Use this framework for each term:
+[audience visual/product scene] + [trust feeling/emotion] + premium minimal e-commerce
+
+Brand: "${coreBrandName}" (${coreBrandCategory})
+Product: ${coreProductDesc}
+Target audience: ${coreAudienceDesc.split('.').slice(0, 3).join('.')}
+Pain points: ${audiencePainPoints || 'general consumer frustrations'}
+Power phrases: ${audiencePowerPhrases || 'convenience, quality, trust'}
+
+Return ONLY a JSON array of 6 phrases. No explanation.`
+              }],
+            }),
+          });
+
+          let aestheticTerms: string[] = [];
+          if (termsRes.ok) {
+            const termsData = await termsRes.json();
+            const termsRaw = termsData.choices?.[0]?.message?.content || "";
+            try {
+              const arrMatch = termsRaw.match(/\[[\s\S]*?\]/);
+              if (arrMatch) aestheticTerms = JSON.parse(arrMatch[0]);
+            } catch (e) { console.warn("[Core] Terms parse error:", e); }
+          }
+
+          if (aestheticTerms.length === 0) {
+            aestheticTerms = [
+              `${coreBrandCategory} product showcase + trust + premium minimal e-commerce`,
+              `${coreBrandCategory} lifestyle + warm confidence + premium minimal e-commerce`,
+              `${coreBrandCategory} texture detail + calm sophistication + premium minimal e-commerce`,
+              `clean packaging flat lay + quality assurance + premium minimal e-commerce`,
+              `aspirational lifestyle moment + empowerment + premium minimal e-commerce`,
+              `editorial product photography + reliability + premium minimal e-commerce`,
+            ];
+          }
+
+          const imgUrlRegex = /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
+          const moodboardResults = await Promise.allSettled(
+            aestheticTerms.slice(0, 6).map(async (term) => {
+              try {
+                const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    query: `site:pinterest.com ${term}`,
+                    limit: 5,
+                    scrapeOptions: { formats: ["markdown", "links"] },
+                  }),
+                });
+
+                if (!searchRes.ok) return null;
+
+                const searchData = await searchRes.json();
+                const results = searchData.data || [];
+
+                const allImgUrls: string[] = [];
+                for (const r of results) {
+                  if (r.metadata?.ogImage) allImgUrls.push(r.metadata.ogImage);
+                  const content: string = r.markdown || r.description || "";
+                  imgUrlRegex.lastIndex = 0;
+                  let match;
+                  while ((match = imgUrlRegex.exec(content)) !== null) {
+                    allImgUrls.push(match[0]);
+                  }
+                }
+
+                const pinterestImg = allImgUrls.find(url =>
+                  url.includes('pinimg.com') && !url.includes('/75x') && !url.includes('/140x')
+                );
+                if (pinterestImg) return pinterestImg;
+
+                const goodImg = allImgUrls.find(url =>
+                  !url.includes('/icon') && !url.includes('/favicon') &&
+                  !url.includes('/logo') && url.length > 30
+                );
+                return goodImg || null;
+              } catch { return null; }
+            })
+          );
+
+          const moodboardUrls = moodboardResults
+            .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
+            .map(r => r.value);
+
+          extracted.brand.visualIdentity.moodboardUrls = moodboardUrls;
+          console.log("[Core] Final moodboard count:", moodboardUrls.length);
+        } catch (e) {
+          console.error("[Core] Moodboard pipeline error:", e);
+          extracted.brand.visualIdentity.moodboardUrls = [];
+        }
+      })());
+
+      // Run all core asset generation in parallel
+      await Promise.allSettled(coreAssetPromises);
+
+      console.log("Core mode — returning with assets:", extracted.brand?.name, "products:", extracted.products?.length || 0);
 
       return new Response(
         JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 0 }),
