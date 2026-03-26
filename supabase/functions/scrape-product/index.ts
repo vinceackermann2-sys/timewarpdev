@@ -659,6 +659,7 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 16000,
         messages: [
           { role: "user", content: extractionPrompt },
         ],
