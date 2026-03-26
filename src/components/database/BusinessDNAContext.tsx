@@ -199,6 +199,25 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     load();
   }, [activeWorkspaceId]);
 
+  const reloadData = async () => {
+    setIsLoading(true);
+    const wsId = localStorage.getItem("preferred_workspace_id") || activeWorkspaceId;
+    const [b, p, a] = await Promise.all([
+      loadEntities<BrandEntry>("brand", wsId),
+      loadEntities<ProductEntry>("product", wsId),
+      loadEntities<AudienceEntry>("audience", wsId),
+    ]);
+    setBrandsState(b);
+    setProductsState(p);
+    setAudiencesState(a);
+    setPrevBrands(b);
+    setPrevProducts(p);
+    setPrevAudiences(a);
+    setActiveWorkspaceId(wsId);
+    loadedWorkspaceRef.current = wsId;
+    setIsLoading(false);
+  };
+
   // Direct delete functions that await DB deletion before updating state
   const deleteBrand = async (brandId: string) => {
     const brand = brands.find(b => b.id === brandId);
