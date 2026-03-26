@@ -1,100 +1,53 @@
 
-Goal: make onboarding and “Add Business” reliably create a business by returning the scrape result before the platform times out.
 
-Why it still fails
-- The console “CORS” message is misleading. The real failure is the `504 Gateway Timeout`.
-- `scrape-product` already includes proper CORS headers, and the logs show it gets very far through the pipeline, so this is not a browser-origin policy bug.
-- The actual blocker is that `scrape-product` is doing far too much before responding:
-  - homepage scrape + site map
-  - AI product-page selection
-  - multi-page extraction
-  - moodboard search/generation
-  - mobile screenshot
-  - logo recreation
-  - illustration generation
-  - guideline images
-  - background removal
-  - social media image generation
-- The function only returns after `await Promise.all([moodboardPromise, ...aiImagePromises])`, so onboarding waits for all heavy enrichment work. That pushes the request past the gateway limit, which is why the browser sees:
-  - `504`
-  - then fake-looking “No Access-Control-Allow-Origin” noise
-  - then `TypeError: Failed to fetch`
-- The other console warnings are unrelated to the save failure:
-  - `feature_collector.js` deprecated init warning = third-party script noise
-  - `DialogContent` missing description = accessibility warning only
+# Plan: Email Verification Polling Dialog + Conditional URL Step in Onboarding
 
-Implementation plan
+## Summary
 
-1. Split “core extraction” from “asset enrichment”
-- Keep `scrape-product` responsible for the business-critical part only:
-  - scrape URL(s)
-  - detect company URL vs product URL
-  - select up to 5 relevant product pages
-  - run AI extraction
-  - normalize `brand`, `products[]`, `audiences[]`
-  - return immediately
-- Move the expensive visual generation work behind a flag or into a second function:
-  - moodboard
-  - recreated logo
-  - website/mobile screenshots if expensive
-  - illustration URLs
-  - guideline images
-  - social media assets
-  - background removal
-- This is the main fix. Without it, the gateway will keep timing out no matter how long the browser waits.
+After a new user signs up via email/password from the homepage (Activate CEO / Analyze buttons), instead of just a toast, show a persistent "Checking email verification" dialog that polls until the user verifies. Once verified, navigate to `/app` with onboarding. The onboarding URL step (step 0) should only appear if the user did NOT already paste a URL on the homepage.
 
-2. Add a fast mode for onboarding and Add Business
-- Update `scrape-product` to accept something like:
-  - `mode: "core"` or `includeAssets: false`
-- In fast mode, skip all enrichment promises and return only the extracted business/product/audience data needed to create records.
-- Use this fast mode from:
-  - `BusinessDNAOnboarding.tsx`
-  - `AddProductURLView.tsx`
-  - likely `ProductListView.tsx` and `AudienceListView.tsx` too, since they also call the same function and can hit the same timeout.
+## Changes
 
-3. Keep richer extraction where it actually matters
-- `BrandingEditor.tsx` can keep using full extraction if needed, because that screen is specifically about branding enrichment.
-- If full extraction is still too slow there, I’ll switch it to a two-step flow:
-  - save the business immediately with core data
-  - load/generated visual assets afterward
+### 1. Add Email Verification Polling Dialog
 
-4. Harden the company-URL path
-- The current company mode can pick bad URLs (the logs show App Store links were selected for Apple). That wastes time and lowers extraction quality.
-- Tighten URL filtering before AI selection:
-  - same domain only
-  - exclude app stores, auth, support, blog, careers, legal, docs, etc.
-  - prefer product/service/commercial paths
-- Cap the page content sent to AI more aggressively so extraction stays fast and predictable.
+**File: `src/components/landing/AuthDialog.tsx`**
 
-5. Preserve compatibility in the client
-- `BusinessDNAOnboarding.tsx` already handles arrays and persists via `save-onboarding`, so I’ll keep that flow but make the scrape call fast-mode.
-- `AddProductURLView.tsx` already handles arrays too; it just needs the same fast-mode request.
-- No schema change should be required.
+- Add new state: `showVerificationPolling` + `verificationEmail`
+- After successful signup with no session (line 129-132), instead of closing the dialog and showing a toast, switch to a "verification polling" UI inside the same dialog
+- The polling UI shows: an animated mail icon, "Check your email" heading, the email address, a subtle spinner, and a "Resend email" button
+- Poll `supabase.auth.getSession()` every 3 seconds; when a session appears, it means the user clicked the verification link in another tab — the `onAuthStateChange` listener will fire and navigate to dashboard
+- Also listen for `onAuthStateChange` `SIGNED_IN` event which fires when verification completes
+- Store `productUrl` in sessionStorage so it survives the verification redirect flow
+- When verified, navigate with `onboarding=business-dna` and conditionally include `url` param
 
-6. Clean up non-blocking console noise
-- Add `aria-describedby={undefined}` or a proper description to the option dialog in `MyBusinessesView.tsx` to remove the repeated Dialog warning.
-- I will not chase the `feature_collector.js` deprecation inside app code unless I find a project-owned initialization path, because it does not cause the scrape failure.
+### 2. Pass `productUrl` Through to Onboarding
 
-Files to update
-- `supabase/functions/scrape-product/index.ts`
-  - return core data before heavy asset generation
-  - add fast/core mode
-  - tighten company URL filtering
-- `src/components/database/BusinessDNAOnboarding.tsx`
-  - call scrape in fast/core mode
-- `src/components/database/AddProductURLView.tsx`
-  - call scrape in fast/core mode
-- `src/components/database/ProductListView.tsx`
-  - same fast/core mode for imports
-- `src/components/database/AudienceListView.tsx`
-  - same fast/core mode for imports
-- `src/components/database/BrandingEditor.tsx`
-  - decide whether to keep full mode or use a follow-up enrichment step
-- `src/components/database/MyBusinessesView.tsx`
-  - fix dialog description warning
+**File: `src/components/landing/AuthDialog.tsx`**
 
-Expected result
-- Onboarding and Add Business stop failing with 504/CORS-style errors.
-- Businesses are created quickly because the function returns once the structured data is ready.
-- Heavy visual assets no longer block business creation.
-- Console noise is reduced to actual actionable issues.
+- In `navigateToDashboard`, if `productUrl` exists for a new user, include it as a `url` query param alongside `onboarding=business-dna`
+- This is already partially done (lines 44-46) but only for `addProduct` — ensure new users also get the URL passed through
+
+### 3. Skip URL Step in Onboarding When URL Already Provided
+
+**File: `src/pages/Database.tsx`**
+
+- Already captures `productUrl` from search params (line 68, 74-76) and passes as `onboardingUrl`
+- No change needed here — already works
+
+**File: `src/components/database/BusinessDNAOnboarding.tsx`**
+
+- Already starts at step 1 when `initialUrl` is provided (line 79: `useState(initialUrl ? 1 : 0)`)
+- No change needed — already works
+
+## Technical Details
+
+| File | Change |
+|------|--------|
+| `src/components/landing/AuthDialog.tsx` | Add verification polling UI state, poll loop, resend button, conditional rendering inside DialogContent |
+
+The verification polling approach:
+- Use `setInterval` every 3s calling `supabase.auth.getSession()`
+- The `onAuthStateChange` listener (already in place) will catch the `SIGNED_IN` event when the user verifies in another tab and auto-navigate
+- Add a "Resend verification email" button using `supabase.auth.resend({ type: 'signup', email })`
+- Show elapsed time or a pulsing animation to indicate active checking
+
