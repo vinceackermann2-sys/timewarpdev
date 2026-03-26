@@ -53,9 +53,13 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 1 ? 1 : 0)} ${units[i]}`;
 }
 
+// Module-level in-memory cache so the Database tab loads instantly on re-visit
+let _cachedItems: DataItem[] | null = null;
+let _cachedUserId: string | null = null;
+
 export function BusinessDataListView() {
-  const [items, setItems] = useState<DataItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [items, setItems] = useState<DataItem[]>(_cachedItems ?? []);
+  const [isLoading, setIsLoading] = useState(!_cachedItems);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
