@@ -40,6 +40,7 @@ export interface BrandEntry {
   logoUrls?: string[];
   selectedLogo?: number;
   visualIdentity?: VisualIdentityData;
+  agentName?: string;
 }
 
 export interface ProductEntry extends ProductData {
