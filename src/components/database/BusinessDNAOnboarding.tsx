@@ -108,9 +108,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
   // Get context setters
   let contextAvailable = false;
   let reloadData: () => Promise<void> = async () => {};
+  let brands: BrandEntry[] = [];
+  let refreshBrand: ((brandId: string) => Promise<void>) | null = null;
   try {
     const ctx = useBusinessDNA();
     reloadData = ctx.reloadData;
+    brands = ctx.brands;
+    refreshBrand = ctx.refreshBrand;
     contextAvailable = true;
   } catch {
     // No provider
@@ -411,6 +415,33 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
       const finalBrandId = isAddBusiness && activeBrandId ? activeBrandId : brandId;
       setCreatedBrandId(finalBrandId);
       setPersistenceComplete(true);
+
+      // Fire-and-forget: enrich brand with heavy assets (moodboard, illustrations, screenshot)
+      if (contextAvailable) {
+        const reloadedBrands = brands;
+        const brandRow = reloadedBrands.find(b => b.id === finalBrandId);
+        const rowId = (brandRow as any)?._rowId;
+        if (rowId) {
+          const firstProduct = productsRaw[0] || {};
+          const firstAudience = audiencesRaw[0] || {};
+          invokeEdgeFunction("enrich-brand", {
+            brandRowId: rowId,
+            brandName,
+            brandCategory: b.category || "lifestyle",
+            brandColors: b.colors || {},
+            audienceDesc: firstAudience.description || "",
+            audiencePowerWords: (firstAudience.powerWords || []).slice(0, 5).join(", "),
+            productBenefits: (firstProduct.benefits || []).slice(0, 6).join("; "),
+            buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
+            websiteUrl: activeUrl || "",
+          }).then((res) => {
+            console.log("Brand enrichment result:", res.data);
+            if (res.data?.success && refreshBrand) {
+              refreshBrand(finalBrandId);
+            }
+          }).catch((e) => console.warn("Brand enrichment failed (non-blocking):", e));
+        }
+      }
 
       if (!cancelled) {
         // Always show step 3 for agent naming

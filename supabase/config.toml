@@ -45,3 +45,5 @@ project_id = "ohvxqlxugqlzzbmfypiy"
     verify_jwt = false
   [functions.save-onboarding]
     verify_jwt = false
+  [functions.enrich-brand]
+    verify_jwt = false
