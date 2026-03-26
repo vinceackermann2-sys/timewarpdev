@@ -148,11 +148,6 @@ serve(async (req) => {
       await admin.from("workspaces").update({ name: brandName }).eq("id", wsId);
     }
 
-    // Rename workspace to brand name
-    if (brandName) {
-      await admin.from("workspaces").update({ name: brandName }).eq("id", wsId);
-    }
-
     return new Response(
       JSON.stringify({ success: true, workspaceId: wsId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
