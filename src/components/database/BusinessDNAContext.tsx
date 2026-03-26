@@ -264,6 +264,17 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     setPrevAudiences(newAudiences);
   };
 
+  const refreshBrand = async (brandId: string) => {
+    const wsId = localStorage.getItem("preferred_workspace_id") || activeWorkspaceId;
+    const freshBrands = await loadEntities<BrandEntry>("brand", wsId);
+    const updated = freshBrands.find(b => b.id === brandId);
+    if (updated) {
+      setBrandsState(prev => prev.map(b => b.id === brandId ? updated : b));
+      setPrevBrands(prev => prev.map(b => b.id === brandId ? updated : b));
+      console.log("Brand refreshed with enriched data:", brandId);
+    }
+  };
+
   // Sync brands to DB
   useEffect(() => {
     if (isLoading) return;
@@ -328,6 +339,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       deleteProduct,
       deleteAudience,
       reloadData,
+      refreshBrand,
     }}>
       {children}
     </BusinessDNAContext.Provider>
