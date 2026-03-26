@@ -203,14 +203,21 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     return () => clearTimeout(timer);
   }, [step, allSources.length, allSourcesDone]);
 
-  // Smooth progress animation — never stops, always creeping forward
+  // Progress animation — instantly jumps to 80%, then animates 80→100%
   useEffect(() => {
     if (step < 1 || step > 2) return;
+
+    // Instant jump to 80%
+    if (progressRef.current < 80) {
+      progressRef.current = 80;
+      setProgress(80);
+    }
+
     let rafId: number;
     let lastTime = performance.now();
 
     const tick = (now: number) => {
-      const dt = (now - lastTime) / 1000; // delta in seconds
+      const dt = (now - lastTime) / 1000;
       lastTime = now;
 
       if (persistenceCompleteRef.current) {
@@ -224,14 +231,10 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         return;
       }
 
-      // Asymptotic approach — ceiling rises with phase, bar never fully stops
-      // Phase 1 (scraping): ceiling 75, Phase 2 (persisting): ceiling 95
-      const ceiling = scrapeCompleteRef.current ? 95 : 75;
+      // Asymptotic approach from 80→95 (scraping) or 95→99 (persisting)
+      const ceiling = scrapeCompleteRef.current ? 95 : 90;
       const remaining = ceiling - progressRef.current;
-
-      // Base speed: ~1.5% per second, slowing as we approach ceiling
-      // Minimum speed: 0.08% per second so bar never appears stalled
-      const speed = Math.max(0.08, remaining * 0.025);
+      const speed = Math.max(0.05, remaining * 0.02);
       const next = Math.min(ceiling - 0.1, progressRef.current + speed * dt);
 
       progressRef.current = next;

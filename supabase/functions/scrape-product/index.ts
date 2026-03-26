@@ -848,6 +848,16 @@ ${markdown.slice(0, isCompanyUrl ? 30000 : 15000)}`;
         extracted.brand.name = extracted.products?.[0]?.name || metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business";
       }
 
+      // Merge Firecrawl website screenshot into visualIdentity
+      if (websiteScreenshot) {
+        extracted.brand.visualIdentity = extracted.brand.visualIdentity || {};
+        if (!extracted.brand.visualIdentity.websiteScreenshot) {
+          extracted.brand.visualIdentity.websiteScreenshot = typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')
+            ? websiteScreenshot
+            : `data:image/png;base64,${websiteScreenshot}`;
+        }
+      }
+
       console.log("Core mode — returning immediately:", extracted.brand?.name, "products:", extracted.products?.length || 0);
 
       return new Response(
