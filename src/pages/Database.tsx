@@ -8,7 +8,7 @@ import { DataConversionView } from "@/components/database/DataConversionView";
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { BusinessDNAView } from "@/components/database/BusinessDNAView";
 import { MyBusinessesView } from "@/components/database/MyBusinessesView";
-import { AddProductURLView } from "@/components/database/AddProductURLView";
+import { BusinessDNAOnboarding } from "@/components/database/BusinessDNAOnboarding";
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2, Menu } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
