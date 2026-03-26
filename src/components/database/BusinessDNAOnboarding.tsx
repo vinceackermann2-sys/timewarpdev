@@ -409,11 +409,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         localStorage.setItem("preferred_workspace_id", data.workspaceId);
       }
 
-      // Update context for immediate UI hydration
+      // Reload from DB to get proper _rowId values and avoid duplicate insertions
       if (contextAvailable) {
-        setBrands(prev => [...prev, newBrand]);
-        setProducts(prev => [...prev, ...newProducts]);
-        if (newAudiences.length > 0) setAudiences(prev => [...prev, ...newAudiences]);
+        await reloadData();
       }
 
       const finalBrandId = isAddBusiness && activeBrandId ? activeBrandId : brandId;

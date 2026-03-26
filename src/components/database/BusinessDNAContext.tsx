@@ -326,6 +326,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       deleteBrand,
       deleteProduct,
       deleteAudience,
+      reloadData,
     }}>
       {children}
     </BusinessDNAContext.Provider>
