@@ -415,11 +415,17 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         if (newAudiences.length > 0) setAudiences(prev => [...prev, ...newAudiences]);
       }
 
-      setCreatedBrandId(brandId);
+      const finalBrandId = isAddBusiness && activeBrandId ? activeBrandId : brandId;
+      setCreatedBrandId(finalBrandId);
       setPersistenceComplete(true);
 
       if (!cancelled) {
-        setTimeout(() => setStep(3), 800);
+        if (isAddBusiness) {
+          // Skip agent naming — auto-complete after a short delay
+          setTimeout(() => onComplete("", finalBrandId), 1200);
+        } else {
+          setTimeout(() => setStep(3), 800);
+        }
       }
     })();
 
