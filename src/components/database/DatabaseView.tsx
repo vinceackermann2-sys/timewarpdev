@@ -111,8 +111,10 @@ export function DatabaseView() {
   const modeSelectorRef = useRef<HTMLDivElement>(null);
   const { checkCanUseAction } = useActionGate();
 
-  // Check DB for existing connections
+  // Check DB for existing connections — skip if already cached
   useEffect(() => {
+    if (_cachedHasConnected !== null) return;
+
     const checkConnections = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -126,6 +128,7 @@ export function DatabaseView() {
         const dismissed = sessionStorage.getItem("businessDnaDismissed");
         if (dismissed === "true") {
           setHasConnected(true);
+          _cachedHasConnected = true;
           setIsCheckingConnection(false);
           return;
         }
