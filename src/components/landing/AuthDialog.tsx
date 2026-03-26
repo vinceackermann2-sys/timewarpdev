@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2, Mail, Lock, X } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock, X, RefreshCw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link as RouterLink } from "react-router-dom";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getSafeSession } from "@/lib/authSession";
 import { lovable } from "@/integrations/lovable";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
@@ -33,17 +33,37 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  // Verification polling state
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     if (open) {
       setIsSignUp(defaultMode === "signup");
+      setShowVerification(false);
     }
   }, [open, defaultMode]);
 
+  // Cleanup poll on unmount / close
+  useEffect(() => {
+    if (!open && pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [open]);
+
   const navigateToDashboard = (isNewUser = false) => {
     const params = new URLSearchParams();
-    if (productUrl) {
+    const savedUrl = productUrl || sessionStorage.getItem("pending_product_url") || "";
+    if (savedUrl) {
       params.set("addProduct", "true");
-      params.set("url", productUrl);
+      params.set("url", savedUrl);
+      sessionStorage.removeItem("pending_product_url");
     }
     if (isNewUser) {
       params.set("onboarding", "business-dna");
@@ -58,9 +78,9 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted || !session) return;
-      // Detect brand-new user (created within last 30s)
       const createdAt = new Date(session.user.created_at).getTime();
       const isNewUser = Date.now() - createdAt < 30000;
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
       onOpenChange(false);
       navigateToDashboard(isNewUser);
     });
@@ -70,6 +90,36 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
       subscription.unsubscribe();
     };
   }, [open]);
+
+  const startVerificationPolling = (userEmail: string) => {
+    setVerificationEmail(userEmail);
+    setShowVerification(true);
+    if (productUrl) sessionStorage.setItem("pending_product_url", productUrl);
+
+    // Poll every 3s — onAuthStateChange will handle navigation
+    pollRef.current = setInterval(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          clearInterval(pollRef.current!);
+          pollRef.current = null;
+        }
+      } catch {}
+    }, 3000);
+  };
+
+  const handleResendEmail = async () => {
+    setIsResending(true);
+    try {
+      const { error } = await supabase.auth.resend({ type: "signup", email: verificationEmail });
+      if (error) throw error;
+      toast({ title: "Email resent", description: "Check your inbox for the new verification link." });
+    } catch (err: any) {
+      toast({ title: "Resend failed", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const validateForm = () => {
     if (!email || !password) {
@@ -92,16 +142,10 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
     setIsGoogleLoading(true);
     try {
       const oauthRedirect = `${window.location.origin}/app`;
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: oauthRedirect,
-      });
+      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: oauthRedirect });
       if (result.error) throw result.error;
     } catch (error: any) {
-      toast({
-        title: "Google sign-in failed",
-        description: error.message || "Could not connect to Google. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Google sign-in failed", description: error.message || "Could not connect to Google. Please try again.", variant: "destructive" });
       setIsGoogleLoading(false);
     }
   };
@@ -114,23 +158,18 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
     try {
       if (isSignUp) {
         const { error, data } = await supabase.auth.signUp({
-          email,
-          password,
+          email, password,
           options: { emailRedirectTo: `${window.location.origin}/app` },
         });
         if (error) {
           if (error.message.includes("already registered")) {
             toast({ title: "Account exists", description: "This email is already registered. Please log in instead.", variant: "destructive" });
-          } else {
-            throw error;
-          }
+          } else { throw error; }
+        } else if (!data.session) {
+          // Email confirmation required — show verification polling UI
+          startVerificationPolling(email);
+          return;
         } else {
-          // If email confirmation is required, user won't have a session yet
-          if (!data.session) {
-            toast({ title: "Check your email!", description: "We've sent a verification link to your email. Please confirm to continue." });
-            onOpenChange(false);
-            return;
-          }
           toast({ title: "Account created!", description: "You're now signed in. Welcome to TimeWarp!" });
         }
       } else {
@@ -138,9 +177,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
             toast({ title: "Invalid credentials", description: "Please check your email and password.", variant: "destructive" });
-          } else {
-            throw error;
-          }
+          } else { throw error; }
         }
       }
     } catch (error: any) {
@@ -153,7 +190,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md p-0 gap-0 border-border/50 bg-card overflow-hidden overflow-y-auto max-h-[90vh] [&>button]:hidden" aria-describedby={undefined}>
-        <VisuallyHidden.Root><DialogTitle>{isSignUp ? "Create account" : "Sign in"}</DialogTitle></VisuallyHidden.Root>
+        <VisuallyHidden.Root><DialogTitle>{showVerification ? "Verify email" : isSignUp ? "Create account" : "Sign in"}</DialogTitle></VisuallyHidden.Root>
         <div className="p-4 sm:p-8">
           <button
             onClick={() => onOpenChange(false)}
@@ -162,101 +199,139 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
             <X className="h-4 w-4" />
           </button>
 
-          <div className="flex items-center gap-2 mb-6">
-            <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-lg object-cover" />
-            <span className="font-semibold text-lg text-foreground">TimeWarp</span>
-          </div>
-
-          <h2 className="text-xl font-bold text-foreground mb-1">
-            {isSignUp ? "Create your TimeWarp account" : "Welcome back"}
-          </h2>
-          <p className="text-sm text-muted-foreground mb-5">
-            {isSignUp ? "Sign up to get started with AI-powered business tools" : "Log in to your TimeWarp account"}
-          </p>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full gap-3 mb-4 h-11 rounded-xl border border-border bg-[hsl(30,20%,20%)] text-[hsl(40,30%,95%)] dark:bg-[hsl(40,30%,95%)] dark:text-[hsl(30,20%,20%)] hover:opacity-90"
-            onClick={handleGoogleSignIn}
-            disabled={isGoogleLoading}
-          >
-            {isGoogleLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <svg className="h-5 w-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-            )}
-            Continue with Google
-          </Button>
-
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">OR</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="dialog-email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="dialog-email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl" />
+          {showVerification ? (
+            /* ── Verification Polling UI ── */
+            <div className="flex flex-col items-center text-center py-4">
+              <div className="relative mb-6">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Mail className="h-8 w-8 text-primary" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                </div>
               </div>
+
+              <h2 className="text-xl font-bold text-foreground mb-2">Check your email</h2>
+              <p className="text-sm text-muted-foreground mb-1">
+                We sent a verification link to
+              </p>
+              <p className="text-sm font-medium text-foreground mb-6">{verificationEmail}</p>
+
+              <p className="text-xs text-muted-foreground mb-6">
+                Click the link in your email to verify your account. This page will update automatically.
+              </p>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={handleResendEmail}
+                disabled={isResending}
+              >
+                {isResending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Resend verification email
+              </Button>
             </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="dialog-password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="dialog-password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+          ) : (
+            /* ── Standard Auth Form ── */
+            <>
+              <div className="flex items-center gap-2 mb-6">
+                <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-lg object-cover" />
+                <span className="font-semibold text-lg text-foreground">TimeWarp</span>
               </div>
-            </div>
 
-            {isSignUp && (
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="dialog-terms"
-                  checked={agreedToTerms}
-                  onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
-                  className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                />
-                <label htmlFor="dialog-terms" className="text-sm text-muted-foreground leading-snug">
-                  I agree to our{" "}
-                  <RouterLink to="/terms-of-purchase" className="text-primary hover:underline">Terms of Service</RouterLink>
-                  {" "}and{" "}
-                  <RouterLink to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</RouterLink>
-                </label>
+              <h2 className="text-xl font-bold text-foreground mb-1">
+                {isSignUp ? "Create your TimeWarp account" : "Welcome back"}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-5">
+                {isSignUp ? "Sign up to get started with AI-powered business tools" : "Log in to your TimeWarp account"}
+              </p>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-3 mb-4 h-11 rounded-xl border border-border bg-[hsl(30,20%,20%)] text-[hsl(40,30%,95%)] dark:bg-[hsl(40,30%,95%)] dark:text-[hsl(30,20%,20%)] hover:opacity-90"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleLoading}
+              >
+                {isGoogleLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                )}
+                Continue with Google
+              </Button>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">OR</span>
+                </div>
               </div>
-            )}
 
-            <Button
-              type="submit"
-              className="w-full h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={isLoading || (isSignUp && !agreedToTerms)}
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? "Create your account" : "Log In"}
-            </Button>
-          </form>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="dialog-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="dialog-email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl" />
+                  </div>
+                </div>
 
-          <div className="text-center text-sm mt-4">
-            {isSignUp ? (
-              <>Already have an account?{" "}<button onClick={() => setIsSignUp(false)} className="text-primary hover:underline font-medium">Sign in here</button></>
-            ) : (
-              <>Don't have an account?{" "}<button onClick={() => setIsSignUp(true)} className="text-primary hover:underline font-medium">Sign up</button></>
-            )}
-          </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="dialog-password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="dialog-password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {isSignUp && (
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="dialog-terms"
+                      checked={agreedToTerms}
+                      onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                      className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    />
+                    <label htmlFor="dialog-terms" className="text-sm text-muted-foreground leading-snug">
+                      I agree to our{" "}
+                      <RouterLink to="/terms-of-purchase" className="text-primary hover:underline">Terms of Service</RouterLink>
+                      {" "}and{" "}
+                      <RouterLink to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</RouterLink>
+                    </label>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={isLoading || (isSignUp && !agreedToTerms)}
+                >
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSignUp ? "Create your account" : "Log In"}
+                </Button>
+              </form>
+
+              <div className="text-center text-sm mt-4">
+                {isSignUp ? (
+                  <>Already have an account?{" "}<button onClick={() => setIsSignUp(false)} className="text-primary hover:underline font-medium">Sign in here</button></>
+                ) : (
+                  <>Don't have an account?{" "}<button onClick={() => setIsSignUp(true)} className="text-primary hover:underline font-medium">Sign up</button></>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
