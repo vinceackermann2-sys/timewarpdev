@@ -63,6 +63,12 @@ async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<string |
 interface BusinessDNAOnboardingProps {
   productUrl?: string | null;
   onComplete: (agentName: string, brandId?: string) => void;
+  /** When true, skips agent naming (step 3) and auto-completes after persistence */
+  isAddBusiness?: boolean;
+  /** Existing brand ID to link products to (add-business mode) */
+  activeBrandId?: string | null;
+  /** Called when user presses back in add-business mode */
+  onBack?: () => void;
 }
 
 export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete }: BusinessDNAOnboardingProps) {
