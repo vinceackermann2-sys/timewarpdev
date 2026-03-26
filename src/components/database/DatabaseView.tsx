@@ -407,8 +407,10 @@ export function DatabaseView() {
 
   const handleModeSwitch = (mode: ChatMode) => {
     if (mode !== chatMode) {
+      // Save current messages before switching
+      _cachedChatMessages[chatMode] = messages.filter((m: any) => !m.isStreaming);
       setChatMode(mode);
-      setMessages([]);
+      setMessages(_cachedChatMessages[mode]);
     }
     setShowModeSelector(false);
   };
