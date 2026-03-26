@@ -92,8 +92,9 @@ export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistory
 
   // Debounced save to DB whenever messages change
   const saveToDb = useCallback(async (msgs: T[]) => {
-    // Always keep localStorage in sync
+    // Keep in-memory + localStorage in sync
     if (msgs.length > 0) {
+      memoryCache.set(key, { messages: msgs, dbRowId: dbRowIdRef.current });
       localStorage.setItem(`chat_history_${nodeId}`, JSON.stringify(msgs));
     }
 
