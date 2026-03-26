@@ -44,6 +44,8 @@ export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistory
       return;
     }
     let cancelled = false;
+
+    const loadFromDb = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user || cancelled) {
@@ -73,7 +75,6 @@ export function useWhiteboardChatHistory<T>({ nodeId, chatType }: UseChatHistory
           const dbMessages = data.messages as T[];
           if (dbMessages && dbMessages.length > 0) {
             setMessages(dbMessages);
-            // Sync caches
             memoryCache.set(key, { messages: dbMessages, dbRowId: data.id });
             localStorage.setItem(`chat_history_${nodeId}`, JSON.stringify(dbMessages));
           }
