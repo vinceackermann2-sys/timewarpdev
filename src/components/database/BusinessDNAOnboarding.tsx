@@ -339,7 +339,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
             }))
           : DEFAULT_PRODUCT.offers,
         lastUpdated: now,
-        brandId: brandId,
+        brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
       }));
 
       // Build audiences array
