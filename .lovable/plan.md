@@ -1,50 +1,72 @@
 
+Root cause: onboarding is not primarily failing because of Pinterest itself or a true CORS misconfiguration. The `scrape-product` function is crashing while sending its response.
 
-# Plan: Fix Branding in Onboarding + False Data Prevention + Progress Bar
+What the code and logs show:
+- `BusinessDNAOnboarding.tsx` calls `invokeEdgeFunction("scrape-product", { url, mode: "core" })`.
+- The edge function already includes correct CORS headers and an `OPTIONS` handler.
+- Recent logs show:
+  - `Core mode — returning with assets: ...`
+  - then immediately `Http: connection closed before message completed`
+- That means the function finishes the work, but the response body is too heavy or unstable while being streamed back.
+- In core mode it is currently returning:
+  - full extracted product/audience data
+  - website screenshot as base64 data URL
+  - generated SVG illustration code
+  - moodboard URLs
+- The browser then reports this as a failed fetch / missing CORS header, because the runtime aborts before the final headers/body complete.
 
-## Issues
+Why it breaks onboarding specifically:
+- Onboarding uses `mode: "core"`, and that path is now doing too much asset work before returning.
+- The biggest likely payload offenders are:
+  1. base64 `websiteScreenshot`
+  2. large inline `illustrationSvgs`
+  3. possibly oversized extracted text-derived fields across multiple products
 
-1. **False data from AI examples**: The scrape-product prompt contains detailed examples (Scrubby dog gloves, etc.) that the AI sometimes copies into actual output instead of extracting from the page. Need an explicit instruction to leave fields empty when no real data is found.
+Fix plan:
+1. Slim down the `scrape-product` core-mode response
+   - Do not return base64 screenshots inline in onboarding responses.
+   - Return only lightweight structured business data needed to create the business.
+   - Keep core mode focused on: brand, products, audiences, colors, typography, logo URLs, text rules.
 
-2. **Progress bar behavior**: Currently creeps slowly from 0→75% during scrape, then 75→95% during persistence. User wants it to **instantly jump to 80%**, then animate 80→100% based on actual loading progress.
+2. Remove heavy asset generation from the synchronous onboarding request
+   - Skip illustration SVG generation during core mode.
+   - Skip moodboard generation during core mode.
+   - Skip mobile screenshot generation during core mode.
+   - Keep these for the full non-core scrape path, or load them later after onboarding.
 
-3. **Branding completeness**: The `visualIdentity` from scrape-product includes text descriptions (`logoDescription`, `moodboardDescription`, `illustrationGuidelines`) that aren't mapped to the UI's expected format. Need to ensure the fields the UI actually reads (`websiteRules`, `buttonRules`, `imageGuidelines`, `socialMediaRules`, `websiteScreenshot`) are properly passed through onboarding.
+3. Make branding safe but lightweight
+   - Preserve branding text fields and color/font/logo extraction.
+   - If a screenshot exists, only keep it if it is already a remote URL; do not wrap base64 into `data:image/...`.
+   - If Firecrawl only returns base64 screenshot data, drop it from core mode instead of sending it to the client.
 
-## Changes
+4. Add a strict response sanitizer before returning core mode
+   - Trim any oversized arrays to safe limits.
+   - Ensure `products`, `audiences`, `logoUrls`, and rules arrays are arrays.
+   - Remove undefined / null-heavy optional media fields from the core response.
 
-### File: `supabase/functions/scrape-product/index.ts` (~line 630)
-Add critical rules to the AI prompt:
-- "NEVER copy example data into your output. Examples are for FORMAT reference only."
-- "If you cannot find real data for a field from the page content, leave it as an empty string or empty array. Do NOT fabricate or hallucinate data."
-- "Offers should only contain pricing/deals actually found on the page. If none found, return an empty array."
+5. Make onboarding resilient to partial branding
+   - In `BusinessDNAOnboarding.tsx`, accept missing screenshot / moodboard / illustration assets without treating that as failure.
+   - Continue saving the business if structured brand/product/audience data is present.
 
-### File: `src/components/database/BusinessDNAOnboarding.tsx`
-**Progress bar** (~lines 206-244): Change the animation logic:
-- On step start, instantly set `progressRef.current = 80` and `setProgress(80)`
-- Then animate from 80→95 (scrape phase) and 95→100 (persistence complete) using the existing asymptotic approach
-- Remove the slow 0→75 phase entirely
+6. Keep Pinterest failure non-blocking
+   - The 403s from Pinterest scraping are real, but they are not the direct cause of the onboarding crash.
+   - Moodboard loading should never block business creation.
+   - If Pinterest continues to fail, leave `moodboardUrls: []` and let the brand still be created.
 
-**Brand visual identity mapping** (~lines 277-287): Ensure `websiteScreenshot` from scraped data is passed through to the brand's `visualIdentity`:
-```js
-visualIdentity: {
-  ...(b.visualIdentity || {}),
-  websiteScreenshot: b.visualIdentity?.websiteScreenshot || websiteScreenshot || undefined,
-}
-```
-Note: `websiteScreenshot` is available in the scrape response at `extracted.brand.visualIdentity.websiteScreenshot` or from Firecrawl's screenshot data. In core mode, Firecrawl screenshot IS fetched (line 116) but mobile screenshot is skipped.
+7. Verify after implementation
+   - Test onboarding from the homepage and from add-business flow.
+   - Confirm `scrape-product` core mode returns 200 reliably.
+   - Confirm business creation succeeds even when moodboard is empty.
+   - Confirm no white screen after opening the created business.
 
-### File: `supabase/functions/scrape-product/index.ts` (~line 841, core mode return)
-Before returning in core mode, merge the Firecrawl website screenshot into `extracted.brand.visualIdentity.websiteScreenshot` if available:
-```js
-if (websiteScreenshot && !extracted.brand.visualIdentity.websiteScreenshot) {
-  extracted.brand.visualIdentity.websiteScreenshot = websiteScreenshot;
-}
-```
+Files to update:
+- `supabase/functions/scrape-product/index.ts`
+  - reduce core-mode payload
+  - skip heavy asset generation in core mode
+  - avoid inline base64 screenshot return in core mode
+- `src/components/database/BusinessDNAOnboarding.tsx`
+  - tolerate missing media assets in onboarding result
+  - continue persistence with lightweight branding data
 
-## Files
-
-| File | Change |
-|------|--------|
-| `supabase/functions/scrape-product/index.ts` | Add "no fake data" rules to prompt; pass websiteScreenshot in core mode |
-| `src/components/database/BusinessDNAOnboarding.tsx` | Progress bar jumps to 80% instantly, then 80→100% based on actual loading |
-
+Technical note:
+The “No 'Access-Control-Allow-Origin' header” message is a symptom here, not the real root cause. Since the function already sets CORS headers, the missing-header error appears because the edge runtime aborts the response before completion. The real fix is to reduce/stabilize the payload returned by `scrape-product` in onboarding/core mode.
