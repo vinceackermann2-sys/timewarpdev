@@ -53,9 +53,13 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 1 ? 1 : 0)} ${units[i]}`;
 }
 
+// Module-level in-memory cache so the Database tab loads instantly on re-visit
+let _cachedItems: DataItem[] | null = null;
+let _cachedUserId: string | null = null;
+
 export function BusinessDataListView() {
-  const [items, setItems] = useState<DataItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [items, setItems] = useState<DataItem[]>(_cachedItems ?? []);
+  const [isLoading, setIsLoading] = useState(!_cachedItems);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -102,6 +106,13 @@ export function BusinessDataListView() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) { setIsLoading(false); return; }
 
+        // If cache is for the same user, skip fetch
+        if (_cachedItems && _cachedUserId === session.user.id) {
+          setItems(_cachedItems);
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error } = await (supabase as any)
           .from("user_business_data")
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
@@ -109,7 +120,11 @@ export function BusinessDataListView() {
           .order("created_at", { ascending: false })
           .limit(200);
 
-        if (!error && data) setItems(data);
+        if (!error && data) {
+          _cachedItems = data;
+          _cachedUserId = session.user.id;
+          setItems(data);
+        }
       } catch (err) {
         console.error("Failed to fetch business data:", err);
       } finally {
@@ -181,7 +196,7 @@ export function BusinessDataListView() {
           .eq("user_id", session.user.id)
           .order("created_at", { ascending: false })
           .limit(200);
-        if (refreshed) setItems(refreshed);
+        if (refreshed) { _cachedItems = refreshed; setItems(refreshed); }
       } else {
         toast.error(data.error || "Sync failed");
       }
@@ -197,7 +212,7 @@ export function BusinessDataListView() {
     setDeletingId(itemId);
     try {
       await supabase.from("user_business_data").delete().eq("id", itemId);
-      setItems(prev => prev.filter(i => i.id !== itemId));
+      setItems(prev => { const next = prev.filter(i => i.id !== itemId); _cachedItems = next; return next; });
       if (expandedId === itemId) setExpandedId(null);
       toast.success("Data item deleted");
     } catch {
@@ -242,7 +257,7 @@ export function BusinessDataListView() {
           .single();
 
         if (!error && data) {
-          setItems(prev => [data, ...prev]);
+          setItems(prev => { const next = [data, ...prev]; _cachedItems = next; return next; });
         }
       }
       toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
