@@ -267,28 +267,52 @@ function getColorFeeling(hex: string): string {
 async function fetchMoodboardImages(
   brandName: string, category: string, audienceDesc: string,
   firecrawlKey: string, browserlessKey: string,
-  powerWords?: string, brandColorPrimary?: string, brandColorSecondary?: string
+  powerWords?: string, brandColorPrimary?: string, brandColorSecondary?: string,
+  productBenefits?: string, buyingTriggers?: string, aiApiKey?: string
 ): Promise<string[]> {
-  // Extract trust/feeling words from audience description + power words
-  const trustFeeling = [
-    ...(powerWords || "").split(/[\s,]+/).filter(Boolean).slice(0, 3),
-    ...(audienceDesc || "").toLowerCase().split(/[\s,]+/).filter(w =>
-      ["trust", "premium", "luxury", "minimal", "futuristic", "modern", "elegant",
-       "bold", "clean", "innovative", "sophisticated", "warm", "organic", "natural",
-       "playful", "reliable", "authentic", "quality", "simple", "powerful",
-       "sleek", "confident", "safe", "comfort", "exclusive"].includes(w)
-    ).slice(0, 3),
-  ].filter(Boolean);
+  // Use AI to derive: trust object (physical thing audience trusts) + feeling + color description
+  let trustObject = "iPhone"; // sensible default
+  let feelingAndColor = "modern, clean gradients";
 
-  // Map brand colors to color name feeling
-  const colorFeeling = brandColorPrimary ? getColorFeeling(brandColorPrimary) : "";
+  if (aiApiKey) {
+    try {
+      const moodboardPromptRaw = await callAI(aiApiKey,
+        `You are building a Pinterest moodboard search query for a brand.
 
-  const trustStr = trustFeeling.length > 0 ? trustFeeling.join(" ") : "trust quality";
+Brand: "${brandName}", Category: "${category}"
+Audience: ${audienceDesc || "general consumers"}
+Power words: ${powerWords || "quality"}
+Product benefits: ${productBenefits || "convenience"}
+Buying triggers: ${buyingTriggers || "trust"}
+Brand primary color: ${brandColorPrimary || "#333"}
+
+Answer these two questions in JSON format:
+1. "trust": What is ONE specific physical product or brand that this audience already trusts and aspires to? (e.g. "iPhone" for tech-savvy consumers, "Tesla" for eco-luxury, "Dyson" for design-conscious homeowners, "Aesop" for minimalist skincare lovers). Pick something iconic that represents their taste level.
+2. "feeling": A short phrase combining the emotional desire of the audience with a color/visual description from the brand colors (e.g. "tech+futuristic, optimistic gradients" or "earthy+warm, muted earth tones" or "luxurious+bold, deep navy and gold"). Include the color aesthetic.
+
+Return ONLY valid JSON like: {"trust":"iPhone","feeling":"tech+futuristic, optimistic gradients"}
+No explanation.`,
+        "google/gemini-2.5-flash-lite"
+      );
+
+      try {
+        const cleaned = moodboardPromptRaw.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(cleaned);
+        if (parsed.trust) trustObject = parsed.trust;
+        if (parsed.feeling) feelingAndColor = parsed.feeling;
+      } catch { /* use defaults */ }
+      console.log("Moodboard formula:", { trustObject, feelingAndColor });
+    } catch (e) {
+      console.warn("AI moodboard query generation failed, using defaults:", e);
+    }
+  }
+
+  // Formula: (trust + feeling and color + premium minimal ecommerce)
   const queries = [
-    `${trustStr} ${colorFeeling} premium minimal ecommerce`.trim(),
-    `${category} ${trustStr} ${colorFeeling} aesthetic`.trim(),
-    `${brandName} ${colorFeeling} premium minimal ecommerce aesthetic`.trim(),
-  ].filter(Boolean);
+    `${trustObject} ${feelingAndColor} premium minimal ecommerce`,
+    `${trustObject} ${category} ${feelingAndColor} aesthetic`,
+    `${brandName} ${feelingAndColor} premium minimal ecommerce`,
+  ];
 
   const allUrls: string[] = [];
 
