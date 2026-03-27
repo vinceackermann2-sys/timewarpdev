@@ -125,7 +125,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     // No provider
   }
 
-  const allSources = activeUrl ? getActualSources(activeUrl) : [];
+  const initialSource = activeUrl ? getInitialSource(activeUrl) : null;
 
   // URL placeholder rotation for step 0
   useEffect(() => {
