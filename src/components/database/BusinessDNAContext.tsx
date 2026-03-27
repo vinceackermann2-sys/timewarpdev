@@ -239,7 +239,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     await Promise.all(deletePromises);
 
     // Then update local state
-    const newAudiences = audiences.filter(a => !a.productIds?.some(pid => brandProductIds.includes(pid)));
+    const newAudiences = audiences.filter(a => a.brandId !== brandId && !a.productIds?.some(pid => brandProductIds.includes(pid)));
     const newProducts = products.filter(p => p.brandId !== brandId);
     const newBrands = brands.filter(b => b.id !== brandId);
     
