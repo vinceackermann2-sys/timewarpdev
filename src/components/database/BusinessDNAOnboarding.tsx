@@ -393,6 +393,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
           refinementChecklist: a.refinementChecklist || [],
           lastUpdated: now,
           productIds: newProducts[i] ? [newProducts[i].id] : [],
+          brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
         }));
 
       if (cancelled) return;

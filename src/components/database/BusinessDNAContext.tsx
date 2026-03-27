@@ -53,6 +53,7 @@ export interface ProductEntry extends ProductData {
 export interface AudienceEntry extends AudienceData {
   productIds?: string[];
   avatarUrl?: string;
+  brandId?: string;
 }
 
 interface BusinessDNAContextType {
@@ -227,7 +228,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const deleteBrand = async (brandId: string) => {
     const brand = brands.find(b => b.id === brandId);
     const brandProductIds = products.filter(p => p.brandId === brandId).map(p => p.id);
-    const affectedAudiences = audiences.filter(a => a.productIds?.some(pid => brandProductIds.includes(pid)));
+    const affectedAudiences = audiences.filter(a => a.brandId === brandId || a.productIds?.some(pid => brandProductIds.includes(pid)));
     const affectedProducts = products.filter(p => p.brandId === brandId);
 
     // Delete from DB first (await all)
@@ -238,7 +239,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     await Promise.all(deletePromises);
 
     // Then update local state
-    const newAudiences = audiences.filter(a => !a.productIds?.some(pid => brandProductIds.includes(pid)));
+    const newAudiences = audiences.filter(a => a.brandId !== brandId && !a.productIds?.some(pid => brandProductIds.includes(pid)));
     const newProducts = products.filter(p => p.brandId !== brandId);
     const newBrands = brands.filter(b => b.id !== brandId);
     
