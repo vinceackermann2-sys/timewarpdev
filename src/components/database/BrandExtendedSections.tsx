@@ -313,28 +313,25 @@ export function BrandExtendedSections({
           base.moodboard.push({ id: `mood-${base.moodboard.length}`, url: null });
         }
       }
-      // Pre-populate illustrations from SVGs (preferred) or URLs
+      // Pre-populate illustrations from SVGs (9 icons + 1 pattern)
       const rawSvgs = toArr<string>(initialData.illustrationSvgs);
       const rawIllustUrls = toArr<string>(initialData.illustrationUrls);
+      const rawConcepts = toArr<string>((initialData as any).iconConcepts);
       if (rawSvgs.length) {
         base.illustrations = rawSvgs.map((svg, i) => ({
           id: `illust-${i}`,
           url: null,
           svgContent: svg,
-          label: i === 0 ? "Brand icons & symbols set" : "Website pattern / texture",
+          label: i < rawSvgs.length - 1
+            ? (rawConcepts[i] || `Icon ${i + 1}`)
+            : "Brand pattern",
         }));
-        if (base.illustrations.length < 2) {
-          base.illustrations.push({ id: `illust-${base.illustrations.length}`, url: null, label: "Add illustration" });
-        }
       } else if (rawIllustUrls.length) {
         base.illustrations = rawIllustUrls.map((url, i) => ({
           id: `illust-${i}`,
           url,
           label: `Illustration ${i + 1}`,
         }));
-        if (base.illustrations.length < 2) {
-          base.illustrations.push({ id: `illust-${base.illustrations.length}`, url: null, label: "Add illustration" });
-        }
       }
     }
     return base;
