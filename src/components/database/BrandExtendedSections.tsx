@@ -114,6 +114,10 @@ function isLucideIconName(value: string): value is LucideIconName {
   return value in lucideIcons;
 }
 
+function areStringArraysEqual(a: string[], b: string[]) {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
 /* ── Section wrapper ── */
 function BrandSection({
   id, icon: Icon, title, description, children,
@@ -394,7 +398,8 @@ export function BrandExtendedSections({
     setData(prev => {
       const next = { ...prev };
       const rawMoodboard = toArr<string>(initialData.moodboardUrls);
-      if (rawMoodboard.length && !prev.moodboard.some(s => s.url)) {
+      const currentMoodboard = prev.moodboard.map((slot) => slot.url).filter((url): url is string => Boolean(url));
+      if (rawMoodboard.length && !areStringArraysEqual(rawMoodboard, currentMoodboard)) {
         next.moodboard = rawMoodboard.map((url, i) => ({ id: `mood-${i}`, url }));
         while (next.moodboard.length < 6) {
           next.moodboard.push({ id: `mood-${next.moodboard.length}`, url: null });
@@ -403,7 +408,12 @@ export function BrandExtendedSections({
       const rawIconNames = toArr<string>((initialData as any).illustrationIconNames).filter(isLucideIconName);
       const rawSvgs = toArr<string>(initialData.illustrationSvgs);
       const rawPatternSvg = typeof (initialData as any).patternSvg === "string" ? (initialData as any).patternSvg : "";
-      if (rawIconNames.length && !prev.illustrations.some(s => s.iconName)) {
+      const currentIconNames = prev.illustrations
+        .map((slot) => slot.iconName)
+        .filter((iconName): iconName is LucideIconName => Boolean(iconName));
+      const currentPatternSvg = prev.illustrations.find((slot) => slot.id === "illust-pattern")?.svgContent || "";
+
+      if (rawIconNames.length && (!areStringArraysEqual(rawIconNames, currentIconNames) || rawPatternSvg !== currentPatternSvg)) {
         const rawConcepts = toArr<string>((initialData as any).iconConcepts);
         next.illustrations = rawIconNames.map((iconName, i) => ({
           id: `illust-icon-${i}`,
@@ -419,7 +429,7 @@ export function BrandExtendedSections({
             label: "Brand pattern",
           });
         }
-      } else if (rawSvgs.length && !prev.illustrations.some(s => s.svgContent)) {
+      } else if (rawSvgs.length && !areStringArraysEqual(rawSvgs, prev.illustrations.map((slot) => slot.svgContent).filter((svg): svg is string => Boolean(svg)))) {
         const rawConcepts = toArr<string>((initialData as any).iconConcepts);
         next.illustrations = rawSvgs.map((svg, i) => ({
           id: `illust-${i}`, url: null, svgContent: svg,
