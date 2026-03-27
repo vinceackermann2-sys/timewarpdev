@@ -237,20 +237,29 @@ function buildLucideIconNames(concepts: string[], raw: string): string[] {
 
 /* ── Moodboard: scrape real Pinterest image URLs from srcset/raw HTML ── */
 async function fetchMoodboardImages(
-  brandName: string, category: string, audienceDesc: string, firecrawlKey: string, browserlessKey: string
+  brandName: string, category: string, audienceDesc: string,
+  firecrawlKey: string, browserlessKey: string,
+  powerWords?: string, brandColorPrimary?: string, brandColorSecondary?: string
 ): Promise<string[]> {
-  // Build smart queries: product type + trust/feeling + premium aesthetic
-  const audienceTerms = audienceDesc.split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
-  const feelingTerms = audienceDesc
-    .toLowerCase()
-    .split(/[\s,]+/)
-    .filter(w => ["trust", "premium", "luxury", "minimal", "futuristic", "modern", "elegant", "bold", "clean", "innovative", "sophisticated", "warm", "organic", "natural", "playful"].includes(w))
-    .slice(0, 3)
-    .join(" ");
+  // Extract trust/feeling words from audience description + power words
+  const trustFeeling = [
+    ...(powerWords || "").split(/[\s,]+/).filter(Boolean).slice(0, 3),
+    ...(audienceDesc || "").toLowerCase().split(/[\s,]+/).filter(w =>
+      ["trust", "premium", "luxury", "minimal", "futuristic", "modern", "elegant",
+       "bold", "clean", "innovative", "sophisticated", "warm", "organic", "natural",
+       "playful", "reliable", "authentic", "quality", "simple", "powerful",
+       "sleek", "confident", "safe", "comfort", "exclusive"].includes(w)
+    ).slice(0, 3),
+  ].filter(Boolean);
+
+  // Map brand colors to color name feeling
+  const colorFeeling = brandColorPrimary ? getColorFeeling(brandColorPrimary) : "";
+
+  const trustStr = trustFeeling.length > 0 ? trustFeeling.join(" ") : "trust quality";
   const queries = [
-    `${brandName} ${category} ${feelingTerms || "premium minimal"} ecommerce aesthetic`.trim(),
-    `${brandName} product aesthetic`,
-    `${category} ${audienceTerms} ${feelingTerms || "premium"} aesthetic`.trim(),
+    `${trustStr} ${colorFeeling} premium minimal ecommerce`.trim(),
+    `${category} ${trustStr} ${colorFeeling} aesthetic`.trim(),
+    `${brandName} ${colorFeeling} premium minimal ecommerce aesthetic`.trim(),
   ].filter(Boolean);
 
   const allUrls: string[] = [];
