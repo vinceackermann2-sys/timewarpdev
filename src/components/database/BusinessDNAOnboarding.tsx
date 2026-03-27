@@ -34,18 +34,23 @@ const ANALYSIS_MILESTONES = [
   "Structuring product data",
 ];
 
-function getActualSources(url: string): string[] {
+function getInitialSource(url: string): string {
+  try {
+    const u = new URL(url.startsWith("http") ? url : `https://${url}`);
+    return u.hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function urlToDisplaySource(url: string): string {
   try {
     const u = new URL(url.startsWith("http") ? url : `https://${url}`);
     const host = u.hostname.replace(/^www\./, "");
-    const path = u.pathname === "/" ? "" : u.pathname;
-    const sources = [host];
-    if (path && path !== "/") {
-      sources.push(`${host}${path}`);
-    }
-    return sources;
+    const path = u.pathname === "/" ? "" : u.pathname.replace(/\/+$/, "");
+    return path ? `${host}${path}` : host;
   } catch {
-    return [url];
+    return url;
   }
 }
 
@@ -88,8 +93,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
   const [scannedSources, setScannedSources] = useState<string[]>([]);
   const [allSourcesDone, setAllSourcesDone] = useState(false);
 
-  // Scrape state
   const scrapeResult = useRef<any>(null);
+  const realSourcesRef = useRef<string[]>([]);
   const [scrapeComplete, setScrapeComplete] = useState(false);
   const [scrapeError, setScrapeError] = useState(false);
   const [createdBrandId, setCreatedBrandId] = useState<string | undefined>();
@@ -120,7 +125,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     // No provider
   }
 
-  const allSources = activeUrl ? getActualSources(activeUrl) : [];
+  const initialSource = activeUrl ? getInitialSource(activeUrl) : null;
 
   // URL placeholder rotation for step 0
   useEffect(() => {
@@ -164,13 +169,18 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         // Don't trust localStorage — let the edge function resolve workspace server-side
         workspaceIdRef.current = null;
 
-        // Start scrape
-        if (!cancelled) setScannedSources([allSources[0]]);
+        // Start scrape — show initial hostname
+        if (!cancelled) setScannedSources([initialSource || activeUrl.trim()]);
 
         const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim(), mode: "core" });
 
-        if (!cancelled) {
-          setScannedSources([...allSources]);
+        if (!cancelled && data?.scannedUrls?.length) {
+          const displaySources = data.scannedUrls.map((u: string) => urlToDisplaySource(u));
+          realSourcesRef.current = displaySources;
+          // Don't set all at once — let the accumulation effect drip-feed them
+        }
+
+        if (!cancelled && !data?.scannedUrls?.length) {
           setAllSourcesDone(true);
         }
 
@@ -193,19 +203,22 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
-  // Source accumulation
+  // Source accumulation — drip-feed real scanned URLs
   useEffect(() => {
-    if (step < 1 || step >= 3 || allSources.length <= 1 || allSourcesDone) return;
-    const timer = setTimeout(() => {
-      if (allSources.length > 1) {
-        setScannedSources(prev => {
-          if (prev.length < allSources.length) return [...prev, allSources[prev.length]];
+    if (step < 1 || step >= 3 || allSourcesDone) return;
+    const sources = realSourcesRef.current;
+    if (sources.length === 0) return; // not yet available
+    const timer = setInterval(() => {
+      setScannedSources(prev => {
+        if (prev.length >= sources.length) {
+          setAllSourcesDone(true);
           return prev;
-        });
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [step, allSources.length, allSourcesDone]);
+        }
+        return [...prev, sources[prev.length]];
+      });
+    }, 800);
+    return () => clearInterval(timer);
+  }, [step, allSourcesDone, scrapeComplete]);
 
   // Progress animation — instantly jumps to 80%, then animates 80→100%
   useEffect(() => {
@@ -783,7 +796,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
                 <div className="mt-auto pt-3 sm:pt-4 border-t border-border/50 w-full">
                   <p className="text-xs text-muted-foreground/60">
-                    {scannedSources.length} of {allSources.length} sources scanned
+                    {scannedSources.length} source{scannedSources.length !== 1 ? 's' : ''} scanned
                   </p>
                 </div>
               </div>

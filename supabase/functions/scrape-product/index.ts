@@ -682,6 +682,12 @@ serve(async (req) => {
     // ══════════════════════════════════════════════
     // CORE MODE: Return lightweight data
     // ══════════════════════════════════════════════
+    // Build scannedUrls: all actual URLs that were fetched/analyzed
+    const scannedUrls: string[] = [baseUrl];
+    for (const page of productPageContents) {
+      if (page.url && !scannedUrls.includes(page.url)) scannedUrls.push(page.url);
+    }
+
     if (isCoreMode) {
       // Only keep remote URL screenshots
       if (websiteScreenshot && typeof websiteScreenshot === 'string' && websiteScreenshot.startsWith('http')) {
@@ -695,10 +701,10 @@ serve(async (req) => {
       extracted.audiences = ensureArr(extracted.audiences).slice(0, 5);
       extracted.brand.logoUrls = ensureArr(extracted.brand.logoUrls).slice(0, 10);
 
-      console.log("Core mode — returning:", extracted.brand?.name, "products:", extracted.products?.length);
+      console.log("Core mode — returning:", extracted.brand?.name, "products:", extracted.products?.length, "scannedUrls:", scannedUrls.length);
 
       return new Response(
-        JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1 }),
+        JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1, scannedUrls }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -890,7 +896,7 @@ serve(async (req) => {
     console.log("Full mode complete. Products:", products.length, "Audiences:", audiences.length);
 
     return new Response(
-      JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1 }),
+      JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1, scannedUrls }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
