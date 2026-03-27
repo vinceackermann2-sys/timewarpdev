@@ -38,6 +38,111 @@ function parseStringArray(raw: string): string[] {
   } catch { return []; }
 }
 
+function cleanMoodboardToken(value: string, fallback: string): string {
+  const cleaned = value
+    .replace(/```json\s*/gi, "")
+    .replace(/```/g, "")
+    .replace(/[{}\[\]"]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^[,:;\-\s]+|[,:;\-\s]+$/g, "");
+
+  return cleaned || fallback;
+}
+
+function parseMoodboardFormula(raw: string, fallbackTrust: string, fallbackFeeling: string): { trust: string; feeling: string } {
+  if (!raw?.trim()) {
+    return { trust: fallbackTrust, feeling: fallbackFeeling };
+  }
+
+  const cleaned = raw.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    return {
+      trust: cleanMoodboardToken(String(parsed?.trust || ""), fallbackTrust),
+      feeling: cleanMoodboardToken(String(parsed?.feeling || ""), fallbackFeeling),
+    };
+  } catch {
+    const trustMatch = cleaned.match(/"trust"\s*:\s*"([^"]+)"/i) || cleaned.match(/trust\s*[:=-]\s*([^\n,}]+)/i);
+    const feelingMatch = cleaned.match(/"feeling"\s*:\s*"([^"]+)"/i) || cleaned.match(/feeling\s*[:=-]\s*([^\n}]+)/i);
+
+    return {
+      trust: cleanMoodboardToken(trustMatch?.[1] || "", fallbackTrust),
+      feeling: cleanMoodboardToken(feelingMatch?.[1] || "", fallbackFeeling),
+    };
+  }
+}
+
+function inferTrustObject(category: string, audienceDesc: string, productBenefits: string, buyingTriggers: string): string {
+  const text = `${category} ${audienceDesc} ${productBenefits} ${buyingTriggers}`.toLowerCase();
+
+  if (/(fitness|recovery|athlet|wellness|performance|sport)/.test(text)) return "Garmin";
+  if (/(beauty|skincare|hair|cosmetic|self-care)/.test(text)) return "Aesop";
+  if (/(home|interior|kitchen|appliance|clean)/.test(text)) return "Dyson";
+  if (/(baby|kids|parent|family)/.test(text)) return "Stokke";
+  if (/(fashion|apparel|minimal|luxury|travel|luggage)/.test(text)) return "Rimowa";
+  if (/(car|automotive|ev|mobility)/.test(text)) return "Tesla";
+  if (/(outdoor|adventure|trail|hiking)/.test(text)) return "Patagonia";
+  return "iPhone";
+}
+
+function inferFeelingAndColor(
+  audienceDesc: string,
+  powerWords: string,
+  productBenefits: string,
+  buyingTriggers: string,
+  brandColorPrimary?: string,
+  brandColorSecondary?: string,
+): string {
+  const text = `${audienceDesc} ${powerWords} ${productBenefits} ${buyingTriggers}`.toLowerCase();
+
+  let emotion = "premium+minimal";
+  if (/(future|tech|innovation|smart|modern)/.test(text)) emotion = "tech+futuristic";
+  else if (/(calm|recovery|restore|relief|balance)/.test(text)) emotion = "restored+calm";
+  else if (/(luxury|elite|exclusive|premium)/.test(text)) emotion = "refined+exclusive";
+  else if (/(energy|active|performance|boost|speed)/.test(text)) emotion = "energized+high-performance";
+  else if (/(safe|trust|protect|secure)/.test(text)) emotion = "secure+trustworthy";
+
+  const colorTerms = [brandColorPrimary, brandColorSecondary]
+    .filter((value): value is string => Boolean(value))
+    .map(getColorFeeling)
+    .filter(Boolean);
+
+  const colorPhrase = [...new Set(colorTerms)].slice(0, 2).join(" and ") || "clean neutrals";
+  return `${emotion}, ${colorPhrase}`;
+}
+
+function normalizeMoodboardQuery(query: string): string {
+  return query.replace(/[,+]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function keywordizeMoodboardPhrase(value: string, maxWords = 6): string {
+  const stopwords = new Set([
+    "and", "the", "with", "premium", "minimal", "ecommerce", "branding", "moodboard", "design",
+    "deep", "soft", "clean", "neutrals",
+  ]);
+
+  return normalizeMoodboardQuery(value)
+    .split(" ")
+    .filter((token) => token.length > 2 && !stopwords.has(token))
+    .slice(0, maxWords)
+    .join(" ");
+}
+
+function buildMoodboardQueries(trustCandidates: string[], feelingAndColor: string): string[] {
+  const feelingKeywords = keywordizeMoodboardPhrase(feelingAndColor, 5) || "premium minimal";
+  const queries: string[] = [];
+
+  for (const trust of trustCandidates) {
+    queries.push(normalizeMoodboardQuery(`${trust} ${feelingAndColor} premium minimal ecommerce`));
+    queries.push(normalizeMoodboardQuery(`${trust} ${feelingKeywords} premium minimal ecommerce website design`));
+    queries.push(normalizeMoodboardQuery(`${trust} ${feelingKeywords} premium minimal ecommerce product page`));
+  }
+
+  return [...new Set(queries)].slice(0, 6);
+}
+
 const ALLOWED_LUCIDE_ICON_NAMES = [
   "Activity",
   "ArrowUpRight",
@@ -163,6 +268,13 @@ async function scrapePinterestPageForImages(pinUrl: string, firecrawlKey: string
   return extractPinterestUrls(payload);
 }
 
+async function scrapePinterestSearchPageForImages(query: string, firecrawlKey: string, browserlessKey: string): Promise<string[]> {
+  const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`;
+  const firecrawlUrls = await scrapePinterestPageForImages(pinterestUrl, firecrawlKey);
+  if (firecrawlUrls.length > 0) return firecrawlUrls;
+  return scrapePinterestPageForImagesWithBrowserless(pinterestUrl, browserlessKey);
+}
+
 async function scrapePinterestPageForImagesWithBrowserless(pinUrl: string, browserlessKey: string): Promise<string[]> {
   if (!browserlessKey) return [];
 
@@ -271,8 +383,18 @@ async function fetchMoodboardImages(
   productBenefits?: string, buyingTriggers?: string, aiApiKey?: string
 ): Promise<string[]> {
   // Use AI to derive: trust object (physical thing audience trusts) + feeling + color description
-  let trustObject = "iPhone"; // sensible default
-  let feelingAndColor = "modern, clean gradients";
+  const fallbackTrustObject = inferTrustObject(category, audienceDesc, productBenefits || "", buyingTriggers || "");
+  const fallbackFeelingAndColor = inferFeelingAndColor(
+    audienceDesc,
+    powerWords || "",
+    productBenefits || "",
+    buyingTriggers || "",
+    brandColorPrimary,
+    brandColorSecondary,
+  );
+
+  let trustObject = fallbackTrustObject;
+  let feelingAndColor = fallbackFeelingAndColor;
 
   if (aiApiKey) {
     try {
@@ -285,6 +407,7 @@ Power words: ${powerWords || "quality"}
 Product benefits: ${productBenefits || "convenience"}
 Buying triggers: ${buyingTriggers || "trust"}
 Brand primary color: ${brandColorPrimary || "#333"}
+Brand secondary color: ${brandColorSecondary || "#666"}
 
 Answer these two questions in JSON format:
 1. "trust": What is ONE specific physical product or brand that this audience already trusts and aspires to? (e.g. "iPhone" for tech-savvy consumers, "Tesla" for eco-luxury, "Dyson" for design-conscious homeowners, "Aesop" for minimalist skincare lovers). Pick something iconic that represents their taste level.
@@ -295,12 +418,9 @@ No explanation.`,
         "google/gemini-2.5-flash-lite"
       );
 
-      try {
-        const cleaned = moodboardPromptRaw.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
-        const parsed = JSON.parse(cleaned);
-        if (parsed.trust) trustObject = parsed.trust;
-        if (parsed.feeling) feelingAndColor = parsed.feeling;
-      } catch { /* use defaults */ }
+      const parsedFormula = parseMoodboardFormula(moodboardPromptRaw, fallbackTrustObject, fallbackFeelingAndColor);
+      trustObject = parsedFormula.trust;
+      feelingAndColor = parsedFormula.feeling;
       console.log("Moodboard formula:", { trustObject, feelingAndColor });
     } catch (e) {
       console.warn("AI moodboard query generation failed, using defaults:", e);
@@ -308,17 +428,25 @@ No explanation.`,
   }
 
   // Formula: (trust + feeling and color + premium minimal ecommerce)
-  const queries = [
-    `${trustObject} ${feelingAndColor} premium minimal ecommerce`,
-    `${trustObject} ${category} ${feelingAndColor} aesthetic`,
-    `${brandName} ${feelingAndColor} premium minimal ecommerce`,
-  ];
+  const baseQuery = normalizeMoodboardQuery(`${trustObject} ${feelingAndColor} premium minimal ecommerce`);
+  const trustCandidates = [...new Set([trustObject, fallbackTrustObject].filter(Boolean))];
+  const queries = [baseQuery, ...buildMoodboardQueries(trustCandidates, feelingAndColor)].slice(0, 6);
+
+  console.log("Moodboard queries:", queries);
 
   const allUrls: string[] = [];
 
   for (const query of queries) {
     if (allUrls.length >= 6) break;
     try {
+      const directSearchUrls = await scrapePinterestSearchPageForImages(query, firecrawlKey, browserlessKey);
+      for (const url of directSearchUrls) {
+        if (!allUrls.includes(url)) allUrls.push(url);
+        if (allUrls.length >= 6) break;
+      }
+
+      if (allUrls.length >= 6) break;
+
       const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
         method: "POST",
         headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
@@ -334,6 +462,7 @@ No explanation.`,
 
         for (const url of extractPinterestUrls(JSON.stringify(payload))) {
           if (!allUrls.includes(url)) allUrls.push(url);
+          if (allUrls.length >= 6) break;
         }
 
         for (const pageUrl of extractPinterestPageUrls(payload)) {
@@ -363,28 +492,10 @@ No explanation.`,
     for (const query of queries) {
       if (allUrls.length >= 6) break;
       try {
-        const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`;
-        const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: pinterestUrl,
-            formats: ["rawHtml", "html"],
-            waitFor: 7000,
-            onlyMainContent: false,
-          }),
-        });
-
-        if (scrapeRes.ok) {
-          const scrapeData = await scrapeRes.json();
-          const payload = [
-            scrapeData.data?.rawHtml,
-            scrapeData.data?.html,
-            JSON.stringify(scrapeData.data || scrapeData),
-          ].filter(Boolean).join("\n");
-          for (const url of extractPinterestUrls(payload)) {
-            if (!allUrls.includes(url)) allUrls.push(url);
-          }
+        const fallbackUrls = await scrapePinterestSearchPageForImages(query, firecrawlKey, browserlessKey);
+        for (const url of fallbackUrls) {
+          if (!allUrls.includes(url)) allUrls.push(url);
+          if (allUrls.length >= 6) break;
         }
       } catch (e) {
         console.warn(`Pinterest scrape fallback failed for "${query}":`, e);

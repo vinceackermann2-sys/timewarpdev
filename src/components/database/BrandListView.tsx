@@ -52,6 +52,7 @@ export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
             </div>
             <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden" id="extended-brand">
               <BrandExtendedSections
+                key={selectedBrand.id}
                 isEditing={isVisualIdentityEditing}
                 onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)}
                 initialData={selectedBrand.visualIdentity}
