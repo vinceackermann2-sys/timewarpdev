@@ -202,19 +202,22 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
-  // Source accumulation
+  // Source accumulation — drip-feed real scanned URLs
   useEffect(() => {
-    if (step < 1 || step >= 3 || allSources.length <= 1 || allSourcesDone) return;
-    const timer = setTimeout(() => {
-      if (allSources.length > 1) {
-        setScannedSources(prev => {
-          if (prev.length < allSources.length) return [...prev, allSources[prev.length]];
+    if (step < 1 || step >= 3 || allSourcesDone) return;
+    const sources = realSourcesRef.current;
+    if (sources.length === 0) return; // not yet available
+    const timer = setInterval(() => {
+      setScannedSources(prev => {
+        if (prev.length >= sources.length) {
+          setAllSourcesDone(true);
           return prev;
-        });
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [step, allSources.length, allSourcesDone]);
+        }
+        return [...prev, sources[prev.length]];
+      });
+    }, 800);
+    return () => clearInterval(timer);
+  }, [step, allSourcesDone, scrapeComplete]);
 
   // Progress animation — instantly jumps to 80%, then animates 80→100%
   useEffect(() => {
