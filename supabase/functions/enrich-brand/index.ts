@@ -38,80 +38,198 @@ function parseStringArray(raw: string): string[] {
   } catch { return []; }
 }
 
-/* ── Moodboard: use Firecrawl search API to find Pinterest images ── */
+const ALLOWED_LUCIDE_ICON_NAMES = [
+  "Activity",
+  "ArrowUpRight",
+  "Circle",
+  "Clock3",
+  "Droplets",
+  "Dumbbell",
+  "Gem",
+  "Heart",
+  "HeartPulse",
+  "Infinity",
+  "Leaf",
+  "Rocket",
+  "Shield",
+  "Sparkles",
+  "Star",
+  "Sun",
+  "Target",
+  "TrendingUp",
+  "Waves",
+  "Zap",
+] as const;
+
+const ALLOWED_LUCIDE_ICON_SET = new Set<string>(ALLOWED_LUCIDE_ICON_NAMES);
+
+function normalizePascalCase(value: string): string {
+  return value
+    .trim()
+    .replace(/[^a-z0-9]+/gi, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join("");
+}
+
+function canonicalizePinterestUrl(url: string): string | null {
+  const clean = url
+    .replace(/\\u002F/g, "/")
+    .replace(/\\\//g, "/")
+    .replace(/&amp;/g, "&")
+    .split(/\s+/)[0]
+    .trim();
+
+  const match = clean.match(/https?:\/\/i\.pinimg\.com\/(?:\d+x|originals)\/([^?]+\.(?:jpg|jpeg|png|webp))/i);
+  if (!match) return null;
+  return `https://i.pinimg.com/originals/${match[1]}`;
+}
+
+function extractPinterestUrls(raw: string): string[] {
+  if (!raw) return [];
+  const decoded = raw.replace(/\\u002F/g, "/").replace(/\\\//g, "/");
+  const regex = /https?:\/\/i\.pinimg\.com\/(?:\d+x|originals)\/[A-Za-z0-9/_%.-]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>\\,]+)?/gi;
+  const matches = decoded.match(regex) || [];
+  const deduped = new Map<string, string>();
+
+  for (const match of matches) {
+    const normalized = canonicalizePinterestUrl(match);
+    if (!normalized) continue;
+    const assetKey = normalized.replace(/^https?:\/\/i\.pinimg\.com\/originals\//i, "").split("?")[0];
+    if (!deduped.has(assetKey)) deduped.set(assetKey, normalized);
+  }
+
+  return [...deduped.values()].slice(0, 6);
+}
+
+function mapConceptToLucideIconName(concept: string, index: number): string {
+  const normalized = concept.toLowerCase();
+  const keywordMap: Array<{ keywords: string[]; icon: string }> = [
+    { keywords: ["pulse", "heartbeat", "recovery", "wellness", "health"], icon: "HeartPulse" },
+    { keywords: ["flow", "wave", "fluid", "movement"], icon: "Waves" },
+    { keywords: ["water", "drop", "hydration"], icon: "Droplets" },
+    { keywords: ["strength", "muscle", "power", "training"], icon: "Dumbbell" },
+    { keywords: ["protect", "shield", "trust", "safe"], icon: "Shield" },
+    { keywords: ["leaf", "natural", "organic"], icon: "Leaf" },
+    { keywords: ["arrow", "growth", "progress", "up"], icon: "ArrowUpRight" },
+    { keywords: ["trend", "scale", "performance"], icon: "TrendingUp" },
+    { keywords: ["infinity", "continuous", "endless"], icon: "Infinity" },
+    { keywords: ["heart", "care", "love"], icon: "Heart" },
+    { keywords: ["spark", "magic", "ideas", "inspire"], icon: "Sparkles" },
+    { keywords: ["star", "premium", "quality"], icon: "Star" },
+    { keywords: ["gem", "luxury", "elite"], icon: "Gem" },
+    { keywords: ["sun", "energy", "warmth"], icon: "Sun" },
+    { keywords: ["rocket", "speed", "launch"], icon: "Rocket" },
+    { keywords: ["target", "focus", "precision"], icon: "Target" },
+    { keywords: ["clock", "time", "fast"], icon: "Clock3" },
+    { keywords: ["circle", "community", "unity"], icon: "Circle" },
+    { keywords: ["activity", "motion", "active"], icon: "Activity" },
+    { keywords: ["bolt", "zap", "electric", "charge"], icon: "Zap" },
+  ];
+
+  for (const entry of keywordMap) {
+    if (entry.keywords.some((keyword) => normalized.includes(keyword))) return entry.icon;
+  }
+
+  return ALLOWED_LUCIDE_ICON_NAMES[index % ALLOWED_LUCIDE_ICON_NAMES.length];
+}
+
+function buildLucideIconNames(concepts: string[], raw: string): string[] {
+  const requested = parseStringArray(raw)
+    .map(normalizePascalCase)
+    .filter((name) => ALLOWED_LUCIDE_ICON_SET.has(name));
+
+  const result: string[] = [];
+  for (const name of requested) {
+    if (!result.includes(name)) result.push(name);
+    if (result.length === 9) return result;
+  }
+
+  for (let i = 0; i < concepts.length; i++) {
+    const fallback = mapConceptToLucideIconName(concepts[i], i);
+    if (!result.includes(fallback)) result.push(fallback);
+    if (result.length === 9) return result;
+  }
+
+  for (const fallback of ALLOWED_LUCIDE_ICON_NAMES) {
+    if (!result.includes(fallback)) result.push(fallback);
+    if (result.length === 9) return result;
+  }
+
+  return result.slice(0, 9);
+}
+
+/* ── Moodboard: scrape real Pinterest image URLs from srcset/raw HTML ── */
 async function fetchMoodboardImages(
   brandName: string, category: string, audienceDesc: string, firecrawlKey: string
 ): Promise<string[]> {
+  const audienceTerms = audienceDesc.split(/\s+/).filter(Boolean).slice(0, 6).join(" ");
   const queries = [
-    `${brandName} ${category} aesthetic pinterest`,
-    `${brandName} brand moodboard inspiration`,
-    `${category} product photography aesthetic pinterest`,
-  ];
+    `${brandName} ${category} moodboard`,
+    `${brandName} aesthetic`,
+    `${category} ${audienceTerms} aesthetic`.trim(),
+  ].filter(Boolean);
 
   const allUrls: string[] = [];
-  const pinImgRegex = /https?:\/\/i\.pinimg\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
 
   for (const query of queries) {
     if (allUrls.length >= 6) break;
     try {
-      // Try Firecrawl search API first
-      const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+      const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`;
+      const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          query,
-          limit: 5,
-          scrapeOptions: { formats: ["html"] },
+          url: pinterestUrl,
+          formats: ["rawHtml", "html"],
+          waitFor: 7000,
+          onlyMainContent: false,
         }),
       });
 
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        const results = searchData.data || [];
-        for (const result of results) {
-          const html = result.html || result.markdown || "";
-          pinImgRegex.lastIndex = 0;
-          let match;
-          while ((match = pinImgRegex.exec(html)) !== null) {
-            const url = match[0];
-            if (url.includes("/75x") || url.includes("/140x") || url.includes("/170x")) continue;
-            if (!allUrls.includes(url)) allUrls.push(url);
-          }
-          // Also check for og:image or other image URLs from Pinterest results
-          if (result.url?.includes("pinterest") && result.metadata?.ogImage) {
-            const og = result.metadata.ogImage;
-            if (!allUrls.includes(og)) allUrls.push(og);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn(`Search failed for "${query}":`, e);
-    }
-  }
+      if (scrapeRes.ok) {
+        const scrapeData = await scrapeRes.json();
+        const rawPayload = [
+          scrapeData.data?.rawHtml,
+          scrapeData.data?.html,
+          JSON.stringify(scrapeData.data || scrapeData),
+        ].filter(Boolean).join("\n");
 
-  // Fallback: direct Pinterest scrape with rawHtml + longer wait
-  if (allUrls.length < 3) {
-    try {
-      const encodedQuery = encodeURIComponent(`${brandName} ${category} aesthetic`);
-      const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodedQuery}`;
-      const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: pinterestUrl, formats: ["rawHtml"], waitFor: 5000 }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const html: string = data.data?.rawHtml || data.data?.html || "";
-        pinImgRegex.lastIndex = 0;
-        let match;
-        while ((match = pinImgRegex.exec(html)) !== null) {
-          const url = match[0];
-          if (url.includes("/75x") || url.includes("/140x") || url.includes("/170x")) continue;
+        for (const url of extractPinterestUrls(rawPayload)) {
           if (!allUrls.includes(url)) allUrls.push(url);
         }
       }
     } catch (e) {
-      console.warn("Pinterest direct scrape fallback failed:", e);
+      console.warn(`Pinterest scrape failed for "${query}":`, e);
+    }
+  }
+
+  // Fallback: search for Pinterest result pages and parse their srcset/image JSON blobs
+  if (allUrls.length < 3) {
+    for (const query of queries) {
+      if (allUrls.length >= 6) break;
+      try {
+        const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: `site:pinterest.com ${query}`,
+            limit: 5,
+            scrapeOptions: { formats: ["html"] },
+          }),
+        });
+
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          const payload = JSON.stringify(searchData.data || searchData);
+          for (const url of extractPinterestUrls(payload)) {
+            if (!allUrls.includes(url)) allUrls.push(url);
+          }
+        }
+      } catch (e) {
+        console.warn(`Pinterest search fallback failed for "${query}":`, e);
+      }
     }
   }
 
@@ -163,7 +281,7 @@ serve(async (req) => {
       } catch (e) { console.error("Moodboard pipeline error:", e); enriched.moodboardUrls = []; }
     })();
 
-    // ── Pipeline 2: 9 Individual Icon SVGs + 1 Pattern SVG ──
+    // ── Pipeline 2: 9 Lucide icon names + 1 code-generated pattern SVG ──
     const illustrationPipeline = (async () => {
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping illustrations"); return; }
       try {
@@ -185,44 +303,29 @@ serve(async (req) => {
         concepts = concepts.slice(0, 9);
         console.log("Icon concepts:", concepts);
 
-        // Generate 9 icons in 3 batches of 3
-        const illustrationSvgs: string[] = [];
-        for (let batch = 0; batch < 3; batch++) {
-          const batchConcepts = concepts.slice(batch * 3, batch * 3 + 3);
-          const batchResults = await Promise.allSettled(
-            batchConcepts.map(concept =>
-              callAI(LOVABLE_API_KEY,
-                `Generate a complete, valid SVG string (viewBox="0 0 100 100") containing a single clean icon representing "${concept}".\n\nRequirements:\n- Simple, minimal, professional line/filled icon style\n- Use ONLY these colors: ${primary} and ${secondary}\n- NO text elements, NO <text> tags\n- Clean paths, centered in the viewBox\n- The SVG should be self-contained and valid\n\nReturn ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown, no explanation.`
-              )
-            )
-          );
+        const iconNamesRaw = await callAI(
+          LOVABLE_API_KEY,
+          `Choose exactly 9 Lucide icon names for a brand called "${name}" in the ${cat} category.\n\nConcepts: ${concepts.join(", ")}\nProduct benefits: ${benefits}\nAudience triggers: ${triggers}\nPower words: ${power}\n\nYou MUST choose from this allowlist only:\n${ALLOWED_LUCIDE_ICON_NAMES.join(", ")}\n\nRules:\n- Return exactly 9 names\n- Prefer unique names\n- Match each icon semantically to the concepts and business data\n- Return ONLY a JSON array of strings with exact icon names from the allowlist\n- No explanation, no markdown.`,
+          "google/gemini-2.5-flash-lite"
+        );
 
-          for (let i = 0; i < batchResults.length; i++) {
-            const r = batchResults[i];
-            if (r.status === "fulfilled") {
-              const svg = extractSvg(r.value);
-              if (svg) {
-                illustrationSvgs.push(svg);
-                console.log(`✓ Icon "${batchConcepts[i]}" generated`);
-              }
-            }
-          }
-        }
+        const illustrationIconNames = buildLucideIconNames(concepts, iconNamesRaw);
+        enriched.illustrationIconNames = illustrationIconNames;
+        enriched.iconConcepts = concepts;
+        console.log("Lucide icons enriched:", illustrationIconNames);
 
-        // Generate 1 pattern
+        // Generate 1 pattern SVG (code-based)
         const patternRaw = await callAI(LOVABLE_API_KEY,
           `Generate a complete, valid SVG string (viewBox="0 0 600 200") containing a seamless decorative pattern.\n\nBrand: "${name}", category: ${cat}\nPrimary color: ${primary}\nSecondary color: ${secondary}\nBackground: ${colors.background || "#ffffff"}\n\nRequirements:\n- A flowing, repeatable pattern using geometric or organic shapes\n- Use SVG <path>, <circle>, <rect>, <line> elements\n- Use <defs> with gradients if desired\n- NO <text> tags, NO letters\n- Clean, professional, modern feel\n- Use only the brand color palette\n\nReturn ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown.`
         );
         const patternSvg = extractSvg(patternRaw);
         if (patternSvg) {
-          illustrationSvgs.push(patternSvg);
+          enriched.patternSvg = patternSvg;
           console.log("✓ Pattern SVG generated");
         }
 
-        if (illustrationSvgs.length > 0) {
-          enriched.illustrationSvgs = illustrationSvgs;
-          enriched.iconConcepts = concepts;
-          console.log("Illustrations enriched:", illustrationSvgs.length);
+        if (illustrationIconNames.length > 0 || patternSvg) {
+          console.log("Illustrations enriched:", illustrationIconNames.length + (patternSvg ? 1 : 0));
         }
       } catch (e) { console.error("Illustration pipeline error:", e); }
     })();
@@ -258,7 +361,11 @@ serve(async (req) => {
     // Merge into existing visualIdentity
     const updatedVi = { ...vi };
     if (enriched.moodboardUrls?.length > 0) updatedVi.moodboardUrls = enriched.moodboardUrls;
-    if (enriched.illustrationSvgs?.length > 0) updatedVi.illustrationSvgs = enriched.illustrationSvgs;
+    if (enriched.illustrationIconNames?.length > 0) {
+      updatedVi.illustrationIconNames = enriched.illustrationIconNames;
+      delete updatedVi.illustrationSvgs;
+    }
+    if (enriched.patternSvg) updatedVi.patternSvg = enriched.patternSvg;
     if (enriched.iconConcepts?.length > 0) updatedVi.iconConcepts = enriched.iconConcepts;
     if (enriched.websiteScreenshot) updatedVi.websiteScreenshot = enriched.websiteScreenshot;
 
@@ -276,7 +383,7 @@ serve(async (req) => {
 
     console.log("Brand enrichment complete:", {
       moodboard: enriched.moodboardUrls?.length || 0,
-      illustrations: enriched.illustrationSvgs?.length || 0,
+      illustrations: (enriched.illustrationIconNames?.length || 0) + (enriched.patternSvg ? 1 : 0),
       screenshot: !!enriched.websiteScreenshot,
     });
 
@@ -284,7 +391,7 @@ serve(async (req) => {
       success: true,
       enriched: {
         moodboard: enriched.moodboardUrls?.length || 0,
-        illustrations: enriched.illustrationSvgs?.length || 0,
+        illustrations: (enriched.illustrationIconNames?.length || 0) + (enriched.patternSvg ? 1 : 0),
         screenshot: !!enriched.websiteScreenshot,
       },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

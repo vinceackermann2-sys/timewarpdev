@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import {
-  ImageIcon, LayoutGrid, MonitorSmartphone, MousePointerClick, Paintbrush,
-  Pencil, Save, X, Upload, Plus, Trash2,
+  Activity, ArrowUpRight, Circle, Clock3, Droplets, Dumbbell, Gem, Heart,
+  HeartPulse, ImageIcon, Infinity, LayoutGrid, Leaf, MonitorSmartphone,
+  MousePointerClick, Paintbrush, Pencil, Rocket, Save, Shield, Sparkles,
+  Star, Sun, Target, Trash2, TrendingUp, Upload, Waves, X, Zap, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +16,7 @@ interface ImageSlot {
   url: string | null;
   label?: string;
   svgContent?: string;
+  iconName?: string;
 }
 
 interface GuidelineRule {
@@ -39,6 +42,9 @@ interface VisualIdentityInitial {
   moodboardUrls?: string[];
   illustrationUrls?: string[];
   illustrationSvgs?: string[];
+  illustrationIconNames?: string[];
+  patternSvg?: string;
+  iconConcepts?: string[];
   websiteScreenshot?: string;
   mobileScreenshot?: string;
   guidelineImageUrls?: string[];
@@ -55,7 +61,7 @@ interface BrandColorsProps {
 const DEFAULT_DATA: VisualIdentityData = {
   moodboard: Array.from({ length: 6 }, (_, i) => ({ id: `mood-${i}`, url: null })),
   illustrations: [
-    { id: "illust-0", url: null, label: "Brand icons & symbols set" },
+    { id: "illust-0", url: null, label: "Brand icon set" },
     { id: "illust-1", url: null, label: "Website pattern / texture" },
   ],
   imageGuidelines: [
@@ -78,6 +84,35 @@ const DEFAULT_DATA: VisualIdentityData = {
     "Applies to posts, stories, and reels",
   ],
 };
+
+const lucideIcons = {
+  Activity,
+  ArrowUpRight,
+  Circle,
+  Clock3,
+  Droplets,
+  Dumbbell,
+  Gem,
+  Heart,
+  HeartPulse,
+  Infinity,
+  Leaf,
+  Rocket,
+  Shield,
+  Sparkles,
+  Star,
+  Sun,
+  Target,
+  TrendingUp,
+  Waves,
+  Zap,
+} as const;
+
+type LucideIconName = keyof typeof lucideIcons;
+
+function isLucideIconName(value: string): value is LucideIconName {
+  return value in lucideIcons;
+}
 
 /* ── Section wrapper ── */
 function BrandSection({
@@ -313,11 +348,28 @@ export function BrandExtendedSections({
           base.moodboard.push({ id: `mood-${base.moodboard.length}`, url: null });
         }
       }
-      // Pre-populate illustrations from SVGs (9 icons + 1 pattern)
+      // Pre-populate illustrations from Lucide icons + pattern SVG
+      const rawIconNames = toArr<string>((initialData as any).illustrationIconNames).filter(isLucideIconName);
       const rawSvgs = toArr<string>(initialData.illustrationSvgs);
       const rawIllustUrls = toArr<string>(initialData.illustrationUrls);
       const rawConcepts = toArr<string>((initialData as any).iconConcepts);
-      if (rawSvgs.length) {
+      const rawPatternSvg = typeof (initialData as any).patternSvg === "string" ? (initialData as any).patternSvg : "";
+      if (rawIconNames.length) {
+        base.illustrations = rawIconNames.map((iconName, i) => ({
+          id: `illust-icon-${i}`,
+          url: null,
+          iconName,
+          label: rawConcepts[i] || `Icon ${i + 1}`,
+        }));
+        if (rawPatternSvg) {
+          base.illustrations.push({
+            id: "illust-pattern",
+            url: null,
+            svgContent: rawPatternSvg,
+            label: "Brand pattern",
+          });
+        }
+      } else if (rawSvgs.length) {
         base.illustrations = rawSvgs.map((svg, i) => ({
           id: `illust-${i}`,
           url: null,
@@ -348,8 +400,26 @@ export function BrandExtendedSections({
           next.moodboard.push({ id: `mood-${next.moodboard.length}`, url: null });
         }
       }
+      const rawIconNames = toArr<string>((initialData as any).illustrationIconNames).filter(isLucideIconName);
       const rawSvgs = toArr<string>(initialData.illustrationSvgs);
-      if (rawSvgs.length && !prev.illustrations.some(s => s.svgContent)) {
+      const rawPatternSvg = typeof (initialData as any).patternSvg === "string" ? (initialData as any).patternSvg : "";
+      if (rawIconNames.length && !prev.illustrations.some(s => s.iconName)) {
+        const rawConcepts = toArr<string>((initialData as any).iconConcepts);
+        next.illustrations = rawIconNames.map((iconName, i) => ({
+          id: `illust-icon-${i}`,
+          url: null,
+          iconName,
+          label: rawConcepts[i] || `Icon ${i + 1}`,
+        }));
+        if (rawPatternSvg) {
+          next.illustrations.push({
+            id: "illust-pattern",
+            url: null,
+            svgContent: rawPatternSvg,
+            label: "Brand pattern",
+          });
+        }
+      } else if (rawSvgs.length && !prev.illustrations.some(s => s.svgContent)) {
         const rawConcepts = toArr<string>((initialData as any).iconConcepts);
         next.illustrations = rawSvgs.map((svg, i) => ({
           id: `illust-${i}`, url: null, svgContent: svg,
@@ -360,7 +430,7 @@ export function BrandExtendedSections({
       }
       return next;
     });
-  }, [initialData?.moodboardUrls, initialData?.illustrationSvgs]);
+  }, [initialData?.moodboardUrls, (initialData as any)?.illustrationIconNames, (initialData as any)?.patternSvg, initialData?.illustrationSvgs]);
   const isEditing = externalEditing ?? false;
 
 
@@ -416,6 +486,8 @@ export function BrandExtendedSections({
                   moodboardUrls: data.moodboard.filter(s => s.url).map(s => s.url!),
                   illustrationUrls: data.illustrations.filter(s => s.url).map(s => s.url!),
                   illustrationSvgs: data.illustrations.filter(s => s.svgContent).map(s => s.svgContent!),
+                  illustrationIconNames: data.illustrations.filter((s): s is ImageSlot & { iconName: LucideIconName } => Boolean(s.iconName)).map(s => s.iconName!),
+                  patternSvg: data.illustrations.find(s => s.id === "illust-pattern")?.svgContent,
                   websiteScreenshot: initialData?.websiteScreenshot,
                   mobileScreenshot: initialData?.mobileScreenshot,
                   guidelineImageUrls: initialData?.guidelineImageUrls,
@@ -469,10 +541,9 @@ export function BrandExtendedSections({
           <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-4">
             {/* Icons grid (all but last SVG if we have 10+) */}
             {(() => {
-              const svgSlots = data.illustrations.filter(s => s.svgContent);
-              const nonSvgSlots = data.illustrations.filter(s => !s.svgContent);
-              const iconSlots = svgSlots.length > 1 ? svgSlots.slice(0, -1) : svgSlots;
-              const patternSlot = svgSlots.length > 1 ? svgSlots[svgSlots.length - 1] : null;
+              const iconSlots = data.illustrations.filter((s) => s.iconName && isLucideIconName(s.iconName));
+              const patternSlot = data.illustrations.find((s) => s.id === "illust-pattern" && s.svgContent);
+              const nonSvgSlots = data.illustrations.filter(s => !s.svgContent && !s.iconName);
 
               return (
                 <>
@@ -480,10 +551,10 @@ export function BrandExtendedSections({
                     <div className="grid grid-cols-3 gap-3">
                       {iconSlots.map((slot) => (
                         <div key={slot.id} className="aspect-square rounded-lg border border-border/50 overflow-hidden bg-card p-3 relative flex items-center justify-center">
-                          <div
-                            className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
-                            dangerouslySetInnerHTML={{ __html: slot.svgContent! }}
-                          />
+                          {(() => {
+                            const Icon = slot.iconName ? lucideIcons[slot.iconName] : null;
+                            return Icon ? <Icon className="h-full w-full p-3 text-foreground" strokeWidth={1.6} /> : null;
+                          })()}
                           {slot.label && (
                             <span className="absolute bottom-1 left-1 right-1 text-center text-[9px] text-muted-foreground bg-background/80 px-1 py-0.5 rounded truncate">
                               {slot.label}
