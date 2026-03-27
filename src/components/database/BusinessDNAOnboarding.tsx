@@ -420,9 +420,18 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
       // Fire-and-forget: enrich brand with heavy assets (moodboard, illustrations, screenshot)
       if (contextAvailable) {
-        const brandRow = reloadedBrands.find((b: any) => b.id === finalBrandId);
-        const rowId = (brandRow as any)?._rowId;
-        console.log("Enrich-brand: brandRow found?", !!brandRow, "rowId:", rowId);
+        let rowId: string | undefined;
+        // Try to find the brand row, with retry for race conditions
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const brandRow = reloadedBrands.find((b: any) => b.id === finalBrandId);
+          rowId = (brandRow as any)?._rowId;
+          if (rowId) break;
+          console.log(`Enrich-brand: rowId not found, retry ${attempt + 1}/3...`);
+          await new Promise(r => setTimeout(r, 1500));
+          const retryResult = await reloadData();
+          reloadedBrands = retryResult.brands;
+        }
+        console.log("Enrich-brand: rowId:", rowId);
         if (rowId) {
           const firstProduct = productsRaw[0] || {};
           const firstAudience = audiencesRaw[0] || {};

@@ -7,48 +7,122 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const parseStringArrayFromAiText = (raw: string): string[] => {
+/* ── Helper: call AI gateway ── */
+async function callAI(apiKey: string, prompt: string, model = "google/gemini-2.5-flash"): Promise<string> {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }] }),
+  });
+  if (!res.ok) throw new Error(`AI call failed: ${res.status}`);
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content || "";
+}
+
+/* ── Helper: extract SVG from AI response ── */
+function extractSvg(raw: string): string | null {
+  const match = raw.match(/<svg[\s\S]*?<\/svg>/i);
+  return match ? match[0] : null;
+}
+
+/* ── Helper: parse JSON array from AI text ── */
+function parseStringArray(raw: string): string[] {
   if (!raw) return [];
   const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  const arrayStart = cleaned.indexOf("[");
-  const arrayEnd = cleaned.lastIndexOf("]");
-  if (arrayStart === -1 || arrayEnd === -1 || arrayEnd <= arrayStart) return [];
+  const s = cleaned.indexOf("[");
+  const e = cleaned.lastIndexOf("]");
+  if (s === -1 || e === -1 || e <= s) return [];
   try {
-    const parsed = JSON.parse(cleaned.slice(arrayStart, arrayEnd + 1));
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+    const parsed = JSON.parse(cleaned.slice(s, e + 1));
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string" && x.trim().length > 0) : [];
   } catch { return []; }
-};
+}
 
-const scrapePinterestForImages = async (term: string, apiKey: string): Promise<string[]> => {
+/* ── Moodboard: use Firecrawl search API to find Pinterest images ── */
+async function fetchMoodboardImages(
+  brandName: string, category: string, audienceDesc: string, firecrawlKey: string
+): Promise<string[]> {
+  const queries = [
+    `${brandName} ${category} aesthetic pinterest`,
+    `${brandName} brand moodboard inspiration`,
+    `${category} product photography aesthetic pinterest`,
+  ];
+
+  const allUrls: string[] = [];
   const pinImgRegex = /https?:\/\/i\.pinimg\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
-  const encodedQuery = encodeURIComponent(term);
-  const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodedQuery}`;
-  try {
-    const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url: pinterestUrl, formats: ["html"], waitFor: 3000 }),
-    });
-    if (!res.ok) { console.warn(`Pinterest scrape failed for "${term}": ${res.status}`); return []; }
-    const data = await res.json();
-    const html: string = data.data?.html || data.html || "";
-    const found: string[] = [];
-    let match;
-    pinImgRegex.lastIndex = 0;
-    while ((match = pinImgRegex.exec(html)) !== null) {
-      const url = match[0];
-      if (url.includes("/75x") || url.includes("/140x") || url.includes("/170x")) continue;
-      found.push(url);
+
+  for (const query of queries) {
+    if (allUrls.length >= 6) break;
+    try {
+      // Try Firecrawl search API first
+      const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query,
+          limit: 5,
+          scrapeOptions: { formats: ["html"] },
+        }),
+      });
+
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        const results = searchData.data || [];
+        for (const result of results) {
+          const html = result.html || result.markdown || "";
+          pinImgRegex.lastIndex = 0;
+          let match;
+          while ((match = pinImgRegex.exec(html)) !== null) {
+            const url = match[0];
+            if (url.includes("/75x") || url.includes("/140x") || url.includes("/170x")) continue;
+            if (!allUrls.includes(url)) allUrls.push(url);
+          }
+          // Also check for og:image or other image URLs from Pinterest results
+          if (result.url?.includes("pinterest") && result.metadata?.ogImage) {
+            const og = result.metadata.ogImage;
+            if (!allUrls.includes(og)) allUrls.push(og);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`Search failed for "${query}":`, e);
     }
-    return [...new Set(found)];
-  } catch (e) { console.warn(`Pinterest scrape error for "${term}":`, e); return []; }
-};
+  }
+
+  // Fallback: direct Pinterest scrape with rawHtml + longer wait
+  if (allUrls.length < 3) {
+    try {
+      const encodedQuery = encodeURIComponent(`${brandName} ${category} aesthetic`);
+      const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodedQuery}`;
+      const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ url: pinterestUrl, formats: ["rawHtml"], waitFor: 5000 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const html: string = data.data?.rawHtml || data.data?.html || "";
+        pinImgRegex.lastIndex = 0;
+        let match;
+        while ((match = pinImgRegex.exec(html)) !== null) {
+          const url = match[0];
+          if (url.includes("/75x") || url.includes("/140x") || url.includes("/170x")) continue;
+          if (!allUrls.includes(url)) allUrls.push(url);
+        }
+      }
+    } catch (e) {
+      console.warn("Pinterest direct scrape fallback failed:", e);
+    }
+  }
+
+  return [...new Set(allUrls)].slice(0, 6);
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { brandRowId, brandName, brandCategory, brandColors, audienceDesc, audiencePowerWords, websiteUrl, productBenefits, buyingTriggers } = await req.json();
+    const { brandRowId, brandName, brandCategory, brandColors, audienceDesc, audiencePowerWords, productBenefits, buyingTriggers, websiteUrl } = await req.json();
 
     if (!brandRowId) {
       return new Response(JSON.stringify({ success: false, error: "brandRowId required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -72,108 +146,82 @@ serve(async (req) => {
 
     const vi = brandContent.visualIdentity || {};
     const enriched: Record<string, any> = {};
+    const name = brandName || brandContent.name || "the brand";
+    const cat = brandCategory || brandContent.category || "lifestyle";
+    const colors = brandColors || brandContent.colors || {};
+    const primary = colors.primary || "#333333";
+    const secondary = colors.secondary || "#666666";
 
-    // ── Pipeline 1: Moodboard (Pinterest) ──
+    // ── Pipeline 1: Moodboard (Pinterest via search) ──
     const moodboardPipeline = (async () => {
       if (!FIRECRAWL_API_KEY) { console.warn("No FIRECRAWL_API_KEY, skipping moodboard"); return; }
       try {
-        const name = brandName || brandContent.name || "the brand";
-        const cat = brandCategory || brandContent.category || "lifestyle";
-        const audDesc = audienceDesc || "general consumers";
-        const prodBenefits = productBenefits || "";
-        const powerWords = audiencePowerWords || "";
-
-        console.log("Generating moodboard terms...");
-        const termsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
-            messages: [{ role: "user", content: `Generate exactly 6 aesthetic search terms for a moodboard.\n\nUse this framework for each term:\n[audience visual/product scene] + [trust feeling/emotion] + premium minimal e-commerce\n\nBrand: "${name}" (${cat})\nTarget audience: ${audDesc.split('.').slice(0, 3).join('.')}\nProduct benefits: ${prodBenefits || 'quality, convenience, value'}\nPower phrases: ${powerWords || 'convenience, quality, trust'}\n\nReturn ONLY a JSON array of 6 phrases. No explanation.` }],
-          }),
-        });
-
-        let aestheticTerms: string[] = [];
-        if (termsRes.ok) {
-          const d = await termsRes.json();
-          aestheticTerms = parseStringArrayFromAiText(d.choices?.[0]?.message?.content || "");
-        }
-        if (aestheticTerms.length === 0) {
-          aestheticTerms = [
-            `${cat} product showcase + trust + premium minimal e-commerce`,
-            `${cat} lifestyle + warm confidence + premium minimal e-commerce`,
-            `${cat} texture detail + calm sophistication + premium minimal e-commerce`,
-            `clean packaging flat lay + quality assurance + premium minimal e-commerce`,
-            `aspirational lifestyle moment + empowerment + premium minimal e-commerce`,
-            `editorial product photography + reliability + premium minimal e-commerce`,
-          ];
-        }
-        console.log("Moodboard terms:", aestheticTerms);
-
-        const results = await Promise.allSettled(
-          aestheticTerms.slice(0, 6).map(async (term) => {
-            const imgs = await scrapePinterestForImages(term, FIRECRAWL_API_KEY);
-            return imgs.length > 0 ? imgs[0] : null;
-          })
-        );
-
-        const urls = results
-          .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled" && !!r.value)
-          .map(r => r.value);
-
-        enriched.moodboardUrls = [...new Set(urls)].slice(0, 6);
-        console.log("Moodboard enriched:", enriched.moodboardUrls.length, "images");
+        console.log("Starting moodboard pipeline...");
+        const urls = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY);
+        enriched.moodboardUrls = urls;
+        console.log("Moodboard enriched:", urls.length, "images");
       } catch (e) { console.error("Moodboard pipeline error:", e); enriched.moodboardUrls = []; }
     })();
 
-    // ── Pipeline 2: SVG Illustrations ──
+    // ── Pipeline 2: 9 Individual Icon SVGs + 1 Pattern SVG ──
     const illustrationPipeline = (async () => {
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping illustrations"); return; }
       try {
-        const name = brandName || brandContent.name || "the brand";
-        const cat = brandCategory || brandContent.category || "general";
-        const colors = brandColors || brandContent.colors || {};
-        const benefits = productBenefits || "";
-        const triggers = buyingTriggers || "";
-        const powerWords = audiencePowerWords || "";
+        console.log("Generating icon concepts...");
+        // Get 9 concepts from AI
+        const benefits = productBenefits || "quality, convenience, value";
+        const triggers = buyingTriggers || "ease of use, time saving";
+        const power = audiencePowerWords || "trust, quality";
 
-        console.log("Generating SVG illustrations...");
+        const conceptsRaw = await callAI(LOVABLE_API_KEY,
+          `Generate exactly 9 single-word or two-word icon concepts for a brand called "${name}" in the ${cat} category.\n\nProduct benefits: ${benefits}\nAudience triggers: ${triggers}\nPower words: ${power}\n\nThese will be turned into simple SVG icons. Each concept should be a concrete visual object (e.g. "shield", "leaf", "clock", "heart", "star", "rocket", "diamond", "globe", "lightning").\n\nReturn ONLY a JSON array of 9 strings. No explanation.`,
+          "google/gemini-2.5-flash-lite"
+        );
+
+        let concepts = parseStringArray(conceptsRaw);
+        if (concepts.length < 9) {
+          concepts = ["shield", "star", "heart", "leaf", "clock", "diamond", "globe", "rocket", "lightning"].slice(0, 9);
+        }
+        concepts = concepts.slice(0, 9);
+        console.log("Icon concepts:", concepts);
+
+        // Generate 9 icons in 3 batches of 3
         const illustrationSvgs: string[] = [];
+        for (let batch = 0; batch < 3; batch++) {
+          const batchConcepts = concepts.slice(batch * 3, batch * 3 + 3);
+          const batchResults = await Promise.allSettled(
+            batchConcepts.map(concept =>
+              callAI(LOVABLE_API_KEY,
+                `Generate a complete, valid SVG string (viewBox="0 0 100 100") containing a single clean icon representing "${concept}".\n\nRequirements:\n- Simple, minimal, professional line/filled icon style\n- Use ONLY these colors: ${primary} and ${secondary}\n- NO text elements, NO <text> tags\n- Clean paths, centered in the viewBox\n- The SVG should be self-contained and valid\n\nReturn ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown, no explanation.`
+              )
+            )
+          );
 
-        // Icon grid
-        const iconRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{ role: "user", content: `Generate a complete, valid SVG string (viewBox="0 0 600 800") containing a 3×4 grid of 12 icons representing these product/audience concepts:\n\nProduct benefits: ${benefits || 'quality, convenience, value'}\nAudience needs: ${triggers || 'ease of use, time saving'}\nBrand: "${name}", category: ${cat}\nPrimary color: ${colors.primary || '#333333'}\nSecondary color: ${colors.secondary || '#666666'}\n\nRequirements:\n- Each icon is a simple, clean SVG path/shape\n- Arranged in a 3-column × 4-row grid with generous spacing\n- Mix of outlined and filled styles\n- Use ONLY the brand's primary and secondary colors\n- Each icon ~80×80px in a cell, centered\n- NO text elements, NO <text> tags\n- Clean, professional, minimal line style\n\nReturn ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown.` }],
-          }),
-        });
-        if (iconRes.ok) {
-          const d = await iconRes.json();
-          const raw = d.choices?.[0]?.message?.content || "";
-          const svgMatch = raw.match(/<svg[\s\S]*?<\/svg>/i);
-          if (svgMatch) { illustrationSvgs.push(svgMatch[0]); console.log("✓ Icon grid SVG"); }
+          for (let i = 0; i < batchResults.length; i++) {
+            const r = batchResults[i];
+            if (r.status === "fulfilled") {
+              const svg = extractSvg(r.value);
+              if (svg) {
+                illustrationSvgs.push(svg);
+                console.log(`✓ Icon "${batchConcepts[i]}" generated`);
+              }
+            }
+          }
         }
 
-        // Pattern sheet
-        const patternRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{ role: "user", content: `Generate a complete, valid SVG string (viewBox="0 0 600 900") containing a pattern reference sheet with 3 distinct decorative patterns stacked vertically.\n\nBrand: "${name}"\nAudience emotional keywords: ${powerWords || 'trust, comfort, confidence'}\nPrimary color: ${colors.primary || '#333333'}\nSecondary color: ${colors.secondary || '#666666'}\nBackground: ${colors.background || '#ffffff'}\n\nThe 3 patterns (each ~600×280px, separated by a gap):\n1. A flowing, organic wave/curve pattern using gradients of the brand colors\n2. A geometric/abstract section with rounded shapes, dots, or decorative elements\n3. A subtle tileable texture using thin lines or micro-patterns\n\nRequirements:\n- Use SVG <path>, <circle>, <rect>, <line>, <polygon> elements\n- Use <defs> with <linearGradient> or <radialGradient> for color blends\n- NO <text> tags, NO letters, NO numbers\n- Clean, professional, modern feel\n- Use only the brand color palette\n\nReturn ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown.` }],
-          }),
-        });
-        if (patternRes.ok) {
-          const d = await patternRes.json();
-          const raw = d.choices?.[0]?.message?.content || "";
-          const svgMatch = raw.match(/<svg[\s\S]*?<\/svg>/i);
-          if (svgMatch) { illustrationSvgs.push(svgMatch[0]); console.log("✓ Pattern sheet SVG"); }
+        // Generate 1 pattern
+        const patternRaw = await callAI(LOVABLE_API_KEY,
+          `Generate a complete, valid SVG string (viewBox="0 0 600 200") containing a seamless decorative pattern.\n\nBrand: "${name}", category: ${cat}\nPrimary color: ${primary}\nSecondary color: ${secondary}\nBackground: ${colors.background || "#ffffff"}\n\nRequirements:\n- A flowing, repeatable pattern using geometric or organic shapes\n- Use SVG <path>, <circle>, <rect>, <line> elements\n- Use <defs> with gradients if desired\n- NO <text> tags, NO letters\n- Clean, professional, modern feel\n- Use only the brand color palette\n\nReturn ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown.`
+        );
+        const patternSvg = extractSvg(patternRaw);
+        if (patternSvg) {
+          illustrationSvgs.push(patternSvg);
+          console.log("✓ Pattern SVG generated");
         }
 
         if (illustrationSvgs.length > 0) {
           enriched.illustrationSvgs = illustrationSvgs;
+          enriched.iconConcepts = concepts;
           console.log("Illustrations enriched:", illustrationSvgs.length);
         }
       } catch (e) { console.error("Illustration pipeline error:", e); }
@@ -200,8 +248,6 @@ serve(async (req) => {
             enriched.websiteScreenshot = screenshot.startsWith("http") ? screenshot : `data:image/png;base64,${screenshot}`;
             console.log("✓ Website screenshot captured");
           }
-        } else {
-          console.warn("Screenshot scrape failed:", res.status);
         }
       } catch (e) { console.error("Screenshot pipeline error:", e); }
     })();
@@ -211,13 +257,13 @@ serve(async (req) => {
 
     // Merge into existing visualIdentity
     const updatedVi = { ...vi };
-    if (enriched.moodboardUrls && enriched.moodboardUrls.length > 0) updatedVi.moodboardUrls = enriched.moodboardUrls;
-    if (enriched.illustrationSvgs && enriched.illustrationSvgs.length > 0) updatedVi.illustrationSvgs = enriched.illustrationSvgs;
+    if (enriched.moodboardUrls?.length > 0) updatedVi.moodboardUrls = enriched.moodboardUrls;
+    if (enriched.illustrationSvgs?.length > 0) updatedVi.illustrationSvgs = enriched.illustrationSvgs;
+    if (enriched.iconConcepts?.length > 0) updatedVi.iconConcepts = enriched.iconConcepts;
     if (enriched.websiteScreenshot) updatedVi.websiteScreenshot = enriched.websiteScreenshot;
 
     brandContent.visualIdentity = updatedVi;
 
-    // Update the row
     const { error: updateErr } = await supabase
       .from("user_business_data")
       .update({ content: JSON.stringify(brandContent) })
