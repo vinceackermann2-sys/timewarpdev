@@ -114,8 +114,8 @@ serve(async (req) => {
       );
     }
 
-    // Insert products (support both single productData and array productsData)
-    const allProducts = productsData || (productData ? [productData] : []);
+    // Insert products (support both single productData and array productsData, max 5)
+    const allProducts = (productsData || (productData ? [productData] : [])).slice(0, 5);
     for (const prod of allProducts) {
       const { error: productErr } = await admin.from("user_business_data").insert({
         ...basePayload,
@@ -128,8 +128,8 @@ serve(async (req) => {
       }
     }
 
-    // Insert audiences (support both single audienceData and array audiencesData)
-    const allAudiences = audiencesData || (audienceData ? [audienceData] : []);
+    // Insert audiences (support both single audienceData and array audiencesData, max 5)
+    const allAudiences = (audiencesData || (audienceData ? [audienceData] : [])).slice(0, 5);
     for (const aud of allAudiences) {
       if (!aud) continue;
       const { error: audErr } = await admin.from("user_business_data").insert({

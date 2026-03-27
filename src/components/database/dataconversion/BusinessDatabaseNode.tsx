@@ -76,26 +76,33 @@ export function BusinessDatabaseNode({
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Fetch provider-synced data (microsoft, google, slack, wordpress) from DB
+  // Fetch provider-synced data scoped to the active workspace
   useEffect(() => {
     async function fetchProviderData() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
-      const { data } = await supabase
+      const wsId = localStorage.getItem("preferred_workspace_id");
+      let query = supabase
         .from("user_business_data")
         .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
-        .eq("user_id", session.user.id)
         .neq("source", "business-dna")
         .neq("source", "canvas")
         .order("created_at", { ascending: false });
 
+      if (wsId) {
+        query = query.eq("workspace_id", wsId);
+      } else {
+        query = query.eq("user_id", session.user.id);
+      }
+
+      const { data } = await query;
       if (data) {
         setProviderItems(data as DataItem[]);
       }
     }
     fetchProviderData();
-  }, []);
+  }, [selectedBrandId]);
 
   const isLoading = dnaLoading;
 
