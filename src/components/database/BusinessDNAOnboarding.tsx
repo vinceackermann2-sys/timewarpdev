@@ -434,7 +434,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
       setCreatedBrandId(finalBrandId);
       setPersistenceComplete(true);
 
-      // Fire-and-forget: enrich brand with heavy assets (moodboard, illustrations, screenshot)
+      // Wait for enrichment (moodboard, illustrations, screenshot) before proceeding
       if (contextAvailable) {
         let rowId: string | undefined = savedBrandRowId;
         if (!rowId) {
@@ -452,22 +452,25 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         if (rowId) {
           const firstProduct = productsRaw[0] || {};
           const firstAudience = audiencesRaw[0] || {};
-          invokeEdgeFunction("enrich-brand", {
-            brandRowId: rowId,
-            brandName,
-            brandCategory: b.category || "lifestyle",
-            brandColors: b.colors || {},
-            audienceDesc: firstAudience.description || "",
-            audiencePowerWords: (firstAudience.powerWords || []).slice(0, 5).join(", "),
-            productBenefits: (firstProduct.benefits || []).slice(0, 6).join("; "),
-            buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
-            websiteUrl: activeUrl || "",
-          }).then((res) => {
+          try {
+            const res = await invokeEdgeFunction("enrich-brand", {
+              brandRowId: rowId,
+              brandName,
+              brandCategory: b.category || "lifestyle",
+              brandColors: b.colors || {},
+              audienceDesc: firstAudience.description || "",
+              audiencePowerWords: (firstAudience.powerWords || []).slice(0, 5).join(", "),
+              productBenefits: (firstProduct.benefits || []).slice(0, 6).join("; "),
+              buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
+              websiteUrl: activeUrl || "",
+            });
             console.log("Brand enrichment result:", res.data);
             if (res.data?.success && refreshBrand) {
-              refreshBrand(finalBrandId);
+              await refreshBrand(finalBrandId);
             }
-          }).catch((e) => console.warn("Brand enrichment failed (non-blocking):", e));
+          } catch (e) {
+            console.warn("Brand enrichment failed (non-blocking):", e);
+          }
         }
       }
 
