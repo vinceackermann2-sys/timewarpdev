@@ -149,6 +149,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
                 name: "New Audience",
                 lastUpdated: now,
                 productIds: brandProductIds,
+                brandId: activeBrandId,
               };
               setAudiences(prev => [...prev, newAudience]);
               setSelectedAudienceId(newAudience.id);
