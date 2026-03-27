@@ -627,19 +627,31 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
     })
   );
 
-  // Flatten all results, interleave from different queries for variety
+  // Phase 1: Take exactly 1 image from each query (guarantees diversity)
   const perQuery: string[][] = perQueryResults.map(r => r.status === "fulfilled" ? r.value : []);
   const allUrls: string[] = [];
-  const maxLen = Math.max(...perQuery.map(q => q.length), 0);
-  for (let i = 0; i < maxLen && allUrls.length < 6; i++) {
-    for (const q of perQuery) {
-      if (i < q.length && allUrls.length < 6 && !allUrls.includes(q[i])) {
-        allUrls.push(q[i]);
+  const usedPerQuery: number[] = perQuery.map(() => 0);
+
+  // First pass: 1 image per query
+  for (let qi = 0; qi < perQuery.length && allUrls.length < 6; qi++) {
+    if (perQuery[qi].length > 0) {
+      allUrls.push(perQuery[qi][0]);
+      usedPerQuery[qi] = 1;
+    }
+  }
+
+  // Second pass: backfill remaining slots from queries that had extra images
+  if (allUrls.length < 6) {
+    for (let qi = 0; qi < perQuery.length && allUrls.length < 6; qi++) {
+      for (let i = usedPerQuery[qi]; i < perQuery[qi].length && allUrls.length < 6; i++) {
+        if (!allUrls.includes(perQuery[qi][i])) {
+          allUrls.push(perQuery[qi][i]);
+        }
       }
     }
   }
 
-  console.log(`Moodboard total unique images: ${allUrls.length}`);
+  console.log(`Moodboard total unique images: ${allUrls.length} (from ${perQuery.filter(q => q.length > 0).length}/6 queries)`);
   return allUrls.slice(0, 6);
 }
 
