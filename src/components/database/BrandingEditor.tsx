@@ -156,7 +156,18 @@ export function BrandingEditor({
           confidence: 85,
           source: extractUrl.trim(),
         }));
-        toast({ title: "Branding extracted", description: `Found colors, typography and logos from ${b.name || "the URL"}.` });
+        const updatedBranding: BrandingData = {
+          ...branding,
+          colors: b.colors ? { ...branding.colors, ...b.colors } : branding.colors,
+          typography: b.typography ? { ...branding.typography, ...b.typography } : branding.typography,
+          logos: Array.isArray(b.logoUrls) && b.logoUrls.length > 0 ? b.logoUrls : branding.logos,
+          confidence: 85,
+          source: extractUrl.trim(),
+          selectedLogo: branding.selectedLogo,
+        };
+        // Auto-save extracted branding to context/DB
+        onSave?.(updatedBranding);
+        toast({ title: "Branding extracted & saved", description: `Found colors, typography and logos from ${b.name || "the URL"}.` });
 
         // Also pass visual identity data if extracted
         const vi = b.visualIdentity;
