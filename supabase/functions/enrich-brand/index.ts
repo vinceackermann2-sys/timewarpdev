@@ -239,11 +239,18 @@ function buildLucideIconNames(concepts: string[], raw: string): string[] {
 async function fetchMoodboardImages(
   brandName: string, category: string, audienceDesc: string, firecrawlKey: string, browserlessKey: string
 ): Promise<string[]> {
-  const audienceTerms = audienceDesc.split(/\s+/).filter(Boolean).slice(0, 6).join(" ");
+  // Build smart queries: product type + trust/feeling + premium aesthetic
+  const audienceTerms = audienceDesc.split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
+  const feelingTerms = audienceDesc
+    .toLowerCase()
+    .split(/[\s,]+/)
+    .filter(w => ["trust", "premium", "luxury", "minimal", "futuristic", "modern", "elegant", "bold", "clean", "innovative", "sophisticated", "warm", "organic", "natural", "playful"].includes(w))
+    .slice(0, 3)
+    .join(" ");
   const queries = [
-    `${brandName} ${category} moodboard`,
-    `${brandName} aesthetic`,
-    `${category} ${audienceTerms} aesthetic`.trim(),
+    `${brandName} ${category} ${feelingTerms || "premium minimal"} ecommerce aesthetic`.trim(),
+    `${brandName} product aesthetic`,
+    `${category} ${audienceTerms} ${feelingTerms || "premium"} aesthetic`.trim(),
   ].filter(Boolean);
 
   const allUrls: string[] = [];
