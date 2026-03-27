@@ -23,9 +23,9 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
   const [connectAudienceId, setConnectAudienceId] = useState<string | null>(null);
   const { toast } = useToast();
   const { checkCanUseAction } = useActionGate();
-  // Show all audiences, not just connected ones
+  // Filter audiences to only show ones linked to this brand's products
   const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
-  const brandAudiences = audiences;
+  const brandAudiences = audiences.filter(a => a.productIds?.some(pid => brandProductIds.includes(pid)));
   const selectedAudience = brandAudiences.find(a => a.id === selectedAudienceId);
   
 
