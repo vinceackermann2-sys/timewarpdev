@@ -24,6 +24,9 @@ export interface VisualIdentityData {
   moodboardUrls?: string[];
   illustrationUrls?: string[];
   illustrationSvgs?: string[];
+  illustrationIconNames?: string[];
+  patternSvg?: string;
+  iconConcepts?: string[];
   websiteScreenshot?: string;
   mobileScreenshot?: string;
   guidelineImageUrls?: string[];
