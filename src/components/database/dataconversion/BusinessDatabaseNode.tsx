@@ -275,17 +275,11 @@ export function BusinessDatabaseNode({
                 </div>
               ))}
             </div>
-          ) : !selectedBrandId ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <Database className="h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground text-center">Select a business</p>
-              <p className="text-xs text-muted-foreground/60 text-center mt-1">Choose a business from the sidebar to load its data</p>
-            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 px-4">
               <Database className="h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground text-center">No products or audiences</p>
-              <p className="text-xs text-muted-foreground/60 text-center mt-1">Add products and audiences in Business DNA</p>
+              <p className="text-sm text-muted-foreground text-center">No data yet</p>
+              <p className="text-xs text-muted-foreground/60 text-center mt-1">Connect providers or add products in Business DNA</p>
             </div>
           )}
         </div>
