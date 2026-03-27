@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BrandColors, BrandTypography } from "@/components/database/BusinessDNAContext";
+import { BrandColors, BrandTypography, useBusinessDNA } from "@/components/database/BusinessDNAContext";
 
 export interface BrandingData {
   logos: string[];
@@ -98,6 +98,8 @@ export function BrandingEditor({
   initialLogos,
   initialSelectedLogo,
   onVisualIdentityExtracted,
+  brandId,
+  brandRowId,
 }: {
   onCancel: () => void;
   onSave?: (data: BrandingData) => void;
@@ -108,6 +110,8 @@ export function BrandingEditor({
   initialLogos?: string[];
   initialSelectedLogo?: number;
   onVisualIdentityExtracted?: (vi: any) => void;
+  brandId?: string;
+  brandRowId?: string;
 }) {
   const [branding, setBranding] = useState<BrandingData>(() => ({
     ...DEFAULT_BRANDING,
@@ -121,6 +125,7 @@ export function BrandingEditor({
 
   const { toast } = useToast();
   const { checkCanUseAction } = useActionGate();
+  const { refreshBrand } = useBusinessDNA();
 
   const handleExtract = async () => {
     if (!extractUrl.trim()) return;
@@ -136,11 +141,12 @@ export function BrandingEditor({
     }
     setIsExtracting(true);
     try {
-      const { data, error } = await invokeEdgeFunction("scrape-product", { url: extractUrl.trim() });
+      const { data, error } = await invokeEdgeFunction("scrape-product", { url: extractUrl.trim(), mode: "core" });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Extraction failed");
 
-      const b = data.extracted?.brand;
+      const extracted = data.extracted || {};
+      const b = extracted.brand;
       if (b) {
         setBranding((prev) => ({
           ...prev,
@@ -156,6 +162,37 @@ export function BrandingEditor({
         const vi = b.visualIdentity;
         if (vi && onVisualIdentityExtracted) {
           onVisualIdentityExtracted(vi);
+        }
+
+        if (brandRowId) {
+          const firstProduct = extracted.products?.[0] || extracted.product || {};
+          const firstAudience = extracted.audiences?.[0] || extracted.audience || {};
+
+          invokeEdgeFunction("enrich-brand", {
+            brandRowId,
+            brandName: b.name || "the brand",
+            brandCategory: b.category || "lifestyle",
+            brandColors: b.colors || {},
+            audienceDesc: firstAudience.description || "",
+            audiencePowerWords: Array.isArray(firstAudience.powerWords)
+              ? firstAudience.powerWords.slice(0, 5).join(", ")
+              : "",
+            productBenefits: Array.isArray(firstProduct.benefits)
+              ? firstProduct.benefits.slice(0, 6).join("; ")
+              : "",
+            buyingTriggers: Array.isArray(firstAudience.buyingTriggers)
+              ? firstAudience.buyingTriggers.slice(0, 4).join("; ")
+              : "",
+            websiteUrl: extractUrl.trim(),
+          })
+            .then((res) => {
+              if (res.data?.success && brandId) {
+                void refreshBrand(brandId);
+              }
+            })
+            .catch((enrichErr) => {
+              console.warn("Brand enrichment failed (non-blocking):", enrichErr);
+            });
         }
       } else {
         toast({ title: "No branding found", description: "Could not extract brand data from that URL.", variant: "destructive" });
