@@ -25,6 +25,30 @@ function extractSvg(raw: string): string | null {
   return match ? match[0] : null;
 }
 
+/* ── Helper: generate image via AI gateway ── */
+async function generateImage(apiKey: string, prompt: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+    if (!res.ok) { console.warn("Image gen failed:", res.status); return null; }
+    const d = await res.json();
+    const images = d.choices?.[0]?.message?.images;
+    if (!images?.length) return null;
+    const imageUrl = images[0].image_url?.url;
+    if (!imageUrl) return null;
+    // Return as data URI
+    if (imageUrl.startsWith("data:")) return imageUrl;
+    return `data:image/png;base64,${imageUrl}`;
+  } catch (e) { console.warn("Image generation error:", e); return null; }
+}
+
 /* ── Helper: parse JSON array from AI text ── */
 function parseStringArray(raw: string): string[] {
   if (!raw) return [];
