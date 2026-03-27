@@ -114,8 +114,8 @@ serve(async (req) => {
       );
     }
 
-    // Insert products (support both single productData and array productsData)
-    const allProducts = productsData || (productData ? [productData] : []);
+    // Insert products (support both single productData and array productsData, max 5)
+    const allProducts = (productsData || (productData ? [productData] : [])).slice(0, 5);
     for (const prod of allProducts) {
       const { error: productErr } = await admin.from("user_business_data").insert({
         ...basePayload,
