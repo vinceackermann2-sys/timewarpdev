@@ -168,6 +168,10 @@ const ALLOWED_LUCIDE_ICON_NAMES = [
 
 const ALLOWED_LUCIDE_ICON_SET = new Set<string>(ALLOWED_LUCIDE_ICON_NAMES);
 
+const BLOCKED_PINTEREST_ASSET_KEYS = new Set<string>([
+  "d5/3b/01/d53b014d86a6b6761bf649a0ed813c2b.png",
+]);
+
 function normalizePascalCase(value: string): string {
   return value
     .trim()
@@ -191,6 +195,23 @@ function canonicalizePinterestUrl(url: string): string | null {
   return `https://i.pinimg.com/originals/${match[1]}`;
 }
 
+function getPinterestAssetKey(url: string): string | null {
+  const normalized = canonicalizePinterestUrl(url);
+  if (!normalized) return null;
+  return normalized.replace(/^https?:\/\/i\.pinimg\.com\/originals\//i, "").split("?")[0].toLowerCase();
+}
+
+function isValidPinterestMoodboardUrl(url: string): boolean {
+  const assetKey = getPinterestAssetKey(url);
+  if (!assetKey) return false;
+  if (BLOCKED_PINTEREST_ASSET_KEYS.has(assetKey)) return false;
+
+  const ext = assetKey.split(".").pop()?.toLowerCase();
+  if (!ext || !["jpg", "jpeg", "webp", "png"].includes(ext)) return false;
+
+  return true;
+}
+
 function extractPinterestUrls(raw: string): string[] {
   if (!raw) return [];
   const decoded = raw.replace(/\\u002F/g, "/").replace(/\\\//g, "/");
@@ -202,10 +223,11 @@ function extractPinterestUrls(raw: string): string[] {
     const normalized = canonicalizePinterestUrl(match);
     if (!normalized) continue;
     const assetKey = normalized.replace(/^https?:\/\/i\.pinimg\.com\/originals\//i, "").split("?")[0];
+    if (!isValidPinterestMoodboardUrl(normalized)) continue;
     if (!deduped.has(assetKey)) deduped.set(assetKey, normalized);
   }
 
-  return [...deduped.values()].slice(0, 6);
+  return [...deduped.values()].slice(0, 24);
 }
 
 function extractPinterestPageUrls(payload: unknown): string[] {
@@ -482,6 +504,7 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
   const seenAssetKeys = new Set<string>();
 
   function addUrl(url: string): boolean {
+    if (!isValidPinterestMoodboardUrl(url)) return false;
     const assetKey = url.replace(/^https?:\/\/i\.pinimg\.com\/originals\//i, "").split("?")[0];
     if (seenAssetKeys.has(assetKey)) return false;
     seenAssetKeys.add(assetKey);
@@ -489,15 +512,42 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
     return true;
   }
 
+  function collectUniqueCandidates(urls: string[], limit = 8): string[] {
+    const unique: string[] = [];
+    const localSeen = new Set<string>();
+
+    for (const url of urls) {
+      const assetKey = getPinterestAssetKey(url);
+      if (!assetKey || localSeen.has(assetKey) || !isValidPinterestMoodboardUrl(url)) continue;
+      localSeen.add(assetKey);
+      unique.push(canonicalizePinterestUrl(url)!);
+      if (unique.length >= limit) break;
+    }
+
+    return unique;
+  }
+
   // Search all 6 queries in parallel, take 1 unique image from each
   // Strategy priority: 1) Direct Pinterest scrape via Firecrawl (confirmed working), 2) Browserless, 3) Firecrawl search API
   const perQueryResults = await Promise.allSettled(
-    queries.map(async (query, qi): Promise<string | null> => {
+    queries.map(async (query, qi): Promise<string[]> => {
       // Shorten query for Pinterest search — keep only 3-4 most meaningful words
       const shortQuery = query
         .replace(/premium\s+minimal\s+ecommerce/gi, "")
         .replace(/\s+/g, " ")
         .trim();
+
+      const candidates: string[] = [];
+      const appendCandidates = (urls: string[]) => {
+        const next = collectUniqueCandidates(urls, 10);
+        for (const candidate of next) {
+          const assetKey = getPinterestAssetKey(candidate);
+          if (!assetKey) continue;
+          if (!candidates.some((existing) => getPinterestAssetKey(existing) === assetKey)) {
+            candidates.push(candidate);
+          }
+        }
+      };
 
       // Strategy 1: Direct Firecrawl scrape of Pinterest search page (most reliable per user testing)
       try {
@@ -508,19 +558,25 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
           headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             url: pinterestUrl,
-            formats: ["rawHtml"],
-            waitFor: 5000,
+            formats: ["rawHtml", "html"],
+            waitFor: 7000,
             onlyMainContent: false,
           }),
         });
 
         if (scrapeRes.ok) {
           const scrapeData = await scrapeRes.json();
-          const html = scrapeData.data?.rawHtml || scrapeData.rawHtml || JSON.stringify(scrapeData);
+          const html = [
+            scrapeData.data?.rawHtml,
+            scrapeData.data?.html,
+            scrapeData.rawHtml,
+            scrapeData.html,
+            JSON.stringify(scrapeData.data || scrapeData),
+          ].filter(Boolean).join("\n");
           const urls = extractPinterestUrls(html);
           if (urls.length > 0) {
             console.log(`Query ${qi + 1}: Firecrawl scrape found ${urls.length} pinimg URLs`);
-            return urls[qi % urls.length]; // Pick different image based on query index for diversity
+            appendCandidates(urls);
           }
         }
       } catch (e) { console.warn(`Query ${qi + 1} Firecrawl scrape failed:`, e); }
@@ -533,7 +589,7 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
         );
         if (bUrls.length > 0) {
           console.log(`Query ${qi + 1}: browserless found ${bUrls.length} URLs`);
-          return bUrls[qi % bUrls.length];
+          appendCandidates(bUrls);
         }
       } catch { /* continue */ }
 
@@ -550,29 +606,52 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
           const pinUrls = extractPinterestUrls(JSON.stringify(searchData));
           if (pinUrls.length > 0) {
             console.log(`Query ${qi + 1}: search API found pinimg URLs`);
-            return pinUrls[0];
+            appendCandidates(pinUrls);
           }
 
           // Try scraping returned Pinterest page URLs
-          const pageUrls = extractPinterestPageUrls(searchData.data || searchData).slice(0, 1);
+          const pageUrls = extractPinterestPageUrls(searchData.data || searchData).slice(0, 4);
           for (const pageUrl of pageUrls) {
             try {
               const pinPageUrls = await scrapePinterestPageForImages(pageUrl, firecrawlKey);
-              if (pinPageUrls.length > 0) return pinPageUrls[0];
+              if (pinPageUrls.length > 0) appendCandidates(pinPageUrls);
+              if (candidates.length >= 6) break;
             } catch { /* continue */ }
           }
         }
       } catch { /* continue */ }
 
-      console.log(`Query ${qi + 1}: no images found for "${shortQuery}"`);
-      return null;
+      if (candidates.length === 0) {
+        console.log(`Query ${qi + 1}: no images found for "${shortQuery}"`);
+      } else {
+        console.log(`Query ${qi + 1}: collected ${candidates.length} candidate images`);
+      }
+
+      return candidates.slice(0, 8);
     })
   );
 
-  for (const result of perQueryResults) {
-    if (result.status === "fulfilled" && result.value) {
-      addUrl(result.value);
+  const perQueryCandidates = perQueryResults.map((result) =>
+    result.status === "fulfilled" ? result.value : []
+  );
+
+  for (const candidates of perQueryCandidates) {
+    const selected = candidates.find((candidate) => addUrl(candidate));
+    if (selected) continue;
+  }
+
+  if (allUrls.length < 6) {
+    for (const candidates of perQueryCandidates) {
+      for (const candidate of candidates) {
+        addUrl(candidate);
+        if (allUrls.length >= 6) break;
+      }
+      if (allUrls.length >= 6) break;
     }
+  }
+
+  for (const result of perQueryResults) {
+    if (result.status === "rejected") console.warn("Moodboard query failed:", result.reason);
   }
 
   console.log(`Moodboard total unique images: ${allUrls.length}`);
