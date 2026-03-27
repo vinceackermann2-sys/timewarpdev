@@ -120,8 +120,10 @@ export function BrandingEditor({
     logos: initialLogos || DEFAULT_BRANDING.logos,
     selectedLogo: initialSelectedLogo ?? DEFAULT_BRANDING.selectedLogo,
   }));
-  // Sync local state when parent props change (e.g. after extraction + save)
+  const [hasUnsavedExtraction, setHasUnsavedExtraction] = useState(false);
+  // Sync local state when parent props change — but skip if user has unsaved extraction results
   useEffect(() => {
+    if (hasUnsavedExtraction) return;
     setBranding(prev => ({
       ...prev,
       colors: initialColors || prev.colors,
@@ -129,7 +131,7 @@ export function BrandingEditor({
       logos: initialLogos || prev.logos,
       selectedLogo: initialSelectedLogo ?? prev.selectedLogo,
     }));
-  }, [initialColors, initialTypography, initialLogos, initialSelectedLogo]);
+  }, [initialColors, initialTypography, initialLogos, initialSelectedLogo, hasUnsavedExtraction]);
 
   const [extractUrl, setExtractUrl] = useState("");
   const [isExtracting, setIsExtracting] = useState(false);
@@ -167,6 +169,7 @@ export function BrandingEditor({
           confidence: 85,
           source: extractUrl.trim(),
         }));
+        setHasUnsavedExtraction(true);
         toast({ title: "Branding extracted", description: `Found colors, typography and logos from ${b.name || "the URL"}. Click Save to keep changes.` });
 
         // Also pass visual identity data if extracted
@@ -254,7 +257,7 @@ export function BrandingEditor({
               </Button>
               <Button
                 size="sm"
-                onClick={() => { onSave?.(branding); onEditToggle?.(); }}
+              onClick={() => { onSave?.(branding); setHasUnsavedExtraction(false); onEditToggle?.(); }}
                 className="gap-1.5"
               >
                 <Save className="h-4 w-4" /> Save
