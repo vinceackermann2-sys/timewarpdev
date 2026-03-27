@@ -702,8 +702,8 @@ export function BrandExtendedSections({
           description="How the brand should appear across social platforms — tone, imagery, and content style."
         >
           <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              {["Feed post", "Story", "Reel"].map((label, i) => {
+            <div className="grid grid-cols-2 gap-3">
+              {["Feed post", "Story"].map((label, i) => {
                 const socialUrls = initialData?.socialMediaUrls || [];
                 const imgUrl = socialUrls[i];
                 return (

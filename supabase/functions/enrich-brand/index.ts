@@ -25,6 +25,30 @@ function extractSvg(raw: string): string | null {
   return match ? match[0] : null;
 }
 
+/* ── Helper: generate image via AI gateway ── */
+async function generateImage(apiKey: string, prompt: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+    if (!res.ok) { console.warn("Image gen failed:", res.status); return null; }
+    const d = await res.json();
+    const images = d.choices?.[0]?.message?.images;
+    if (!images?.length) return null;
+    const imageUrl = images[0].image_url?.url;
+    if (!imageUrl) return null;
+    // Return as data URI
+    if (imageUrl.startsWith("data:")) return imageUrl;
+    return `data:image/png;base64,${imageUrl}`;
+  } catch (e) { console.warn("Image generation error:", e); return null; }
+}
+
 /* ── Helper: parse JSON array from AI text ── */
 function parseStringArray(raw: string): string[] {
   if (!raw) return [];
@@ -739,8 +763,73 @@ serve(async (req) => {
       } catch (e) { console.error("Screenshot pipeline error:", e); }
     })();
 
-    // Run all three in parallel
-    await Promise.allSettled([moodboardPipeline, illustrationPipeline, screenshotPipeline]);
+    // ── Pipeline 4: Image Guideline Images ──
+    const guidelineImagePipeline = (async () => {
+      if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping guideline images"); return; }
+      try {
+        console.log("Generating guideline images...");
+        const guidelines = vi.imageGuidelines || brandContent.visualIdentity?.imageGuidelines || [];
+        const guidelineRules: string[] = Array.isArray(guidelines)
+          ? guidelines.map((g: any) => typeof g === "string" ? g : g?.rule || "").filter(Boolean)
+          : [];
+
+        if (guidelineRules.length === 0) {
+          console.log("No image guidelines to generate images for");
+          return;
+        }
+
+        const urls: string[] = [];
+        // Generate images sequentially to avoid rate limits
+        for (let i = 0; i < guidelineRules.length; i++) {
+          const rule = guidelineRules[i];
+          const img = await generateImage(LOVABLE_API_KEY,
+            `Create a small product photography example image for this brand guideline rule: "${rule}".
+Brand: "${name}", Category: ${cat}.
+Primary color: ${primary}, Secondary color: ${secondary}.
+Style: Premium, clean, minimal e-commerce product photography.
+The image should visually demonstrate the guideline rule as an example photo.
+Make it look like a real professional product photograph. No text overlays.`
+          );
+          urls.push(img || "");
+          if (i < guidelineRules.length - 1) {
+            await new Promise(r => setTimeout(r, 500));
+          }
+        }
+        enriched.guidelineImageUrls = urls;
+        console.log("Guideline images generated:", urls.filter(Boolean).length);
+      } catch (e) { console.error("Guideline image pipeline error:", e); }
+    })();
+
+    // ── Pipeline 5: Social Media Images (Feed + Story) ──
+    const socialMediaPipeline = (async () => {
+      if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping social media images"); return; }
+      try {
+        console.log("Generating social media mockup images...");
+        const feedImg = await generateImage(LOVABLE_API_KEY,
+          `Create a premium Instagram feed post mockup for a brand called "${name}" in the ${cat} category.
+Primary color: ${primary}, Secondary color: ${secondary}.
+Style: Clean, premium, minimal e-commerce aesthetic.
+Show a product-focused square image that would look great as an Instagram feed post.
+Professional photography style, branded color palette. No text overlays, no UI chrome.`
+        );
+
+        await new Promise(r => setTimeout(r, 500));
+
+        const storyImg = await generateImage(LOVABLE_API_KEY,
+          `Create a premium Instagram story mockup (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
+Primary color: ${primary}, Secondary color: ${secondary}.
+Style: Clean, premium, minimal e-commerce aesthetic.
+Show a vertical product or lifestyle image that would look great as an Instagram story.
+Professional photography style, branded color palette. No text overlays, no UI chrome.`
+        );
+
+        enriched.socialMediaUrls = [feedImg || "", storyImg || ""];
+        console.log("Social media images generated:", [feedImg, storyImg].filter(Boolean).length);
+      } catch (e) { console.error("Social media pipeline error:", e); }
+    })();
+
+    // Run all five in parallel
+    await Promise.allSettled([moodboardPipeline, illustrationPipeline, screenshotPipeline, guidelineImagePipeline, socialMediaPipeline]);
 
     // Merge into existing visualIdentity
     const updatedVi = { ...vi };
@@ -752,6 +841,8 @@ serve(async (req) => {
     if (enriched.patternSvg) updatedVi.patternSvg = enriched.patternSvg;
     if (enriched.iconConcepts?.length > 0) updatedVi.iconConcepts = enriched.iconConcepts;
     if (enriched.websiteScreenshot) updatedVi.websiteScreenshot = enriched.websiteScreenshot;
+    if (enriched.guidelineImageUrls?.length > 0) updatedVi.guidelineImageUrls = enriched.guidelineImageUrls;
+    if (enriched.socialMediaUrls?.length > 0) updatedVi.socialMediaUrls = enriched.socialMediaUrls;
 
     brandContent.visualIdentity = updatedVi;
 
@@ -769,6 +860,8 @@ serve(async (req) => {
       moodboard: enriched.moodboardUrls?.length || 0,
       illustrations: (enriched.illustrationIconNames?.length || 0) + (enriched.patternSvg ? 1 : 0),
       screenshot: !!enriched.websiteScreenshot,
+      guidelineImages: enriched.guidelineImageUrls?.filter(Boolean)?.length || 0,
+      socialMediaImages: enriched.socialMediaUrls?.filter(Boolean)?.length || 0,
     });
 
     return new Response(JSON.stringify({
@@ -777,6 +870,8 @@ serve(async (req) => {
         moodboard: enriched.moodboardUrls?.length || 0,
         illustrations: (enriched.illustrationIconNames?.length || 0) + (enriched.patternSvg ? 1 : 0),
         screenshot: !!enriched.websiteScreenshot,
+        guidelineImages: enriched.guidelineImageUrls?.filter(Boolean)?.length || 0,
+        socialMediaImages: enriched.socialMediaUrls?.filter(Boolean)?.length || 0,
       },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
