@@ -120,6 +120,17 @@ export function BrandingEditor({
     logos: initialLogos || DEFAULT_BRANDING.logos,
     selectedLogo: initialSelectedLogo ?? DEFAULT_BRANDING.selectedLogo,
   }));
+  // Sync local state when parent props change (e.g. after extraction + save)
+  useEffect(() => {
+    setBranding(prev => ({
+      ...prev,
+      colors: initialColors || prev.colors,
+      typography: initialTypography || prev.typography,
+      logos: initialLogos || prev.logos,
+      selectedLogo: initialSelectedLogo ?? prev.selectedLogo,
+    }));
+  }, [initialColors, initialTypography, initialLogos, initialSelectedLogo]);
+
   const [extractUrl, setExtractUrl] = useState("");
   const [isExtracting, setIsExtracting] = useState(false);
 
