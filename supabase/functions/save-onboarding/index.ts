@@ -128,8 +128,8 @@ serve(async (req) => {
       }
     }
 
-    // Insert audiences (support both single audienceData and array audiencesData)
-    const allAudiences = audiencesData || (audienceData ? [audienceData] : []);
+    // Insert audiences (support both single audienceData and array audiencesData, max 5)
+    const allAudiences = (audiencesData || (audienceData ? [audienceData] : [])).slice(0, 5);
     for (const aud of allAudiences) {
       if (!aud) continue;
       const { error: audErr } = await admin.from("user_business_data").insert({
