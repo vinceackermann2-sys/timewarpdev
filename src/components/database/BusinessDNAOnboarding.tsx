@@ -168,13 +168,18 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         // Don't trust localStorage — let the edge function resolve workspace server-side
         workspaceIdRef.current = null;
 
-        // Start scrape
-        if (!cancelled) setScannedSources([allSources[0]]);
+        // Start scrape — show initial hostname
+        if (!cancelled) setScannedSources([initialSource || activeUrl.trim()]);
 
         const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim(), mode: "core" });
 
-        if (!cancelled) {
-          setScannedSources([...allSources]);
+        if (!cancelled && data?.scannedUrls?.length) {
+          const displaySources = data.scannedUrls.map((u: string) => urlToDisplaySource(u));
+          realSourcesRef.current = displaySources;
+          // Don't set all at once — let the accumulation effect drip-feed them
+        }
+
+        if (!cancelled && !data?.scannedUrls?.length) {
           setAllSourcesDone(true);
         }
 
