@@ -479,53 +479,96 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
   console.log("Moodboard queries:", queries);
 
   const allUrls: string[] = [];
+  const seenAssetKeys = new Set<string>();
+
+  function addUrl(url: string): boolean {
+    const assetKey = url.replace(/^https?:\/\/i\.pinimg\.com\/originals\//i, "").split("?")[0];
+    if (seenAssetKeys.has(assetKey)) return false;
+    seenAssetKeys.add(assetKey);
+    allUrls.push(url);
+    return true;
+  }
 
   // Search all 6 queries in parallel, take 1 unique image from each
   const perQueryResults = await Promise.allSettled(
-    queries.map(async (query): Promise<string | null> => {
-      // Strategy 1: direct Pinterest search page scrape
-      try {
-        const directUrls = await scrapePinterestSearchPageForImages(query, firecrawlKey, browserlessKey);
-        if (directUrls.length > 0) return directUrls[0];
-      } catch { /* continue */ }
-
-      // Strategy 2: Firecrawl search API
+    queries.map(async (query, qi): Promise<string | null> => {
+      // Strategy 1: Firecrawl search API (most reliable — returns image URLs from Google results)
       try {
         const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
           method: "POST",
           headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ query: `${query} site:pinterest.com`, limit: 3 }),
+          body: JSON.stringify({ query: `${query} site:pinterest.com`, limit: 5 }),
         });
 
         if (searchRes.ok) {
           const searchData = await searchRes.json();
           const payload = searchData.data || searchData;
+          const payloadStr = JSON.stringify(payload);
 
-          const inlineUrls = extractPinterestUrls(JSON.stringify(payload));
-          if (inlineUrls.length > 0) return inlineUrls[0];
+          // Check inline pinimg URLs first
+          const inlineUrls = extractPinterestUrls(payloadStr);
+          if (inlineUrls.length > 0) {
+            console.log(`Query ${qi + 1}: found ${inlineUrls.length} inline pinimg URLs`);
+            return inlineUrls[0];
+          }
 
-          for (const pageUrl of extractPinterestPageUrls(payload).slice(0, 2)) {
+          // Try scraping the first Pinterest page returned
+          const pageUrls = extractPinterestPageUrls(payload).slice(0, 1);
+          for (const pageUrl of pageUrls) {
             try {
               const pinUrls = await scrapePinterestPageForImages(pageUrl, firecrawlKey);
-              if (pinUrls.length > 0) return pinUrls[0];
-              const bUrls = await scrapePinterestPageForImagesWithBrowserless(pageUrl, browserlessKey);
-              if (bUrls.length > 0) return bUrls[0];
+              if (pinUrls.length > 0) {
+                console.log(`Query ${qi + 1}: scraped pinimg from ${pageUrl}`);
+                return pinUrls[0];
+              }
             } catch { /* continue */ }
+          }
+        }
+      } catch (e) { console.warn(`Query ${qi + 1} search failed:`, e); }
+
+      // Strategy 2: Firecrawl search WITHOUT site:pinterest.com — get any high-quality image
+      try {
+        const searchRes2 = await fetch("https://api.firecrawl.dev/v1/search", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: `${query} aesthetic moodboard`, limit: 5 }),
+        });
+
+        if (searchRes2.ok) {
+          const searchData2 = await searchRes2.json();
+          const pinUrls = extractPinterestUrls(JSON.stringify(searchData2));
+          if (pinUrls.length > 0) {
+            console.log(`Query ${qi + 1}: found pinimg in broad search`);
+            return pinUrls[0];
           }
         }
       } catch { /* continue */ }
 
+      // Strategy 3: direct Pinterest search page scrape via Browserless (last resort)
+      try {
+        const bUrls = await scrapePinterestPageForImagesWithBrowserless(
+          `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`,
+          browserlessKey
+        );
+        if (bUrls.length > 0) {
+          console.log(`Query ${qi + 1}: browserless found ${bUrls.length} URLs`);
+          return bUrls[0];
+        }
+      } catch { /* continue */ }
+
+      console.log(`Query ${qi + 1}: no images found for "${query}"`);
       return null;
     })
   );
 
   for (const result of perQueryResults) {
-    if (result.status === "fulfilled" && result.value && !allUrls.includes(result.value)) {
-      allUrls.push(result.value);
+    if (result.status === "fulfilled" && result.value) {
+      addUrl(result.value);
     }
   }
 
-  return [...new Set(allUrls)].slice(0, 6);
+  console.log(`Moodboard total unique images: ${allUrls.length}`);
+  return allUrls.slice(0, 6);
 }
 
 serve(async (req) => {
