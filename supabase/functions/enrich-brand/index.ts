@@ -239,11 +239,18 @@ function buildLucideIconNames(concepts: string[], raw: string): string[] {
 async function fetchMoodboardImages(
   brandName: string, category: string, audienceDesc: string, firecrawlKey: string, browserlessKey: string
 ): Promise<string[]> {
-  const audienceTerms = audienceDesc.split(/\s+/).filter(Boolean).slice(0, 6).join(" ");
+  // Build smart queries: product type + trust/feeling + premium aesthetic
+  const audienceTerms = audienceDesc.split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
+  const feelingTerms = audienceDesc
+    .toLowerCase()
+    .split(/[\s,]+/)
+    .filter(w => ["trust", "premium", "luxury", "minimal", "futuristic", "modern", "elegant", "bold", "clean", "innovative", "sophisticated", "warm", "organic", "natural", "playful"].includes(w))
+    .slice(0, 3)
+    .join(" ");
   const queries = [
-    `${brandName} ${category} moodboard`,
-    `${brandName} aesthetic`,
-    `${category} ${audienceTerms} aesthetic`.trim(),
+    `${brandName} ${category} ${feelingTerms || "premium minimal"} ecommerce aesthetic`.trim(),
+    `${brandName} product aesthetic`,
+    `${category} ${audienceTerms} ${feelingTerms || "premium"} aesthetic`.trim(),
   ].filter(Boolean);
 
   const allUrls: string[] = [];
@@ -406,9 +413,9 @@ serve(async (req) => {
         enriched.iconConcepts = concepts;
         console.log("Lucide icons enriched:", illustrationIconNames);
 
-        // Generate 1 pattern SVG (code-based)
+        // Generate 1 header-shaped SVG pattern
         const patternRaw = await callAI(LOVABLE_API_KEY,
-          `Generate a complete, valid SVG string (viewBox="0 0 600 200") containing a seamless decorative pattern.\n\nBrand: "${name}", category: ${cat}\nPrimary color: ${primary}\nSecondary color: ${secondary}\nBackground: ${colors.background || "#ffffff"}\n\nRequirements:\n- A flowing, repeatable pattern using geometric or organic shapes\n- Use SVG <path>, <circle>, <rect>, <line> elements\n- Use <defs> with gradients if desired\n- NO <text> tags, NO letters\n- Clean, professional, modern feel\n- Use only the brand color palette\n\nReturn ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown.`
+          `Generate a complete, valid SVG string (viewBox="0 0 1200 200") that looks like a website header banner shape.\n\nBrand: "${name}", category: ${cat}\nPrimary color: ${primary}\nSecondary color: ${secondary}\nBackground: ${colors.background || "#ffffff"}\n\nRequirements:\n- Design a website header/banner shape with a decorative bottom edge (curved wave, diagonal cut, or organic flowing shape)\n- Fill the shape with a gradient using brand colors (primary to secondary)\n- Add subtle decorative elements inside (dots, lines, circles, abstract shapes)\n- The top should be flat/rectangular, the bottom should have an interesting curved or angled edge\n- Use <defs> with linearGradient\n- NO <text> tags, NO letters, NO words\n- Modern, clean, premium feel\n- Use only the brand color palette\n\nReturn ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown.`
         );
         const patternSvg = extractSvg(patternRaw);
         if (patternSvg) {

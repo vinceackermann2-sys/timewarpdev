@@ -548,15 +548,15 @@ export function BrandExtendedSections({
               return (
                 <>
                   {iconSlots.length > 0 && (
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-2">
                       {iconSlots.map((slot) => (
-                        <div key={slot.id} className="aspect-square rounded-lg border border-border/50 overflow-hidden bg-card p-2 relative flex items-center justify-center">
+                        <div key={slot.id} className="aspect-square rounded-md border border-border/50 overflow-hidden bg-card relative flex flex-col items-center justify-center p-1.5 max-w-[72px]">
                           {(() => {
                             const Icon = slot.iconName ? lucideIcons[slot.iconName] : null;
-                            return Icon ? <Icon className="h-8 w-8 text-foreground" strokeWidth={1.75} /> : null;
+                            return Icon ? <Icon className="h-7 w-7 text-foreground" strokeWidth={1.75} /> : null;
                           })()}
                           {slot.label && (
-                            <span className="absolute bottom-1 left-1 right-1 text-center text-[9px] text-muted-foreground bg-background/80 px-1 py-0.5 rounded truncate">
+                            <span className="text-center text-[7px] leading-tight text-muted-foreground mt-0.5 truncate w-full">
                               {slot.label}
                             </span>
                           )}
