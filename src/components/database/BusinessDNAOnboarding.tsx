@@ -34,18 +34,23 @@ const ANALYSIS_MILESTONES = [
   "Structuring product data",
 ];
 
-function getActualSources(url: string): string[] {
+function getInitialSource(url: string): string {
+  try {
+    const u = new URL(url.startsWith("http") ? url : `https://${url}`);
+    return u.hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function urlToDisplaySource(url: string): string {
   try {
     const u = new URL(url.startsWith("http") ? url : `https://${url}`);
     const host = u.hostname.replace(/^www\./, "");
-    const path = u.pathname === "/" ? "" : u.pathname;
-    const sources = [host];
-    if (path && path !== "/") {
-      sources.push(`${host}${path}`);
-    }
-    return sources;
+    const path = u.pathname === "/" ? "" : u.pathname.replace(/\/+$/, "");
+    return path ? `${host}${path}` : host;
   } catch {
-    return [url];
+    return url;
   }
 }
 
