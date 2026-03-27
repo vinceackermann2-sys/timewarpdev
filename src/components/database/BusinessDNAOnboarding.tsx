@@ -95,6 +95,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
   const scrapeResult = useRef<any>(null);
   const realSourcesRef = useRef<string[]>([]);
+  const [scrapeComplete, setScrapeComplete] = useState(false);
   const [scrapeError, setScrapeError] = useState(false);
   const [createdBrandId, setCreatedBrandId] = useState<string | undefined>();
   const [persistenceComplete, setPersistenceComplete] = useState(false);
