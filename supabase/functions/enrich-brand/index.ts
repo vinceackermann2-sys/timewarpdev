@@ -235,6 +235,34 @@ function buildLucideIconNames(concepts: string[], raw: string): string[] {
   return result.slice(0, 9);
 }
 
+/* ── Helper: map hex color to a feeling/color name ── */
+function getColorFeeling(hex: string): string {
+  const h = hex.replace("#", "").toLowerCase();
+  if (!h || h.length < 3) return "";
+  const r = parseInt(h.length >= 6 ? h.slice(0, 2) : h[0] + h[0], 16);
+  const g = parseInt(h.length >= 6 ? h.slice(2, 4) : h[1] + h[1], 16);
+  const b = parseInt(h.length >= 6 ? h.slice(4, 6) : h[2] + h[2], 16);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2 / 255;
+  if (l > 0.9) return "white clean";
+  if (l < 0.15) return "black dark";
+  const sat = (max - min) / 255;
+  if (sat < 0.1) return "neutral grey";
+  let hue = 0;
+  if (max === r) hue = ((g - b) / (max - min)) * 60;
+  else if (max === g) hue = (2 + (b - r) / (max - min)) * 60;
+  else hue = (4 + (r - g) / (max - min)) * 60;
+  if (hue < 0) hue += 360;
+  if (hue < 30) return "red bold";
+  if (hue < 60) return "orange warm";
+  if (hue < 90) return "yellow bright";
+  if (hue < 150) return "green natural";
+  if (hue < 210) return "blue calm";
+  if (hue < 270) return "purple creative";
+  if (hue < 330) return "pink soft";
+  return "red bold";
+}
+
 /* ── Moodboard: scrape real Pinterest image URLs from srcset/raw HTML ── */
 async function fetchMoodboardImages(
   brandName: string, category: string, audienceDesc: string,
