@@ -22,6 +22,8 @@ export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
           <div className="flex-1 min-w-0 space-y-6">
             <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
               <BrandingEditor
+                brandId={selectedBrand.id}
+                brandRowId={(selectedBrand as any)._rowId}
                 isEditing={isBrandingEditing}
                 onEditToggle={() => setIsBrandingEditing(!isBrandingEditing)}
                 onCancel={() => setIsBrandingEditing(false)}
