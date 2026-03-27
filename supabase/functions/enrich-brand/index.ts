@@ -117,6 +117,32 @@ function normalizeMoodboardQuery(query: string): string {
   return query.replace(/[,+]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function keywordizeMoodboardPhrase(value: string, maxWords = 6): string {
+  const stopwords = new Set([
+    "and", "the", "with", "premium", "minimal", "ecommerce", "branding", "moodboard", "design",
+    "deep", "soft", "clean", "neutrals",
+  ]);
+
+  return normalizeMoodboardQuery(value)
+    .split(" ")
+    .filter((token) => token.length > 2 && !stopwords.has(token))
+    .slice(0, maxWords)
+    .join(" ");
+}
+
+function buildMoodboardQueries(trustCandidates: string[], feelingAndColor: string): string[] {
+  const feelingKeywords = keywordizeMoodboardPhrase(feelingAndColor, 5) || "premium minimal";
+  const queries: string[] = [];
+
+  for (const trust of trustCandidates) {
+    queries.push(normalizeMoodboardQuery(`${trust} ${feelingAndColor} premium minimal ecommerce`));
+    queries.push(normalizeMoodboardQuery(`${trust} ${feelingKeywords} premium minimal ecommerce website design`));
+    queries.push(normalizeMoodboardQuery(`${trust} ${feelingKeywords} premium minimal ecommerce product page`));
+  }
+
+  return [...new Set(queries)].slice(0, 6);
+}
+
 const ALLOWED_LUCIDE_ICON_NAMES = [
   "Activity",
   "ArrowUpRight",
@@ -240,6 +266,13 @@ async function scrapePinterestPageForImages(pinUrl: string, firecrawlKey: string
   ].filter(Boolean).join("\n");
 
   return extractPinterestUrls(payload);
+}
+
+async function scrapePinterestSearchPageForImages(query: string, firecrawlKey: string, browserlessKey: string): Promise<string[]> {
+  const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`;
+  const firecrawlUrls = await scrapePinterestPageForImages(pinterestUrl, firecrawlKey);
+  if (firecrawlUrls.length > 0) return firecrawlUrls;
+  return scrapePinterestPageForImagesWithBrowserless(pinterestUrl, browserlessKey);
 }
 
 async function scrapePinterestPageForImagesWithBrowserless(pinUrl: string, browserlessKey: string): Promise<string[]> {
@@ -396,11 +429,8 @@ No explanation.`,
 
   // Formula: (trust + feeling and color + premium minimal ecommerce)
   const baseQuery = normalizeMoodboardQuery(`${trustObject} ${feelingAndColor} premium minimal ecommerce`);
-  const queries = [
-    baseQuery,
-    normalizeMoodboardQuery(`${trustObject} ${feelingAndColor} premium minimal ecommerce moodboard`),
-    normalizeMoodboardQuery(`${trustObject} ${feelingAndColor} premium minimal ecommerce branding`),
-  ];
+  const trustCandidates = [...new Set([trustObject, fallbackTrustObject].filter(Boolean))];
+  const queries = [baseQuery, ...buildMoodboardQueries(trustCandidates, feelingAndColor)].slice(0, 6);
 
   console.log("Moodboard queries:", queries);
 
@@ -409,6 +439,14 @@ No explanation.`,
   for (const query of queries) {
     if (allUrls.length >= 6) break;
     try {
+      const directSearchUrls = await scrapePinterestSearchPageForImages(query, firecrawlKey, browserlessKey);
+      for (const url of directSearchUrls) {
+        if (!allUrls.includes(url)) allUrls.push(url);
+        if (allUrls.length >= 6) break;
+      }
+
+      if (allUrls.length >= 6) break;
+
       const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
         method: "POST",
         headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
@@ -421,6 +459,11 @@ No explanation.`,
       if (searchRes.ok) {
         const searchData = await searchRes.json();
         const payload = searchData.data || searchData;
+
+        for (const url of extractPinterestUrls(JSON.stringify(payload))) {
+          if (!allUrls.includes(url)) allUrls.push(url);
+          if (allUrls.length >= 6) break;
+        }
 
         for (const pageUrl of extractPinterestPageUrls(payload)) {
           if (allUrls.length >= 6) break;
@@ -449,28 +492,10 @@ No explanation.`,
     for (const query of queries) {
       if (allUrls.length >= 6) break;
       try {
-        const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`;
-        const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: pinterestUrl,
-            formats: ["rawHtml", "html"],
-            waitFor: 7000,
-            onlyMainContent: false,
-          }),
-        });
-
-        if (scrapeRes.ok) {
-          const scrapeData = await scrapeRes.json();
-          const payload = [
-            scrapeData.data?.rawHtml,
-            scrapeData.data?.html,
-            JSON.stringify(scrapeData.data || scrapeData),
-          ].filter(Boolean).join("\n");
-          for (const url of extractPinterestUrls(payload)) {
-            if (!allUrls.includes(url)) allUrls.push(url);
-          }
+        const fallbackUrls = await scrapePinterestSearchPageForImages(query, firecrawlKey, browserlessKey);
+        for (const url of fallbackUrls) {
+          if (!allUrls.includes(url)) allUrls.push(url);
+          if (allUrls.length >= 6) break;
         }
       } catch (e) {
         console.warn(`Pinterest scrape fallback failed for "${query}":`, e);
