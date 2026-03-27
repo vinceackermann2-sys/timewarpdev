@@ -350,13 +350,13 @@ export function BrandExtendedSections({
       }
       const rawSvgs = toArr<string>(initialData.illustrationSvgs);
       if (rawSvgs.length && !prev.illustrations.some(s => s.svgContent)) {
+        const rawConcepts = toArr<string>((initialData as any).iconConcepts);
         next.illustrations = rawSvgs.map((svg, i) => ({
           id: `illust-${i}`, url: null, svgContent: svg,
-          label: i === 0 ? "Brand icons & symbols set" : "Website pattern / texture",
+          label: i < rawSvgs.length - 1
+            ? (rawConcepts[i] || `Icon ${i + 1}`)
+            : "Brand pattern",
         }));
-        if (next.illustrations.length < 2) {
-          next.illustrations.push({ id: `illust-${next.illustrations.length}`, url: null, label: "Add illustration" });
-        }
       }
       return next;
     });
