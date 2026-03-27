@@ -795,7 +795,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
                 <div className="mt-auto pt-3 sm:pt-4 border-t border-border/50 w-full">
                   <p className="text-xs text-muted-foreground/60">
-                    {scannedSources.length} of {allSources.length} sources scanned
+                    {scannedSources.length} source{scannedSources.length !== 1 ? 's' : ''} scanned
                   </p>
                 </div>
               </div>
