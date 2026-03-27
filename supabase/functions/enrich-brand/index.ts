@@ -235,22 +235,59 @@ function buildLucideIconNames(concepts: string[], raw: string): string[] {
   return result.slice(0, 9);
 }
 
+/* ── Helper: map hex color to a feeling/color name ── */
+function getColorFeeling(hex: string): string {
+  const h = hex.replace("#", "").toLowerCase();
+  if (!h || h.length < 3) return "";
+  const r = parseInt(h.length >= 6 ? h.slice(0, 2) : h[0] + h[0], 16);
+  const g = parseInt(h.length >= 6 ? h.slice(2, 4) : h[1] + h[1], 16);
+  const b = parseInt(h.length >= 6 ? h.slice(4, 6) : h[2] + h[2], 16);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2 / 255;
+  if (l > 0.9) return "white clean";
+  if (l < 0.15) return "black dark";
+  const sat = (max - min) / 255;
+  if (sat < 0.1) return "neutral grey";
+  let hue = 0;
+  if (max === r) hue = ((g - b) / (max - min)) * 60;
+  else if (max === g) hue = (2 + (b - r) / (max - min)) * 60;
+  else hue = (4 + (r - g) / (max - min)) * 60;
+  if (hue < 0) hue += 360;
+  if (hue < 30) return "red bold";
+  if (hue < 60) return "orange warm";
+  if (hue < 90) return "yellow bright";
+  if (hue < 150) return "green natural";
+  if (hue < 210) return "blue calm";
+  if (hue < 270) return "purple creative";
+  if (hue < 330) return "pink soft";
+  return "red bold";
+}
+
 /* ── Moodboard: scrape real Pinterest image URLs from srcset/raw HTML ── */
 async function fetchMoodboardImages(
-  brandName: string, category: string, audienceDesc: string, firecrawlKey: string, browserlessKey: string
+  brandName: string, category: string, audienceDesc: string,
+  firecrawlKey: string, browserlessKey: string,
+  powerWords?: string, brandColorPrimary?: string, brandColorSecondary?: string
 ): Promise<string[]> {
-  // Build smart queries: product type + trust/feeling + premium aesthetic
-  const audienceTerms = audienceDesc.split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
-  const feelingTerms = audienceDesc
-    .toLowerCase()
-    .split(/[\s,]+/)
-    .filter(w => ["trust", "premium", "luxury", "minimal", "futuristic", "modern", "elegant", "bold", "clean", "innovative", "sophisticated", "warm", "organic", "natural", "playful"].includes(w))
-    .slice(0, 3)
-    .join(" ");
+  // Extract trust/feeling words from audience description + power words
+  const trustFeeling = [
+    ...(powerWords || "").split(/[\s,]+/).filter(Boolean).slice(0, 3),
+    ...(audienceDesc || "").toLowerCase().split(/[\s,]+/).filter(w =>
+      ["trust", "premium", "luxury", "minimal", "futuristic", "modern", "elegant",
+       "bold", "clean", "innovative", "sophisticated", "warm", "organic", "natural",
+       "playful", "reliable", "authentic", "quality", "simple", "powerful",
+       "sleek", "confident", "safe", "comfort", "exclusive"].includes(w)
+    ).slice(0, 3),
+  ].filter(Boolean);
+
+  // Map brand colors to color name feeling
+  const colorFeeling = brandColorPrimary ? getColorFeeling(brandColorPrimary) : "";
+
+  const trustStr = trustFeeling.length > 0 ? trustFeeling.join(" ") : "trust quality";
   const queries = [
-    `${brandName} ${category} ${feelingTerms || "premium minimal"} ecommerce aesthetic`.trim(),
-    `${brandName} product aesthetic`,
-    `${category} ${audienceTerms} ${feelingTerms || "premium"} aesthetic`.trim(),
+    `${trustStr} ${colorFeeling} premium minimal ecommerce`.trim(),
+    `${category} ${trustStr} ${colorFeeling} aesthetic`.trim(),
+    `${brandName} ${colorFeeling} premium minimal ecommerce aesthetic`.trim(),
   ].filter(Boolean);
 
   const allUrls: string[] = [];
@@ -374,7 +411,7 @@ serve(async (req) => {
       if (!FIRECRAWL_API_KEY) { console.warn("No FIRECRAWL_API_KEY, skipping moodboard"); return; }
       try {
         console.log("Starting moodboard pipeline...");
-        const urls = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY, BROWSERLESS_API_KEY);
+        const urls = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY, BROWSERLESS_API_KEY, audiencePowerWords || "", primary, secondary);
         enriched.moodboardUrls = urls;
         console.log("Moodboard enriched:", urls.length, "images");
       } catch (e) { console.error("Moodboard pipeline error:", e); enriched.moodboardUrls = []; }
