@@ -120,8 +120,10 @@ export function BrandingEditor({
     logos: initialLogos || DEFAULT_BRANDING.logos,
     selectedLogo: initialSelectedLogo ?? DEFAULT_BRANDING.selectedLogo,
   }));
-  // Sync local state when parent props change (e.g. after extraction + save)
+  const [hasUnsavedExtraction, setHasUnsavedExtraction] = useState(false);
+  // Sync local state when parent props change — but skip if user has unsaved extraction results
   useEffect(() => {
+    if (hasUnsavedExtraction) return;
     setBranding(prev => ({
       ...prev,
       colors: initialColors || prev.colors,
@@ -129,7 +131,7 @@ export function BrandingEditor({
       logos: initialLogos || prev.logos,
       selectedLogo: initialSelectedLogo ?? prev.selectedLogo,
     }));
-  }, [initialColors, initialTypography, initialLogos, initialSelectedLogo]);
+  }, [initialColors, initialTypography, initialLogos, initialSelectedLogo, hasUnsavedExtraction]);
 
   const [extractUrl, setExtractUrl] = useState("");
   const [isExtracting, setIsExtracting] = useState(false);
@@ -167,18 +169,8 @@ export function BrandingEditor({
           confidence: 85,
           source: extractUrl.trim(),
         }));
-        const updatedBranding: BrandingData = {
-          ...branding,
-          colors: b.colors ? { ...branding.colors, ...b.colors } : branding.colors,
-          typography: b.typography ? { ...branding.typography, ...b.typography } : branding.typography,
-          logos: Array.isArray(b.logoUrls) && b.logoUrls.length > 0 ? b.logoUrls : branding.logos,
-          confidence: 85,
-          source: extractUrl.trim(),
-          selectedLogo: branding.selectedLogo,
-        };
-        // Auto-save extracted branding to context/DB
-        onSave?.(updatedBranding);
-        toast({ title: "Branding extracted & saved", description: `Found colors, typography and logos from ${b.name || "the URL"}.` });
+        setHasUnsavedExtraction(true);
+        toast({ title: "Branding extracted", description: `Found colors, typography and logos from ${b.name || "the URL"}. Click Save to keep changes.` });
 
         // Also pass visual identity data if extracted
         const vi = b.visualIdentity;
@@ -258,14 +250,26 @@ export function BrandingEditor({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onEditToggle || onCancel}
+              onClick={() => {
+                if (hasUnsavedExtraction) {
+                  setBranding(prev => ({
+                    ...prev,
+                    colors: initialColors || DEFAULT_BRANDING.colors,
+                    typography: initialTypography || DEFAULT_BRANDING.typography,
+                    logos: initialLogos || DEFAULT_BRANDING.logos,
+                    selectedLogo: initialSelectedLogo ?? DEFAULT_BRANDING.selectedLogo,
+                  }));
+                  setHasUnsavedExtraction(false);
+                }
+                (onEditToggle || onCancel)?.();
+              }}
                 className="gap-1.5 text-muted-foreground"
               >
                 <X className="h-4 w-4" /> Cancel
               </Button>
               <Button
                 size="sm"
-                onClick={() => { onSave?.(branding); onEditToggle?.(); }}
+              onClick={() => { onSave?.(branding); setHasUnsavedExtraction(false); onEditToggle?.(); }}
                 className="gap-1.5"
               >
                 <Save className="h-4 w-4" /> Save
