@@ -435,7 +435,7 @@ serve(async (req) => {
       if (!FIRECRAWL_API_KEY) { console.warn("No FIRECRAWL_API_KEY, skipping moodboard"); return; }
       try {
         console.log("Starting moodboard pipeline...");
-        const urls = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY, BROWSERLESS_API_KEY, audiencePowerWords || "", primary, secondary);
+        const urls = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY, BROWSERLESS_API_KEY, audiencePowerWords || "", primary, secondary, productBenefits || "", buyingTriggers || "", LOVABLE_API_KEY);
         enriched.moodboardUrls = urls;
         console.log("Moodboard enriched:", urls.length, "images");
       } catch (e) { console.error("Moodboard pipeline error:", e); enriched.moodboardUrls = []; }
