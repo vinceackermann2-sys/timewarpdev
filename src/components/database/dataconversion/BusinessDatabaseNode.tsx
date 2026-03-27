@@ -62,6 +62,7 @@ export function BusinessDatabaseNode({
 }: BusinessDatabaseNodeProps) {
   const { products, audiences, isLoading: dnaLoading } = useBusinessDNA();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [providerItems, setProviderItems] = useState<DataItem[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(() => {
     return localStorage.getItem("preferred_business_id");
   });
@@ -75,37 +76,61 @@ export function BusinessDatabaseNode({
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
+  // Fetch provider-synced data (microsoft, google, slack, wordpress) from DB
+  useEffect(() => {
+    async function fetchProviderData() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { data } = await supabase
+        .from("user_business_data")
+        .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+        .eq("user_id", session.user.id)
+        .neq("source", "business-dna")
+        .neq("source", "canvas")
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        setProviderItems(data as DataItem[]);
+      }
+    }
+    fetchProviderData();
+  }, []);
+
   const isLoading = dnaLoading;
 
-  // Derive items from cached context data instead of fetching
+  // Derive items from cached context data + provider data
   const items: DataItem[] = useMemo(() => {
-    if (!selectedBrandId) return [];
-    const productItems = products
-      .filter(p => p.brandId === selectedBrandId)
-      .map(p => ({
-        id: (p as any).id || crypto.randomUUID(),
-        data_type: "product",
-        source: (p as any).source || "canvas",
-        title: p.name || "Product",
-        content: null,
-        analyzed_content: (p as any).tagline || p.description || null,
-        is_analyzed: true,
-        created_at: (p as any).created_at || null,
-      }));
-    const audienceItems = audiences
-      .filter(a => a.productIds?.some(pid => productItems.some(p => p.id === pid)) || (a as any).brandId === selectedBrandId)
-      .map(a => ({
-        id: (a as any).id || crypto.randomUUID(),
-        data_type: "audience",
-        source: (a as any).source || "canvas",
-        title: a.name || "Audience",
-        content: null,
-        analyzed_content: a.description || null,
-        is_analyzed: true,
-        created_at: (a as any).created_at || null,
-      }));
-    return [...productItems, ...audienceItems];
-  }, [selectedBrandId, products, audiences]);
+    const dnaItems: DataItem[] = [];
+    if (selectedBrandId) {
+      const productItems = products
+        .filter(p => p.brandId === selectedBrandId)
+        .map(p => ({
+          id: (p as any).id || crypto.randomUUID(),
+          data_type: "product",
+          source: (p as any).source || "canvas",
+          title: p.name || "Product",
+          content: null,
+          analyzed_content: (p as any).tagline || p.description || null,
+          is_analyzed: true,
+          created_at: (p as any).created_at || null,
+        }));
+      const audienceItems = audiences
+        .filter(a => a.productIds?.some(pid => productItems.some(p => p.id === pid)) || (a as any).brandId === selectedBrandId)
+        .map(a => ({
+          id: (a as any).id || crypto.randomUUID(),
+          data_type: "audience",
+          source: (a as any).source || "canvas",
+          title: a.name || "Audience",
+          content: null,
+          analyzed_content: a.description || null,
+          is_analyzed: true,
+          created_at: (a as any).created_at || null,
+        }));
+      dnaItems.push(...productItems, ...audienceItems);
+    }
+    return [...dnaItems, ...providerItems];
+  }, [selectedBrandId, products, audiences, providerItems]);
 
   // Group items by source
   const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
