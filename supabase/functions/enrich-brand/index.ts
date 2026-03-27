@@ -490,73 +490,81 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
   }
 
   // Search all 6 queries in parallel, take 1 unique image from each
+  // Strategy priority: 1) Direct Pinterest scrape via Firecrawl (confirmed working), 2) Browserless, 3) Firecrawl search API
   const perQueryResults = await Promise.allSettled(
     queries.map(async (query, qi): Promise<string | null> => {
-      // Strategy 1: Firecrawl search API (most reliable — returns image URLs from Google results)
+      // Shorten query for Pinterest search — keep only 3-4 most meaningful words
+      const shortQuery = query
+        .replace(/premium\s+minimal\s+ecommerce/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      // Strategy 1: Direct Firecrawl scrape of Pinterest search page (most reliable per user testing)
       try {
-        const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+        const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(shortQuery)}`;
+        console.log(`Query ${qi + 1}: scraping Pinterest search: "${shortQuery}"`);
+        const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
           headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ query: `${query} site:pinterest.com`, limit: 5 }),
+          body: JSON.stringify({
+            url: pinterestUrl,
+            formats: ["rawHtml"],
+            waitFor: 5000,
+            onlyMainContent: false,
+          }),
         });
 
-        if (searchRes.ok) {
-          const searchData = await searchRes.json();
-          const payload = searchData.data || searchData;
-          const payloadStr = JSON.stringify(payload);
-
-          // Check inline pinimg URLs first
-          const inlineUrls = extractPinterestUrls(payloadStr);
-          if (inlineUrls.length > 0) {
-            console.log(`Query ${qi + 1}: found ${inlineUrls.length} inline pinimg URLs`);
-            return inlineUrls[0];
-          }
-
-          // Try scraping the first Pinterest page returned
-          const pageUrls = extractPinterestPageUrls(payload).slice(0, 1);
-          for (const pageUrl of pageUrls) {
-            try {
-              const pinUrls = await scrapePinterestPageForImages(pageUrl, firecrawlKey);
-              if (pinUrls.length > 0) {
-                console.log(`Query ${qi + 1}: scraped pinimg from ${pageUrl}`);
-                return pinUrls[0];
-              }
-            } catch { /* continue */ }
+        if (scrapeRes.ok) {
+          const scrapeData = await scrapeRes.json();
+          const html = scrapeData.data?.rawHtml || scrapeData.rawHtml || JSON.stringify(scrapeData);
+          const urls = extractPinterestUrls(html);
+          if (urls.length > 0) {
+            console.log(`Query ${qi + 1}: Firecrawl scrape found ${urls.length} pinimg URLs`);
+            return urls[qi % urls.length]; // Pick different image based on query index for diversity
           }
         }
-      } catch (e) { console.warn(`Query ${qi + 1} search failed:`, e); }
+      } catch (e) { console.warn(`Query ${qi + 1} Firecrawl scrape failed:`, e); }
 
-      // Strategy 2: Firecrawl search WITHOUT site:pinterest.com — get any high-quality image
-      try {
-        const searchRes2 = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ query: `${query} aesthetic moodboard`, limit: 5 }),
-        });
-
-        if (searchRes2.ok) {
-          const searchData2 = await searchRes2.json();
-          const pinUrls = extractPinterestUrls(JSON.stringify(searchData2));
-          if (pinUrls.length > 0) {
-            console.log(`Query ${qi + 1}: found pinimg in broad search`);
-            return pinUrls[0];
-          }
-        }
-      } catch { /* continue */ }
-
-      // Strategy 3: direct Pinterest search page scrape via Browserless (last resort)
+      // Strategy 2: Browserless direct Pinterest scrape
       try {
         const bUrls = await scrapePinterestPageForImagesWithBrowserless(
-          `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`,
+          `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(shortQuery)}&rs=typed`,
           browserlessKey
         );
         if (bUrls.length > 0) {
           console.log(`Query ${qi + 1}: browserless found ${bUrls.length} URLs`);
-          return bUrls[0];
+          return bUrls[qi % bUrls.length];
         }
       } catch { /* continue */ }
 
-      console.log(`Query ${qi + 1}: no images found for "${query}"`);
+      // Strategy 3: Firecrawl search API as fallback
+      try {
+        const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: `${shortQuery} site:pinterest.com`, limit: 5 }),
+        });
+
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          const pinUrls = extractPinterestUrls(JSON.stringify(searchData));
+          if (pinUrls.length > 0) {
+            console.log(`Query ${qi + 1}: search API found pinimg URLs`);
+            return pinUrls[0];
+          }
+
+          // Try scraping returned Pinterest page URLs
+          const pageUrls = extractPinterestPageUrls(searchData.data || searchData).slice(0, 1);
+          for (const pageUrl of pageUrls) {
+            try {
+              const pinPageUrls = await scrapePinterestPageForImages(pageUrl, firecrawlKey);
+              if (pinPageUrls.length > 0) return pinPageUrls[0];
+            } catch { /* continue */ }
+          }
+        }
+      } catch { /* continue */ }
+
+      console.log(`Query ${qi + 1}: no images found for "${shortQuery}"`);
       return null;
     })
   );
