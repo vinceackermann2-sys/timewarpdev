@@ -427,79 +427,101 @@ No explanation.`,
     }
   }
 
-  // Formula: (trust + feeling and color + premium minimal ecommerce)
-  const baseQuery = normalizeMoodboardQuery(`${trustObject} ${feelingAndColor} premium minimal ecommerce`);
-  const trustCandidates = [...new Set([trustObject, fallbackTrustObject].filter(Boolean))];
-  const queries = [baseQuery, ...buildMoodboardQueries(trustCandidates, feelingAndColor)].slice(0, 6);
+  // Generate 6 diverse queries using AI so each returns a unique image
+  let queries: string[] = [];
+  if (aiApiKey) {
+    try {
+      const queriesRaw = await callAI(aiApiKey,
+        `Generate exactly 6 different Pinterest search queries for a brand moodboard.
+
+Brand: "${brandName}", Category: "${category}"
+Trust object (a physical brand/product the audience trusts): "${trustObject}"
+Feeling + color: "${feelingAndColor}"
+
+Each query MUST follow this formula: (trust object) + (feeling/emotion + color) + "premium minimal ecommerce"
+
+Rules:
+- Each query should target a DIFFERENT visual angle (e.g. product photography, lifestyle, packaging, interior, texture, typography)
+- Keep queries short (5-8 words max)
+- Include the trust object or a close alternative in each
+- Include a color or mood word in each
+- Always end with "premium minimal ecommerce"
+
+Example for Tesla:
+["Tesla futuristic white premium minimal ecommerce", "iPhone sleek dark gradients premium minimal ecommerce", "Tesla interior minimalist grey premium minimal ecommerce", "Rivian outdoor adventure green premium minimal ecommerce", "Tesla packaging clean black premium minimal ecommerce", "Apple product photography warm premium minimal ecommerce"]
+
+Return ONLY a JSON array of 6 strings. No explanation.`,
+        "google/gemini-2.5-flash-lite"
+      );
+      queries = parseStringArray(queriesRaw).slice(0, 6);
+    } catch (e) {
+      console.warn("AI query generation failed:", e);
+    }
+  }
+
+  // Fallback if AI didn't return 6 queries
+  if (queries.length < 6) {
+    const feelingKeywords = keywordizeMoodboardPhrase(feelingAndColor, 3);
+    const base = [
+      `${trustObject} ${feelingKeywords} premium minimal ecommerce`,
+      `${trustObject} product photography premium minimal ecommerce`,
+      `${trustObject} lifestyle ${feelingKeywords} premium minimal ecommerce`,
+      `${trustObject} packaging clean premium minimal ecommerce`,
+      `${trustObject} interior ${feelingKeywords} premium minimal ecommerce`,
+      `${trustObject} texture ${feelingKeywords} premium minimal ecommerce`,
+    ].map(normalizeMoodboardQuery);
+    while (queries.length < 6 && base.length > 0) {
+      const q = base.shift()!;
+      if (!queries.includes(q)) queries.push(q);
+    }
+  }
 
   console.log("Moodboard queries:", queries);
 
   const allUrls: string[] = [];
 
-  for (const query of queries) {
-    if (allUrls.length >= 6) break;
-    try {
-      const directSearchUrls = await scrapePinterestSearchPageForImages(query, firecrawlKey, browserlessKey);
-      for (const url of directSearchUrls) {
-        if (!allUrls.includes(url)) allUrls.push(url);
-        if (allUrls.length >= 6) break;
-      }
+  // Search all 6 queries in parallel, take 1 unique image from each
+  const perQueryResults = await Promise.allSettled(
+    queries.map(async (query): Promise<string | null> => {
+      // Strategy 1: direct Pinterest search page scrape
+      try {
+        const directUrls = await scrapePinterestSearchPageForImages(query, firecrawlKey, browserlessKey);
+        if (directUrls.length > 0) return directUrls[0];
+      } catch { /* continue */ }
 
-      if (allUrls.length >= 6) break;
+      // Strategy 2: Firecrawl search API
+      try {
+        const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: `${query} site:pinterest.com`, limit: 3 }),
+        });
 
-      const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-            query: `${query} site:pinterest.com`,
-          limit: 6,
-        }),
-      });
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          const payload = searchData.data || searchData;
 
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        const payload = searchData.data || searchData;
+          const inlineUrls = extractPinterestUrls(JSON.stringify(payload));
+          if (inlineUrls.length > 0) return inlineUrls[0];
 
-        for (const url of extractPinterestUrls(JSON.stringify(payload))) {
-          if (!allUrls.includes(url)) allUrls.push(url);
-          if (allUrls.length >= 6) break;
-        }
-
-        for (const pageUrl of extractPinterestPageUrls(payload)) {
-          if (allUrls.length >= 6) break;
-          try {
-            const firecrawlUrls = await scrapePinterestPageForImages(pageUrl, firecrawlKey);
-            const browserlessUrls = firecrawlUrls.length > 0
-              ? []
-              : await scrapePinterestPageForImagesWithBrowserless(pageUrl, browserlessKey);
-
-            for (const url of [...firecrawlUrls, ...browserlessUrls]) {
-              if (!allUrls.includes(url)) allUrls.push(url);
-              if (allUrls.length >= 6) break;
-            }
-          } catch (e) {
-            console.warn(`Pinterest pin scrape failed for "${pageUrl}":`, e);
+          for (const pageUrl of extractPinterestPageUrls(payload).slice(0, 2)) {
+            try {
+              const pinUrls = await scrapePinterestPageForImages(pageUrl, firecrawlKey);
+              if (pinUrls.length > 0) return pinUrls[0];
+              const bUrls = await scrapePinterestPageForImagesWithBrowserless(pageUrl, browserlessKey);
+              if (bUrls.length > 0) return bUrls[0];
+            } catch { /* continue */ }
           }
         }
-      }
-    } catch (e) {
-      console.warn(`Pinterest search failed for "${query}":`, e);
-    }
-  }
+      } catch { /* continue */ }
 
-  // Fallback: scrape Pinterest result pages directly and parse srcset/image blobs
-  if (allUrls.length < 3) {
-    for (const query of queries) {
-      if (allUrls.length >= 6) break;
-      try {
-        const fallbackUrls = await scrapePinterestSearchPageForImages(query, firecrawlKey, browserlessKey);
-        for (const url of fallbackUrls) {
-          if (!allUrls.includes(url)) allUrls.push(url);
-          if (allUrls.length >= 6) break;
-        }
-      } catch (e) {
-        console.warn(`Pinterest scrape fallback failed for "${query}":`, e);
-      }
+      return null;
+    })
+  );
+
+  for (const result of perQueryResults) {
+    if (result.status === "fulfilled" && result.value && !allUrls.includes(result.value)) {
+      allUrls.push(result.value);
     }
   }
 
