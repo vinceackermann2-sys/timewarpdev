@@ -113,7 +113,14 @@ function extractPinterestPageUrls(payload: unknown): string[] {
       const matches = value.match(/https?:\/\/(?:[\w-]+\.)?pinterest\.[^\s"'<>\\]+/gi) || [];
       for (const match of matches) {
         const clean = match.replace(/[),.;]+$/, "");
-        if (/\/pin\//i.test(clean)) urls.add(clean);
+        if (
+          /\/pin\//i.test(clean) ||
+          /\/ideas\//i.test(clean) ||
+          /\/search\//i.test(clean) ||
+          /^https?:\/\/(?:[\w-]+\.)?pinterest\.[^/]+\/[^/?#]+\/[^/?#]+/i.test(clean)
+        ) {
+          urls.add(clean);
+        }
       }
       return;
     }
@@ -154,6 +161,21 @@ async function scrapePinterestPageForImages(pinUrl: string, firecrawlKey: string
   ].filter(Boolean).join("\n");
 
   return extractPinterestUrls(payload);
+}
+
+async function scrapePinterestPageForImagesWithBrowserless(pinUrl: string, browserlessKey: string): Promise<string[]> {
+  if (!browserlessKey) return [];
+
+  const scrapeRes = await fetch(`https://production-sfo.browserless.io/content?token=${encodeURIComponent(browserlessKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: pinUrl }),
+  });
+
+  if (!scrapeRes.ok) return [];
+
+  const html = await scrapeRes.text();
+  return extractPinterestUrls(html);
 }
 
 function mapConceptToLucideIconName(concept: string, index: number): string {
@@ -215,7 +237,7 @@ function buildLucideIconNames(concepts: string[], raw: string): string[] {
 
 /* ── Moodboard: scrape real Pinterest image URLs from srcset/raw HTML ── */
 async function fetchMoodboardImages(
-  brandName: string, category: string, audienceDesc: string, firecrawlKey: string
+  brandName: string, category: string, audienceDesc: string, firecrawlKey: string, browserlessKey: string
 ): Promise<string[]> {
   const audienceTerms = audienceDesc.split(/\s+/).filter(Boolean).slice(0, 6).join(" ");
   const queries = [
@@ -233,7 +255,7 @@ async function fetchMoodboardImages(
         method: "POST",
         headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: `${query} site:pinterest.com/pin`,
+            query: `${query} site:pinterest.com`,
           limit: 6,
         }),
       });
@@ -249,7 +271,12 @@ async function fetchMoodboardImages(
         for (const pageUrl of extractPinterestPageUrls(payload)) {
           if (allUrls.length >= 6) break;
           try {
-            for (const url of await scrapePinterestPageForImages(pageUrl, firecrawlKey)) {
+            const firecrawlUrls = await scrapePinterestPageForImages(pageUrl, firecrawlKey);
+            const browserlessUrls = firecrawlUrls.length > 0
+              ? []
+              : await scrapePinterestPageForImagesWithBrowserless(pageUrl, browserlessKey);
+
+            for (const url of [...firecrawlUrls, ...browserlessUrls]) {
               if (!allUrls.includes(url)) allUrls.push(url);
               if (allUrls.length >= 6) break;
             }
@@ -313,6 +340,7 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY") || "";
+    const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY") || "";
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") || "";
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
@@ -339,7 +367,7 @@ serve(async (req) => {
       if (!FIRECRAWL_API_KEY) { console.warn("No FIRECRAWL_API_KEY, skipping moodboard"); return; }
       try {
         console.log("Starting moodboard pipeline...");
-        const urls = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY);
+        const urls = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY, BROWSERLESS_API_KEY);
         enriched.moodboardUrls = urls;
         console.log("Moodboard enriched:", urls.length, "images");
       } catch (e) { console.error("Moodboard pipeline error:", e); enriched.moodboardUrls = []; }
