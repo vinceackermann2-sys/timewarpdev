@@ -250,7 +250,19 @@ export function BrandingEditor({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onEditToggle || onCancel}
+              onClick={() => {
+                if (hasUnsavedExtraction) {
+                  setBranding(prev => ({
+                    ...prev,
+                    colors: initialColors || DEFAULT_BRANDING.colors,
+                    typography: initialTypography || DEFAULT_BRANDING.typography,
+                    logos: initialLogos || DEFAULT_BRANDING.logos,
+                    selectedLogo: initialSelectedLogo ?? DEFAULT_BRANDING.selectedLogo,
+                  }));
+                  setHasUnsavedExtraction(false);
+                }
+                (onEditToggle || onCancel)?.();
+              }}
                 className="gap-1.5 text-muted-foreground"
               >
                 <X className="h-4 w-4" /> Cancel
