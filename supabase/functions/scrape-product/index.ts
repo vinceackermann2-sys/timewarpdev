@@ -896,7 +896,7 @@ serve(async (req) => {
     console.log("Full mode complete. Products:", products.length, "Audiences:", audiences.length);
 
     return new Response(
-      JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1 }),
+      JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1, scannedUrls }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
