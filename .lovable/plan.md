@@ -1,65 +1,63 @@
 
-Issue identified: the scrape is failing inside `scrape-product`, not in the onboarding UI.
 
-What the errors actually mean:
-- `500 /functions/v1/scrape-product` + `Failed to parse extracted data` is the real blocker.
-- The edge logs show the model returned a very large JSON payload (`Raw content length: 62572`) and parsing broke near the end (`Expected ',' or ']' ... position 61714`).
-- This happens because company-mode scraping is still asking one model response to return too much at once: shared brand + up to 5 products + 5 audiences + detailed branding rules.
-- `409` is a separate workspace race already handled in `useWorkspace.ts`; it is not the scrape failure.
-- `403 /logout` is a stale session cleanup issue; also not the scrape failure.
-- The `feature_collector` warning is unrelated.
+# Fix: Moodboard Not Loading + Generate 9 Icons & 1 Pattern
 
-Do I know what the issue is?
-Yes. The current monolithic extraction strategy is too large/fragile for some sites, so the model returns malformed JSON and the whole scrape fails.
+## Root Cause Analysis
 
-Plan
+1. **enrich-brand function has zero logs** — it's either not deployed or never reached. The onboarding code calls it only if `rowId` exists, which depends on `reloadedBrands` having a `_rowId`. If the `reloadData()` call doesn't return the brand (timing issue or match failure), the enrichment never fires.
 
-1. Refactor `scrape-product` into smaller extraction passes
-- Keep Firecrawl scrape/map as-is.
-- For company URLs, stop generating one giant JSON blob.
-- Extract:
-  - brand once from homepage + branding data
-  - one product + one audience per selected product page in separate AI calls
-- Merge the results server-side into the existing `{ brand, products, audiences }` shape.
+2. **Pinterest moodboard may fail silently** — Firecrawl's `formats: ["html"]` on Pinterest may not return enough rendered HTML (Pinterest is heavily JS-rendered). The regex finds no `i.pinimg.com` URLs in the returned HTML, resulting in 0 images.
 
-2. Add a reusable robust JSON parser in `scrape-product`
-- Centralize the existing cleanup logic into helpers:
-  - strip code fences
-  - isolate JSON boundaries
-  - repair trailing commas/control chars
-  - detect truncation via brace/bracket mismatch
-- If parsing still fails, retry that one smaller extraction call instead of failing the whole scrape.
+3. **Illustrations currently generate a single SVG grid of 12 icons** — user wants 9 separate individual icon SVGs and 1 pattern SVG.
 
-3. Shrink prompt/input size
-- Reduce per-call markdown size substantially.
-- Replace the giant “formula manual” prompt with a shorter schema-focused prompt for each pass.
-- For company URLs, keep page-specific context only for the current product page being analyzed.
+## Plan
 
-4. Make failures partial, not fatal
-- If one product page fails to parse, skip it and continue with the others.
-- Only fail the whole request if brand extraction fails or zero valid products are produced.
-- This will stabilize both onboarding and add-business flows.
+### 1. Deploy and verify `enrich-brand` edge function
+- Deploy the function
+- Test it with a sample payload to confirm it runs
 
-5. Normalize all returned fields before responding
-- Force all array fields to arrays and object fields to objects.
-- Apply the same defensive shaping before returning core-mode data so UI code never receives malformed collections.
+### 2. Fix the enrichment trigger in `BusinessDNAOnboarding.tsx`
+- Add debug logging to confirm whether `rowId` is null
+- If `reloadedBrands` doesn't contain the brand yet (race condition), add a small delay + retry to find the row
+- Alternatively, have `save-onboarding` return the brand row ID directly and pass it to `enrich-brand`
 
-6. Keep onboarding/add-business UI mostly unchanged
-- `BusinessDNAOnboarding.tsx` and `AddProductURLView.tsx` already consume the shared `scrape-product` core response.
-- I’ll only adjust error handling if needed so they show a clean extraction failure when zero usable data comes back.
+### 3. Fix Pinterest moodboard scraping
+- Pinterest blocks most scraping; Firecrawl with `formats: ["html"]` may return a login wall
+- Switch approach: use Firecrawl **search** endpoint (`/v1/search`) to search for `"{brandName} {category} aesthetic pinterest"` which returns actual image URLs from Google image results pointing to Pinterest
+- Alternatively, use `rawHtml` format with a longer `waitFor` (5000ms) to let Pinterest render
+- Extract `i.pinimg.com` URLs from whichever method yields results
 
-Files to update
-- `supabase/functions/scrape-product/index.ts`
-  - split extraction into brand pass + per-product passes
-  - add robust JSON parsing/retry helpers
-  - downgrade partial parse failures to non-fatal
-  - normalize merged output before returning
-- `src/components/database/BusinessDNAOnboarding.tsx`
-  - minor resilience only if needed for partial results
-- `src/components/database/AddProductURLView.tsx`
-  - minor resilience only if needed for partial results
+### 4. Generate 9 individual icon SVGs + 1 pattern SVG
+- Replace the current single "icon grid" prompt with 9 separate smaller AI calls (or batch 3 at a time) that each produce one standalone icon SVG based on a specific product/audience concept
+- Keep the pattern SVG as a single call
+- Store as `illustrationSvgs` array with 10 entries (9 icons + 1 pattern)
 
-Expected result
-- Onboarding and add-business scraping stop failing on large company sites like Apple.
-- Brand/product/audience data still comes back in full structure, but assembled from smaller reliable calls.
-- 409/403 noise may still appear occasionally, but they will no longer block the scrape flow.
+### 5. Update `BrandExtendedSections.tsx` display
+- Render the 9 icons in a 3x3 grid (each as an individual SVG card)
+- Render the 1 pattern as a full-width banner below the icon grid
+- Label icons based on the concept they represent
+
+## Files
+
+| File | Change |
+|------|--------|
+| `supabase/functions/enrich-brand/index.ts` | Fix Pinterest scraping (try search API fallback), generate 9 individual icons + 1 pattern, add retry logic |
+| `src/components/database/BusinessDNAOnboarding.tsx` | Fix rowId resolution with retry; ensure enrich-brand is always called |
+| `src/components/database/BrandExtendedSections.tsx` | Display 9 icons in 3x3 grid + 1 pattern as full-width |
+
+## Technical Details
+
+### Pinterest fix approach
+```text
+Primary: Firecrawl search API → "brand aesthetic pinterest" → extract image URLs
+Fallback: Firecrawl scrape with rawHtml + waitFor: 5000
+```
+
+### Icon generation approach
+```text
+For each of 9 concepts derived from product benefits + audience needs:
+  → AI call: "Generate a single SVG icon (viewBox 0 0 100 100) for [concept]. Use colors [primary] and [secondary]. No text."
+  → Extract <svg>...</svg> from response
+Run 3 batches of 3 in parallel to balance speed and reliability
+```
+
