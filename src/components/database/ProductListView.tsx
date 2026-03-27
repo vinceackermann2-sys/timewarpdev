@@ -175,6 +175,7 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
           <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => setIsCreating(!isCreating)}>
             {isCreating ? <span>Cancel</span> : <><Sparkles className="h-3.5 w-3.5" /> From URL</>}
         </Button>
+        </div>
       </div>
 
       <AnimatePresence>
