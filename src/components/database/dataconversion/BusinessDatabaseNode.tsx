@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { Database, CheckCircle2, FileText, Image, Globe, Type, Mail, Video, Music, Table2, ChevronDown, ChevronUp } from "lucide-react";
+import { Database, CheckCircle2, FileText, Image, Globe, Type, Mail, Video, Music, Table2, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
+import { supabase } from "@/integrations/supabase/client";
 import type { CanvasNode, PendingConnection } from "./types";
 
 interface BusinessDatabaseNodeProps {
@@ -35,6 +36,11 @@ const typeIcons: Record<string, React.ReactNode> = {
   video: <Video className="h-3.5 w-3.5 text-primary" />,
   audio: <Music className="h-3.5 w-3.5 text-primary" />,
   spreadsheet: <Table2 className="h-3.5 w-3.5 text-primary" />,
+  calendar: <Calendar className="h-3.5 w-3.5 text-primary" />,
+  product: <Globe className="h-3.5 w-3.5 text-primary" />,
+  audience: <Type className="h-3.5 w-3.5 text-primary" />,
+  integration: <Database className="h-3.5 w-3.5 text-primary" />,
+  message: <Mail className="h-3.5 w-3.5 text-primary" />,
 };
 
 const sourceLabels: Record<string, string> = {
@@ -56,6 +62,7 @@ export function BusinessDatabaseNode({
 }: BusinessDatabaseNodeProps) {
   const { products, audiences, isLoading: dnaLoading } = useBusinessDNA();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [providerItems, setProviderItems] = useState<DataItem[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(() => {
     return localStorage.getItem("preferred_business_id");
   });
@@ -69,37 +76,61 @@ export function BusinessDatabaseNode({
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
+  // Fetch provider-synced data (microsoft, google, slack, wordpress) from DB
+  useEffect(() => {
+    async function fetchProviderData() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { data } = await supabase
+        .from("user_business_data")
+        .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+        .eq("user_id", session.user.id)
+        .neq("source", "business-dna")
+        .neq("source", "canvas")
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        setProviderItems(data as DataItem[]);
+      }
+    }
+    fetchProviderData();
+  }, []);
+
   const isLoading = dnaLoading;
 
-  // Derive items from cached context data instead of fetching
+  // Derive items from cached context data + provider data
   const items: DataItem[] = useMemo(() => {
-    if (!selectedBrandId) return [];
-    const productItems = products
-      .filter(p => p.brandId === selectedBrandId)
-      .map(p => ({
-        id: (p as any).id || crypto.randomUUID(),
-        data_type: "product",
-        source: (p as any).source || "canvas",
-        title: p.name || "Product",
-        content: null,
-        analyzed_content: (p as any).tagline || p.description || null,
-        is_analyzed: true,
-        created_at: (p as any).created_at || null,
-      }));
-    const audienceItems = audiences
-      .filter(a => a.productIds?.some(pid => productItems.some(p => p.id === pid)) || (a as any).brandId === selectedBrandId)
-      .map(a => ({
-        id: (a as any).id || crypto.randomUUID(),
-        data_type: "audience",
-        source: (a as any).source || "canvas",
-        title: a.name || "Audience",
-        content: null,
-        analyzed_content: a.description || null,
-        is_analyzed: true,
-        created_at: (a as any).created_at || null,
-      }));
-    return [...productItems, ...audienceItems];
-  }, [selectedBrandId, products, audiences]);
+    const dnaItems: DataItem[] = [];
+    if (selectedBrandId) {
+      const productItems = products
+        .filter(p => p.brandId === selectedBrandId)
+        .map(p => ({
+          id: (p as any).id || crypto.randomUUID(),
+          data_type: "product",
+          source: (p as any).source || "canvas",
+          title: p.name || "Product",
+          content: null,
+          analyzed_content: (p as any).tagline || p.description || null,
+          is_analyzed: true,
+          created_at: (p as any).created_at || null,
+        }));
+      const audienceItems = audiences
+        .filter(a => a.productIds?.some(pid => productItems.some(p => p.id === pid)) || (a as any).brandId === selectedBrandId)
+        .map(a => ({
+          id: (a as any).id || crypto.randomUUID(),
+          data_type: "audience",
+          source: (a as any).source || "canvas",
+          title: a.name || "Audience",
+          content: null,
+          analyzed_content: a.description || null,
+          is_analyzed: true,
+          created_at: (a as any).created_at || null,
+        }));
+      dnaItems.push(...productItems, ...audienceItems);
+    }
+    return [...dnaItems, ...providerItems];
+  }, [selectedBrandId, products, audiences, providerItems]);
 
   // Group items by source
   const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
@@ -244,17 +275,11 @@ export function BusinessDatabaseNode({
                 </div>
               ))}
             </div>
-          ) : !selectedBrandId ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <Database className="h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground text-center">Select a business</p>
-              <p className="text-xs text-muted-foreground/60 text-center mt-1">Choose a business from the sidebar to load its data</p>
-            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 px-4">
               <Database className="h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground text-center">No products or audiences</p>
-              <p className="text-xs text-muted-foreground/60 text-center mt-1">Add products and audiences in Business DNA</p>
+              <p className="text-sm text-muted-foreground text-center">No data yet</p>
+              <p className="text-xs text-muted-foreground/60 text-center mt-1">Connect providers or add products in Business DNA</p>
             </div>
           )}
         </div>
