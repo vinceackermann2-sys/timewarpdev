@@ -461,33 +461,61 @@ export function BrandExtendedSections({
           </div>
         </BrandSection>
 
-        {/* ── Illustrations ── */}
+        {/* ── Illustrations (9 icons + 1 pattern) ── */}
         <BrandSection
           id="illustrations" icon={Paintbrush} title="Illustrations"
-          description="Custom illustrations, mascots, patterns, and decorative assets that reinforce the brand personality."
+          description="Custom icons and patterns that reinforce the brand personality."
         >
-          <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              {data.illustrations.map((slot) => (
-                slot.svgContent ? (
-                  <div key={slot.id} className="aspect-square rounded-lg border border-border/50 overflow-hidden bg-card p-2 relative">
-                    <div
-                      className="w-full h-full"
-                      dangerouslySetInnerHTML={{ __html: slot.svgContent }}
-                    />
-                    {slot.label && (
-                      <span className="absolute bottom-1 left-2 text-[10px] text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded">{slot.label}</span>
-                    )}
-                  </div>
-                ) : (
-                  <EditableImageSlot
-                    key={slot.id} slot={slot} aspect="aspect-square" isEditing={isEditing}
-                    onUpload={(id, file) => handleImageUpload(id, file, "illustrations")}
-                    onRemove={(id) => handleImageRemove(id, "illustrations")}
-                  />
-                )
-              ))}
-            </div>
+          <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-4">
+            {/* Icons grid (all but last SVG if we have 10+) */}
+            {(() => {
+              const svgSlots = data.illustrations.filter(s => s.svgContent);
+              const nonSvgSlots = data.illustrations.filter(s => !s.svgContent);
+              const iconSlots = svgSlots.length > 1 ? svgSlots.slice(0, -1) : svgSlots;
+              const patternSlot = svgSlots.length > 1 ? svgSlots[svgSlots.length - 1] : null;
+
+              return (
+                <>
+                  {iconSlots.length > 0 && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {iconSlots.map((slot) => (
+                        <div key={slot.id} className="aspect-square rounded-lg border border-border/50 overflow-hidden bg-card p-3 relative flex items-center justify-center">
+                          <div
+                            className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                            dangerouslySetInnerHTML={{ __html: slot.svgContent! }}
+                          />
+                          {slot.label && (
+                            <span className="absolute bottom-1 left-1 right-1 text-center text-[9px] text-muted-foreground bg-background/80 px-1 py-0.5 rounded truncate">
+                              {slot.label}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {patternSlot && (
+                    <div className="w-full rounded-lg border border-border/50 overflow-hidden bg-card p-3">
+                      <span className="text-[10px] text-muted-foreground mb-1 block">{patternSlot.label || "Brand pattern"}</span>
+                      <div
+                        className="w-full h-24 [&>svg]:w-full [&>svg]:h-full"
+                        dangerouslySetInnerHTML={{ __html: patternSlot.svgContent! }}
+                      />
+                    </div>
+                  )}
+                  {nonSvgSlots.length > 0 && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {nonSvgSlots.map((slot) => (
+                        <EditableImageSlot
+                          key={slot.id} slot={slot} aspect="aspect-square" isEditing={isEditing}
+                          onUpload={(id, file) => handleImageUpload(id, file, "illustrations")}
+                          onRemove={(id) => handleImageRemove(id, "illustrations")}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
             {isEditing && (
               <button
                 onClick={addIllustrationSlot}
