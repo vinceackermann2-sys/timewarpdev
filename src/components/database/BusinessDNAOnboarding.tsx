@@ -407,6 +407,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         localStorage.setItem("preferred_workspace_id", data.workspaceId);
       }
 
+      const savedBrandRowId = typeof data.brandRowId === "string" ? data.brandRowId : undefined;
+
       // Reload from DB to get proper _rowId values and avoid duplicate insertions
       let reloadedBrands: any[] = [];
       if (contextAvailable) {
@@ -420,16 +422,17 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
       // Fire-and-forget: enrich brand with heavy assets (moodboard, illustrations, screenshot)
       if (contextAvailable) {
-        let rowId: string | undefined;
-        // Try to find the brand row, with retry for race conditions
-        for (let attempt = 0; attempt < 3; attempt++) {
-          const brandRow = reloadedBrands.find((b: any) => b.id === finalBrandId);
-          rowId = (brandRow as any)?._rowId;
-          if (rowId) break;
-          console.log(`Enrich-brand: rowId not found, retry ${attempt + 1}/3...`);
-          await new Promise(r => setTimeout(r, 1500));
-          const retryResult = await reloadData();
-          reloadedBrands = retryResult.brands;
+        let rowId: string | undefined = savedBrandRowId;
+        if (!rowId) {
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const brandRow = reloadedBrands.find((b: any) => b.id === finalBrandId);
+            rowId = (brandRow as any)?._rowId;
+            if (rowId) break;
+            console.log(`Enrich-brand: rowId not found, retry ${attempt + 1}/3...`);
+            await new Promise(r => setTimeout(r, 1500));
+            const retryResult = await reloadData();
+            reloadedBrands = retryResult.brands;
+          }
         }
         console.log("Enrich-brand: rowId:", rowId);
         if (rowId) {

@@ -99,12 +99,12 @@ serve(async (req) => {
     };
 
     // Insert brand
-    const { error: brandErr } = await admin.from("user_business_data").insert({
+    const { data: brandInsert, error: brandErr } = await admin.from("user_business_data").insert({
       ...basePayload,
       data_type: "brand",
       title: brandData?.name || "My Business",
       content: JSON.stringify(brandData),
-    });
+    }).select("id").single();
 
     if (brandErr) {
       console.error("Brand insert failed:", brandErr);
@@ -149,7 +149,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, workspaceId: wsId }),
+      JSON.stringify({ success: true, workspaceId: wsId, brandRowId: brandInsert?.id || null }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

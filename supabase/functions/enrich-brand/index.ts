@@ -103,6 +103,59 @@ function extractPinterestUrls(raw: string): string[] {
   return [...deduped.values()].slice(0, 6);
 }
 
+function extractPinterestPageUrls(payload: unknown): string[] {
+  const urls = new Set<string>();
+
+  const visit = (value: unknown) => {
+    if (!value) return;
+
+    if (typeof value === "string") {
+      const matches = value.match(/https?:\/\/(?:[\w-]+\.)?pinterest\.[^\s"'<>\\]+/gi) || [];
+      for (const match of matches) {
+        const clean = match.replace(/[),.;]+$/, "");
+        if (/\/pin\//i.test(clean)) urls.add(clean);
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+
+    if (typeof value === "object") {
+      Object.values(value as Record<string, unknown>).forEach(visit);
+    }
+  };
+
+  visit(payload);
+  return [...urls].slice(0, 8);
+}
+
+async function scrapePinterestPageForImages(pinUrl: string, firecrawlKey: string): Promise<string[]> {
+  const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: pinUrl,
+      formats: ["rawHtml", "html"],
+      waitFor: 7000,
+      onlyMainContent: false,
+    }),
+  });
+
+  if (!scrapeRes.ok) return [];
+
+  const scrapeData = await scrapeRes.json();
+  const payload = [
+    scrapeData.data?.rawHtml,
+    scrapeData.data?.html,
+    JSON.stringify(scrapeData.data || scrapeData),
+  ].filter(Boolean).join("\n");
+
+  return extractPinterestUrls(payload);
+}
+
 function mapConceptToLucideIconName(concept: string, index: number): string {
   const normalized = concept.toLowerCase();
   const keywordMap: Array<{ keywords: string[]; icon: string }> = [
@@ -176,59 +229,70 @@ async function fetchMoodboardImages(
   for (const query of queries) {
     if (allUrls.length >= 6) break;
     try {
-      const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`;
-      const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
         method: "POST",
         headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          url: pinterestUrl,
-          formats: ["rawHtml", "html"],
-          waitFor: 7000,
-          onlyMainContent: false,
+          query: `${query} site:pinterest.com/pin`,
+          limit: 6,
         }),
       });
 
-      if (scrapeRes.ok) {
-        const scrapeData = await scrapeRes.json();
-        const rawPayload = [
-          scrapeData.data?.rawHtml,
-          scrapeData.data?.html,
-          JSON.stringify(scrapeData.data || scrapeData),
-        ].filter(Boolean).join("\n");
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        const payload = searchData.data || searchData;
 
-        for (const url of extractPinterestUrls(rawPayload)) {
+        for (const url of extractPinterestUrls(JSON.stringify(payload))) {
           if (!allUrls.includes(url)) allUrls.push(url);
+        }
+
+        for (const pageUrl of extractPinterestPageUrls(payload)) {
+          if (allUrls.length >= 6) break;
+          try {
+            for (const url of await scrapePinterestPageForImages(pageUrl, firecrawlKey)) {
+              if (!allUrls.includes(url)) allUrls.push(url);
+              if (allUrls.length >= 6) break;
+            }
+          } catch (e) {
+            console.warn(`Pinterest pin scrape failed for "${pageUrl}":`, e);
+          }
         }
       }
     } catch (e) {
-      console.warn(`Pinterest scrape failed for "${query}":`, e);
+      console.warn(`Pinterest search failed for "${query}":`, e);
     }
   }
 
-  // Fallback: search for Pinterest result pages and parse their srcset/image JSON blobs
+  // Fallback: scrape Pinterest result pages directly and parse srcset/image blobs
   if (allUrls.length < 3) {
     for (const query of queries) {
       if (allUrls.length >= 6) break;
       try {
-        const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+        const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`;
+        const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
           headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            query: `site:pinterest.com ${query}`,
-            limit: 5,
-            scrapeOptions: { formats: ["html"] },
+            url: pinterestUrl,
+            formats: ["rawHtml", "html"],
+            waitFor: 7000,
+            onlyMainContent: false,
           }),
         });
 
-        if (searchRes.ok) {
-          const searchData = await searchRes.json();
-          const payload = JSON.stringify(searchData.data || searchData);
+        if (scrapeRes.ok) {
+          const scrapeData = await scrapeRes.json();
+          const payload = [
+            scrapeData.data?.rawHtml,
+            scrapeData.data?.html,
+            JSON.stringify(scrapeData.data || scrapeData),
+          ].filter(Boolean).join("\n");
           for (const url of extractPinterestUrls(payload)) {
             if (!allUrls.includes(url)) allUrls.push(url);
           }
         }
       } catch (e) {
-        console.warn(`Pinterest search fallback failed for "${query}":`, e);
+        console.warn(`Pinterest scrape fallback failed for "${query}":`, e);
       }
     }
   }
