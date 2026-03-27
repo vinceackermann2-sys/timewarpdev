@@ -155,8 +155,25 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
          <h3 className="text-base font-semibold text-foreground">Products</h3>
           <p className="text-xs text-muted-foreground mt-0.5">{brandProducts.length} product{brandProducts.length !== 1 ? "s" : ""}</p>
         </div>
-        <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => setIsCreating(!isCreating)}>
-          {isCreating ? <span>Cancel</span> : <><Plus className="h-3.5 w-3.5" /> New Product</>}
+        <div className="flex items-center gap-2">
+          {!isCreating && (
+            <Button variant="ghost" size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => {
+              const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+              const newProduct: ProductEntry = {
+                ...DEFAULT_PRODUCT,
+                id: `product-${Date.now()}`,
+                name: "New Product",
+                lastUpdated: now,
+                brandId: activeBrandId,
+              };
+              setProducts(prev => [...prev, newProduct]);
+              setSelectedProductId(newProduct.id);
+            }}>
+              <Plus className="h-3.5 w-3.5" /> Blank Product
+            </Button>
+          )}
+          <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => setIsCreating(!isCreating)}>
+            {isCreating ? <span>Cancel</span> : <><Sparkles className="h-3.5 w-3.5" /> From URL</>}
         </Button>
       </div>
 
