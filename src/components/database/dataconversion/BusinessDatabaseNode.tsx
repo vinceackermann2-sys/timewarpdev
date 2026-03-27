@@ -36,6 +36,11 @@ const typeIcons: Record<string, React.ReactNode> = {
   video: <Video className="h-3.5 w-3.5 text-primary" />,
   audio: <Music className="h-3.5 w-3.5 text-primary" />,
   spreadsheet: <Table2 className="h-3.5 w-3.5 text-primary" />,
+  calendar: <Calendar className="h-3.5 w-3.5 text-primary" />,
+  product: <Globe className="h-3.5 w-3.5 text-primary" />,
+  audience: <Type className="h-3.5 w-3.5 text-primary" />,
+  integration: <Database className="h-3.5 w-3.5 text-primary" />,
+  message: <Mail className="h-3.5 w-3.5 text-primary" />,
 };
 
 const sourceLabels: Record<string, string> = {
