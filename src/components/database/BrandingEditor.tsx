@@ -170,8 +170,6 @@ export function BrandingEditor({
           source: extractUrl.trim(),
         }));
         setHasUnsavedExtraction(true);
-        toast({ title: "Branding extracted", description: `Found colors, typography and logos from ${b.name || "the URL"}. Click Save to keep changes.` });
-
         // Also pass visual identity data if extracted
         const vi = b.visualIdentity;
         if (vi && onVisualIdentityExtracted) {
@@ -182,32 +180,34 @@ export function BrandingEditor({
           const firstProduct = extracted.products?.[0] || extracted.product || {};
           const firstAudience = extracted.audiences?.[0] || extracted.audience || {};
 
-          invokeEdgeFunction("enrich-brand", {
-            brandRowId,
-            brandName: b.name || "the brand",
-            brandCategory: b.category || "lifestyle",
-            brandColors: b.colors || {},
-            audienceDesc: firstAudience.description || "",
-            audiencePowerWords: Array.isArray(firstAudience.powerWords)
-              ? firstAudience.powerWords.slice(0, 5).join(", ")
-              : "",
-            productBenefits: Array.isArray(firstProduct.benefits)
-              ? firstProduct.benefits.slice(0, 6).join("; ")
-              : "",
-            buyingTriggers: Array.isArray(firstAudience.buyingTriggers)
-              ? firstAudience.buyingTriggers.slice(0, 4).join("; ")
-              : "",
-            websiteUrl: extractUrl.trim(),
-          })
-            .then((res) => {
-              if (res.data?.success && brandId) {
-                void refreshBrand(brandId);
-              }
-            })
-            .catch((enrichErr) => {
-              console.warn("Brand enrichment failed (non-blocking):", enrichErr);
+          try {
+            const enrichRes = await invokeEdgeFunction("enrich-brand", {
+              brandRowId,
+              brandName: b.name || "the brand",
+              brandCategory: b.category || "lifestyle",
+              brandColors: b.colors || {},
+              audienceDesc: firstAudience.description || "",
+              audiencePowerWords: Array.isArray(firstAudience.powerWords)
+                ? firstAudience.powerWords.slice(0, 5).join(", ")
+                : "",
+              productBenefits: Array.isArray(firstProduct.benefits)
+                ? firstProduct.benefits.slice(0, 6).join("; ")
+                : "",
+              buyingTriggers: Array.isArray(firstAudience.buyingTriggers)
+                ? firstAudience.buyingTriggers.slice(0, 4).join("; ")
+                : "",
+              websiteUrl: extractUrl.trim(),
             });
+            if (enrichRes.data?.success && brandId) {
+              await refreshBrand(brandId);
+            }
+          } catch (enrichErr) {
+            console.warn("Brand enrichment failed (non-blocking):", enrichErr);
+          }
         }
+
+        setHasUnsavedExtraction(true);
+        toast({ title: "Branding extracted", description: `Found colors, typography, logos and moodboard from ${b.name || "the URL"}. Click Save to keep changes.` });
       } else {
         toast({ title: "No branding found", description: "Could not extract brand data from that URL.", variant: "destructive" });
       }
