@@ -19,9 +19,10 @@ import { WorkspaceFooter as WorkspaceFooterShared } from "./WorkspaceFooter";
 interface MyBusinessesViewProps {
   onSelectBusiness: () => void;
   onOpenBusiness?: (brandId: string) => void;
+  onManageWorkspace?: () => void;
 }
 
-export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusinessesViewProps) {
+export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWorkspace }: MyBusinessesViewProps) {
   const [search, setSearch] = useState("");
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
   const { isFreeUser, showGate, openGate, closeGate } = useFreePlanGate();
@@ -72,7 +73,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
 
           {/* Manage button - owners only */}
           {isOwner && (
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowWorkspaceSettings(true)}>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onManageWorkspace ? onManageWorkspace() : setShowWorkspaceSettings(true)}>
               <Settings className="h-3.5 w-3.5" /> Manage
             </Button>
           )}
