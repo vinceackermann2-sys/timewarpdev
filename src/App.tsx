@@ -16,6 +16,7 @@ import TermsOfPurchase from "./pages/TermsOfPurchase";
 import InviteAccept from "./pages/InviteAccept";
 import PricingPage from "./pages/PricingPage";
 import Support from "./pages/Support";
+import Workspaces from "./pages/Workspaces";
 
 const queryClient = new QueryClient();
 
