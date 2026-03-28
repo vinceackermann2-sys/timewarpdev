@@ -279,8 +279,12 @@ ${homepageMarkdown.slice(0, 8000)}`;
 
 const PRODUCT_AUDIENCE_PROMPT = (productMarkdown: string, brandName: string, pageUrl: string) => `Extract ONE product and ONE matching target audience from this product page. Return ONLY valid JSON.
 
-If you cannot find real data for a field, leave it as "" or []. NEVER fabricate data. NEVER use example data.
-For offers: ONLY include pricing/deals explicitly shown on this page. If none, return "offers": [].
+CRITICAL RULES:
+- ONLY use information that is EXPLICITLY present on this page. Do NOT infer, guess, or hallucinate any data.
+- If you cannot find real data for a field, leave it as "" or [].
+- NEVER fabricate data. NEVER use example data. NEVER use data from other businesses or websites.
+- For "offers": ONLY include pricing, deals, or bundles that have EXPLICIT prices or discount percentages written on the page. If there are NO prices, NO pricing tiers, NO discount amounts visible on the page, return "offers": []. Do NOT guess prices. Do NOT invent pricing tiers.
+- For "features", "benefits", "painPoints", etc.: extract ONLY what is stated or clearly implied on the page content. Leave empty [] if the page does not mention them.
 
 JSON structure:
 {
