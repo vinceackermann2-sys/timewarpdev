@@ -184,14 +184,6 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
         <WorkspaceFooter />
       </div>
 
-      {/* Workspace manage dialog */}
-      {managingWsId && (
-        <WorkspaceDialog
-          open={!!managingWsId}
-          onOpenChange={(open) => { if (!open) setManagingWsId(null); }}
-          userEmail={user?.email || ""}
-        />
-      )}
     </div>
   );
 }
