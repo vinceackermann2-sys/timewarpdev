@@ -882,6 +882,7 @@ Professional photography style, branded color palette. No text overlays, no UI c
 
     return new Response(JSON.stringify({
       success: true,
+      analyzedUrls,
       enriched: {
         moodboard: enriched.moodboardUrls?.length || 0,
         illustrations: (enriched.illustrationIconNames?.length || 0) + (enriched.patternSvg ? 1 : 0),
