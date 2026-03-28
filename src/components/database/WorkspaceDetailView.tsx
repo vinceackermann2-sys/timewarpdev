@@ -134,7 +134,8 @@ export function WorkspaceDetailView({
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6">
-        <div className="mb-6">
+        {/* Workspace title */}
+        <div className="mb-4">
           {editingName ? (
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-foreground">Workspace</h1>
@@ -162,7 +163,7 @@ export function WorkspaceDetailView({
         {/* ← All workspaces */}
         <button
           onClick={onBack}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 inline-block"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 inline-block"
         >
           ← All workspaces
         </button>
