@@ -347,7 +347,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 Settings
               </DropdownMenuItem>
               <DropdownMenuItem 
-                className="cursor-pointer"
+                className="cursor-pointer py-2.5"
                 onClick={() => {
                   setSettingsOpen(true);
                   setTimeout(() => {
