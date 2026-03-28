@@ -41,7 +41,7 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button 
-          className={`w-full rounded-md transition-colors hover:bg-transparent mb-2 ${
+          className={`w-full rounded-md transition-colors hover:bg-primary/10 hover:text-primary mb-2 ${
             isCollapsed ? 'p-2 flex justify-center' : 'p-2 flex items-center gap-2'
           }`}
         >
