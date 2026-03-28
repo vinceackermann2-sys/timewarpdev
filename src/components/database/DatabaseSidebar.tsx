@@ -205,7 +205,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   />
                 </div>
-                <div className="py-1.5 max-h-[200px] overflow-y-auto">
+                <div className="py-2 max-h-[300px] overflow-y-auto">
                   {workspaces
                     .filter(ws => ws.workspaceName.toLowerCase().includes(wsSearch.toLowerCase()))
                     .map(ws => (
@@ -333,21 +333,21 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               align="center"
               className="w-56 bg-popover border-border z-50"
             >
-              <DropdownMenuLabel className="font-normal">
+              <DropdownMenuLabel className="font-normal py-3">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">{userEmail}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                className="cursor-pointer"
+                className="cursor-pointer py-2.5"
                 onClick={() => setSettingsOpen(true)}
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuItem 
-                className="cursor-pointer"
+                className="cursor-pointer py-2.5"
                 onClick={() => {
                   setSettingsOpen(true);
                   setTimeout(() => {
@@ -361,7 +361,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               </DropdownMenuItem>
               
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer">
+                <DropdownMenuSubTrigger className="cursor-pointer py-2.5">
                   <Palette className="h-4 w-4 mr-2" />
                   Appearance
                 </DropdownMenuSubTrigger>
@@ -385,7 +385,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               </DropdownMenuSub>
               
               <DropdownMenuItem 
-                className="cursor-pointer"
+                className="cursor-pointer py-2.5"
                 onClick={() => setFeedbackOpen(true)}
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
@@ -393,7 +393,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                className="cursor-pointer text-destructive focus:text-destructive"
+                className="cursor-pointer text-destructive focus:text-destructive py-2.5"
                 onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-2" />
