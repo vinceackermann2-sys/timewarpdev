@@ -684,6 +684,7 @@ serve(async (req) => {
 
     const vi = brandContent.visualIdentity || {};
     const enriched: Record<string, any> = {};
+    const analyzedUrls: string[] = [];
     const name = brandName || brandContent.name || "the brand";
     const cat = brandCategory || brandContent.category || "lifestyle";
     const colors = brandColors || brandContent.colors || {};
