@@ -464,10 +464,9 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
                 <p className="text-sm font-medium">Microsoft</p>
                 <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
               </div>
-              {!isConnected && (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={handleConnect} disabled={connectingProvider}>
-                  {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                  Connect
+              {isConnected && (
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={handleDisconnect}>
+                  Disconnect
                 </Button>
               )}
             </div>
@@ -475,8 +474,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             {/* Google - Coming Soon */}
             <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
               <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-lg">
-                  🔍
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                  <img src={logoGoogle} alt="Google" className="h-7 w-7 object-contain" loading="lazy" />
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
               </div>
@@ -489,8 +488,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             {/* Slack - Coming Soon */}
             <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
               <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-lg">
-                  💬
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                  <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" loading="lazy" />
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
               </div>
