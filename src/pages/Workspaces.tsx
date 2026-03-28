@@ -177,7 +177,7 @@ export default function Workspaces() {
         <WorkspaceDialog
           open={!!managingWsId}
           onOpenChange={(open) => { if (!open) setManagingWsId(null); }}
-          workspaceId={managingWsId}
+          userEmail={user?.email || ""}
         />
       )}
     </div>

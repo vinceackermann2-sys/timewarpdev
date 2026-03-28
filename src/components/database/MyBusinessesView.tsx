@@ -14,6 +14,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { UpgradeGateDialog } from "./UpgradeGateDialog";
 import { useFreePlanGate } from "@/hooks/useFreePlanGate";
+import { WorkspaceFooter as WorkspaceFooterShared } from "./WorkspaceFooter";
 
 interface MyBusinessesViewProps {
   onSelectBusiness: () => void;
