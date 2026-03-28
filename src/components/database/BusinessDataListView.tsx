@@ -11,6 +11,9 @@ import { Progress } from "@/components/ui/progress";
 import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoGoogle from "@/assets/logo-google.png";
+import logoSlack from "@/assets/logo-slack.png";
+import logoFortknox from "@/assets/logo-fortknox.png";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 import { SyncPreferencesDialog } from "@/components/database/SyncPreferencesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -191,6 +194,34 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       toast.error("Failed to start connection");
     }
     setConnectingProvider(false);
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      // Delete the connection record
+      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", "microsoft");
+      // Delete OAuth tokens
+      // (tokens table has RLS deny-all, but we try; the connect-provider function handles this server-side)
+      await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ provider: "microsoft", action: "disconnect" }),
+        }
+      );
+      setIsConnected(false);
+      setConnectedEmail(null);
+      toast.success("Microsoft disconnected");
+    } catch {
+      toast.error("Failed to disconnect");
+    }
   };
 
   const handleSync = async (categories?: { emails: boolean; events: boolean; files: boolean }, limits?: { emails: number; events: number; files: number }) => {
@@ -433,7 +464,11 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
                 <p className="text-sm font-medium">Microsoft</p>
                 <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
               </div>
-              {!isConnected && (
+              {isConnected ? (
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={handleDisconnect}>
+                  Disconnect
+                </Button>
+              ) : (
                 <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={handleConnect} disabled={connectingProvider}>
                   {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
                   Connect
@@ -444,8 +479,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             {/* Google - Coming Soon */}
             <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
               <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-lg">
-                  🔍
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                  <img src={logoGoogle} alt="Google" className="h-7 w-7 object-contain" loading="lazy" />
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
               </div>
@@ -458,8 +493,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             {/* Slack - Coming Soon */}
             <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
               <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-lg">
-                  💬
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                  <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" loading="lazy" />
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
               </div>
@@ -472,8 +507,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             {/* FortKnox - Coming Soon */}
             <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
               <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-lg">
-                  🏰
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                  <img src={logoFortknox} alt="FortKnox" className="h-7 w-7 object-contain" loading="lazy" />
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
               </div>
