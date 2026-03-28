@@ -97,7 +97,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
               whileTap={{ scale: 0.98 }}
               onClick={() => {
                 if (isFreeUser && brands.length >= 1) { openGate(); return; }
-                setShowOptionsDialog(true);
+                onSelectBusiness();
               }}
               className="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/40 bg-card/30 hover:bg-card/60 p-8 min-h-[200px] transition-colors cursor-pointer"
             >
