@@ -121,9 +121,10 @@ serve(async (req) => {
   }
 });
 
-async function loadBusinessContext(supabase: any, employee: any): Promise<string> {
+async function loadBusinessContext(supabase: any, employee: any): Promise<{ contextText: string; safetySettings: any | null }> {
   let businessContext = "";
-  if (!employee.linked_business_id) return businessContext;
+  let safetySettings: any = null;
+  if (!employee.linked_business_id) return { contextText: businessContext, safetySettings };
 
   const { data: bizData } = await supabase
     .from("user_business_data")
@@ -133,7 +134,16 @@ async function loadBusinessContext(supabase: any, employee: any): Promise<string
 
   if (bizData) {
     businessContext = `\n\n## Linked Business Data\n- **Title:** ${bizData.title}\n- **Type:** ${bizData.data_type}\n- **Source:** ${bizData.source}`;
-    if (bizData.content) businessContext += `\n\n### Content\n${bizData.content.slice(0, 5000)}`;
+    if (bizData.content) {
+      // Try to parse safety settings from brand content JSON
+      try {
+        const parsed = JSON.parse(bizData.content);
+        if (parsed?.safetySettings) {
+          safetySettings = parsed.safetySettings;
+        }
+      } catch {}
+      businessContext += `\n\n### Content\n${bizData.content.slice(0, 5000)}`;
+    }
     if (bizData.analyzed_content) businessContext += `\n\n### Analysis\n${bizData.analyzed_content.slice(0, 3000)}`;
   }
 
@@ -155,7 +165,7 @@ async function loadBusinessContext(supabase: any, employee: any): Promise<string
     }
   }
 
-  return businessContext;
+  return { contextText: businessContext, safetySettings };
 }
 
 function buildSystemPrompt(employee: any, businessContext: string, pageContext: any): string {
