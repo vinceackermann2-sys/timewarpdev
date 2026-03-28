@@ -977,6 +977,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
                                 .from("user_business_data")
                                 .update({ content: JSON.stringify(brandData) })
                                 .eq("id", createdBrandId);
+                              // Update local context so BusinessDNAView picks it up immediately
+                              setBrands(prev => prev.map(b =>
+                                (b as any)._rowId === createdBrandId || b.id === brandData.id
+                                  ? { ...b, agentName: agentName.trim() }
+                                  : b
+                              ));
                             } catch { /* best effort */ }
                           }
                           onComplete(agentName.trim(), createdBrandId);
