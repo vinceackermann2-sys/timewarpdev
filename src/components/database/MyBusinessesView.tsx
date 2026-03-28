@@ -19,6 +19,7 @@ import { WorkspaceFooter as WorkspaceFooterShared } from "./WorkspaceFooter";
 interface MyBusinessesViewProps {
   onSelectBusiness: () => void;
   onOpenBusiness?: (brandId: string) => void;
+  onManageWorkspace?: () => void;
 }
 
 export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusinessesViewProps) {
