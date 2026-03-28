@@ -416,7 +416,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
               transition={{ duration: 0.2 }}
               className="pt-5"
             >
-              <BusinessDataListView />
+              <BusinessDataListView activeBrandId={activeBrandId} />
             </motion.div>
           ) : activeSegment === "sop" ? (
             <motion.div

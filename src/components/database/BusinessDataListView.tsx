@@ -58,7 +58,7 @@ function formatBytes(bytes: number): string {
 let _cachedItems: DataItem[] | null = null;
 let _cachedCacheKey: string | null = null;
 
-export function BusinessDataListView() {
+export function BusinessDataListView({ activeBrandId }: { activeBrandId: string }) {
   const [items, setItems] = useState<DataItem[]>(_cachedItems ?? []);
   const [isLoading, setIsLoading] = useState(!_cachedItems);
   const [expandedId, setExpandedId] = useState<string | null>(null);
