@@ -22,7 +22,7 @@ interface MyBusinessesViewProps {
   onManageWorkspace?: () => void;
 }
 
-export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusinessesViewProps) {
+export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWorkspace }: MyBusinessesViewProps) {
   const [search, setSearch] = useState("");
   const [showOptionsDialog, setShowOptionsDialog] = useState(false);
   const { isFreeUser, showGate, openGate, closeGate } = useFreePlanGate();
