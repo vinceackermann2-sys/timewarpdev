@@ -168,7 +168,7 @@ async function loadBusinessContext(supabase: any, employee: any): Promise<{ cont
   return { contextText: businessContext, safetySettings };
 }
 
-function buildSystemPrompt(employee: any, businessContext: string, pageContext: any): string {
+function buildSystemPrompt(employee: any, businessContext: string, pageContext: any, safetySettings: any): string {
   const procedures = Array.isArray(employee.sop_procedure) ? employee.sop_procedure : [];
   const definitions = Array.isArray(employee.sop_definitions) ? employee.sop_definitions : [];
   const responsibilities = Array.isArray(employee.sop_responsibilities) ? employee.sop_responsibilities : [];
