@@ -163,7 +163,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     isActive={currentView === "employees"}
                     onClick={() => onViewChange("employees")}
                     tooltip="Employees"
-                    className={currentView === "employees" ? "bg-muted text-foreground" : ""}
+                    className={currentView === "employees" ? "bg-primary/10 text-primary" : ""}
                   >
                     <Bot className="h-4 w-4 shrink-0" />
                     {!isCollapsed && <span>Employees</span>}
