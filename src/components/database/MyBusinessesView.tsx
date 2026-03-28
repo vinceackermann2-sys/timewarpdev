@@ -171,50 +171,6 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
       {/* Footer */}
       <WorkspaceFooterShared />
 
-      {/* Options Dialog */}
-      <Dialog open={showOptionsDialog} onOpenChange={setShowOptionsDialog}>
-        <DialogContent className="sm:max-w-[1000px] sm:max-h-[1000px] p-0 overflow-hidden bg-background border-border/50" aria-describedby={undefined}>
-          <DialogHeader className="p-6 pb-2">
-            <DialogTitle className="text-lg">How would you like to get started?</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-6 p-8 pt-4">
-            <div className="relative rounded-xl border border-border/50 bg-card overflow-hidden opacity-75 cursor-not-allowed">
-              <div className="absolute top-3 right-3 z-10">
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted/90 text-muted-foreground border border-border/50">
-                  <Lock className="h-2.5 w-2.5" /> Coming Soon
-                </span>
-              </div>
-              <div className="relative">
-                <img src={addBusinessBg} alt="" className="w-full h-80 object-cover" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Rocket className="h-14 w-14 text-white drop-shadow-lg" />
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-semibold text-foreground">From Scratch</h3>
-                <p className="text-xs text-muted-foreground mt-1">Create from scratch with AI</p>
-              </div>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => { setShowOptionsDialog(false); onSelectBusiness(); }}
-              className="rounded-xl border border-border/50 hover:border-primary/40 bg-card overflow-hidden transition-colors text-left cursor-pointer"
-            >
-              <div className="relative">
-                <img src={startBusinessBg} alt="" className="w-full h-80 object-cover" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <FolderOpenDot className="h-14 w-14 text-white drop-shadow-lg" />
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-semibold text-foreground">From Existing</h3>
-                <p className="text-xs text-muted-foreground mt-1">Create from existing business</p>
-              </div>
-            </motion.button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Workspace Settings */}
       <WorkspaceDialog
