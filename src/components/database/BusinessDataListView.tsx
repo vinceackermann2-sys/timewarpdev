@@ -316,12 +316,9 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Calculate data usage
-  const totalBytes = items.reduce((sum, item) => {
-    return sum + (item.content?.length || 0) + (item.analyzed_content?.length || 0) + (item.title?.length || 0);
-  }, 0);
+  // Use real tracked usage from DB
   const dataLimit = getDataLimit();
-  const usagePercent = isFinite(dataLimit) ? Math.min((totalBytes / dataLimit) * 100, 100) : 0;
+  const usagePercent = isFinite(dataLimit) ? Math.min((realUsageBytes / dataLimit) * 100, 100) : 0;
   const planLabel = plan === "timewarp_og" ? "TimeWarp OG" : plan === "aristotle" ? "Aristotle" : plan === "co_founder" ? "Co-Founder" : "Free";
 
   const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
