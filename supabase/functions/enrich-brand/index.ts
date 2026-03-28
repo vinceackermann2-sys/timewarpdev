@@ -651,8 +651,9 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
     }
   }
 
+  const searchUrls = queries.map(q => `pinterest.com/search/pins/?q=${encodeURIComponent(q.replace(/premium\s+minimal\s+ecommerce/gi, "").replace(/\s+/g, " ").trim())}`);
   console.log(`Moodboard total unique images: ${allUrls.length} (from ${perQuery.filter(q => q.length > 0).length}/6 queries)`);
-  return allUrls.slice(0, 6);
+  return { urls: allUrls.slice(0, 6), searchUrls };
 }
 
 serve(async (req) => {
