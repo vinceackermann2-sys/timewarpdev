@@ -141,7 +141,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     isActive={currentView === "dataconversion"}
                     onClick={() => onViewChange("dataconversion")}
                     tooltip="Data Conversion"
-                    className={currentView === "dataconversion" ? "bg-muted text-foreground" : ""}
+                    className={currentView === "dataconversion" ? "bg-primary/10 text-primary" : ""}
                   >
                     <RefreshCw className="h-4 w-4" />
                     {!isCollapsed && <span>Data Conversion</span>}
