@@ -314,7 +314,9 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
             <DropdownMenuTrigger asChild>
               <button className={`w-full rounded-md transition-colors hover:bg-transparent ${isCollapsed ? 'p-2 flex justify-center' : 'p-2 flex items-center gap-2'}`}>
                 <div className="h-8 w-8 rounded-[14px] bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <User className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-primary">
+                    {(userEmail || "U").charAt(0).toUpperCase()}
+                  </span>
                 </div>
                 {!isCollapsed && (
                   <>
