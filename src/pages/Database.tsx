@@ -306,6 +306,7 @@ const Database = () => {
                         setActiveBrandId(brandId);
                         setShowBusinessDNA(true);
                       }}
+                      onManageWorkspace={() => handleViewChange("workspaces")}
                     />
                   )}
                 </>
