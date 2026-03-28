@@ -65,6 +65,7 @@ interface WorkspaceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userEmail: string;
+  initialWorkspaceId?: string;
 }
 
 export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDialogProps) {
