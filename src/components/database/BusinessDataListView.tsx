@@ -244,6 +244,12 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       await supabase.from("user_business_data").delete().eq("id", itemId);
       setItems(prev => { const next = prev.filter(i => i.id !== itemId); _cachedItems = next; return next; });
       if (expandedId === itemId) setExpandedId(null);
+      // Refresh real usage (trigger auto-recalculates)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: sub } = await (supabase as any).from("user_subscriptions").select("data_used_bytes").eq("user_id", session.user.id).maybeSingle();
+        if (sub) setRealUsageBytes(sub.data_used_bytes || 0);
+      }
       toast.success("Data item deleted");
     } catch {
       toast.error("Failed to delete item");
