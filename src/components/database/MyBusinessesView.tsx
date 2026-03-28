@@ -206,7 +206,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
               className="rounded-xl border border-border/50 hover:border-primary/40 bg-card overflow-hidden transition-colors text-left cursor-pointer"
             >
               <div className="relative">
-                <img src={startBusinessBg} alt="" className="w-full h-64 object-cover" />
+                <img src={startBusinessBg} alt="" className="w-full h-80 object-cover" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <FolderOpenDot className="h-14 w-14 text-white drop-shadow-lg" />
                 </div>
