@@ -234,8 +234,7 @@ const Database = () => {
               setActiveBrandId(brandId);
               setShowBusinessDNA(true);
             }
-            // Delay hiding onboarding until after state is set so the provider
-            // can reload with the new workspace data before rendering
+            // Delay hiding onboarding until after state is set
             setTimeout(() => setShowOnboarding(false), 100);
           }}
         />
