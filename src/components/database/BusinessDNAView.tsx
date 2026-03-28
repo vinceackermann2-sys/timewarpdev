@@ -217,7 +217,7 @@ function IdleState({ totalInsights }: { totalInsights: number }) {
 // ── Main View ──
 export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void; activeBrandId: string }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
-    brand: [], product: [], audience: [], database: [], sop: []
+    brand: [], product: [], audience: [], database: [], settings: []
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
