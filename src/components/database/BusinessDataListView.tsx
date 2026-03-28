@@ -502,8 +502,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             {/* FortKnox - Coming Soon */}
             <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
               <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-lg">
-                  🏰
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                  <img src={logoFortknox} alt="FortKnox" className="h-7 w-7 object-contain" loading="lazy" />
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
               </div>
