@@ -248,7 +248,15 @@ export function BusinessDataListView() {
           continue;
         }
 
-        const content = await file.text().catch(() => null);
+        const isBinary = file.type === "application/pdf" || file.type.startsWith("image/") ||
+          file.type.includes("spreadsheet") || file.type.includes("excel") ||
+          file.type === "application/msword" || file.type.includes("wordprocessingml");
+
+        let content: string | null = null;
+        if (!isBinary) {
+          content = await file.text().catch(() => null);
+        }
+
         const dataType = file.type.startsWith("image/") ? "image" 
           : file.type === "application/pdf" ? "document"
           : file.type.includes("spreadsheet") || file.type.includes("csv") ? "spreadsheet"
@@ -259,7 +267,7 @@ export function BusinessDataListView() {
           .insert({
             user_id: session.user.id,
             title: file.name,
-            content: content || `[File: ${file.name}, Size: ${file.size} bytes]`,
+            content: content || `[File: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes]`,
             data_type: dataType,
             source: "upload",
             is_analyzed: false,
