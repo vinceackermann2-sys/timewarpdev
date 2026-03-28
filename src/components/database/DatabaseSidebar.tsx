@@ -141,7 +141,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     isActive={currentView === "dataconversion"}
                     onClick={() => onViewChange("dataconversion")}
                     tooltip="Data Conversion"
-                    className={currentView === "dataconversion" ? "bg-muted text-foreground" : ""}
+                    className={currentView === "dataconversion" ? "bg-primary/10 text-primary" : ""}
                   >
                     <RefreshCw className="h-4 w-4" />
                     {!isCollapsed && <span>Data Conversion</span>}
@@ -152,7 +152,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     isActive={currentView === "businessdna"}
                     onClick={() => onViewChange("businessdna")}
                     tooltip="Business DNA"
-                    className={currentView === "businessdna" ? "bg-muted text-foreground" : ""}
+                    className={currentView === "businessdna" ? "bg-primary/10 text-primary" : ""}
                   >
                     <Dna className="h-4 w-4" />
                     {!isCollapsed && <span>Business DNA</span>}
@@ -163,7 +163,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     isActive={currentView === "employees"}
                     onClick={() => onViewChange("employees")}
                     tooltip="Employees"
-                    className={currentView === "employees" ? "bg-muted text-foreground" : ""}
+                    className={currentView === "employees" ? "bg-primary/10 text-primary" : ""}
                   >
                     <Bot className="h-4 w-4 shrink-0" />
                     {!isCollapsed && <span>Employees</span>}
