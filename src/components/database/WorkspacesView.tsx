@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
-import { WorkspaceDialog } from "@/components/database/WorkspaceDialog";
+import { WorkspaceDetailView } from "@/components/database/WorkspaceDetailView";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuth } from "@/hooks/useAuth";
 
