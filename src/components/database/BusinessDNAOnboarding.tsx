@@ -600,10 +600,10 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
               transition={{ duration: 0.4 }}
             >
               {isAddBusiness && onBack && (
-                <div className="absolute top-6 left-6 z-50">
+                <div className="w-full text-left mb-2">
                   <button
                     onClick={onBack}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors bg-muted/50 hover:bg-muted rounded-lg px-3 py-1.5"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <ArrowRight className="h-4 w-4 rotate-180" />
                     Back
