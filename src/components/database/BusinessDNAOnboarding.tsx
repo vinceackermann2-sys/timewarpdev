@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Telescope, Dna, ArrowRight, Globe, Sparkles, Check, AlertCircle, RotateCcw } from "lucide-react";
+import { Telescope, Dna, ArrowRight, Globe, Sparkles, Check, AlertCircle, RotateCcw, Rocket, FolderOpenDot, Lock } from "lucide-react";
+import startBusinessBg from "@/assets/start-business-bg.webp";
+import addBusinessBg from "@/assets/add-business-bg.webp";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
