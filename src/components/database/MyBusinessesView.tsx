@@ -21,7 +21,6 @@ interface MyBusinessesViewProps {
 
 export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWorkspace }: MyBusinessesViewProps) {
   const [search, setSearch] = useState("");
-  const [showOptionsDialog, setShowOptionsDialog] = useState(false);
   const { isFreeUser, showGate, openGate, closeGate } = useFreePlanGate();
   const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
   const { brands, deleteBrand, isLoading: dnaLoading } = useBusinessDNA();
