@@ -205,7 +205,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   />
                 </div>
-                <div className="py-1.5 max-h-[200px] overflow-y-auto">
+                <div className="py-2 max-h-[300px] overflow-y-auto">
                   {workspaces
                     .filter(ws => ws.workspaceName.toLowerCase().includes(wsSearch.toLowerCase()))
                     .map(ws => (
