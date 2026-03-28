@@ -149,6 +149,19 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     };
     fetchData();
     checkConnection();
+
+    // Fetch real storage usage from subscription record
+    const fetchUsage = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const { data } = await (supabase as any)
+        .from("user_subscriptions")
+        .select("data_used_bytes")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (data) setRealUsageBytes(data.data_used_bytes || 0);
+    };
+    fetchUsage();
   }, [checkConnection, activeBrandId]);
 
   const handleConnect = async () => {
