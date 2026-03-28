@@ -593,20 +593,22 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
           {showMethodPicker && step === 0 && (
             <motion.div
               key="method-picker"
-              className="w-full max-w-4xl mx-auto text-center space-y-6 relative"
+              className="w-full max-w-4xl mx-auto text-center space-y-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
               {isAddBusiness && onBack && (
-                <button
-                  onClick={onBack}
-                  className="absolute -top-2 left-0 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ArrowRight className="h-4 w-4 rotate-180" />
-                  Back
-                </button>
+                <div className="fixed top-4 left-4 z-50">
+                  <button
+                    onClick={onBack}
+                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ArrowRight className="h-4 w-4 rotate-180" />
+                    Back
+                  </button>
+                </div>
               )}
               <div className="space-y-2 py-4">
                 <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
