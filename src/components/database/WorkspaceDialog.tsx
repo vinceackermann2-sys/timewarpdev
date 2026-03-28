@@ -65,9 +65,10 @@ interface WorkspaceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userEmail: string;
+  initialWorkspaceId?: string;
 }
 
-export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDialogProps) {
+export function WorkspaceDialog({ open, onOpenChange, userEmail, initialWorkspaceId }: WorkspaceDialogProps) {
   const { toast } = useToast();
   const {
     workspaces, createWorkspace, sendInvite, removeMember, updateMemberRole,
@@ -88,10 +89,10 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDial
   // When opening the dialog, reset to list view
   useEffect(() => {
     if (open) {
-      setSelectedWsId(null);
+      setSelectedWsId(initialWorkspaceId || null);
       setShowCreateWs(false);
     }
-  }, [open]);
+  }, [open, initialWorkspaceId]);
 
   // Load members when a workspace is selected (once, no polling)
   useEffect(() => {
