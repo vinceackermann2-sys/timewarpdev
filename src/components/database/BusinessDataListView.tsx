@@ -464,9 +464,14 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
                 <p className="text-sm font-medium">Microsoft</p>
                 <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
               </div>
-              {isConnected && (
+              {isConnected ? (
                 <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={handleDisconnect}>
                   Disconnect
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={handleConnect} disabled={connectingProvider}>
+                  {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                  Connect
                 </Button>
               )}
             </div>
