@@ -196,6 +196,34 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     setConnectingProvider(false);
   };
 
+  const handleDisconnect = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      // Delete the connection record
+      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", "microsoft");
+      // Delete OAuth tokens
+      // (tokens table has RLS deny-all, but we try; the connect-provider function handles this server-side)
+      await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ provider: "microsoft", action: "disconnect" }),
+        }
+      );
+      setIsConnected(false);
+      setConnectedEmail(null);
+      toast.success("Microsoft disconnected");
+    } catch {
+      toast.error("Failed to disconnect");
+    }
+  };
+
   const handleSync = async (categories?: { emails: boolean; events: boolean; files: boolean }, limits?: { emails: number; events: number; files: number }) => {
     setSyncingProvider(true);
     try {
