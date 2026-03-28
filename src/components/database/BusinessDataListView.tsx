@@ -384,37 +384,37 @@ export function BusinessDataListView() {
           <DialogHeader>
             <DialogTitle>Integrations</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4 py-2">
             <div className={cn(
-              "flex items-center gap-3 p-3 rounded-lg border transition-all",
+              "flex items-center gap-4 p-5 rounded-xl border transition-all",
               isConnected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
             )}>
-              <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center p-1.5 flex-shrink-0">
-                <img src={logoMicrosoft} alt="Microsoft" className="h-6 w-6 object-contain" />
+              <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center p-2 flex-shrink-0">
+                <img src={logoMicrosoft} alt="Microsoft" className="h-8 w-8 object-contain" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">Microsoft</p>
+                <p className="text-base font-medium">Microsoft</p>
                 {isConnected && connectedEmail ? (
-                  <p className="text-xs text-primary truncate">{connectedEmail}</p>
+                  <p className="text-sm text-primary truncate">{connectedEmail}</p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
+                  <p className="text-sm text-muted-foreground">Outlook, OneDrive, Calendar</p>
                 )}
               </div>
               {isConnected ? (
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowSyncPrefs(true)} disabled={syncingProvider}>
-                    {syncingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowSyncPrefs(true)} disabled={syncingProvider}>
+                    {syncingProvider ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 text-muted-foreground" />}
                   </Button>
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <CheckCircle2 className="h-6 w-6 text-primary" />
                 </div>
               ) : (
-                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 flex-shrink-0" onClick={handleConnect} disabled={connectingProvider}>
-                  {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                <Button variant="outline" size="sm" className="h-9 text-sm gap-2 flex-shrink-0" onClick={handleConnect} disabled={connectingProvider}>
+                  {connectingProvider ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plug className="h-4 w-4" />}
                   Connect
                 </Button>
               )}
             </div>
-            <div className="text-center">
+            <div className="text-center pt-2">
               <IntegrationRequestDialog />
             </div>
           </div>
