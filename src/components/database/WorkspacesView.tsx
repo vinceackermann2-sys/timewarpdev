@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
-import { WorkspaceDialog } from "@/components/database/WorkspaceDialog";
+import { WorkspaceDetailView } from "@/components/database/WorkspaceDetailView";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -52,6 +52,20 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
     if (role === "owner") return "default" as const;
     return "secondary" as const;
   };
+
+  // Show detail view when managing a workspace
+  const managingWs = managingWsId ? workspaces.find(w => w.workspaceId === managingWsId) : null;
+  if (managingWs) {
+    return (
+      <WorkspaceDetailView
+        workspaceId={managingWs.workspaceId}
+        workspaceName={managingWs.workspaceName}
+        memberCount={managingWs.memberCount}
+        userRole={managingWs.role}
+        onBack={() => setManagingWsId(null)}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -170,14 +184,6 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
         <WorkspaceFooter />
       </div>
 
-      {/* Workspace manage dialog */}
-      {managingWsId && (
-        <WorkspaceDialog
-          open={!!managingWsId}
-          onOpenChange={(open) => { if (!open) setManagingWsId(null); }}
-          userEmail={user?.email || ""}
-        />
-      )}
     </div>
   );
 }
