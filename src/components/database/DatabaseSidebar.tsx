@@ -385,7 +385,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               </DropdownMenuSub>
               
               <DropdownMenuItem 
-                className="cursor-pointer"
+                className="cursor-pointer py-2.5"
                 onClick={() => setFeedbackOpen(true)}
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
