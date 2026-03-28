@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 import { SyncPreferencesDialog } from "@/components/database/SyncPreferencesDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface DataItem {
   id: string;
