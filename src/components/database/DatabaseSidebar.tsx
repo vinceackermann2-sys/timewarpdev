@@ -81,12 +81,10 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
   const [showNewWsInput, setShowNewWsInput] = useState(false);
   const [newWsName, setNewWsName] = useState("");
 
-  // Auto-collapse sidebar when in dataconversion view
+  // Auto-collapse sidebar when entering dataconversion view
   useEffect(() => {
     if (currentView === "dataconversion") {
       setOpen(false);
-    } else {
-      setOpen(true);
     }
   }, [currentView, setOpen]);
   const [settingsOpen, setSettingsOpen] = useState(false);
