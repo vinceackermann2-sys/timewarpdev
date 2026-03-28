@@ -318,6 +318,8 @@ const Database = () => {
                   <EmployeesView />
                 </RestrictedFeatureGate>
               )}
+              {currentView === "workspaces" && user && (
+                <WorkspacesView onBack={() => handleViewChange("businessdna")} />
             </main>
           </SidebarInset>
           <ActionsCelebration
