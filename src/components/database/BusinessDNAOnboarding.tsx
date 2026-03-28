@@ -589,8 +589,73 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
       <div className="max-w-5xl w-full relative z-10 px-2 sm:px-4">
         <AnimatePresence mode="wait">
+          {/* Method Picker (add-business mode) */}
+          {showMethodPicker && step === 0 && (
+            <motion.div
+              key="method-picker"
+              className="w-full max-w-4xl mx-auto text-center space-y-6 relative"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ duration: 0.4 }}
+            >
+              {isAddBusiness && onBack && (
+                <button
+                  onClick={onBack}
+                  className="absolute -top-2 left-0 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowRight className="h-4 w-4 rotate-180" />
+                  Back
+                </button>
+              )}
+              <div className="space-y-2 py-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                  How would you like to get started?
+                </h1>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                {/* From Scratch — Coming Soon */}
+                <div className="relative rounded-xl border border-border/50 bg-card overflow-hidden opacity-75 cursor-not-allowed">
+                  <div className="absolute top-3 right-3 z-10">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted/90 text-muted-foreground border border-border/50">
+                      <Lock className="h-2.5 w-2.5" /> Coming Soon
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <img src={addBusinessBg} alt="" className="w-full h-80 object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Rocket className="h-16 w-16 text-white drop-shadow-lg" />
+                    </div>
+                  </div>
+                  <div className="p-5 text-left">
+                    <h3 className="text-base font-semibold text-foreground">From Scratch</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Create from scratch with AI</p>
+                  </div>
+                </div>
+                {/* From Existing */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowMethodPicker(false)}
+                  className="rounded-xl border border-border/50 hover:border-primary/40 bg-card overflow-hidden transition-colors text-left cursor-pointer"
+                >
+                  <div className="relative">
+                    <img src={startBusinessBg} alt="" className="w-full h-80 object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <FolderOpenDot className="h-16 w-16 text-white drop-shadow-lg" />
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="text-base font-semibold text-foreground">From Existing</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Create from existing business</p>
+                  </div>
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Step 0: URL Input */}
-          {step === 0 && (
+          {step === 0 && !showMethodPicker && (
             <motion.div
               key="url-input"
               className="w-full max-w-2xl mx-auto text-center space-y-8 relative"
