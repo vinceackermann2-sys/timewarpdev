@@ -380,7 +380,7 @@ export function BusinessDataListView() {
 
       {/* Integrations Dialog */}
       <Dialog open={showIntegrations} onOpenChange={setShowIntegrations}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-[1000px] sm:max-h-[1000px] overflow-auto">
           <DialogHeader>
             <DialogTitle>Integrations</DialogTitle>
           </DialogHeader>
