@@ -58,7 +58,7 @@ function formatBytes(bytes: number): string {
 let _cachedItems: DataItem[] | null = null;
 let _cachedCacheKey: string | null = null;
 
-export function BusinessDataListView() {
+export function BusinessDataListView({ activeBrandId }: { activeBrandId: string }) {
   const [items, setItems] = useState<DataItem[]>(_cachedItems ?? []);
   const [isLoading, setIsLoading] = useState(!_cachedItems);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -109,9 +109,9 @@ export function BusinessDataListView() {
         if (!session?.user) { setIsLoading(false); return; }
 
         const wsId = localStorage.getItem("preferred_workspace_id");
-        const currentKey = `${session.user.id}:${wsId || "personal"}`;
+        const currentKey = `${session.user.id}:${wsId || "personal"}:${activeBrandId}`;
 
-        // If cache matches current user+workspace, skip fetch
+        // If cache matches current user+workspace+brand, skip fetch
         if (_cachedItems && _cachedCacheKey === currentKey) {
           setItems(_cachedItems);
           setIsLoading(false);
@@ -120,7 +120,7 @@ export function BusinessDataListView() {
 
         let query = (supabase as any)
           .from("user_business_data")
-          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .order("created_at", { ascending: false })
           .limit(200);
 
@@ -129,6 +129,9 @@ export function BusinessDataListView() {
         } else {
           query = query.eq("user_id", session.user.id);
         }
+
+        // Filter to items belonging to this brand
+        query = query.eq("metadata->>brandId", activeBrandId);
 
         const { data, error } = await query;
 
@@ -145,7 +148,7 @@ export function BusinessDataListView() {
     };
     fetchData();
     checkConnection();
-  }, [checkConnection]);
+  }, [checkConnection, activeBrandId]);
 
   const handleConnect = async () => {
     setConnectingProvider(true);
@@ -204,8 +207,9 @@ export function BusinessDataListView() {
         // Refresh data list
         const { data: refreshed } = await (supabase as any)
           .from("user_business_data")
-          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .eq("user_id", session.user.id)
+          .eq("metadata->>brandId", activeBrandId)
           .order("created_at", { ascending: false })
           .limit(200);
         if (refreshed) { _cachedItems = refreshed; setItems(refreshed); }
@@ -272,8 +276,9 @@ export function BusinessDataListView() {
             source: "upload",
             is_analyzed: false,
             workspace_id: localStorage.getItem("preferred_workspace_id"),
+            metadata: { brandId: activeBrandId },
           })
-          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .single();
 
         if (!error && data) {
