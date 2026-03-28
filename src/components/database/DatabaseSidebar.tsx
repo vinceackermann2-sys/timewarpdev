@@ -340,7 +340,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                className="cursor-pointer"
+                className="cursor-pointer py-2.5"
                 onClick={() => setSettingsOpen(true)}
               >
                 <Settings className="h-4 w-4 mr-2" />
