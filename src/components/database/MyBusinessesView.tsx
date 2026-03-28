@@ -177,7 +177,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
 
       {/* Options Dialog */}
       <Dialog open={showOptionsDialog} onOpenChange={setShowOptionsDialog}>
-        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-background border-border/50" aria-describedby={undefined}>
+        <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-background border-border/50" aria-describedby={undefined}>
           <DialogHeader className="p-6 pb-2">
             <DialogTitle className="text-lg">How would you like to get started?</DialogTitle>
           </DialogHeader>
