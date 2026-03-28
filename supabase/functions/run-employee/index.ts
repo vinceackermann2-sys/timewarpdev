@@ -65,10 +65,10 @@ serve(async (req) => {
     }
 
     // Load business context
-    const businessContext = await loadBusinessContext(supabase, employee);
+    const { contextText: businessContext, safetySettings } = await loadBusinessContext(supabase, employee);
 
     // Build system prompt
-    const systemPrompt = buildSystemPrompt(employee, businessContext, pageContext);
+    const systemPrompt = buildSystemPrompt(employee, businessContext, pageContext, safetySettings);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
