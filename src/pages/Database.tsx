@@ -15,6 +15,7 @@ import { Loader2, Menu } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { EmployeesView } from "@/components/database/EmployeesView";
 import { RestrictedFeatureGate } from "@/components/database/RestrictedFeatureGate";
+import { WorkspacesView } from "@/components/database/WorkspacesView";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
