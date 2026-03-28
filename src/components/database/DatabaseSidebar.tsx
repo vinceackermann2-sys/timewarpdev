@@ -333,7 +333,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               align="center"
               className="w-56 bg-popover border-border z-50"
             >
-              <DropdownMenuLabel className="font-normal">
+              <DropdownMenuLabel className="font-normal py-3">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">{userEmail}</p>
                 </div>
