@@ -465,6 +465,21 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
               websiteUrl: activeUrl || "",
             });
             console.log("Brand enrichment result:", res.data);
+            // Drip-feed enrichment URLs into scanning sources
+            if (res.data?.analyzedUrls?.length) {
+              const enrichUrls = (res.data.analyzedUrls as string[]).map((u: string) => urlToDisplaySource(u));
+              setAllSourcesDone(false);
+              let idx = 0;
+              const dripTimer = setInterval(() => {
+                if (idx >= enrichUrls.length) {
+                  clearInterval(dripTimer);
+                  setAllSourcesDone(true);
+                  return;
+                }
+                setScannedSources(prev => [...prev, enrichUrls[idx]]);
+                idx++;
+              }, 600);
+            }
             if (res.data?.success && refreshBrand) {
               await refreshBrand(finalBrandId);
             }
