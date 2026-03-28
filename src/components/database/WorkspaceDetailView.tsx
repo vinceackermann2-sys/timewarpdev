@@ -168,23 +168,23 @@ export function WorkspaceDetailView({
         </button>
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 mb-4">
+        <div className="flex items-center gap-6 mb-4 border-b border-border">
           <button
             onClick={() => setTab("users")}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`pb-2.5 text-sm font-medium transition-colors relative ${
               tab === "users"
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Users
           </button>
           <button
             onClick={() => setTab("invites")}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`pb-2.5 text-sm font-medium transition-colors relative ${
               tab === "invites"
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Pending invites
