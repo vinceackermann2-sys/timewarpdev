@@ -359,7 +359,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         <Progress value={usagePercent} className="h-2 mb-2" />
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">
-            {formatBytes(totalBytes)} used
+            {formatBytes(realUsageBytes)} used
           </span>
           <span className="text-xs text-muted-foreground">
             {isFinite(dataLimit) ? formatBytes(dataLimit) + " limit" : "Unlimited"}
