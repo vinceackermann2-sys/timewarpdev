@@ -189,7 +189,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
                 </span>
               </div>
               <div className="relative">
-                <img src={addBusinessBg} alt="" className="w-full h-64 object-cover" />
+                <img src={addBusinessBg} alt="" className="w-full h-80 object-cover" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Rocket className="h-14 w-14 text-white drop-shadow-lg" />
                 </div>
