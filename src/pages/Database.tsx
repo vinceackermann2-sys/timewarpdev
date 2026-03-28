@@ -320,6 +320,7 @@ const Database = () => {
               )}
               {currentView === "workspaces" && user && (
                 <WorkspacesView onBack={() => handleViewChange("businessdna")} />
+              )}
             </main>
           </SidebarInset>
           <ActionsCelebration
