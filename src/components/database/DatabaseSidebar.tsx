@@ -330,7 +330,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               side="top" 
-              align="start"
+              align="center"
               className="w-56 bg-popover border-border z-50"
             >
               <DropdownMenuLabel className="font-normal">
