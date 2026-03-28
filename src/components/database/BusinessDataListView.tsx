@@ -260,10 +260,18 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { toast.error("Please log in first"); setIsUploading(false); return; }
 
+      const dataLimit = getDataLimit();
+
       for (const file of Array.from(files)) {
         if (file.size > 10 * 1024 * 1024) {
           toast.error(`${file.name} exceeds 10MB limit`);
           continue;
+        }
+
+        // Check storage limit before uploading
+        if (isFinite(dataLimit) && (realUsageBytes + file.size) > dataLimit) {
+          toast.error("Storage limit reached. Upgrade your plan for more space.");
+          break;
         }
 
         const isBinary = file.type === "application/pdf" || file.type.startsWith("image/") ||
