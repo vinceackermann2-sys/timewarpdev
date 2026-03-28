@@ -109,9 +109,9 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         if (!session?.user) { setIsLoading(false); return; }
 
         const wsId = localStorage.getItem("preferred_workspace_id");
-        const currentKey = `${session.user.id}:${wsId || "personal"}`;
+        const currentKey = `${session.user.id}:${wsId || "personal"}:${activeBrandId}`;
 
-        // If cache matches current user+workspace, skip fetch
+        // If cache matches current user+workspace+brand, skip fetch
         if (_cachedItems && _cachedCacheKey === currentKey) {
           setItems(_cachedItems);
           setIsLoading(false);
@@ -120,7 +120,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
 
         let query = (supabase as any)
           .from("user_business_data")
-          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at")
+          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .order("created_at", { ascending: false })
           .limit(200);
 
@@ -129,6 +129,9 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         } else {
           query = query.eq("user_id", session.user.id);
         }
+
+        // Filter to items belonging to this brand
+        query = query.eq("metadata->>brandId", activeBrandId);
 
         const { data, error } = await query;
 
