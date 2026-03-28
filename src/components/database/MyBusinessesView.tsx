@@ -171,7 +171,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
       </div>
 
       {/* Footer */}
-      <WorkspaceFooter />
+      <WorkspaceFooterShared />
 
       {/* Options Dialog */}
       <Dialog open={showOptionsDialog} onOpenChange={setShowOptionsDialog}>
