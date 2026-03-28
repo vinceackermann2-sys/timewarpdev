@@ -69,6 +69,7 @@ export function BusinessDataListView() {
   const [connectingProvider, setConnectingProvider] = useState(false);
   const [syncingProvider, setSyncingProvider] = useState(false);
   const [showSyncPrefs, setShowSyncPrefs] = useState(false);
+  const [showIntegrations, setShowIntegrations] = useState(false);
   const { plan, getDataLimit } = useSubscription();
 
   const checkConnection = useCallback(async () => {
@@ -332,45 +333,6 @@ export function BusinessDataListView() {
         </div>
       </div>
 
-      {/* Microsoft Connection Card */}
-      <div className="rounded-xl border border-border/50 bg-card/50 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium">Integrations</span>
-        </div>
-        <div className={cn(
-          "flex items-center gap-3 p-3 rounded-lg border transition-all",
-          isConnected ? "border-green-500/40 bg-green-500/5" : "border-border/50 hover:border-primary/30"
-        )}>
-          <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center p-1.5 flex-shrink-0">
-            <img src={logoMicrosoft} alt="Microsoft" className="h-6 w-6 object-contain" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">Microsoft</p>
-            {isConnected && connectedEmail ? (
-              <p className="text-xs text-green-600 dark:text-green-400 truncate">{connectedEmail}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
-            )}
-          </div>
-          {isConnected ? (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowSyncPrefs(true)} disabled={syncingProvider}>
-                {syncingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
-              </Button>
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-            </div>
-          ) : (
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 flex-shrink-0" onClick={handleConnect} disabled={connectingProvider}>
-              {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-              Connect
-            </Button>
-          )}
-        </div>
-        <div className="mt-3 text-center">
-          <IntegrationRequestDialog />
-        </div>
-      </div>
-
       {/* Data Items Header */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
@@ -395,12 +357,55 @@ export function BusinessDataListView() {
             {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
             Upload
           </Button>
-          <span className="text-xs text-primary flex items-center gap-1.5 font-medium">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            {items.length} items
-          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => setShowIntegrations(prev => !prev)}
+          >
+            <Plug className="h-3.5 w-3.5" />
+            Integrations
+          </Button>
         </div>
       </div>
+
+      {/* Integrations Panel (toggled) */}
+      {showIntegrations && (
+        <div className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-3">
+          <div className={cn(
+            "flex items-center gap-3 p-3 rounded-lg border transition-all",
+            isConnected ? "border-green-500/40 bg-green-500/5" : "border-border/50 hover:border-primary/30"
+          )}>
+            <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center p-1.5 flex-shrink-0">
+              <img src={logoMicrosoft} alt="Microsoft" className="h-6 w-6 object-contain" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">Microsoft</p>
+              {isConnected && connectedEmail ? (
+                <p className="text-xs text-green-600 dark:text-green-400 truncate">{connectedEmail}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
+              )}
+            </div>
+            {isConnected ? (
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowSyncPrefs(true)} disabled={syncingProvider}>
+                  {syncingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
+                </Button>
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 flex-shrink-0" onClick={handleConnect} disabled={connectingProvider}>
+                {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                Connect
+              </Button>
+            )}
+          </div>
+          <div className="text-center">
+            <IntegrationRequestDialog />
+          </div>
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
