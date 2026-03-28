@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import startBusinessBg from "@/assets/start-business-bg.webp";
-import addBusinessBg from "@/assets/add-business-bg.webp";
 import { useBusinessDNA } from "./BusinessDNAContext";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { WorkspaceDialog } from "./WorkspaceDialog";
