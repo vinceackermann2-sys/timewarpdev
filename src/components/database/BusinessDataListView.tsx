@@ -298,7 +298,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             source: "upload",
             is_analyzed: false,
             workspace_id: localStorage.getItem("preferred_workspace_id"),
-            metadata: { brandId: activeBrandId },
+            metadata: { brandId: activeBrandId, file_size: file.size },
           })
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .single();
