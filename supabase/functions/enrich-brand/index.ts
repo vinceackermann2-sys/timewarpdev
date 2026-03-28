@@ -427,7 +427,7 @@ async function fetchMoodboardImages(
   firecrawlKey: string, browserlessKey: string,
   powerWords?: string, brandColorPrimary?: string, brandColorSecondary?: string,
   productBenefits?: string, buyingTriggers?: string, aiApiKey?: string
-): Promise<string[]> {
+): Promise<{ urls: string[]; searchUrls: string[] }> {
   // Use AI to derive: trust object (physical thing audience trusts) + feeling + color description
   const fallbackTrustObject = inferTrustObject(category, audienceDesc, productBenefits || "", buyingTriggers || "");
   const fallbackFeelingAndColor = inferFeelingAndColor(
@@ -651,8 +651,9 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
     }
   }
 
+  const searchUrls = queries.map(q => `pinterest.com/search/pins/?q=${encodeURIComponent(q.replace(/premium\s+minimal\s+ecommerce/gi, "").replace(/\s+/g, " ").trim())}`);
   console.log(`Moodboard total unique images: ${allUrls.length} (from ${perQuery.filter(q => q.length > 0).length}/6 queries)`);
-  return allUrls.slice(0, 6);
+  return { urls: allUrls.slice(0, 6), searchUrls };
 }
 
 serve(async (req) => {
@@ -684,6 +685,7 @@ serve(async (req) => {
 
     const vi = brandContent.visualIdentity || {};
     const enriched: Record<string, any> = {};
+    const analyzedUrls: string[] = [];
     const name = brandName || brandContent.name || "the brand";
     const cat = brandCategory || brandContent.category || "lifestyle";
     const colors = brandColors || brandContent.colors || {};
@@ -695,15 +697,17 @@ serve(async (req) => {
       if (!FIRECRAWL_API_KEY) { console.warn("No FIRECRAWL_API_KEY, skipping moodboard"); return; }
       try {
         console.log("Starting moodboard pipeline...");
-        const urls = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY, BROWSERLESS_API_KEY, audiencePowerWords || "", primary, secondary, productBenefits || "", buyingTriggers || "", LOVABLE_API_KEY);
-        enriched.moodboardUrls = urls;
-        console.log("Moodboard enriched:", urls.length, "images");
+        const result = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY, BROWSERLESS_API_KEY, audiencePowerWords || "", primary, secondary, productBenefits || "", buyingTriggers || "", LOVABLE_API_KEY);
+        enriched.moodboardUrls = result.urls;
+        for (const su of result.searchUrls) { analyzedUrls.push(su); }
+        console.log("Moodboard enriched:", result.urls.length, "images");
       } catch (e) { console.error("Moodboard pipeline error:", e); enriched.moodboardUrls = []; }
     })();
 
     // ── Pipeline 2: 9 Lucide icon names + 1 code-generated pattern SVG ──
     const illustrationPipeline = (async () => {
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping illustrations"); return; }
+      analyzedUrls.push("ai.gateway/illustrations");
       try {
         console.log("Generating icon concepts...");
         // Get 9 concepts from AI
@@ -757,6 +761,7 @@ serve(async (req) => {
         let formattedUrl = websiteUrl.trim();
         if (!formattedUrl.startsWith("http")) formattedUrl = `https://${formattedUrl}`;
         console.log("Capturing website screenshot:", formattedUrl);
+        analyzedUrls.push(formattedUrl);
 
         const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
@@ -878,6 +883,7 @@ Professional photography style, branded color palette. No text overlays, no UI c
 
     return new Response(JSON.stringify({
       success: true,
+      analyzedUrls,
       enriched: {
         moodboard: enriched.moodboardUrls?.length || 0,
         illustrations: (enriched.illustrationIconNames?.length || 0) + (enriched.patternSvg ? 1 : 0),
