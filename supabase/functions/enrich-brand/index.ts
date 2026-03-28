@@ -760,6 +760,7 @@ serve(async (req) => {
         let formattedUrl = websiteUrl.trim();
         if (!formattedUrl.startsWith("http")) formattedUrl = `https://${formattedUrl}`;
         console.log("Capturing website screenshot:", formattedUrl);
+        analyzedUrls.push(formattedUrl);
 
         const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
