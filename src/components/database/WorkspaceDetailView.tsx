@@ -168,12 +168,12 @@ export function WorkspaceDetailView({
         </button>
 
         {/* Tabs */}
-        <div className="flex items-center gap-6 mb-4 border-b border-border">
+        <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted mb-4">
           <button
             onClick={() => setTab("users")}
-            className={`pb-2.5 text-sm font-medium transition-colors relative ${
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
               tab === "users"
-                ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -181,9 +181,9 @@ export function WorkspaceDetailView({
           </button>
           <button
             onClick={() => setTab("invites")}
-            className={`pb-2.5 text-sm font-medium transition-colors relative ${
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
               tab === "invites"
-                ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
