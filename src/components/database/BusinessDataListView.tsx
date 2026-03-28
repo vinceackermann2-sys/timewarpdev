@@ -72,6 +72,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [showSyncPrefs, setShowSyncPrefs] = useState(false);
   const [showIntegrations, setShowIntegrations] = useState(false);
   const { plan, getDataLimit } = useSubscription();
+  const [realUsageBytes, setRealUsageBytes] = useState<number>(0);
 
   const checkConnection = useCallback(async () => {
     try {
