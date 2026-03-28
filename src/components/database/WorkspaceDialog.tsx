@@ -89,10 +89,10 @@ export function WorkspaceDialog({ open, onOpenChange, userEmail, initialWorkspac
   // When opening the dialog, reset to list view
   useEffect(() => {
     if (open) {
-      setSelectedWsId(null);
+      setSelectedWsId(initialWorkspaceId || null);
       setShowCreateWs(false);
     }
-  }, [open]);
+  }, [open, initialWorkspaceId]);
 
   // Load members when a workspace is selected (once, no polling)
   useEffect(() => {
