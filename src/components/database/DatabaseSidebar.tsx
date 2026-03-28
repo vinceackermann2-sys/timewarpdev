@@ -58,7 +58,7 @@ import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
+type View = "dataconversion" | "aiceo" | "businessdna" | "employees" | "workspaces";
 
 interface DatabaseSidebarProps {
   currentView: View;
@@ -233,7 +233,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 </div>
                 <div className="border-t border-border/50 py-1.5">
                   <button
-                    onClick={() => { setWsPopoverOpen(false); navigate("/workspaces"); }}
+                    onClick={() => { setWsPopoverOpen(false); onViewChange("workspaces"); }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors text-foreground"
                   >
                     See all workspaces

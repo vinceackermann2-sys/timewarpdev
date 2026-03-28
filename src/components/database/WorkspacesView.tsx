@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Plus, Building2, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +16,12 @@ import { WorkspaceDialog } from "@/components/database/WorkspaceDialog";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuth } from "@/hooks/useAuth";
 
-export default function Workspaces() {
-  const navigate = useNavigate();
-  const { user, isLoading: authLoading } = useAuth();
+interface WorkspacesViewProps {
+  onBack?: () => void;
+}
+
+export function WorkspacesView({ onBack }: WorkspacesViewProps) {
+  const { user } = useAuth();
   const {
     workspaces,
     activeWorkspaceId,
@@ -32,12 +34,6 @@ export default function Workspaces() {
   const [showNewInput, setShowNewInput] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
-
-  // Redirect unauthenticated users
-  if (!authLoading && !user) {
-    navigate("/auth");
-    return null;
-  }
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -53,20 +49,22 @@ export default function Workspaces() {
   };
 
   const roleBadgeVariant = (role: string) => {
-    if (role === "owner") return "default";
-    return "secondary";
+    if (role === "owner") return "default" as const;
+    return "secondary" as const;
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-12 pb-6">
-        <button
-          onClick={() => navigate("/app")}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 inline-block"
-        >
-          ← Back to app
-        </button>
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 inline-block"
+          >
+            ← Back
+          </button>
+        )}
         <h1 className="text-3xl font-bold text-foreground">Workspaces</h1>
         <p className="text-muted-foreground mt-1">
           Manage your workspaces and team members.
@@ -76,7 +74,7 @@ export default function Workspaces() {
       {/* Table */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex-1">
         <div className="rounded-xl border border-border bg-card">
-          {/* Table toolbar */}
+          {/* Toolbar */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <span className="text-sm font-medium text-muted-foreground">
               {workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}

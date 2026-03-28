@@ -15,6 +15,7 @@ import { Loader2, Menu } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { EmployeesView } from "@/components/database/EmployeesView";
 import { RestrictedFeatureGate } from "@/components/database/RestrictedFeatureGate";
+import { WorkspacesView } from "@/components/database/WorkspacesView";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,7 +35,7 @@ function MobileHeader() {
   );
 }
 
-type View = "dataconversion" | "aiceo" | "businessdna" | "employees";
+type View = "dataconversion" | "aiceo" | "businessdna" | "employees" | "workspaces";
 
 interface PendingTask {
   role: string;
@@ -49,7 +50,7 @@ const Database = () => {
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem("tw_current_view");
-    if (saved && ["dataconversion", "aiceo", "businessdna", "employees"].includes(saved)) {
+    if (saved && ["dataconversion", "aiceo", "businessdna", "employees", "workspaces"].includes(saved)) {
       return saved as View;
     }
     return "businessdna";
@@ -316,6 +317,9 @@ const Database = () => {
                 >
                   <EmployeesView />
                 </RestrictedFeatureGate>
+              )}
+              {currentView === "workspaces" && user && (
+                <WorkspacesView onBack={() => handleViewChange("businessdna")} />
               )}
             </main>
           </SidebarInset>
