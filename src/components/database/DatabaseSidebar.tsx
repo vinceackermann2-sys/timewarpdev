@@ -393,7 +393,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                className="cursor-pointer text-destructive focus:text-destructive"
+                className="cursor-pointer text-destructive focus:text-destructive py-2.5"
                 onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-2" />
