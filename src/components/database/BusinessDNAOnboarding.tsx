@@ -118,11 +118,13 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
   let reloadData: () => Promise<{ brands: BrandEntry[]; products: ProductEntry[]; audiences: AudienceEntry[] }> = async () => ({ brands: [], products: [], audiences: [] });
   let brands: BrandEntry[] = [];
   let refreshBrand: ((brandId: string) => Promise<void>) | null = null;
+  let setBrands: React.Dispatch<React.SetStateAction<BrandEntry[]>> = () => {};
   try {
     const ctx = useBusinessDNA();
     reloadData = ctx.reloadData;
     brands = ctx.brands;
     refreshBrand = ctx.refreshBrand;
+    setBrands = ctx.setBrands;
     contextAvailable = true;
   } catch {
     // No provider
