@@ -33,6 +33,31 @@ export interface VisualIdentityData {
   socialMediaUrls?: string[];
 }
 
+export interface SafetySettings {
+  focusEnabled: boolean;
+  promptInjectionEnabled: boolean;
+  moderationCategories: Record<string, { enabled: boolean; level: "Low" | "Medium" | "High" }>;
+  customGuardrails: { name: string; prompt: string }[];
+}
+
+export const DEFAULT_SAFETY_SETTINGS: SafetySettings = {
+  focusEnabled: false,
+  promptInjectionEnabled: false,
+  moderationCategories: {
+    "Sexual": { enabled: false, level: "High" },
+    "Violence": { enabled: false, level: "High" },
+    "Violence Graphic": { enabled: false, level: "High" },
+    "Harassment": { enabled: false, level: "High" },
+    "Harassment Threatening": { enabled: false, level: "High" },
+    "Hate": { enabled: false, level: "High" },
+    "Hate Threatening": { enabled: false, level: "High" },
+    "Self Harm": { enabled: false, level: "High" },
+    "Self Harm Intent": { enabled: false, level: "High" },
+    "Self Harm Instructions": { enabled: false, level: "High" },
+  },
+  customGuardrails: [],
+};
+
 export interface BrandEntry {
   id: string;
   name: string;
@@ -44,6 +69,7 @@ export interface BrandEntry {
   selectedLogo?: number;
   visualIdentity?: VisualIdentityData;
   agentName?: string;
+  safetySettings?: SafetySettings;
 }
 
 export interface ProductEntry extends ProductData {

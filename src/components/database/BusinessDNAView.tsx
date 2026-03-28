@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Brain, Palette, Package, BookOpen, Loader2, Plus, Trash2, Check, X,
+  Brain, Palette, Package, Settings, Loader2, Plus, Trash2, Check, X,
   Pencil, Building2, ArrowLeft, Users, Database
 } from "lucide-react";
+import { SettingsView } from "@/components/database/SettingsView";
 import { BrandListView } from "@/components/database/BrandListView";
 import { ProductListView } from "@/components/database/ProductListView";
 import { AudienceListView } from "@/components/database/AudienceListView";
