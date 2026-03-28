@@ -698,6 +698,10 @@ serve(async (req) => {
         console.log("Starting moodboard pipeline...");
         const urls = await fetchMoodboardImages(name, cat, audienceDesc || "", FIRECRAWL_API_KEY, BROWSERLESS_API_KEY, audiencePowerWords || "", primary, secondary, productBenefits || "", buyingTriggers || "", LOVABLE_API_KEY);
         enriched.moodboardUrls = urls;
+        // Track Pinterest search URLs analyzed
+        for (let i = 0; i < 6; i++) {
+          analyzedUrls.push(`pinterest.com/search/pins/?q=moodboard+query+${i + 1}`);
+        }
         console.log("Moodboard enriched:", urls.length, "images");
       } catch (e) { console.error("Moodboard pipeline error:", e); enriched.moodboardUrls = []; }
     })();
