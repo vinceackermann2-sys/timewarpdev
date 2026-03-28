@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 import { SyncPreferencesDialog } from "@/components/database/SyncPreferencesDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface DataItem {
   id: string;
@@ -247,7 +248,15 @@ export function BusinessDataListView() {
           continue;
         }
 
-        const content = await file.text().catch(() => null);
+        const isBinary = file.type === "application/pdf" || file.type.startsWith("image/") ||
+          file.type.includes("spreadsheet") || file.type.includes("excel") ||
+          file.type === "application/msword" || file.type.includes("wordprocessingml");
+
+        let content: string | null = null;
+        if (!isBinary) {
+          content = await file.text().catch(() => null);
+        }
+
         const dataType = file.type.startsWith("image/") ? "image" 
           : file.type === "application/pdf" ? "document"
           : file.type.includes("spreadsheet") || file.type.includes("csv") ? "spreadsheet"
@@ -258,7 +267,7 @@ export function BusinessDataListView() {
           .insert({
             user_id: session.user.id,
             title: file.name,
-            content: content || `[File: ${file.name}, Size: ${file.size} bytes]`,
+            content: content || `[File: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes]`,
             data_type: dataType,
             source: "upload",
             is_analyzed: false,
@@ -369,43 +378,48 @@ export function BusinessDataListView() {
         </div>
       </div>
 
-      {/* Integrations Panel (toggled) */}
-      {showIntegrations && (
-        <div className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-3">
-          <div className={cn(
-            "flex items-center gap-3 p-3 rounded-lg border transition-all",
-            isConnected ? "border-green-500/40 bg-green-500/5" : "border-border/50 hover:border-primary/30"
-          )}>
-            <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center p-1.5 flex-shrink-0">
-              <img src={logoMicrosoft} alt="Microsoft" className="h-6 w-6 object-contain" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Microsoft</p>
-              {isConnected && connectedEmail ? (
-                <p className="text-xs text-green-600 dark:text-green-400 truncate">{connectedEmail}</p>
+      {/* Integrations Dialog */}
+      <Dialog open={showIntegrations} onOpenChange={setShowIntegrations}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Integrations</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className={cn(
+              "flex items-center gap-3 p-3 rounded-lg border transition-all",
+              isConnected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+            )}>
+              <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center p-1.5 flex-shrink-0">
+                <img src={logoMicrosoft} alt="Microsoft" className="h-6 w-6 object-contain" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Microsoft</p>
+                {isConnected && connectedEmail ? (
+                  <p className="text-xs text-primary truncate">{connectedEmail}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
+                )}
+              </div>
+              {isConnected ? (
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowSyncPrefs(true)} disabled={syncingProvider}>
+                    {syncingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
+                  </Button>
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                </div>
               ) : (
-                <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 flex-shrink-0" onClick={handleConnect} disabled={connectingProvider}>
+                  {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                  Connect
+                </Button>
               )}
             </div>
-            {isConnected ? (
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowSyncPrefs(true)} disabled={syncingProvider}>
-                  {syncingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
-                </Button>
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-              </div>
-            ) : (
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 flex-shrink-0" onClick={handleConnect} disabled={connectingProvider}>
-                {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                Connect
-              </Button>
-            )}
+            <div className="text-center">
+              <IntegrationRequestDialog />
+            </div>
           </div>
-          <div className="text-center">
-            <IntegrationRequestDialog />
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
