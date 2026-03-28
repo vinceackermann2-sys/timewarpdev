@@ -305,6 +305,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
 
         if (!error && data) {
           setItems(prev => { const next = [data, ...prev]; _cachedItems = next; return next; });
+          setRealUsageBytes(prev => prev + file.size);
         }
       }
       toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
