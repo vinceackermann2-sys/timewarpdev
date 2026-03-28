@@ -540,7 +540,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         onOpenChange={setShowSyncPrefs}
         onConfirm={(cats, lims) => handleSync(cats, lims)}
         isSyncing={syncingProvider}
-        currentUsageBytes={totalBytes}
+        currentUsageBytes={realUsageBytes}
         dataLimitBytes={dataLimit}
         planLabel={planLabel}
       />
