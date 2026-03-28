@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Brain, Palette, Package, BookOpen, Loader2, Plus, Trash2, Check, X,
+  Brain, Palette, Package, Settings, Loader2, Plus, Trash2, Check, X,
   Pencil, Building2, ArrowLeft, Users, Database
 } from "lucide-react";
+import { SettingsView } from "@/components/database/SettingsView";
 import { BrandListView } from "@/components/database/BrandListView";
 import { ProductListView } from "@/components/database/ProductListView";
 import { AudienceListView } from "@/components/database/AudienceListView";
@@ -87,11 +88,11 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     borderAccent: "border-primary/20",
   },
   {
-    id: "sop",
-    label: "SOP",
-    subtitle: "Standard Operating Procedures",
-    icon: BookOpen,
-    description: "Your operational DNA — processes, workflows, playbooks, team structures, and repeatable systems.",
+    id: "settings",
+    label: "Settings",
+    subtitle: "Safety & Configuration",
+    icon: Settings,
+    description: "Configure safety guardrails, moderation rules, and custom constraints for your AI employees.",
     color: "text-primary",
     hslColor: "var(--primary)",
     bgAccent: "bg-primary/10",
@@ -216,7 +217,7 @@ function IdleState({ totalInsights }: { totalInsights: number }) {
 // ── Main View ──
 export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void; activeBrandId: string }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
-    brand: [], product: [], audience: [], database: [], sop: []
+    brand: [], product: [], audience: [], database: [], settings: []
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
@@ -418,20 +419,16 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
             >
               <BusinessDataListView activeBrandId={activeBrandId} />
             </motion.div>
-          ) : activeSegment === "sop" ? (
+          ) : activeSegment === "settings" ? (
             <motion.div
-              key="sop-coming-soon"
+              key="settings-view"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="flex flex-col items-center justify-center py-24 text-center"
+              className="pt-0"
             >
-              <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                <BookOpen className="h-7 w-7 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">Coming Soon</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">Standard Operating Procedures will be available in a future update.</p>
+              <SettingsView activeBrandId={activeBrandId} />
             </motion.div>
           ) : activeSegmentData ? (
             <motion.div
