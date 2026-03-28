@@ -427,7 +427,7 @@ async function fetchMoodboardImages(
   firecrawlKey: string, browserlessKey: string,
   powerWords?: string, brandColorPrimary?: string, brandColorSecondary?: string,
   productBenefits?: string, buyingTriggers?: string, aiApiKey?: string
-): Promise<string[]> {
+): Promise<{ urls: string[]; searchUrls: string[] }> {
   // Use AI to derive: trust object (physical thing audience trusts) + feeling + color description
   const fallbackTrustObject = inferTrustObject(category, audienceDesc, productBenefits || "", buyingTriggers || "");
   const fallbackFeelingAndColor = inferFeelingAndColor(
