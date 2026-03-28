@@ -560,6 +560,10 @@ export type Database = {
         Args: { _data_owner: string; _requesting_user: string }
         Returns: boolean
       }
+      check_storage_limit: {
+        Args: { _additional_bytes: number; _user_id: string }
+        Returns: Json
+      }
       complete_referral: {
         Args: { _referral_code: string; _referred_user_id: string }
         Returns: Json
@@ -607,6 +611,7 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      recalculate_data_usage: { Args: { _user_id: string }; Returns: number }
     }
     Enums: {
       billing_period: "monthly" | "quarterly" | "annually"

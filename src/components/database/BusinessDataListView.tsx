@@ -72,6 +72,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [showSyncPrefs, setShowSyncPrefs] = useState(false);
   const [showIntegrations, setShowIntegrations] = useState(false);
   const { plan, getDataLimit } = useSubscription();
+  const [realUsageBytes, setRealUsageBytes] = useState<number>(0);
 
   const checkConnection = useCallback(async () => {
     try {
@@ -148,6 +149,19 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     };
     fetchData();
     checkConnection();
+
+    // Fetch real storage usage from subscription record
+    const fetchUsage = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const { data } = await (supabase as any)
+        .from("user_subscriptions")
+        .select("data_used_bytes")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (data) setRealUsageBytes(data.data_used_bytes || 0);
+    };
+    fetchUsage();
   }, [checkConnection, activeBrandId]);
 
   const handleConnect = async () => {
@@ -230,6 +244,12 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       await supabase.from("user_business_data").delete().eq("id", itemId);
       setItems(prev => { const next = prev.filter(i => i.id !== itemId); _cachedItems = next; return next; });
       if (expandedId === itemId) setExpandedId(null);
+      // Refresh real usage (trigger auto-recalculates)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: sub } = await (supabase as any).from("user_subscriptions").select("data_used_bytes").eq("user_id", session.user.id).maybeSingle();
+        if (sub) setRealUsageBytes(sub.data_used_bytes || 0);
+      }
       toast.success("Data item deleted");
     } catch {
       toast.error("Failed to delete item");
@@ -246,10 +266,18 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { toast.error("Please log in first"); setIsUploading(false); return; }
 
+      const dataLimit = getDataLimit();
+
       for (const file of Array.from(files)) {
         if (file.size > 10 * 1024 * 1024) {
           toast.error(`${file.name} exceeds 10MB limit`);
           continue;
+        }
+
+        // Check storage limit before uploading
+        if (isFinite(dataLimit) && (realUsageBytes + file.size) > dataLimit) {
+          toast.error("Storage limit reached. Upgrade your plan for more space.");
+          break;
         }
 
         const isBinary = file.type === "application/pdf" || file.type.startsWith("image/") ||
@@ -276,13 +304,14 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             source: "upload",
             is_analyzed: false,
             workspace_id: localStorage.getItem("preferred_workspace_id"),
-            metadata: { brandId: activeBrandId },
+            metadata: { brandId: activeBrandId, file_size: file.size },
           })
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .single();
 
         if (!error && data) {
           setItems(prev => { const next = [data, ...prev]; _cachedItems = next; return next; });
+          setRealUsageBytes(prev => prev + file.size);
         }
       }
       toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
@@ -293,12 +322,9 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Calculate data usage
-  const totalBytes = items.reduce((sum, item) => {
-    return sum + (item.content?.length || 0) + (item.analyzed_content?.length || 0) + (item.title?.length || 0);
-  }, 0);
+  // Use real tracked usage from DB
   const dataLimit = getDataLimit();
-  const usagePercent = isFinite(dataLimit) ? Math.min((totalBytes / dataLimit) * 100, 100) : 0;
+  const usagePercent = isFinite(dataLimit) ? Math.min((realUsageBytes / dataLimit) * 100, 100) : 0;
   const planLabel = plan === "timewarp_og" ? "TimeWarp OG" : plan === "aristotle" ? "Aristotle" : plan === "co_founder" ? "Co-Founder" : "Free";
 
   const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
@@ -339,7 +365,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         <Progress value={usagePercent} className="h-2 mb-2" />
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">
-            {formatBytes(totalBytes)} used
+            {formatBytes(realUsageBytes)} used
           </span>
           <span className="text-xs text-muted-foreground">
             {isFinite(dataLimit) ? formatBytes(dataLimit) + " limit" : "Unlimited"}
@@ -520,7 +546,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         onOpenChange={setShowSyncPrefs}
         onConfirm={(cats, lims) => handleSync(cats, lims)}
         isSyncing={syncingProvider}
-        currentUsageBytes={totalBytes}
+        currentUsageBytes={realUsageBytes}
         dataLimitBytes={dataLimit}
         planLabel={planLabel}
       />
