@@ -68,7 +68,7 @@ interface WorkspaceDialogProps {
   initialWorkspaceId?: string;
 }
 
-export function WorkspaceDialog({ open, onOpenChange, userEmail }: WorkspaceDialogProps) {
+export function WorkspaceDialog({ open, onOpenChange, userEmail, initialWorkspaceId }: WorkspaceDialogProps) {
   const { toast } = useToast();
   const {
     workspaces, createWorkspace, sendInvite, removeMember, updateMemberRole,
