@@ -707,6 +707,7 @@ serve(async (req) => {
     // ── Pipeline 2: 9 Lucide icon names + 1 code-generated pattern SVG ──
     const illustrationPipeline = (async () => {
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping illustrations"); return; }
+      analyzedUrls.push("ai.gateway/illustrations");
       try {
         console.log("Generating icon concepts...");
         // Get 9 concepts from AI
