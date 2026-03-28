@@ -224,6 +224,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness }: MyBusines
         open={showWorkspaceSettings}
         onOpenChange={setShowWorkspaceSettings}
         userEmail={members.find(m => m.role === "owner")?.email || ""}
+        initialWorkspaceId={activeWorkspaceId || undefined}
       />
       <UpgradeGateDialog open={showGate} onOpenChange={closeGate} />
     </div>
