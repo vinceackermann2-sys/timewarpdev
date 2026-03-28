@@ -152,7 +152,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     isActive={currentView === "businessdna"}
                     onClick={() => onViewChange("businessdna")}
                     tooltip="Business DNA"
-                    className={currentView === "businessdna" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
+                    className={currentView === "businessdna" ? "bg-muted text-foreground" : ""}
                   >
                     <Dna className="h-4 w-4" />
                     {!isCollapsed && <span>Business DNA</span>}
