@@ -53,6 +53,20 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
     return "secondary" as const;
   };
 
+  // Show detail view when managing a workspace
+  const managingWs = managingWsId ? workspaces.find(w => w.workspaceId === managingWsId) : null;
+  if (managingWs) {
+    return (
+      <WorkspaceDetailView
+        workspaceId={managingWs.workspaceId}
+        workspaceName={managingWs.workspaceName}
+        memberCount={managingWs.memberCount}
+        userRole={managingWs.role}
+        onBack={() => setManagingWsId(null)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
