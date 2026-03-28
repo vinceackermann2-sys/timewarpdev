@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Search, Building2, Rocket, FolderOpenDot, Lock, Loader2, Trash2, Settings } from "lucide-react";
+import { Plus, Search, Building2, Loader2, Trash2, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import startBusinessBg from "@/assets/start-business-bg.webp";
 import addBusinessBg from "@/assets/add-business-bg.webp";
 import { useBusinessDNA } from "./BusinessDNAContext";
