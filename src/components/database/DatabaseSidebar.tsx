@@ -194,7 +194,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="top" align="start" className="w-64 p-0">
+              <PopoverContent side="top" align="center" className="w-64 p-0">
                 <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50">
                   <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <input
