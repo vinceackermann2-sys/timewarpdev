@@ -218,7 +218,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                           index < ACTION_PACKS.length - 1 && "border-b border-border/30",
                           selectedPackId === pack.priceId
                             ? "bg-primary text-primary-foreground font-semibold"
-                            : "hover:bg-muted/50 text-popover-foreground"
+                            : "hover:bg-primary/10 hover:text-primary text-popover-foreground"
                         )}
                       >
                         <span>+{pack.label}</span>
