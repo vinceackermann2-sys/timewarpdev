@@ -66,7 +66,17 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
 
   const isUnlimited = remaining === Infinity;
 
-  // Auto-select first workspace
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   useEffect(() => {
     if (workspaces.length > 0 && !selectedWsId) {
       setSelectedWsId(workspaces[0].workspaceId);
