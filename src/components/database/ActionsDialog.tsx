@@ -174,18 +174,24 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 </p>
               </div>
 
-              <Select value={selectedPackId} onValueChange={setSelectedPackId}>
-                <SelectTrigger className="bg-muted/30">
-                  <SelectValue placeholder="Select an action pack" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACTION_PACKS.map((pack) => (
-                    <SelectItem key={pack.priceId} value={pack.priceId}>
-                      +{pack.label} — {pack.price}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="rounded-xl border border-border/50 overflow-hidden max-h-[280px] overflow-y-auto">
+                {ACTION_PACKS.map((pack, index) => (
+                  <button
+                    key={pack.priceId}
+                    onClick={() => setSelectedPackId(pack.priceId)}
+                    className={cn(
+                      "flex w-full items-center justify-between px-5 py-3.5 text-sm transition-colors",
+                      index < ACTION_PACKS.length - 1 && "border-b border-border/30",
+                      selectedPackId === pack.priceId
+                        ? "bg-primary text-primary-foreground font-semibold"
+                        : "hover:bg-muted/50 text-foreground"
+                    )}
+                  >
+                    <span>+{pack.label}</span>
+                    <span>{pack.price}</span>
+                  </button>
+                ))}
+              </div>
 
               <Button
                 className="w-full gap-2"
