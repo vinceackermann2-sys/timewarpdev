@@ -18,8 +18,8 @@ const features = [
   { name: "Connected data", icon: HardDrive, type: "unlimited" as const },
   { name: "Actions / month", icon: WandSparkles, type: "unlimited" as const },
   { name: "AI Employees", icon: Bot, type: "unlimited" as const },
-  { name: "Developer Line", icon: Code, type: "included" as const },
-  { name: "Priority Support", icon: Headphones, type: "included" as const },
+  { name: "Developer Line", icon: Code, type: "priority" as const },
+  { name: "Support", icon: Headphones, type: "included" as const },
 ];
 
 function useCountdown(targetDate: Date) {
