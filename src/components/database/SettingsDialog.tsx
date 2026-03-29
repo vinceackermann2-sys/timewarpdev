@@ -49,11 +49,9 @@ function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
   const bonus = data?.bonus_actions ?? 0;
   const dbPlan = data?.plan ?? fallbackPlan;
   const limit = dbPlan ? ACTION_LIMITS_SETTINGS[dbPlan] ?? FREE_LIMIT_SETTINGS : FREE_LIMIT_SETTINGS;
-  const total = limit === Infinity ? "∞" : String(limit + bonus);
-  const planName = dbPlan === "co_founder" ? "Co Founder"
-    : dbPlan === "aristotle" ? "Aristotle"
-    : dbPlan === "timewarp_og" ? "TimeWarp OG"
-    : "Free";
+  const totalNum = limit === Infinity ? Infinity : limit + bonus;
+  const remaining = totalNum === Infinity ? "∞" : String(Math.max(0, totalNum - used));
+  const total = totalNum === Infinity ? "∞" : String(totalNum);
 
   return (
     <div className="rounded-xl border border-border bg-muted/30 p-5">
@@ -63,8 +61,8 @@ function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
           <p className="text-lg font-bold mt-0.5">{planName}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Actions Used</p>
-          <p className="text-lg font-bold mt-0.5">{used} / {total}</p>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Actions Remaining</p>
+          <p className="text-lg font-bold mt-0.5">{remaining} / {total}</p>
         </div>
       </div>
     </div>
