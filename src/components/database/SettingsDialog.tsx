@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import {
   Settings, Users, CreditCard, Key, Unplug, Plug, Loader2,
   Sun, Moon, Monitor, Mail, MailPlus, User, UserPlus, Crown,
   Pencil, Trash2, Clock, X, Plus, ChevronRight, ArrowLeft, Check,
+  Building2, ArrowRight, Search, MoreHorizontal,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
@@ -23,6 +24,12 @@ import { useWorkspace, WorkspaceMember, WorkspaceInvitation } from "@/hooks/useW
 import { useSubscription } from "@/hooks/useSubscription";
 import { Badge } from "@/components/ui/badge";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -189,6 +196,9 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   const [newWsName, setNewWsName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState("");
+  const [wsDetailTab, setWsDetailTab] = useState<"users" | "invites">("users");
+  const [wsFilter, setWsFilter] = useState("");
+  const [showInviteForm, setShowInviteForm] = useState(false);
 
   // Plans state
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
@@ -478,166 +488,145 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
               {/* ── WORKSPACE TAB ── */}
               {activeTab === "workspace" && !selectedWsId && (
-                <div className="space-y-5 max-w-xl">
-                  {showCreateWs ? (
-                    <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-muted/20">
-                      <Label className="text-sm font-semibold">New Workspace</Label>
-                      <Input placeholder="Workspace name" value={newWsName} onChange={e => setNewWsName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleCreateWorkspace()} autoFocus />
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => { setShowCreateWs(false); setNewWsName(""); }}>Cancel</Button>
-                        <Button size="sm" onClick={handleCreateWorkspace} disabled={!newWsName.trim()}>Create</Button>
-                      </div>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Manage your workspaces and team members.</p>
+                  <div className="rounded-xl border border-border bg-card">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                      <span className="text-sm font-medium text-muted-foreground">{workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}</span>
+                      {showCreateWs ? (
+                        <div className="flex items-center gap-2">
+                          <Input placeholder="Workspace name" value={newWsName} onChange={(e) => setNewWsName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateWorkspace()} className="h-9 w-52" autoFocus />
+                          <Button size="sm" onClick={handleCreateWorkspace} disabled={!newWsName.trim()}>Create</Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setShowCreateWs(false); setNewWsName(""); }}>Cancel</Button>
+                        </div>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)}><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
+                      )}
                     </div>
-                  ) : (
-                    <Button variant="outline" className="w-full gap-2" onClick={() => setShowCreateWs(true)}><Plus className="h-4 w-4" /> Create Workspace</Button>
-                  )}
-                  {wsLoading ? (
-                    <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-                  ) : (
-                    <>
-                      {workspaces.filter(w => w.role === "owner").length > 0 && (
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">My Workspaces</Label>
-                          <div className="space-y-1.5">
-                            {workspaces.filter(w => w.role === "owner").map(ws => (
-                              <WorkspaceListItem key={ws.workspaceId} ws={ws} onClick={() => setSelectedWsId(ws.workspaceId)} />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {workspaces.filter(w => w.role !== "owner").length > 0 && (
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Shared with me</Label>
-                          <div className="space-y-1.5">
-                            {workspaces.filter(w => w.role !== "owner").map(ws => (
-                              <WorkspaceListItem key={ws.workspaceId} ws={ws} onClick={() => setSelectedWsId(ws.workspaceId)} />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {workspaces.length === 0 && <p className="text-center text-sm text-muted-foreground py-6">No workspaces yet.</p>}
-                    </>
-                  )}
+                    {wsLoading ? (
+                      <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                    ) : (
+                      <Table>
+                        <TableHeader><TableRow><TableHead>Workspace</TableHead><TableHead>Your Role</TableHead><TableHead>Members</TableHead><TableHead className="text-right" /></TableRow></TableHeader>
+                        <TableBody>
+                          {workspaces.map((ws) => (
+                            <TableRow key={ws.workspaceId}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Building2 className="h-4 w-4 text-primary" /></div>
+                                  <div><p className="font-medium text-foreground">{ws.workspaceName}</p><p className="text-xs text-muted-foreground">Created {new Date(ws.createdAt).toLocaleDateString()}</p></div>
+                                </div>
+                              </TableCell>
+                              <TableCell><Badge variant={ws.role === "owner" ? "default" : "secondary"} className="capitalize">{ws.role}</Badge></TableCell>
+                              <TableCell><span className="text-sm text-muted-foreground">{ws.memberCount} member{ws.memberCount !== 1 ? "s" : ""}</span></TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="sm" onClick={() => { setSelectedWsId(ws.workspaceId); setWsDetailTab("users"); setWsFilter(""); setShowInviteForm(false); }} className="text-muted-foreground hover:text-foreground">Manage <ArrowRight className="h-4 w-4 ml-1" /></Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {workspaces.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No workspaces yet. Create one to get started.</TableCell></TableRow>}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* Workspace Detail */}
-              {activeTab === "workspace" && selectedWsId && selectedWs && (
-                <div className="space-y-5 max-w-xl">
-                  <p className="text-sm text-muted-foreground">{isOwnerOfSelected ? "Manage team members and invitations." : "View team members."}</p>
-                  {isOwnerOfSelected && (
-                    <>
-                      <div className="space-y-3">
-                        <Label className="text-sm font-semibold flex items-center gap-2"><UserPlus className="h-4 w-4" /> Invite People</Label>
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="name@company.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="pl-9" onKeyDown={e => e.key === "Enter" && handleInvite()} disabled={isSending} />
-                          </div>
-                          <Select value={inviteRole} onValueChange={v => setInviteRole(v as Role)}>
-                            <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
-                            <SelectContent><SelectItem value="editor">Editor</SelectItem></SelectContent>
-                          </Select>
-                          <Button onClick={handleInvite} disabled={isSending}>{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Invite"}</Button>
-                        </div>
-                      </div>
-                      <Separator />
-                    </>
-                  )}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-semibold flex items-center gap-2"><Users className="h-4 w-4" /> Team Members</Label>
-                      <span className="text-xs text-muted-foreground">{wsMemberData.members.length} {wsMemberData.members.length === 1 ? "member" : "members"}</span>
+              {activeTab === "workspace" && selectedWsId && selectedWs && (() => {
+                const filteredMembers = wsFilter ? wsMemberData.members.filter(m => m.email.toLowerCase().includes(wsFilter.toLowerCase()) || getDisplayName(m.email).toLowerCase().includes(wsFilter.toLowerCase())) : wsMemberData.members;
+                const filteredInvitations = wsFilter ? wsMemberData.invitations.filter(i => i.email.toLowerCase().includes(wsFilter.toLowerCase())) : wsMemberData.invitations;
+                return (
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground text-sm">{selectedWs.workspaceName} · {wsMemberData.members.length} member{wsMemberData.members.length !== 1 ? "s" : ""}</p>
+                    <div className="inline-flex items-center p-1 rounded-lg bg-muted border border-border">
+                      <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
+                      <button onClick={() => setWsDetailTab("invites")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "invites" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Pending invites</button>
                     </div>
-                    {loadingMembers ? (
-                      <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {wsMemberData.members.map(member => {
-                          const roleConfig = ROLE_CONFIG[member.role];
-                          const RoleIcon = roleConfig.icon;
-                          const isCurrentUser = member.email === userEmail || (member.email === "unknown" && member.role === "owner");
-                          const displayEmail = isCurrentUser ? userEmail : (member.email !== "unknown" ? member.email : null);
-                          const name = isCurrentUser ? "You" : getDisplayName(member.email);
-                          const avatarLetter = (displayEmail || name).charAt(0).toUpperCase();
-                          return (
-                            <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0"><span className="text-sm font-semibold text-primary">{avatarLetter}</span></div>
-                                <div className="min-w-0"><p className="text-sm font-medium truncate">{name}</p><p className="text-xs text-muted-foreground truncate">{displayEmail || "No email available"}</p></div>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                {isOwnerOfSelected && member.role !== "owner" && !isCurrentUser ? (
-                                  <Select value={member.role} onValueChange={v => handleUpdateRole(member.id, v as Role)}>
-                                    <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue /></SelectTrigger>
-                                    <SelectContent><SelectItem value="editor">Editor</SelectItem></SelectContent>
-                                  </Select>
-                                ) : (
-                                  <div className={cn("flex items-center gap-1.5 text-xs font-medium", roleConfig.color)}><RoleIcon className="h-3.5 w-3.5" />{roleConfig.label}</div>
-                                )}
-                                {isOwnerOfSelected && member.role !== "owner" && !isCurrentUser && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleRemoveMember(member.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Filter by name or email" value={wsFilter} onChange={(e) => setWsFilter(e.target.value)} className="pl-9 h-9" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isOwnerOfSelected && <Button size="sm" onClick={() => setShowInviteForm(true)}><UserPlus className="h-4 w-4 mr-1.5" /> Invite member</Button>}
+                        {isOwnerOfSelected && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild><Button size="icon" variant="outline" className="h-9 w-9"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => { setEditName(selectedWs.workspaceName); setEditingName(true); }}><Pencil className="h-4 w-4 mr-2" /> Rename workspace</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={handleDeleteWorkspace}><Trash2 className="h-4 w-4 mr-2" /> Delete workspace</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
+                    </div>
+                    {showInviteForm && (
+                      <div className="flex items-center gap-2 p-4 rounded-xl border border-border bg-muted/30">
+                        <Input placeholder="name@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleInvite()} className="flex-1 h-9" autoFocus />
+                        <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as Role)}>
+                          <SelectTrigger className="w-[110px] h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="editor">Editor</SelectItem></SelectContent>
+                        </Select>
+                        <Button size="sm" onClick={handleInvite} disabled={isSending}>{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}</Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setShowInviteForm(false); setInviteEmail(""); }}><X className="h-4 w-4" /></Button>
                       </div>
                     )}
-                  </div>
-                  {isOwnerOfSelected && wsMemberData.invitations.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-3">
-                        <Label className="text-sm font-semibold flex items-center gap-2"><Clock className="h-4 w-4" /> Pending Invitations</Label>
-                        <div className="space-y-1.5">
-                          {wsMemberData.invitations.map(inv => (
-                            <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/10">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="h-9 w-9 rounded-full bg-muted/40 flex items-center justify-center shrink-0"><Mail className="h-4 w-4 text-muted-foreground" /></div>
-                                <div className="min-w-0"><p className="text-sm font-medium truncate">{inv.email}</p><p className="text-xs text-muted-foreground">Invited as {ROLE_CONFIG[inv.role]?.label || inv.role}</p></div>
-                              </div>
-                              {isOwnerOfSelected && <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleCancelInvite(inv.id)}><X className="h-3.5 w-3.5" /></Button>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  <Separator />
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground font-medium">Role Permissions</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(ROLE_CONFIG).map(([key, config]) => {
-                        const Icon = config.icon;
-                        return (
-                          <div key={key} className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Icon className={cn("h-3.5 w-3.5", config.color)} />
-                            <span><span className="font-medium text-foreground">{config.label}</span>{key === "owner" && " — Full control"}{key === "editor" && " — Edit Business DNA"}</span>
-                          </div>
-                        );
-                      })}
+                    <div className="rounded-xl border border-border bg-card">
+                      {loadingMembers ? (
+                        <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                      ) : wsDetailTab === "users" ? (
+                        <Table>
+                          <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Account type</TableHead><TableHead>Date added</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                          <TableBody>
+                            {filteredMembers.map((member) => {
+                              const isCurrentUser = member.email === userEmail || (member.email === "unknown" && member.role === "owner");
+                              const displayMemberName = isCurrentUser ? `${getDisplayName(userEmail || member.email)} (You)` : getDisplayName(member.email);
+                              const displayEmail = isCurrentUser ? userEmail : (member.email !== "unknown" ? member.email : "");
+                              const initials = displayMemberName.replace(" (You)", "").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+                              return (
+                                <TableRow key={member.id}>
+                                  <TableCell>
+                                    <div className="flex items-center gap-3">
+                                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0"><span className="text-xs font-semibold text-muted-foreground">{initials}</span></div>
+                                      <div><p className="font-medium text-foreground text-sm">{displayMemberName}</p>{displayEmail && <p className="text-xs text-muted-foreground">{displayEmail}</p>}</div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell><Badge variant={member.role === "owner" ? "default" : "secondary"} className="capitalize">{member.role === "owner" ? "Owner" : "Editor"}</Badge></TableCell>
+                                  <TableCell><span className="text-sm text-muted-foreground">{new Date(member.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></TableCell>
+                                  <TableCell className="text-right">
+                                    {isOwnerOfSelected && member.role !== "owner" && !isCurrentUser && (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleRemoveMember(member.id)}><Trash2 className="h-4 w-4" /></Button>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                            {filteredMembers.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No members found.</TableCell></TableRow>}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <Table>
+                          <TableHeader><TableRow><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Invited</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                          <TableBody>
+                            {filteredInvitations.map((inv) => (
+                              <TableRow key={inv.id}>
+                                <TableCell><span className="text-sm font-medium">{inv.email}</span></TableCell>
+                                <TableCell><Badge variant="secondary" className="capitalize">{inv.role}</Badge></TableCell>
+                                <TableCell><span className="text-sm text-muted-foreground">{new Date(inv.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></TableCell>
+                                <TableCell className="text-right">
+                                  {isOwnerOfSelected && <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleCancelInvite(inv.id)}><X className="h-4 w-4" /></Button>}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            {filteredInvitations.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No pending invitations.</TableCell></TableRow>}
+                          </TableBody>
+                        </Table>
+                      )}
                     </div>
                   </div>
-                  {isOwnerOfSelected && (
-                    <>
-                      <Separator />
-                      <div className="space-y-2">
-                        <Label className="text-xs text-destructive font-semibold uppercase tracking-wider">Danger Zone</Label>
-                        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium">Delete Workspace</p>
-                            <p className="text-xs text-muted-foreground">Permanently delete this workspace and all its data.</p>
-                          </div>
-                          <Button variant="destructive" size="sm" onClick={handleDeleteWorkspace} className="shrink-0">
-                            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete
-                          </Button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
+                );
+              })()}
 
               {/* ── PLANS TAB ── */}
               {activeTab === "plans" && (
@@ -713,20 +702,3 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   );
 }
 
-function WorkspaceListItem({ ws, onClick }: { ws: { workspaceId: string; workspaceName: string; role: Role; memberCount: number }; onClick: () => void }) {
-  const roleConfig = ROLE_CONFIG[ws.role];
-  const RoleIcon = roleConfig.icon;
-  return (
-    <button onClick={onClick} className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors text-left">
-      <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0"><Users className="h-4 w-4 text-primary/70" /></div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{ws.workspaceName}</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className={cn("flex items-center gap-1 text-xs font-medium", roleConfig.color)}><RoleIcon className="h-3 w-3" />{roleConfig.label}</span>
-          <span className="text-xs text-muted-foreground">· {ws.memberCount} {ws.memberCount === 1 ? "member" : "members"}</span>
-        </div>
-      </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-    </button>
-  );
-}
