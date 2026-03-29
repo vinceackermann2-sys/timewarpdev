@@ -196,6 +196,9 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   const [newWsName, setNewWsName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState("");
+  const [wsDetailTab, setWsDetailTab] = useState<"users" | "invites">("users");
+  const [wsFilter, setWsFilter] = useState("");
+  const [showInviteForm, setShowInviteForm] = useState(false);
 
   // Plans state
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
