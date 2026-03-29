@@ -642,7 +642,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
               {/* ── PLANS TAB ── */}
               {activeTab === "plans" && (
                 <div className="space-y-6">
-                  <PlanUsageSummary fallbackPlan={currentPlan} />
+                  <PlanUsageSummary fallbackPlan={currentPlan} userId={authUser?.id} />
 
                   <div className="rounded-lg border border-border/50 bg-muted/20 p-8 text-center space-y-4">
                     <h3 className="text-lg font-semibold text-foreground">Questions about your plan?</h3>
