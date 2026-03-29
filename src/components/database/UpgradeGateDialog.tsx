@@ -116,14 +116,17 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
 
           <div className="text-center pt-1">
             <div className="text-3xl font-black text-foreground">
-              $999<span className="text-base font-normal text-muted-foreground">/mo</span>
+              $499<span className="text-base font-normal text-muted-foreground"> / 3 months</span>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">One-time payment · Access for 3 months</p>
           </div>
 
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
             Offer ends April 1st, 2026
           </div>
+
+
 
           <Button
             className="w-full h-12 text-sm font-bold"
@@ -134,7 +137,7 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
             onClick={handlePurchase}
             disabled={loading}
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Get TimeWarp OG — $999/mo"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Get TimeWarp OG — $499"}
           </Button>
 
           <p className="text-[11px] text-muted-foreground text-center">

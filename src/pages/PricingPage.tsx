@@ -29,9 +29,9 @@ const STRIPE_PRICES: Record<BillingPeriod, Record<PlanKey, string>> = {
 };
 
 const PRICES: Record<BillingPeriod, Record<PlanKey, number>> = {
-  monthly: { co_founder: 69, aristotle: 109, timewarp_og: 999 },
-  quarterly: { co_founder: 62, aristotle: 98, timewarp_og: 899 },
-  annually: { co_founder: 55, aristotle: 87, timewarp_og: 799 },
+  monthly: { co_founder: 69, aristotle: 109, timewarp_og: 499 },
+  quarterly: { co_founder: 62, aristotle: 98, timewarp_og: 499 },
+  annually: { co_founder: 55, aristotle: 87, timewarp_og: 499 },
 };
 
 interface Feature {
@@ -252,8 +252,9 @@ export default function PricingPage() {
             <h3 className="text-xl font-bold mb-1">TimeWarp OG</h3>
             <p className="text-muted-foreground text-sm mb-5">Unlimited power for serious operators</p>
             <div className="mb-6">
-              <span className="text-4xl font-bold">${prices.timewarp_og}</span>
-              <span className="text-muted-foreground text-sm"> / mo</span>
+              <span className="text-4xl font-bold">$499</span>
+              <span className="text-muted-foreground text-sm"> / 3 months</span>
+              <p className="text-xs text-muted-foreground mt-1">One-time payment</p>
             </div>
             <div className="space-y-3.5 flex-1 mb-6">
               {features.map((f) => (
