@@ -38,11 +38,15 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
+    // TimeWarp OG one-time payment price
+    const ONE_TIME_PRICE_ID = "price_1TGKOzGKbzbe9CQL8pj9zYEf";
+    const isOneTime = priceId === ONE_TIME_PRICE_ID;
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: "subscription",
+      mode: isOneTime ? "payment" : "subscription",
       success_url: `${req.headers.get("origin")}/app`,
       cancel_url: `${req.headers.get("origin")}/pricing`,
     });

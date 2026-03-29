@@ -11,7 +11,7 @@ interface UpgradeGateDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const TW_OG_MONTHLY_PRICE_ID = "price_1T7WkLGKbzbe9CQLd7zjQtl7";
+const TW_OG_PRICE_ID = "price_1TGKOzGKbzbe9CQL8pj9zYEf";
 
 const features = [
   { name: "Team members", icon: Layers, type: "unlimited" as const },
@@ -50,7 +50,7 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: TW_OG_MONTHLY_PRICE_ID },
+        body: { priceId: TW_OG_PRICE_ID },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");

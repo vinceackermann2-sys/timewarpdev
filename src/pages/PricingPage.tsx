@@ -14,17 +14,17 @@ const STRIPE_PRICES: Record<BillingPeriod, Record<PlanKey, string>> = {
   monthly: {
     co_founder: "price_1T7WhZGKbzbe9CQL2XgsQJ1i",
     aristotle: "price_1T7WjHGKbzbe9CQLopjmOrkg",
-    timewarp_og: "price_1T7WkLGKbzbe9CQLd7zjQtl7",
+    timewarp_og: "price_1TGKOzGKbzbe9CQL8pj9zYEf",
   },
   quarterly: {
     co_founder: "price_1T7WicGKbzbe9CQLJc2YAgFa",
     aristotle: "price_1T7WjhGKbzbe9CQLt570pbGz",
-    timewarp_og: "price_1T7WkqGKbzbe9CQLtJEqLbQv",
+    timewarp_og: "price_1TGKOzGKbzbe9CQL8pj9zYEf",
   },
   annually: {
     co_founder: "price_1T7WirGKbzbe9CQLlNxy4zyK",
     aristotle: "price_1T7Wk6GKbzbe9CQLzECMgYMt",
-    timewarp_og: "price_1T7WltGKbzbe9CQLhNXfJ2Tf",
+    timewarp_og: "price_1TGKOzGKbzbe9CQL8pj9zYEf",
   },
 };
 
