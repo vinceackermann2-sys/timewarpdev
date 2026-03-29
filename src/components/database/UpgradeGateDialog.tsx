@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
-import { Star, Infinity as InfinityIcon, Check, Zap, Shield, Rocket, Target, Layers, Cpu, Loader2 } from "lucide-react";
+import { Star, Infinity as InfinityIcon, Check, Zap, Shield, Rocket, Target, Layers, Cpu, Loader2, X, Users, HardDrive, WandSparkles, Bot, Code, Headphones } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,12 +14,12 @@ interface UpgradeGateDialogProps {
 const TW_OG_PRICE_ID = "price_1TGKOzGKbzbe9CQL8pj9zYEf";
 
 const features = [
-  { name: "Team members", icon: Layers, type: "unlimited" as const },
-  { name: "Connected data", icon: Shield, type: "unlimited" as const },
-  { name: "Actions / month", icon: Zap, type: "unlimited" as const },
-  { name: "AI Employees", icon: Cpu, type: "unlimited" as const },
-  { name: "AI CEO", icon: Rocket, type: "included" as const },
-  { name: "Business Brain", icon: Target, type: "included" as const },
+  { name: "Team members", icon: Users, type: "unlimited" as const },
+  { name: "Connected data", icon: HardDrive, type: "unlimited" as const },
+  { name: "Actions / month", icon: WandSparkles, type: "unlimited" as const },
+  { name: "AI Employees", icon: Bot, type: "unlimited" as const },
+  { name: "Developer Line", icon: Code, type: "included" as const },
+  { name: "Priority Support", icon: Headphones, type: "included" as const },
 ];
 
 function useCountdown(targetDate: Date) {
