@@ -18,8 +18,8 @@ const features = [
   { name: "Connected data", icon: HardDrive, type: "unlimited" as const },
   { name: "Actions / month", icon: WandSparkles, type: "unlimited" as const },
   { name: "AI Employees", icon: Bot, type: "unlimited" as const },
-  { name: "Developer Line", icon: Code, type: "included" as const },
-  { name: "Priority Support", icon: Headphones, type: "included" as const },
+  { name: "Developer Line", icon: Code, type: "priority" as const },
+  { name: "Support", icon: Headphones, type: "included" as const },
 ];
 
 function useCountdown(targetDate: Date) {
@@ -131,6 +131,10 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
                   {f.type === "unlimited" ? (
                     <div className="flex items-center justify-center gap-1.5 text-foreground font-bold text-xs bg-background/80 border border-border shadow-sm px-2.5 py-1 rounded-full backdrop-blur-sm">
                       <InfinityIcon size={14} strokeWidth={3} /> Unlimited
+                    </div>
+                  ) : f.type === "priority" ? (
+                    <div className="flex items-center justify-center gap-1.5 text-foreground font-bold text-xs bg-background/80 border border-border shadow-sm px-2.5 py-1 rounded-full backdrop-blur-sm">
+                      <Check size={14} strokeWidth={3} /> Priority
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-1.5 text-foreground font-bold text-xs bg-background/80 border border-border shadow-sm px-2.5 py-1 rounded-full backdrop-blur-sm">
