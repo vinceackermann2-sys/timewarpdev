@@ -132,6 +132,10 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
                     <div className="flex items-center justify-center gap-1.5 text-foreground font-bold text-xs bg-background/80 border border-border shadow-sm px-2.5 py-1 rounded-full backdrop-blur-sm">
                       <InfinityIcon size={14} strokeWidth={3} /> Unlimited
                     </div>
+                  ) : f.type === "priority" ? (
+                    <div className="flex items-center justify-center gap-1.5 text-foreground font-bold text-xs bg-background/80 border border-border shadow-sm px-2.5 py-1 rounded-full backdrop-blur-sm">
+                      <Check size={14} strokeWidth={3} /> Priority
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center gap-1.5 text-foreground font-bold text-xs bg-background/80 border border-border shadow-sm px-2.5 py-1 rounded-full backdrop-blur-sm">
                       <Check size={14} strokeWidth={3} /> Included
