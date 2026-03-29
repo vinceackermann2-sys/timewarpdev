@@ -702,20 +702,3 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   );
 }
 
-function WorkspaceListItem({ ws, onClick }: { ws: { workspaceId: string; workspaceName: string; role: Role; memberCount: number }; onClick: () => void }) {
-  const roleConfig = ROLE_CONFIG[ws.role];
-  const RoleIcon = roleConfig.icon;
-  return (
-    <button onClick={onClick} className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors text-left">
-      <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0"><Users className="h-4 w-4 text-primary/70" /></div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{ws.workspaceName}</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className={cn("flex items-center gap-1 text-xs font-medium", roleConfig.color)}><RoleIcon className="h-3 w-3" />{roleConfig.label}</span>
-          <span className="text-xs text-muted-foreground">· {ws.memberCount} {ws.memberCount === 1 ? "member" : "members"}</span>
-        </div>
-      </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-    </button>
-  );
-}
