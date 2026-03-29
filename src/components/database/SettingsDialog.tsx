@@ -193,6 +193,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const { plan: currentPlan } = useSubscription();
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
     if (open) {
