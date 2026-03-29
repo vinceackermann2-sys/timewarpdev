@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,7 @@ import {
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { WandSparkles, Copy, Check, Loader2, ShoppingCart } from "lucide-react";
+import { WandSparkles, Copy, Check, Loader2, ShoppingCart, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useQuery } from "@tanstack/react-query";
@@ -49,6 +49,8 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
   const [isSending, setIsSending] = useState(false);
   const [purchasingPriceId, setPurchasingPriceId] = useState<string | null>(null);
   const [selectedPackId, setSelectedPackId] = useState<string>("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch or create referral code
   const { data: referralCode } = useQuery({
@@ -64,7 +66,17 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
 
   const isUnlimited = remaining === Infinity;
 
-  // Auto-select first workspace
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   useEffect(() => {
     if (workspaces.length > 0 && !selectedWsId) {
       setSelectedWsId(workspaces[0].workspaceId);
@@ -174,23 +186,47 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border/50 overflow-hidden max-h-[280px] overflow-y-auto">
-                {ACTION_PACKS.map((pack, index) => (
-                  <button
-                    key={pack.priceId}
-                    onClick={() => setSelectedPackId(pack.priceId)}
-                    className={cn(
-                      "flex w-full items-center justify-between px-5 py-3.5 text-sm transition-colors",
-                      index < ACTION_PACKS.length - 1 && "border-b border-border/30",
-                      selectedPackId === pack.priceId
-                        ? "bg-primary text-primary-foreground font-semibold"
-                        : "hover:bg-muted/50 text-foreground"
-                    )}
-                  >
-                    <span>+{pack.label}</span>
-                    <span>{pack.price}</span>
-                  </button>
-                ))}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className={cn(
+                    "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-colors",
+                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                    !selectedPackId && "text-muted-foreground"
+                  )}
+                >
+                  <span>
+                    {selectedPackId
+                      ? `+${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.label} — ${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.price}`
+                      : "Select an action pack"}
+                  </span>
+                  <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", dropdownOpen && "rotate-180")} />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-full rounded-xl border border-border/50 bg-popover shadow-md overflow-hidden animate-in fade-in-0 zoom-in-95">
+                    {ACTION_PACKS.map((pack, index) => (
+                      <button
+                        key={pack.priceId}
+                        onClick={() => {
+                          setSelectedPackId(pack.priceId);
+                          setDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center justify-between px-5 py-3.5 text-sm transition-colors",
+                          index < ACTION_PACKS.length - 1 && "border-b border-border/30",
+                          selectedPackId === pack.priceId
+                            ? "bg-primary text-primary-foreground font-semibold"
+                            : "hover:bg-muted/50 text-popover-foreground"
+                        )}
+                      >
+                        <span>+{pack.label}</span>
+                        <span>{pack.price}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <Button
