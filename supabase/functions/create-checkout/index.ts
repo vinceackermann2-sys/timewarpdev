@@ -51,6 +51,11 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/pricing`,
     });
 
+    // Decrement OG spots when an OG checkout is created
+    if (isOneTime) {
+      await supabaseClient.rpc("decrement_og_spots");
+    }
+
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
