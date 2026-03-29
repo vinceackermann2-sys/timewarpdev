@@ -205,7 +205,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute z-50 bottom-full mb-1 w-full rounded-xl border border-border/50 bg-popover shadow-md max-h-[200px] overflow-y-auto animate-in fade-in-0 zoom-in-95">
+                  <div className="absolute z-50 top-full mt-1 w-full rounded-xl border border-border/50 bg-popover shadow-md max-h-[200px] overflow-y-auto animate-in fade-in-0 zoom-in-95">
                     {ACTION_PACKS.map((pack, index) => (
                       <button
                         key={pack.priceId}
