@@ -249,17 +249,9 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
           ) : (
             /* ── Standard Auth Form ── */
             <>
-              <div className="flex items-center gap-2 mb-6">
-                <img src="/favicon.png" alt="TimeWarp" className="h-8 w-8 rounded-lg object-cover" />
-                <span className="font-semibold text-lg text-foreground">TimeWarp</span>
-              </div>
-
-              <h2 className="text-xl font-bold text-foreground mb-1">
+              <h2 className="text-xl font-bold text-foreground mb-5">
                 {isSignUp ? "Create your TimeWarp account" : "Welcome back"}
               </h2>
-              <p className="text-sm text-muted-foreground mb-5">
-                {isSignUp ? "Sign up to get started with AI-powered business tools" : "Log in to your TimeWarp account"}
-              </p>
 
               <Button
                 type="button"
