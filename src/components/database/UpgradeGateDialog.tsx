@@ -11,7 +11,7 @@ interface UpgradeGateDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const TW_OG_MONTHLY_PRICE_ID = "price_1T7WkLGKbzbe9CQLd7zjQtl7";
+const TW_OG_PRICE_ID = "price_1TGKOzGKbzbe9CQL8pj9zYEf";
 
 const features = [
   { name: "Team members", icon: Layers, type: "unlimited" as const },

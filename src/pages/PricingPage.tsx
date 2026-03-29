@@ -24,7 +24,7 @@ const STRIPE_PRICES: Record<BillingPeriod, Record<PlanKey, string>> = {
   annually: {
     co_founder: "price_1T7WirGKbzbe9CQLlNxy4zyK",
     aristotle: "price_1T7Wk6GKbzbe9CQLzECMgYMt",
-    timewarp_og: "price_1T7WltGKbzbe9CQLhNXfJ2Tf",
+    timewarp_og: "price_1TGKOzGKbzbe9CQL8pj9zYEf",
   },
 };
 
