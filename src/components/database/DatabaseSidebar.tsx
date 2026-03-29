@@ -314,8 +314,8 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
           <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button className={`w-full rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${profileMenuOpen ? 'bg-primary/10 text-primary' : ''} ${isCollapsed ? 'p-2 flex justify-center' : 'p-2 flex items-center gap-2'}`}>
-                <div className="h-8 w-8 rounded-[14px] bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">
+                <div className="h-8 w-8 rounded-[14px] bg-[#3399ff] flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-semibold text-white">
                     {(userEmail || "U").charAt(0).toUpperCase()}
                   </span>
                 </div>
