@@ -43,7 +43,19 @@ function useCountdown(targetDate: Date) {
 export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const timeLeft = useCountdown(new Date("2026-04-01T00:00:00"));
+  const timeLeft = useCountdown(new Date("2026-04-12T00:00:00"));
+  const [spotsLeft, setSpotsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("platform_config")
+      .select("value")
+      .eq("key", "og_spots_remaining")
+      .single()
+      .then(({ data }) => {
+        setSpotsLeft(data ? parseInt(data.value, 10) : 23);
+      });
+  }, [open]);
   const fmt = (v: number) => v.toString().padStart(2, "0");
 
   const handlePurchase = async () => {
