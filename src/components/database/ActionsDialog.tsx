@@ -49,6 +49,8 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
   const [isSending, setIsSending] = useState(false);
   const [purchasingPriceId, setPurchasingPriceId] = useState<string | null>(null);
   const [selectedPackId, setSelectedPackId] = useState<string>("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch or create referral code
   const { data: referralCode } = useQuery({
