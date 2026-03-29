@@ -32,7 +32,7 @@ export default function ZipGreaterGood() {
               alt="You are offline"
               className="w-full h-64 object-cover rounded-2xl mb-6"
               referrerPolicy="no-referrer"
-              loading="lazy"
+              loading="eager"
             />
             <h3 className="text-2xl font-bold mb-2 text-foreground">You are offline</h3>
             <p className="text-muted-foreground">Living your life, free from the constraints of the office.</p>
@@ -47,7 +47,7 @@ export default function ZipGreaterGood() {
               alt="Your CEO is working"
               className="w-full h-64 object-cover rounded-2xl mb-6"
               referrerPolicy="no-referrer"
-              loading="lazy"
+              loading="eager"
             />
             <h3 className="text-2xl font-bold mb-2 text-foreground">Your CEO is working</h3>
             <p className="text-muted-foreground">Autonomous intelligence handling the business 24/7.</p>

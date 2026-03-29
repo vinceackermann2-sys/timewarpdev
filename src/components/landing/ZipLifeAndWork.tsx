@@ -15,7 +15,7 @@ export default function ZipLifeAndWork() {
               src={familyVacation}
               alt="Family on vacation"
               className="w-full h-full object-cover rounded-lg"
-              loading="lazy"
+              loading="eager"
             />
           </div>
         </div>
