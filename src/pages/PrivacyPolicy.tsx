@@ -6,94 +6,53 @@ export default function PrivacyPolicy() {
 
         <div className="prose prose-invert max-w-none space-y-6 text-muted-foreground text-[15px] leading-relaxed">
           <div className="space-y-1 mb-8 text-sm">
-            <p><strong className="text-foreground">Effective Date:</strong> February 10, 2026</p>
+            <p><strong className="text-foreground">Effective Date:</strong> March 29, 2026</p>
             <p><strong className="text-foreground">Company:</strong> Vincent Ackermann ("Timewarp", "we", "our", "us")</p>
             <p><strong className="text-foreground">Organization Number:</strong> 081003</p>
             <p><strong className="text-foreground">Registered Address:</strong> Lillvägen 4, 182 49 Stockholm, Sweden</p>
             <p><strong className="text-foreground">Contact Email:</strong> <a href="mailto:vincentackermann@timewarpdev.com" className="text-primary underline">vincentackermann@timewarpdev.com</a></p>
           </div>
 
-          <h2 className="text-xl font-semibold text-foreground mt-8">1. Introduction</h2>
-          <p>Timewarp ("AI CEO") is an AI‑powered business analysis platform that helps users understand, organize, and optimize their business operations by analyzing data stored in their Google Workspace account. This Privacy Policy explains how we collect, use, store, and protect your information when you use our services.</p>
-          <p>By using Timewarp, you consent to the practices described in this Privacy Policy.</p>
+          <h2 className="text-xl font-semibold text-foreground mt-8">1. About This Policy</h2>
+          <p>Timewarp ("AI CEO") is an AI-powered business assistant designed to help users optimize and automate their business operations. This Privacy Policy explains how we collect, use, store, and protect your personal data when you use our services.</p>
+          <p>By using Timewarp, you consent to the practices described in this policy.</p>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">2. Information We Collect</h2>
-          <p>We collect the following categories of information when you connect your Google account:</p>
 
-          <h3 className="text-lg font-semibold text-foreground mt-6">2.1 Google Account Information</h3>
-          <p>Through Google OAuth, we may access:</p>
+          <h3 className="text-lg font-semibold text-foreground mt-6">2.1 From Google (via OAuth)</h3>
+          <p>If you choose to connect your Google account, we may access:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Your Google account email</li>
-            <li>Your name and profile information</li>
+            <li>Your name and basic profile information</li>
             <li>Your Google account ID</li>
           </ul>
-          <p>These are used solely for authentication, personalization, and account identification.</p>
+          <p>This data is used solely for authentication, personalization, and account identification.</p>
 
-          <h3 className="text-lg font-semibold text-foreground mt-6">2.2 Google Drive Data (Limited Access)</h3>
-          <p>With your permission, Timewarp may access files you explicitly select or create through the app using the scope:</p>
-          <p className="font-mono text-sm text-foreground/80">https://www.googleapis.com/auth/drive.file</p>
-          <p>This allows the AI CEO to analyze:</p>
+          <h3 className="text-lg font-semibold text-foreground mt-6">2.2 From URLs You Provide</h3>
+          <p>When you submit your company URL, we may retrieve publicly available information related to your company.</p>
+          <p>We do <strong className="text-foreground">not</strong> access:</p>
           <ul className="list-disc pl-6 space-y-1">
-            <li>Documents</li>
-            <li>Spreadsheets</li>
-            <li>Presentations</li>
-            <li>PDFs</li>
-            <li>Images</li>
-            <li>Videos</li>
-            <li>Other business files you choose to use with the app</li>
+            <li>Internal systems</li>
+            <li>Private databases</li>
+            <li>Non-public or unauthorized sources</li>
           </ul>
-          <p>We do <strong className="text-foreground">NOT</strong> access or read your entire Google Drive. We only access files you directly interact with through Timewarp.</p>
-
-          <h3 className="text-lg font-semibold text-foreground mt-6">2.3 Gmail Data (Read‑Only)</h3>
-          <p>If you grant permission, Timewarp may access:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>Email metadata (labels, headers)</li>
-            <li>Email content (read‑only)</li>
-          </ul>
-          <p>Using the scopes:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li className="font-mono text-sm text-foreground/80">https://www.googleapis.com/auth/gmail.readonly</li>
-            <li className="font-mono text-sm text-foreground/80">https://www.googleapis.com/auth/gmail.metadata</li>
-          </ul>
-          <p>This allows the AI CEO to:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>Analyze communication patterns</li>
-            <li>Summarize conversations</li>
-            <li>Extract business insights</li>
-          </ul>
-          <p>We do <strong className="text-foreground">NOT</strong> send, delete, or modify your emails.</p>
-
-          <h3 className="text-lg font-semibold text-foreground mt-6">2.4 Google Calendar Data</h3>
-          <p>If you grant permission, Timewarp may access:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>Your calendar list</li>
-            <li>Event details</li>
-            <li>Availability information</li>
-          </ul>
-          <p>Using scopes such as:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li className="font-mono text-sm text-foreground/80">https://www.googleapis.com/auth/calendar.events.readonly</li>
-            <li className="font-mono text-sm text-foreground/80">https://www.googleapis.com/auth/calendar.calendarlist.readonly</li>
-            <li className="font-mono text-sm text-foreground/80">https://www.googleapis.com/auth/calendar.events.freebusy</li>
-          </ul>
-          <p>This allows the AI CEO to:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>Analyze your schedule</li>
-            <li>Identify meeting patterns</li>
-            <li>Provide operational insights</li>
-          </ul>
-          <p>We do <strong className="text-foreground">NOT</strong> create, modify, or delete events unless you explicitly request it.</p>
+          <p>Only publicly accessible information is processed.</p>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">3. How We Use Your Information</h2>
-          <p>Timewarp uses your data to:</p>
+          <p>Timewarp processes your information to:</p>
           <ul className="list-disc pl-6 space-y-1">
-            <li>Analyze business operations</li>
-            <li>Generate insights, summaries, and recommendations</li>
-            <li>Provide personalized AI‑driven business analysis</li>
-            <li>Improve the accuracy and performance of the AI CEO</li>
-            <li>Authenticate your account and maintain security</li>
+            <li>Operate and maintain the platform</li>
+            <li>Generate AI-driven insights, summaries, and recommendations</li>
+            <li>Provide personalized business analysis</li>
+            <li>Improve accuracy and performance of the AI CEO</li>
+            <li>Authenticate users and ensure platform security</li>
           </ul>
-          <p>We do not use your data for advertising, profiling, or selling to third parties.</p>
+          <p>We do <strong className="text-foreground">not</strong> use your information for:</p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>Advertising</li>
+            <li>Profiling unrelated to the service</li>
+            <li>Selling data to third parties</li>
+          </ul>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">4. How We Store and Protect Your Data</h2>
           <p>We take data security seriously. Timewarp uses:</p>
@@ -101,53 +60,64 @@ export default function PrivacyPolicy() {
             <li>Encrypted communication (HTTPS/TLS)</li>
             <li>Secure cloud infrastructure</li>
             <li>Access controls and authentication</li>
-            <li>Strict data minimization practices</li>
+            <li>Data minimization and least-access principles</li>
           </ul>
 
+          <h3 className="text-lg font-semibold text-foreground mt-6">Third-Party Services We Use</h3>
+          <p>Your data may pass through or be stored by trusted third-party providers:</p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li><strong className="text-foreground">Google OAuth</strong> – authentication and account security</li>
+            <li><strong className="text-foreground">Supabase</strong> – database, authentication, and analytics logging</li>
+            <li><strong className="text-foreground">Google Gemini API</strong> – AI-generated decision-making</li>
+            <li><strong className="text-foreground">Microsoft</strong> – data processing integrations for "AI brain"</li>
+            <li><strong className="text-foreground">Stripe (planned)</strong> – future payment processing</li>
+          </ul>
+          <p>Each service is bound by contractual and legal privacy obligations.</p>
+
           <h3 className="text-lg font-semibold text-foreground mt-6">4.1 Temporary Processing</h3>
-          <p>Most data is processed temporarily and is not stored permanently unless required for functionality you explicitly enable.</p>
+          <p>Most information is processed temporarily and is not stored permanently unless necessary for a feature you explicitly activate.</p>
 
           <h3 className="text-lg font-semibold text-foreground mt-6">4.2 No Unauthorized Sharing</h3>
-          <p>We do not share your Google data with:</p>
+          <p>We do not share your data with:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Advertisers</li>
             <li>Data brokers</li>
-            <li>Third‑party marketers</li>
+            <li>Third-party marketers</li>
           </ul>
-          <p>We only share data with service providers necessary to operate the platform (e.g., cloud hosting), and only under strict confidentiality agreements.</p>
+          <p>We only share data with essential service providers and only under strict confidentiality and data protection requirements.</p>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">5. Data Retention and Deletion</h2>
-          <p>We retain your data only as long as necessary to provide the service.</p>
+          <p>We retain your data only as long as necessary to provide the Service or to comply with legal obligations.</p>
           <p>You may request deletion of:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Your account</li>
             <li>All stored data</li>
             <li>All analysis outputs</li>
           </ul>
-          <p>by contacting us at <a href="mailto:vincentackermann@timewarpdev.com" className="text-primary underline">vincentackermann@timewarpdev.com</a>.</p>
-          <p>You may also revoke Google access at any time via: <a href="https://myaccount.google.com/permissions" className="text-primary underline" target="_blank" rel="noopener noreferrer">myaccount.google.com/permissions</a></p>
+          <p>To delete your data, contact: <a href="mailto:vincentackermann@timewarpdev.com" className="text-primary underline">vincentackermann@timewarpdev.com</a></p>
+          <p>You may also revoke Google access anytime at: <a href="https://myaccount.google.com/permissions" className="text-primary underline" target="_blank" rel="noopener noreferrer">myaccount.google.com/permissions</a></p>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">6. User Control and Consent</h2>
-          <p>You remain in full control of your data:</p>
+          <p>You remain in full control of your data at all times:</p>
           <ul className="list-disc pl-6 space-y-1">
-            <li>You choose which files to analyze</li>
-            <li>You choose which Google services to connect</li>
-            <li>You can disconnect at any time</li>
-            <li>You can request deletion at any time</li>
+            <li>You choose which URLs or files to analyze</li>
+            <li>You choose which integrations to connect</li>
+            <li>You can disconnect services at any time</li>
+            <li>You can request data deletion at any time</li>
           </ul>
-          <p>We never access data without your explicit permission.</p>
+          <p>We never access data or accounts without your explicit consent.</p>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">7. Children's Privacy</h2>
-          <p>Timewarp is not intended for individuals under 18. We do not knowingly collect data from minors.</p>
+          <p>Timewarp is not intended for individuals under the age of 18. We do not knowingly collect personal data from minors.</p>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">8. International Data Transfers</h2>
-          <p>Your data may be processed in the EU or other regions where our service providers operate. All transfers comply with GDPR and applicable laws.</p>
+          <p>Your data may be processed in the EU or other regions where our service providers operate. All transfers are performed in compliance with GDPR, including Standard Contractual Clauses (SCCs) where required.</p>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">9. Changes to This Policy</h2>
-          <p>We may update this Privacy Policy to reflect changes in our practices or legal requirements. Updates will be posted on this page with a new effective date.</p>
+          <p>We may update this Privacy Policy to reflect changes in our practices or legal requirements. Updated policies will be posted on this page with a new effective date.</p>
 
           <h2 className="text-xl font-semibold text-foreground mt-8">10. Contact Us</h2>
-          <p>For questions, concerns, or data requests, contact:</p>
+          <p>For questions, requests, or concerns related to privacy or data protection, contact:</p>
           <div className="space-y-1">
             <p><strong className="text-foreground">Vincent Ackermann</strong></p>
             <p>Email: <a href="mailto:vincentackermann@timewarpdev.com" className="text-primary underline">vincentackermann@timewarpdev.com</a></p>
