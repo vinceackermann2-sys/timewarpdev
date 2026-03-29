@@ -9,14 +9,14 @@ interface HeroSectionProps {
 }
 
 const urls = [
-  "nike.com/shoes/air-max",
-  "apple.com/iphone",
-  "shopify.com/pricing",
-  "stripe.com/payments",
-  "notion.so/product",
-  "figma.com/design",
-  "airbnb.com/rooms",
-  "tesla.com/model3",
+  "nike.com",
+  "apple.com",
+  "shopify.com",
+  "stripe.com",
+  "notion.so",
+  "figma.com",
+  "airbnb.com",
+  "tesla.com",
 ];
 
 export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {

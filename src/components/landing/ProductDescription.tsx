@@ -1,9 +1,20 @@
-import { Globe } from "lucide-react";
-import { useState } from "react";
+import { Globe, ArrowRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import futureCity from "@/assets/future-city.jpg";
 import { useNavigate, Link } from "react-router-dom";
 import ZipHowItWorks from "@/components/landing/ZipHowItWorks";
 import ZipLifeAndWork from "@/components/landing/ZipLifeAndWork";
+
+const ctaUrls = [
+  "nike.com",
+  "apple.com",
+  "shopify.com",
+  "stripe.com",
+  "notion.so",
+  "figma.com",
+  "airbnb.com",
+  "tesla.com",
+];
 
 
 interface ProductDescriptionProps {
