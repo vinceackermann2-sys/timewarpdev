@@ -128,9 +128,9 @@ const STRIPE_PRICES: Record<BillingPeriod, Record<PlanKey, string>> = {
 };
 
 const PRICES: Record<BillingPeriod, Record<PlanKey, number>> = {
-  monthly: { co_founder: 69, aristotle: 109, timewarp_og: 999 },
-  quarterly: { co_founder: 62, aristotle: 98, timewarp_og: 899 },
-  annually: { co_founder: 55, aristotle: 87, timewarp_og: 799 },
+  monthly: { co_founder: 69, aristotle: 109, timewarp_og: 499 },
+  quarterly: { co_founder: 62, aristotle: 98, timewarp_og: 499 },
+  annually: { co_founder: 55, aristotle: 87, timewarp_og: 499 },
 };
 
 const PLAN_FEATURES: { name: string; co_founder: string | boolean; aristotle: string | boolean; timewarp_og: string | boolean }[] = [
