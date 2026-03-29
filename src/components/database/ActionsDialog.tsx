@@ -174,41 +174,39 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 </p>
               </div>
 
-              <div className="space-y-3">
-                <Select
-                  value={selectedPackId}
-                  onValueChange={setSelectedPackId}
-                >
-                  <SelectTrigger className="w-full bg-muted/30">
-                    <SelectValue placeholder="Choose an action pack" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACTION_PACKS.map((pack) => (
-                      <SelectItem key={pack.priceId} value={pack.priceId}>
-                        <span className="flex w-full items-center justify-between gap-4">
-                          <span>{pack.label}</span>
-                          <span className="text-muted-foreground">{pack.price}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  className="w-full gap-2"
-                  onClick={() => selectedPackId && handlePurchase(selectedPackId)}
-                  disabled={!selectedPackId || purchasingPriceId !== null}
-                >
-                  {purchasingPriceId ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <ShoppingCart className="h-4 w-4" />
-                      Purchase {selectedPackId ? ACTION_PACKS.find(p => p.priceId === selectedPackId)?.label : "Actions"}
-                    </>
-                  )}
-                </Button>
+              <div className="rounded-xl border border-border/50 overflow-hidden max-h-[280px] overflow-y-auto">
+                {ACTION_PACKS.map((pack, index) => (
+                  <button
+                    key={pack.priceId}
+                    onClick={() => setSelectedPackId(pack.priceId)}
+                    className={cn(
+                      "flex w-full items-center justify-between px-5 py-3.5 text-sm transition-colors",
+                      index < ACTION_PACKS.length - 1 && "border-b border-border/30",
+                      selectedPackId === pack.priceId
+                        ? "bg-primary text-primary-foreground font-semibold"
+                        : "hover:bg-muted/50 text-foreground"
+                    )}
+                  >
+                    <span>+{pack.label}</span>
+                    <span>{pack.price}</span>
+                  </button>
+                ))}
               </div>
+
+              <Button
+                className="w-full gap-2"
+                onClick={() => selectedPackId && handlePurchase(selectedPackId)}
+                disabled={!selectedPackId || purchasingPriceId !== null}
+              >
+                {purchasingPriceId ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <ShoppingCart className="h-4 w-4" />
+                    Purchase {selectedPackId ? ACTION_PACKS.find(p => p.priceId === selectedPackId)?.label : "Actions"}
+                  </>
+                )}
+              </Button>
 
               <div className="pt-2 border-t border-border/30">
                 <p className="text-xs text-muted-foreground text-center">
