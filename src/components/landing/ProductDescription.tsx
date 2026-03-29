@@ -126,22 +126,36 @@ export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
           {/* Hero-style input card */}
           <div className="max-w-xl mx-auto">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center rounded-[14px] p-2 sm:p-[0.5rem_0.5rem_0.5rem_1rem] sm:h-16 bg-card border border-border dark:bg-[rgba(255,255,255,0.06)] dark:border-[rgba(255,255,255,0.1)]">
-              <div className="flex items-center flex-1 px-3 sm:px-0">
+              <div className="flex items-center flex-1 px-3 sm:px-0 cursor-text" onClick={() => { if (!isEditing) { setIsEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}>
                 <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" style={{ color: "#3399ff" }} />
-                <input
-                  type="text"
-                  value={inputUrl}
-                  onChange={(e) => setInputUrl(e.target.value)}
-                  placeholder="https://YourBusiness.com"
-                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                  className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none py-3 sm:py-0"
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1rem" }} />
+                {isEditing ? (
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputUrl}
+                    onChange={(e) => setInputUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                    onBlur={() => { if (!inputUrl) setIsEditing(false); }}
+                    placeholder="enter your url"
+                    autoFocus
+                    className="flex-1 border-none bg-transparent text-foreground dark:text-white placeholder:text-muted-foreground/40 dark:placeholder:text-white/30 outline-none py-3 sm:py-0"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1rem" }}
+                  />
+                ) : (
+                  <span className="flex items-center flex-1 min-w-0 text-left">
+                    <span className="text-[16px] font-normal whitespace-nowrap overflow-hidden text-muted-foreground dark:text-white/50" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      {typewriterText}
+                    </span>
+                    <span className="inline-block w-[2px] h-[1em] ml-[1px] align-text-bottom animate-pulse" style={{ background: "#3399ff" }} />
+                  </span>
+                )}
               </div>
               <button
                 onClick={handleAnalyze}
-                className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 sm:mt-0 h-12 sm:h-full"
+                className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 sm:mt-0 h-12 sm:h-full flex items-center gap-2"
                 style={{ padding: "0 1.5rem", borderRadius: 10, fontSize: "1rem", whiteSpace: "nowrap", border: "none", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, cursor: "pointer" }}>
-                Analyze →
+                <span>Activate CEO</span>
+                <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
               </button>
             </div>
 
