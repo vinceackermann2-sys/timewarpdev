@@ -199,7 +199,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md p-0 gap-0 border-border/50 bg-card overflow-hidden overflow-y-auto max-h-[90vh] [&>button]:hidden" aria-describedby={undefined}>
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md p-0 gap-0 border-border/50 bg-card overflow-hidden overflow-y-auto max-h-[90vh] rounded-[14px] [&>button]:hidden" aria-describedby={undefined}>
         <VisuallyHidden.Root><DialogTitle>{showVerification ? "Verify email" : isSignUp ? "Create account" : "Sign in"}</DialogTitle></VisuallyHidden.Root>
         <div className="p-4 sm:p-8">
           <button
