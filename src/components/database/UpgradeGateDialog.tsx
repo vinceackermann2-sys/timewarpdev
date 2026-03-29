@@ -43,7 +43,19 @@ function useCountdown(targetDate: Date) {
 export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const timeLeft = useCountdown(new Date("2026-04-01T00:00:00"));
+  const timeLeft = useCountdown(new Date("2026-04-12T00:00:00"));
+  const [spotsLeft, setSpotsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("platform_config")
+      .select("value")
+      .eq("key", "og_spots_remaining")
+      .single()
+      .then(({ data }) => {
+        setSpotsLeft(data ? parseInt(data.value, 10) : 23);
+      });
+  }, [open]);
   const fmt = (v: number) => v.toString().padStart(2, "0");
 
   const handlePurchase = async () => {
@@ -93,7 +105,7 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
                 </span>
-                Only 23 spots left
+                Only {spotsLeft ?? "…"} spots left
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 text-foreground text-[10px] sm:text-sm lg:text-base font-bold bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-sm whitespace-nowrap">
                 <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-yellow-400 fill-yellow-400 shrink-0" />
