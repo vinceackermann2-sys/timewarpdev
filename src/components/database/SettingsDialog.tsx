@@ -48,6 +48,10 @@ function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
   const used = data?.actions_used ?? 0;
   const bonus = data?.bonus_actions ?? 0;
   const dbPlan = data?.plan ?? fallbackPlan;
+  const planName = dbPlan === "co_founder" ? "Co Founder"
+    : dbPlan === "aristotle" ? "Aristotle"
+    : dbPlan === "timewarp_og" ? "TimeWarp OG"
+    : "Free";
   const limit = dbPlan ? ACTION_LIMITS_SETTINGS[dbPlan] ?? FREE_LIMIT_SETTINGS : FREE_LIMIT_SETTINGS;
   const totalNum = limit === Infinity ? Infinity : limit + bonus;
   const remaining = totalNum === Infinity ? "∞" : String(Math.max(0, totalNum - used));
