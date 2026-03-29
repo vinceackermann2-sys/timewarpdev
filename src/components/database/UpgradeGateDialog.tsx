@@ -126,6 +126,8 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
             Offer ends April 1st, 2026
           </div>
 
+
+
           <Button
             className="w-full h-12 text-sm font-bold"
             style={{
