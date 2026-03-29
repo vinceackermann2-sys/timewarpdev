@@ -24,6 +24,39 @@ interface ProductDescriptionProps {
 export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
   const navigate = useNavigate();
   const [inputUrl, setInputUrl] = useState("");
+  const [typewriterText, setTypewriterText] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Typewriter effect for bottom CTA
+  useEffect(() => {
+    if (isEditing) return;
+    let ui = 0;
+    let ci = 0;
+    let deleting = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const typeSpeed = 52;
+    const deleteSpeed = 28;
+    const pauseAfter = 1600;
+    const pauseBefore = 320;
+
+    const tick = () => {
+      const current = ctaUrls[ui];
+      if (!deleting) {
+        ci++;
+        setTypewriterText(current.slice(0, ci));
+        if (ci === current.length) { deleting = true; timeoutId = setTimeout(tick, pauseAfter); return; }
+        timeoutId = setTimeout(tick, typeSpeed);
+      } else {
+        ci--;
+        setTypewriterText(current.slice(0, ci));
+        if (ci === 0) { deleting = false; ui = (ui + 1) % ctaUrls.length; timeoutId = setTimeout(tick, pauseBefore); return; }
+        timeoutId = setTimeout(tick, deleteSpeed);
+      }
+    };
+    timeoutId = setTimeout(tick, 600);
+    return () => clearTimeout(timeoutId);
+  }, [isEditing]);
 
   const handleAnalyze = () => {
     if (onAuthRequest) {
