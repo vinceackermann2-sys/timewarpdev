@@ -82,7 +82,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
         </div>
         <div className="text-right">
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Actions Remaining</p>
-          <p className="text-lg font-bold mt-0.5">{remaining} / {total}</p>
+          <p className="text-lg font-bold mt-0.5">{remaining}</p>
         </div>
       </div>
     </div>
