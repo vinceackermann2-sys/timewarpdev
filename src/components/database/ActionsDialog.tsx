@@ -26,12 +26,12 @@ import { useActionGate } from "@/hooks/useActionGate";
 type Tab = "upgrade" | "refer" | "invite";
 
 const ACTION_PACKS = [
-  { label: "50 Actions", price: "$15", priceId: "price_1TAvQkGKbzbe9CQLJzFOPcBL" },
-  { label: "100 Actions", price: "$30", priceId: "price_1TAvR5GKbzbe9CQLzPPcn891" },
-  { label: "150 Actions", price: "$45", priceId: "price_1TAvS9GKbzbe9CQLmpcVUOLW" },
-  { label: "200 Actions", price: "$60", priceId: "price_1TAvXcGKbzbe9CQLtQgY1kwy" },
-  { label: "300 Actions", price: "$85", priceId: "price_1TBAJTGKbzbe9CQLxrFmBDhw" },
-  { label: "400 Actions", price: "$100", priceId: "price_1TBAJoGKbzbe9CQLnIE5C2IC" },
+  { label: "50 Actions", price: "$15.00", priceId: "price_1TAvQkGKbzbe9CQLJzFOPcBL" },
+  { label: "100 Actions", price: "$30.00", priceId: "price_1TAvR5GKbzbe9CQLzPPcn891" },
+  { label: "150 Actions", price: "$45.00", priceId: "price_1TAvS9GKbzbe9CQLmpcVUOLW" },
+  { label: "200 Actions", price: "$60.00", priceId: "price_1TAvXcGKbzbe9CQLtQgY1kwy" },
+  { label: "300 Actions", price: "$85.00", priceId: "price_1TBAJTGKbzbe9CQLxrFmBDhw" },
+  { label: "400 Actions", price: "$100.00", priceId: "price_1TBAJoGKbzbe9CQLnIE5C2IC" },
 ];
 
 interface ActionsDialogProps {
