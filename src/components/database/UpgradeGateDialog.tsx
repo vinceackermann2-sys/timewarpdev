@@ -137,7 +137,7 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
             onClick={handlePurchase}
             disabled={loading}
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Get TimeWarp OG — $999/mo"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Get TimeWarp OG — $499"}
           </Button>
 
           <p className="text-[11px] text-muted-foreground text-center">
