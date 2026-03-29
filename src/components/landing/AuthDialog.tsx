@@ -310,7 +310,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
                       onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
                       className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
-                    <label htmlFor="dialog-terms" className="text-sm text-muted-foreground leading-snug">
+                    <label htmlFor="dialog-terms" className="text-xs text-muted-foreground leading-snug">
                       I agree to our{" "}
                       <RouterLink to="/terms-of-purchase" className="text-primary hover:underline">Terms of Service</RouterLink>
                       {" "}and{" "}
