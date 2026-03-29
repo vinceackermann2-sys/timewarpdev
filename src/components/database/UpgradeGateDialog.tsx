@@ -69,7 +69,7 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
         {/* Close button */}
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground transition-colors"
         >
           <X size={18} />
         </button>
