@@ -35,15 +35,16 @@ const updateItems: Array<{ id: number; title: string; message: string; time: str
 
 export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
   const [activeTab, setActiveTab] = useState("updates");
+  const [menuOpen, setMenuOpen] = useState(false);
   const hasUnread = inboxItems.some(i => i.unread) || updateItems.some(i => i.isNew);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
         <button 
           className={`w-full rounded-md transition-colors hover:bg-primary/10 hover:text-primary mb-2 ${
-            isCollapsed ? 'p-2 flex justify-center' : 'p-2 flex items-center gap-2'
-          }`}
+            menuOpen ? 'bg-primary/10 text-primary' : ''
+          } ${isCollapsed ? 'p-2 flex justify-center' : 'p-2 flex items-center gap-2'}`}
         >
           <div className="relative">
             <Inbox className="h-4 w-4 text-primary" />
