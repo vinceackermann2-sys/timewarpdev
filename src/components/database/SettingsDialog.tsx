@@ -39,9 +39,24 @@ const ACTION_LIMITS_SETTINGS: Record<string, number> = {
 };
 const FREE_LIMIT_SETTINGS = 0;
 
-function PlanUsageSummary({ fallbackPlan }: { fallbackPlan: string | null }) {
+function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | null; userId?: string }) {
   const { data } = useQuery<{ actions_used: number; bonus_actions: number; plan: string | null }>({
-    queryKey: ["actions-used"],
+    queryKey: ["actions-used", userId],
+    queryFn: async () => {
+      if (!userId) return { actions_used: 0, bonus_actions: 0, plan: null };
+      const { data } = await supabase
+        .from("user_subscriptions")
+        .select("actions_used, bonus_actions, plan, status")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const isActive = data?.status && ["active", "trialing", "past_due"].includes(data.status);
+      return {
+        actions_used: data?.actions_used ?? 0,
+        bonus_actions: (data as any)?.bonus_actions ?? 0,
+        plan: isActive ? (data?.plan as string) ?? null : null,
+      };
+    },
+    enabled: !!userId,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
