@@ -405,7 +405,7 @@ export function AgentChatView() {
     updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: "Starting..." });
 
     let stepCount = 0;
-    const maxSteps = 30;
+    let finalMessage = "";
     let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
     const startTime = new Date();
 
