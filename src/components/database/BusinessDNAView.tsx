@@ -309,12 +309,16 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
     });
   };
 
-  const { brands, products, audiences } = useBusinessDNA();
+  const { brands, setBrands, products, audiences } = useBusinessDNA();
   const activeBrand = brands.find(b => b.id === activeBrandId);
   const brandProductCount = products.filter(p => p.brandId === activeBrandId).length;
   const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
   const brandAudienceCount = audiences.filter(a => a.brandId === activeBrandId || a.productIds?.some(pid => brandProductIds.includes(pid))).length;
   const isBrainLearning = !!activeBrand && brandProductCount > 0 && brandAudienceCount > 0;
+
+  const handleRenameAgent = (newName: string) => {
+    setBrands(prev => prev.map(b => b.id === activeBrandId ? { ...b, agentName: newName } : b));
+  };
 
   const getSegmentCount = (segId: string) => {
     if (segId === "brand") return activeBrand ? 1 : 0;
