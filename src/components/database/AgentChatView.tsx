@@ -669,34 +669,30 @@ export function AgentChatView() {
           }}
         />
 
-        {/* Computer mode indicator */}
-        {isActionMode && extensionConnected && (
-          <div className="flex items-center gap-2 mb-3 px-2">
-            <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-xl px-3 py-2 shadow-sm">
-              <Monitor className="w-4 h-4 text-primary" />
-              <span className="text-xs font-medium text-primary">Computer Mode ON</span>
-            </div>
-          </div>
-        )}
-
         <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
-          {/* Uploaded files & employees chips inside input bar */}
-          {(uploadedFiles.length > 0 || selectedChatEmployees.length > 0) && (
+          {/* Chips row: files, employees, computer mode — all inline */}
+          {(uploadedFiles.length > 0 || selectedChatEmployees.length > 0 || (isActionMode && extensionConnected)) && (
             <div className="flex flex-wrap gap-1.5 px-1 pb-2">
+              {isActionMode && extensionConnected && (
+                <div className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5">
+                  <Monitor className="w-3.5 h-3.5 text-foreground" />
+                  <span className="text-xs font-medium text-foreground">Computer ON</span>
+                </div>
+              )}
               {uploadedFiles.map((file) => (
-                <div key={file.id} className="flex items-center gap-1.5 bg-muted/50 border border-border/50 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                  <FileUp className="w-3.5 h-3.5 text-primary" />
+                <div key={file.id} className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
+                  <FileUp className="w-3.5 h-3.5 text-foreground" />
                   <span className="text-xs font-medium text-foreground max-w-[120px] truncate">{file.name}</span>
-                  <button onClick={() => setUploadedFiles((fs) => fs.filter((f) => f.id !== file.id))} className="text-muted-foreground hover:text-foreground">
+                  <button onClick={() => setUploadedFiles((fs) => fs.filter((f) => f.id !== file.id))} className="text-foreground/60 hover:text-foreground">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
               ))}
               {selectedChatEmployees.map((emp) => (
-                <div key={emp.id} className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                  <User className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs font-medium text-primary max-w-[120px] truncate">{emp.name}</span>
-                  <button onClick={() => setSelectedChatEmployees((es) => es.filter((e) => e.id !== emp.id))} className="text-primary/60 hover:text-primary">
+                <div key={emp.id} className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
+                  <User className="w-3.5 h-3.5 text-foreground" />
+                  <span className="text-xs font-medium text-foreground max-w-[120px] truncate">{emp.name}</span>
+                  <button onClick={() => setSelectedChatEmployees((es) => es.filter((e) => e.id !== emp.id))} className="text-foreground/60 hover:text-foreground">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
