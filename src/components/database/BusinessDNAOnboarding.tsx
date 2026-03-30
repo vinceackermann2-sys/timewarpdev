@@ -861,7 +861,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2 w-full min-h-[80px] sm:min-h-[140px]">
+                <div className="flex flex-col gap-2 w-full min-h-[80px] sm:min-h-[140px] max-h-[200px] overflow-y-auto">
                   <AnimatePresence>
                     {visibleSources.map((source, i) => {
                       const isLatest = i === visibleSources.length - 1 && !allSourcesDone;
