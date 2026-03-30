@@ -312,8 +312,7 @@ export function AgentChatView() {
 
     setIsSending(true);
 
-    // Upload files and read content
-    const fileResults = await uploadFilesToStorage(uploadedFiles);
+    const fileResults = await uploadFilesToStorage(uploadedFiles, session);
 
     // Build user message
     let userContent = inputText;
