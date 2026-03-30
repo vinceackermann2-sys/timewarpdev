@@ -589,7 +589,7 @@ export function AgentChatView() {
                         className="mt-4 w-full py-2.5 border border-dashed border-border text-muted-foreground rounded-xl text-sm font-medium hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
-                        Add Employee
+                        Add Agent
                       </button>
                     </div>
                   </div>
