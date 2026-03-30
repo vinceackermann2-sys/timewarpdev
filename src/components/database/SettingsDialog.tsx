@@ -660,57 +660,61 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
               {activeTab === "connections" && (
                 <div className="space-y-4 max-w-xl">
                   {/* Business selector */}
-                  {brands.length > 0 && (
-                    <div className="rounded-xl border border-border bg-muted/30 p-4">
-                      <div className="flex items-center gap-3">
-                        <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div className="flex-1">
-                          <Label className="text-xs text-muted-foreground font-medium">Business</Label>
-                          <Select value={selectedBrandId || "all"} onValueChange={(v) => setSelectedBrandId(v === "all" ? null : v)}>
-                            <SelectTrigger className="mt-1 h-9">
-                              <SelectValue placeholder="All businesses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All businesses</SelectItem>
-                              {brands.map((b) => (
-                                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-4">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1">
+                        <Label className="text-xs text-muted-foreground font-medium">Business</Label>
+                        <Select value={selectedBrandId || ""} onValueChange={(v) => setSelectedBrandId(v)}>
+                          <SelectTrigger className="mt-1 h-9">
+                            <SelectValue placeholder="Select a business" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {brands.map((b) => (
+                              <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-2 pl-7">
-                        {selectedBrandId ? "Showing integrations for this business only." : "Select a business to scope integrations."}
-                      </p>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-2 pl-7">
+                      Select a business to manage its integrations.
+                    </p>
+                  </div>
+
+                  {!selectedBrandId ? (
+                    <div className="rounded-xl border border-dashed border-border p-8 text-center">
+                      <Building2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Select a business above to connect integrations.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {integrations.map(integration => {
+                        const connected = connectedProviders.includes(integration.id);
+                        const isActioning = actionProvider === integration.id;
+                        return (
+                          <div key={integration.id} className={cn("p-4 rounded-xl border transition-colors", connected ? "border-primary/40 bg-primary/5" : "border-border bg-muted/20")}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-2"><img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" /></div>
+                                <div><p className="text-sm font-medium">{integration.name}</p><p className="text-xs text-muted-foreground">{integration.description}</p></div>
+                              </div>
+                              {connected ? (
+                                <Button variant="destructive" size="sm" onClick={() => handleDisconnect(integration.id)} disabled={isActioning}>
+                                  {isActioning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unplug className="h-3 w-3 mr-1" />} Disconnect
+                                </Button>
+                              ) : (
+                                <Button variant="outline" size="sm" onClick={() => handleConnect(integration.id)} disabled={isActioning}>
+                                  {isActioning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plug className="h-3 w-3 mr-1" />} Connect
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <IntegrationRequestDialog />
                     </div>
                   )}
-
-                  <div className="space-y-2">
-                    {integrations.map(integration => {
-                      const connected = connectedProviders.includes(integration.id);
-                      const isActioning = actionProvider === integration.id;
-                      return (
-                        <div key={integration.id} className={cn("p-4 rounded-xl border transition-colors", connected ? "border-primary/40 bg-primary/5" : "border-border bg-muted/20")}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-2"><img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" /></div>
-                              <div><p className="text-sm font-medium">{integration.name}</p><p className="text-xs text-muted-foreground">{integration.description}</p></div>
-                            </div>
-                            {connected ? (
-                              <Button variant="destructive" size="sm" onClick={() => handleDisconnect(integration.id)} disabled={isActioning}>
-                                {isActioning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unplug className="h-3 w-3 mr-1" />} Disconnect
-                              </Button>
-                            ) : (
-                              <Button variant="outline" size="sm" onClick={() => handleConnect(integration.id)} disabled={isActioning}>
-                                {isActioning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plug className="h-3 w-3 mr-1" />} Connect
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <IntegrationRequestDialog />
                 </div>
               )}
             </div>
