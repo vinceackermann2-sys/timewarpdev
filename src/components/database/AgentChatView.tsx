@@ -194,13 +194,16 @@ export function AgentChatView() {
 
     setIsSending(true);
 
-    // Upload files
-    const fileNames = await uploadFilesToStorage(uploadedFiles);
+    // Upload files and read content
+    const fileResults = await uploadFilesToStorage(uploadedFiles);
 
     // Build user message
     let userContent = inputText;
-    if (fileNames.length > 0) {
-      userContent += `\n\n📎 Attached files: ${fileNames.join(", ")}`;
+    if (fileResults.length > 0) {
+      userContent += `\n\n📎 Attached files:\n`;
+      for (const f of fileResults) {
+        userContent += `\n--- ${f.name} ---\n${f.content}\n`;
+      }
     }
     if (referencedUrls.length > 0) {
       userContent += `\n\n🔗 Referenced: ${referencedUrls.map(r => r.url).join(", ")}`;
