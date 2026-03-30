@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2, Sparkles, ExternalLink
+  Plug, Loader2, Sparkles, ExternalLink, Download
 } from "lucide-react";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { SettingsView } from "@/components/database/SettingsView";
@@ -31,6 +31,8 @@ interface ChatMessage {
   files?: { name: string; url?: string }[];
   employees?: { id: string; name: string; role: string }[];
   isStreaming?: boolean;
+  reportUrl?: string;
+  reportName?: string;
 }
 
 /* ─── Main view ─── */
@@ -294,6 +296,15 @@ export function AgentChatView() {
     const emp = userMsg.employees?.[0];
     if (!emp) return;
 
+    const startTime = new Date();
+    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+    // Show processing state with timestamp
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `🚀 **Processing** · \`${formatTime(startTime)}\`\nRunning employee **${emp.name}**...`, isStreaming: true } : m));
+
+    // Log to DB
+    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
+
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
     chatHistory.push({ role: "user", content: userMsg.content });
 
@@ -312,11 +323,19 @@ export function AgentChatView() {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
+      supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.error || "Failed" }).then(() => {});
       throw new Error(err.error || "Employee failed");
     }
 
     const data = await response.json();
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: data.content || "Task completed.", isStreaming: false } : m));
+    const endTime = new Date();
+    const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+
+    // Log completion
+    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
+
+    const finalContent = `${data.content || "Task completed."}\n\n---\n⏱️ *Completed in ${durationSec}s · ${formatTime(endTime)}*`;
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: finalContent, isStreaming: false } : m));
   };
 
   /* ── Computer mode: run employee via browser extension ── */
@@ -332,11 +351,25 @@ export function AgentChatView() {
     const maxSteps = 30;
     let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
     let allSteps: string[] = [];
+    const startTime = new Date();
+
+    // Structured log for report
+    interface StepLog { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }
+    const stepLogs: StepLog[] = [];
+
+    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+    allSteps.push(`🚀 **Task started** — ${formatTime(startTime)}`);
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
+
+    // Log to DB
+    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
 
     try {
       while (stepCount < maxSteps) {
         // Get page context from extension
         const pageContext = await getPageContext();
+        const stepTime = new Date();
 
         updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
 
@@ -371,40 +404,126 @@ export function AgentChatView() {
         // Parse action JSON from response
         const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
         if (!jsonMatch) {
-          allSteps.push(content);
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n\n"), isStreaming: false } : m));
+          allSteps.push(`\n📝 ${content}`);
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+          stepLogs.push({ step: stepCount + 1, action: "response", reasoning: content, result: "completed", timestamp: formatTime(stepTime), url: pageContext?.url });
           break;
         }
 
         const action = JSON.parse(jsonMatch[1]);
-        const stepLabel = `${action.action}: ${action.reasoning || ""}`;
-        allSteps.push(`🔄 ${stepLabel}`);
+        const stepLabel = action.reasoning || action.action;
+        const timeStr = formatTime(stepTime);
+
+        stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
+
+        allSteps.push(`\n**Step ${stepCount + 1}** · \`${timeStr}\`\n🔄 **${action.action}** — ${stepLabel}`);
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
+
+        // Log step to DB
+        supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: `Step ${stepCount + 1}: ${action.action}`, message: stepLabel }).then(() => {});
 
         updateOverlay({ visible: true, employeeName: emp.name, currentStep: stepLabel });
 
         if (action.done || action.action === "done") {
-          allSteps.push(`✅ ${action.message || "All steps completed."}`);
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+          stepLogs[stepLogs.length - 1].result = "done";
+          allSteps.push(`\n✅ **Task completed** — ${formatTime(new Date())}\n${action.message || "All steps completed."}`);
           break;
         }
 
         if (action.action === "respond") {
-          allSteps.push(`💬 ${action.message}`);
+          stepLogs[stepLogs.length - 1].result = "respond";
+          allSteps.push(`\n💬 ${action.message}`);
           setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
           break;
         }
 
         // Execute action via extension
         const result = await executeAction(action);
+        stepLogs[stepLogs.length - 1].result = result.success ? "success" : (result.error || "failed");
+
+        if (result.success) {
+          allSteps[allSteps.length - 1] += ` ✓`;
+        } else {
+          allSteps[allSteps.length - 1] += ` ✗ ${result.error || "failed"}`;
+        }
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
+
         conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
 
         stepCount++;
       }
+
+      // Generate and upload report
+      const endTime = new Date();
+      const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+      const report = generateTaskReport(emp.name, userMsg.content, stepLogs, startTime, endTime, durationSec);
+      const reportFileName = `task-report-${Date.now()}.md`;
+      const reportPath = `${user!.id}/reports/${reportFileName}`;
+      const reportBlob = new Blob([report], { type: "text/markdown" });
+      const { error: uploadErr } = await supabase.storage.from("business-data").upload(reportPath, reportBlob, { contentType: "text/markdown" });
+
+      if (!uploadErr) {
+        const { data: urlData } = supabase.storage.from("business-data").getPublicUrl(reportPath);
+        // Since bucket is private, create a signed URL
+        const { data: signedData } = await supabase.storage.from("business-data").createSignedUrl(reportPath, 60 * 60 * 24 * 7); // 7 days
+
+        allSteps.push(`\n---\n📄 **Task Report Generated** — ${stepLogs.length} steps in ${durationSec}s`);
+        setMessages(prev => prev.map(m => m.id === assistantId ? {
+          ...m,
+          content: allSteps.join("\n"),
+          isStreaming: false,
+          reportUrl: signedData?.signedUrl || "",
+          reportName: reportFileName,
+        } : m));
+      } else {
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+      }
+
+      // Log completion to DB
+      supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `${stepLogs.length} steps in ${durationSec}s` }).then(() => {});
+
+    } catch (err: any) {
+      const endTime = new Date();
+      allSteps.push(`\n❌ **Error** — ${formatTime(endTime)}\n${err.message || "Unknown error"}`);
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+      supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.message || "Unknown error" }).then(() => {});
+      throw err;
     } finally {
       updateOverlay({ visible: false });
       signalStop(emp.id);
     }
+  };
+
+  /* ── Generate markdown task report ── */
+  const generateTaskReport = (
+    employeeName: string,
+    task: string,
+    steps: { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }[],
+    startTime: Date,
+    endTime: Date,
+    durationSec: number
+  ): string => {
+    const lines: string[] = [];
+    lines.push(`# Task Execution Report`);
+    lines.push(`\n**Employee:** ${employeeName}`);
+    lines.push(`**Task:** ${task}`);
+    lines.push(`**Started:** ${startTime.toLocaleString()}`);
+    lines.push(`**Completed:** ${endTime.toLocaleString()}`);
+    lines.push(`**Duration:** ${durationSec}s`);
+    lines.push(`**Total Steps:** ${steps.length}`);
+    lines.push(`\n---\n`);
+    lines.push(`## Step-by-Step Log\n`);
+    for (const s of steps) {
+      const statusIcon = s.result === "success" ? "✅" : s.result === "done" ? "🏁" : s.result === "respond" ? "💬" : s.result === "pending" ? "⏳" : "❌";
+      lines.push(`### Step ${s.step} — \`${s.timestamp}\``);
+      lines.push(`- **Action:** ${s.action}`);
+      lines.push(`- **Details:** ${s.reasoning}`);
+      if (s.url) lines.push(`- **URL:** ${s.url}`);
+      lines.push(`- **Result:** ${statusIcon} ${s.result}`);
+      lines.push(``);
+    }
+    lines.push(`---\n*Report generated automatically by AI CEO*`);
+    return lines.join("\n");
   };
 
   /* ── @mention / reference helpers ── */
@@ -638,6 +757,18 @@ export function AgentChatView() {
                       )}
                       {msg.isStreaming && msg.content && (
                         <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5" />
+                      )}
+                      {msg.reportUrl && (
+                        <a
+                          href={msg.reportUrl}
+                          download={msg.reportName || "task-report.md"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-sm font-medium transition-colors no-underline"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download Report
+                        </a>
                       )}
                     </div>
                   ) : (
