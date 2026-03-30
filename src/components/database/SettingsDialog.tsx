@@ -659,12 +659,38 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
               {/* ── CONNECTIONS TAB ── */}
               {activeTab === "connections" && (
                 <div className="space-y-4 max-w-xl">
+                  {/* Business selector */}
+                  {brands.length > 0 && (
+                    <div className="rounded-xl border border-border bg-muted/30 p-4">
+                      <div className="flex items-center gap-3">
+                        <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground font-medium">Business</Label>
+                          <Select value={selectedBrandId || "all"} onValueChange={(v) => setSelectedBrandId(v === "all" ? null : v)}>
+                            <SelectTrigger className="mt-1 h-9">
+                              <SelectValue placeholder="All businesses" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All businesses</SelectItem>
+                              {brands.map((b) => (
+                                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-2 pl-7">
+                        {selectedBrandId ? "Showing integrations for this business only." : "Select a business to scope integrations."}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     {integrations.map(integration => {
                       const connected = connectedProviders.includes(integration.id);
                       const isActioning = actionProvider === integration.id;
                       return (
-                        <div key={integration.id} className={cn("p-4 rounded-xl border transition-colors", connected ? "border-green-500/40 bg-green-500/5" : "border-border bg-muted/20")}>
+                        <div key={integration.id} className={cn("p-4 rounded-xl border transition-colors", connected ? "border-primary/40 bg-primary/5" : "border-border bg-muted/20")}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-2"><img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" /></div>
