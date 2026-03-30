@@ -499,7 +499,7 @@ export function AgentChatView() {
                 {([
                   { key: "agent", label: "Your Agent", icon: User },
                   { key: "safety", label: "Safety", icon: Shield },
-                  { key: "employees", label: "Employees", icon: Users },
+                  { key: "employees", label: "Agents", icon: Users },
                   { key: "connections", label: "Connections", icon: Link },
                 ] as const).map(({ key, label, icon: Icon }) => (
                   <button
