@@ -59,7 +59,7 @@ export function AgentChatView() {
   const [showAgents, setShowAgents] = useState(false);
   const [showEmployeesMenu, setShowEmployeesMenu] = useState(false);
   const [isActionMode, setIsActionMode] = useState(false);
-  const [settingsTab, setSettingsTab] = useState("agent");
+  const [settingsTab, setSettingsTab] = useState("safety");
   const [showReference, setShowReference] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string }[]>([]);
   const [referencedUrls, setReferencedUrls] = useState<{ id: string; url: string; name: string; logo: string }[]>([]);
