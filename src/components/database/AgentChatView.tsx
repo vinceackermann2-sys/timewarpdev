@@ -367,7 +367,7 @@ export function AgentChatView() {
                         </button>
                       ))
                     ) : (
-                      <div className="px-4 py-2 text-sm text-muted-foreground text-center">No employees added</div>
+                      <div className="px-4 py-2 text-sm text-muted-foreground text-center">No agents added</div>
                     )}
                     <div className="border-t border-border mt-1 pt-1">
                       <button
