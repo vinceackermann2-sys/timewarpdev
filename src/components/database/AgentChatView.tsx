@@ -918,27 +918,58 @@ export function AgentChatView() {
                 )}>
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown>{msg.content || ""}</ReactMarkdown>
+                      {/* Task step indicators */}
+                      {msg.taskSteps && msg.taskSteps.length > 0 && (
+                        <div className="mb-3 space-y-1 not-prose">
+                          {msg.taskSteps.map((step, idx) => {
+                            const isCurrent = idx === (msg.currentStepIndex ?? -1);
+                            const isDone = step.status === "done";
+                            const isError = step.status === "error";
+                            return (
+                              <div
+                                key={idx}
+                                className={cn(
+                                  "flex items-center gap-2 text-xs rounded-lg px-3 py-1.5 transition-all duration-300",
+                                  isCurrent && step.status === "running" ? "bg-primary/10 text-primary animate-in fade-in slide-in-from-bottom-1" : "",
+                                  isDone ? "text-muted-foreground" : "",
+                                  isError ? "text-destructive" : "",
+                                  !isCurrent && !isDone && !isError ? "text-muted-foreground/50" : ""
+                                )}
+                              >
+                                {step.status === "running" ? (
+                                  <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                ) : isDone ? (
+                                  <span className="w-3 h-3 shrink-0 text-emerald-500">✓</span>
+                                ) : isError ? (
+                                  <span className="w-3 h-3 shrink-0">✗</span>
+                                ) : null}
+                                <span className="truncate">{step.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Main content (only show if not purely step-tracking) */}
+                      {(!msg.taskSteps || msg.taskSteps.length === 0 || !msg.isStreaming) && msg.content && (
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      )}
                       {msg.isStreaming && !msg.content && (
                         <div className="flex items-center gap-2">
                           <Loader2 className="h-4 w-4 animate-spin text-primary" />
                           <span className="text-muted-foreground">Thinking...</span>
                         </div>
                       )}
-                      {msg.isStreaming && msg.content && (
+                      {msg.isStreaming && msg.content && (!msg.taskSteps || msg.taskSteps.length === 0) && (
                         <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5" />
                       )}
-                      {msg.reportUrl && (
-                        <a
-                          href={msg.reportUrl}
-                          download={msg.reportName || "task-report.md"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-sm font-medium transition-colors no-underline"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download Report
-                        </a>
+                      {/* Inline document viewer */}
+                      {msg.reportContent && !msg.isStreaming && (
+                        <TaskReportViewer
+                          content={msg.reportContent}
+                          reportUrl={msg.reportUrl}
+                          reportName={msg.reportName}
+                          savedToDb={msg.reportSavedToDb}
+                        />
                       )}
                     </div>
                   ) : (
