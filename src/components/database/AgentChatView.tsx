@@ -176,44 +176,38 @@ export function AgentChatView() {
   /* ─────────── Render ─────────── */
   return (
     <div className="h-full bg-background flex flex-col relative overflow-hidden">
-      {/* Header – agent selector */}
-      <header className="flex justify-end items-center p-4 md:p-6 absolute top-0 w-full z-20">
-        <div className="relative">
-          <button
-            onClick={() => setShowAgents(!showAgents)}
-            className="flex items-center gap-2 bg-card/80 backdrop-blur-md border border-border/50 shadow-sm px-4 py-2 rounded-full text-sm font-medium text-foreground hover:bg-card transition-colors"
-          >
-            <Bot className="w-4 h-4 text-muted-foreground" />
-            {selectedAgent || "Select Agent"}
-            <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showAgents ? "rotate-90" : ""}`} />
-          </button>
-          {showAgents && (
-            <div className="absolute right-0 top-[calc(100%+8px)] w-48 bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50">
-              {agents.map((agent) => (
-                <button
-                  key={agent.id}
-                  onClick={() => { setSelectedAgent(agent.name); setShowAgents(false); }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors ${selectedAgent === agent.name ? "text-primary font-semibold" : "text-muted-foreground"}`}
-                >
-                  {agent.name}
-                </button>
-              ))}
-              {agents.length === 0 && (
-                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No agents yet — add a business in Business DNA</p>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Central Orb */}
+      {/* Central Orb + Agent Selector */}
       <main className="flex-1 flex flex-col items-center justify-center relative z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 animate-in fade-in zoom-in duration-700">
-          <BusinessBrainOrb size={280} />
+          <SiriOrb size="280px" />
         </div>
-        <div className="mt-12 text-center z-10">
-          <h2 className="text-3xl font-bold text-foreground tracking-tight">{selectedAgent}</h2>
+        <div className="mt-8 text-center z-10 relative">
+          <div className="relative inline-block">
+            <button
+              onClick={() => setShowAgents(!showAgents)}
+              className="flex items-center gap-2 text-3xl font-bold text-foreground tracking-tight hover:opacity-80 transition-opacity"
+            >
+              {selectedAgent || "Select Agent"}
+              <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${showAgents ? "rotate-180" : ""}`} />
+            </button>
+            {showAgents && (
+              <div className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] w-56 bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50">
+                {agents.map((agent) => (
+                  <button
+                    key={agent.id}
+                    onClick={() => { setSelectedAgent(agent.name); setShowAgents(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors ${selectedAgent === agent.name ? "text-primary font-semibold" : "text-muted-foreground"}`}
+                  >
+                    {agent.name}
+                  </button>
+                ))}
+                {agents.length === 0 && (
+                  <p className="px-4 py-2 text-sm text-muted-foreground text-center">No agents yet — add a business in Business DNA</p>
+                )}
+              </div>
+            )}
+          </div>
           <p className="text-muted-foreground mt-2 font-medium">Ready to assist you</p>
         </div>
       </main>
