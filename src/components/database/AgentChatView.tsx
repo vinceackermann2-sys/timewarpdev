@@ -7,8 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "./BusinessDNAContext";
-import SiriOrb from "@/components/ui/siri-orb";
-import { ChevronDown } from "lucide-react";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import type { AIEmployee } from "./EmployeesView";
 
 /* ─── Orb ─── */
