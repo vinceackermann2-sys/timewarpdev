@@ -13,29 +13,24 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "./BusinessDNAContext";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoGoogle from "@/assets/logo-google.png";
 import logoSlack from "@/assets/logo-slack.png";
 import logoFortknox from "@/assets/logo-fortknox.png";
+import adEvoIcon from "@/assets/ad-evo-icon.svg";
 import type { AIEmployee } from "./EmployeesView";
 
-/* ─── Orb ─── */
-function Orb({ size = 64 }: { size?: number }) {
-  return (
-    <div
-      className="relative flex items-center justify-center"
-      style={{ "--sz": `${size}px`, width: size, height: size } as React.CSSProperties}
-    >
-      <div className="orb-glow-aura" />
-      <div className="orb-connectors">
-        <div className="silver-connector silver-connector-1" />
-        <div className="silver-connector silver-connector-2" />
-      </div>
-      <div className="orb-container" />
-    </div>
-  );
+/* ─── Types ─── */
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  files?: { name: string; url?: string }[];
+  employees?: { id: string; name: string; role: string }[];
+  isStreaming?: boolean;
 }
 
 /* ─── Main view ─── */
@@ -43,7 +38,7 @@ export function AgentChatView() {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const { brands } = useBusinessDNA();
-  const { extensionConnected, detecting, retryDetection } = useExtensionBridge();
+  const { extensionConnected, detecting, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
 
   /* ── Agents = brands from Business DNA ── */
   const agents = brands.map(b => ({ id: b.id, name: b.agentName || b.name || "AI CEO" }));
@@ -72,11 +67,23 @@ export function AgentChatView() {
   const [isActionMode, setIsActionMode] = useState(false);
   const [settingsTab, setSettingsTab] = useState("safety");
   const [showReference, setShowReference] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string; file?: File }[]>([]);
   const [referencedUrls, setReferencedUrls] = useState<{ id: string; url: string; name: string; logo: string }[]>([]);
   const [referenceUrlInput, setReferenceUrlInput] = useState("");
   const [mentionState, setMentionState] = useState<{ active: boolean; node: Node | null; startOffset: number; endOffset: number }>({ active: false, node: null, startOffset: 0, endOffset: 0 });
   const [selectedChatEmployees, setSelectedChatEmployees] = useState<{ id: string; name: string; role: string }[]>([]);
+
+  /* ── Chat state ── */
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const hasMessages = messages.length > 0;
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   /* ── Integration connection state ── */
   const [isProviderConnected, setIsProviderConnected] = useState(false);
@@ -142,6 +149,254 @@ export function AgentChatView() {
   useEffect(() => {
     if (agents.length > 0 && !selectedAgent) setSelectedAgent(agents[0].name);
   }, [agents]);
+
+  /* ── Upload files to storage ── */
+  const uploadFilesToStorage = async (files: { id: string; name: string; file?: File }[]): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const f of files) {
+      if (!f.file) continue;
+      const path = `${user!.id}/chat/${Date.now()}-${f.name}`;
+      const { error } = await supabase.storage.from("business-data").upload(path, f.file);
+      if (!error) {
+        urls.push(f.name);
+      }
+    }
+    return urls;
+  };
+
+  /* ── Send message ── */
+  const handleSendMessage = async () => {
+    if (isSending) return;
+    const inputText = chatInputRef.current?.innerText?.trim() || "";
+    if (!inputText && uploadedFiles.length === 0) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error("Please log in first"); return; }
+
+    setIsSending(true);
+
+    // Upload files
+    const fileNames = await uploadFilesToStorage(uploadedFiles);
+
+    // Build user message
+    let userContent = inputText;
+    if (fileNames.length > 0) {
+      userContent += `\n\n📎 Attached files: ${fileNames.join(", ")}`;
+    }
+    if (referencedUrls.length > 0) {
+      userContent += `\n\n🔗 Referenced: ${referencedUrls.map(r => r.url).join(", ")}`;
+    }
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: userContent,
+      files: uploadedFiles.map(f => ({ name: f.name })),
+      employees: selectedChatEmployees.length > 0 ? [...selectedChatEmployees] : undefined,
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+
+    // Clear inputs
+    if (chatInputRef.current) chatInputRef.current.innerHTML = "";
+    setUploadedFiles([]);
+    setReferencedUrls([]);
+    setSelectedChatEmployees([]);
+    setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
+
+    // Add assistant placeholder
+    const assistantId = crypto.randomUUID();
+    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true }]);
+
+    try {
+      if (isActionMode && extensionConnected && selectedChatEmployees.length > 0) {
+        // Computer mode: run employee via extension
+        await runComputerMode(session, userMsg, assistantId);
+      } else if (selectedChatEmployees.length > 0) {
+        // Employee chat (non-computer mode)
+        await runEmployeeChat(session, userMsg, assistantId);
+      } else {
+        // Agent chat (streaming via extension-agent)
+        await runAgentChat(session, userMsg, assistantId);
+      }
+    } catch (err: any) {
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Sorry, something went wrong. Please try again.", isStreaming: false } : m));
+      console.error("Send error:", err);
+    }
+
+    setIsSending(false);
+  };
+
+  /* ── Agent chat (streaming) ── */
+  const runAgentChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
+    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
+    chatHistory.push({ role: "user", content: userMsg.content });
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ messages: chatHistory, pageContext: null }),
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to get response");
+    }
+
+    // Stream SSE response
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No response body");
+
+    const decoder = new TextDecoder();
+    let fullContent = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6);
+        if (data === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content || "";
+          if (delta) {
+            fullContent += delta;
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, isStreaming: true } : m));
+          }
+        } catch {}
+      }
+    }
+
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", isStreaming: false } : m));
+  };
+
+  /* ── Employee chat (non-streaming) ── */
+  const runEmployeeChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
+    const emp = userMsg.employees?.[0];
+    if (!emp) return;
+
+    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
+    chatHistory.push({ role: "user", content: userMsg.content });
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ employee_id: emp.id, messages: chatHistory }),
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || "Employee failed");
+    }
+
+    const data = await response.json();
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: data.content || "Task completed.", isStreaming: false } : m));
+  };
+
+  /* ── Computer mode: run employee via browser extension ── */
+  const runComputerMode = async (session: any, userMsg: ChatMessage, assistantId: string) => {
+    const emp = userMsg.employees?.[0];
+    if (!emp) { toast.error("Select an employee to use Computer mode"); return; }
+
+    // Signal extension to start
+    await signalStart(emp.id, emp.name);
+    updateOverlay({ visible: true, employeeName: emp.name, currentStep: "Starting..." });
+
+    let stepCount = 0;
+    const maxSteps = 30;
+    let conversationHistory = [{ role: "user" as const, content: userMsg.content }];
+    let allSteps: string[] = [];
+
+    try {
+      while (stepCount < maxSteps) {
+        // Get page context from extension
+        const pageContext = await getPageContext();
+
+        updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
+
+        // Call run-employee
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({
+              employee_id: emp.id,
+              messages: conversationHistory,
+              pageContext,
+              skip_action: stepCount > 0,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error || "Employee step failed");
+        }
+
+        const data = await response.json();
+        const content = data.content || "";
+        conversationHistory.push({ role: "assistant" as const, content });
+
+        // Parse action JSON from response
+        const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
+        if (!jsonMatch) {
+          allSteps.push(content);
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n\n"), isStreaming: false } : m));
+          break;
+        }
+
+        const action = JSON.parse(jsonMatch[1]);
+        const stepLabel = `${action.action}: ${action.reasoning || ""}`;
+        allSteps.push(`🔄 ${stepLabel}`);
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
+
+        updateOverlay({ visible: true, employeeName: emp.name, currentStep: stepLabel });
+
+        if (action.done || action.action === "done") {
+          allSteps.push(`✅ ${action.message || "All steps completed."}`);
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+          break;
+        }
+
+        if (action.action === "respond") {
+          allSteps.push(`💬 ${action.message}`);
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+          break;
+        }
+
+        // Execute action via extension
+        const result = await executeAction(action);
+        conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
+
+        stepCount++;
+      }
+    } finally {
+      updateOverlay({ visible: false });
+      signalStop(emp.id);
+    }
+  };
 
   /* ── @mention / reference helpers ── */
   const insertReference = (result: { url: string; name: string; logo: string }) => {
@@ -331,16 +586,71 @@ export function AgentChatView() {
         </div>
       </header>
 
-      {/* Central Orb */}
-      <main className="flex-1 flex flex-col items-center justify-center relative z-10">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 animate-in fade-in zoom-in duration-700">
-          <BusinessBrainOrb size={280} />
-        </div>
-        <div className="mt-8 text-center z-10">
-          <h2 className="text-3xl font-bold text-foreground tracking-tight">{selectedAgent}</h2>
-          <p className="text-muted-foreground mt-2 font-medium">Ready to assist you</p>
-        </div>
+      {/* Central area: Orb when no messages, chat when messages exist */}
+      <main ref={chatContainerRef} className="flex-1 flex flex-col relative z-10 overflow-y-auto">
+        {!hasMessages ? (
+          /* ── Empty state with centered orb ── */
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 animate-in fade-in zoom-in duration-700">
+              <BusinessBrainOrb size={280} />
+            </div>
+            <div className="mt-8 text-center z-10">
+              <h2 className="text-3xl font-bold text-foreground tracking-tight">{selectedAgent}</h2>
+              <p className="text-muted-foreground mt-2 font-medium">Ready to assist you</p>
+            </div>
+          </div>
+        ) : (
+          /* ── Chat messages ── */
+          <div className="flex-1 px-4 md:px-6 py-6 space-y-5 max-w-3xl mx-auto w-full">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                {msg.role === "assistant" && (
+                  <div className="flex-shrink-0 mr-3 mt-1">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                      <BusinessBrainOrb size={32} />
+                    </div>
+                  </div>
+                )}
+                <div className={cn(
+                  "max-w-[80%] rounded-2xl px-5 py-3 text-sm",
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-md"
+                    : "bg-card/80 backdrop-blur border border-border/50 rounded-bl-md text-foreground"
+                )}>
+                  {msg.role === "assistant" ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>{msg.content || ""}</ReactMarkdown>
+                      {msg.isStreaming && !msg.content && (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span className="text-muted-foreground">Thinking...</span>
+                        </div>
+                      )}
+                      {msg.isStreaming && msg.content && (
+                        <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5" />
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {msg.content}
+                      {msg.employees && msg.employees.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {msg.employees.map(e => (
+                            <span key={e.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-foreground/20 text-xs">
+                              <User className="w-3 h-3" /> {e.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
       </main>
 
       {/* Chat Input */}
@@ -352,7 +662,7 @@ export function AgentChatView() {
           ref={fileInputRef}
           onChange={(e) => {
             if (e.target.files) {
-              const newFiles = Array.from(e.target.files).map((f) => ({ name: f.name, id: Math.random().toString() }));
+              const newFiles = Array.from(e.target.files).map((f) => ({ name: f.name, id: Math.random().toString(), file: f }));
               setUploadedFiles((prev) => [...prev, ...newFiles]);
             }
             e.target.value = "";
@@ -386,6 +696,16 @@ export function AgentChatView() {
                 </button>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Computer mode indicator */}
+        {isActionMode && extensionConnected && (
+          <div className="flex items-center gap-2 mb-3 px-2">
+            <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-xl px-3 py-2 shadow-sm">
+              <Monitor className="w-4 h-4 text-primary" />
+              <span className="text-xs font-medium text-primary">Computer Mode ON</span>
+            </div>
           </div>
         )}
 
@@ -613,18 +933,21 @@ export function AgentChatView() {
                     setShowReference(false);
                     return;
                   }
-                  // TODO: send message via run-employee edge function
-                  if (chatInputRef.current) chatInputRef.current.innerHTML = "";
-                  setReferencedUrls([]);
-                  setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
+                  handleSendMessage();
                 }
               }}
             />
           </div>
 
           {/* Send button */}
-          <button className={`p-2.5 rounded-full text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm ${isActionMode ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90"}`}>
-            <ArrowUp className="w-5 h-5" />
+          <button
+            onClick={handleSendMessage}
+            disabled={isSending}
+            className={`p-2.5 rounded-full text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm ${
+              isSending ? "opacity-50 cursor-not-allowed" : ""
+            } ${isActionMode ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90"}`}
+          >
+            {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUp className="w-5 h-5" />}
           </button>
         </div>
       </footer>
