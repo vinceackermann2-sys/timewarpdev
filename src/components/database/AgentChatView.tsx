@@ -152,18 +152,35 @@ export function AgentChatView() {
     if (agents.length > 0 && !selectedAgent) setSelectedAgent(agents[0].name);
   }, [agents]);
 
+  /* ── Read file contents as text ── */
+  const readFileAsText = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string || "");
+      reader.onerror = () => resolve("[Could not read file]");
+      // For text-based files, read as text; otherwise read as data URL for reference
+      const textTypes = ["text/", "application/json", "application/xml", "text/csv", "application/csv"];
+      const isText = textTypes.some(t => file.type.startsWith(t)) || /\.(txt|md|csv|json|xml|html|css|js|ts|py|log|yml|yaml|toml|ini|cfg|env)$/i.test(file.name);
+      if (isText) {
+        reader.readAsText(file);
+      } else {
+        // For non-text files like PDFs, images — just note the file name
+        resolve(`[Binary file: ${file.name} (${file.type || "unknown type"}, ${(file.size / 1024).toFixed(1)}KB)]`);
+      }
+    });
+  };
+
   /* ── Upload files to storage ── */
-  const uploadFilesToStorage = async (files: { id: string; name: string; file?: File }[]): Promise<string[]> => {
-    const urls: string[] = [];
+  const uploadFilesToStorage = async (files: { id: string; name: string; file?: File }[]): Promise<{ name: string; content: string }[]> => {
+    const results: { name: string; content: string }[] = [];
     for (const f of files) {
       if (!f.file) continue;
       const path = `${user!.id}/chat/${Date.now()}-${f.name}`;
-      const { error } = await supabase.storage.from("business-data").upload(path, f.file);
-      if (!error) {
-        urls.push(f.name);
-      }
+      await supabase.storage.from("business-data").upload(path, f.file);
+      const content = await readFileAsText(f.file);
+      results.push({ name: f.name, content });
     }
-    return urls;
+    return results;
   };
 
   /* ── Send message ── */
@@ -177,13 +194,16 @@ export function AgentChatView() {
 
     setIsSending(true);
 
-    // Upload files
-    const fileNames = await uploadFilesToStorage(uploadedFiles);
+    // Upload files and read content
+    const fileResults = await uploadFilesToStorage(uploadedFiles);
 
     // Build user message
     let userContent = inputText;
-    if (fileNames.length > 0) {
-      userContent += `\n\n📎 Attached files: ${fileNames.join(", ")}`;
+    if (fileResults.length > 0) {
+      userContent += `\n\n📎 Attached files:\n`;
+      for (const f of fileResults) {
+        userContent += `\n--- ${f.name} ---\n${f.content}\n`;
+      }
     }
     if (referencedUrls.length > 0) {
       userContent += `\n\n🔗 Referenced: ${referencedUrls.map(r => r.url).join(", ")}`;
