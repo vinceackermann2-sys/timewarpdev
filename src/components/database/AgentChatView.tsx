@@ -226,16 +226,74 @@ export function AgentChatView() {
     loadEmployees();
   };
 
-  const handleAddEmployee = async (name: string, role: string) => {
+  const handleAddEmployee = async (employeeData: {
+    name: string; role: string;
+    sop_title?: string; sop_purpose?: string; sop_scope?: string;
+    sop_procedure?: string[]; sop_responsibilities?: string[]; sop_safety_notes?: string;
+  }) => {
     if (!user) return;
     await supabase.from("ai_employees" as any).insert({
       user_id: user.id,
       workspace_id: activeWorkspaceId || null,
-      name,
-      role,
+      name: employeeData.name,
+      role: employeeData.role,
+      sop_title: employeeData.sop_title || null,
+      sop_purpose: employeeData.sop_purpose || null,
+      sop_scope: employeeData.sop_scope || null,
+      sop_procedure: employeeData.sop_procedure || [],
+      sop_responsibilities: employeeData.sop_responsibilities || [],
+      sop_safety_notes: employeeData.sop_safety_notes || null,
       status: "active",
     } as any);
     loadEmployees();
+  };
+
+  /* ── Add Employee dialog state ── */
+  const [showAddEmployee, setShowAddEmployee] = useState(false);
+  const [addEmployeePrompt, setAddEmployeePrompt] = useState("");
+  const [isGeneratingEmployee, setIsGeneratingEmployee] = useState(false);
+  const [generatedEmployee, setGeneratedEmployee] = useState<any>(null);
+
+  const handleGenerateEmployee = async () => {
+    if (!addEmployeePrompt.trim()) return;
+    setIsGeneratingEmployee(true);
+    setGeneratedEmployee(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please log in first"); return; }
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-employee`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ prompt: addEmployeePrompt.trim() }),
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        toast.error(err.error || "Failed to generate employee");
+        return;
+      }
+      const data = await response.json();
+      setGeneratedEmployee(data.employee);
+    } catch {
+      toast.error("Failed to generate employee");
+    } finally {
+      setIsGeneratingEmployee(false);
+    }
+  };
+
+  const handleConfirmEmployee = async () => {
+    if (!generatedEmployee) return;
+    await handleAddEmployee(generatedEmployee);
+    setShowAddEmployee(false);
+    setAddEmployeePrompt("");
+    setGeneratedEmployee(null);
+    toast.success(`${generatedEmployee.name} has been created!`);
   };
 
   /* ─────────── Render ─────────── */
