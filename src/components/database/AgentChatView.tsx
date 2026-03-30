@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
-  Monitor, Search, Shield, Link, User, FileText
+  Monitor, Search, Shield, Link, User, FileText, Bot
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { useBusinessDNA } from "./BusinessDNAContext";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import type { AIEmployee } from "./EmployeesView";
 
@@ -30,8 +31,12 @@ function Orb({ size = 64 }: { size?: number }) {
 export function AgentChatView() {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
+  const { brands } = useBusinessDNA();
 
-  /* ── employees (from DB) ── */
+  /* ── Agents = brands from Business DNA ── */
+  const agents = brands.map(b => ({ id: b.id, name: b.agentName || b.name || "AI CEO" }));
+
+  /* ── Employees (from DB) ── */
   const [employees, setEmployees] = useState<AIEmployee[]>([]);
   const loadEmployees = async () => {
     if (!user) return;
@@ -49,7 +54,7 @@ export function AgentChatView() {
   /* ── UI state ── */
   const [isDropupOpen, setIsDropupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<string>("Agent");
+  const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [showAgents, setShowAgents] = useState(false);
   const [showEmployeesMenu, setShowEmployeesMenu] = useState(false);
   const [isActionMode, setIsActionMode] = useState(false);
@@ -65,10 +70,10 @@ export function AgentChatView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLDivElement>(null);
 
-  /* set default agent name */
+  /* set default agent from first brand */
   useEffect(() => {
-    if (user?.email) setSelectedAgent(user.email.split("@")[0]);
-  }, [user]);
+    if (agents.length > 0 && !selectedAgent) setSelectedAgent(agents[0].name);
+  }, [agents]);
 
   /* ── @mention / reference helpers ── */
   const insertReference = (result: { url: string; name: string; logo: string }) => {
@@ -177,23 +182,23 @@ export function AgentChatView() {
             onClick={() => setShowAgents(!showAgents)}
             className="flex items-center gap-2 bg-card/80 backdrop-blur-md border border-border/50 shadow-sm px-4 py-2 rounded-full text-sm font-medium text-foreground hover:bg-card transition-colors"
           >
-            <Users className="w-4 h-4 text-muted-foreground" />
-            {selectedAgent}
+            <Bot className="w-4 h-4 text-muted-foreground" />
+            {selectedAgent || "Select Agent"}
             <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showAgents ? "rotate-90" : ""}`} />
           </button>
           {showAgents && (
             <div className="absolute right-0 top-[calc(100%+8px)] w-48 bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50">
-              {employees.map((emp) => (
+              {agents.map((agent) => (
                 <button
-                  key={emp.id}
-                  onClick={() => { setSelectedAgent(emp.name); setShowAgents(false); }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors ${selectedAgent === emp.name ? "text-primary font-semibold" : "text-muted-foreground"}`}
+                  key={agent.id}
+                  onClick={() => { setSelectedAgent(agent.name); setShowAgents(false); }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors ${selectedAgent === agent.name ? "text-primary font-semibold" : "text-muted-foreground"}`}
                 >
-                  {emp.name}
+                  {agent.name}
                 </button>
               ))}
-              {employees.length === 0 && (
-                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No agents yet</p>
+              {agents.length === 0 && (
+                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No agents yet — add a business in Business DNA</p>
               )}
             </div>
           )}
@@ -343,7 +348,7 @@ export function AgentChatView() {
                 >
                   <div className="flex items-center gap-3">
                     <Users className="w-4 h-4 text-muted-foreground" />
-                    Agents
+                    Employees
                   </div>
                   <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showEmployeesMenu ? "rotate-90" : ""}`} />
                 </button>
@@ -367,7 +372,7 @@ export function AgentChatView() {
                         </button>
                       ))
                     ) : (
-                      <div className="px-4 py-2 text-sm text-muted-foreground text-center">No agents added</div>
+                      <div className="px-4 py-2 text-sm text-muted-foreground text-center">No employees added</div>
                     )}
                     <div className="border-t border-border mt-1 pt-1">
                       <button
@@ -375,7 +380,7 @@ export function AgentChatView() {
                         className="w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors text-primary font-medium flex items-center gap-2"
                       >
                         <Settings className="w-3 h-3" />
-                        Manage Agents
+                        Manage Employees
                       </button>
                     </div>
                   </div>
@@ -499,7 +504,7 @@ export function AgentChatView() {
                 {([
                   { key: "agent", label: "Your Agent", icon: User },
                   { key: "safety", label: "Safety", icon: Shield },
-                  { key: "employees", label: "Agents", icon: Users },
+                  { key: "employees", label: "Employees", icon: Users },
                   { key: "connections", label: "Connections", icon: Link },
                 ] as const).map(({ key, label, icon: Icon }) => (
                   <button
@@ -524,8 +529,8 @@ export function AgentChatView() {
                         onChange={(e) => setSelectedAgent(e.target.value)}
                         className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                       >
-                        {employees.map((emp) => (
-                          <option key={emp.id} value={emp.name}>{emp.name} ({emp.role})</option>
+                        {agents.map((agent) => (
+                          <option key={agent.id} value={agent.name}>{agent.name}</option>
                         ))}
                       </select>
                     </div>
@@ -550,7 +555,7 @@ export function AgentChatView() {
                 {settingsTab === "employees" && (
                   <div className="space-y-6 flex-1">
                     <div>
-                      <h4 className="text-sm font-semibold text-foreground mb-4">Manage Agents</h4>
+                      <h4 className="text-sm font-semibold text-foreground mb-4">Manage Employees</h4>
                       <div className="space-y-4">
                         {employees.map((emp) => (
                           <div key={emp.id} className="bg-card border border-border p-4 rounded-xl space-y-3">
@@ -589,7 +594,7 @@ export function AgentChatView() {
                         className="mt-4 w-full py-2.5 border border-dashed border-border text-muted-foreground rounded-xl text-sm font-medium hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
-                        Add Agent
+                        Add Employee
                       </button>
                     </div>
                   </div>
