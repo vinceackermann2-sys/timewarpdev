@@ -326,7 +326,11 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
   const deleteProduct = async (productId: string) => {
     const product = products.find(p => p.id === productId);
-    if ((product as any)?._rowId) await deleteEntity((product as any)._rowId);
+    if ((product as any)?._rowId) {
+      await deleteEntity((product as any)._rowId);
+    } else {
+      await deleteEntityByLogicalId(productId, "product", activeWorkspaceId);
+    }
     
     const newProducts = products.filter(p => p.id !== productId);
     setProductsState(newProducts);
@@ -335,7 +339,11 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
   const deleteAudience = async (audienceId: string) => {
     const audience = audiences.find(a => a.id === audienceId);
-    if ((audience as any)?._rowId) await deleteEntity((audience as any)._rowId);
+    if ((audience as any)?._rowId) {
+      await deleteEntity((audience as any)._rowId);
+    } else {
+      await deleteEntityByLogicalId(audienceId, "audience", activeWorkspaceId);
+    }
     
     const newAudiences = audiences.filter(a => a.id !== audienceId);
     setAudiencesState(newAudiences);
