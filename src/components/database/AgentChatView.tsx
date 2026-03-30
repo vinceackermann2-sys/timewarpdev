@@ -33,6 +33,10 @@ interface ChatMessage {
   isStreaming?: boolean;
   reportUrl?: string;
   reportName?: string;
+  taskSteps?: { action: string; label: string; status: "running" | "done" | "error" }[];
+  currentStepIndex?: number;
+  reportContent?: string;
+  reportSavedToDb?: boolean;
 }
 
 /* ─── Main view ─── */
@@ -506,17 +510,16 @@ export function AgentChatView() {
     let stepCount = 0;
     const maxSteps = 30;
     let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
-    let allSteps: string[] = [];
     const startTime = new Date();
 
     // Structured log for report
     interface StepLog { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }
     const stepLogs: StepLog[] = [];
+    const taskSteps: ChatMessage["taskSteps"] = [];
 
     const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-    allSteps.push(`🚀 **Task started** — ${formatTime(startTime)}`);
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Starting task...", taskSteps: [], currentStepIndex: -1, isStreaming: true } : m));
 
     // Log to DB
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
@@ -560,8 +563,7 @@ export function AgentChatView() {
         // Parse action JSON from response
         const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
         if (!jsonMatch) {
-          allSteps.push(`\n📝 ${content}`);
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: content, taskSteps: [...taskSteps], isStreaming: false } : m));
           stepLogs.push({ step: stepCount + 1, action: "response", reasoning: content, result: "completed", timestamp: formatTime(stepTime), url: pageContext?.url });
           break;
         }
@@ -571,9 +573,9 @@ export function AgentChatView() {
         const timeStr = formatTime(stepTime);
 
         stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
+        taskSteps.push({ action: action.action, label: stepLabel, status: "running" });
 
-        allSteps.push(`\n**Step ${stepCount + 1}** · \`${timeStr}\`\n🔄 **${action.action}** — ${stepLabel}`);
-        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
 
         // Log step to DB
         supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: `Step ${stepCount + 1}: ${action.action}`, message: stepLabel }).then(() => {});
@@ -582,27 +584,23 @@ export function AgentChatView() {
 
         if (action.done || action.action === "done") {
           stepLogs[stepLogs.length - 1].result = "done";
-          allSteps.push(`\n✅ **Task completed** — ${formatTime(new Date())}\n${action.message || "All steps completed."}`);
+          taskSteps[taskSteps.length - 1].status = "done";
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || "Task completed.", taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: false } : m));
           break;
         }
 
         if (action.action === "respond") {
           stepLogs[stepLogs.length - 1].result = "respond";
-          allSteps.push(`\n💬 ${action.message}`);
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+          taskSteps[taskSteps.length - 1].status = "done";
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || "", taskSteps: [...taskSteps], isStreaming: false } : m));
           break;
         }
 
         // Execute action via extension
         const result = await executeAction(action);
         stepLogs[stepLogs.length - 1].result = result.success ? "success" : (result.error || "failed");
-
-        if (result.success) {
-          allSteps[allSteps.length - 1] += ` ✓`;
-        } else {
-          allSteps[allSteps.length - 1] += ` ✗ ${result.error || "failed"}`;
-        }
-        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
+        taskSteps[taskSteps.length - 1].status = result.success ? "done" : "error";
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
 
         conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
 
@@ -618,30 +616,39 @@ export function AgentChatView() {
       const reportBlob = new Blob([report], { type: "text/markdown" });
       const { error: uploadErr } = await supabase.storage.from("business-data").upload(reportPath, reportBlob, { contentType: "text/markdown" });
 
-      if (!uploadErr) {
-        const { data: urlData } = supabase.storage.from("business-data").getPublicUrl(reportPath);
-        // Since bucket is private, create a signed URL
-        const { data: signedData } = await supabase.storage.from("business-data").createSignedUrl(reportPath, 60 * 60 * 24 * 7); // 7 days
+      // Save report to database
+      await supabase.from("user_business_data").insert({
+        user_id: user!.id,
+        workspace_id: activeWorkspaceId || undefined,
+        data_type: "document",
+        source: "agent-report",
+        title: `Task Report — ${new Date().toLocaleDateString()}`,
+        content: report,
+        is_analyzed: true,
+      });
 
-        allSteps.push(`\n---\n📄 **Task Report Generated** — ${stepLogs.length} steps in ${durationSec}s`);
+      if (!uploadErr) {
+        const { data: signedData } = await supabase.storage.from("business-data").createSignedUrl(reportPath, 60 * 60 * 24 * 7); // 7 days
         setMessages(prev => prev.map(m => m.id === assistantId ? {
           ...m,
-          content: allSteps.join("\n"),
+          content: `Task completed — ${stepLogs.length} steps in ${durationSec}s`,
+          taskSteps: [...taskSteps],
           isStreaming: false,
           reportUrl: signedData?.signedUrl || "",
           reportName: reportFileName,
+          reportContent: report,
+          reportSavedToDb: true,
         } : m));
       } else {
-        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `Task completed — ${stepLogs.length} steps in ${durationSec}s`, taskSteps: [...taskSteps], isStreaming: false, reportContent: report, reportSavedToDb: true } : m));
       }
 
       // Log completion to DB
       supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `${stepLogs.length} steps in ${durationSec}s` }).then(() => {});
 
     } catch (err: any) {
-      const endTime = new Date();
-      allSteps.push(`\n❌ **Error** — ${formatTime(endTime)}\n${err.message || "Unknown error"}`);
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+      taskSteps.push({ action: "error", label: err.message || "Unknown error", status: "error" });
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: err.message || "Something went wrong.", taskSteps: [...taskSteps], isStreaming: false } : m));
       supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.message || "Unknown error" }).then(() => {});
       throw err;
     } finally {
