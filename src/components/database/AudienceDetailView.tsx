@@ -255,7 +255,7 @@ export function AudienceDetailView({
     return isEditingSection(section) ? (
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" onClick={handleCancel} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
-        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+        <Button variant="outline" size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
       </div>
     ) : (
       <Button variant="outline" size="sm" onClick={() => setEditingSection(section)} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>

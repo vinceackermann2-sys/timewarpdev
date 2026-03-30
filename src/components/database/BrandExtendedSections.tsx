@@ -487,7 +487,7 @@ export function BrandExtendedSections({
               <Button variant="ghost" size="sm" onClick={onEditToggle} className="gap-1.5 text-muted-foreground">
                 <X className="h-4 w-4" /> Cancel
               </Button>
-              <Button size="sm" onClick={() => {
+              <Button variant="outline" size="sm" onClick={() => {
                 onSave?.({
                   imageGuidelines: data.imageGuidelines.map(g => ({ rule: g.rule, example: g.example })),
                   websiteRules: data.websiteRules,

@@ -269,6 +269,7 @@ export function BrandingEditor({
                 <X className="h-4 w-4" /> Cancel
               </Button>
               <Button
+                variant="outline"
                 size="sm"
               onClick={() => { onSave?.(branding); setHasUnsavedExtraction(false); onEditToggle?.(); }}
                 className="gap-1.5"
