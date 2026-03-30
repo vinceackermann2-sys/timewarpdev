@@ -995,7 +995,7 @@ export function AgentChatView() {
                   "max-w-[80%] rounded-2xl px-5 py-3 text-sm",
                   msg.role === "user"
                     ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-card/80 backdrop-blur border border-border/50 rounded-bl-md text-foreground"
+                    : "rounded-bl-md text-foreground"
                 )}>
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
