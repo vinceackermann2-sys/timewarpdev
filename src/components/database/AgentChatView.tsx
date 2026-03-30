@@ -31,8 +31,12 @@ function Orb({ size = 64 }: { size?: number }) {
 export function AgentChatView() {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
+  const { brands } = useBusinessDNA();
 
-  /* ── employees (from DB) ── */
+  /* ── Agents = brands from Business DNA ── */
+  const agents = brands.map(b => ({ id: b.id, name: b.agentName || b.name || "AI CEO" }));
+
+  /* ── Employees (from DB) ── */
   const [employees, setEmployees] = useState<AIEmployee[]>([]);
   const loadEmployees = async () => {
     if (!user) return;
@@ -50,7 +54,7 @@ export function AgentChatView() {
   /* ── UI state ── */
   const [isDropupOpen, setIsDropupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<string>("Agent");
+  const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [showAgents, setShowAgents] = useState(false);
   const [showEmployeesMenu, setShowEmployeesMenu] = useState(false);
   const [isActionMode, setIsActionMode] = useState(false);
@@ -66,10 +70,10 @@ export function AgentChatView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLDivElement>(null);
 
-  /* set default agent name */
+  /* set default agent from first brand */
   useEffect(() => {
-    if (user?.email) setSelectedAgent(user.email.split("@")[0]);
-  }, [user]);
+    if (agents.length > 0 && !selectedAgent) setSelectedAgent(agents[0].name);
+  }, [agents]);
 
   /* ── @mention / reference helpers ── */
   const insertReference = (result: { url: string; name: string; logo: string }) => {
