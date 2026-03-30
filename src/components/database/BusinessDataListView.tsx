@@ -242,6 +242,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             provider: "microsoft",
             categories: categories || { emails: true, events: true, files: true },
             limits: limits || { emails: 50, events: 50, files: 50 },
+            brandId: activeBrandId,
           }),
         }
       );
