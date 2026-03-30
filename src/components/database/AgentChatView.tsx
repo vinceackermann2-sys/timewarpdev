@@ -469,16 +469,16 @@ export function AgentChatView() {
         updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: stepLabel });
 
         if (action.done || action.action === "done") {
+          finalMessage = action.message || "Task completed.";
           stepLogs[stepLogs.length - 1].result = "done";
           taskSteps[taskSteps.length - 1].status = "done";
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || "Task completed.", taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: false } : m));
           break;
         }
 
         if (action.action === "respond") {
+          finalMessage = action.message || "";
           stepLogs[stepLogs.length - 1].result = "respond";
           taskSteps[taskSteps.length - 1].status = "done";
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || "", taskSteps: [...taskSteps], isStreaming: false } : m));
           break;
         }
 
@@ -492,41 +492,19 @@ export function AgentChatView() {
         stepCount++;
       }
 
-      // Generate and upload report
+      // Generate results document
       const endTime = new Date();
       const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
-      const report = generateTaskReport(selectedAgent || "AI Agent", userMsg.content, stepLogs, startTime, endTime, durationSec);
-      const reportFileName = `task-report-${Date.now()}.md`;
-      const reportPath = `${user!.id}/reports/${reportFileName}`;
-      const reportBlob = new Blob([report], { type: "text/markdown" });
-      const { error: uploadErr } = await supabase.storage.from("business-data").upload(reportPath, reportBlob, { contentType: "text/markdown" });
+      const report = generateTaskReport(selectedAgent || "AI Agent", userMsg.content, stepLogs, startTime, endTime, durationSec, finalMessage);
 
-      // Save report to database
-      await supabase.from("user_business_data").insert({
-        user_id: user!.id,
-        workspace_id: activeWorkspaceId || undefined,
-        data_type: "document",
-        source: "agent-report",
-        title: `Task Report — ${new Date().toLocaleDateString()}`,
-        content: report,
-        is_analyzed: true,
-      });
-
-      if (!uploadErr) {
-        const { data: signedData } = await supabase.storage.from("business-data").createSignedUrl(reportPath, 60 * 60 * 24 * 7);
-        setMessages(prev => prev.map(m => m.id === assistantId ? {
-          ...m,
-          content: `Task completed — ${stepLogs.length} steps in ${durationSec}s`,
-          taskSteps: [...taskSteps],
-          isStreaming: false,
-          reportUrl: signedData?.signedUrl || "",
-          reportName: reportFileName,
-          reportContent: report,
-          reportSavedToDb: true,
-        } : m));
-      } else {
-        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `Task completed — ${stepLogs.length} steps in ${durationSec}s`, taskSteps: [...taskSteps], isStreaming: false, reportContent: report, reportSavedToDb: true } : m));
-      }
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        content: finalMessage || `Task completed — ${durationSec}s`,
+        taskSteps: [...taskSteps],
+        isStreaming: false,
+        reportContent: report,
+        reportSavedToDb: false,
+      } : m));
     } catch (err: any) {
       taskSteps.push({ action: "error", label: err.message || "Unknown error", status: "error" });
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: err.message || "Something went wrong.", taskSteps: [...taskSteps], isStreaming: false } : m));
