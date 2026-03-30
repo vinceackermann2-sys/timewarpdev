@@ -458,7 +458,7 @@ export function ProductDetailView({
                     {isEditingSection("overview") ? (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
-                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                        <Button variant="outline" size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
                       </>
                     ) : (
                       <Button variant="outline" size="sm" onClick={() => setEditingSection("overview")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
@@ -532,7 +532,7 @@ export function ProductDetailView({
                     {isEditingSection("offers") ? (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
-                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                        <Button variant="outline" size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
                       </>
                     ) : (
                       <Button variant="outline" size="sm" onClick={() => setEditingSection("offers")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
@@ -628,7 +628,7 @@ export function ProductDetailView({
                     {isEditingSection("value") ? (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
-                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                        <Button variant="outline" size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
                       </>
                     ) : (
                       <Button variant="outline" size="sm" onClick={() => setEditingSection("value")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
@@ -666,7 +666,7 @@ export function ProductDetailView({
                     {isEditingSection("objections") ? (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
-                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                        <Button variant="outline" size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
                       </>
                     ) : (
                       <Button variant="outline" size="sm" onClick={() => setEditingSection("objections")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
@@ -759,7 +759,7 @@ export function ProductDetailView({
                     {isEditingSection("language") ? (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
-                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                        <Button variant="outline" size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
                       </>
                     ) : (
                       <Button variant="outline" size="sm" onClick={() => setEditingSection("language")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
@@ -881,7 +881,7 @@ export function ProductDetailView({
                     {isEditingSection("refinement") ? (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => { setData(product); setEditingSection(null); }} className="gap-1.5 text-muted-foreground"><X className="h-4 w-4" /> Cancel</Button>
-                        <Button size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
+                        <Button variant="outline" size="sm" onClick={handleSave} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
                       </>
                     ) : (
                       <Button variant="outline" size="sm" onClick={() => setEditingSection("refinement")} className="gap-1.5"><Pencil className="h-4 w-4" /> Edit</Button>
