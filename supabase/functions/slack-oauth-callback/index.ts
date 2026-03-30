@@ -23,6 +23,7 @@ serve(async (req) => {
     const state = JSON.parse(atob(stateParam));
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
+    const brandId = state.brandId || null;
     if (!userId) throw new Error("No userId in state");
 
     // Verify HMAC nonce to prevent state forgery
@@ -69,23 +70,25 @@ serve(async (req) => {
         refresh_token: tokenData.refresh_token || null,
         scopes: tokenData.scope || null,
         provider_user_id: tokenData.authed_user?.id || null,
-        provider_email: null, // Slack doesn't provide email in OAuth response
+        provider_email: null,
       }, { onConflict: "user_id,provider" });
 
     // Get team info for metadata
     const teamName = tokenData.team?.name || "Slack Workspace";
 
-    // Update user_connections
+    // Update user_connections scoped to brand
     await supabaseAdmin
       .from("user_connections")
       .upsert({
         user_id: userId,
         provider: "slack",
         status: "connected",
+        brand_id: brandId,
         metadata: { team: teamName, team_id: tokenData.team?.id },
-      }, { onConflict: "user_id,provider" });
+      }, { onConflict: "user_id,provider,brand_id" });
 
-    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=slack`, 302);
+    const brandParam = brandId ? `&brandId=${brandId}` : "";
+    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=slack${brandParam}`, 302);
   } catch (e) {
     console.error("Slack OAuth callback error occurred");
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);

@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { provider, action } = body;
+    const { provider, action, brandId } = body;
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -40,12 +40,18 @@ serve(async (req) => {
       });
     }
 
-    // Action: check-status - return which providers are connected
+    // Action: check-status - return which providers are connected (optionally filtered by brandId)
     if (action === "check-status") {
-      const { data: connections } = await supabaseAdmin
+      let connectionsQuery = supabaseAdmin
         .from("user_connections")
-        .select("provider, status")
+        .select("provider, status, brand_id")
         .eq("user_id", user.id);
+
+      if (brandId) {
+        connectionsQuery = connectionsQuery.eq("brand_id", brandId);
+      }
+
+      const { data: connections } = await connectionsQuery;
 
       const { data: tokens } = await supabaseAdmin
         .from("user_oauth_tokens")
@@ -58,6 +64,7 @@ serve(async (req) => {
         .map((c: any) => ({
           provider: c.provider,
           email: tokens?.find((t: any) => t.provider === c.provider)?.provider_email,
+          brand_id: c.brand_id,
         }));
 
       return new Response(JSON.stringify({ connected }), {
@@ -91,13 +98,16 @@ serve(async (req) => {
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
 
+      // Include brandId in state so callbacks can scope connections
+      const stateBase = { userId: user.id, returnPath, nonce, hmac, brandId: brandId || null };
+
       switch (provider) {
         case "microsoft": {
           const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
           if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
           const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read";
-          const state = btoa(JSON.stringify({ userId: user.id, returnPath, origin, nonce, hmac }));
+          const state = btoa(JSON.stringify({ ...stateBase, origin }));
           authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&response_mode=query`;
           break;
         }
@@ -106,7 +116,7 @@ serve(async (req) => {
           if (!clientId) throw new Error("GOOGLE_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/google-oauth-callback`;
           const scopes = "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly";
-          const state = btoa(JSON.stringify({ userId: user.id, returnPath, nonce, hmac }));
+          const state = btoa(JSON.stringify(stateBase));
           authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&access_type=offline&prompt=consent`;
           break;
         }
@@ -115,7 +125,7 @@ serve(async (req) => {
           if (!clientId) throw new Error("SLACK_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/slack-oauth-callback`;
           const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read";
-          const state = btoa(JSON.stringify({ userId: user.id, returnPath, nonce, hmac }));
+          const state = btoa(JSON.stringify(stateBase));
           authUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
           break;
         }
@@ -174,8 +184,9 @@ serve(async (req) => {
           user_id: user.id,
           provider: "wordpress",
           status: "connected",
+          brand_id: brandId || null,
           metadata: { siteUrl: normalizedUrl, username: body.username, displayName: wpUser.name },
-        }, { onConflict: "user_id,provider" });
+        }, { onConflict: "user_id,provider,brand_id" });
 
       return new Response(JSON.stringify({ success: true, displayName: wpUser.name }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -184,24 +195,45 @@ serve(async (req) => {
 
     // Action: disconnect
     if (action === "disconnect") {
-      // Remove all business data sourced from this provider
-      await supabaseAdmin
+      // Remove business data sourced from this provider, scoped to brand if provided
+      let deleteQuery = supabaseAdmin
         .from("user_business_data")
         .delete()
         .eq("user_id", user.id)
         .eq("source", provider);
 
-      await supabaseAdmin
+      if (brandId) {
+        deleteQuery = deleteQuery.eq("metadata->>brandId", brandId);
+      }
+      await deleteQuery;
+
+      // Update connection status, scoped to brand
+      let connQuery = supabaseAdmin
         .from("user_connections")
         .update({ status: "disconnected" })
         .eq("user_id", user.id)
         .eq("provider", provider);
 
-      await supabaseAdmin
-        .from("user_oauth_tokens")
-        .delete()
+      if (brandId) {
+        connQuery = connQuery.eq("brand_id", brandId);
+      }
+      await connQuery;
+
+      // Only delete tokens if no other brands use this provider
+      const { data: remainingConns } = await supabaseAdmin
+        .from("user_connections")
+        .select("id")
         .eq("user_id", user.id)
-        .eq("provider", provider);
+        .eq("provider", provider)
+        .eq("status", "connected");
+
+      if (!remainingConns || remainingConns.length === 0) {
+        await supabaseAdmin
+          .from("user_oauth_tokens")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("provider", provider);
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

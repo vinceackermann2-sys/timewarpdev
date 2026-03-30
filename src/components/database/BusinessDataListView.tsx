@@ -90,7 +90,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status" }),
+          body: JSON.stringify({ action: "check-status", brandId: activeBrandId }),
         }
       );
       if (response.ok) {
@@ -181,7 +181,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname }),
+          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }),
         }
       );
       const data = await response.json();
@@ -213,7 +213,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "disconnect" }),
+          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandId }),
         }
       );
       setIsConnected(false);
@@ -242,6 +242,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             provider: "microsoft",
             categories: categories || { emails: true, events: true, files: true },
             limits: limits || { emails: 50, events: 50, files: 50 },
+            brandId: activeBrandId,
           }),
         }
       );

@@ -571,7 +571,7 @@ serve(async (req) => {
       });
     }
 
-    const { provider, categories, limits } = await req.json();
+    const { provider, categories, limits, brandId } = await req.json();
 
     // WordPress uses credentials stored differently
     if (provider === "wordpress") {
@@ -643,8 +643,17 @@ serve(async (req) => {
         });
       }
 
+      // Inject brandId into all metadata
+      if (brandId) {
+        for (const item of dataItems) {
+          item.metadata = { ...item.metadata, brandId };
+        }
+      }
+
       if (dataItems.length > 0) {
-        await supabaseAdmin.from("user_business_data").delete().eq("user_id", user.id).eq("source", "wordpress");
+        let delQuery = supabaseAdmin.from("user_business_data").delete().eq("user_id", user.id).eq("source", "wordpress");
+        if (brandId) delQuery = delQuery.eq("metadata->>brandId", brandId);
+        await delQuery;
         for (let i = 0; i < dataItems.length; i += 50) {
           await supabaseAdmin.from("user_business_data").insert(dataItems.slice(i, i + 50));
         }
@@ -778,13 +787,22 @@ serve(async (req) => {
       });
     }
 
-    // Batch insert (clear old data from this provider first)
+    // Inject brandId into all metadata
+    if (brandId) {
+      for (const item of dataItems) {
+        item.metadata = { ...item.metadata, brandId };
+      }
+    }
+
+    // Batch insert (clear old data from this provider first, scoped to brand)
     if (dataItems.length > 0) {
-      await supabaseAdmin
+      let delQuery = supabaseAdmin
         .from("user_business_data")
         .delete()
         .eq("user_id", user.id)
         .eq("source", provider);
+      if (brandId) delQuery = delQuery.eq("metadata->>brandId", brandId);
+      await delQuery;
 
       // Insert in batches of 50
       for (let i = 0; i < dataItems.length; i += 50) {
