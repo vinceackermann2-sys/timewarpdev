@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2
+  Plug, Loader2, Sparkles
 } from "lucide-react";
 import { SettingsView } from "@/components/database/SettingsView";
 import { Button } from "@/components/ui/button";
