@@ -6,6 +6,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import type { AIEmployee } from "./EmployeesView";
 
 /* ─── Orb ─── */
@@ -203,7 +204,7 @@ export function AgentChatView() {
       <main className="flex-1 flex flex-col items-center justify-center relative z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 animate-in fade-in zoom-in duration-700">
-          <Orb size={280} />
+          <BusinessBrainOrb size={280} />
         </div>
         <div className="mt-12 text-center z-10">
           <h2 className="text-3xl font-bold text-foreground tracking-tight">{selectedAgent}</h2>
@@ -393,6 +394,15 @@ export function AgentChatView() {
                 <span className={`text-xs font-semibold ${isActionMode ? "text-primary" : "text-muted-foreground"}`}>
                   {isActionMode ? "ON" : "OFF"}
                 </span>
+              </button>
+
+              {/* Settings */}
+              <button
+                onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
+              >
+                <Settings className="w-4 h-4 text-muted-foreground" />
+                Settings
               </button>
             </div>
           )}
