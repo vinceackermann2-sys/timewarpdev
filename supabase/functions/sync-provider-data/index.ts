@@ -787,13 +787,22 @@ serve(async (req) => {
       });
     }
 
-    // Batch insert (clear old data from this provider first)
+    // Inject brandId into all metadata
+    if (brandId) {
+      for (const item of dataItems) {
+        item.metadata = { ...item.metadata, brandId };
+      }
+    }
+
+    // Batch insert (clear old data from this provider first, scoped to brand)
     if (dataItems.length > 0) {
-      await supabaseAdmin
+      let delQuery = supabaseAdmin
         .from("user_business_data")
         .delete()
         .eq("user_id", user.id)
         .eq("source", provider);
+      if (brandId) delQuery = delQuery.eq("metadata->>brandId", brandId);
+      await delQuery;
 
       // Insert in batches of 50
       for (let i = 0; i < dataItems.length; i += 50) {
