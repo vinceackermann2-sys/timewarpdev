@@ -321,7 +321,7 @@ export function AgentChatView() {
 
     let stepCount = 0;
     const maxSteps = 30;
-    let conversationHistory = [{ role: "user" as const, content: userMsg.content }];
+    let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
     let allSteps: string[] = [];
 
     try {
