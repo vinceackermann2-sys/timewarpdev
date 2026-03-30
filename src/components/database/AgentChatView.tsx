@@ -23,73 +23,79 @@ import logoFortknox from "@/assets/logo-fortknox.png";
 import adEvoIcon from "@/assets/ad-evo-icon.svg";
 import type { AIEmployee } from "./EmployeesView";
 
-/* ─── Task Report Viewer (inline editable document) ─── */
-function TaskReportViewer({ content, reportUrl, reportName, savedToDb }: {
+/* ─── Task Report Viewer (full document viewer) ─── */
+function TaskReportViewer({ content, onSaveToDb, savedToDb }: {
   content: string;
-  reportUrl?: string;
-  reportName?: string;
+  onSaveToDb?: (updatedContent: string) => Promise<void>;
   savedToDb?: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const [editContent, setEditContent] = useState(content);
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(!!savedToDb);
 
   const handleDownload = () => {
     const blob = new Blob([editContent], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = reportName || "task-report.md";
+    a.download = "task-results.md";
     a.click();
     URL.revokeObjectURL(url);
   };
 
+  const handleSave = async () => {
+    if (!onSaveToDb) return;
+    setSaving(true);
+    try {
+      await onSaveToDb(editContent);
+      setSaved(true);
+      toast.success("Document saved");
+    } catch { toast.error("Failed to save"); }
+    finally { setSaving(false); }
+  };
+
   return (
-    <div className="mt-3 not-prose">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border hover:border-foreground/20 text-sm font-medium text-foreground transition-all w-full"
-      >
+    <div className="mt-3 not-prose rounded-xl border border-border bg-card overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
         <FileText className="w-4 h-4 text-muted-foreground" />
-        <span className="flex-1 text-left">Task Report</span>
-        {savedToDb && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">Saved</span>}
-        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
-      </button>
+        <span className="text-sm font-medium text-foreground">Task Results</span>
+        {saved && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">Saved</span>}
+        <div className="flex-1" />
+        <button
+          onClick={() => setIsEditing(!isEditing)}
+          className={cn("text-xs px-2.5 py-1 rounded-lg transition-colors", isEditing ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground")}
+        >
+          {isEditing ? "Preview" : "Edit"}
+        </button>
+        {onSaveToDb && (
+          <button onClick={handleSave} disabled={saving} className="text-xs px-2.5 py-1 rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-1.5 transition-colors disabled:opacity-50">
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+            Save
+          </button>
+        )}
+        <button onClick={handleDownload} className="text-xs px-2.5 py-1 rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-1.5 transition-colors">
+          <Download className="w-3 h-3" />
+          Download
+        </button>
+      </div>
 
-      {isOpen && (
-        <div className="mt-2 rounded-xl border border-border bg-card overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-          {/* Toolbar */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className={cn("text-xs px-2.5 py-1 rounded-lg transition-colors", isEditing ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground")}
-            >
-              {isEditing ? "Preview" : "Edit"}
-            </button>
-            <div className="flex-1" />
-            <button onClick={handleDownload} className="text-xs px-2.5 py-1 rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-1.5 transition-colors">
-              <Download className="w-3 h-3" />
-              Download
-            </button>
+      {/* Content — open by default */}
+      <div className="max-h-[500px] overflow-y-auto">
+        {isEditing ? (
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            className="w-full min-h-[300px] p-4 bg-transparent text-sm text-foreground font-mono resize-none focus:outline-none border-none"
+            spellCheck={false}
+          />
+        ) : (
+          <div className="p-4 prose prose-sm dark:prose-invert max-w-none">
+            <ReactMarkdown>{editContent}</ReactMarkdown>
           </div>
-
-          {/* Content */}
-          <div className="max-h-[400px] overflow-y-auto">
-            {isEditing ? (
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="w-full min-h-[300px] p-4 bg-transparent text-sm text-foreground font-mono resize-none focus:outline-none border-none"
-                spellCheck={false}
-              />
-            ) : (
-              <div className="p-4 prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown>{editContent}</ReactMarkdown>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -102,8 +108,6 @@ interface ChatMessage {
   files?: { name: string; url?: string }[];
   employees?: { id: string; name: string; role: string }[];
   isStreaming?: boolean;
-  reportUrl?: string;
-  reportName?: string;
   taskSteps?: { action: string; label: string; status: "running" | "done" | "error" }[];
   currentStepIndex?: number;
   reportContent?: string;
@@ -400,6 +404,7 @@ export function AgentChatView() {
 
     let stepCount = 0;
     const maxSteps = 30;
+    let finalMessage = "";
     let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
     const startTime = new Date();
 
@@ -462,16 +467,16 @@ export function AgentChatView() {
         updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: stepLabel });
 
         if (action.done || action.action === "done") {
+          finalMessage = action.message || "Task completed.";
           stepLogs[stepLogs.length - 1].result = "done";
           taskSteps[taskSteps.length - 1].status = "done";
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || "Task completed.", taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: false } : m));
           break;
         }
 
         if (action.action === "respond") {
+          finalMessage = action.message || "";
           stepLogs[stepLogs.length - 1].result = "respond";
           taskSteps[taskSteps.length - 1].status = "done";
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || "", taskSteps: [...taskSteps], isStreaming: false } : m));
           break;
         }
 
@@ -485,41 +490,19 @@ export function AgentChatView() {
         stepCount++;
       }
 
-      // Generate and upload report
+      // Generate results document
       const endTime = new Date();
       const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
-      const report = generateTaskReport(selectedAgent || "AI Agent", userMsg.content, stepLogs, startTime, endTime, durationSec);
-      const reportFileName = `task-report-${Date.now()}.md`;
-      const reportPath = `${user!.id}/reports/${reportFileName}`;
-      const reportBlob = new Blob([report], { type: "text/markdown" });
-      const { error: uploadErr } = await supabase.storage.from("business-data").upload(reportPath, reportBlob, { contentType: "text/markdown" });
+      const report = generateTaskReport(selectedAgent || "AI Agent", userMsg.content, stepLogs, startTime, endTime, durationSec, finalMessage);
 
-      // Save report to database
-      await supabase.from("user_business_data").insert({
-        user_id: user!.id,
-        workspace_id: activeWorkspaceId || undefined,
-        data_type: "document",
-        source: "agent-report",
-        title: `Task Report — ${new Date().toLocaleDateString()}`,
-        content: report,
-        is_analyzed: true,
-      });
-
-      if (!uploadErr) {
-        const { data: signedData } = await supabase.storage.from("business-data").createSignedUrl(reportPath, 60 * 60 * 24 * 7);
-        setMessages(prev => prev.map(m => m.id === assistantId ? {
-          ...m,
-          content: `Task completed — ${stepLogs.length} steps in ${durationSec}s`,
-          taskSteps: [...taskSteps],
-          isStreaming: false,
-          reportUrl: signedData?.signedUrl || "",
-          reportName: reportFileName,
-          reportContent: report,
-          reportSavedToDb: true,
-        } : m));
-      } else {
-        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `Task completed — ${stepLogs.length} steps in ${durationSec}s`, taskSteps: [...taskSteps], isStreaming: false, reportContent: report, reportSavedToDb: true } : m));
-      }
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        content: finalMessage || `Task completed — ${durationSec}s`,
+        taskSteps: [...taskSteps],
+        isStreaming: false,
+        reportContent: report,
+        reportSavedToDb: false,
+      } : m));
     } catch (err: any) {
       taskSteps.push({ action: "error", label: err.message || "Unknown error", status: "error" });
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: err.message || "Something went wrong.", taskSteps: [...taskSteps], isStreaming: false } : m));
@@ -587,6 +570,7 @@ export function AgentChatView() {
 
     let stepCount = 0;
     const maxSteps = 30;
+    let finalMessage = "";
     let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
     const startTime = new Date();
 
@@ -661,16 +645,16 @@ export function AgentChatView() {
         updateOverlay({ visible: true, employeeName: emp.name, currentStep: stepLabel });
 
         if (action.done || action.action === "done") {
+          finalMessage = action.message || "Task completed.";
           stepLogs[stepLogs.length - 1].result = "done";
           taskSteps[taskSteps.length - 1].status = "done";
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || "Task completed.", taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: false } : m));
           break;
         }
 
         if (action.action === "respond") {
+          finalMessage = action.message || "";
           stepLogs[stepLogs.length - 1].result = "respond";
           taskSteps[taskSteps.length - 1].status = "done";
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || "", taskSteps: [...taskSteps], isStreaming: false } : m));
           break;
         }
 
@@ -685,41 +669,19 @@ export function AgentChatView() {
         stepCount++;
       }
 
-      // Generate and upload report
+      // Generate results document
       const endTime = new Date();
       const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
-      const report = generateTaskReport(emp.name, userMsg.content, stepLogs, startTime, endTime, durationSec);
-      const reportFileName = `task-report-${Date.now()}.md`;
-      const reportPath = `${user!.id}/reports/${reportFileName}`;
-      const reportBlob = new Blob([report], { type: "text/markdown" });
-      const { error: uploadErr } = await supabase.storage.from("business-data").upload(reportPath, reportBlob, { contentType: "text/markdown" });
+      const report = generateTaskReport(emp.name, userMsg.content, stepLogs, startTime, endTime, durationSec, finalMessage);
 
-      // Save report to database
-      await supabase.from("user_business_data").insert({
-        user_id: user!.id,
-        workspace_id: activeWorkspaceId || undefined,
-        data_type: "document",
-        source: "agent-report",
-        title: `Task Report — ${new Date().toLocaleDateString()}`,
-        content: report,
-        is_analyzed: true,
-      });
-
-      if (!uploadErr) {
-        const { data: signedData } = await supabase.storage.from("business-data").createSignedUrl(reportPath, 60 * 60 * 24 * 7); // 7 days
-        setMessages(prev => prev.map(m => m.id === assistantId ? {
-          ...m,
-          content: `Task completed — ${stepLogs.length} steps in ${durationSec}s`,
-          taskSteps: [...taskSteps],
-          isStreaming: false,
-          reportUrl: signedData?.signedUrl || "",
-          reportName: reportFileName,
-          reportContent: report,
-          reportSavedToDb: true,
-        } : m));
-      } else {
-        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `Task completed — ${stepLogs.length} steps in ${durationSec}s`, taskSteps: [...taskSteps], isStreaming: false, reportContent: report, reportSavedToDb: true } : m));
-      }
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        content: finalMessage || `Task completed — ${durationSec}s`,
+        taskSteps: [...taskSteps],
+        isStreaming: false,
+        reportContent: report,
+        reportSavedToDb: false,
+      } : m));
 
       // Log completion to DB
       supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `${stepLogs.length} steps in ${durationSec}s` }).then(() => {});
@@ -735,35 +697,45 @@ export function AgentChatView() {
     }
   };
 
-  /* ── Generate markdown task report ── */
+  /* ── Generate results-focused document (no step logs) ── */
   const generateTaskReport = (
-    employeeName: string,
+    agentName: string,
     task: string,
     steps: { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }[],
     startTime: Date,
     endTime: Date,
-    durationSec: number
+    durationSec: number,
+    finalMessage?: string
   ): string => {
     const lines: string[] = [];
-    lines.push(`# Task Execution Report`);
-    lines.push(`\n**Employee:** ${employeeName}`);
+    lines.push(`# Task Results`);
+    lines.push(`\n**Agent:** ${agentName}`);
     lines.push(`**Task:** ${task}`);
-    lines.push(`**Started:** ${startTime.toLocaleString()}`);
-    lines.push(`**Completed:** ${endTime.toLocaleString()}`);
+    lines.push(`**Date:** ${startTime.toLocaleDateString()}`);
     lines.push(`**Duration:** ${durationSec}s`);
-    lines.push(`**Total Steps:** ${steps.length}`);
     lines.push(`\n---\n`);
-    lines.push(`## Step-by-Step Log\n`);
-    for (const s of steps) {
-      const statusIcon = s.result === "success" ? "✅" : s.result === "done" ? "🏁" : s.result === "respond" ? "💬" : s.result === "pending" ? "⏳" : "❌";
-      lines.push(`### Step ${s.step} — \`${s.timestamp}\``);
-      lines.push(`- **Action:** ${s.action}`);
-      lines.push(`- **Details:** ${s.reasoning}`);
-      if (s.url) lines.push(`- **URL:** ${s.url}`);
-      lines.push(`- **Result:** ${statusIcon} ${s.result}`);
-      lines.push(``);
+
+    // Include the AI's final findings / response
+    if (finalMessage) {
+      lines.push(`## Results\n`);
+      lines.push(finalMessage);
+    } else {
+      // Fallback: extract findings from last respond/done step
+      const respondStep = [...steps].reverse().find(s => s.result === "respond" || s.result === "done");
+      if (respondStep) {
+        lines.push(`## Results\n`);
+        lines.push(respondStep.reasoning);
+      }
     }
-    lines.push(`---\n*Report generated automatically by AI CEO*`);
+
+    // Include visited URLs
+    const urls = [...new Set(steps.filter(s => s.url).map(s => s.url!))];
+    if (urls.length > 0) {
+      lines.push(`\n## Sources\n`);
+      urls.forEach(u => lines.push(`- ${u}`));
+    }
+
+    lines.push(`\n---\n*Generated by ${agentName}*`);
     return lines.join("\n");
   };
 
@@ -1037,9 +1009,18 @@ export function AgentChatView() {
                       {msg.reportContent && !msg.isStreaming && (
                         <TaskReportViewer
                           content={msg.reportContent}
-                          reportUrl={msg.reportUrl}
-                          reportName={msg.reportName}
                           savedToDb={msg.reportSavedToDb}
+                          onSaveToDb={async (updatedContent) => {
+                            await supabase.from("user_business_data").insert({
+                              user_id: user!.id,
+                              workspace_id: activeWorkspaceId || undefined,
+                              data_type: "document",
+                              source: "agent-report",
+                              title: `Task Results — ${new Date().toLocaleDateString()}`,
+                              content: updatedContent,
+                              is_analyzed: true,
+                            });
+                          }}
                         />
                       )}
                     </div>
