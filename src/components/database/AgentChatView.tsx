@@ -661,9 +661,84 @@ export function AgentChatView() {
                   </div>
                 )}
 
-                {settingsTab !== "safety" && settingsTab !== "employees" && (
-                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    <p>Configuration for {settingsTab} will appear here.</p>
+                {settingsTab === "connections" && (
+                  <div className="space-y-6 flex-1">
+                    <h4 className="text-sm font-semibold text-foreground">Integrations</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {/* Microsoft */}
+                      <div className={cn(
+                        "flex flex-col gap-3 p-5 rounded-xl border transition-all",
+                        isProviderConnected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+                      )}>
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                            <img src={logoMicrosoft} alt="Microsoft" className="h-7 w-7 object-contain" />
+                          </div>
+                          {isProviderConnected && (
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Microsoft</p>
+                          <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
+                        </div>
+                        {isProviderConnected ? (
+                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={handleProviderDisconnect}>
+                            Disconnect
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={handleProviderConnect} disabled={connectingProvider}>
+                            {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                            Connect
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Google - Coming Soon */}
+                      <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                            <img src={logoGoogle} alt="Google" className="h-7 w-7 object-contain" loading="lazy" />
+                          </div>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Google</p>
+                          <p className="text-xs text-muted-foreground">Gmail, Drive, Calendar</p>
+                        </div>
+                      </div>
+
+                      {/* Slack - Coming Soon */}
+                      <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                            <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" loading="lazy" />
+                          </div>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Slack</p>
+                          <p className="text-xs text-muted-foreground">Messages and workspace data</p>
+                        </div>
+                      </div>
+
+                      {/* FortKnox - Coming Soon */}
+                      <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                            <img src={logoFortknox} alt="FortKnox" className="h-7 w-7 object-contain" loading="lazy" />
+                          </div>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">FortKnox</p>
+                          <p className="text-xs text-muted-foreground">Secure data vault integration</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-center pt-2">
+                      <IntegrationRequestDialog />
+                    </div>
                   </div>
                 )}
               </div>
