@@ -23,6 +23,77 @@ import logoFortknox from "@/assets/logo-fortknox.png";
 import adEvoIcon from "@/assets/ad-evo-icon.svg";
 import type { AIEmployee } from "./EmployeesView";
 
+/* ─── Task Report Viewer (inline editable document) ─── */
+function TaskReportViewer({ content, reportUrl, reportName, savedToDb }: {
+  content: string;
+  reportUrl?: string;
+  reportName?: string;
+  savedToDb?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [editContent, setEditContent] = useState(content);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleDownload = () => {
+    const blob = new Blob([editContent], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = reportName || "task-report.md";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="mt-3 not-prose">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border hover:border-foreground/20 text-sm font-medium text-foreground transition-all w-full"
+      >
+        <FileText className="w-4 h-4 text-muted-foreground" />
+        <span className="flex-1 text-left">Task Report</span>
+        {savedToDb && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">Saved</span>}
+        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+      </button>
+
+      {isOpen && (
+        <div className="mt-2 rounded-xl border border-border bg-card overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+          {/* Toolbar */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={cn("text-xs px-2.5 py-1 rounded-lg transition-colors", isEditing ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground")}
+            >
+              {isEditing ? "Preview" : "Edit"}
+            </button>
+            <div className="flex-1" />
+            <button onClick={handleDownload} className="text-xs px-2.5 py-1 rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-1.5 transition-colors">
+              <Download className="w-3 h-3" />
+              Download
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="max-h-[400px] overflow-y-auto">
+            {isEditing ? (
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full min-h-[300px] p-4 bg-transparent text-sm text-foreground font-mono resize-none focus:outline-none border-none"
+                spellCheck={false}
+              />
+            ) : (
+              <div className="p-4 prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown>{editContent}</ReactMarkdown>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Types ─── */
 interface ChatMessage {
   id: string;
