@@ -272,7 +272,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       if (!session) return;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: providerId, action: "disconnect" }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: providerId, action: "disconnect", brandId: selectedBrandId }) }
       );
       const data = await response.json();
       if (data.success) { toast({ title: "Disconnected", description: `${integrations.find(i => i.id === providerId)?.name} has been disconnected.` }); checkConnections(); }
