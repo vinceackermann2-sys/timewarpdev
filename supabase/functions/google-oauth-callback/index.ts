@@ -23,6 +23,7 @@ serve(async (req) => {
     const state = JSON.parse(atob(stateParam));
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
+    const brandId = state.brandId || null;
     if (!userId) throw new Error("No userId in state");
 
     // Verify HMAC nonce to prevent state forgery
@@ -82,17 +83,19 @@ serve(async (req) => {
         provider_email: profile.email || null,
       }, { onConflict: "user_id,provider" });
 
-    // Update user_connections
+    // Update user_connections scoped to brand
     await supabaseAdmin
       .from("user_connections")
       .upsert({
         user_id: userId,
         provider: "google",
         status: "connected",
+        brand_id: brandId,
         metadata: { email: profile.email, name: profile.name },
-      }, { onConflict: "user_id,provider" });
+      }, { onConflict: "user_id,provider,brand_id" });
 
-    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=google`, 302);
+    const brandParam = brandId ? `&brandId=${brandId}` : "";
+    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=google${brandParam}`, 302);
   } catch (e) {
     console.error("Google OAuth callback error occurred");
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);

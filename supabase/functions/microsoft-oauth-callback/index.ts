@@ -18,11 +18,14 @@ serve(async (req) => {
     return Response.redirect(`${fallbackUrl}/?oauth_error=${error || "missing_code"}`, 302);
   }
 
+  let frontendUrl = Deno.env.get("FRONTEND_URL") || "https://timewarpdev.lovable.app";
+
   try {
     const state = JSON.parse(atob(stateParam));
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
-    const frontendUrl = state.origin || Deno.env.get("FRONTEND_URL") || "https://timewarpdev.lovable.app";
+    const brandId = state.brandId || null;
+    frontendUrl = state.origin || frontendUrl;
 
     if (!userId) throw new Error("No userId in state");
 
@@ -83,17 +86,20 @@ serve(async (req) => {
         provider_email: profile.mail || profile.userPrincipalName || null,
       }, { onConflict: "user_id,provider" });
 
-    // Update user_connections
+    // Update user_connections scoped to brand
     await supabaseAdmin
       .from("user_connections")
       .upsert({
         user_id: userId,
         provider: "microsoft",
         status: "connected",
+        brand_id: brandId,
         metadata: { email: profile.mail || profile.userPrincipalName },
-      }, { onConflict: "user_id,provider" });
+      }, { onConflict: "user_id,provider,brand_id" });
 
-    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=microsoft`, 302);
+    // Pass brandId in redirect so auto-sync can use it
+    const brandParam = brandId ? `&brandId=${brandId}` : "";
+    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=microsoft${brandParam}`, 302);
   } catch (e) {
     console.error("Microsoft OAuth callback error occurred");
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);
