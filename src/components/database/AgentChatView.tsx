@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2, Sparkles
+  Plug, Loader2, Sparkles, ExternalLink
 } from "lucide-react";
+import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { SettingsView } from "@/components/database/SettingsView";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +43,7 @@ export function AgentChatView() {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const { brands } = useBusinessDNA();
+  const { extensionConnected, detecting, retryDetection } = useExtensionBridge();
 
   /* ── Agents = brands from Business DNA ── */
   const agents = brands.map(b => ({ id: b.id, name: b.agentName || b.name || "AI CEO" }));
@@ -511,19 +513,38 @@ export function AgentChatView() {
                 )}
               </div>
 
-              {/* Action mode toggle */}
-              <button
-                onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
-                className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Monitor className={`w-4 h-4 ${isActionMode ? "text-primary" : "text-muted-foreground"}`} />
-                  Computer
-                </div>
-                <span className={`text-xs font-semibold ${isActionMode ? "text-primary" : "text-muted-foreground"}`}>
-                  {isActionMode ? "ON" : "OFF"}
-                </span>
-              </button>
+              {/* Action mode toggle / Extension install */}
+              {!extensionConnected ? (
+                <a
+                  href="https://microsoftedge.microsoft.com/addons/detail/timewarp-%E2%80%93-ai-ceo/fajgkgjioehbiccafonfbdkjhoedceim"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                  className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Monitor className="w-4 h-4 text-muted-foreground" />
+                    Computer
+                  </div>
+                  <span className="text-xs font-semibold text-primary flex items-center gap-1">
+                    <ExternalLink className="w-3 h-3" />
+                    Get Extension
+                  </span>
+                </a>
+              ) : (
+                <button
+                  onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                  className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Monitor className={`w-4 h-4 ${isActionMode ? "text-primary" : "text-muted-foreground"}`} />
+                    Computer
+                  </div>
+                  <span className={`text-xs font-semibold ${isActionMode ? "text-primary" : "text-muted-foreground"}`}>
+                    {isActionMode ? "ON" : "OFF"}
+                  </span>
+                </button>
+              )}
 
               {/* Settings */}
               <button
