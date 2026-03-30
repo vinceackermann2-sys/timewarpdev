@@ -656,10 +656,31 @@ serve(async (req) => {
 
     const products: any[] = [];
     const audiences: any[] = [];
+    const seenProductNames = new Set<string>();
     for (const r of productAudienceResults) {
       if (r.status !== 'fulfilled' || !r.value) continue;
-      if (r.value.product && r.value.product.name) products.push(r.value.product);
-      if (r.value.audience && r.value.audience.name) audiences.push(r.value.audience);
+      if (r.value.product && r.value.product.name) {
+        const normalizedName = r.value.product.name.toLowerCase().trim();
+        if (!seenProductNames.has(normalizedName)) {
+          seenProductNames.add(normalizedName);
+          products.push(r.value.product);
+        } else {
+          console.log("Skipping duplicate product:", r.value.product.name);
+        }
+      }
+      if (r.value.audience && r.value.audience.name) {
+        audiences.push(r.value.audience);
+      }
+    }
+    // Also deduplicate audiences by name
+    const uniqueAudiences: any[] = [];
+    const seenAudienceNames = new Set<string>();
+    for (const a of audiences) {
+      const normalizedName = a.name.toLowerCase().trim();
+      if (!seenAudienceNames.has(normalizedName)) {
+        seenAudienceNames.add(normalizedName);
+        uniqueAudiences.push(a);
+      }
     }
 
     console.log("Extracted", products.length, "products,", audiences.length, "audiences");
