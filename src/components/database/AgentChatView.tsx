@@ -550,7 +550,7 @@ export function AgentChatView() {
                 {settingsTab === "employees" && (
                   <div className="space-y-6 flex-1">
                     <div>
-                      <h4 className="text-sm font-semibold text-foreground mb-4">Manage Employees</h4>
+                      <h4 className="text-sm font-semibold text-foreground mb-4">Manage Agents</h4>
                       <div className="space-y-4">
                         {employees.map((emp) => (
                           <div key={emp.id} className="bg-card border border-border p-4 rounded-xl space-y-3">
