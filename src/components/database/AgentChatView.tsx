@@ -529,8 +529,8 @@ export function AgentChatView() {
                         onChange={(e) => setSelectedAgent(e.target.value)}
                         className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                       >
-                        {employees.map((emp) => (
-                          <option key={emp.id} value={emp.name}>{emp.name} ({emp.role})</option>
+                        {agents.map((agent) => (
+                          <option key={agent.id} value={agent.name}>{agent.name}</option>
                         ))}
                       </select>
                     </div>
