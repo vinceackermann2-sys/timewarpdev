@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
-  Monitor, Search, Shield, Link, User, FileText, Bot
+  Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
