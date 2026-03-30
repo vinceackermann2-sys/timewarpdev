@@ -231,6 +231,75 @@ export function AgentChatView() {
     if (agents.length > 0 && !selectedAgent) setSelectedAgent(agents[0].name);
   }, [agents]);
 
+  const IMAGE_ANALYSIS_MAX_DIMENSION = 1600;
+  const IMAGE_ANALYSIS_MAX_BYTES = 2_000_000;
+
+  const fileToDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string) || "");
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const optimizeImageForAnalysis = async (
+    file: File
+  ): Promise<{ base64: string; mimeType: string }> => {
+    const originalDataUrl = await fileToDataUrl(file);
+    const originalBase64 = originalDataUrl.split(",")[1] || "";
+
+    // Keep smaller images untouched to preserve fidelity and speed.
+    if (!file.type.startsWith("image/") || file.size <= 1_500_000) {
+      return { base64: originalBase64, mimeType: file.type || "image/png" };
+    }
+
+    let objectUrl: string | null = null;
+    try {
+      objectUrl = URL.createObjectURL(file);
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = objectUrl as string;
+      });
+
+      const largestSide = Math.max(img.naturalWidth, img.naturalHeight, 1);
+      const scale = Math.min(1, IMAGE_ANALYSIS_MAX_DIMENSION / largestSide);
+      const width = Math.max(1, Math.round(img.naturalWidth * scale));
+      const height = Math.max(1, Math.round(img.naturalHeight * scale));
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return { base64: originalBase64, mimeType: file.type || "image/png" };
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const mimeType = "image/jpeg";
+      let quality = 0.82;
+      let optimizedDataUrl = canvas.toDataURL(mimeType, quality);
+      let estimatedBytes = Math.ceil((optimizedDataUrl.length * 3) / 4);
+
+      while (estimatedBytes > IMAGE_ANALYSIS_MAX_BYTES && quality > 0.45) {
+        quality -= 0.1;
+        optimizedDataUrl = canvas.toDataURL(mimeType, quality);
+        estimatedBytes = Math.ceil((optimizedDataUrl.length * 3) / 4);
+      }
+
+      return {
+        base64: optimizedDataUrl.split(",")[1] || originalBase64,
+        mimeType,
+      };
+    } catch {
+      return { base64: originalBase64, mimeType: file.type || "image/png" };
+    } finally {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    }
+  };
+
   /* ── Read file contents — text files read directly, binary files analyzed via AI ── */
   const readFileContent = async (file: File, session: any): Promise<string> => {
     const textTypes = ["text/", "application/json", "application/xml", "text/csv", "application/csv"];
@@ -243,31 +312,31 @@ export function AgentChatView() {
 
     // For images, PDFs, audio, video — call analyze-content
     try {
-      // Use FileReader for fast base64 conversion
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1] || "");
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
       let analyzeType = "document";
       let contentBody: any;
       if (file.type.startsWith("image/")) {
+        const optimizedImage = await optimizeImageForAnalysis(file);
         analyzeType = "image";
-        contentBody = { imageName: file.name, imageBase64: base64Data, imageMimeType: file.type };
+        contentBody = {
+          imageName: file.name,
+          imageBase64: optimizedImage.base64,
+          imageMimeType: optimizedImage.mimeType,
+        };
       } else if (file.type.startsWith("audio/")) {
+        const base64Data = (await fileToDataUrl(file)).split(",")[1] || "";
         analyzeType = "audio";
         contentBody = { fileName: file.name, fileBase64: base64Data, fileMimeType: file.type };
       } else if (file.type.startsWith("video/")) {
+        const base64Data = (await fileToDataUrl(file)).split(",")[1] || "";
         analyzeType = "video";
         contentBody = { fileName: file.name, fileBase64: base64Data, fileMimeType: file.type };
       } else {
+        const base64Data = (await fileToDataUrl(file)).split(",")[1] || "";
         contentBody = { documentName: file.name, fileBase64: base64Data, fileMimeType: file.type };
       }
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000);
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
@@ -276,16 +345,22 @@ export function AgentChatView() {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
+          signal: controller.signal,
           body: JSON.stringify({ type: analyzeType, content: contentBody }),
         }
       );
+      clearTimeout(timeout);
 
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.analysis) {
           return `[Analysis of ${file.name}]\n${result.analysis}`;
         }
+      } else {
+        const err = await response.json().catch(() => ({}));
+        console.error(`File analysis failed for ${file.name}:`, err.error || response.status);
       }
     } catch (err) {
       console.error("File analysis error:", err);
