@@ -43,6 +43,7 @@ export function AgentChatView() {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const { brands } = useBusinessDNA();
+  const { extensionConnected, detecting, retryDetection } = useExtensionBridge();
 
   /* ── Agents = brands from Business DNA ── */
   const agents = brands.map(b => ({ id: b.id, name: b.agentName || b.name || "AI CEO" }));
