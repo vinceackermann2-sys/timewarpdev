@@ -380,7 +380,7 @@ export function AgentChatView() {
                         className="w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors text-primary font-medium flex items-center gap-2"
                       >
                         <Settings className="w-3 h-3" />
-                        Manage Agents
+                        Manage Employees
                       </button>
                     </div>
                   </div>
