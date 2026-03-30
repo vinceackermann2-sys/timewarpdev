@@ -68,7 +68,10 @@ serve(async (req) => {
     const { contextText: businessContext, safetySettings } = await loadBusinessContext(supabase, employee);
 
     // Build system prompt
-    const systemPrompt = buildSystemPrompt(employee, businessContext, pageContext, safetySettings);
+    const isBrowserMode = !!pageContext;
+    const systemPrompt = isBrowserMode
+      ? buildBrowserSystemPrompt(employee, businessContext, pageContext, safetySettings)
+      : buildEmployeeChatPrompt(employee, businessContext, safetySettings);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -213,7 +216,7 @@ async function loadBusinessContext(supabase: any, employee: any): Promise<{ cont
   return { contextText: businessContext, safetySettings };
 }
 
-function buildSystemPrompt(employee: any, businessContext: string, pageContext: any, safetySettings: any): string {
+function buildBrowserSystemPrompt(employee: any, businessContext: string, pageContext: any, safetySettings: any): string {
   const procedures = Array.isArray(employee.sop_procedure) ? employee.sop_procedure : [];
   const definitions = Array.isArray(employee.sop_definitions) ? employee.sop_definitions : [];
   const responsibilities = Array.isArray(employee.sop_responsibilities) ? employee.sop_responsibilities : [];
@@ -292,6 +295,39 @@ ${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments** — D
 - If you cannot complete a step, use "respond" to ask for clarification
 - For sensitive actions (delete, send), warn with "respond" first
 - You are restricted to operating ONLY within the tab group created for this session
+${buildSafetySection(safetySettings)}`;
+}
+
+function buildEmployeeChatPrompt(employee: any, businessContext: string, safetySettings: any): string {
+  const definitions = Array.isArray(employee.sop_definitions) ? employee.sop_definitions : [];
+  const responsibilities = Array.isArray(employee.sop_responsibilities) ? employee.sop_responsibilities : [];
+  const procedures = Array.isArray(employee.sop_procedure) ? employee.sop_procedure : [];
+
+  return `You are an AI employee helping the user directly in chat. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base".
+
+## Employee Identity
+- **Name:** ${employee.name}
+- **Role:** ${employee.role}
+${employee.sop_title ? `- **SOP Title:** ${employee.sop_title}` : ""}
+${employee.sop_purpose ? `\n## Purpose\n${employee.sop_purpose}` : ""}
+${employee.sop_scope ? `\n## Scope\n${employee.sop_scope}` : ""}
+${definitions.length > 0 ? `\n## Definitions\n${definitions.map((d: any) => `- **${d.term}:** ${d.meaning}`).join("\n")}` : ""}
+${responsibilities.length > 0 ? `\n## Responsibilities\n${responsibilities.map((r: any, i: number) => `${i + 1}. ${r}`).join("\n")}` : ""}
+${procedures.length > 0 ? `\n## Operating Procedure\n${procedures.map((p: any, i: number) => `${i + 1}. ${p}`).join("\n")}` : ""}
+${employee.sop_safety_notes ? `\n## Safety & Compliance Notes\n${employee.sop_safety_notes}` : ""}
+${employee.sop_documentation ? `\n## Documentation Requirements\n${employee.sop_documentation}` : ""}
+
+${businessContext}
+
+## Chat Behavior (CRITICAL)
+1. Answer the user's latest question directly and clearly.
+2. If the user message contains attached file sections (e.g. "--- filename ---" and "[Analysis of filename]"), treat that as trusted context and use it in your answer.
+3. If file content indicates an analysis failure (e.g. "could not analyze"), clearly tell the user the file could not be analyzed and ask them to retry upload.
+4. Do NOT return JSON action blocks in chat mode.
+5. Keep responses well-structured in markdown with short sections and bullets when useful.
+
+## SAFETY GUARDRAILS
+${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create accounts, or make payments for the user.` : "- Integrity guardrails are disabled by the user; still avoid unsafe or sensitive operations."}
 ${buildSafetySection(safetySettings)}`;
 }
 
