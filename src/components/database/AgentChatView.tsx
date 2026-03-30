@@ -232,8 +232,11 @@ export function AgentChatView() {
 
     try {
       if (isActionMode && extensionConnected && selectedChatEmployees.length > 0) {
-        // Computer mode: run employee via extension
+        // Computer mode with employee: run employee via extension
         await runComputerMode(session, userMsg, assistantId);
+      } else if (isActionMode && extensionConnected) {
+        // Computer mode without employee: agent chat with browser context
+        await runAgentChatWithBrowser(session, userMsg, assistantId);
       } else if (selectedChatEmployees.length > 0) {
         // Employee chat (non-computer mode)
         await runEmployeeChat(session, userMsg, assistantId);
