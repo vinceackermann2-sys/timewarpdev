@@ -525,7 +525,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     setStep(1);
   }, []);
 
-  const visibleSources = scannedSources.slice(-5);
+  const visibleSources = scannedSources;
   const currentTask = ANALYSIS_MILESTONES[currentMilestone];
 
   return (
