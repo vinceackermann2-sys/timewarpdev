@@ -296,6 +296,7 @@ export type Database = {
       }
       user_connections: {
         Row: {
+          brand_id: string | null
           connected_at: string | null
           id: string
           metadata: Json | null
@@ -304,6 +305,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          brand_id?: string | null
           connected_at?: string | null
           id?: string
           metadata?: Json | null
@@ -312,6 +314,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          brand_id?: string | null
           connected_at?: string | null
           id?: string
           metadata?: Json | null
@@ -319,7 +322,15 @@ export type Database = {
           status?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_connections_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "user_business_data"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_oauth_tokens: {
         Row: {
