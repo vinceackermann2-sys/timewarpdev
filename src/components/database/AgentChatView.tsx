@@ -296,6 +296,15 @@ export function AgentChatView() {
     const emp = userMsg.employees?.[0];
     if (!emp) return;
 
+    const startTime = new Date();
+    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+    // Show processing state with timestamp
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `🚀 **Processing** · \`${formatTime(startTime)}\`\nRunning employee **${emp.name}**...`, isStreaming: true } : m));
+
+    // Log to DB
+    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
+
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
     chatHistory.push({ role: "user", content: userMsg.content });
 
@@ -314,11 +323,19 @@ export function AgentChatView() {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
+      supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.error || "Failed" }).then(() => {});
       throw new Error(err.error || "Employee failed");
     }
 
     const data = await response.json();
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: data.content || "Task completed.", isStreaming: false } : m));
+    const endTime = new Date();
+    const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+
+    // Log completion
+    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
+
+    const finalContent = `${data.content || "Task completed."}\n\n---\n⏱️ *Completed in ${durationSec}s · ${formatTime(endTime)}*`;
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: finalContent, isStreaming: false } : m));
   };
 
   /* ── Computer mode: run employee via browser extension ── */
