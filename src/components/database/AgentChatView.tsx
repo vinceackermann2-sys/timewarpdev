@@ -4,7 +4,6 @@ import {
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown
 } from "lucide-react";
 import { SettingsView } from "@/components/database/SettingsView";
-} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
