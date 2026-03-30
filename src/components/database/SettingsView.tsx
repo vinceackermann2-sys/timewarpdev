@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Focus, ShieldAlert, Filter, Plus, Trash2, X } from "lucide-react";
+import { Shield, Focus, ShieldAlert, Filter, Plus, Trash2, X, Lock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -36,6 +36,7 @@ export interface VisualIdentityData {
 export interface SafetySettings {
   focusEnabled: boolean;
   promptInjectionEnabled: boolean;
+  integrityEnabled: boolean;
   moderationCategories: Record<string, { enabled: boolean; level: "Low" | "Medium" | "High" }>;
   customGuardrails: { name: string; prompt: string }[];
 }
@@ -43,6 +44,7 @@ export interface SafetySettings {
 export const DEFAULT_SAFETY_SETTINGS: SafetySettings = {
   focusEnabled: false,
   promptInjectionEnabled: false,
+  integrityEnabled: true,
   moderationCategories: {
     "Sexual": { enabled: false, level: "High" },
     "Violence": { enabled: false, level: "High" },
