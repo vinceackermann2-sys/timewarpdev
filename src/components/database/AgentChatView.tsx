@@ -703,13 +703,7 @@ export function AgentChatView() {
                         ))}
                       </div>
                       <button
-                        onClick={() => {
-                          const name = prompt("Enter employee name:");
-                          if (!name) return;
-                          const role = prompt("Enter employee role:");
-                          if (!role) return;
-                          handleAddEmployee(name, role);
-                        }}
+                        onClick={() => setShowAddEmployee(true)}
                         className="mt-4 w-full py-2.5 border border-dashed border-border text-muted-foreground rounded-xl text-sm font-medium hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
