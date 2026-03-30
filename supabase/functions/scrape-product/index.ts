@@ -501,7 +501,7 @@ serve(async (req) => {
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-2.5-flash-lite",
-                messages: [{ role: "user", content: `From these URLs, select up to 5 that are individual PRODUCT pages. Exclude category/collection pages, blog posts, about/legal pages.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return [].\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
+                messages: [{ role: "user", content: `From these URLs, select ONLY the ones that are clearly DISTINCT individual PRODUCT or SERVICE pages. Each URL should represent a genuinely different product — do NOT include variant pages, color options, or size variations of the same product. Exclude category/collection pages, blog posts, about/legal pages.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return []. Maximum 3 URLs.\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
               }),
             })).text();
             try {
@@ -509,7 +509,7 @@ serve(async (req) => {
               const raw = pickData.choices?.[0]?.message?.content || "";
               const arrMatch = raw.match(/\[[\s\S]*?\]/);
               if (arrMatch) {
-                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, 5);
+                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, 3);
                 console.log("AI selected", selected.length, "product pages:", selected);
                 const scrapeResults = await Promise.allSettled(
                   selected.map(async (pUrl: string) => {
@@ -656,10 +656,31 @@ serve(async (req) => {
 
     const products: any[] = [];
     const audiences: any[] = [];
+    const seenProductNames = new Set<string>();
     for (const r of productAudienceResults) {
       if (r.status !== 'fulfilled' || !r.value) continue;
-      if (r.value.product && r.value.product.name) products.push(r.value.product);
-      if (r.value.audience && r.value.audience.name) audiences.push(r.value.audience);
+      if (r.value.product && r.value.product.name) {
+        const normalizedName = r.value.product.name.toLowerCase().trim();
+        if (!seenProductNames.has(normalizedName)) {
+          seenProductNames.add(normalizedName);
+          products.push(r.value.product);
+        } else {
+          console.log("Skipping duplicate product:", r.value.product.name);
+        }
+      }
+      if (r.value.audience && r.value.audience.name) {
+        audiences.push(r.value.audience);
+      }
+    }
+    // Also deduplicate audiences by name
+    const uniqueAudiences: any[] = [];
+    const seenAudienceNames = new Set<string>();
+    for (const a of audiences) {
+      const normalizedName = a.name.toLowerCase().trim();
+      if (!seenAudienceNames.has(normalizedName)) {
+        seenAudienceNames.add(normalizedName);
+        uniqueAudiences.push(a);
+      }
     }
 
     console.log("Extracted", products.length, "products,", audiences.length, "audiences");
@@ -678,9 +699,9 @@ serve(async (req) => {
     const extracted: any = {
       brand,
       products,
-      audiences,
+      audiences: uniqueAudiences,
       product: products[0],
-      audience: audiences[0] || null,
+      audience: uniqueAudiences[0] || null,
     };
 
     // ══════════════════════════════════════════════

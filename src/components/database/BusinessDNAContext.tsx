@@ -166,7 +166,38 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
 }
 
 async function deleteEntity(rowId: string) {
-  await supabase.from("user_business_data").delete().eq("id", rowId);
+  const { error } = await supabase.from("user_business_data").delete().eq("id", rowId);
+  if (error) console.error("deleteEntity failed for", rowId, error.message);
+}
+
+async function deleteEntityByLogicalId(logicalId: string, dataType: string, workspaceId?: string | null) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return;
+
+  let query = supabase
+    .from("user_business_data")
+    .select("id, content")
+    .eq("data_type", dataType)
+    .eq("source", "business-dna");
+
+  if (workspaceId) {
+    query = query.eq("workspace_id", workspaceId);
+  } else {
+    query = query.eq("user_id", session.user.id);
+  }
+
+  const { data } = await query;
+  if (!data) return;
+
+  for (const row of data) {
+    try {
+      const parsed = JSON.parse(row.content || "{}");
+      if (parsed.id === logicalId) {
+        await deleteEntity(row.id);
+        return;
+      }
+    } catch {}
+  }
 }
 
 export function BusinessDNAProvider({ children }: { children: ReactNode }) {
@@ -257,11 +288,27 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     const affectedAudiences = audiences.filter(a => a.brandId === brandId || a.productIds?.some(pid => brandProductIds.includes(pid)));
     const affectedProducts = products.filter(p => p.brandId === brandId);
 
-    // Delete from DB first (await all)
+    // Delete from DB first (await all) — use fallback if _rowId missing
     const deletePromises: Promise<any>[] = [];
-    if ((brand as any)?._rowId) deletePromises.push(deleteEntity((brand as any)._rowId));
-    affectedProducts.forEach(p => { if ((p as any)._rowId) deletePromises.push(deleteEntity((p as any)._rowId)); });
-    affectedAudiences.forEach(a => { if ((a as any)._rowId) deletePromises.push(deleteEntity((a as any)._rowId)); });
+    if ((brand as any)?._rowId) {
+      deletePromises.push(deleteEntity((brand as any)._rowId));
+    } else if (brand) {
+      deletePromises.push(deleteEntityByLogicalId(brandId, "brand", activeWorkspaceId));
+    }
+    affectedProducts.forEach(p => {
+      if ((p as any)._rowId) {
+        deletePromises.push(deleteEntity((p as any)._rowId));
+      } else {
+        deletePromises.push(deleteEntityByLogicalId(p.id, "product", activeWorkspaceId));
+      }
+    });
+    affectedAudiences.forEach(a => {
+      if ((a as any)._rowId) {
+        deletePromises.push(deleteEntity((a as any)._rowId));
+      } else {
+        deletePromises.push(deleteEntityByLogicalId(a.id, "audience", activeWorkspaceId));
+      }
+    });
     await Promise.all(deletePromises);
 
     // Then update local state
@@ -279,7 +326,11 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
   const deleteProduct = async (productId: string) => {
     const product = products.find(p => p.id === productId);
-    if ((product as any)?._rowId) await deleteEntity((product as any)._rowId);
+    if ((product as any)?._rowId) {
+      await deleteEntity((product as any)._rowId);
+    } else {
+      await deleteEntityByLogicalId(productId, "product", activeWorkspaceId);
+    }
     
     const newProducts = products.filter(p => p.id !== productId);
     setProductsState(newProducts);
@@ -288,7 +339,11 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
   const deleteAudience = async (audienceId: string) => {
     const audience = audiences.find(a => a.id === audienceId);
-    if ((audience as any)?._rowId) await deleteEntity((audience as any)._rowId);
+    if ((audience as any)?._rowId) {
+      await deleteEntity((audience as any)._rowId);
+    } else {
+      await deleteEntityByLogicalId(audienceId, "audience", activeWorkspaceId);
+    }
     
     const newAudiences = audiences.filter(a => a.id !== audienceId);
     setAudiencesState(newAudiences);
