@@ -741,6 +741,18 @@ export function AgentChatView() {
                       {msg.isStreaming && msg.content && (
                         <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5" />
                       )}
+                      {msg.reportUrl && (
+                        <a
+                          href={msg.reportUrl}
+                          download={msg.reportName || "task-report.md"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-sm font-medium transition-colors no-underline"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download Report
+                        </a>
+                      )}
                     </div>
                   ) : (
                     <>
