@@ -182,23 +182,23 @@ export function AgentChatView() {
             onClick={() => setShowAgents(!showAgents)}
             className="flex items-center gap-2 bg-card/80 backdrop-blur-md border border-border/50 shadow-sm px-4 py-2 rounded-full text-sm font-medium text-foreground hover:bg-card transition-colors"
           >
-            <Users className="w-4 h-4 text-muted-foreground" />
-            {selectedAgent}
+            <Bot className="w-4 h-4 text-muted-foreground" />
+            {selectedAgent || "Select Agent"}
             <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showAgents ? "rotate-90" : ""}`} />
           </button>
           {showAgents && (
             <div className="absolute right-0 top-[calc(100%+8px)] w-48 bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50">
-              {employees.map((emp) => (
+              {agents.map((agent) => (
                 <button
-                  key={emp.id}
-                  onClick={() => { setSelectedAgent(emp.name); setShowAgents(false); }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors ${selectedAgent === emp.name ? "text-primary font-semibold" : "text-muted-foreground"}`}
+                  key={agent.id}
+                  onClick={() => { setSelectedAgent(agent.name); setShowAgents(false); }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors ${selectedAgent === agent.name ? "text-primary font-semibold" : "text-muted-foreground"}`}
                 >
-                  {emp.name}
+                  {agent.name}
                 </button>
               ))}
-              {employees.length === 0 && (
-                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No agents yet</p>
+              {agents.length === 0 && (
+                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No agents yet — add a business in Business DNA</p>
               )}
             </div>
           )}
