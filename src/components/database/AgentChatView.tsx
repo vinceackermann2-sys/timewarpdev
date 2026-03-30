@@ -232,6 +232,10 @@ export function AgentChatView() {
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
     chatHistory.push({ role: "user", content: userMsg.content });
 
+    // Find the active brand's DB row ID to pass business DNA context
+    const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+    const brandRowId = activeBrand ? (activeBrand as any)._rowId : undefined;
+
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
       {
@@ -241,7 +245,12 @@ export function AgentChatView() {
           Authorization: `Bearer ${session.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ messages: chatHistory, pageContext: null }),
+        body: JSON.stringify({
+          messages: chatHistory,
+          pageContext: null,
+          brandId: brandRowId,
+          workspaceId: activeWorkspaceId,
+        }),
       }
     );
 
