@@ -202,21 +202,27 @@ async function loadBusinessDNA(supabase: any, userId: string, brandId?: string, 
     }
   }
 
-  // Also load other workspace business data (documents, etc.)
-  if (wsFilter) {
-    const { data: wsData } = await supabase
+  // Also load other business data (documents, files, URLs uploaded to database)
+  {
+    let dbQuery = supabase
       .from("user_business_data")
-      .select("title, content, analyzed_content, data_type")
-      .eq("workspace_id", wsFilter)
-      .not("source", "eq", "business-dna")
-      .limit(20);
+      .select("title, content, analyzed_content, data_type, source")
+      .not("source", "eq", "business-dna");
 
-    if (wsData && wsData.length > 0) {
-      context += `\n## Additional Business Data\n`;
-      for (const item of wsData) {
+    if (wsFilter) {
+      dbQuery = dbQuery.eq("workspace_id", wsFilter);
+    } else {
+      dbQuery = dbQuery.eq("user_id", userId);
+    }
+
+    const { data: dbData } = await dbQuery.limit(30);
+
+    if (dbData && dbData.length > 0) {
+      context += `\n## Business Database Files & Documents\n`;
+      for (const item of dbData) {
         context += `\n### ${item.title} (${item.data_type})\n`;
-        if (item.analyzed_content) context += item.analyzed_content.slice(0, 800) + "\n";
-        else if (item.content) context += item.content.slice(0, 800) + "\n";
+        if (item.analyzed_content) context += item.analyzed_content.slice(0, 1500) + "\n";
+        else if (item.content) context += item.content.slice(0, 1500) + "\n";
       }
     }
   }
