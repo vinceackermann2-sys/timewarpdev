@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Focus, ShieldAlert, Filter, Plus, Trash2, X } from "lucide-react";
+import { Shield, Focus, ShieldAlert, Filter, Plus, Trash2, X, Lock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,7 +88,7 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
     <div className="space-y-6 pt-5">
       <div>
         <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <Shield className="h-5 w-5 text-primary" />
+          <Shield className="h-5 w-5 text-foreground" />
           Safety
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
@@ -98,11 +98,30 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
 
       {/* Guardrail Cards */}
       <div className="space-y-3">
+        {/* Integrity */}
+        <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card/50 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+              <Lock className="h-4.5 w-4.5 text-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">Integrity</p>
+              <p className="text-xs text-muted-foreground">
+                Never log in, sign up, or make payments on your behalf
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={safety.integrityEnabled !== false}
+            onCheckedChange={(v) => updateSafety({ integrityEnabled: v })}
+          />
+        </div>
+
         {/* Focus */}
         <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card/50 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Focus className="h-4.5 w-4.5 text-primary" />
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+              <Focus className="h-4.5 w-4.5 text-foreground" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">Focus</p>
@@ -120,8 +139,8 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
         {/* Prompt Injection */}
         <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card/50 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <ShieldAlert className="h-4.5 w-4.5 text-primary" />
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+              <ShieldAlert className="h-4.5 w-4.5 text-foreground" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">
@@ -146,8 +165,8 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
           className="w-full flex items-center justify-between rounded-lg border border-border/50 bg-card/50 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
         >
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Filter className="h-4.5 w-4.5 text-primary" />
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+              <Filter className="h-4.5 w-4.5 text-foreground" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">
@@ -169,8 +188,8 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
           className="w-full flex items-center justify-between rounded-lg border border-border/50 bg-card/50 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
         >
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Plus className="h-4.5 w-4.5 text-primary" />
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+              <Plus className="h-4.5 w-4.5 text-foreground" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">
