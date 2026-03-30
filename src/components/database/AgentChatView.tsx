@@ -395,6 +395,15 @@ export function AgentChatView() {
                   {isActionMode ? "ON" : "OFF"}
                 </span>
               </button>
+
+              {/* Settings */}
+              <button
+                onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
+              >
+                <Settings className="w-4 h-4 text-muted-foreground" />
+                Settings
+              </button>
             </div>
           )}
 
