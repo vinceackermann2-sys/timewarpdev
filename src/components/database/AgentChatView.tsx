@@ -232,8 +232,11 @@ export function AgentChatView() {
 
     try {
       if (isActionMode && extensionConnected && selectedChatEmployees.length > 0) {
-        // Computer mode: run employee via extension
+        // Computer mode with employee: run employee via extension
         await runComputerMode(session, userMsg, assistantId);
+      } else if (isActionMode && extensionConnected) {
+        // Computer mode without employee: agent chat with browser context
+        await runAgentChatWithBrowser(session, userMsg, assistantId);
       } else if (selectedChatEmployees.length > 0) {
         // Employee chat (non-computer mode)
         await runEmployeeChat(session, userMsg, assistantId);
@@ -311,7 +314,69 @@ export function AgentChatView() {
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", isStreaming: false } : m));
   };
 
-  /* ── Employee chat (non-streaming) ── */
+  /* ── Agent chat with browser context (computer mode, no employee) ── */
+  const runAgentChatWithBrowser = async (session: any, userMsg: ChatMessage, assistantId: string) => {
+    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
+    chatHistory.push({ role: "user", content: userMsg.content });
+
+    const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+    const brandRowId = activeBrand ? (activeBrand as any)._rowId : undefined;
+
+    // Get page context from extension
+    const pageContext = await getPageContext();
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          messages: chatHistory,
+          pageContext,
+          brandId: brandRowId,
+          workspaceId: activeWorkspaceId,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to get response");
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No response body");
+
+    const decoder = new TextDecoder();
+    let fullContent = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6);
+        if (data === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content || "";
+          if (delta) {
+            fullContent += delta;
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, isStreaming: true } : m));
+          }
+        } catch {}
+      }
+    }
+
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", isStreaming: false } : m));
+  };
+
   const runEmployeeChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
     const emp = userMsg.employees?.[0];
     if (!emp) return;
