@@ -133,31 +133,76 @@ async function loadBusinessContext(supabase: any, employee: any): Promise<{ cont
     .single();
 
   if (bizData) {
-    businessContext = `\n\n## Linked Business Data\n- **Title:** ${bizData.title}\n- **Type:** ${bizData.data_type}\n- **Source:** ${bizData.source}`;
+    businessContext = `\n\n## Linked Business\n- **Title:** ${bizData.title}\n- **Type:** ${bizData.data_type}`;
     if (bizData.content) {
-      // Try to parse safety settings from brand content JSON
       try {
         const parsed = JSON.parse(bizData.content);
-        if (parsed?.safetySettings) {
-          safetySettings = parsed.safetySettings;
-        }
+        if (parsed?.safetySettings) safetySettings = parsed.safetySettings;
       } catch {}
-      businessContext += `\n\n### Content\n${bizData.content.slice(0, 5000)}`;
+      businessContext += `\n\n### Brand Details\n${bizData.content.slice(0, 5000)}`;
     }
-    if (bizData.analyzed_content) businessContext += `\n\n### Analysis\n${bizData.analyzed_content.slice(0, 3000)}`;
+    if (bizData.analyzed_content) businessContext += `\n\n### Brand Analysis\n${bizData.analyzed_content.slice(0, 3000)}`;
   }
 
-  if (employee.workspace_id) {
-    const { data: wsData } = await supabase
-      .from("user_business_data")
-      .select("title, content, analyzed_content, data_type")
-      .eq("workspace_id", employee.workspace_id)
-      .neq("id", employee.linked_business_id)
-      .limit(20);
+  // Load products and audiences for this brand
+  const brandId = employee.linked_business_id;
+  const wsFilter = employee.workspace_id || null;
 
-    if (wsData && wsData.length > 0) {
-      businessContext += "\n\n## Additional Workspace Data\n";
-      for (const item of wsData) {
+  let paQuery = supabase
+    .from("user_business_data")
+    .select("title, content, analyzed_content, data_type, source")
+    .eq("source", "business-dna")
+    .in("data_type", ["product", "audience"]);
+
+  if (wsFilter) paQuery = paQuery.eq("workspace_id", wsFilter);
+  else paQuery = paQuery.eq("user_id", employee.user_id);
+
+  const { data: paData } = await paQuery.limit(50);
+  if (paData && paData.length > 0) {
+    const products: any[] = [];
+    const audiences: any[] = [];
+    for (const item of paData) {
+      try {
+        const parsed = item.content ? JSON.parse(item.content) : {};
+        if (parsed.brandId && parsed.brandId !== brandId) continue;
+        if (item.data_type === "product") products.push({ ...parsed, _title: item.title, _analyzed: item.analyzed_content });
+        if (item.data_type === "audience") audiences.push({ ...parsed, _title: item.title, _analyzed: item.analyzed_content });
+      } catch {}
+    }
+    if (products.length > 0) {
+      businessContext += `\n\n## Products (${products.length})\n`;
+      for (const p of products.slice(0, 10)) {
+        businessContext += `\n### ${p.name || p._title || "Product"}\n`;
+        if (p.description) businessContext += `${p.description}\n`;
+        if (p.features?.length) businessContext += `- **Features:** ${(Array.isArray(p.features) ? p.features : []).slice(0, 5).join(", ")}\n`;
+        if (p._analyzed) businessContext += `${p._analyzed.slice(0, 800)}\n`;
+      }
+    }
+    if (audiences.length > 0) {
+      businessContext += `\n\n## Target Audiences (${audiences.length})\n`;
+      for (const a of audiences.slice(0, 10)) {
+        businessContext += `\n### ${a.name || a._title || "Audience"}\n`;
+        if (a.demographics) businessContext += `- **Demographics:** ${typeof a.demographics === "string" ? a.demographics : JSON.stringify(a.demographics)}\n`;
+        if (a._analyzed) businessContext += `${a._analyzed.slice(0, 800)}\n`;
+      }
+    }
+  }
+
+  // Load database files (documents, URLs, etc.)
+  {
+    let dbQuery = supabase
+      .from("user_business_data")
+      .select("title, content, analyzed_content, data_type, source")
+      .not("source", "eq", "business-dna")
+      .neq("id", employee.linked_business_id);
+
+    if (wsFilter) dbQuery = dbQuery.eq("workspace_id", wsFilter);
+    else dbQuery = dbQuery.eq("user_id", employee.user_id);
+
+    const { data: dbData } = await dbQuery.limit(20);
+    if (dbData && dbData.length > 0) {
+      businessContext += "\n\n## Business Database Files & Documents\n";
+      for (const item of dbData) {
         businessContext += `\n### ${item.title} (${item.data_type})\n`;
         if (item.analyzed_content) businessContext += item.analyzed_content.slice(0, 1000) + "\n";
         else if (item.content) businessContext += item.content.slice(0, 1000) + "\n";
