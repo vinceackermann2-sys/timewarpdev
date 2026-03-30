@@ -13,7 +13,7 @@ import { BusinessDNAOnboarding } from "@/components/database/BusinessDNAOnboardi
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2, Menu } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
-import { EmployeesView } from "@/components/database/EmployeesView";
+import { AgentChatView } from "@/components/database/AgentChatView";
 import { RestrictedFeatureGate } from "@/components/database/RestrictedFeatureGate";
 import { WorkspacesView } from "@/components/database/WorkspacesView";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -315,7 +315,7 @@ const Database = () => {
                   featureName="Employees"
                   description="Free users can browse here from the menu, but creating and using AI Employees requires TimeWarp OG."
                 >
-                  <EmployeesView />
+                  <AgentChatView />
                 </RestrictedFeatureGate>
               )}
               {currentView === "workspaces" && user && (
