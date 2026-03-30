@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
-  Monitor, Search, Shield, Link, User, FileText
+  Monitor, Search, Shield, Link, User, FileText, Bot
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { useBusinessDNA } from "./BusinessDNAContext";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import type { AIEmployee } from "./EmployeesView";
 
