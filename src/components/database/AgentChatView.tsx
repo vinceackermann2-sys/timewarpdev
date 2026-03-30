@@ -76,7 +76,62 @@ export function AgentChatView() {
   const [mentionState, setMentionState] = useState<{ active: boolean; node: Node | null; startOffset: number; endOffset: number }>({ active: false, node: null, startOffset: 0, endOffset: 0 });
   const [selectedChatEmployees, setSelectedChatEmployees] = useState<{ id: string; name: string; role: string }[]>([]);
 
-  const dropupRef = useRef<HTMLDivElement>(null);
+  /* ── Integration connection state ── */
+  const [isProviderConnected, setIsProviderConnected] = useState(false);
+  const [connectingProvider, setConnectingProvider] = useState(false);
+
+  const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+
+  const checkConnection = useCallback(async () => {
+    if (!activeBrandForConnections) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ action: "check-status", brandId: activeBrandForConnections.id }) }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const ms = (data.connected || []).find((p: any) => p.provider === "microsoft");
+        setIsProviderConnected(!!ms);
+      }
+    } catch (err) { console.error("Check connection error:", err); }
+  }, [activeBrandForConnections?.id]);
+
+  useEffect(() => { checkConnection(); }, [checkConnection]);
+
+  const handleProviderConnect = async () => {
+    if (!activeBrandForConnections) return;
+    setConnectingProvider(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please log in first"); setConnectingProvider(false); return; }
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandForConnections.id }) }
+      );
+      const data = await response.json();
+      if (data.authUrl) window.location.href = data.authUrl;
+      else toast.error(data.error || "Failed to get authorization URL");
+    } catch { toast.error("Failed to start connection"); }
+    setConnectingProvider(false);
+  };
+
+  const handleProviderDisconnect = async () => {
+    if (!activeBrandForConnections) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandForConnections.id }) }
+      );
+      setIsProviderConnected(false);
+      toast.success("Microsoft disconnected");
+    } catch { toast.error("Failed to disconnect"); }
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLDivElement>(null);
 
