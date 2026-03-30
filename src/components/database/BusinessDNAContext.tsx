@@ -166,7 +166,38 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
 }
 
 async function deleteEntity(rowId: string) {
-  await supabase.from("user_business_data").delete().eq("id", rowId);
+  const { error } = await supabase.from("user_business_data").delete().eq("id", rowId);
+  if (error) console.error("deleteEntity failed for", rowId, error.message);
+}
+
+async function deleteEntityByLogicalId(logicalId: string, dataType: string, workspaceId?: string | null) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return;
+
+  let query = supabase
+    .from("user_business_data")
+    .select("id, content")
+    .eq("data_type", dataType)
+    .eq("source", "business-dna");
+
+  if (workspaceId) {
+    query = query.eq("workspace_id", workspaceId);
+  } else {
+    query = query.eq("user_id", session.user.id);
+  }
+
+  const { data } = await query;
+  if (!data) return;
+
+  for (const row of data) {
+    try {
+      const parsed = JSON.parse(row.content || "{}");
+      if (parsed.id === logicalId) {
+        await deleteEntity(row.id);
+        return;
+      }
+    } catch {}
+  }
 }
 
 export function BusinessDNAProvider({ children }: { children: ReactNode }) {
