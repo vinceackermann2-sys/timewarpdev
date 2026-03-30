@@ -1,14 +1,23 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
-  Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown
+  Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
+  Plug, Loader2
 } from "lucide-react";
 import { SettingsView } from "@/components/database/SettingsView";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "./BusinessDNAContext";
+import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoGoogle from "@/assets/logo-google.png";
+import logoSlack from "@/assets/logo-slack.png";
+import logoFortknox from "@/assets/logo-fortknox.png";
 import type { AIEmployee } from "./EmployeesView";
 
 /* ─── Orb ─── */
