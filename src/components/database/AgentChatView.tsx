@@ -491,10 +491,22 @@ export function AgentChatView() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsSettingsOpen(false)} />
           <div className="relative w-full max-w-4xl h-[600px] bg-background shadow-2xl border border-border rounded-2xl z-50 animate-in zoom-in-95 fade-in duration-200 flex flex-col overflow-hidden">
-            {/* Modal header */}
+            {/* Modal header with agent dropdown */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
               <div className="w-8" />
-              <h3 className="text-lg font-bold text-foreground text-center flex-1">Your Agent</h3>
+              <div className="flex items-center gap-3 flex-1 justify-center">
+                <h3 className="text-lg font-bold text-foreground">Settings</h3>
+                <span className="text-muted-foreground">·</span>
+                <select
+                  value={selectedAgent}
+                  onChange={(e) => setSelectedAgent(e.target.value)}
+                  className="bg-transparent border border-border rounded-lg px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer"
+                >
+                  {agents.map((agent) => (
+                    <option key={agent.id} value={agent.name}>{agent.name}</option>
+                  ))}
+                </select>
+              </div>
               <button onClick={() => setIsSettingsOpen(false)} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors flex-shrink-0">
                 <X className="w-5 h-5" />
               </button>
@@ -504,7 +516,6 @@ export function AgentChatView() {
               {/* Sidebar */}
               <div className="w-64 bg-card border-r border-border p-4 space-y-1 overflow-y-auto">
                 {([
-                  { key: "agent", label: "Your Agent", icon: User },
                   { key: "safety", label: "Safety", icon: Shield },
                   { key: "employees", label: "Employees", icon: Users },
                   { key: "connections", label: "Connections", icon: Link },
@@ -522,35 +533,19 @@ export function AgentChatView() {
 
               {/* Content */}
               <div className="flex-1 p-8 overflow-y-auto flex flex-col">
-                {settingsTab === "agent" && (
-                  <div className="space-y-6 flex-1">
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">Active Agent</label>
-                      <select
-                        value={selectedAgent}
-                        onChange={(e) => setSelectedAgent(e.target.value)}
-                        className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                      >
-                        {agents.map((agent) => (
-                          <option key={agent.id} value={agent.name}>{agent.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">System Prompt</label>
-                      <textarea
-                        className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all h-32 resize-none"
-                        placeholder="You are a helpful assistant..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">Creativity (Temperature)</label>
-                      <input type="range" className="w-full accent-primary" min="0" max="100" defaultValue="70" />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1 font-medium">
-                        <span>Precise</span>
-                        <span>Creative</span>
-                      </div>
-                    </div>
+                {settingsTab === "safety" && (
+                  <div className="flex-1">
+                    {(() => {
+                      const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+                      if (activeBrand) {
+                        return <SettingsView activeBrandId={activeBrand.id} />;
+                      }
+                      return (
+                        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                          <p>Select an agent to configure safety settings.</p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -602,7 +597,7 @@ export function AgentChatView() {
                   </div>
                 )}
 
-                {settingsTab !== "agent" && settingsTab !== "employees" && (
+                {settingsTab !== "safety" && settingsTab !== "employees" && (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground">
                     <p>Configuration for {settingsTab} will appear here.</p>
                   </div>
