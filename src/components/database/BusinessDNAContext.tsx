@@ -167,14 +167,26 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
   }
 }
 
-async function deleteEntity(rowId: string) {
-  const { error } = await supabase.from("user_business_data").delete().eq("id", rowId);
-  if (error) console.error("deleteEntity failed for", rowId, error.message);
+async function deleteEntities(rowIds: string[]) {
+  const uniqueRowIds = Array.from(new Set(rowIds.filter(Boolean)));
+  if (uniqueRowIds.length === 0) return;
+
+  const { error } = await supabase.from("user_business_data").delete().in("id", uniqueRowIds);
+  if (error) {
+    console.error("deleteEntities failed for", uniqueRowIds.join(", "), error.message);
+    throw error;
+  }
 }
 
-async function deleteEntityByLogicalId(logicalId: string, dataType: string, workspaceId?: string | null) {
+async function deleteEntity(rowId: string) {
+  await deleteEntities([rowId]);
+}
+
+async function findRowIdsByLogicalIds(dataType: string, logicalIds: string[], workspaceId?: string | null): Promise<string[]> {
+  if (logicalIds.length === 0) return [];
+
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return;
+  if (!session?.user) return [];
 
   let query = supabase
     .from("user_business_data")
@@ -188,17 +200,31 @@ async function deleteEntityByLogicalId(logicalId: string, dataType: string, work
     query = query.eq("user_id", session.user.id);
   }
 
-  const { data } = await query;
-  if (!data) return;
+  const { data, error } = await query;
+  if (error || !data) {
+    if (error) console.error(`findRowIdsByLogicalIds failed for ${dataType}:`, error.message);
+    return [];
+  }
+
+  const wanted = new Set(logicalIds);
+  const rowIds: string[] = [];
 
   for (const row of data) {
     try {
       const parsed = JSON.parse(row.content || "{}");
-      if (parsed.id === logicalId) {
-        await deleteEntity(row.id);
-        return;
+      if (wanted.has(parsed.id)) {
+        rowIds.push(row.id);
       }
     } catch {}
+  }
+
+  return rowIds;
+}
+
+async function deleteEntityByLogicalId(logicalId: string, dataType: string, workspaceId?: string | null) {
+  const rowIds = await findRowIdsByLogicalIds(dataType, [logicalId], workspaceId);
+  if (rowIds.length > 0) {
+    await deleteEntities(rowIds);
   }
 }
 
@@ -290,28 +316,35 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     const affectedAudiences = audiences.filter(a => a.brandId === brandId || a.productIds?.some(pid => brandProductIds.includes(pid)));
     const affectedProducts = products.filter(p => p.brandId === brandId);
 
-    // Delete from DB first (await all) — use fallback if _rowId missing
-    const deletePromises: Promise<any>[] = [];
-    if ((brand as any)?._rowId) {
-      deletePromises.push(deleteEntity((brand as any)._rowId));
-    } else if (brand) {
-      deletePromises.push(deleteEntityByLogicalId(brandId, "brand", activeWorkspaceId));
+    // Resolve all row ids first, then delete in a single DB statement to avoid timeout spikes
+    const deletionTargets: { dataType: "brand" | "product" | "audience"; logicalId: string; rowId?: string }[] = [
+      ...(brand ? [{ dataType: "brand" as const, logicalId: brandId, rowId: (brand as any)?._rowId as string | undefined }] : []),
+      ...affectedProducts.map((p) => ({ dataType: "product" as const, logicalId: p.id, rowId: (p as any)?._rowId as string | undefined })),
+      ...affectedAudiences.map((a) => ({ dataType: "audience" as const, logicalId: a.id, rowId: (a as any)?._rowId as string | undefined })),
+    ];
+
+    const directRowIds = deletionTargets
+      .map((target) => target.rowId)
+      .filter((id): id is string => Boolean(id));
+
+    const missingByType = deletionTargets.reduce<Record<string, string[]>>((acc, target) => {
+      if (!target.rowId) {
+        if (!acc[target.dataType]) acc[target.dataType] = [];
+        acc[target.dataType].push(target.logicalId);
+      }
+      return acc;
+    }, {});
+
+    const resolvedMissing = await Promise.all(
+      Object.entries(missingByType).map(([dataType, logicalIds]) =>
+        findRowIdsByLogicalIds(dataType, logicalIds, activeWorkspaceId)
+      )
+    );
+
+    const rowIdsToDelete = Array.from(new Set([...directRowIds, ...resolvedMissing.flat()]));
+    if (rowIdsToDelete.length > 0) {
+      await deleteEntities(rowIdsToDelete);
     }
-    affectedProducts.forEach(p => {
-      if ((p as any)._rowId) {
-        deletePromises.push(deleteEntity((p as any)._rowId));
-      } else {
-        deletePromises.push(deleteEntityByLogicalId(p.id, "product", activeWorkspaceId));
-      }
-    });
-    affectedAudiences.forEach(a => {
-      if ((a as any)._rowId) {
-        deletePromises.push(deleteEntity((a as any)._rowId));
-      } else {
-        deletePromises.push(deleteEntityByLogicalId(a.id, "audience", activeWorkspaceId));
-      }
-    });
-    await Promise.all(deletePromises);
 
     // Then update local state
     const newAudiences = audiences.filter(a => a.brandId !== brandId && !a.productIds?.some(pid => brandProductIds.includes(pid)));
@@ -331,7 +364,10 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     if ((product as any)?._rowId) {
       await deleteEntity((product as any)._rowId);
     } else {
-      await deleteEntityByLogicalId(productId, "product", activeWorkspaceId);
+      const rowIds = await findRowIdsByLogicalIds("product", [productId], activeWorkspaceId);
+      if (rowIds.length > 0) {
+        await deleteEntities(rowIds);
+      }
     }
     
     const newProducts = products.filter(p => p.id !== productId);
@@ -344,7 +380,10 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     if ((audience as any)?._rowId) {
       await deleteEntity((audience as any)._rowId);
     } else {
-      await deleteEntityByLogicalId(audienceId, "audience", activeWorkspaceId);
+      const rowIds = await findRowIdsByLogicalIds("audience", [audienceId], activeWorkspaceId);
+      if (rowIds.length > 0) {
+        await deleteEntities(rowIds);
+      }
     }
     
     const newAudiences = audiences.filter(a => a.id !== audienceId);
