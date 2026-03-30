@@ -33,7 +33,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages, pageContext, brandId, workspaceId } = await req.json();
+    const { messages, pageContext, brandId, workspaceId, browserMode } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -56,11 +56,13 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 `;
     }
 
-    const hasBrowserContext = !!pageContext;
+    const hasBrowserContext = !!pageContext || browserMode;
 
-    const systemPrompt = hasBrowserContext
-      ? buildBrowserPrompt(pageSection, businessContext)
-      : buildChatPrompt(businessContext);
+    const systemPrompt = browserMode
+      ? buildBrowserActionPrompt(pageSection, businessContext)
+      : hasBrowserContext
+        ? buildBrowserPrompt(pageSection, businessContext)
+        : buildChatPrompt(businessContext);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -74,7 +76,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
           { role: "system", content: systemPrompt },
           ...messages,
         ],
-        stream: true,
+        stream: !browserMode,
       }),
     });
 
@@ -102,6 +104,15 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       user_message: userMsg,
       page_url: pageContext?.url || null,
     }).then(() => {});
+
+    // In browserMode, return non-streaming JSON
+    if (browserMode) {
+      const aiResult = await response.json();
+      const content = aiResult.choices?.[0]?.message?.content || "";
+      return new Response(JSON.stringify({ content }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
@@ -228,6 +239,49 @@ async function loadBusinessDNA(supabase: any, userId: string, brandId?: string, 
   }
 
   return context;
+}
+
+function buildBrowserActionPrompt(pageSection: string, businessContext: string): string {
+  return `You are an AI CEO executing tasks through the user's browser. You follow instructions precisely, one action at a time. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base" — just naturally use any business context you have.
+
+${businessContext ? `# YOUR BUSINESS CONTEXT\n${businessContext}` : ""}
+${pageSection}
+
+## CRITICAL RULES
+1. **One action at a time** — Each call you return EXACTLY ONE action as a JSON code block. After the action executes, you'll receive the updated page context and result, then decide the next action.
+2. **No page context = navigate first** — If there is no page context or the URL is blank/about:blank, your first action MUST be a "navigate" to the appropriate URL. Do NOT return "done" just because there is no page context yet.
+3. **Never stop early** — Even if an action fails, try an alternative approach. Only return "done" after all required steps are completed or you truly cannot proceed after multiple attempts.
+4. **ALWAYS respond with JSON** — You MUST respond with a JSON code block every single time. Never respond with plain text.
+
+## Response Format
+Always respond with a single JSON object wrapped in a markdown code block:
+
+\`\`\`json
+{ "action": "navigate", "url": "https://...", "reasoning": "Going to target page", "done": false }
+\`\`\`
+
+### Action Types:
+1. **click** — \`{ "action": "click", "selector": "CSS selector or description", "reasoning": "why", "done": false }\`
+2. **type** — \`{ "action": "type", "selector": "CSS selector or description", "value": "text", "reasoning": "why", "done": false }\`
+3. **navigate** — \`{ "action": "navigate", "url": "https://...", "reasoning": "why", "done": false }\`
+4. **scroll** — \`{ "action": "scroll", "direction": "up|down", "amount": 500, "reasoning": "why", "done": false }\`
+5. **extract** — \`{ "action": "extract", "selector": "CSS selector or description", "dataLabel": "what", "reasoning": "why", "done": false }\`
+6. **wait** — \`{ "action": "wait", "duration": 1000, "reasoning": "why", "done": false }\`
+7. **respond** — \`{ "action": "respond", "message": "your reply", "reasoning": "why", "done": false }\`
+8. **done** — \`{ "action": "done", "message": "summary of what was accomplished", "reasoning": "all steps completed", "done": true }\`
+
+## SAFETY GUARDRAILS — ABSOLUTE RULES
+1. **NEVER make payments** — Do not click "Buy", "Pay", "Purchase", "Checkout", etc.
+2. **NEVER sign up or create accounts** — Do not click "Sign Up", "Register", etc.
+3. **NEVER log in** — Do not enter passwords or interact with auth forms.
+4. **NEVER enter sensitive data** — No credit cards, SSNs, passwords, or PII.
+5. If you encounter any of the above, STOP and use "respond" to ask the user to handle it manually.
+
+## Guidelines
+- Return ONE action per response
+- Set "done": true ONLY when the full task is completed
+- Use CSS selectors when possible, fall back to descriptive text
+- If you cannot complete a step, use "respond" to ask for clarification`;
 }
 
 function buildChatPrompt(businessContext: string): string {

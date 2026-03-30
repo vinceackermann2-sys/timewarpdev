@@ -316,65 +316,136 @@ export function AgentChatView() {
 
   /* ── Agent chat with browser context (computer mode, no employee) ── */
   const runAgentChatWithBrowser = async (session: any, userMsg: ChatMessage, assistantId: string) => {
-    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
-    chatHistory.push({ role: "user", content: userMsg.content });
-
     const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
     const brandRowId = activeBrand ? (activeBrand as any)._rowId : undefined;
 
-    // Get page context from extension
-    const pageContext = await getPageContext();
+    // Signal extension
+    await signalStart("agent", selectedAgent || "AI Agent");
+    updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: "Starting..." });
 
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({
-          messages: chatHistory,
-          pageContext,
-          brandId: brandRowId,
-          workspaceId: activeWorkspaceId,
-        }),
-      }
-    );
+    let stepCount = 0;
+    const maxSteps = 30;
+    let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
+    let allSteps: string[] = [];
+    const startTime = new Date();
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || "Failed to get response");
-    }
+    interface StepLog { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }
+    const stepLogs: StepLog[] = [];
+    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error("No response body");
+    allSteps.push(`🚀 **Task started** — ${formatTime(startTime)}`);
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
 
-    const decoder = new TextDecoder();
-    let fullContent = "";
+    try {
+      while (stepCount < maxSteps) {
+        const pageContext = await getPageContext();
+        const stepTime = new Date();
+        updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: `Step ${stepCount + 1}...` });
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6);
-        if (data === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(data);
-          const delta = parsed.choices?.[0]?.delta?.content || "";
-          if (delta) {
-            fullContent += delta;
-            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, isStreaming: true } : m));
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({
+              messages: conversationHistory,
+              pageContext,
+              brandId: brandRowId,
+              workspaceId: activeWorkspaceId,
+              browserMode: true,
+            }),
           }
-        } catch {}
-      }
-    }
+        );
 
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", isStreaming: false } : m));
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error || "Browser step failed");
+        }
+
+        const data = await response.json();
+        const content = data.content || "";
+        conversationHistory.push({ role: "assistant" as const, content });
+
+        // Parse action JSON
+        const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
+        if (!jsonMatch) {
+          allSteps.push(`\n📝 ${content}`);
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+          break;
+        }
+
+        const action = JSON.parse(jsonMatch[1]);
+        const stepLabel = action.reasoning || action.action;
+        const timeStr = formatTime(stepTime);
+
+        stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
+
+        allSteps.push(`\n**Step ${stepCount + 1}** · \`${timeStr}\`\n🔄 **${action.action}** — ${stepLabel}`);
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
+        updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: stepLabel });
+
+        if (action.done || action.action === "done") {
+          stepLogs[stepLogs.length - 1].result = "done";
+          allSteps.push(`\n✅ **Task completed** — ${formatTime(new Date())}\n${action.message || "All steps completed."}`);
+          break;
+        }
+
+        if (action.action === "respond") {
+          stepLogs[stepLogs.length - 1].result = "respond";
+          allSteps.push(`\n💬 ${action.message}`);
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+          break;
+        }
+
+        // Execute action via extension
+        const result = await executeAction(action);
+        stepLogs[stepLogs.length - 1].result = result.success ? "success" : (result.error || "failed");
+
+        if (result.success) {
+          allSteps[allSteps.length - 1] += ` ✓`;
+        } else {
+          allSteps[allSteps.length - 1] += ` ✗ ${result.error || "failed"}`;
+        }
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: true } : m));
+
+        conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
+        stepCount++;
+      }
+
+      // Generate and upload report
+      const endTime = new Date();
+      const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+      const report = generateTaskReport(selectedAgent || "AI Agent", userMsg.content, stepLogs, startTime, endTime, durationSec);
+      const reportFileName = `task-report-${Date.now()}.md`;
+      const reportPath = `${user!.id}/reports/${reportFileName}`;
+      const reportBlob = new Blob([report], { type: "text/markdown" });
+      const { error: uploadErr } = await supabase.storage.from("business-data").upload(reportPath, reportBlob, { contentType: "text/markdown" });
+
+      if (!uploadErr) {
+        const { data: signedData } = await supabase.storage.from("business-data").createSignedUrl(reportPath, 60 * 60 * 24 * 7);
+        allSteps.push(`\n---\n📄 **Task Report Generated** — ${stepLogs.length} steps in ${durationSec}s`);
+        setMessages(prev => prev.map(m => m.id === assistantId ? {
+          ...m,
+          content: allSteps.join("\n"),
+          isStreaming: false,
+          reportUrl: signedData?.signedUrl || "",
+          reportName: reportFileName,
+        } : m));
+      } else {
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+      }
+    } catch (err: any) {
+      allSteps.push(`\n❌ **Error** — ${formatTime(new Date())}\n${err.message || "Unknown error"}`);
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: allSteps.join("\n"), isStreaming: false } : m));
+      throw err;
+    } finally {
+      updateOverlay({ visible: false });
+      signalStop("agent");
+    }
   };
 
   const runEmployeeChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
