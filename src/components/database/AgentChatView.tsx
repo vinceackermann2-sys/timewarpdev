@@ -6,6 +6,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import type { AIEmployee } from "./EmployeesView";
 
 /* ─── Orb ─── */
