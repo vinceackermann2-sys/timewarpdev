@@ -213,7 +213,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "disconnect" }),
+          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandId }),
         }
       );
       setIsConnected(false);
