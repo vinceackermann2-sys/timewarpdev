@@ -206,6 +206,8 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const { plan: currentPlan } = useSubscription();
   const { user: authUser } = useAuth();
+  const { brands } = useBusinessDNA();
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
