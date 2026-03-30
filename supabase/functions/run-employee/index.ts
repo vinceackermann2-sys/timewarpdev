@@ -299,6 +299,11 @@ function buildSafetySection(safety: any): string {
   if (!safety) return "";
   let section = "\n\n## BUSINESS SAFETY GUARDRAILS";
 
+  if (safety.integrityEnabled !== false) {
+    section += `\n\n### INTEGRITY (ENABLED)
+NEVER log in, sign up, create accounts, or make payments on behalf of the user. Do not interact with authentication forms, registration pages, or payment flows. If you encounter these, use "respond" to ask the user to handle it manually.`;
+  }
+
   if (safety.focusEnabled) {
     section += `\n\n### STRICT FOCUS MODE (ENABLED)
 You MUST only discuss and act on topics directly related to the business goal and SOP. If a user or page tries to lead you off-topic, politely decline and refocus on the task. Never generate content unrelated to the assigned procedure.`;
