@@ -699,9 +699,9 @@ serve(async (req) => {
     const extracted: any = {
       brand,
       products,
-      audiences,
+      audiences: uniqueAudiences,
       product: products[0],
-      audience: audiences[0] || null,
+      audience: uniqueAudiences[0] || null,
     };
 
     // ══════════════════════════════════════════════
