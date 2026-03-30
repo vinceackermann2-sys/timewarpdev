@@ -1,54 +1,49 @@
 
 
-## Plan: Replace Employees View with New Chat-Based Agent UI
+## Plan: Fix Add Business / Onboarding Flow (5 Issues)
 
-### What Changes
+### Issue 1: Logging correctness
+The logging milestones and console logs are already in place. The `ANALYSIS_MILESTONES` array cycles through 10 steps. The scrape and persistence steps log correctly. No changes needed here unless there's a specific logging bug — the current implementation logs scrape start, product extraction counts, persistence results, and enrichment status.
 
-The current **Employees** sidebar view (grid of AI employee cards with create wizard) will be replaced with a new full-page chat interface from the uploaded zip. This new view features:
+### Issue 2: "Scanning Sources" — show only sources label and display ALL sources
+Currently `visibleSources = scannedSources.slice(-5)` limits display to only the last 5 sources. Change this to show ALL scanned sources with a scrollable container so users can see every source that was analyzed.
 
-- A large animated orb in the center
-- Agent selector dropdown (top-right)
-- Rich chat input with file uploads, @mention URL references, employee tagging
-- Action mode toggle (Computer use ON/OFF)
-- Settings modal with tabs: Your Agent, Safety, Employees, Connections
+**Files**: `src/components/database/BusinessDNAOnboarding.tsx`
+- Remove the `slice(-5)` limit on `visibleSources`
+- Add `overflow-y-auto max-h-[200px]` to the sources list container so it scrolls if many sources
+- Keep the heading as "Scanning Sources" (already correct) and the count at the bottom
 
-### Implementation Steps
+### Issue 3: Only add products/audiences that were actually found
+Currently both `BusinessDNAOnboarding.tsx` and `AddProductURLView.tsx` do `.slice(0, 5)` which forces up to 5. The scrape function already returns only what it finds (1 product = 1 product). The `.slice(0, 5)` is just a cap, not padding — so if only 1 is found, only 1 is added. The `save-onboarding` edge function also does `.slice(0, 5)`. This is already correct behavior — the slice is a maximum cap. No changes needed.
 
-**1. Add orb CSS styles to `src/index.css`**
-- Add the CSS variables (orb colors, trails), keyframes (`pulse-slow`, `edge-rotate`), and orb component classes from the zip's `index.css`
+### Issue 4: Product offers showing data from another business
+The `DEFAULT_PRODUCT` in `ProductDetailView.tsx` contains hardcoded offers from a hair dye business (Hairsaver). When new products are created with `...DEFAULT_PRODUCT` and the scraped product has no offers, it inherits these fake offers. Same issue with description, features, benefits, etc.
 
-**2. Create new component `src/components/database/AgentChatView.tsx`**
-- Port the full `App` component from the zip into this new component
-- Adapt it to work within the existing app:
-  - Use existing `lucide-react` icons (already available)
-  - Connect employees state to the existing Supabase `ai_employees` table instead of hardcoded data
-  - Use `useAuth` and `useWorkspace` hooks for user context
-  - Keep the Orb as an inline sub-component
-  - Integrate with existing `run-employee` edge function for actual AI chat functionality
-  - Use existing `BusinessBrainOrb` or the new Orb component for the orb display
+**Fix**: Clear out the `DEFAULT_PRODUCT` so all text fields default to empty strings/arrays instead of hardcoded business data. The offers array should default to `[]`, description to `""`, features/benefits/etc to `[]`.
 
-**3. Update `src/pages/Database.tsx`**
-- Replace `<EmployeesView />` with `<AgentChatView />`
-- Remove the `RestrictedFeatureGate` wrapper (or keep it, depending on preference)
-- Update the import
+**Files**: `src/components/database/ProductDetailView.tsx`
+- Reset `DEFAULT_PRODUCT.offers` to `[]`
+- Reset `DEFAULT_PRODUCT.description` to `""`  
+- Reset all other text arrays (features, benefits, painPoints, useCases, etc.) to `[]`
+- Reset all text fields (positioningStatement, commonObjections, proofPoints, etc.) to empty
+- Keep the images array with null placeholders (that's structural, not data)
 
-**4. Keep existing employee CRUD**
-- The new settings modal has an "Employees" tab with inline employee management (add/edit/delete)
-- This replaces the separate `CreateEmployeeWizard` and `EmployeeDetailView` flows
-- Employee data will still be stored in and loaded from the `ai_employees` table
+### Issue 5: Progress bar — still run to 80% but slower
+Currently the progress bar instantly jumps to 80% (`progressRef.current = 80; setProgress(80);`). Change this to animate from 0 to 80% over ~8-10 seconds instead of jumping instantly.
 
-### Files Modified
-- `src/index.css` — add orb CSS
-- `src/components/database/AgentChatView.tsx` — new file (main component)
-- `src/pages/Database.tsx` — swap EmployeesView for AgentChatView
+**Files**: `src/components/database/BusinessDNAOnboarding.tsx`
+- Remove the instant jump to 80%
+- In the progress animation tick, use an asymptotic approach from 0→80% over time (similar to how 80→95 works currently), with a slower speed multiplier
+- Keep the 80→95→100% behavior the same after scrape/persistence complete
 
-### Files Kept (no changes)
-- `src/components/database/EmployeesView.tsx` — kept for reference but no longer rendered
-- All existing edge functions and Supabase tables remain unchanged
+### Technical Details
 
-### Technical Notes
-- The zip uses Tailwind v4 syntax (`@import "tailwindcss"`) but the project uses v3 — CSS will be adapted accordingly
-- The zip uses hardcoded employee data; the implementation will use Supabase queries
-- The contentEditable chat input with @mention support will be preserved as-is from the zip
-- The agent selector (Paul Ackermann, etc.) will be connected to actual user data or kept as a UI shell for now
+**BusinessDNAOnboarding.tsx changes:**
+- Line ~519: Change `visibleSources = scannedSources.slice(-5)` to `visibleSources = scannedSources` and add scroll container
+- Lines 229-268: Rework progress animation to animate 0→80% gradually instead of instant jump
+
+**ProductDetailView.tsx changes:**
+- Lines 53-230: Replace all hardcoded Hairsaver business data in `DEFAULT_PRODUCT` with empty defaults
+
+**AddProductURLView.tsx**: The `...DEFAULT_PRODUCT` spread will automatically benefit from the cleaned defaults — no separate changes needed.
 
