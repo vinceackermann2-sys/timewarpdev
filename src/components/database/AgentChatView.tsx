@@ -132,6 +132,7 @@ export function AgentChatView() {
     } catch { toast.error("Failed to disconnect"); }
   };
 
+  const dropupRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLDivElement>(null);
 
