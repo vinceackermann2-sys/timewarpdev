@@ -302,14 +302,13 @@ export function BrandingEditor({
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Paste a product URL to extract fresh branding (uses 7-day cache
-                for faster results)
+                Paste company URL to extract fresh branding
               </p>
               <div className="flex gap-2">
                 <Input
                   value={extractUrl}
                   onChange={(e) => setExtractUrl(e.target.value)}
-                  placeholder="https://example.com/product"
+                  placeholder="https://nike.com"
                   className="flex-1 h-9 text-sm"
                 />
                 <Button
