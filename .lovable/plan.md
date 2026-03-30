@@ -1,56 +1,54 @@
 
 
-## Plan: Replace SOP tab with Settings (Safety Guardrails) in Business DNA
+## Plan: Replace Employees View with New Chat-Based Agent UI
 
-### What changes
+### What Changes
 
-Remove the "SOP" tab from Business DNA and replace it with a "Settings" tab. Inside Settings, add a "Safety" section with four guardrail categories matching the uploaded reference images. These guardrails will be stored per-brand and injected into AI employee system prompts at runtime.
+The current **Employees** sidebar view (grid of AI employee cards with create wizard) will be replaced with a new full-page chat interface from the uploaded zip. This new view features:
 
-### Safety Guardrail Categories
+- A large animated orb in the center
+- Agent selector dropdown (top-right)
+- Rich chat input with file uploads, @mention URL references, employee tagging
+- Action mode toggle (Computer use ON/OFF)
+- Settings modal with tabs: Your Agent, Safety, Employees, Connections
 
-1. **Focus guardrail** -- Toggle to keep agents focused on their defined goal, preventing off-topic behavior
-2. **Prompt Injection** -- Toggle to block attempts to bypass or override system instructions  
-3. **Moderation guardrails** -- Panel with toggleable categories (Sexual, Violence, Violence Graphic, Harassment, Harassment Threatening, Hate, Hate Threatening, Self Harm, Self Harm Intent, Self Harm Instructions), each with a severity dropdown (Low/Medium/High) and an All/None quick toggle
-4. **Custom guardrails** -- List of user-defined guardrails with Name + Prompt fields, plus "Add new guardrail" button
+### Implementation Steps
 
-### Storage
+**1. Add orb CSS styles to `src/index.css`**
+- Add the CSS variables (orb colors, trails), keyframes (`pulse-slow`, `edge-rotate`), and orb component classes from the zip's `index.css`
 
-Store guardrail settings on the `BrandEntry` interface as a new `safetySettings` field (persisted in the brand's JSON content in `user_business_data`). No database migration needed -- brand data is already stored as JSON in the `content` column.
+**2. Create new component `src/components/database/AgentChatView.tsx`**
+- Port the full `App` component from the zip into this new component
+- Adapt it to work within the existing app:
+  - Use existing `lucide-react` icons (already available)
+  - Connect employees state to the existing Supabase `ai_employees` table instead of hardcoded data
+  - Use `useAuth` and `useWorkspace` hooks for user context
+  - Keep the Orb as an inline sub-component
+  - Integrate with existing `run-employee` edge function for actual AI chat functionality
+  - Use existing `BusinessBrainOrb` or the new Orb component for the orb display
 
-```typescript
-interface SafetySettings {
-  focusEnabled: boolean;
-  promptInjectionEnabled: boolean;
-  moderationCategories: Record<string, { enabled: boolean; level: "Low" | "Medium" | "High" }>;
-  customGuardrails: { name: string; prompt: string }[];
-}
-```
+**3. Update `src/pages/Database.tsx`**
+- Replace `<EmployeesView />` with `<AgentChatView />`
+- Remove the `RestrictedFeatureGate` wrapper (or keep it, depending on preference)
+- Update the import
 
-### Making them work
+**4. Keep existing employee CRUD**
+- The new settings modal has an "Employees" tab with inline employee management (add/edit/delete)
+- This replaces the separate `CreateEmployeeWizard` and `EmployeeDetailView` flows
+- Employee data will still be stored in and loaded from the `ai_employees` table
 
-Update the `run-employee` edge function's `buildSystemPrompt` to:
-1. Load the linked brand's safety settings from the business data
-2. If **Focus** is enabled, append a focus enforcement section to the system prompt
-3. If **Prompt Injection** is enabled, append prompt injection defense instructions
-4. If **Moderation** categories are enabled, append content filtering instructions listing each active category and its severity level
-5. If **Custom guardrails** exist, append each custom guardrail's blocking prompt
+### Files Modified
+- `src/index.css` — add orb CSS
+- `src/components/database/AgentChatView.tsx` — new file (main component)
+- `src/pages/Database.tsx` — swap EmployeesView for AgentChatView
 
-Also update the `extension-agent` edge function similarly if it has brand context.
+### Files Kept (no changes)
+- `src/components/database/EmployeesView.tsx` — kept for reference but no longer rendered
+- All existing edge functions and Supabase tables remain unchanged
 
-### Files to create/modify
-
-1. **New file: `src/components/database/SettingsView.tsx`** -- Settings tab UI with Safety section containing the four guardrail panels (Focus toggle, Prompt Injection toggle, Moderation guardrails dialog, Custom guardrails dialog). Uses Switches, Dialogs, Select dropdowns matching the reference images but with the app's theme.
-
-2. **`src/components/database/BusinessDNAView.tsx`** -- Replace "sop" segment with "settings" (icon: `Settings`), render `<SettingsView>` instead of SOP coming-soon placeholder. Update `segmentEntries` state keys.
-
-3. **`src/components/database/BusinessDNAContext.tsx`** -- Add `safetySettings` to `BrandEntry` interface with defaults.
-
-4. **`supabase/functions/run-employee/index.ts`** -- In `loadBusinessContext` or `buildSystemPrompt`, parse the linked brand's safety settings from the brand JSON content and inject corresponding prompt sections.
-
-### Technical Details
-
-- The Settings view receives `activeBrandId` and reads/writes the brand's `safetySettings` via the `BusinessDNAContext` (same pattern as other brand fields -- updating the brands array triggers the existing sync-to-DB effect).
-- Moderation guardrails dialog uses a scrollable panel similar to the reference, with Switch + Select per category.
-- Custom guardrails uses a list + "Add new guardrail" form with Name and Prompt fields.
-- The run-employee edge function parses the brand content JSON to extract safety settings and builds additional system prompt sections dynamically.
+### Technical Notes
+- The zip uses Tailwind v4 syntax (`@import "tailwindcss"`) but the project uses v3 — CSS will be adapted accordingly
+- The zip uses hardcoded employee data; the implementation will use Supabase queries
+- The contentEditable chat input with @mention support will be preserved as-is from the zip
+- The agent selector (Paul Ackermann, etc.) will be connected to actual user data or kept as a UI shell for now
 
