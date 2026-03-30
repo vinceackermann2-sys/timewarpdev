@@ -998,7 +998,7 @@ export function AgentChatView() {
                     : "rounded-bl-md text-foreground"
                 )}>
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-p:leading-relaxed prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-table:my-3 prose-blockquote:my-3 prose-hr:my-4 prose-strong:text-foreground prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-th:text-left prose-th:font-semibold">
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&>*]:!my-0 [&>*+*]:!mt-3 prose-headings:mb-1 prose-p:leading-relaxed prose-ul:pl-4 prose-ol:pl-4 prose-li:my-0 prose-table:my-3 prose-blockquote:my-3 prose-hr:my-4 prose-strong:text-foreground prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-th:text-left prose-th:font-semibold [&_ul]:space-y-0.5 [&_ol]:space-y-0.5">
                       {/* Task step indicators */}
                       {msg.taskSteps && msg.taskSteps.length > 0 && (
                         <div className="mb-3 space-y-1 not-prose">
