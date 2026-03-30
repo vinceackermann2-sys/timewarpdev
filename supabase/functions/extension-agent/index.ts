@@ -244,9 +244,9 @@ ${businessContext ? `# YOUR BUSINESS CONTEXT\nThis is your deep knowledge of the
 }
 
 function buildBrowserPrompt(pageSection: string, businessContext: string): string {
-  return `You are the AI CEO — a browser automation AI assistant embedded in a Chrome extension. You can SEE the user's current page and perform actions on it, informed by your deep knowledge of their business.
+  return `You are an intelligent browser automation AI assistant embedded in a browser extension. You can SEE the user's current page and perform actions on it, informed by your deep knowledge of their business.
 
-${businessContext ? `# YOUR BUSINESS KNOWLEDGE (RAG)\nUse this business knowledge to inform your actions, generate relevant content, and provide contextual help.\n${businessContext}` : ""}
+${businessContext ? `# YOUR BUSINESS CONTEXT\nUse this business context (brand, products, audiences) to inform your actions, generate relevant content, and provide contextual help.\n${businessContext}` : ""}
 
 ${pageSection}
 

@@ -202,7 +202,7 @@ ${pageContext.links ? `\n### Key Links\n${JSON.stringify(pageContext.links.slice
 
   const stepCount = procedures.length;
 
-  return `You are an AI employee executing a Standard Operating Procedure (SOP) through a user's browser. You follow the SOP steps precisely, one action at a time.
+  return `You are an AI employee executing a Standard Operating Procedure (SOP) through the user's browser. You follow the SOP steps precisely, one action at a time. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base" — just naturally use any business context you have.
 
 ${sopSection}
 ${businessContext}
