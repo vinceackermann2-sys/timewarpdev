@@ -237,16 +237,22 @@ export function AgentChatView() {
     const isText = textTypes.some(t => file.type.startsWith(t)) || /\.(txt|md|csv|json|xml|html|css|js|ts|py|log|yml|yaml|toml|ini|cfg|env)$/i.test(file.name);
 
     if (isText) {
-      return await file.text();
+      const text = await file.text();
+      return text.slice(0, 50000);
     }
 
     // For images, PDFs, audio, video — call analyze-content
     try {
-      const buffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      const base64Data = btoa(binary);
+      // Use FileReader for fast base64 conversion
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1] || "");
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
 
       let analyzeType = "document";
       let contentBody: any;
@@ -278,7 +284,7 @@ export function AgentChatView() {
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.analysis) {
-          return `[AI Analysis of ${file.name}]\n${result.analysis}`;
+          return `[Analysis of ${file.name}]\n${result.analysis}`;
         }
       }
     } catch (err) {
@@ -288,16 +294,25 @@ export function AgentChatView() {
     return `[File: ${file.name} (${file.type || "unknown"}, ${(file.size / 1024).toFixed(1)}KB) — could not analyze]`;
   };
 
-  /* ── Upload files to storage and get content ── */
-  const uploadFilesToStorage = async (files: { id: string; name: string; file?: File }[], session: any): Promise<{ name: string; content: string }[]> => {
-    const results: { name: string; content: string }[] = [];
-    for (const f of files) {
+  /* ── Process files: read content in parallel, upload in background ── */
+  const processFiles = async (files: { id: string; name: string; file?: File }[], session: any): Promise<{ name: string; content: string }[]> => {
+    const validFiles = files.filter(f => f.file);
+    if (validFiles.length === 0) return [];
+
+    // Upload to storage in background (non-blocking)
+    for (const f of validFiles) {
       if (!f.file) continue;
       const path = `${user!.id}/chat/${Date.now()}-${f.name}`;
       supabase.storage.from("business-data").upload(path, f.file).catch(() => {});
-      const content = await readFileContent(f.file, session);
-      results.push({ name: f.name, content });
     }
+
+    // Read all file contents in parallel
+    const results = await Promise.all(
+      validFiles.map(async (f) => ({
+        name: f.name,
+        content: await readFileContent(f.file!, session),
+      }))
+    );
     return results;
   };
 
@@ -312,7 +327,7 @@ export function AgentChatView() {
 
     setIsSending(true);
 
-    const fileResults = await uploadFilesToStorage(uploadedFiles, session);
+    const fileResults = await processFiles(uploadedFiles, session);
 
     // Build user message
     let userContent = inputText;
@@ -998,7 +1013,7 @@ export function AgentChatView() {
                     : "rounded-bl-md text-foreground"
                 )}>
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&>*]:!my-0 [&>*+*]:!mt-3 prose-headings:mb-1 prose-p:leading-relaxed prose-ul:pl-4 prose-ol:pl-4 prose-li:my-0 prose-table:my-3 prose-blockquote:my-3 prose-hr:my-4 prose-strong:text-foreground prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-th:text-left prose-th:font-semibold [&_ul]:space-y-0.5 [&_ol]:space-y-0.5">
+                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-6 prose-headings:mb-3 prose-p:my-3 prose-p:leading-relaxed prose-ul:my-3 prose-ul:pl-5 prose-ol:my-3 prose-ol:pl-5 prose-li:my-1.5 prose-table:my-4 prose-blockquote:my-4 prose-blockquote:pl-4 prose-blockquote:border-l-2 prose-blockquote:border-primary/30 prose-hr:my-6 prose-strong:text-foreground prose-td:px-3 prose-td:py-2 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold [&>*:first-child]:!mt-0 prose-headings:font-semibold prose-h2:text-base prose-h3:text-sm">
                       {/* Task step indicators */}
                       {msg.taskSteps && msg.taskSteps.length > 0 && (
                         <div className="mb-3 space-y-1 not-prose">
