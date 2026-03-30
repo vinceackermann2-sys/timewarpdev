@@ -193,7 +193,7 @@ export function AgentChatView() {
                 </button>
               ))}
               {employees.length === 0 && (
-                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No employees yet</p>
+                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No agents yet</p>
               )}
             </div>
           )}

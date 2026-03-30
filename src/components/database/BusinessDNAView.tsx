@@ -304,17 +304,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
            </div>
            <div className="flex flex-col gap-2 pt-1">
              <h1 className="text-2xl font-bold text-foreground leading-tight">{activeBrand?.name || "Your Business"}</h1>
-              <div className="flex items-center gap-2.5">
-                 <BusinessBrainOrb size={22} />
-                <span className="text-base text-muted-foreground">{activeBrand?.agentName || "AI CEO"}</span>
-                 <motion.span
-                   className="text-base font-medium text-primary"
-                   animate={{ opacity: [1, 0.4, 1] }}
-                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                 >
-                   {isBrainLearning ? "Learning" : "Setting up"}
-                 </motion.span>
-              </div>
+              <AgentNameEditor brand={activeBrand} onRename={handleRenameAgent} isBrainLearning={isBrainLearning} />
            </div>
         </div>
 
