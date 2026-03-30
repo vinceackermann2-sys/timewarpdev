@@ -225,15 +225,9 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     return () => clearInterval(timer);
   }, [step, allSourcesDone, scrapeComplete]);
 
-  // Progress animation — instantly jumps to 80%, then animates 80→100%
+  // Progress animation — gradually climbs to 80%, then 80→95→100%
   useEffect(() => {
     if (step < 1 || step > 2) return;
-
-    // Instant jump to 80%
-    if (progressRef.current < 80) {
-      progressRef.current = 80;
-      setProgress(80);
-    }
 
     let rafId: number;
     let lastTime = performance.now();
@@ -253,10 +247,25 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         return;
       }
 
-      // Asymptotic approach from 80→95 (scraping) or 95→99 (persisting)
-      const ceiling = scrapeCompleteRef.current ? 95 : 90;
+      let ceiling: number;
+      let speedFactor: number;
+
+      if (scrapeCompleteRef.current) {
+        // After scrape done, climb 80→95
+        ceiling = 95;
+        speedFactor = 0.02;
+      } else if (progressRef.current < 80) {
+        // Gradually climb 0→80 over ~8-10 seconds
+        ceiling = 80;
+        speedFactor = 0.008;
+      } else {
+        // Slow crawl 80→90 while still scraping
+        ceiling = 90;
+        speedFactor = 0.02;
+      }
+
       const remaining = ceiling - progressRef.current;
-      const speed = Math.max(0.05, remaining * 0.02);
+      const speed = Math.max(0.05, remaining * speedFactor);
       const next = Math.min(ceiling - 0.1, progressRef.current + speed * dt);
 
       progressRef.current = next;
@@ -516,7 +525,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     setStep(1);
   }, []);
 
-  const visibleSources = scannedSources.slice(-5);
+  const visibleSources = scannedSources;
   const currentTask = ANALYSIS_MILESTONES[currentMilestone];
 
   return (
@@ -852,7 +861,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2 w-full min-h-[80px] sm:min-h-[140px]">
+                <div className="flex flex-col gap-2 w-full min-h-[80px] sm:min-h-[140px] max-h-[200px] overflow-y-auto">
                   <AnimatePresence>
                     {visibleSources.map((source, i) => {
                       const isLatest = i === visibleSources.length - 1 && !allSourcesDone;
