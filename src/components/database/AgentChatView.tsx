@@ -231,32 +231,71 @@ export function AgentChatView() {
     if (agents.length > 0 && !selectedAgent) setSelectedAgent(agents[0].name);
   }, [agents]);
 
-  /* ── Read file contents as text ── */
-  const readFileAsText = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string || "");
-      reader.onerror = () => resolve("[Could not read file]");
-      // For text-based files, read as text; otherwise read as data URL for reference
-      const textTypes = ["text/", "application/json", "application/xml", "text/csv", "application/csv"];
-      const isText = textTypes.some(t => file.type.startsWith(t)) || /\.(txt|md|csv|json|xml|html|css|js|ts|py|log|yml|yaml|toml|ini|cfg|env)$/i.test(file.name);
-      if (isText) {
-        reader.readAsText(file);
+  /* ── Read file contents — text files read directly, binary files analyzed via AI ── */
+  const readFileContent = async (file: File, session: any): Promise<string> => {
+    const textTypes = ["text/", "application/json", "application/xml", "text/csv", "application/csv"];
+    const isText = textTypes.some(t => file.type.startsWith(t)) || /\.(txt|md|csv|json|xml|html|css|js|ts|py|log|yml|yaml|toml|ini|cfg|env)$/i.test(file.name);
+
+    if (isText) {
+      return await file.text();
+    }
+
+    // For images, PDFs, audio, video — call analyze-content
+    try {
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64Data = btoa(binary);
+
+      let analyzeType = "document";
+      let contentBody: any;
+      if (file.type.startsWith("image/")) {
+        analyzeType = "image";
+        contentBody = { imageName: file.name, imageBase64: base64Data, imageMimeType: file.type };
+      } else if (file.type.startsWith("audio/")) {
+        analyzeType = "audio";
+        contentBody = { fileName: file.name, fileBase64: base64Data, fileMimeType: file.type };
+      } else if (file.type.startsWith("video/")) {
+        analyzeType = "video";
+        contentBody = { fileName: file.name, fileBase64: base64Data, fileMimeType: file.type };
       } else {
-        // For non-text files like PDFs, images — just note the file name
-        resolve(`[Binary file: ${file.name} (${file.type || "unknown type"}, ${(file.size / 1024).toFixed(1)}KB)]`);
+        contentBody = { documentName: file.name, fileBase64: base64Data, fileMimeType: file.type };
       }
-    });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ type: analyzeType, content: contentBody }),
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.analysis) {
+          return `[AI Analysis of ${file.name}]\n${result.analysis}`;
+        }
+      }
+    } catch (err) {
+      console.error("File analysis error:", err);
+    }
+
+    return `[File: ${file.name} (${file.type || "unknown"}, ${(file.size / 1024).toFixed(1)}KB) — could not analyze]`;
   };
 
-  /* ── Upload files to storage ── */
-  const uploadFilesToStorage = async (files: { id: string; name: string; file?: File }[]): Promise<{ name: string; content: string }[]> => {
+  /* ── Upload files to storage and get content ── */
+  const uploadFilesToStorage = async (files: { id: string; name: string; file?: File }[], session: any): Promise<{ name: string; content: string }[]> => {
     const results: { name: string; content: string }[] = [];
     for (const f of files) {
       if (!f.file) continue;
       const path = `${user!.id}/chat/${Date.now()}-${f.name}`;
-      await supabase.storage.from("business-data").upload(path, f.file);
-      const content = await readFileAsText(f.file);
+      supabase.storage.from("business-data").upload(path, f.file).catch(() => {});
+      const content = await readFileContent(f.file, session);
       results.push({ name: f.name, content });
     }
     return results;
@@ -273,8 +312,7 @@ export function AgentChatView() {
 
     setIsSending(true);
 
-    // Upload files and read content
-    const fileResults = await uploadFilesToStorage(uploadedFiles);
+    const fileResults = await uploadFilesToStorage(uploadedFiles, session);
 
     // Build user message
     let userContent = inputText;
@@ -957,10 +995,10 @@ export function AgentChatView() {
                   "max-w-[80%] rounded-2xl px-5 py-3 text-sm",
                   msg.role === "user"
                     ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-card/80 backdrop-blur border border-border/50 rounded-bl-md text-foreground"
+                    : "rounded-bl-md text-foreground"
                 )}>
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-p:leading-relaxed prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-table:my-3 prose-blockquote:my-3 prose-hr:my-4 prose-strong:text-foreground prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-th:text-left prose-th:font-semibold">
                       {/* Task step indicators */}
                       {msg.taskSteps && msg.taskSteps.length > 0 && (
                         <div className="mb-3 space-y-1 not-prose">
