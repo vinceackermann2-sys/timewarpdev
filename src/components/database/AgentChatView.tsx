@@ -31,6 +31,8 @@ interface ChatMessage {
   files?: { name: string; url?: string }[];
   employees?: { id: string; name: string; role: string }[];
   isStreaming?: boolean;
+  reportUrl?: string;
+  reportName?: string;
 }
 
 /* ─── Main view ─── */
