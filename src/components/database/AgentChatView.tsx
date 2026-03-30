@@ -348,7 +348,7 @@ export function AgentChatView() {
                 >
                   <div className="flex items-center gap-3">
                     <Users className="w-4 h-4 text-muted-foreground" />
-                    Agents
+                    Employees
                   </div>
                   <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showEmployeesMenu ? "rotate-90" : ""}`} />
                 </button>
