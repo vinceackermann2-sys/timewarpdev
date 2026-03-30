@@ -315,7 +315,7 @@ const Database = () => {
                   featureName="Employees"
                   description="Free users can browse here from the menu, but creating and using AI Employees requires TimeWarp OG."
                 >
-                  <EmployeesView />
+                  <AgentChatView />
                 </RestrictedFeatureGate>
               )}
               {currentView === "workspaces" && user && (
