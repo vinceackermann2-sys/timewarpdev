@@ -193,7 +193,7 @@ export function AgentChatView() {
                 </button>
               ))}
               {employees.length === 0 && (
-                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No employees yet</p>
+                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No agents yet</p>
               )}
             </div>
           )}
@@ -343,7 +343,7 @@ export function AgentChatView() {
                 >
                   <div className="flex items-center gap-3">
                     <Users className="w-4 h-4 text-muted-foreground" />
-                    Employees
+                    Agents
                   </div>
                   <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showEmployeesMenu ? "rotate-90" : ""}`} />
                 </button>
@@ -367,7 +367,7 @@ export function AgentChatView() {
                         </button>
                       ))
                     ) : (
-                      <div className="px-4 py-2 text-sm text-muted-foreground text-center">No employees added</div>
+                      <div className="px-4 py-2 text-sm text-muted-foreground text-center">No agents added</div>
                     )}
                     <div className="border-t border-border mt-1 pt-1">
                       <button
@@ -375,7 +375,7 @@ export function AgentChatView() {
                         className="w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors text-primary font-medium flex items-center gap-2"
                       >
                         <Settings className="w-3 h-3" />
-                        Manage Employees
+                        Manage Agents
                       </button>
                     </div>
                   </div>
@@ -499,7 +499,7 @@ export function AgentChatView() {
                 {([
                   { key: "agent", label: "Your Agent", icon: User },
                   { key: "safety", label: "Safety", icon: Shield },
-                  { key: "employees", label: "Employees", icon: Users },
+                  { key: "employees", label: "Agents", icon: Users },
                   { key: "connections", label: "Connections", icon: Link },
                 ] as const).map(({ key, label, icon: Icon }) => (
                   <button
@@ -550,7 +550,7 @@ export function AgentChatView() {
                 {settingsTab === "employees" && (
                   <div className="space-y-6 flex-1">
                     <div>
-                      <h4 className="text-sm font-semibold text-foreground mb-4">Manage Employees</h4>
+                      <h4 className="text-sm font-semibold text-foreground mb-4">Manage Agents</h4>
                       <div className="space-y-4">
                         {employees.map((emp) => (
                           <div key={emp.id} className="bg-card border border-border p-4 rounded-xl space-y-3">
@@ -589,7 +589,7 @@ export function AgentChatView() {
                         className="mt-4 w-full py-2.5 border border-dashed border-border text-muted-foreground rounded-xl text-sm font-medium hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
-                        Add Employee
+                        Add Agent
                       </button>
                     </div>
                   </div>

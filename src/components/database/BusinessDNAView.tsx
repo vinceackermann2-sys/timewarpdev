@@ -214,6 +214,51 @@ function IdleState({ totalInsights }: { totalInsights: number }) {
     </div>
   );
 }
+
+// ── Agent Name Editor ──
+function AgentNameEditor({ brand, onRename, isBrainLearning }: { brand: any; onRename: (name: string) => void; isBrainLearning: boolean }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(brand?.agentName || "AI CEO");
+
+  useEffect(() => { setEditValue(brand?.agentName || "AI CEO"); }, [brand?.agentName]);
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-2">
+        <BusinessBrainOrb size={22} />
+        <input
+          autoFocus
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={() => { if (editValue.trim()) { onRename(editValue.trim()); } setIsEditing(false); }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } if (e.key === "Escape") { setEditValue(brand?.agentName || "AI CEO"); setIsEditing(false); } }}
+          className="text-base text-foreground bg-transparent border-b border-primary outline-none py-0 px-0 font-medium"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <BusinessBrainOrb size={22} />
+      <button
+        onClick={() => setIsEditing(true)}
+        className="text-base text-muted-foreground hover:text-foreground transition-colors group flex items-center gap-1.5"
+      >
+        {brand?.agentName || "AI CEO"}
+        <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </button>
+      <motion.span
+        className="text-base font-medium text-primary"
+        animate={{ opacity: [1, 0.4, 1] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {isBrainLearning ? "Learning" : "Setting up"}
+      </motion.span>
+    </div>
+  );
+}
+
 // ── Main View ──
 export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void; activeBrandId: string }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
@@ -264,12 +309,16 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
     });
   };
 
-  const { brands, products, audiences } = useBusinessDNA();
+  const { brands, setBrands, products, audiences } = useBusinessDNA();
   const activeBrand = brands.find(b => b.id === activeBrandId);
   const brandProductCount = products.filter(p => p.brandId === activeBrandId).length;
   const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
   const brandAudienceCount = audiences.filter(a => a.brandId === activeBrandId || a.productIds?.some(pid => brandProductIds.includes(pid))).length;
   const isBrainLearning = !!activeBrand && brandProductCount > 0 && brandAudienceCount > 0;
+
+  const handleRenameAgent = (newName: string) => {
+    setBrands(prev => prev.map(b => b.id === activeBrandId ? { ...b, agentName: newName } : b));
+  };
 
   const getSegmentCount = (segId: string) => {
     if (segId === "brand") return activeBrand ? 1 : 0;
@@ -304,17 +353,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
            </div>
            <div className="flex flex-col gap-2 pt-1">
              <h1 className="text-2xl font-bold text-foreground leading-tight">{activeBrand?.name || "Your Business"}</h1>
-              <div className="flex items-center gap-2.5">
-                 <BusinessBrainOrb size={22} />
-                <span className="text-base text-muted-foreground">{activeBrand?.agentName || "AI CEO"}</span>
-                 <motion.span
-                   className="text-base font-medium text-primary"
-                   animate={{ opacity: [1, 0.4, 1] }}
-                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                 >
-                   {isBrainLearning ? "Learning" : "Setting up"}
-                 </motion.span>
-              </div>
+              <AgentNameEditor brand={activeBrand} onRename={handleRenameAgent} isBrainLearning={isBrainLearning} />
            </div>
         </div>
 
