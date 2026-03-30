@@ -288,11 +288,27 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     const affectedAudiences = audiences.filter(a => a.brandId === brandId || a.productIds?.some(pid => brandProductIds.includes(pid)));
     const affectedProducts = products.filter(p => p.brandId === brandId);
 
-    // Delete from DB first (await all)
+    // Delete from DB first (await all) — use fallback if _rowId missing
     const deletePromises: Promise<any>[] = [];
-    if ((brand as any)?._rowId) deletePromises.push(deleteEntity((brand as any)._rowId));
-    affectedProducts.forEach(p => { if ((p as any)._rowId) deletePromises.push(deleteEntity((p as any)._rowId)); });
-    affectedAudiences.forEach(a => { if ((a as any)._rowId) deletePromises.push(deleteEntity((a as any)._rowId)); });
+    if ((brand as any)?._rowId) {
+      deletePromises.push(deleteEntity((brand as any)._rowId));
+    } else if (brand) {
+      deletePromises.push(deleteEntityByLogicalId(brandId, "brand", activeWorkspaceId));
+    }
+    affectedProducts.forEach(p => {
+      if ((p as any)._rowId) {
+        deletePromises.push(deleteEntity((p as any)._rowId));
+      } else {
+        deletePromises.push(deleteEntityByLogicalId(p.id, "product", activeWorkspaceId));
+      }
+    });
+    affectedAudiences.forEach(a => {
+      if ((a as any)._rowId) {
+        deletePromises.push(deleteEntity((a as any)._rowId));
+      } else {
+        deletePromises.push(deleteEntityByLogicalId(a.id, "audience", activeWorkspaceId));
+      }
+    });
     await Promise.all(deletePromises);
 
     // Then update local state
