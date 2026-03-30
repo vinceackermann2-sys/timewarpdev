@@ -1043,9 +1043,18 @@ export function AgentChatView() {
                       {msg.reportContent && !msg.isStreaming && (
                         <TaskReportViewer
                           content={msg.reportContent}
-                          reportUrl={msg.reportUrl}
-                          reportName={msg.reportName}
                           savedToDb={msg.reportSavedToDb}
+                          onSaveToDb={async (updatedContent) => {
+                            await supabase.from("user_business_data").insert({
+                              user_id: user!.id,
+                              workspace_id: activeWorkspaceId || undefined,
+                              data_type: "document",
+                              source: "agent-report",
+                              title: `Task Results — ${new Date().toLocaleDateString()}`,
+                              content: updatedContent,
+                              is_analyzed: true,
+                            });
+                          }}
                         />
                       )}
                     </div>
