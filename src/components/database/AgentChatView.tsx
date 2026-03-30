@@ -1,14 +1,23 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
-  Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown
+  Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
+  Plug, Loader2
 } from "lucide-react";
 import { SettingsView } from "@/components/database/SettingsView";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "./BusinessDNAContext";
+import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoGoogle from "@/assets/logo-google.png";
+import logoSlack from "@/assets/logo-slack.png";
+import logoFortknox from "@/assets/logo-fortknox.png";
 import type { AIEmployee } from "./EmployeesView";
 
 /* ─── Orb ─── */
@@ -66,6 +75,62 @@ export function AgentChatView() {
   const [referenceUrlInput, setReferenceUrlInput] = useState("");
   const [mentionState, setMentionState] = useState<{ active: boolean; node: Node | null; startOffset: number; endOffset: number }>({ active: false, node: null, startOffset: 0, endOffset: 0 });
   const [selectedChatEmployees, setSelectedChatEmployees] = useState<{ id: string; name: string; role: string }[]>([]);
+
+  /* ── Integration connection state ── */
+  const [isProviderConnected, setIsProviderConnected] = useState(false);
+  const [connectingProvider, setConnectingProvider] = useState(false);
+
+  const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+
+  const checkConnection = useCallback(async () => {
+    if (!activeBrandForConnections) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ action: "check-status", brandId: activeBrandForConnections.id }) }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const ms = (data.connected || []).find((p: any) => p.provider === "microsoft");
+        setIsProviderConnected(!!ms);
+      }
+    } catch (err) { console.error("Check connection error:", err); }
+  }, [activeBrandForConnections?.id]);
+
+  useEffect(() => { checkConnection(); }, [checkConnection]);
+
+  const handleProviderConnect = async () => {
+    if (!activeBrandForConnections) return;
+    setConnectingProvider(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please log in first"); setConnectingProvider(false); return; }
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandForConnections.id }) }
+      );
+      const data = await response.json();
+      if (data.authUrl) window.location.href = data.authUrl;
+      else toast.error(data.error || "Failed to get authorization URL");
+    } catch { toast.error("Failed to start connection"); }
+    setConnectingProvider(false);
+  };
+
+  const handleProviderDisconnect = async () => {
+    if (!activeBrandForConnections) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandForConnections.id }) }
+      );
+      setIsProviderConnected(false);
+      toast.success("Microsoft disconnected");
+    } catch { toast.error("Failed to disconnect"); }
+  };
 
   const dropupRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -596,9 +661,84 @@ export function AgentChatView() {
                   </div>
                 )}
 
-                {settingsTab !== "safety" && settingsTab !== "employees" && (
-                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    <p>Configuration for {settingsTab} will appear here.</p>
+                {settingsTab === "connections" && (
+                  <div className="space-y-6 flex-1">
+                    <h4 className="text-sm font-semibold text-foreground">Integrations</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {/* Microsoft */}
+                      <div className={cn(
+                        "flex flex-col gap-3 p-5 rounded-xl border transition-all",
+                        isProviderConnected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+                      )}>
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                            <img src={logoMicrosoft} alt="Microsoft" className="h-7 w-7 object-contain" />
+                          </div>
+                          {isProviderConnected && (
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Microsoft</p>
+                          <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
+                        </div>
+                        {isProviderConnected ? (
+                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={handleProviderDisconnect}>
+                            Disconnect
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={handleProviderConnect} disabled={connectingProvider}>
+                            {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                            Connect
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Google - Coming Soon */}
+                      <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                            <img src={logoGoogle} alt="Google" className="h-7 w-7 object-contain" loading="lazy" />
+                          </div>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Google</p>
+                          <p className="text-xs text-muted-foreground">Gmail, Drive, Calendar</p>
+                        </div>
+                      </div>
+
+                      {/* Slack - Coming Soon */}
+                      <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                            <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" loading="lazy" />
+                          </div>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Slack</p>
+                          <p className="text-xs text-muted-foreground">Messages and workspace data</p>
+                        </div>
+                      </div>
+
+                      {/* FortKnox - Coming Soon */}
+                      <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                            <img src={logoFortknox} alt="FortKnox" className="h-7 w-7 object-contain" loading="lazy" />
+                          </div>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">FortKnox</p>
+                          <p className="text-xs text-muted-foreground">Secure data vault integration</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-center pt-2">
+                      <IntegrationRequestDialog />
+                    </div>
                   </div>
                 )}
               </div>
