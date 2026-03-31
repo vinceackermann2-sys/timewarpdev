@@ -269,21 +269,22 @@ export function BusinessDNAOnboarding({
     }
   }, [discoveredProducts]);
 
-  // Progress animation for step 1
+  // Progress animation for step 1 — cap at 90% until scrape is done
   useEffect(() => {
     if (step !== 1) return;
     const interval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
+        if (prev >= 90 && !scrapeCompleteRef.current) {
+          // Hold at 90 until scrape finishes
+          return 90;
         }
-        // climb to 80 normally, then slow
         if (scrapeCompleteRef.current) {
-          return Math.min(100, prev + 8);
+          // Scrape done — quickly fill to 95 (step transition handles the rest)
+          if (prev >= 95) { clearInterval(interval); return 95; }
+          return Math.min(95, prev + 6);
         }
-        if (prev < 80) return prev + 2;
-        return prev + 0.3;
+        if (prev < 70) return prev + 2;
+        return prev + 0.4;
       });
     }, 200);
     return () => clearInterval(interval);
@@ -1055,7 +1056,20 @@ export function BusinessDNAOnboarding({
           // For the Data Found tab, show selected discovered products while extraction runs
           const displayProducts = productsRaw.length > 0 ? productsRaw : selectedProducts.map(i => discoveredProducts[i]).filter(Boolean);
           const brandColors = brandData.colors || {};
-          const urls = scannedUrlsRef.current;
+          // Filter sources to only show URLs related to selected products (not unselected ones)
+          const selectedProductUrls = selectedProducts.map(i => discoveredProducts[i]?.url).filter(Boolean);
+          const urls = scannedUrlsRef.current.filter(url => {
+            // Always include non-product URLs (homepage, brand pages, etc.)
+            const isProductPage = discoveredProducts.some(p => p.url && url.includes(new URL(p.url.startsWith("http") ? p.url : `https://${p.url}`).pathname.replace(/\/$/, "")));
+            if (!isProductPage) return true;
+            // For product-specific URLs, only include if the product was selected
+            return selectedProductUrls.some(pUrl => {
+              try {
+                const pPath = new URL(pUrl.startsWith("http") ? pUrl : `https://${pUrl}`).pathname.replace(/\/$/, "");
+                return pPath && url.includes(pPath);
+              } catch { return false; }
+            });
+          });
 
           return (
           <motion.div
@@ -1109,7 +1123,7 @@ export function BusinessDNAOnboarding({
                 <div className="flex flex-col gap-3">
                   {/* Source carousel — flipping through URLs being verified */}
                   {urls.length > 0 && (
-                    <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[52px]">
+                    <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[72px]">
                       <AnimatePresence mode="wait">
                         <motion.div
                           key={activeSourceIndex}
@@ -1130,10 +1144,18 @@ export function BusinessDNAOnboarding({
                             className="w-4 h-4 rounded-sm shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                           />
-                          <span className="text-[14px] text-[#1a1f36] truncate">
-                            {verifiedSources.has(activeSourceIndex) ? "Verified" : "Verifying"}{" "}
-                            <span className="text-[#697386]">{urlToDisplaySource(urls[activeSourceIndex])}</span>
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] text-[#1a1f36] truncate block">
+                              {verifiedSources.has(activeSourceIndex) ? "✓ Verified" : "Verifying"}{" "}
+                              <span className="text-[#697386]">{urlToDisplaySource(urls[activeSourceIndex])}</span>
+                            </span>
+                            {/* Show a matching social proof quote inline */}
+                            {socialProof.length > 0 && (
+                              <p className="text-[12px] text-[#697386] italic mt-1 truncate">
+                                "{socialProof[activeSourceIndex % socialProof.length].quote.slice(0, 80)}…"
+                              </p>
+                            )}
+                          </div>
                         </motion.div>
                       </AnimatePresence>
                     </div>
