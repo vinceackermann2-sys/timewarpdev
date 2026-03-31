@@ -529,7 +529,7 @@ serve(async (req) => {
               const raw = pickData.choices?.[0]?.message?.content || "";
               const arrMatch = raw.match(/\[[\s\S]*?\]/);
               if (arrMatch) {
-                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, 3);
+                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, 10);
                 console.log("AI selected", selected.length, "product pages:", selected);
                 const scrapeResults = await Promise.allSettled(
                   selected.map(async (pUrl: string) => {
