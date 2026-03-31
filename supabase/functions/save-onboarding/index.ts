@@ -125,6 +125,7 @@ serve(async (req) => {
         data_type: "product",
         title: prod?.name || "Imported Product",
         content: JSON.stringify(prod),
+        metadata: { brandId },
       });
       if (productErr) {
         console.error("Product insert failed:", productErr);
