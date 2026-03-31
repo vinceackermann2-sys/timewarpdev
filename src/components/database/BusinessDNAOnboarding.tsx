@@ -231,43 +231,22 @@ export function BusinessDNAOnboarding({
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
-  // ── Background removal for discovered product images ──
-  useEffect(() => {
-    if (discoveredProducts.length === 0) return;
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-    const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    
-    for (const product of discoveredProducts) {
-      for (const imgUrl of (product.images || []).slice(0, 4)) {
-        if (bgRemovedImages[imgUrl] || bgRemovalInFlight.current.has(imgUrl)) continue;
-        bgRemovalInFlight.current.add(imgUrl);
-        
-        // Fire and forget — update state when done
-        (async () => {
-          try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
-            const res = await fetch(`${SUPABASE_URL}/functions/v1/remove-bg`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token || ANON_KEY}`,
-                "apikey": ANON_KEY,
-              },
-              body: JSON.stringify({ imageUrl: imgUrl }),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data?.resultUrl) {
-                setBgRemovedImages(prev => ({ ...prev, [imgUrl]: data.resultUrl }));
-              }
-            }
-          } catch (e) {
-            console.warn("BG removal failed for", imgUrl, e);
-          }
-        })();
+  // ── Manual background removal handler for image picker ──
+  const [bgRemovalLoading, setBgRemovalLoading] = useState<Record<string, boolean>>({});
+  const handleRemoveBg = useCallback(async (imgUrl: string) => {
+    if (bgRemovedImages[imgUrl] || bgRemovalLoading[imgUrl]) return;
+    setBgRemovalLoading(prev => ({ ...prev, [imgUrl]: true }));
+    try {
+      const { data } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
+      if (data?.resultUrl) {
+        setBgRemovedImages(prev => ({ ...prev, [imgUrl]: data.resultUrl }));
       }
+    } catch (e) {
+      console.warn("BG removal failed for", imgUrl, e);
+    } finally {
+      setBgRemovalLoading(prev => ({ ...prev, [imgUrl]: false }));
     }
-  }, [discoveredProducts]);
+  }, [bgRemovedImages, bgRemovalLoading]);
 
   // Progress animation for step 1 — cap at 90% until scrape is done
   useEffect(() => {
