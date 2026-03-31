@@ -858,12 +858,6 @@ serve(async (req) => {
 
     // ══════════════════════════════════════════════
     // CORE MODE: Return lightweight data
-    // ══════════════════════════════════════════════
-    // Build scannedUrls: all actual URLs that were fetched/analyzed
-    const scannedUrls: string[] = [baseUrl];
-    for (const page of productPageContents) {
-      if (page.url && !scannedUrls.includes(page.url)) scannedUrls.push(page.url);
-    }
 
     if (isCoreMode) {
       // Only keep remote URL screenshots
