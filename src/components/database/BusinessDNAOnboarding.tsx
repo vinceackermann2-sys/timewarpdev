@@ -1193,9 +1193,9 @@ export function BusinessDNAOnboarding({
                   {socialProof.length > 0 && !persistenceComplete && (
                     <AnimatePresence mode="wait">
                       {(() => {
-                        const currentDomain = urls[activeSourceIndex] ? urlToDisplaySource(urls[activeSourceIndex]).split("/")[0] : "";
+                        const currentDomain = urls[safeSourceIndex] ? urlToDisplaySource(urls[safeSourceIndex])?.split("/")[0] || "" : "";
                         const matched = socialProof.find(sp => sp.source.toLowerCase().includes(currentDomain.toLowerCase()));
-                        const quote = matched || socialProof[activeSourceIndex % socialProof.length];
+                        const quote = matched || socialProof[safeSourceIndex % Math.max(socialProof.length, 1)];
                         return (
                           <motion.div
                             key={activeSourceIndex}
