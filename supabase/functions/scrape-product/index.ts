@@ -17,6 +17,26 @@ const htmlToText = (html: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] => {
+  const imgs: string[] = [];
+  const mdImgRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
+  let m;
+  while ((m = mdImgRegex.exec(markdown)) !== null) {
+    imgs.push(m[1]);
+  }
+  // Also try bare image URLs
+  const bareImgRegex = /(https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?)/gi;
+  while ((m = bareImgRegex.exec(markdown)) !== null) {
+    if (!imgs.includes(m[1])) imgs.push(m[1]);
+  }
+  return [...new Set(imgs)].filter(url => {
+    const lower = url.toLowerCase();
+    return !lower.includes('favicon') && !lower.includes('pixel') && !lower.includes('tracking') && 
+           !lower.includes('1x1') && !lower.includes('logo') && !lower.includes('icon') &&
+           !lower.includes('badge') && !lower.includes('flag') && !lower.includes('avatar');
+  }).slice(0, 8);
+};
+
 const extractTitleFromHtml = (html: string) => {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return match?.[1]?.replace(/\s+/g, " ").trim() || "";
