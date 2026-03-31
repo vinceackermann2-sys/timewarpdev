@@ -395,7 +395,8 @@ serve(async (req) => {
   }
 
   try {
-    const { url, mode } = await req.json();
+    const { url, mode, selectedProductUrls } = await req.json();
+    const isDiscoverMode = mode === "discover";
     const isCoreMode = mode === "core";
     if (!url) {
       return new Response(
@@ -428,7 +429,7 @@ serve(async (req) => {
     let baseUrl: string;
     try { baseUrl = new URL(formattedUrl).origin; } catch { baseUrl = formattedUrl; }
 
-    console.log("Scraping URL:", formattedUrl, "Base URL:", baseUrl);
+    console.log("Scraping URL:", formattedUrl, "Base URL:", baseUrl, "Mode:", mode);
 
     const isCompanyUrl = (() => {
       try {
