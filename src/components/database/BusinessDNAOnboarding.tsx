@@ -119,6 +119,8 @@ export function BusinessDNAOnboarding({
   const [sourcesOpen, setSourcesOpen] = useState(false);
 
   // Scrape / persistence
+  const [discoveredProducts, setDiscoveredProducts] = useState<{ url: string; name: string; description: string; images: string[] }[]>([]);
+  const quickBrandRef = useRef<any>(null);
   const scrapeResult = useRef<any>(null);
   const [scrapeComplete, setScrapeComplete] = useState(false);
   const [scrapeError, setScrapeError] = useState(false);
@@ -178,10 +180,10 @@ export function BusinessDNAOnboarding({
     return () => clearTimeout(timeout!);
   }, [charIndex, isDeleting, exampleIndex, step, showMethodPicker]);
 
-  // ── Step 1: Fire scrape-product ──────────────────────────
+  // ── Step 1: Fire scrape-product in DISCOVER mode (fast — names + images only) ──
   useEffect(() => {
     if (step < 1 || !activeUrl) return;
-    if (scrapeComplete || scrapeResult.current) return; // already ran
+    if (scrapeComplete || discoveredProducts.length > 0) return; // already ran
     let cancelled = false;
     (async () => {
       try {
@@ -195,48 +197,25 @@ export function BusinessDNAOnboarding({
           return;
         }
         workspaceIdRef.current = null;
-        const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim(), mode: "core" });
+        const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim(), mode: "discover" });
         if (cancelled) return;
         if (error || !data?.success) {
-          console.error("Scrape failed:", error || data?.error);
+          console.error("Discover failed:", error || data?.error);
           setScrapeError(true);
         } else {
-          scrapeResult.current = data.extracted;
+          // Store discovered products for selection UI
+          const products = Array.isArray(data.discoveredProducts) ? data.discoveredProducts : [];
+          setDiscoveredProducts(products);
+          // Store quick brand info
+          if (data.quickBrand) quickBrandRef.current = data.quickBrand;
           // Capture scanned URLs
           if (Array.isArray(data.scannedUrls)) {
             scannedUrlsRef.current = data.scannedUrls;
           }
-          // Extract social proof quotes from scraped content
-          const rawMarkdown = data.rawMarkdown || data.extracted?.rawMarkdown || "";
-          const quotes: { quote: string; source: string }[] = [];
-          // Match patterns like "quote text" — Source or "quote text" - Username
-          const quotePatterns = [
-            /["""]([^"""]{20,200})["""]\s*[—–-]\s*(.+?)(?:\n|$)/g,
-            />\s*["""]?([^""">\n]{20,200})["""]?\s*\n\s*[—–-]\s*(.+?)(?:\n|$)/g,
-          ];
-          for (const pattern of quotePatterns) {
-            let match;
-            while ((match = pattern.exec(rawMarkdown)) !== null && quotes.length < 5) {
-              quotes.push({ quote: match[1].trim(), source: match[2].trim() });
-            }
-          }
-          // Also check extracted testimonials
-          const testimonials = data.extracted?.testimonials || data.extracted?.brand?.testimonials || [];
-          if (Array.isArray(testimonials)) {
-            for (const t of testimonials) {
-              if (quotes.length >= 5) break;
-              if (typeof t === "string" && t.length > 15) {
-                quotes.push({ quote: t, source: "Customer Review" });
-              } else if (t?.quote || t?.text) {
-                quotes.push({ quote: t.quote || t.text, source: t.source || t.author || "Customer Review" });
-              }
-            }
-          }
-          if (quotes.length > 0) setSocialProof(quotes);
         }
       } catch (e) {
         if (!cancelled) {
-          console.error("Scrape error:", e);
+          console.error("Discover error:", e);
           setScrapeError(true);
         }
       } finally {
@@ -296,7 +275,51 @@ export function BusinessDNAOnboarding({
     ]);
 
     (async () => {
-      const extracted = scrapeResult.current || {};
+      // ── Phase 1: Call scrape-product in CORE mode for deep extraction ──
+      // Pass the selected product URLs so the backend only extracts those
+      const selectedUrls = selectedProducts
+        .map(i => discoveredProducts[i]?.url)
+        .filter(Boolean);
+
+      const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
+        url: activeUrl!.trim(),
+        mode: "core",
+        selectedProductUrls: selectedUrls.length > 0 ? selectedUrls : undefined,
+      });
+
+      if (cancelled) return;
+
+      if (extractError || !extractData?.success) {
+        console.error("Full extraction failed:", extractError || extractData?.error);
+        setPersistenceError(extractData?.error || "Failed to analyze business. Please try again.");
+        return;
+      }
+
+      // Store full extraction result
+      scrapeResult.current = extractData.extracted;
+
+      // Capture social proof from full extraction
+      const testimonials = extractData.extracted?.testimonials || extractData.extracted?.brand?.testimonials || [];
+      if (Array.isArray(testimonials)) {
+        const quotes: { quote: string; source: string }[] = [];
+        for (const t of testimonials) {
+          if (quotes.length >= 5) break;
+          if (typeof t === "string" && t.length > 15) {
+            quotes.push({ quote: t, source: "Customer Review" });
+          } else if (t?.quote || t?.text) {
+            quotes.push({ quote: t.quote || t.text, source: t.source || t.author || "Customer Review" });
+          }
+        }
+        if (quotes.length > 0) setSocialProof(quotes);
+      }
+
+      // Update scanned URLs if more were found
+      if (Array.isArray(extractData.scannedUrls)) {
+        scannedUrlsRef.current = extractData.scannedUrls;
+      }
+
+      // ── Phase 2: Build entities from extracted data ──
+      const extracted = extractData.extracted || {};
       const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
       const brandId = `brand-${Date.now()}`;
 
@@ -323,13 +346,10 @@ export function BusinessDNAOnboarding({
       if (!cancelled) markTodo("Extract brand identity");
       await new Promise(r => setTimeout(r, 400));
 
-      // Filter products by user selection
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
-      const filteredProducts = selectedProducts.length > 0
-        ? selectedProducts.map(i => productsRaw[i]).filter(Boolean)
-        : productsRaw.slice(0, 3);
+      const filteredProducts = productsRaw.slice(0, 5);
 
-      const newProducts: ProductEntry[] = filteredProducts.slice(0, 5).map((p: any, i: number) => {
+      const newProducts: ProductEntry[] = filteredProducts.map((p: any, i: number) => {
         const selectedImgIdx = selectedImages[i];
         const images = p.images?.length
           ? p.images.map((imgUrl: string, j: number) => ({
@@ -497,7 +517,7 @@ export function BusinessDNAOnboarding({
             if (!cancelled) markTodo("Enrich brand");
           } catch (e) {
             console.warn("Brand enrichment failed (non-blocking):", e);
-            if (!cancelled) markTodo("Enrich brand"); // mark done anyway
+            if (!cancelled) markTodo("Enrich brand");
           }
         } else {
           if (!cancelled) markTodo("Enrich brand");
@@ -520,11 +540,14 @@ export function BusinessDNAOnboarding({
     setScrapeError(false);
     setProgress(0);
     progressRef.current = 0;
+    setDiscoveredProducts([]);
+    scrapeResult.current = null;
     setStep(1);
   }, []);
 
   // ── Helpers ──────────────────────────────────────────────
-  const extractedProducts = scrapeResult.current?.products || (scrapeResult.current?.product ? [scrapeResult.current.product] : []);
+  // For steps 2-3: use discoveredProducts (lightweight). For steps 4+: use scrapeResult (full extraction).
+  const extractedProducts = discoveredProducts;
 
   // ── RENDER ───────────────────────────────────────────────
   return (
@@ -961,12 +984,11 @@ export function BusinessDNAOnboarding({
         {/* ─── STEPS 4-5: FORGING DNA ─── */}
         {(step === 4 || step === 5) && (() => {
           const extracted = scrapeResult.current || {};
-          const brandData = extracted.brand || {};
+          const brandData = extracted.brand || quickBrandRef.current || {};
           const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
           const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
-          const filteredProds = selectedProducts.length > 0
-            ? selectedProducts.map(i => productsRaw[i]).filter(Boolean)
-            : productsRaw.slice(0, 3);
+          // For the Data Found tab, show the selected discovered products while extraction runs
+          const displayProducts = productsRaw.length > 0 ? productsRaw : selectedProducts.map(i => discoveredProducts[i]).filter(Boolean);
           const brandColors = brandData.colors || {};
           const urls = scannedUrlsRef.current;
 
@@ -1056,7 +1078,7 @@ export function BusinessDNAOnboarding({
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] ${
                     forgingTab === "found" ? "bg-[#1a1f36] text-white" : "bg-[#d1d0cb] text-white"
                   }`}>
-                    {1 + filteredProds.length + audiencesRaw.length}
+                    {1 + displayProducts.length + audiencesRaw.length}
                   </span>
                 </button>
                 <button
@@ -1103,7 +1125,7 @@ export function BusinessDNAOnboarding({
                   </div>
 
                   {/* Products */}
-                  {filteredProds.map((p: any, i: number) => (
+                  {displayProducts.map((p: any, i: number) => (
                     <div key={i} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center gap-3">
                       <ShoppingBag className="w-4 h-4 text-[#3399ff] shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -1149,7 +1171,7 @@ export function BusinessDNAOnboarding({
                           <span className="text-[12px] text-[#697386] ml-2">Brand identity saved</span>
                         </div>
                       </div>
-                      {filteredProds.map((p: any, i: number) => (
+                      {displayProducts.map((p: any, i: number) => (
                         <div key={i} className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
                           <CheckCircle2 className="w-5 h-5 text-[#22c55e] shrink-0" />
                           <span className="text-[15px] font-medium text-[#1a1f36]">{p.name || `Product ${i + 1}`}</span>
