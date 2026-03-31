@@ -854,7 +854,7 @@ export function BusinessDNAOnboarding({
                     >
                       <div className="relative h-48 bg-white flex items-center justify-center">
                         {imgUrl ? (
-                          <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                         ) : (
                           <div className="w-full h-full bg-[#e5e4df] flex items-center justify-center">
                             <Globe className="w-8 h-8 text-[#697386]/40" />
