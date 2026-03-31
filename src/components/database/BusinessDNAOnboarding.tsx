@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Telescope, Dna, ArrowRight, Globe, Sparkles, Check, AlertCircle, RotateCcw, Rocket, FolderOpenDot, Lock } from "lucide-react";
+import {
+  Globe, ArrowRight, Sparkles, Check, AlertCircle, RotateCcw, Rocket,
+  FolderOpenDot, Lock, Telescope, Loader2, CheckCircle2, ChevronUp,
+  Maximize2, UploadCloud, Lightbulb, WandSparkles,
+} from "lucide-react";
 import startBusinessBg from "@/assets/start-business-bg.webp";
 import addBusinessBg from "@/assets/add-business-bg.webp";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +13,6 @@ import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./Busin
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { Typewriter } from "@/components/ui/typewriter";
 
 const URL_EXAMPLES = [
   "tesla.com",
@@ -20,20 +23,6 @@ const URL_EXAMPLES = [
   "glossier.com",
   "notion.so",
   "figma.com",
-];
-
-// Milestones that flip through during analysis
-const ANALYSIS_MILESTONES = [
-  "Resolving workspace",
-  "Connecting to website",
-  "Scraping homepage content",
-  "Analyzing page structure",
-  "Extracting brand identity",
-  "Identifying product data",
-  "Mapping audience signals",
-  "Processing visual assets",
-  "Building brand profile",
-  "Structuring product data",
 ];
 
 function getInitialSource(url: string): string {
@@ -56,7 +45,6 @@ function urlToDisplaySource(url: string): string {
   }
 }
 
-/** Wait for a valid authenticated session (just needs a token for the edge function). */
 async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<string | null> {
   for (let i = 0; i < maxAttempts; i++) {
     try {
@@ -71,49 +59,69 @@ async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<string |
 interface BusinessDNAOnboardingProps {
   productUrl?: string | null;
   onComplete: (agentName: string, brandId?: string) => void;
-  /** When true, skips agent naming (step 3) and auto-completes after persistence */
   isAddBusiness?: boolean;
-  /** Existing brand ID to link products to (add-business mode) */
   activeBrandId?: string | null;
-  /** Called when user presses back in add-business mode */
   onBack?: () => void;
 }
 
-export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAddBusiness, activeBrandId, onBack }: BusinessDNAOnboardingProps) {
+// ─── Step mapping ──────────────────────────────────────────────
+// 0  URL input
+// 1  Analyzing (scrape running)
+// 2  Product selection cards
+// 3  Image picker per product
+// 4  Forging DNA – "Data Found" tab  (persistence + enrichment)
+// 5  Forging DNA – "Confirmed Data" tab
+// 6  Agent naming
+
+export function BusinessDNAOnboarding({
+  productUrl: initialUrl,
+  onComplete,
+  isAddBusiness,
+  activeBrandId,
+  onBack,
+}: BusinessDNAOnboardingProps) {
+  // ── shared state ───────────────────────────────────────────
   const [activeUrl, setActiveUrl] = useState<string | null>(initialUrl || null);
   const [urlInput, setUrlInput] = useState("");
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [step, setStep] = useState(initialUrl ? 1 : 0);
   const [showMethodPicker, setShowMethodPicker] = useState(isAddBusiness && !initialUrl);
   const [agentName, setAgentName] = useState("");
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // Flipping current task display — single line only
-  const [currentMilestone, setCurrentMilestone] = useState(0);
+  // URL placeholder typewriter
+  const [placeholderText, setPlaceholderText] = useState("");
+  const [exampleIndex, setExampleIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUrlFocused, setIsUrlFocused] = useState(false);
 
-  // Scanned sources tracking
-  const [scannedSources, setScannedSources] = useState<string[]>([]);
-  const [allSourcesDone, setAllSourcesDone] = useState(false);
+  // Product selection (step 2)
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  // Image picker (step 3)
+  const [currentProductIndex, setCurrentProductIndex] = useState(0);
+  const [selectedImages, setSelectedImages] = useState<Record<number, number>>({});
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
+  // Forging DNA tabs (step 4-5)
+  const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
+
+  // Scrape / persistence
   const scrapeResult = useRef<any>(null);
-  const realSourcesRef = useRef<string[]>([]);
   const [scrapeComplete, setScrapeComplete] = useState(false);
   const [scrapeError, setScrapeError] = useState(false);
   const [createdBrandId, setCreatedBrandId] = useState<string | undefined>();
   const [persistenceComplete, setPersistenceComplete] = useState(false);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const workspaceIdRef = useRef<string | null>(null);
-  
 
-  // Refs for progress animation to avoid stale closures
   const scrapeCompleteRef = useRef(false);
   const persistenceCompleteRef = useRef(false);
-  const progressRef = useRef(0); // tracks real progress value for phase transitions
+  const progressRef = useRef(0);
   useEffect(() => { scrapeCompleteRef.current = scrapeComplete; }, [scrapeComplete]);
   useEffect(() => { persistenceCompleteRef.current = persistenceComplete; }, [persistenceComplete]);
 
-  // Get context setters
+  // Context
   let contextAvailable = false;
   let reloadData: () => Promise<{ brands: BrandEntry[]; products: ProductEntry[]; audiences: AudienceEntry[] }> = async () => ({ brands: [], products: [], audiences: [] });
   let brands: BrandEntry[] = [];
@@ -126,41 +134,45 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     refreshBrand = ctx.refreshBrand;
     setBrands = ctx.setBrands;
     contextAvailable = true;
-  } catch {
-    // No provider
-  }
+  } catch { /* No provider */ }
 
   const initialSource = activeUrl ? getInitialSource(activeUrl) : null;
 
-  // URL placeholder rotation for step 0
+  // ── Typewriter effect for URL placeholder ────────────────
   useEffect(() => {
-    if (step !== 0 || urlInput) return;
-    const interval = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % URL_EXAMPLES.length);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, [step, urlInput]);
+    if (step !== 0 || showMethodPicker) return;
+    const currentExample = URL_EXAMPLES[exampleIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+    if (isDeleting) {
+      if (charIndex > 0) {
+        timeout = setTimeout(() => {
+          setPlaceholderText(currentExample.substring(0, charIndex - 1));
+          setCharIndex(charIndex - 1);
+        }, 40);
+      } else {
+        setIsDeleting(false);
+        setExampleIndex(prev => (prev + 1) % URL_EXAMPLES.length);
+      }
+    } else {
+      if (charIndex < currentExample.length) {
+        timeout = setTimeout(() => {
+          setPlaceholderText(currentExample.substring(0, charIndex + 1));
+          setCharIndex(charIndex + 1);
+        }, 80);
+      } else {
+        timeout = setTimeout(() => setIsDeleting(true), 2000);
+      }
+    }
+    return () => clearTimeout(timeout!);
+  }, [charIndex, isDeleting, exampleIndex, step, showMethodPicker]);
 
-  // Flip through milestones during steps 1-2 — single line only, no history
-  useEffect(() => {
-    if (step < 1 || step >= 3 || persistenceComplete) return;
-    const interval = setInterval(() => {
-      setCurrentMilestone(prev => {
-        const next = prev + 1;
-        if (next >= ANALYSIS_MILESTONES.length) return prev;
-        return next;
-      });
-    }, 2200);
-    return () => clearInterval(interval);
-  }, [step, persistenceComplete]);
-
-  // Step 1: Fire scrape-product
+  // ── Step 1: Fire scrape-product ──────────────────────────
   useEffect(() => {
     if (step < 1 || !activeUrl) return;
+    if (scrapeComplete || scrapeResult.current) return; // already ran
     let cancelled = false;
     (async () => {
       try {
-        // Wait for auth session to settle (critical for new signups)
         const token = await waitForSession();
         if (!token) {
           if (!cancelled) {
@@ -170,25 +182,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
           }
           return;
         }
-
-        // Don't trust localStorage — let the edge function resolve workspace server-side
         workspaceIdRef.current = null;
-
-        // Start scrape — show initial hostname
-        if (!cancelled) setScannedSources([initialSource || activeUrl.trim()]);
-
         const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim(), mode: "core" });
-
-        if (!cancelled && data?.scannedUrls?.length) {
-          const displaySources = data.scannedUrls.map((u: string) => urlToDisplaySource(u));
-          realSourcesRef.current = displaySources;
-          // Don't set all at once — let the accumulation effect drip-feed them
-        }
-
-        if (!cancelled && !data?.scannedUrls?.length) {
-          setAllSourcesDone(true);
-        }
-
         if (cancelled) return;
         if (error || !data?.success) {
           console.error("Scrape failed:", error || data?.error);
@@ -208,98 +203,46 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
-  // Source accumulation — drip-feed real scanned URLs
+  // Progress animation for step 1
   useEffect(() => {
-    if (step < 1 || step >= 3 || allSourcesDone) return;
-    const sources = realSourcesRef.current;
-    if (sources.length === 0) return; // not yet available
-    const timer = setInterval(() => {
-      setScannedSources(prev => {
-        if (prev.length >= sources.length) {
-          setAllSourcesDone(true);
-          return prev;
+    if (step !== 1) return;
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
         }
-        return [...prev, sources[prev.length]];
+        // climb to 80 normally, then slow
+        if (scrapeCompleteRef.current) {
+          return Math.min(100, prev + 8);
+        }
+        if (prev < 80) return prev + 2;
+        return prev + 0.3;
       });
-    }, 800);
-    return () => clearInterval(timer);
-  }, [step, allSourcesDone, scrapeComplete]);
-
-  // Progress animation — gradually climbs to 80%, then 80→95→100%
-  useEffect(() => {
-    if (step < 1 || step > 2) return;
-
-    let rafId: number;
-    let lastTime = performance.now();
-
-    const tick = (now: number) => {
-      const dt = (now - lastTime) / 1000;
-      lastTime = now;
-
-      if (persistenceCompleteRef.current) {
-        // Quickly animate to 100
-        const next = progressRef.current + (100 - progressRef.current) * 0.15;
-        progressRef.current = next >= 99.5 ? 100 : next;
-        setProgress(progressRef.current);
-        if (progressRef.current < 100) {
-          rafId = requestAnimationFrame(tick);
-        }
-        return;
-      }
-
-      let ceiling: number;
-      let speedFactor: number;
-
-      if (scrapeCompleteRef.current) {
-        // After scrape done, climb 80→95
-        ceiling = 95;
-        speedFactor = 0.02;
-      } else if (progressRef.current < 80) {
-        // Gradually climb 0→80 over ~8-10 seconds
-        ceiling = 80;
-        speedFactor = 0.008;
-      } else {
-        // Slow crawl 80→90 while still scraping
-        ceiling = 90;
-        speedFactor = 0.02;
-      }
-
-      const remaining = ceiling - progressRef.current;
-      const speed = Math.max(0.05, remaining * speedFactor);
-      const next = Math.min(ceiling - 0.1, progressRef.current + speed * dt);
-
-      progressRef.current = next;
-      setProgress(next);
-      rafId = requestAnimationFrame(tick);
-    };
-
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
+    }, 200);
+    return () => clearInterval(interval);
   }, [step]);
 
-  // Transition from step 1 → 2 ONLY if scrape succeeded (not on error)
+  // Transition step 1 → 2 once scrape completes
   useEffect(() => {
     if (step === 1 && scrapeComplete && !scrapeError) {
-      const timeout = setTimeout(() => {
-        setStep(2);
-      }, 600);
+      setProgress(100);
+      const timeout = setTimeout(() => setStep(2), 600);
       return () => clearTimeout(timeout);
     }
   }, [step, scrapeComplete, scrapeError]);
 
-  // Step 2: persist via edge function (bypasses RLS with service role)
+  // ── Step 4: persist via edge function ────────────────────
   useEffect(() => {
-    if (step !== 2) return;
+    if (step !== 4) return;
+    if (persistenceComplete || persistenceCompleteRef.current) return;
     let cancelled = false;
 
     (async () => {
       const extracted = scrapeResult.current || {};
-      const now = new Date().toLocaleDateString("en-US", {
-        year: "numeric", month: "short", day: "numeric",
-      });
+      const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
       const brandId = `brand-${Date.now()}`;
 
-      // Build brand (always single)
       const b = extracted.brand || {};
       const fallbackName = (() => {
         try {
@@ -320,60 +263,71 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         visualIdentity: b.visualIdentity || undefined,
       };
 
-      // Build products array
+      // Filter products by user selection
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
-      const newProducts: ProductEntry[] = productsRaw.slice(0, 5).map((p: any, i: number) => ({
-        ...DEFAULT_PRODUCT,
-        id: `product-${Date.now()}-${i}`,
-        name: p.name || `Imported Product ${i + 1}`,
-        category: p.category || "Consumer Product",
-        description: p.description || "",
-        features: p.features || [],
-        benefits: p.benefits || [],
-        painPoints: p.painPoints || [],
-        useCases: p.useCases || [],
-        targetScenarios: p.targetScenarios || [],
-        positioningStatement: p.positioningStatement || "",
-        uniqueSellingPoints: p.uniqueSellingPoints || [],
-        competitiveAdvantages: p.competitiveAdvantages || [],
-        commonObjections: p.commonObjections?.length
-          ? p.commonObjections.map((o: any) => ({ objection: o.objection || "", response: o.response || "" }))
-          : [],
-        proofPoints: p.proofPoints?.length
-          ? p.proofPoints.map((pp: any) => ({ category: pp.category || "", items: pp.items || [] }))
-          : [],
-        dosAndDonts: {
-          dos: p.dosAndDonts?.dos || [],
-          donts: p.dosAndDonts?.donts || [],
-        },
-        powerPhrases: p.powerPhrases || [],
-        powerWords: p.powerWords || [],
-        technicalLevel: p.technicalLevel || "",
-        refinementChecklist: p.refinementChecklist || [],
-        images: p.images?.length
+      const filteredProducts = selectedProducts.length > 0
+        ? selectedProducts.map(i => productsRaw[i]).filter(Boolean)
+        : productsRaw.slice(0, 3);
+
+      const newProducts: ProductEntry[] = filteredProducts.slice(0, 5).map((p: any, i: number) => {
+        // Apply selected image if available
+        const selectedImgIdx = selectedImages[i];
+        const images = p.images?.length
           ? p.images.map((imgUrl: string, j: number) => ({
               id: `img-${j + 1}`,
               url: imgUrl,
               label: `Product Image ${j + 1}`,
             }))
-          : DEFAULT_PRODUCT.images,
-        offers: p.offers?.length
-          ? p.offers.map((o: any, j: number) => ({
-              id: `offer-${j + 1}`,
-              title: o.title || `Offer ${j + 1}`,
-              originalPrice: o.originalPrice || "",
-              salePrice: o.salePrice || "",
-              discount: o.discount || "",
-              bundleDetails: o.bundleDetails || "",
-              freeGifts: o.freeGifts || [],
-              isPopular: o.isPopular || false,
-            }))
-          : DEFAULT_PRODUCT.offers,
-        lastUpdated: now,
-        brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
-      }));
+          : DEFAULT_PRODUCT.images;
+        // Move selected image to front if specified
+        if (selectedImgIdx !== undefined && selectedImgIdx > 0 && images.length > selectedImgIdx) {
+          const [picked] = images.splice(selectedImgIdx, 1);
+          images.unshift(picked);
+        }
 
-      // Build audiences array
+        return {
+          ...DEFAULT_PRODUCT,
+          id: `product-${Date.now()}-${i}`,
+          name: p.name || `Imported Product ${i + 1}`,
+          category: p.category || "Consumer Product",
+          description: p.description || "",
+          features: p.features || [],
+          benefits: p.benefits || [],
+          painPoints: p.painPoints || [],
+          useCases: p.useCases || [],
+          targetScenarios: p.targetScenarios || [],
+          positioningStatement: p.positioningStatement || "",
+          uniqueSellingPoints: p.uniqueSellingPoints || [],
+          competitiveAdvantages: p.competitiveAdvantages || [],
+          commonObjections: p.commonObjections?.length
+            ? p.commonObjections.map((o: any) => ({ objection: o.objection || "", response: o.response || "" }))
+            : [],
+          proofPoints: p.proofPoints?.length
+            ? p.proofPoints.map((pp: any) => ({ category: pp.category || "", items: pp.items || [] }))
+            : [],
+          dosAndDonts: { dos: p.dosAndDonts?.dos || [], donts: p.dosAndDonts?.donts || [] },
+          powerPhrases: p.powerPhrases || [],
+          powerWords: p.powerWords || [],
+          technicalLevel: p.technicalLevel || "",
+          refinementChecklist: p.refinementChecklist || [],
+          images,
+          offers: p.offers?.length
+            ? p.offers.map((o: any, j: number) => ({
+                id: `offer-${j + 1}`,
+                title: o.title || `Offer ${j + 1}`,
+                originalPrice: o.originalPrice || "",
+                salePrice: o.salePrice || "",
+                discount: o.discount || "",
+                bundleDetails: o.bundleDetails || "",
+                freeGifts: o.freeGifts || [],
+                isPopular: o.isPopular || false,
+              }))
+            : DEFAULT_PRODUCT.offers,
+          lastUpdated: now,
+          brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
+        };
+      });
+
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
       const newAudiences: AudienceEntry[] = audiencesRaw
         .filter((a: any) => a?.name)
@@ -397,10 +351,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
           proofPoints: a.proofPoints?.length
             ? a.proofPoints.map((pp: any) => ({ category: pp.category || "", items: pp.items || [] }))
             : [],
-          dosAndDonts: {
-            dos: a.dosAndDonts?.dos || [],
-            donts: a.dosAndDonts?.donts || [],
-          },
+          dosAndDonts: { dos: a.dosAndDonts?.dos || [], donts: a.dosAndDonts?.donts || [] },
           powerPhrases: a.powerPhrases || [],
           powerWords: a.powerWords || [],
           technicalLevel: a.technicalLevel || "",
@@ -412,7 +363,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
 
       if (cancelled) return;
 
-      // Call edge function — pass arrays
       const { data, error } = await supabase.functions.invoke("save-onboarding", {
         body: {
           brandData: newBrand,
@@ -430,14 +380,12 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
         return;
       }
 
-      // Store workspace ID from response
       if (data.workspaceId) {
         localStorage.setItem("preferred_workspace_id", data.workspaceId);
       }
 
       const savedBrandRowId = typeof data.brandRowId === "string" ? data.brandRowId : undefined;
 
-      // Reload from DB to get proper _rowId values and avoid duplicate insertions
       let reloadedBrands: any[] = [];
       if (contextAvailable) {
         const result = await reloadData();
@@ -447,24 +395,23 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
       const finalBrandId = isAddBusiness && activeBrandId ? activeBrandId : brandId;
       setCreatedBrandId(finalBrandId);
       setPersistenceComplete(true);
+      setForgingTab("confirmed");
 
-      // Wait for enrichment (moodboard, illustrations, screenshot) before proceeding
+      // Enrichment
       if (contextAvailable) {
         let rowId: string | undefined = savedBrandRowId;
         if (!rowId) {
           for (let attempt = 0; attempt < 3; attempt++) {
-            const brandRow = reloadedBrands.find((b: any) => b.id === finalBrandId);
+            const brandRow = reloadedBrands.find((bb: any) => bb.id === finalBrandId);
             rowId = (brandRow as any)?._rowId;
             if (rowId) break;
-            console.log(`Enrich-brand: rowId not found, retry ${attempt + 1}/3...`);
             await new Promise(r => setTimeout(r, 1500));
             const retryResult = await reloadData();
             reloadedBrands = retryResult.brands;
           }
         }
-        console.log("Enrich-brand: rowId:", rowId);
         if (rowId) {
-          const firstProduct = productsRaw[0] || {};
+          const firstProduct = filteredProducts[0] || {};
           const firstAudience = audiencesRaw[0] || {};
           try {
             const res = await invokeEdgeFunction("enrich-brand", {
@@ -478,22 +425,6 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
               buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
               websiteUrl: activeUrl || "",
             });
-            console.log("Brand enrichment result:", res.data);
-            // Drip-feed enrichment URLs into scanning sources
-            if (res.data?.analyzedUrls?.length) {
-              const enrichUrls = (res.data.analyzedUrls as string[]).map((u: string) => urlToDisplaySource(u));
-              setAllSourcesDone(false);
-              let idx = 0;
-              const dripTimer = setInterval(() => {
-                if (idx >= enrichUrls.length) {
-                  clearInterval(dripTimer);
-                  setAllSourcesDone(true);
-                  return;
-                }
-                setScannedSources(prev => [...prev, enrichUrls[idx]]);
-                idx++;
-              }, 600);
-            }
             if (res.data?.success && refreshBrand) {
               await refreshBrand(finalBrandId);
             }
@@ -504,238 +435,145 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
       }
 
       if (!cancelled) {
-        // Always show step 3 for agent naming
-        setTimeout(() => setStep(3), 800);
+        setTimeout(() => setStep(6), 800);
       }
     })();
 
     return () => { cancelled = true; };
   }, [step]);
 
-  // Retry handler for persistence errors
   const handleRetry = useCallback(() => {
     setPersistenceError(null);
     setScrapeComplete(false);
     setScrapeError(false);
     setProgress(0);
     progressRef.current = 0;
-    setCurrentMilestone(0);
-    setScannedSources([]);
-    setAllSourcesDone(false);
     setStep(1);
   }, []);
 
-  const visibleSources = scannedSources;
-  const currentTask = ANALYSIS_MILESTONES[currentMilestone];
+  // ── Helpers ──────────────────────────────────────────────
+  const extractedProducts = scrapeResult.current?.products || (scrapeResult.current?.product ? [scrapeResult.current.product] : []);
 
+  // ── RENDER ───────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-2 sm:p-4 font-sans overflow-hidden relative">
-      {/* Background Lights */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-
-      {/* Top 3-bump progress bar */}
-      {step >= 1 && (
-        <div className="absolute top-0 left-0 w-full p-4 sm:p-8 flex justify-center z-50">
-          <div className="flex items-center gap-2 sm:gap-3 bg-card border border-border shadow-sm rounded-full px-4 sm:px-5 py-2.5 sm:py-3">
-            {[1, 2, 3].map((i, index) => (
-              <div key={i} className="flex items-center gap-2 sm:gap-3">
-                <motion.div
-                  layout
-                  className={`rounded-full transition-all duration-500 ${
-                    step === i
-                      ? "w-8 sm:w-10 h-2 sm:h-2.5 bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
-                      : step > i
-                        ? "w-2 sm:w-2.5 h-2 sm:h-2.5 bg-primary"
-                        : "w-2 sm:w-2.5 h-2 sm:h-2.5 bg-muted"
-                  }`}
-                />
-                {index < 2 && (
-                  <div
-                    className={`h-[2px] w-6 sm:w-12 transition-colors duration-500 ${
-                      step > i ? "bg-primary/50" : "bg-muted"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Header & Progress — steps 1-2 only */}
-      {step >= 1 && step < 3 && (
-        <div className="flex flex-col items-center mb-4 sm:mb-8 mt-14 sm:mt-12">
-          <AnimatePresence mode="wait">
-            <motion.h1
-              key={`title-${step}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="text-xl sm:text-3xl font-extrabold mb-4 sm:mb-6 tracking-tight text-center onboarding-text-shine"
-            >
-              {step === 1 ? "Researching your business" : "Setting up your business"}
-            </motion.h1>
-          </AnimatePresence>
-
+    <div className="min-h-screen bg-[#fcfbf9] flex flex-col items-center justify-center py-12 font-sans">
+      <AnimatePresence mode="wait">
+        {/* ─── METHOD PICKER (add-business only) ─── */}
+        {showMethodPicker && step === 0 && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center w-64 sm:w-80 mt-1 sm:mt-2"
+            key="method-picker"
+            className="w-full max-w-4xl mx-auto text-center space-y-6 px-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
           >
-            <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-2">
-              <motion.div
-                className="h-full bg-primary"
-                initial={{ width: "0%" }}
-                animate={{ width: `${Math.round(progress)}%` }}
-                transition={{ duration: 0.3, ease: "linear" }}
-              />
+            {isAddBusiness && onBack && (
+              <div className="w-full text-left mb-2">
+                <button
+                  onClick={onBack}
+                  className="flex items-center gap-1.5 text-sm text-[#697386] hover:text-[#1a1f36] transition-colors"
+                >
+                  <ArrowRight className="h-4 w-4 rotate-180" />
+                  Back
+                </button>
+              </div>
+            )}
+            <div className="space-y-2 py-4">
+              <h1 className="text-[32px] font-bold text-[#1a1f36] tracking-tight">
+                How would you like to get started?
+              </h1>
             </div>
-            <div className="flex justify-end w-full px-1">
-              <p className="text-sm font-bold text-primary">{Math.round(progress)}%</p>
+            <div className="grid grid-cols-2 gap-6">
+              {/* From Scratch — Coming Soon */}
+              <div className="relative rounded-2xl border border-black/5 bg-[#f4f3ee] overflow-hidden opacity-75 cursor-not-allowed">
+                <div className="absolute top-3 right-3 z-10">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/90 text-[#697386] border border-black/5">
+                    <Lock className="h-2.5 w-2.5" /> Coming Soon
+                  </span>
+                </div>
+                <div className="relative">
+                  <img src={addBusinessBg} alt="" className="w-full h-80 object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Rocket className="h-16 w-16 text-white drop-shadow-lg" />
+                  </div>
+                </div>
+                <div className="p-5 text-left">
+                  <h3 className="text-base font-semibold text-[#1a1f36]">From Scratch</h3>
+                  <p className="text-sm text-[#697386] mt-1">Create from scratch with AI</p>
+                </div>
+              </div>
+              {/* From Existing */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowMethodPicker(false)}
+                className="rounded-2xl border border-black/5 hover:border-[#3399ff]/40 bg-[#f4f3ee] overflow-hidden transition-colors text-left cursor-pointer"
+              >
+                <div className="relative">
+                  <img src={startBusinessBg} alt="" className="w-full h-80 object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <FolderOpenDot className="h-16 w-16 text-white drop-shadow-lg" />
+                  </div>
+                </div>
+                <div className="p-5">
+                  <h3 className="text-base font-semibold text-[#1a1f36]">From Existing</h3>
+                  <p className="text-sm text-[#697386] mt-1">Create from existing business</p>
+                </div>
+              </motion.button>
             </div>
           </motion.div>
-        </div>
-      )}
+        )}
 
-      <div className="max-w-5xl w-full relative z-10 px-2 sm:px-4">
-        <AnimatePresence mode="wait">
-          {/* Method Picker (add-business mode) */}
-          {showMethodPicker && step === 0 && (
-            <motion.div
-              key="method-picker"
-              className="w-full max-w-4xl mx-auto text-center space-y-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-            >
-              {isAddBusiness && onBack && (
-                <div className="w-full text-left mb-2">
-                  <button
-                    onClick={onBack}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <ArrowRight className="h-4 w-4 rotate-180" />
-                    Back
-                  </button>
-                </div>
-              )}
-              <div className="space-y-2 py-4">
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                  How would you like to get started?
-                </h1>
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                {/* From Scratch — Coming Soon */}
-                <div className="relative rounded-xl border border-border/50 bg-card overflow-hidden opacity-75 cursor-not-allowed">
-                  <div className="absolute top-3 right-3 z-10">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted/90 text-muted-foreground border border-border/50">
-                      <Lock className="h-2.5 w-2.5" /> Coming Soon
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <img src={addBusinessBg} alt="" className="w-full h-80 object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Rocket className="h-16 w-16 text-white drop-shadow-lg" />
-                    </div>
-                  </div>
-                  <div className="p-5 text-left">
-                    <h3 className="text-base font-semibold text-foreground">From Scratch</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Create from scratch with AI</p>
-                  </div>
-                </div>
-                {/* From Existing */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowMethodPicker(false)}
-                  className="rounded-xl border border-border/50 hover:border-primary/40 bg-card overflow-hidden transition-colors text-left cursor-pointer"
+        {/* ─── STEP 0: URL INPUT ─── */}
+        {step === 0 && !showMethodPicker && (
+          <motion.div
+            key="url-input"
+            className="w-full max-w-3xl px-4 flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
+          >
+            {isAddBusiness && (
+              <div className="w-full text-left mb-4">
+                <button
+                  onClick={() => setShowMethodPicker(true)}
+                  className="flex items-center gap-1.5 text-sm text-[#697386] hover:text-[#1a1f36] transition-colors"
                 >
-                  <div className="relative">
-                    <img src={startBusinessBg} alt="" className="w-full h-80 object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <FolderOpenDot className="h-16 w-16 text-white drop-shadow-lg" />
-                    </div>
-                  </div>
-                  <div className="p-5">
-                    <h3 className="text-base font-semibold text-foreground">From Existing</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Create from existing business</p>
-                  </div>
-                </motion.button>
+                  <ArrowRight className="h-4 w-4 rotate-180" />
+                  Back
+                </button>
               </div>
-            </motion.div>
-          )}
+            )}
 
-          {/* Step 0: URL Input */}
-          {step === 0 && !showMethodPicker && (
-            <motion.div
-              key="url-input"
-              className="w-full max-w-2xl mx-auto text-center space-y-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-            >
-              {/* Back button — top left */}
-              {isAddBusiness && (
-                <div className="w-full text-left mb-2">
-                  <button
-                    onClick={() => setShowMethodPicker(true)}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <ArrowRight className="h-4 w-4 rotate-180" />
-                    Back
-                  </button>
-                </div>
-              )}
-              <div className="space-y-2 sm:space-y-3 py-2 sm:py-4">
-                <div className="mx-auto h-11 w-11 sm:h-14 sm:w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 sm:mb-4">
-                  <Globe className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                  Enter your company URL
-                </h1>
-                <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
-                  We'll analyze your website and build your Business DNA automatically.
-                </p>
-              </div>
+            <h1 className="text-[32px] font-bold text-[#1a1f36] mb-3">Add a business</h1>
+            <p className="text-[#697386] text-[15px] mb-8 text-center">
+              Paste your company URL. We only access public data.
+            </p>
 
-              <div className="rounded-2xl bg-muted/40 border border-border/40 p-2.5 sm:p-3">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Globe className="h-5 w-5 sm:h-6 sm:w-6 text-primary/70" />
+            <div className="w-full max-w-[720px]">
+              <div className="bg-[#f4f3ee] border-[1.5px] border-[#3399ff] rounded-2xl p-2 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ml-1">
+                    <Globe className="w-5 h-5 text-[#3399ff]" strokeWidth={2} />
                   </div>
-                  <div className="relative flex-1 min-w-0">
-                    <input
-                      type="url"
-                      value={urlInput}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && urlInput.trim()) {
-                          setActiveUrl(urlInput.trim());
-                          setStep(1);
-                        }
-                      }}
-                      className="w-full h-10 sm:h-12 text-sm sm:text-base border-0 bg-transparent focus:outline-none text-foreground px-2 sm:px-3"
-                      autoFocus
-                    />
-                    {!urlInput && (
-                      <div className="absolute inset-0 flex items-center pointer-events-none pl-2 sm:pl-3">
-                        <Typewriter
-                          text={URL_EXAMPLES}
-                          speed={60}
-                          deleteSpeed={30}
-                          waitTime={1500}
-                          loop
-                          className="text-sm sm:text-base text-muted-foreground/40 truncate"
-                          showCursor
-                          cursorChar="|"
-                          cursorClassName="ml-0.5 text-muted-foreground/30"
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <input
+                    type="text"
+                    value={urlInput}
+                    onFocus={() => setIsUrlFocused(true)}
+                    onBlur={() => setIsUrlFocused(false)}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && urlInput.trim()) {
+                        setActiveUrl(urlInput.trim());
+                        setStep(1);
+                      }
+                    }}
+                    className="flex-1 bg-transparent border-none outline-none text-[#1a1f36] text-[15px]"
+                    placeholder={`e.g. ${placeholderText}|`}
+                    autoFocus
+                  />
                   <button
                     onClick={() => {
                       if (urlInput.trim()) {
@@ -744,271 +582,540 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
                       }
                     }}
                     disabled={!urlInput.trim()}
-                    className="h-10 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary/80 hover:bg-primary text-primary-foreground font-medium text-sm sm:text-base flex items-center gap-2 disabled:opacity-50 transition-all shrink-0"
+                    className="bg-[#3399ff] hover:bg-[#287acc] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                   >
-                    <span className="hidden sm:inline">Continue</span>
-                    <ArrowRight className="h-4 w-4" />
+                    Continue <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="flex items-center gap-1.5 mt-2 ml-1">
-                  <Sparkles className="h-3 w-3 text-muted-foreground/50" />
-                  <span className="text-xs text-muted-foreground/60">
-                    Paste your company url
-                  </span>
+                <div className={`transition-all duration-300 overflow-hidden ${isUrlFocused ? "max-h-0 opacity-0" : "max-h-20 opacity-100"}`}>
+                  <div className="flex items-center gap-2 px-3 mt-3 mb-2">
+                    <WandSparkles className="w-4 h-4 text-[#697386]" strokeWidth={2} />
+                    <span className="text-[13px] text-[#697386]">Company URL works best.</span>
+                  </div>
                 </div>
               </div>
-            </motion.div>
-          )}
+            </div>
+          </motion.div>
+        )}
 
-          {step >= 1 && step < 3 && (
-            <motion.div
-              key="analyzing-container"
-              className="flex flex-col md:flex-row gap-4 sm:gap-6 w-full items-stretch justify-center mx-auto"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-            >
-              {/* Left Card — Flipping Task Display */}
-              <div className="bg-card rounded-2xl sm:rounded-3xl border border-border shadow-2xl shadow-primary/10 p-5 sm:p-10 md:p-14 flex flex-col items-center justify-center w-full md:w-1/2">
-                <div className="w-16 h-16 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl bg-primary/10 flex items-center justify-center mb-4 sm:mb-8 relative">
-                  <AnimatePresence mode="wait">
-                    {step === 1 ? (
-                      <motion.div
-                        key="search"
-                        initial={{ scale: 0, opacity: 0, rotate: -90 }}
-                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                        exit={{ scale: 0, opacity: 0, rotate: 90 }}
-                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                        className="absolute"
-                      >
-                        <Telescope className="w-8 h-8 sm:w-14 sm:h-14 text-primary" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="dna"
-                        initial={{ scale: 0, opacity: 0, rotate: -90 }}
-                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                        exit={{ scale: 0, opacity: 0, rotate: 90 }}
-                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                        className="absolute"
-                      >
-                        <Dna className="w-8 h-8 sm:w-14 sm:h-14 text-primary" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+        {/* ─── STEP 1: ANALYZING ─── */}
+        {step === 1 && (
+          <motion.div
+            key="analyzing"
+            className="w-full max-w-3xl px-4 flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
+          >
+            <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Finding your business</h1>
+
+            <div className="w-full max-w-[720px] bg-[#f4f3ee] rounded-2xl p-6 shadow-sm border border-black/5">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-11 h-11 rounded-xl bg-[#e6f2ff] flex items-center justify-center shrink-0">
+                  <Telescope className="w-5 h-5 text-[#3399ff]" strokeWidth={2} />
                 </div>
+                <span className="text-[17px] text-[#1a1f36] truncate">{activeUrl}</span>
+              </div>
 
-                <div className="text-xs sm:text-sm font-bold tracking-widest text-muted-foreground mb-2 sm:mb-4 uppercase">
-                  STEP {step} OF 3
+              {scrapeError ? (
+                <div className="flex flex-col items-center gap-3 w-full">
+                  <div className="flex items-center gap-2 text-red-500">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">{persistenceError || "Failed to analyze. Please try again."}</span>
+                  </div>
+                  <button
+                    onClick={handleRetry}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#3399ff]/10 hover:bg-[#3399ff]/20 text-[#3399ff] text-sm font-medium transition-colors"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Try Again
+                  </button>
                 </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2.5 px-1">
+                    <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin" strokeWidth={2.5} />
+                    <span className="text-[14px] text-[#697386]">Analyzing business...</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-[#e5e4df] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#3399ff] rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${Math.max(15, progress)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
-                <h2 className="text-base sm:text-xl font-bold text-foreground text-center tracking-tight mb-2 sm:mb-3">
-                  {step === 1 ? "Analyzing your business" : "Forging your business DNA"}
-                </h2>
+        {/* ─── STEP 2: PRODUCT SELECTION ─── */}
+        {step === 2 && (
+          <motion.div
+            key="product-select"
+            className="w-full max-w-5xl px-4 flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
+          >
+            <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Add products to business DNA</h1>
 
-                {/* Persistence error state */}
-                {persistenceError ? (
-                  <div className="flex flex-col items-center gap-3 w-full mt-2">
-                    <div className="flex items-center gap-2 text-destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm font-medium">{persistenceError}</span>
+            {/* URL bar with continue */}
+            <div className="w-full max-w-[900px] bg-[#f4f3ee] border-[1.5px] border-[#3399ff] rounded-2xl p-2 shadow-sm mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-3 px-2">
+                <Globe className="w-5 h-5 text-[#3399ff]" strokeWidth={2} />
+                <span className="text-[#1a1f36] font-medium text-[15px]">{activeUrl}</span>
+              </div>
+              <button
+                onClick={() => {
+                  // If no products selected, select all (up to 3)
+                  if (selectedProducts.length === 0) {
+                    const allIdx = extractedProducts.slice(0, 3).map((_: any, i: number) => i);
+                    setSelectedProducts(allIdx);
+                  }
+                  if (extractedProducts.some((p: any) => p.images?.length > 0)) {
+                    setCurrentProductIndex(0);
+                    setStep(3);
+                  } else {
+                    setStep(4); // skip image picker if no images
+                  }
+                }}
+                disabled={selectedProducts.length === 0 && extractedProducts.length === 0}
+                className="bg-[#3399ff] disabled:opacity-50 hover:bg-[#287acc] transition-colors text-white px-6 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+              >
+                Continue <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Product Cards Grid */}
+            {extractedProducts.length > 0 ? (
+              <div className="w-full max-w-[900px] grid grid-cols-1 md:grid-cols-3 gap-6">
+                {extractedProducts.slice(0, 6).map((p: any, i: number) => {
+                  const isSelected = selectedProducts.includes(i);
+                  const imgUrl = p.images?.[0] || null;
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedProducts(selectedProducts.filter(id => id !== i));
+                        } else if (selectedProducts.length < 3) {
+                          setSelectedProducts([...selectedProducts, i]);
+                        }
+                      }}
+                      className={`cursor-pointer rounded-2xl overflow-hidden border-2 transition-all ${
+                        isSelected
+                          ? "border-[#3399ff] ring-4 ring-[#3399ff]/20"
+                          : "border-transparent bg-[#f4f3ee] hover:border-[#e5e4df]"
+                      }`}
+                    >
+                      <div className="relative h-48 bg-white flex items-center justify-center">
+                        {imgUrl ? (
+                          <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-[#e5e4df] flex items-center justify-center">
+                            <Globe className="w-8 h-8 text-[#697386]/40" />
+                          </div>
+                        )}
+                        <div
+                          className={`absolute top-3 right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            isSelected ? "bg-[#3399ff] border-[#3399ff]" : "bg-black/40 border-white/60"
+                          }`}
+                        >
+                          {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                        </div>
+                      </div>
+                      <div className="p-5 bg-[#f4f3ee]">
+                        <p className="text-[12px] font-semibold text-[#697386] tracking-wider mb-1">PRODUCT</p>
+                        <h3 className="text-[16px] font-bold text-[#1a1f36] mb-2 leading-tight">{p.name || `Product ${i + 1}`}</h3>
+                        {p.description && (
+                          <p className="text-[13px] text-[#697386] line-clamp-2">{p.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="w-full max-w-[900px] bg-[#f4f3ee] rounded-2xl p-8 text-center">
+                <p className="text-[#697386] text-[15px]">No products found. We'll create your business DNA from brand data.</p>
+                <button
+                  onClick={() => setStep(4)}
+                  className="mt-4 bg-[#3399ff] hover:bg-[#287acc] transition-colors text-white px-6 py-2.5 rounded-xl font-medium text-[15px]"
+                >
+                  Continue
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ─── STEP 3: IMAGE PICKER ─── */}
+        {step === 3 && (
+          <motion.div
+            key="image-picker"
+            className="w-full max-w-4xl px-4 flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
+          >
+            {(() => {
+              const productIdx = selectedProducts[currentProductIndex] ?? 0;
+              const product = extractedProducts[productIdx];
+              const productImages: string[] = product?.images || [];
+              const selectedImg = selectedImages[currentProductIndex] ?? 0;
+
+              return (
+                <>
+                  {/* Top bar */}
+                  <div className="w-full bg-[#f4f3ee] rounded-2xl p-4 flex items-center justify-between shadow-sm mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                        {productImages[0] ? (
+                          <img src={productImages[0]} alt="" className="w-8 h-8 object-contain" />
+                        ) : (
+                          <Globe className="w-5 h-5 text-[#697386]" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-[17px] font-semibold text-[#1a1f36]">
+                          {product?.name || "Product"}
+                        </h3>
+                        <p className="text-[14px] text-[#697386]">
+                          Product {currentProductIndex + 1} of {selectedProducts.length} – Select best image
+                        </p>
+                      </div>
                     </div>
                     <button
-                      onClick={handleRetry}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
+                      onClick={() => {
+                        if (currentProductIndex < selectedProducts.length - 1) {
+                          setCurrentProductIndex(prev => prev + 1);
+                        } else {
+                          setStep(4);
+                        }
+                      }}
+                      className="bg-[#3399ff] hover:bg-[#287acc] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                     >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                      Try Again
+                      {currentProductIndex < selectedProducts.length - 1 ? "Next product" : "Use this image"}{" "}
+                      <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
-                ) : (
-                  /* Single flipping current task — no history stack */
-                  <div className="flex flex-col items-center justify-center w-full min-h-[40px] sm:min-h-[60px] mt-1 sm:mt-2">
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={currentTask}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -12 }}
-                        transition={{ duration: 0.35 }}
-                        className="flex items-center gap-2 text-xs sm:text-sm"
-                      >
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
-                        <span className="text-foreground font-medium">{currentTask}</span>
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
-                )}
-              </div>
 
-              {/* Right Card: Sources */}
-              <div className="bg-card rounded-2xl sm:rounded-3xl border border-border shadow-2xl shadow-primary/10 p-5 sm:p-8 md:p-10 flex flex-col items-start justify-start w-full md:w-1/2">
-                <div className="mb-4 sm:mb-6">
-                  <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                </div>
-
-                <div className="flex items-center gap-3 mb-3 sm:mb-4">
-                  <div className="text-xs sm:text-sm font-bold tracking-widest text-foreground uppercase">
-                    Scanning Sources
+                  <div className="w-full flex flex-col items-start mb-4">
+                    <h2 className="text-[20px] font-semibold text-[#1a1f36] mb-1">Pick the strongest product shot</h2>
                   </div>
-                  {!allSourcesDone && (
-                    <div className="flex gap-1">
-                      <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} />
-                      <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }} />
-                      <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }} />
+
+                  {/* Image Grid */}
+                  {productImages.length > 0 ? (
+                    <div className="w-full grid grid-cols-2 gap-4 mb-8">
+                      {productImages.slice(0, 6).map((imgSrc: string, idx: number) => (
+                        <div
+                          key={idx}
+                          onClick={() =>
+                            setSelectedImages(prev => ({ ...prev, [currentProductIndex]: idx }))
+                          }
+                          className={`relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${
+                            selectedImg === idx ? "border-[#3399ff]" : "border-transparent"
+                          }`}
+                        >
+                          <img src={imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                          <div className="absolute top-3 right-3">
+                            {selectedImg === idx ? (
+                              <div className="w-6 h-6 rounded-full bg-[#3399ff] flex items-center justify-center">
+                                <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                              </div>
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-white/50" />
+                            )}
+                          </div>
+                          <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm">
+                            <Maximize2 className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="w-full bg-[#f4f3ee] rounded-2xl p-8 text-center mb-8">
+                      <p className="text-[#697386]">No images found for this product.</p>
                     </div>
                   )}
-                </div>
 
-                <div className="flex flex-col gap-2 w-full min-h-[80px] sm:min-h-[140px] max-h-[200px] overflow-y-auto">
-                  <AnimatePresence>
-                    {visibleSources.map((source, i) => {
-                      const isLatest = i === visibleSources.length - 1 && !allSourcesDone;
-                      return (
-                        <motion.div
-                          key={source}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: isLatest ? 1 : 0.5, x: 0 }}
-                          exit={{ opacity: 0, x: 10 }}
-                          transition={{ duration: 0.3 }}
-                          className="flex items-center gap-2 text-xs sm:text-sm"
-                        >
-                          {isLatest ? (
-                            <div className="h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full border-2 border-primary flex items-center justify-center shrink-0">
-                              <motion.div
-                                className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-primary"
-                                animate={{ scale: [1, 1.3, 1] }}
-                                transition={{ duration: 1, repeat: Infinity }}
-                              />
-                            </div>
-                          ) : (
-                            <div className="h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                              <Check className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-primary" />
-                            </div>
-                          )}
-                          <span className={`truncate ${isLatest ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                            https://{source}
-                          </span>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </div>
+                  {/* Upload Card */}
+                  <div className="w-full bg-[#f4f3ee] rounded-2xl p-5 flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="text-[16px] font-semibold text-[#1a1f36] mb-1">Upload your own photo</h3>
+                      <p className="text-[14px] text-[#697386]">Uploading will set the image as the new main photo.</p>
+                    </div>
+                    <button className="bg-white border border-[#e5e4df] hover:bg-gray-50 transition-colors text-[#1a1f36] px-4 py-2 rounded-xl font-medium flex items-center gap-2 text-[14px]">
+                      <UploadCloud className="w-4 h-4" /> Upload image
+                    </button>
+                  </div>
 
-                <div className="mt-auto pt-3 sm:pt-4 border-t border-border/50 w-full">
-                  <p className="text-xs text-muted-foreground/60">
-                    {scannedSources.length} source{scannedSources.length !== 1 ? 's' : ''} scanned
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {step === 3 && (
-            <motion.div
-              key="result-card"
-              className="w-full max-w-sm sm:max-w-md mx-auto flex flex-col items-center px-2"
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
-            >
-              {/* Business Brain Orb */}
-              <div className="mb-8 sm:mb-12 mt-2 sm:mt-4">
-                <BusinessBrainOrb size={120} className="sm:hidden" />
-                <BusinessBrainOrb size={160} className="hidden sm:flex" />
-              </div>
-
-              {/* Agent Name Input */}
-              <div className="w-full flex flex-col items-center min-h-[100px] sm:min-h-[120px] justify-center">
-                <AnimatePresence mode="wait">
-                  {!isNameSubmitted ? (
-                    <motion.div
-                      key="input-view"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="w-full"
+                  {/* Info Accordion */}
+                  <div className="w-full mb-4">
+                    <div
+                      className="flex items-center justify-between cursor-pointer py-2"
+                      onClick={() => setIsInfoOpen(!isInfoOpen)}
                     >
-                      <label
-                        htmlFor="agentName"
-                        className="flex items-center justify-center text-xs sm:text-sm font-bold text-muted-foreground mb-3 sm:mb-4 uppercase tracking-wide"
-                      >
-                        Agent Name
-                      </label>
-                      <input
-                        id="agentName"
-                        type="text"
-                        value={agentName}
-                        onChange={(e) => setAgentName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && agentName.trim().length > 0) {
-                            setIsNameSubmitted(true);
-                          }
-                        }}
-                        placeholder=""
-                        className="w-full px-4 sm:px-5 py-3 sm:py-4 text-center text-base sm:text-lg bg-card border-2 border-border rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none text-foreground font-medium shadow-sm"
-                        autoFocus
-                      />
-                      <AnimatePresence>
-                        {agentName.trim().length > 0 && (
-                          <motion.p
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -5 }}
-                            className="text-center text-xs text-muted-foreground mt-2 sm:mt-3"
-                          >
-                            Press Enter to continue
-                          </motion.p>
+                      <div className="flex items-center gap-2 text-[#3399ff] text-[14px] font-medium">
+                        <Lightbulb className="w-4 h-4" />
+                        <span>What makes a great product image?</span>
+                      </div>
+                      <ChevronUp className={`w-4 h-4 text-[#3399ff] transition-transform ${isInfoOpen ? "" : "rotate-180"}`} />
+                    </div>
+                    {isInfoOpen && (
+                      <div className="pt-1 pb-2">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                          {["Clean background", "Only your product", "Bright and clear", "High quality"].map((text, i) => (
+                            <div key={i} className="flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e]" />
+                              <span className="text-[#1a1f36] text-[13px]">{text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </motion.div>
+        )}
+
+        {/* ─── STEPS 4-5: FORGING DNA ─── */}
+        {(step === 4 || step === 5) && (
+          <motion.div
+            key="forging"
+            className="w-full max-w-3xl px-4 flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
+          >
+            <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Forging your business DNA</h1>
+
+            {/* Top Card */}
+            <div className="w-full bg-[#f4f3ee] rounded-2xl p-6 mb-8 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                    <Sparkles className="w-5 h-5 text-[#3399ff]" />
+                  </div>
+                  <div>
+                    <h3 className="text-[17px] font-semibold text-[#1a1f36]">{activeUrl}</h3>
+                    <p className="text-[14px] text-[#697386]">Step 2 of 3 – Forging your business DNA</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setStep(6)}
+                  disabled={!persistenceComplete}
+                  className={`${
+                    !persistenceComplete ? "bg-[#3399ff]/50 cursor-not-allowed" : "bg-[#3399ff] hover:bg-[#287acc]"
+                  } text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px] transition-colors`}
+                >
+                  Finalize Agent <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {persistenceError ? (
+                <div className="flex flex-col items-center gap-3 w-full">
+                  <div className="flex items-center gap-2 text-red-500">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">{persistenceError}</span>
+                  </div>
+                  <button
+                    onClick={handleRetry}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#3399ff]/10 hover:bg-[#3399ff]/20 text-[#3399ff] text-sm font-medium transition-colors"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Try Again
+                  </button>
+                </div>
+              ) : !persistenceComplete ? (
+                <div className="flex flex-col">
+                  <p className="text-[16px] font-medium text-[#697386] mb-4">Building your unfair advantage</p>
+                  <ul className="flex flex-col gap-2">
+                    {["Analyze your business", "Find what makes it great", "Find data to back it", "Construct DNA"].map((todo, i) => (
+                      <li key={i} className="flex items-center gap-2 text-[15px] text-[#697386]">
+                        <Loader2 className="w-3.5 h-3.5 text-[#3399ff] animate-spin" />
+                        {todo}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="flex flex-col">
+                  <p className="text-[16px] font-medium text-[#22c55e] mb-4">✓ Business DNA forged successfully</p>
+                </div>
+              )}
+            </div>
+
+            {/* Tabs */}
+            <div className="w-full flex flex-col">
+              <div className="flex items-center gap-2 mb-6">
+                <button
+                  onClick={() => setForgingTab("found")}
+                  className={`px-4 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-2 transition-colors ${
+                    forgingTab === "found"
+                      ? "bg-white border border-[#e5e4df] text-[#1a1f36] shadow-sm"
+                      : "bg-[#f4f3ee] text-[#697386] hover:bg-[#e5e4df]"
+                  }`}
+                >
+                  Data Found
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] ${
+                    forgingTab === "found" ? "bg-[#1a1f36] text-white" : "bg-[#d1d0cb] text-white"
+                  }`}>
+                    3
+                  </span>
+                </button>
+                <button
+                  onClick={() => setForgingTab("confirmed")}
+                  className={`px-4 py-1.5 rounded-full text-[14px] font-medium transition-colors ${
+                    forgingTab === "confirmed"
+                      ? "bg-white border border-[#e5e4df] text-[#1a1f36] shadow-sm"
+                      : "bg-[#f4f3ee] text-[#697386] hover:bg-[#e5e4df]"
+                  }`}
+                >
+                  Confirmed Data
+                </button>
+              </div>
+
+              {forgingTab === "found" ? (
+                <div className="w-full flex flex-col gap-3">
+                  {["Brand identity", "Target audience", "Value proposition"].map((title, i) => (
+                    <div key={i} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {!persistenceComplete ? (
+                          <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-5 h-5 text-[#22c55e]" />
                         )}
-                      </AnimatePresence>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="button-view"
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      className="w-full flex flex-col items-center"
-                    >
-                      <button
-                        onClick={async () => {
-                          // Persist agent name to the brand record
-                          if (createdBrandId && agentName.trim()) {
-                            try {
-                              const { data: existing } = await supabase
-                                .from("user_business_data")
-                                .select("content")
-                                .eq("id", createdBrandId)
-                                .single();
-                              const brandData = JSON.parse(existing?.content || "{}");
-                              brandData.agentName = agentName.trim();
-                              await supabase
-                                .from("user_business_data")
-                                .update({ content: JSON.stringify(brandData) })
-                                .eq("id", createdBrandId);
-                              // Update local context so BusinessDNAView picks it up immediately
-                              setBrands(prev => prev.map(b =>
+                        <span className="text-[15px] font-medium text-[#1a1f36]">{title}</span>
+                      </div>
+                      {!persistenceComplete && (
+                        <div className="w-12 h-6 bg-[#e5e4df] rounded-md animate-pulse" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full flex flex-col gap-3">
+                  {["Brand identity", "Target audience", "Value proposition"].map((title, i) => (
+                    <div key={i} className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-[#22c55e]" />
+                      <span className="text-[15px] font-medium text-[#1a1f36]">{title}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ─── STEP 6: AGENT NAME ─── */}
+        {step === 6 && (
+          <motion.div
+            key="agent-name"
+            className="w-full max-w-3xl px-4 flex flex-col items-center"
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
+          >
+            {/* Orb */}
+            <div className="mb-8 mt-2">
+              <BusinessBrainOrb size={120} className="sm:hidden" />
+              <BusinessBrainOrb size={160} className="hidden sm:flex" />
+            </div>
+
+            <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Choose agent name</h1>
+
+            <div className="w-full max-w-md">
+              <AnimatePresence mode="wait">
+                {!isNameSubmitted ? (
+                  <motion.div
+                    key="name-input"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <div className="bg-[#f4f3ee] border-[1.5px] border-[#3399ff] rounded-2xl p-2 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ml-1">
+                          <WandSparkles className="w-5 h-5 text-[#3399ff]" strokeWidth={2} />
+                        </div>
+                        <input
+                          type="text"
+                          value={agentName}
+                          onChange={(e) => setAgentName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && agentName.trim().length > 0) {
+                              setIsNameSubmitted(true);
+                            }
+                          }}
+                          className="flex-1 bg-transparent border-none outline-none text-[#1a1f36] text-[15px]"
+                          placeholder="e.g. My Agent..."
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => {
+                            if (agentName.trim()) setIsNameSubmitted(true);
+                          }}
+                          disabled={!agentName.trim()}
+                          className="bg-[#3399ff] hover:bg-[#287acc] disabled:bg-[#3399ff]/50 disabled:cursor-not-allowed transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                        >
+                          Continue <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="take-me"
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="w-full flex flex-col items-center"
+                  >
+                    <button
+                      onClick={async () => {
+                        if (createdBrandId && agentName.trim()) {
+                          try {
+                            const { data: existing } = await supabase
+                              .from("user_business_data")
+                              .select("content")
+                              .eq("id", createdBrandId)
+                              .single();
+                            const brandData = JSON.parse(existing?.content || "{}");
+                            brandData.agentName = agentName.trim();
+                            await supabase
+                              .from("user_business_data")
+                              .update({ content: JSON.stringify(brandData) })
+                              .eq("id", createdBrandId);
+                            setBrands(prev =>
+                              prev.map(b =>
                                 (b as any)._rowId === createdBrandId || b.id === brandData.id
                                   ? { ...b, agentName: agentName.trim() }
                                   : b
-                              ));
-                            } catch { /* best effort */ }
-                          }
-                          onComplete(agentName.trim(), createdBrandId);
-                        }}
-                        className="w-full bg-card border border-border shadow-sm text-foreground hover:bg-muted px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                      >
-                        Take Me To {agentName.trim()}
-                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                              )
+                            );
+                          } catch { /* best effort */ }
+                        }
+                        onComplete(agentName.trim(), createdBrandId);
+                      }}
+                      className="w-full bg-[#f4f3ee] border border-[#e5e4df] shadow-sm text-[#1a1f36] hover:bg-[#e5e4df] px-6 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                    >
+                      Take Me To {agentName.trim()}
+                      <ArrowRight className="w-5 h-5 text-[#3399ff]" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
