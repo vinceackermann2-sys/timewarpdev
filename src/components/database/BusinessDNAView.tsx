@@ -309,7 +309,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
     });
   };
 
-  const { brands, setBrands, products, audiences } = useBusinessDNA();
+  const { brands, setBrands, products, audiences, isLoaded: dnaLoaded } = useBusinessDNA();
   const activeBrand = brands.find(b => b.id === activeBrandId);
   const brandProductCount = products.filter(p => p.brandId === activeBrandId).length;
   const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
