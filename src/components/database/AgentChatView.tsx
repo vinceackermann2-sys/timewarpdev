@@ -300,8 +300,8 @@ export function AgentChatView() {
     }
   };
 
-  /* ── Read file contents — text files read directly, binary files analyzed via AI ── */
-  const readFileContent = async (file: File, session: any): Promise<string> => {
+  /* ── Read file contents — text read directly, images kept as base64 for vision ── */
+  const readFileContent = async (file: File, _session: any): Promise<string> => {
     const textTypes = ["text/", "application/json", "application/xml", "text/csv", "application/csv"];
     const isText = textTypes.some(t => file.type.startsWith(t)) || /\.(txt|md|csv|json|xml|html|css|js|ts|py|log|yml|yaml|toml|ini|cfg|env)$/i.test(file.name);
 
@@ -310,29 +310,29 @@ export function AgentChatView() {
       return text.slice(0, 50000);
     }
 
-    // For images, PDFs, audio, video — call analyze-content
+    // For images: optimize and return as a special JSON marker so we can send as vision
+    if (file.type.startsWith("image/")) {
+      try {
+        const optimized = await optimizeImageForAnalysis(file);
+        // Return a JSON marker that the chat functions will parse into multimodal content
+        return `__IMAGE_BASE64__${optimized.mimeType}__${optimized.base64}`;
+      } catch {
+        return `[File: ${file.name} (image, ${(file.size / 1024).toFixed(1)}KB)]`;
+      }
+    }
+
+    // For other binary files (PDFs, audio, etc.) — call analyze-content
     try {
+      const base64Data = (await fileToDataUrl(file)).split(",")[1] || "";
       let analyzeType = "document";
-      let contentBody: any;
-      if (file.type.startsWith("image/")) {
-        const optimizedImage = await optimizeImageForAnalysis(file);
-        analyzeType = "image";
-        contentBody = {
-          imageName: file.name,
-          imageBase64: optimizedImage.base64,
-          imageMimeType: optimizedImage.mimeType,
-        };
-      } else if (file.type.startsWith("audio/")) {
-        const base64Data = (await fileToDataUrl(file)).split(",")[1] || "";
+      let contentBody: any = { documentName: file.name, fileBase64: base64Data, fileMimeType: file.type };
+
+      if (file.type.startsWith("audio/")) {
         analyzeType = "audio";
         contentBody = { fileName: file.name, fileBase64: base64Data, fileMimeType: file.type };
       } else if (file.type.startsWith("video/")) {
-        const base64Data = (await fileToDataUrl(file)).split(",")[1] || "";
         analyzeType = "video";
         contentBody = { fileName: file.name, fileBase64: base64Data, fileMimeType: file.type };
-      } else {
-        const base64Data = (await fileToDataUrl(file)).split(",")[1] || "";
-        contentBody = { documentName: file.name, fileBase64: base64Data, fileMimeType: file.type };
       }
 
       const controller = new AbortController();
@@ -344,7 +344,7 @@ export function AgentChatView() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${_session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           signal: controller.signal,
@@ -358,9 +358,6 @@ export function AgentChatView() {
         if (result.success && result.analysis) {
           return `[Analysis of ${file.name}]\n${result.analysis}`;
         }
-      } else {
-        const err = await response.json().catch(() => ({}));
-        console.error(`File analysis failed for ${file.name}:`, err.error || response.status);
       }
     } catch (err) {
       console.error("File analysis error:", err);
