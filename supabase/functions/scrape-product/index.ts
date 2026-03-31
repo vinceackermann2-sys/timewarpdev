@@ -541,10 +541,11 @@ serve(async (req) => {
                       });
                       if (res.ok) {
                         const d = await res.json();
-                        return { url: pUrl, markdown: d.data?.markdown || d.markdown || "" };
+                        const md = d.data?.markdown || d.markdown || "";
+                        return { url: pUrl, markdown: md, extractedImages: extractImagesFromMarkdown(md, pUrl) };
                       }
                       const fb = await fetchPageFallback(pUrl);
-                      return { url: pUrl, markdown: fb.markdown };
+                      return { url: pUrl, markdown: fb.markdown, extractedImages: extractImagesFromMarkdown(fb.markdown, pUrl) };
                     } catch { return null; }
                   })
                 );
