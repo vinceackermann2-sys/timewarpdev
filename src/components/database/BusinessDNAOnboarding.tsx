@@ -932,7 +932,7 @@ export function BusinessDNAOnboarding({
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                         {productImages[0] ? (
-                          <img src={productImages[0]} alt="" className="w-8 h-8 object-contain" />
+                          <img src={bgRemovedImages[productImages[0]] || productImages[0]} alt="" className="w-8 h-8 object-contain" />
                         ) : (
                           <Globe className="w-5 h-5 text-[#697386]" />
                         )}
