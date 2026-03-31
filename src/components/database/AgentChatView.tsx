@@ -786,6 +786,8 @@ export function AgentChatView() {
               messages: conversationHistory,
               pageContext,
               skip_action: stepCount > 0,
+              brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })(),
+              workspaceId: activeWorkspaceId,
             }),
           }
         );
