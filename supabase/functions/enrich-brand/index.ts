@@ -808,7 +808,7 @@ serve(async (req) => {
       } catch (e) { console.error("Screenshot pipeline error:", e); }
     })();
 
-    // ── Pipeline 4: Image Guideline Images ──
+    // ── Pipeline 4: Image Guideline Images (using actual product images) ──
     const guidelineImagePipeline = (async () => {
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping guideline images"); return; }
       try {
@@ -823,18 +823,39 @@ serve(async (req) => {
           return;
         }
 
+        const productImgs: string[] = Array.isArray(productImageUrls) ? productImageUrls.filter((u: string) => typeof u === "string" && u.length > 0) : [];
+        const primaryProductImg = productImgs[0] || null;
+
         const urls: string[] = [];
-        // Generate images sequentially to avoid rate limits
         for (let i = 0; i < guidelineRules.length; i++) {
           const rule = guidelineRules[i];
-          const img = await generateImage(LOVABLE_API_KEY,
-            `Create a small product photography example image for this brand guideline rule: "${rule}".
+          let img: string | null = null;
+
+          if (primaryProductImg) {
+            // Use the actual product image — edit it to demonstrate the guideline
+            img = await editImageWithProduct(LOVABLE_API_KEY,
+              `Create a professional product photography example that demonstrates this brand guideline: "${rule}".
+Brand: "${name}", Category: ${cat}.
+Primary color: ${primary}, Secondary color: ${secondary}.
+IMPORTANT: Use the provided product image as the MAIN subject. Place it in a setting that demonstrates the guideline rule.
+Style: Premium, clean, minimal e-commerce product photography.
+The product in the provided image MUST be the focal point. Do NOT replace it with a different product.
+No text overlays.`,
+              primaryProductImg
+            );
+          }
+
+          // Fallback to plain generation if edit failed
+          if (!img) {
+            img = await generateImage(LOVABLE_API_KEY,
+              `Create a small product photography example image for this brand guideline rule: "${rule}".
 Brand: "${name}", Category: ${cat}.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Premium, clean, minimal e-commerce product photography.
 The image should visually demonstrate the guideline rule as an example photo.
 Make it look like a real professional product photograph. No text overlays.`
-          );
+            );
+          }
           urls.push(img || "");
           if (i < guidelineRules.length - 1) {
             await new Promise(r => setTimeout(r, 500));
@@ -845,28 +866,60 @@ Make it look like a real professional product photograph. No text overlays.`
       } catch (e) { console.error("Guideline image pipeline error:", e); }
     })();
 
-    // ── Pipeline 5: Social Media Images (Feed + Story) ──
+    // ── Pipeline 5: Social Media Images (Feed + Story) using actual product ──
     const socialMediaPipeline = (async () => {
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping social media images"); return; }
       try {
         console.log("Generating social media mockup images...");
-        const feedImg = await generateImage(LOVABLE_API_KEY,
-          `Create a premium Instagram feed post mockup for a brand called "${name}" in the ${cat} category.
+        const productImgs: string[] = Array.isArray(productImageUrls) ? productImageUrls.filter((u: string) => typeof u === "string" && u.length > 0) : [];
+        const primaryProductImg = productImgs[0] || null;
+
+        let feedImg: string | null = null;
+        if (primaryProductImg) {
+          feedImg = await editImageWithProduct(LOVABLE_API_KEY,
+            `Create a premium Instagram feed post (square 1:1 format) for a brand called "${name}" in the ${cat} category.
+Primary color: ${primary}, Secondary color: ${secondary}.
+IMPORTANT: Use the provided product image as the MAIN subject of the post. Feature it prominently.
+Style: Clean, premium, minimal e-commerce aesthetic.
+The product MUST be clearly visible and be the hero of the image. Do NOT replace it with a different product.
+Professional photography style, branded color palette. No text overlays, no UI chrome.`,
+            primaryProductImg
+          );
+        }
+        if (!feedImg) {
+          feedImg = await generateImage(LOVABLE_API_KEY,
+            `Create a premium Instagram feed post mockup for a brand called "${name}" in the ${cat} category.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Clean, premium, minimal e-commerce aesthetic.
 Show a product-focused square image that would look great as an Instagram feed post.
 Professional photography style, branded color palette. No text overlays, no UI chrome.`
-        );
+          );
+        }
 
         await new Promise(r => setTimeout(r, 500));
 
-        const storyImg = await generateImage(LOVABLE_API_KEY,
-          `Create a premium Instagram story mockup (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
+        let storyImg: string | null = null;
+        const storyProductImg = productImgs[1] || primaryProductImg;
+        if (storyProductImg) {
+          storyImg = await editImageWithProduct(LOVABLE_API_KEY,
+            `Create a premium Instagram story (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
+Primary color: ${primary}, Secondary color: ${secondary}.
+IMPORTANT: Use the provided product image as the MAIN subject. Feature it prominently in a vertical composition.
+Style: Clean, premium, minimal e-commerce aesthetic.
+The product MUST be clearly visible and be the hero of the image. Do NOT replace it with a different product.
+Professional photography style, branded color palette. No text overlays, no UI chrome.`,
+            storyProductImg
+          );
+        }
+        if (!storyImg) {
+          storyImg = await generateImage(LOVABLE_API_KEY,
+            `Create a premium Instagram story mockup (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Clean, premium, minimal e-commerce aesthetic.
 Show a vertical product or lifestyle image that would look great as an Instagram story.
 Professional photography style, branded color palette. No text overlays, no UI chrome.`
-        );
+          );
+        }
 
         enriched.socialMediaUrls = [feedImg || "", storyImg || ""];
         console.log("Social media images generated:", [feedImg, storyImg].filter(Boolean).length);
