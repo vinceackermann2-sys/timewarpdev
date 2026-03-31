@@ -1149,11 +1149,17 @@ export function BusinessDNAOnboarding({
                               <span className="text-[#697386]">{urlToDisplaySource(urls[activeSourceIndex])}</span>
                             </span>
                             {/* Show a matching social proof quote inline */}
-                            {socialProof.length > 0 && (
-                              <p className="text-[12px] text-[#697386] italic mt-1 truncate">
-                                "{socialProof[activeSourceIndex % socialProof.length].quote.slice(0, 80)}…"
-                              </p>
-                            )}
+                            {(() => {
+                              const currentDomain = urlToDisplaySource(urls[activeSourceIndex]).split("/")[0];
+                              const matched = socialProof.find(sp => sp.source.toLowerCase().includes(currentDomain.toLowerCase()));
+                              const fallback = socialProof[activeSourceIndex % socialProof.length];
+                              const quote = matched || fallback;
+                              return quote ? (
+                                <p className="text-[12px] text-[#697386] italic mt-1 truncate">
+                                  "{quote.quote.slice(0, 80)}{quote.quote.length > 80 ? "…" : ""}"
+                                </p>
+                              ) : null;
+                            })()}
                           </div>
                         </motion.div>
                       </AnimatePresence>
