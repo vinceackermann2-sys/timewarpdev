@@ -1312,7 +1312,7 @@ export function BusinessDNAOnboarding({
               )}
             </div>
 
-            {/* Sources */}
+            {/* Sources — collapsible with verification status */}
             {urls.length > 0 && (
               <div className="w-full mt-6">
                 <button
@@ -1320,13 +1320,18 @@ export function BusinessDNAOnboarding({
                   className="flex items-center gap-2 text-[14px] font-medium text-[#697386] hover:text-[#1a1f36] transition-colors w-full"
                 >
                   <Globe className="w-4 h-4" />
-                  <span>{urls.length} sources analyzed</span>
+                  <span>{verifiedSources.size} of {urls.length} sources verified</span>
                   <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${sourcesOpen ? "rotate-180" : ""}`} />
                 </button>
                 {sourcesOpen && (
                   <div className="mt-2 flex flex-col gap-1.5">
                     {urls.map((url, i) => (
                       <div key={i} className="flex items-center gap-2 text-[13px] text-[#697386] py-1 px-2 rounded-lg hover:bg-[#f4f3ee]">
+                        {verifiedSources.has(i) ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
+                        ) : (
+                          <Loader2 className="w-3.5 h-3.5 text-[#3399ff] animate-spin shrink-0" />
+                        )}
                         <img
                           src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(url)}&sz=16`}
                           alt=""
@@ -1338,22 +1343,6 @@ export function BusinessDNAOnboarding({
                     ))}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Social Proof */}
-            {socialProof.length > 0 && (
-              <div className="w-full mt-6 flex flex-col gap-3">
-                <h3 className="text-[14px] font-medium text-[#697386] flex items-center gap-2">
-                  <Quote className="w-4 h-4" />
-                  Social proof found
-                </h3>
-                {socialProof.map((sp, i) => (
-                  <div key={i} className="border-l-4 border-[#3399ff] pl-4 py-2 bg-[#f4f3ee] rounded-r-xl pr-4">
-                    <p className="text-[14px] text-[#1a1f36] italic leading-relaxed">"{sp.quote}"</p>
-                    <p className="text-[12px] text-[#697386] mt-1">— {sp.source}</p>
-                  </div>
-                ))}
               </div>
             )}
           </motion.div>
