@@ -120,6 +120,7 @@ export function BusinessDNAOnboarding({
     { label: "Enrich brand", status: "pending" },
   ]);
   const scannedUrlsRef = useRef<string[]>([]);
+  const filteredUrlsRef = useRef<string[]>([]);
   const [socialProof, setSocialProof] = useState<{ quote: string; source: string }[]>([]);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   // Source carousel state for forging step
