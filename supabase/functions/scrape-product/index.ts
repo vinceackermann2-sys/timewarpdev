@@ -548,7 +548,7 @@ serve(async (req) => {
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-2.5-flash-lite",
-                messages: [{ role: "user", content: `From these URLs, select ONLY the ones that are clearly DISTINCT individual PRODUCT or SERVICE pages. Each URL should represent a genuinely different product — do NOT include variant pages, color options, or size variations of the same product. Exclude category/collection pages, blog posts, about/legal pages.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return []. Maximum 10 URLs.\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
+                messages: [{ role: "user", content: `From these URLs, select ONLY the ones that are clearly DISTINCT individual PRODUCT or SERVICE pages sold by THIS company. Each URL should represent a genuinely different product — do NOT include variant pages, color options, or size variations of the same product. Exclude category/collection pages, blog posts, about/legal pages, partner integrations, third-party tools, and informational pages. Only select pages selling THIS company's own products or services.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return []. Maximum 10 URLs.\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
               }),
             })).text();
             try {
