@@ -188,7 +188,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { employee_id, messages, pageContext, skip_action } = await req.json();
+    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId } = await req.json();
     if (!employee_id) throw new Error("employee_id required");
 
     // Load employee
@@ -228,8 +228,11 @@ serve(async (req) => {
       }
     }
 
-    // Load lightweight business identity + safety settings
-    const { identity, safetySettings } = await loadBusinessIdentity(supabase, employee);
+    // Use brandId from request (selected agent) or fall back to employee's linked business
+    const effectiveBrandId = brandId || employee.linked_business_id;
+
+    // Load lightweight business identity + safety settings from the selected agent's brand
+    const { identity, safetySettings } = await loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId });
 
     // Extract user's latest message for RAG + guardrails
     const lastUserMsg = extractLastUserMessage(messages);
@@ -242,8 +245,9 @@ serve(async (req) => {
       });
     }
 
-    // RAG: retrieve only relevant context based on user's latest message
-    const relevantContext = await retrieveRelevantContext(supabase, employee, lastUserMsg);
+    // RAG: retrieve relevant context scoped to selected agent's brand/workspace
+    const effectiveWsId = workspaceId || employee.workspace_id;
+    const relevantContext = await retrieveRelevantContext(supabase, { ...employee, workspace_id: effectiveWsId }, lastUserMsg);
 
     // Build system prompt
     const isBrowserMode = !!pageContext;
