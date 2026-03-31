@@ -528,7 +528,7 @@ serve(async (req) => {
           const mapData = await mapRes.json();
           const parsedBase = new URL(formattedUrl);
           const baseDomain = parsedBase.hostname.replace(/^www\./, '');
-          const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com)/i;
+          const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com|pages\/)/i;
           const allUrls: string[] = (mapData.links || []).filter((u: string) => {
             if (!u || !u.startsWith("http")) return false;
             try {
