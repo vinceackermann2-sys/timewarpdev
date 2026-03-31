@@ -973,7 +973,7 @@ export function BusinessDNAOnboarding({
                             selectedImg === idx ? "border-[#3399ff]" : "border-transparent"
                           }`}
                         >
-                          <img src={bgRemovedImages[imgSrc] || imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                          <img src={bgRemovedImages[imgSrc] || imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" onError={() => setFailedImages(prev => new Set(prev).add(imgSrc))} />
                           <div className="absolute top-3 right-3">
                             {selectedImg === idx ? (
                               <div className="w-6 h-6 rounded-full bg-[#3399ff] flex items-center justify-center">
@@ -983,9 +983,12 @@ export function BusinessDNAOnboarding({
                               <div className="w-6 h-6 rounded-full bg-white/50" />
                             )}
                           </div>
-                          <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setFullscreenImage(bgRemovedImages[imgSrc] || imgSrc); }}
+                            className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm hover:bg-black/60 transition-colors"
+                          >
                             <Maximize2 className="w-4 h-4 text-white" />
-                          </div>
+                          </button>
                           {/* Remove Background button */}
                           {!bgRemovedImages[imgSrc] && (
                             <button
