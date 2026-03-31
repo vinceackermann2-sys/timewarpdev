@@ -1482,10 +1482,10 @@ export function BusinessDNAOnboarding({
                         }
                         onComplete(agentName.trim(), createdBrandId);
                       }}
-                      className="w-full bg-[#f4f3ee] border border-[#e5e4df] shadow-sm text-[#1a1f36] hover:bg-[#e5e4df] px-6 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                      className="w-full bg-[#3399ff] hover:bg-[#287acc] shadow-sm text-white px-6 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                     >
                       Take Me To {agentName.trim()}
-                      <ArrowRight className="w-5 h-5 text-[#3399ff]" />
+                      <ArrowRight className="w-5 h-5 text-white" />
                     </button>
                   </motion.div>
                 )}
