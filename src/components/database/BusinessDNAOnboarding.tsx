@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Globe, ArrowRight, Sparkles, Check, AlertCircle, RotateCcw, Rocket,
   FolderOpenDot, Lock, Telescope, Loader2, CheckCircle2, ChevronUp,
-  Maximize2, UploadCloud, Lightbulb, WandSparkles,
+  Maximize2, UploadCloud, Lightbulb, WandSparkles, Quote, ChevronDown,
+  Palette, Users, ShoppingBag,
 } from "lucide-react";
 import startBusinessBg from "@/assets/start-business-bg.webp";
 import addBusinessBg from "@/assets/add-business-bg.webp";
