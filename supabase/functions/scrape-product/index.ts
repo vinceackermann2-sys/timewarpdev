@@ -582,6 +582,92 @@ serve(async (req) => {
       productPageContents = [{ url: formattedUrl, markdown: homepageMarkdown }];
     }
 
+    // Build scannedUrls early (used by both discover and extract modes)
+    const scannedUrls: string[] = [baseUrl];
+    for (const page of productPageContents) {
+      if (page.url && !scannedUrls.includes(page.url)) scannedUrls.push(page.url);
+    }
+
+    // ══════════════════════════════════════════════
+    // DISCOVER MODE: Lightweight product listing (names + images + descriptions only)
+    // ══════════════════════════════════════════════
+    if (isDiscoverMode) {
+      console.log("Discover mode — extracting product names/images from", productPageContents.length, "pages...");
+
+      const discoverResults = await Promise.allSettled(
+        productPageContents.slice(0, 10).map(async (page) => {
+          try {
+            const pageImages = extractImagesFromMarkdown(page.markdown, page.url);
+            // Quick lightweight AI call to get just name + description
+            const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-lite",
+                max_tokens: 500,
+                messages: [{ role: "user", content: `From this product page content, extract ONLY the product name and a 1-sentence description. Return JSON: {"name": "", "description": ""}\n\nContent (first 3000 chars):\n${page.markdown.slice(0, 3000)}` }],
+              }),
+            });
+            if (!res.ok) return { url: page.url, name: "", description: "", images: pageImages };
+            const d = await res.json();
+            const raw = d.choices?.[0]?.message?.content || "";
+            try {
+              const parsed = robustJsonParse(raw);
+              return { url: page.url, name: parsed.name || "", description: parsed.description || "", images: pageImages };
+            } catch {
+              return { url: page.url, name: "", description: "", images: pageImages };
+            }
+          } catch {
+            return { url: page.url, name: "", description: "", images: extractImagesFromMarkdown(page.markdown, page.url) };
+          }
+        })
+      );
+
+      const discoveredProducts = discoverResults
+        .filter((r): r is PromiseFulfilledResult<{ url: string; name: string; description: string; images: string[] }> =>
+          r.status === 'fulfilled' && !!r.value)
+        .map(r => r.value)
+        .filter(p => p.name || p.images.length > 0);
+
+      // Extract basic brand info from firecrawl (no AI call needed)
+      const quickBrand = {
+        name: metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business",
+        category: "Business",
+        colors: firecrawlBranding?.colors ? {
+          primary: firecrawlBranding.colors.primary || firecrawlBranding.colors.accent || "#4A86FF",
+          secondary: firecrawlBranding.colors.secondary || "#6B7280",
+          background: firecrawlBranding.colors.background || "#FFFFFF",
+          text: firecrawlBranding.colors.textPrimary || "#000000",
+        } : null,
+        logoUrls: firecrawlBranding?.logo ? [firecrawlBranding.logo] : [],
+      };
+
+      console.log("Discover mode — found", discoveredProducts.length, "products, scannedUrls:", scannedUrls.length);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          discoveredProducts,
+          quickBrand,
+          scannedUrls,
+          isMultiProduct: isCompanyUrl && productPageContents.length > 1,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ══════════════════════════════════════════════
+    // CORE/EXTRACT MODE: Filter to selected products if provided
+    // ══════════════════════════════════════════════
+    if (Array.isArray(selectedProductUrls) && selectedProductUrls.length > 0) {
+      const selectedSet = new Set(selectedProductUrls);
+      const filtered = productPageContents.filter(p => selectedSet.has(p.url));
+      if (filtered.length > 0) {
+        productPageContents = filtered;
+        console.log("Filtered to", productPageContents.length, "selected product pages");
+      }
+    }
+
     // ══════════════════════════════════════════════
     // STEP 3: MULTI-PASS AI EXTRACTION
     // ══════════════════════════════════════════════
