@@ -438,7 +438,16 @@ export function AgentChatView() {
     setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true }]);
 
     try {
-      if (isActionMode && extensionConnected && selectedChatEmployees.length > 0) {
+      // If files are attached, always use chat mode (not browser automation) so the AI analyzes them
+      const hasFiles = userMsg.files && userMsg.files.length > 0;
+
+      if (hasFiles && selectedChatEmployees.length > 0) {
+        // Files attached with employee: use employee chat to analyze files
+        await runEmployeeChat(session, userMsg, assistantId);
+      } else if (hasFiles) {
+        // Files attached without employee: use agent chat to analyze files
+        await runAgentChat(session, userMsg, assistantId);
+      } else if (isActionMode && extensionConnected && selectedChatEmployees.length > 0) {
         // Computer mode with employee: run employee via extension
         await runComputerMode(session, userMsg, assistantId);
       } else if (isActionMode && extensionConnected) {
