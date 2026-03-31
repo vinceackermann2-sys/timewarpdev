@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Globe, ArrowRight, Sparkles, Check, AlertCircle, RotateCcw, Rocket,
   FolderOpenDot, Lock, Telescope, Loader2, CheckCircle2, ChevronUp,
-  Maximize2, UploadCloud, Lightbulb, WandSparkles,
+  Maximize2, UploadCloud, Lightbulb, WandSparkles, Quote, ChevronDown,
+  Palette, Users, ShoppingBag,
 } from "lucide-react";
 import startBusinessBg from "@/assets/start-business-bg.webp";
 import addBusinessBg from "@/assets/add-business-bg.webp";
@@ -105,6 +106,17 @@ export function BusinessDNAOnboarding({
 
   // Forging DNA tabs (step 4-5)
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
+  const [forgingTodos, setForgingTodos] = useState<{ label: string; status: "pending" | "done"; completedAt?: Date }[]>([
+    { label: "Analyze business", status: "done" },
+    { label: "Extract brand identity", status: "pending" },
+    { label: "Extract products", status: "pending" },
+    { label: "Extract audiences", status: "pending" },
+    { label: "Save to database", status: "pending" },
+    { label: "Enrich brand", status: "pending" },
+  ]);
+  const scannedUrlsRef = useRef<string[]>([]);
+  const [socialProof, setSocialProof] = useState<{ quote: string; source: string }[]>([]);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
 
   // Scrape / persistence
   const scrapeResult = useRef<any>(null);
@@ -190,6 +202,37 @@ export function BusinessDNAOnboarding({
           setScrapeError(true);
         } else {
           scrapeResult.current = data.extracted;
+          // Capture scanned URLs
+          if (Array.isArray(data.scannedUrls)) {
+            scannedUrlsRef.current = data.scannedUrls;
+          }
+          // Extract social proof quotes from scraped content
+          const rawMarkdown = data.rawMarkdown || data.extracted?.rawMarkdown || "";
+          const quotes: { quote: string; source: string }[] = [];
+          // Match patterns like "quote text" — Source or "quote text" - Username
+          const quotePatterns = [
+            /["""]([^"""]{20,200})["""]\s*[—–-]\s*(.+?)(?:\n|$)/g,
+            />\s*["""]?([^""">\n]{20,200})["""]?\s*\n\s*[—–-]\s*(.+?)(?:\n|$)/g,
+          ];
+          for (const pattern of quotePatterns) {
+            let match;
+            while ((match = pattern.exec(rawMarkdown)) !== null && quotes.length < 5) {
+              quotes.push({ quote: match[1].trim(), source: match[2].trim() });
+            }
+          }
+          // Also check extracted testimonials
+          const testimonials = data.extracted?.testimonials || data.extracted?.brand?.testimonials || [];
+          if (Array.isArray(testimonials)) {
+            for (const t of testimonials) {
+              if (quotes.length >= 5) break;
+              if (typeof t === "string" && t.length > 15) {
+                quotes.push({ quote: t, source: "Customer Review" });
+              } else if (t?.quote || t?.text) {
+                quotes.push({ quote: t.quote || t.text, source: t.source || t.author || "Customer Review" });
+              }
+            }
+          }
+          if (quotes.length > 0) setSocialProof(quotes);
         }
       } catch (e) {
         if (!cancelled) {
@@ -233,10 +276,24 @@ export function BusinessDNAOnboarding({
   }, [step, scrapeComplete, scrapeError]);
 
   // ── Step 4: persist via edge function ────────────────────
+  const markTodo = (label: string) => {
+    setForgingTodos(prev => prev.map(t => t.label === label ? { ...t, status: "done" as const, completedAt: new Date() } : t));
+  };
+
   useEffect(() => {
     if (step !== 4) return;
     if (persistenceComplete || persistenceCompleteRef.current) return;
     let cancelled = false;
+
+    // Reset todos for fresh run
+    setForgingTodos([
+      { label: "Analyze business", status: "done", completedAt: new Date() },
+      { label: "Extract brand identity", status: "pending" },
+      { label: "Extract products", status: "pending" },
+      { label: "Extract audiences", status: "pending" },
+      { label: "Save to database", status: "pending" },
+      { label: "Enrich brand", status: "pending" },
+    ]);
 
     (async () => {
       const extracted = scrapeResult.current || {};
@@ -263,6 +320,9 @@ export function BusinessDNAOnboarding({
         visualIdentity: b.visualIdentity || undefined,
       };
 
+      if (!cancelled) markTodo("Extract brand identity");
+      await new Promise(r => setTimeout(r, 400));
+
       // Filter products by user selection
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
       const filteredProducts = selectedProducts.length > 0
@@ -270,7 +330,6 @@ export function BusinessDNAOnboarding({
         : productsRaw.slice(0, 3);
 
       const newProducts: ProductEntry[] = filteredProducts.slice(0, 5).map((p: any, i: number) => {
-        // Apply selected image if available
         const selectedImgIdx = selectedImages[i];
         const images = p.images?.length
           ? p.images.map((imgUrl: string, j: number) => ({
@@ -279,7 +338,6 @@ export function BusinessDNAOnboarding({
               label: `Product Image ${j + 1}`,
             }))
           : DEFAULT_PRODUCT.images;
-        // Move selected image to front if specified
         if (selectedImgIdx !== undefined && selectedImgIdx > 0 && images.length > selectedImgIdx) {
           const [picked] = images.splice(selectedImgIdx, 1);
           images.unshift(picked);
@@ -328,6 +386,9 @@ export function BusinessDNAOnboarding({
         };
       });
 
+      if (!cancelled) markTodo("Extract products");
+      await new Promise(r => setTimeout(r, 300));
+
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
       const newAudiences: AudienceEntry[] = audiencesRaw
         .filter((a: any) => a?.name)
@@ -361,6 +422,9 @@ export function BusinessDNAOnboarding({
           brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
         }));
 
+      if (!cancelled) markTodo("Extract audiences");
+      await new Promise(r => setTimeout(r, 300));
+
       if (cancelled) return;
 
       const { data, error } = await supabase.functions.invoke("save-onboarding", {
@@ -379,6 +443,8 @@ export function BusinessDNAOnboarding({
         setPersistenceError(data?.error || "Failed to save brand. Please try again.");
         return;
       }
+
+      if (!cancelled) markTodo("Save to database");
 
       if (data.workspaceId) {
         localStorage.setItem("preferred_workspace_id", data.workspaceId);
@@ -428,10 +494,16 @@ export function BusinessDNAOnboarding({
             if (res.data?.success && refreshBrand) {
               await refreshBrand(finalBrandId);
             }
+            if (!cancelled) markTodo("Enrich brand");
           } catch (e) {
             console.warn("Brand enrichment failed (non-blocking):", e);
+            if (!cancelled) markTodo("Enrich brand"); // mark done anyway
           }
+        } else {
+          if (!cancelled) markTodo("Enrich brand");
         }
+      } else {
+        if (!cancelled) markTodo("Enrich brand");
       }
 
       if (!cancelled) {
@@ -887,7 +959,18 @@ export function BusinessDNAOnboarding({
         )}
 
         {/* ─── STEPS 4-5: FORGING DNA ─── */}
-        {(step === 4 || step === 5) && (
+        {(step === 4 || step === 5) && (() => {
+          const extracted = scrapeResult.current || {};
+          const brandData = extracted.brand || {};
+          const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
+          const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
+          const filteredProds = selectedProducts.length > 0
+            ? selectedProducts.map(i => productsRaw[i]).filter(Boolean)
+            : productsRaw.slice(0, 3);
+          const brandColors = brandData.colors || {};
+          const urls = scannedUrlsRef.current;
+
+          return (
           <motion.div
             key="forging"
             className="w-full max-w-3xl px-4 flex flex-col items-center"
@@ -898,9 +981,9 @@ export function BusinessDNAOnboarding({
           >
             <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Forging your business DNA</h1>
 
-            {/* Top Card */}
-            <div className="w-full bg-[#f4f3ee] rounded-2xl p-6 mb-8 shadow-sm">
-              <div className="flex items-center justify-between mb-8">
+            {/* Top Card with todos */}
+            <div className="w-full bg-[#f4f3ee] rounded-2xl p-6 mb-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                     <Sparkles className="w-5 h-5 text-[#3399ff]" />
@@ -935,28 +1018,32 @@ export function BusinessDNAOnboarding({
                     Try Again
                   </button>
                 </div>
-              ) : !persistenceComplete ? (
-                <div className="flex flex-col">
-                  <p className="text-[16px] font-medium text-[#697386] mb-4">Building your unfair advantage</p>
-                  <ul className="flex flex-col gap-2">
-                    {["Analyze your business", "Find what makes it great", "Find data to back it", "Construct DNA"].map((todo, i) => (
-                      <li key={i} className="flex items-center gap-2 text-[15px] text-[#697386]">
-                        <Loader2 className="w-3.5 h-3.5 text-[#3399ff] animate-spin" />
-                        {todo}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               ) : (
-                <div className="flex flex-col">
-                  <p className="text-[16px] font-medium text-[#22c55e] mb-4">✓ Business DNA forged successfully</p>
-                </div>
+                <ul className="flex flex-col gap-2">
+                  {forgingTodos.map((todo, i) => (
+                    <li key={i} className="flex items-center gap-2.5 text-[15px]">
+                      {todo.status === "done" ? (
+                        <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
+                      ) : (
+                        <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
+                      )}
+                      <span className={todo.status === "done" ? "text-[#1a1f36]" : "text-[#697386]"}>
+                        {todo.label}
+                      </span>
+                      {todo.completedAt && (
+                        <span className="text-[11px] text-[#697386] ml-auto">
+                          {todo.completedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
 
             {/* Tabs */}
             <div className="w-full flex flex-col">
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-5">
                 <button
                   onClick={() => setForgingTab("found")}
                   className={`px-4 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-2 transition-colors ${
@@ -969,52 +1056,168 @@ export function BusinessDNAOnboarding({
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] ${
                     forgingTab === "found" ? "bg-[#1a1f36] text-white" : "bg-[#d1d0cb] text-white"
                   }`}>
-                    3
+                    {1 + filteredProds.length + audiencesRaw.length}
                   </span>
                 </button>
                 <button
                   onClick={() => setForgingTab("confirmed")}
-                  className={`px-4 py-1.5 rounded-full text-[14px] font-medium transition-colors ${
+                  className={`px-4 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-2 transition-colors ${
                     forgingTab === "confirmed"
                       ? "bg-white border border-[#e5e4df] text-[#1a1f36] shadow-sm"
                       : "bg-[#f4f3ee] text-[#697386] hover:bg-[#e5e4df]"
                   }`}
                 >
                   Confirmed Data
+                  {persistenceComplete && (
+                    <CheckCircle2 className="w-4 h-4 text-[#22c55e]" />
+                  )}
                 </button>
               </div>
 
               {forgingTab === "found" ? (
                 <div className="w-full flex flex-col gap-3">
-                  {["Brand identity", "Target audience", "Value proposition"].map((title, i) => (
-                    <div key={i} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {!persistenceComplete ? (
-                          <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="w-5 h-5 text-[#22c55e]" />
-                        )}
-                        <span className="text-[15px] font-medium text-[#1a1f36]">{title}</span>
+                  {/* Brand card */}
+                  <div className="w-full bg-[#f4f3ee] rounded-xl p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Palette className="w-4 h-4 text-[#3399ff] shrink-0" />
+                      <span className="text-[15px] font-medium text-[#1a1f36]">
+                        {brandData.name || "Brand Identity"}
+                      </span>
+                      {forgingTodos.find(t => t.label === "Extract brand identity")?.status === "done" ? (
+                        <CheckCircle2 className="w-4 h-4 text-[#22c55e] ml-auto shrink-0" />
+                      ) : (
+                        <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin ml-auto shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-[13px] text-[#697386] mb-2">{brandData.category || "Brand"}</p>
+                    {(brandColors.primary || brandColors.secondary || brandColors.background) && (
+                      <div className="flex items-center gap-2">
+                        {[brandColors.primary, brandColors.secondary, brandColors.background, brandColors.text].filter(Boolean).map((c: string, ci: number) => (
+                          <div key={ci} className="flex items-center gap-1.5">
+                            <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: c }} />
+                            <span className="text-[11px] text-[#697386]">{c}</span>
+                          </div>
+                        ))}
                       </div>
-                      {!persistenceComplete && (
-                        <div className="w-12 h-6 bg-[#e5e4df] rounded-md animate-pulse" />
+                    )}
+                  </div>
+
+                  {/* Products */}
+                  {filteredProds.map((p: any, i: number) => (
+                    <div key={i} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center gap-3">
+                      <ShoppingBag className="w-4 h-4 text-[#3399ff] shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[15px] font-medium text-[#1a1f36]">{p.name || `Product ${i + 1}`}</span>
+                        {p.images?.length > 0 && (
+                          <span className="text-[12px] text-[#697386] ml-2">{p.images.length} images</span>
+                        )}
+                      </div>
+                      {forgingTodos.find(t => t.label === "Extract products")?.status === "done" ? (
+                        <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
+                      ) : (
+                        <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Audiences */}
+                  {audiencesRaw.filter((a: any) => a?.name).map((a: any, i: number) => (
+                    <div key={`aud-${i}`} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center gap-3">
+                      <Users className="w-4 h-4 text-[#3399ff] shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[15px] font-medium text-[#1a1f36]">{a.name}</span>
+                        {a.description && (
+                          <p className="text-[12px] text-[#697386] line-clamp-1">{a.description}</p>
+                        )}
+                      </div>
+                      {forgingTodos.find(t => t.label === "Extract audiences")?.status === "done" ? (
+                        <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
+                      ) : (
+                        <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="w-full flex flex-col gap-3">
-                  {["Brand identity", "Target audience", "Value proposition"].map((title, i) => (
-                    <div key={i} className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-[#22c55e]" />
-                      <span className="text-[15px] font-medium text-[#1a1f36]">{title}</span>
+                  {persistenceComplete ? (
+                    <>
+                      <div className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-[#22c55e] shrink-0" />
+                        <div>
+                          <span className="text-[15px] font-medium text-[#1a1f36]">{brandData.name || "Brand"}</span>
+                          <span className="text-[12px] text-[#697386] ml-2">Brand identity saved</span>
+                        </div>
+                      </div>
+                      {filteredProds.map((p: any, i: number) => (
+                        <div key={i} className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-[#22c55e] shrink-0" />
+                          <span className="text-[15px] font-medium text-[#1a1f36]">{p.name || `Product ${i + 1}`}</span>
+                        </div>
+                      ))}
+                      {audiencesRaw.filter((a: any) => a?.name).map((a: any, i: number) => (
+                        <div key={`ca-${i}`} className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-[#22c55e] shrink-0" />
+                          <span className="text-[15px] font-medium text-[#1a1f36]">{a.name}</span>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="w-full bg-[#f4f3ee] rounded-xl p-6 text-center">
+                      <p className="text-[14px] text-[#697386]">Waiting for data to be confirmed...</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>
+
+            {/* Sources */}
+            {urls.length > 0 && (
+              <div className="w-full mt-6">
+                <button
+                  onClick={() => setSourcesOpen(!sourcesOpen)}
+                  className="flex items-center gap-2 text-[14px] font-medium text-[#697386] hover:text-[#1a1f36] transition-colors w-full"
+                >
+                  <Globe className="w-4 h-4" />
+                  <span>{urls.length} sources analyzed</span>
+                  <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${sourcesOpen ? "rotate-180" : ""}`} />
+                </button>
+                {sourcesOpen && (
+                  <div className="mt-2 flex flex-col gap-1.5">
+                    {urls.map((url, i) => (
+                      <div key={i} className="flex items-center gap-2 text-[13px] text-[#697386] py-1 px-2 rounded-lg hover:bg-[#f4f3ee]">
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(url)}&sz=16`}
+                          alt=""
+                          className="w-4 h-4 rounded-sm"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                        <span className="truncate">{urlToDisplaySource(url)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Social Proof */}
+            {socialProof.length > 0 && (
+              <div className="w-full mt-6 flex flex-col gap-3">
+                <h3 className="text-[14px] font-medium text-[#697386] flex items-center gap-2">
+                  <Quote className="w-4 h-4" />
+                  Social proof found
+                </h3>
+                {socialProof.map((sp, i) => (
+                  <div key={i} className="border-l-4 border-[#3399ff] pl-4 py-2 bg-[#f4f3ee] rounded-r-xl pr-4">
+                    <p className="text-[14px] text-[#1a1f36] italic leading-relaxed">"{sp.quote}"</p>
+                    <p className="text-[12px] text-[#697386] mt-1">— {sp.source}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
-        )}
+          );
+        })()}
 
         {/* ─── STEP 6: AGENT NAME ─── */}
         {step === 6 && (
