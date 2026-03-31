@@ -1,57 +1,54 @@
 
 
-## Plan: Redesign Onboarding / Add Business UI
+## Plan: Enhanced Forging DNA Step with Real Data, Sources & Social Proof
 
 ### Summary
-Replace the current `BusinessDNAOnboarding` component's visual design with the new UI from the uploaded zip file. The backend logic (scrape-product, save-onboarding, enrich-brand edge functions) stays exactly the same. The only behavioral difference: when adding a business from Business DNA, show the method picker ("From Scratch" / "From Existing"); during initial onboarding, skip straight to URL input.
-
-### New Step Flow
-
-```text
-[Method Picker] → [URL Input] → [Analyzing] → [Product Selection] → [Product Image Picker] → [Forging DNA] → [Agent Name]
-   (add-biz only)    step 0        step 1          step 2                 step 3                step 4-5          step 6
-```
-
-Mapped to backend:
-- Steps 0-1: URL input + scrape-product call (same as current steps 0-1)
-- Step 2: NEW — show extracted products as selectable cards (images from scrape data), user picks up to 3
-- Step 3: NEW — for each selected product, pick the best product image from scraped images
-- Steps 4-5: save-onboarding + enrich-brand calls (same as current step 2), with new "Data Found" / "Confirmed Data" tabs UI
-- Step 6: Agent naming (same as current step 3)
-
-### Design Language
-- Background: `bg-[#fcfbf9]` (light cream) — matches the zip's warm neutral aesthetic
-- Accent: `#3399ff` (blue) — consistent with existing primary
-- Cards: `bg-[#f4f3ee]` with subtle borders
-- Typography: `text-[#1a1f36]` for headings, `text-[#697386]` for secondary
-- Rounded corners: `rounded-2xl` throughout
-- No dark mode override needed (existing theme handles this)
+Upgrade the "Forging DNA" step (steps 4-5) to show real extracted data instead of placeholder labels, track completion of each to-do item progressively, display scanned URLs as sources, and add social proof quotes from scraped content. Also pass `scannedUrls` from the scrape result into the forging UI.
 
 ### Changes
 
-**File: `src/components/database/BusinessDNAOnboarding.tsx`** (full rewrite of render, keep all backend hooks/effects)
-1. Keep all existing state, refs, effects for scraping, persistence, enrichment, progress animation
-2. Add new state: `selectedProducts` (indices), `currentProductIndex`, `selectedImages` (per product), `isInfoOpen`, `isSourcesOpen`
-3. After scrape completes, extract product list from `scrapeResult.current` and transition to product selection (step 2) instead of straight to persistence
-4. Step 2 renders product cards in a 3-column grid with checkboxes, images from scraped data, "Continue" button
-5. Step 3 renders image picker per product — grid of product images with selection circles, upload option, info accordion
-6. Steps 4-5 trigger persistence (save-onboarding) + show "Forging DNA" UI with to-do list, sources tabs, Reddit-style quote placeholder
-7. Step 6 is agent naming with the new clean input style (WandSparkles icon, blue border)
-8. Method picker UI stays as-is (already matches the design)
+**File: `src/components/database/BusinessDNAOnboarding.tsx`**
 
-**Key mapping**: The scrape result's `extracted.products[].images` array populates the image picker. The `selectedProducts` filter determines which products get passed to `save-onboarding`. The selected image index per product gets stored in the product entry.
+1. **New state**: `forgingTodos` — array of `{ label, status: 'pending'|'done', completedAt?: Date }` tracking each step (Analyze business, Extract brand, Extract products, Extract audiences, Save to database, Enrich brand). Each transitions to `done` at the right moment during the persistence effect.
 
-### What Stays the Same
-- All edge function calls (scrape-product, save-onboarding, enrich-brand)
-- BusinessDNAContext integration
-- Workspace resolution logic
-- Auth session handling
-- The method picker for add-business mode (already exists)
-- Progress animation logic (reused for steps 4-5 instead of 1-2)
+2. **Store `scannedUrls`** from the scrape result (`scrapeResult.current` already includes it from the edge function response — need to store `data.scannedUrls` alongside `data.extracted`). Add `scannedUrls` ref.
 
-### What Changes
-- Visual design of every step to match the zip's cream/blue aesthetic
-- New intermediate steps (product selection + image picker) between scraping and persistence
-- Step numbering adjusted (0→URL, 1→analyzing, 2→product cards, 3→image picker, 4-5→forging, 6→agent name)
-- Products passed to save-onboarding filtered by user selection instead of all scraped products
+3. **Extract social proof quotes** during scrape: parse the homepage markdown for Reddit-style quotes, testimonials, or review snippets. Use a simple regex/heuristic to find quoted text or testimonial patterns (e.g., text in quotes, text near "— Username" patterns). Store as `socialProof: { quote, source }[]`.
+
+4. **Step 4 persistence effect updates**: Mark each todo as `done` progressively:
+   - "Analyze business" → done when scrape completes (already done by step 4)
+   - "Extract brand identity" → done after brand data is prepared
+   - "Extract products" → done after products are mapped
+   - "Extract audiences" → done after audiences are mapped
+   - "Save to database" → done after `save-onboarding` returns
+   - "Enrich brand" → done after `enrich-brand` returns
+
+5. **"Data Found" tab** shows:
+   - Brand card with name, category, colors preview
+   - Products list with names and image counts
+   - Audiences list with names and descriptions
+   - Each with a checkmark when confirmed
+
+6. **"Confirmed Data" tab** shows the same items but only after persistence completes, with green checkmarks and summary counts.
+
+7. **Sources section** below tabs:
+   - Collapsible list of `scannedUrls` with domain favicons
+   - Shows "X sources analyzed" count
+
+8. **Social proof section** below sources:
+   - Cards with quote text, attributed source (e.g., "Reddit User", "Customer Review")
+   - Styled as blockquotes with the cream/blue aesthetic
+   - Only shown if quotes were found during scrape
+
+### Scrape Response Integration
+The scrape-product function already returns `scannedUrls` in the response. Currently only `data.extracted` is stored. We need to also capture `data.scannedUrls` and `data.isMultiProduct` from the scrape response.
+
+### Visual Design
+- Todo items: each row with spinner → green check animation on completion
+- Data Found cards: `bg-[#f4f3ee]` with brand colors as small swatches, product thumbnails
+- Sources: compact list with `Globe` icon per URL, `text-[13px]`
+- Quotes: `border-l-4 border-[#3399ff] pl-4` blockquote style, `text-[#697386]` attribution
+
+### Files Changed
+1. `src/components/database/BusinessDNAOnboarding.tsx` — all UI + state changes in the forging steps
 
