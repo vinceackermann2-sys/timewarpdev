@@ -850,7 +850,8 @@ export function BusinessDNAOnboarding({
               <div className="w-full max-w-[900px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {extractedProducts.slice(0, 10).map((p: any, i: number) => {
                   const isSelected = selectedProducts.includes(i);
-                  const imgUrl = p.images?.[0] || null;
+                  const rawImgUrl = p.images?.[0] || null;
+                  const imgUrl = rawImgUrl ? (bgRemovedImages[rawImgUrl] || rawImgUrl) : null;
                   return (
                     <div
                       key={i}
