@@ -496,7 +496,7 @@ serve(async (req) => {
     const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url: baseUrl, formats: ["markdown", "links", "branding", "screenshot"], onlyMainContent: false }),
+      body: JSON.stringify({ url: baseUrl, formats: ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false }),
     });
 
     if (scrapeResponse.ok) {
