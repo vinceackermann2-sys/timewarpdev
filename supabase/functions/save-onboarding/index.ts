@@ -141,6 +141,7 @@ serve(async (req) => {
         data_type: "audience",
         title: aud?.name || "Target Audience",
         content: JSON.stringify(aud),
+        metadata: { brandId },
       });
       if (audErr) {
         console.error("Audience insert failed:", audErr);
