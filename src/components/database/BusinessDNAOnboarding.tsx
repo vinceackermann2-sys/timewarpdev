@@ -306,8 +306,11 @@ export function BusinessDNAOnboarding({
   useEffect(() => {
     if (step !== 4 && step !== 5) return;
     if (persistenceComplete) return; // stop flipping once finalize is unlocked
-    const urls = scannedUrlsRef.current;
+    const urls = filteredUrlsRef.current;
     if (urls.length === 0) return;
+    // Reset carousel state when filtered URLs change
+    setActiveSourceIndex(0);
+    setVerifiedSources(new Set());
     const interval = setInterval(() => {
       setActiveSourceIndex(prev => {
         const next = (prev + 1) % urls.length;
