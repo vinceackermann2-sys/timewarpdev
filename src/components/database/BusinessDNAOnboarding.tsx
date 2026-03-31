@@ -1064,16 +1064,16 @@ export function BusinessDNAOnboarding({
           >
             <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Forging your business DNA</h1>
 
-            {/* Top Card with todos */}
+            {/* Top Card with source verification carousel */}
             <div className="w-full bg-[#f4f3ee] rounded-2xl p-6 mb-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                     <Sparkles className="w-5 h-5 text-[#3399ff]" />
                   </div>
                   <div>
                     <h3 className="text-[17px] font-semibold text-[#1a1f36]">{activeUrl}</h3>
-                    <p className="text-[14px] text-[#697386]">Step 2 of 3 – Forging your business DNA</p>
+                    <p className="text-[14px] text-[#697386]">Verifying {urls.length} sources</p>
                   </div>
                 </div>
                 <button
@@ -1102,25 +1102,83 @@ export function BusinessDNAOnboarding({
                   </button>
                 </div>
               ) : (
-                <ul className="flex flex-col gap-2">
-                  {forgingTodos.map((todo, i) => (
-                    <li key={i} className="flex items-center gap-2.5 text-[15px]">
-                      {todo.status === "done" ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
-                      ) : (
-                        <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
-                      )}
-                      <span className={todo.status === "done" ? "text-[#1a1f36]" : "text-[#697386]"}>
-                        {todo.label}
-                      </span>
-                      {todo.completedAt && (
-                        <span className="text-[11px] text-[#697386] ml-auto">
-                          {todo.completedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex flex-col gap-3">
+                  {/* Source carousel — flipping through URLs being verified */}
+                  {urls.length > 0 && (
+                    <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[52px]">
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={activeSourceIndex}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -12 }}
+                          transition={{ duration: 0.3 }}
+                          className="flex items-center gap-3"
+                        >
+                          {verifiedSources.has(activeSourceIndex) ? (
+                            <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
+                          ) : (
+                            <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
+                          )}
+                          <img
+                            src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(urls[activeSourceIndex])}&sz=16`}
+                            alt=""
+                            className="w-4 h-4 rounded-sm shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                          <span className="text-[14px] text-[#1a1f36] truncate">
+                            {verifiedSources.has(activeSourceIndex) ? "Verified" : "Verifying"}{" "}
+                            <span className="text-[#697386]">{urlToDisplaySource(urls[activeSourceIndex])}</span>
+                          </span>
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  {/* Progress dots */}
+                  {urls.length > 1 && (
+                    <div className="flex items-center justify-center gap-1.5">
+                      {urls.map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                            i === activeSourceIndex
+                              ? "bg-[#3399ff] w-4"
+                              : verifiedSources.has(i)
+                                ? "bg-[#22c55e]"
+                                : "bg-[#d1d0cb]"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Social proof quote — shows while sources are being verified */}
+                  {socialProof.length > 0 && (
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={activeSourceIndex % socialProof.length}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.35 }}
+                        className="border-l-4 border-[#3399ff] pl-4 py-2.5 bg-white/40 rounded-r-xl pr-4 mt-1"
+                      >
+                        <p className="text-[14px] text-[#1a1f36] italic leading-relaxed">
+                          "{socialProof[activeSourceIndex % socialProof.length].quote}"
+                        </p>
+                        <p className="text-[12px] text-[#697386] mt-1">
+                          — {socialProof[activeSourceIndex % socialProof.length].source}
+                        </p>
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
+
+                  {/* Verified count */}
+                  <p className="text-[12px] text-[#697386] text-center">
+                    {verifiedSources.size} of {urls.length} sources verified
+                  </p>
+                </div>
               )}
             </div>
 
