@@ -98,12 +98,15 @@ serve(async (req) => {
       workspace_id: wsId,
     };
 
+    const brandId = brandData?.id || `brand-${Date.now()}`;
+
     // Insert brand
     const { data: brandInsert, error: brandErr } = await admin.from("user_business_data").insert({
       ...basePayload,
       data_type: "brand",
       title: brandData?.name || "My Business",
       content: JSON.stringify(brandData),
+      metadata: { brandId },
     }).select("id").single();
 
     if (brandErr) {
