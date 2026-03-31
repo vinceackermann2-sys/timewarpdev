@@ -9,6 +9,136 @@ const corsHeaders = {
 
 const STOPWORDS = new Set(["this","that","with","from","have","been","were","they","their","what","about","which","when","where","will","would","could","should","there","these","those","some","other","into","more","also","than","then","just","only","very","much","such","like","over","after","before","between","under","each","every","both","most","same","does","doing","done","make","made","know","think","want","need","help","find","give","tell","show","look","come","back","take","well","still","even","here","many","while"]);
 
+// =====================================================
+// MIDDLEWARE GUARDRAILS (Layer 2 + Layer 4)
+// Only enforced when user has enabled them in settings
+// =====================================================
+
+const INJECTION_PATTERNS = [
+  /ignore\s+(all\s+)?previous\s+instructions/i,
+  /you\s+are\s+now\s+/i,
+  /disregard\s+(your|all|the)\s+/i,
+  /\[INST\]/i,
+  /<<SYS>>/i,
+  /system\s*:\s*you\s+are/i,
+  /forget\s+(everything|all|your\s+instructions)/i,
+  /new\s+instructions?\s*:/i,
+  /override\s+(your|system|all)\s+/i,
+];
+
+const PII_PATTERNS = [
+  { pattern: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/, label: "credit card number" },
+  { pattern: /\b\d{3}-\d{2}-\d{4}\b/, label: "SSN" },
+];
+
+const OUTPUT_BLOCKLIST = [
+  /here\s+(?:is|are)\s+(?:your|the|my)\s+(?:credit\s+card|ssn|social\s+security|password)/i,
+  /\bDROP\s+TABLE\b/i,
+  /\bDELETE\s+FROM\s+/i,
+  /\bsudo\s+rm\b/i,
+];
+
+const BLOCKED_URL_PATTERNS = [
+  /checkout/i, /payment/i, /billing/i,
+  /signin|sign-in|login|log-in/i,
+  /signup|sign-up|register/i,
+];
+
+const BLOCKED_SELECTOR_PATTERNS = [
+  /sign.?up|register|create.?account/i,
+  /log.?in|sign.?in/i,
+  /pay|purchase|buy|checkout|place.?order|subscribe/i,
+];
+
+async function loadSafetySettings(supabase: any, brandId?: string): Promise<any | null> {
+  if (!brandId) return null;
+  const { data } = await supabase
+    .from("user_business_data")
+    .select("content")
+    .eq("id", brandId)
+    .single();
+  if (!data?.content) return null;
+  try {
+    const parsed = JSON.parse(data.content);
+    return parsed?.safetySettings || null;
+  } catch { return null; }
+}
+
+function runPreflightGuardrails(userMessage: string, safety: any): string | null {
+  if (!userMessage || !safety) return null;
+
+  if (safety.promptInjectionEnabled) {
+    for (const pattern of INJECTION_PATTERNS) {
+      if (pattern.test(userMessage)) {
+        return "⚠️ Your message was blocked by the **Prompt Injection Defense** guardrail. It contained patterns that could override system instructions. Please rephrase your request.";
+      }
+    }
+  }
+
+  if (safety.integrityEnabled !== false) {
+    for (const { pattern, label } of PII_PATTERNS) {
+      if (pattern.test(userMessage)) {
+        return `⚠️ Your message was blocked by the **Integrity** guardrail. It appears to contain a ${label}. Please remove sensitive data before sending.`;
+      }
+    }
+  }
+
+  return null;
+}
+
+function runPostflightGuardrails(content: string, safety: any): string {
+  if (!content || !safety) return content;
+
+  if (safety.integrityEnabled !== false) {
+    for (const pattern of OUTPUT_BLOCKLIST) {
+      if (pattern.test(content)) {
+        return "⚠️ The AI response was blocked by the **Integrity** guardrail because it contained potentially unsafe content.";
+      }
+    }
+  }
+
+  return content;
+}
+
+function validateBrowserActions(content: string, safety: any): string | null {
+  if (!safety || safety.integrityEnabled === false) return null;
+
+  try {
+    const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (!jsonMatch) return null;
+    const action = JSON.parse(jsonMatch[1]);
+
+    if (action.action === "navigate" && action.url) {
+      for (const pattern of BLOCKED_URL_PATTERNS) {
+        if (pattern.test(action.url)) {
+          const blocked = JSON.stringify({ action: "respond", message: `⚠️ Navigation to "${action.url}" was blocked by the **Integrity** guardrail. Please handle this manually.`, reasoning: "Blocked by middleware", done: false });
+          return "```json\n" + blocked + "\n```";
+        }
+      }
+    }
+
+    if (action.action === "click" && action.selector) {
+      for (const pattern of BLOCKED_SELECTOR_PATTERNS) {
+        if (pattern.test(action.selector)) {
+          const blocked = JSON.stringify({ action: "respond", message: `⚠️ Clicking "${action.selector}" was blocked by the **Integrity** guardrail. Please handle this manually.`, reasoning: "Blocked by middleware", done: false });
+          return "```json\n" + blocked + "\n```";
+        }
+      }
+    }
+
+    if (action.action === "type" && /password|passwd|secret|card.?number|cvv|cvc|ssn/i.test(action.selector || "")) {
+      const blocked = JSON.stringify({ action: "respond", message: `⚠️ Typing into a sensitive field was blocked by the **Integrity** guardrail. Please handle this manually.`, reasoning: "Blocked by middleware", done: false });
+      return "```json\n" + blocked + "\n```";
+    }
+  } catch {}
+
+  return null;
+}
+
+// =====================================================
+// MAIN HANDLER
+// =====================================================
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -40,11 +170,23 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    // Load safety settings from brand (null if no brand or no settings)
+    const safetySettings = await loadSafetySettings(supabase, brandId);
+
     // Load lightweight identity
     const identity = await loadBusinessIdentity(supabase, user.id, brandId);
 
     // RAG: retrieve relevant context based on user's latest message
     const lastUserMsg = extractLastUserMessage(messages);
+
+    // --- MIDDLEWARE LAYER 2: Pre-flight input validation (only if guardrails enabled) ---
+    const preflightBlock = runPreflightGuardrails(lastUserMsg, safetySettings);
+    if (preflightBlock) {
+      return new Response(JSON.stringify({ content: preflightBlock }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg);
 
     // Build page context section
@@ -65,9 +207,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
     const hasBrowserContext = !!pageContext || browserMode;
 
     const systemPrompt = browserMode
-      ? buildBrowserActionPrompt(pageSection, identity, relevantContext)
+      ? buildBrowserActionPrompt(pageSection, identity, relevantContext, safetySettings)
       : hasBrowserContext
-        ? buildBrowserPrompt(pageSection, identity, relevantContext)
+        ? buildBrowserPrompt(pageSection, identity, relevantContext, safetySettings)
         : buildChatPrompt(identity, relevantContext);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -111,10 +253,18 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       page_url: pageContext?.url || null,
     }).then(() => {});
 
-    // In browserMode, return non-streaming JSON
+    // In browserMode, return non-streaming JSON with post-flight + action validation
     if (browserMode) {
       const aiResult = await response.json();
-      const content = aiResult.choices?.[0]?.message?.content || "";
+      let content = aiResult.choices?.[0]?.message?.content || "";
+
+      // --- MIDDLEWARE LAYER 2: Post-flight output validation ---
+      content = runPostflightGuardrails(content, safetySettings);
+
+      // --- MIDDLEWARE LAYER 4: Action validation ---
+      const actionBlock = validateBrowserActions(content, safetySettings);
+      if (actionBlock) content = actionBlock;
+
       return new Response(JSON.stringify({ content }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -214,7 +364,7 @@ async function retrieveRelevantContext(supabase: any, userId: string, workspaceI
 
 // --- Prompt Builders ---
 
-function buildBrowserActionPrompt(pageSection: string, identity: string, relevantContext: string): string {
+function buildBrowserActionPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {
   return `You are an AI assistant executing tasks through the user's browser. You follow instructions precisely, one action at a time. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base".
 
 ${identity ? `# Business Context\n${identity}` : ""}
@@ -245,11 +395,11 @@ Always respond with a single JSON object wrapped in a markdown code block:
 8. **done** — \`{ "action": "done", "message": "summary of what was accomplished", "reasoning": "all steps completed", "done": true }\`
 
 ## SAFETY GUARDRAILS — ABSOLUTE RULES
-1. **NEVER make payments**
+${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments**
 2. **NEVER sign up or create accounts**
 3. **NEVER log in**
 4. **NEVER enter sensitive data**
-5. If you encounter any of the above, STOP and use "respond" to ask the user to handle it manually.
+5. If you encounter any of the above, STOP and use "respond" to ask the user to handle it manually.` : "- Integrity guardrails are disabled. Still exercise caution with sensitive actions."}
 
 ## Guidelines
 - Return ONE action per response
@@ -283,7 +433,7 @@ ${relevantContext}
 - Use --- to separate major sections in longer responses`;
 }
 
-function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string): string {
+function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {
   return `You are an intelligent browser automation AI assistant embedded in a browser extension. You can SEE the user's current page and perform actions on it.
 
 ${identity ? `# Business Context\n${identity}` : ""}
@@ -317,6 +467,10 @@ Always respond with a JSON object wrapped in a markdown code block.
   "summary": "Brief description"
 }
 \`\`\`
+
+## SAFETY GUARDRAILS
+${safetySettings?.integrityEnabled !== false ? `- **NEVER** make payments, sign up, log in, or enter sensitive data.
+- If you encounter any of the above, warn the user.` : "- Integrity guardrails are disabled. Still exercise caution."}
 
 ## Guidelines
 - Use CSS selectors when possible
