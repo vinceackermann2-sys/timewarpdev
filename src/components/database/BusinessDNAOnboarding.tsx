@@ -211,9 +211,20 @@ export function BusinessDNAOnboarding({
           console.error("Discover failed:", error || data?.error);
           setScrapeError(true);
         } else {
-          // Store discovered products for selection UI
+          // Normalize image URLs in discovered products
           const products = Array.isArray(data.discoveredProducts) ? data.discoveredProducts : [];
-          setDiscoveredProducts(products);
+          const normalizedProducts = products.map((p: any) => {
+            const rawImages = Array.isArray(p.images) ? p.images : [p.image, p.images].flat();
+            const images = rawImages
+              .map((u: any) => {
+                const s = String(u || "").split(",")[0]?.trim().split(" ")[0];
+                if (!s || s.startsWith("data:")) return null;
+                try { return new URL(s.startsWith("//") ? `https:${s}` : s, p.url || activeUrl).toString(); } catch { return null; }
+              })
+              .filter(Boolean) as string[];
+            return { ...p, images, image: images[0] ?? "" };
+          });
+          setDiscoveredProducts(normalizedProducts);
           // Store quick brand info
           if (data.quickBrand) quickBrandRef.current = data.quickBrand;
           // Capture scanned URLs
