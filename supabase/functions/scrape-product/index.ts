@@ -17,17 +17,43 @@ const htmlToText = (html: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const normalizeImageUrl = (raw: string, pageUrl: string): string | null => {
+  if (!raw) return null;
+  // Handle srcset fragments: take first URL before any space/comma
+  const s = raw.split(",")[0]?.trim().split(" ")[0];
+  if (!s || s.startsWith("data:")) return null;
+  try {
+    const full = s.startsWith("//") ? `https:${s}` : s;
+    return new URL(full, pageUrl).toString();
+  } catch { return null; }
+};
+
 const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] => {
   const imgs: string[] = [];
-  const mdImgRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
   let m;
+  // Markdown image syntax: ![alt](url)
+  const mdImgRegex = /!\[.*?\]\(([^\s)]+)\)/g;
   while ((m = mdImgRegex.exec(markdown)) !== null) {
-    imgs.push(m[1]);
+    const url = normalizeImageUrl(m[1], pageUrl);
+    if (url) imgs.push(url);
   }
-  // Also try bare image URLs
+  // HTML src attributes: src="url"
+  const srcRegex = /src=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi;
+  while ((m = srcRegex.exec(markdown)) !== null) {
+    const url = normalizeImageUrl(m[1], pageUrl);
+    if (url && !imgs.includes(url)) imgs.push(url);
+  }
+  // Bare image URLs (http/https)
   const bareImgRegex = /(https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?)/gi;
   while ((m = bareImgRegex.exec(markdown)) !== null) {
-    if (!imgs.includes(m[1])) imgs.push(m[1]);
+    const url = normalizeImageUrl(m[1], pageUrl);
+    if (url && !imgs.includes(url)) imgs.push(url);
+  }
+  // Protocol-relative URLs
+  const protoRelRegex = /(\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?)/gi;
+  while ((m = protoRelRegex.exec(markdown)) !== null) {
+    const url = normalizeImageUrl(m[1], pageUrl);
+    if (url && !imgs.includes(url)) imgs.push(url);
   }
   return [...new Set(imgs)].filter(url => {
     const lower = url.toLowerCase();
