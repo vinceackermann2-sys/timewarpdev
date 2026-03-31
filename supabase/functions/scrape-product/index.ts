@@ -653,7 +653,10 @@ serve(async (req) => {
       const discoverResults = await Promise.allSettled(
         productPageContents.slice(0, 10).map(async (page) => {
           try {
-            let pageImages = extractImagesFromMarkdown(page.markdown, page.url);
+            // Use pre-extracted images (from both markdown + HTML) if available, else extract from markdown
+            let pageImages = (page as any).extractedImages?.length > 0
+              ? (page as any).extractedImages
+              : extractImagesFromMarkdown(page.markdown, page.url);
             // If no images found from markdown, try extracting og:image from the page's raw HTML
             if (pageImages.length === 0) {
               const ogMatch = page.markdown.match(/og:image[^"]*content=["']([^"']+)["']/i)
