@@ -525,17 +525,25 @@ serve(async (req) => {
     }
 
     const homepageMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+    const homepageHtml = scrapeData.data?.html || scrapeData.html || "";
     const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
     const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
     const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
 
-    console.log("Homepage content length:", homepageMarkdown.length, "screenshot:", !!websiteScreenshot);
+    console.log("Homepage content length:", homepageMarkdown.length, "html length:", homepageHtml.length, "screenshot:", !!websiteScreenshot);
     if (firecrawlBranding) console.log("Firecrawl branding data found");
+
+    // Pre-extract homepage images from both markdown and HTML
+    const homepageImages = [...new Set([
+      ...extractImagesFromMarkdown(homepageMarkdown, formattedUrl),
+      ...extractImagesFromMarkdown(homepageHtml, formattedUrl),
+    ])];
+    console.log("Homepage images extracted:", homepageImages.length);
 
     // ══════════════════════════════════════════════
     // STEP 2: Discover product pages (company URLs)
     // ══════════════════════════════════════════════
-    let productPageContents: { url: string; markdown: string }[] = [];
+    let productPageContents: { url: string; markdown: string; extractedImages?: string[] }[] = [];
 
     if (isCompanyUrl) {
       try {
