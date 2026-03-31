@@ -9,6 +9,168 @@ const corsHeaders = {
 
 const STOPWORDS = new Set(["this","that","with","from","have","been","were","they","their","what","about","which","when","where","will","would","could","should","there","these","those","some","other","into","more","also","than","then","just","only","very","much","such","like","over","after","before","between","under","each","every","both","most","same","does","doing","done","make","made","know","think","want","need","help","find","give","tell","show","look","come","back","take","well","still","even","here","many","while"]);
 
+// =====================================================
+// MIDDLEWARE GUARDRAILS (Layer 2 + Layer 4)
+// Only enforced when user has enabled them in settings
+// =====================================================
+
+const INJECTION_PATTERNS = [
+  /ignore\s+(all\s+)?previous\s+instructions/i,
+  /you\s+are\s+now\s+/i,
+  /disregard\s+(your|all|the)\s+/i,
+  /\[INST\]/i,
+  /<<SYS>>/i,
+  /system\s*:\s*you\s+are/i,
+  /forget\s+(everything|all|your\s+instructions)/i,
+  /new\s+instructions?\s*:/i,
+  /override\s+(your|system|all)\s+/i,
+];
+
+const PII_PATTERNS = [
+  { pattern: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/, label: "credit card number" },
+  { pattern: /\b\d{3}-\d{2}-\d{4}\b/, label: "SSN" },
+];
+
+const OUTPUT_BLOCKLIST = [
+  /here\s+(?:is|are)\s+(?:your|the|my)\s+(?:credit\s+card|ssn|social\s+security|password)/i,
+  /\bDROP\s+TABLE\b/i,
+  /\bDELETE\s+FROM\s+/i,
+  /\bsudo\s+rm\b/i,
+];
+
+const BLOCKED_URL_PATTERNS = [
+  /checkout/i, /payment/i, /billing/i,
+  /signin|sign-in|login|log-in/i,
+  /signup|sign-up|register/i,
+];
+
+const BLOCKED_SELECTOR_PATTERNS = [
+  /sign.?up|register|create.?account/i,
+  /log.?in|sign.?in/i,
+  /pay|purchase|buy|checkout|place.?order|subscribe/i,
+];
+
+/** Pre-flight: scan user input BEFORE it reaches the model. Returns block message or null. */
+function runPreflightGuardrails(userMessage: string, safety: any): string | null {
+  if (!userMessage || !safety) return null;
+
+  // Prompt injection detection — only if user enabled it
+  if (safety.promptInjectionEnabled) {
+    for (const pattern of INJECTION_PATTERNS) {
+      if (pattern.test(userMessage)) {
+        return "⚠️ Your message was blocked by the **Prompt Injection Defense** guardrail. It contained patterns that could override system instructions. Please rephrase your request.";
+      }
+    }
+  }
+
+  // PII detection — only if integrity is enabled
+  if (safety.integrityEnabled !== false) {
+    for (const { pattern, label } of PII_PATTERNS) {
+      if (pattern.test(userMessage)) {
+        return `⚠️ Your message was blocked by the **Integrity** guardrail. It appears to contain a ${label}. Please remove sensitive data before sending.`;
+      }
+    }
+  }
+
+  return null;
+}
+
+/** Post-flight: scan AI output BEFORE returning to client. Returns sanitized content. */
+function runPostflightGuardrails(content: string, safety: any): string {
+  if (!content || !safety) return content;
+
+  // Output content scanning — only if integrity is enabled
+  if (safety.integrityEnabled !== false) {
+    for (const pattern of OUTPUT_BLOCKLIST) {
+      if (pattern.test(content)) {
+        return "⚠️ The AI response was blocked by the **Integrity** guardrail because it contained potentially unsafe content. Please try a different request.";
+      }
+    }
+  }
+
+  // Moderation category enforcement — only for High severity categories
+  if (safety.moderationCategories) {
+    const activeCategories = Object.entries(safety.moderationCategories)
+      .filter(([_, v]: [string, any]) => v.enabled && v.level === "High")
+      .map(([cat]: [string, any]) => cat.toLowerCase());
+
+    if (activeCategories.length > 0) {
+      const lower = content.toLowerCase();
+      for (const cat of activeCategories) {
+        const keywords = cat.split(/\s+/);
+        if (keywords.every(kw => lower.includes(kw))) {
+          return `⚠️ The AI response was blocked by the **Content Moderation** guardrail (category: ${cat}). Please adjust your request.`;
+        }
+      }
+    }
+  }
+
+  return content;
+}
+
+/** Layer 4: Validate browser actions BEFORE execution. Returns replacement content or null. */
+function validateBrowserActions(content: string, safety: any): string | null {
+  if (!safety || safety.integrityEnabled === false) return null;
+
+  try {
+    const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (!jsonMatch) return null;
+
+    const action = JSON.parse(jsonMatch[1]);
+
+    // Block navigation to payment/auth pages
+    if (action.action === "navigate" && action.url) {
+      for (const pattern of BLOCKED_URL_PATTERNS) {
+        if (pattern.test(action.url)) {
+          const blocked = JSON.stringify({
+            action: "respond",
+            message: `⚠️ Navigation to "${action.url}" was blocked by the **Integrity** guardrail. This appears to be a sensitive page. Please handle this manually.`,
+            reasoning: "Safety guardrail: blocked navigation to sensitive page",
+            done: false,
+          });
+          return "```json\n" + blocked + "\n```";
+        }
+      }
+    }
+
+    // Block clicking signup/payment/login buttons
+    if (action.action === "click" && action.selector) {
+      for (const pattern of BLOCKED_SELECTOR_PATTERNS) {
+        if (pattern.test(action.selector)) {
+          const blocked = JSON.stringify({
+            action: "respond",
+            message: `⚠️ Clicking "${action.selector}" was blocked by the **Integrity** guardrail. Please handle this manually.`,
+            reasoning: "Safety guardrail: blocked click on sensitive element",
+            done: false,
+          });
+          return "```json\n" + blocked + "\n```";
+        }
+      }
+    }
+
+    // Block typing into password/payment fields
+    if (action.action === "type" && action.selector) {
+      if (/password|passwd|secret|card.?number|cvv|cvc|ssn/i.test(action.selector)) {
+        const blocked = JSON.stringify({
+          action: "respond",
+          message: `⚠️ Typing into "${action.selector}" was blocked by the **Integrity** guardrail. Please handle this manually.`,
+          reasoning: "Safety guardrail: blocked typing into sensitive field",
+          done: false,
+        });
+        return "```json\n" + blocked + "\n```";
+      }
+    }
+  } catch {
+    // Not valid JSON action, skip
+  }
+
+  return null;
+}
+
+// =====================================================
+// MAIN HANDLER
+// =====================================================
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -69,8 +231,18 @@ serve(async (req) => {
     // Load lightweight business identity + safety settings
     const { identity, safetySettings } = await loadBusinessIdentity(supabase, employee);
 
-    // RAG: retrieve only relevant context based on user's latest message
+    // Extract user's latest message for RAG + guardrails
     const lastUserMsg = extractLastUserMessage(messages);
+
+    // --- MIDDLEWARE LAYER 2: Pre-flight input validation (only if guardrails enabled) ---
+    const preflightBlock = runPreflightGuardrails(lastUserMsg, safetySettings);
+    if (preflightBlock) {
+      return new Response(JSON.stringify({ content: preflightBlock }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // RAG: retrieve only relevant context based on user's latest message
     const relevantContext = await retrieveRelevantContext(supabase, employee, lastUserMsg);
 
     // Build system prompt
@@ -116,7 +288,16 @@ serve(async (req) => {
     }
 
     const aiResult = await response.json();
-    const content = aiResult.choices?.[0]?.message?.content || "";
+    let content = aiResult.choices?.[0]?.message?.content || "";
+
+    // --- MIDDLEWARE LAYER 2: Post-flight output validation (only if guardrails enabled) ---
+    content = runPostflightGuardrails(content, safetySettings);
+
+    // --- MIDDLEWARE LAYER 4: Action validation for browser mode (only if integrity enabled) ---
+    if (isBrowserMode) {
+      const actionBlock = validateBrowserActions(content, safetySettings);
+      if (actionBlock) content = actionBlock;
+    }
 
     return new Response(JSON.stringify({ content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -186,7 +367,6 @@ async function loadBusinessIdentity(supabase: any, employee: any): Promise<{ ide
 
 async function retrieveRelevantContext(supabase: any, employee: any, userQuery: string): Promise<string> {
   const keywords = extractKeywords(userQuery);
-  // If no meaningful keywords, return empty — let the AI focus purely on the user's question
   if (keywords.length === 0) return "";
 
   const wsFilter = employee.workspace_id || null;
