@@ -984,12 +984,11 @@ export function BusinessDNAOnboarding({
         {/* ─── STEPS 4-5: FORGING DNA ─── */}
         {(step === 4 || step === 5) && (() => {
           const extracted = scrapeResult.current || {};
-          const brandData = extracted.brand || {};
+          const brandData = extracted.brand || quickBrandRef.current || {};
           const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
           const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
-          const filteredProds = selectedProducts.length > 0
-            ? selectedProducts.map(i => productsRaw[i]).filter(Boolean)
-            : productsRaw.slice(0, 3);
+          // For the Data Found tab, show the selected discovered products while extraction runs
+          const displayProducts = productsRaw.length > 0 ? productsRaw : selectedProducts.map(i => discoveredProducts[i]).filter(Boolean);
           const brandColors = brandData.colors || {};
           const urls = scannedUrlsRef.current;
 
