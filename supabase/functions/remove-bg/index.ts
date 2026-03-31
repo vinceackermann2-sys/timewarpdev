@@ -26,7 +26,7 @@ async function tryRemoveBg(apiKey: string, imageUrl: string, model: string): Pro
           content: [
             {
               type: "text",
-              text: "Remove the background from this product image. Keep only the product itself on a pure white background. Make it clean and professional.",
+              text: "This is a product photo. Make the background completely transparent or pure white. Do NOT change, redraw, recolor, or modify the product in any way. The product pixels must remain exactly identical to the original — same shape, same colors, same details. Only remove/erase the background behind the product. Output the exact same product with a clean white background.",
             },
             {
               type: "image_url",

@@ -31,17 +31,37 @@ const normalizeImageUrl = (raw: string, pageUrl: string): string | null => {
 const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] => {
   const imgs: string[] = [];
   let m;
-  // Markdown image syntax: ![alt](url)
+  // Markdown image syntax: ![alt](url) — skip empty parens
   const mdImgRegex = /!\[.*?\]\(([^\s)]+)\)/g;
   while ((m = mdImgRegex.exec(markdown)) !== null) {
-    const url = normalizeImageUrl(m[1], pageUrl);
-    if (url) imgs.push(url);
+    if (m[1] && m[1] !== '') {
+      const url = normalizeImageUrl(m[1], pageUrl);
+      if (url) imgs.push(url);
+    }
   }
   // HTML src attributes: src="url"
   const srcRegex = /src=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi;
   while ((m = srcRegex.exec(markdown)) !== null) {
     const url = normalizeImageUrl(m[1], pageUrl);
     if (url && !imgs.includes(url)) imgs.push(url);
+  }
+  // data-src attributes (lazy-loaded images)
+  const dataSrcRegex = /data-src=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi;
+  while ((m = dataSrcRegex.exec(markdown)) !== null) {
+    const url = normalizeImageUrl(m[1], pageUrl);
+    if (url && !imgs.includes(url)) imgs.push(url);
+  }
+  // srcset attributes — take the largest (last) image
+  const srcsetRegex = /(?:data-)?srcset=["']([^"']+)["']/gi;
+  while ((m = srcsetRegex.exec(markdown)) !== null) {
+    const entries = m[1].split(',').map(s => s.trim()).filter(Boolean);
+    // Take the last entry (usually largest)
+    const lastEntry = entries[entries.length - 1];
+    if (lastEntry) {
+      const srcUrl = lastEntry.split(/\s+/)[0];
+      const url = normalizeImageUrl(srcUrl, pageUrl);
+      if (url && !imgs.includes(url)) imgs.push(url);
+    }
   }
   // Bare image URLs (http/https)
   const bareImgRegex = /(https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?)/gi;
@@ -56,6 +76,7 @@ const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] 
     if (url && !imgs.includes(url)) imgs.push(url);
   }
   return [...new Set(imgs)].filter(url => {
+    if (!url) return false;
     const lower = url.toLowerCase();
     return !lower.includes('favicon') && !lower.includes('pixel') && !lower.includes('tracking') && 
            !lower.includes('1x1') && !lower.includes('logo') && !lower.includes('icon') &&
