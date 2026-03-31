@@ -742,8 +742,8 @@ serve(async (req) => {
       delete extracted.brand.visualIdentity.illustrationSvgs;
       extracted.brand.visualIdentity.moodboardUrls = [];
 
-      extracted.products = ensureArr(extracted.products).slice(0, 5);
-      extracted.audiences = ensureArr(extracted.audiences).slice(0, 5);
+      extracted.products = ensureArr(extracted.products).slice(0, 10);
+      extracted.audiences = ensureArr(extracted.audiences).slice(0, 10);
       extracted.brand.logoUrls = ensureArr(extracted.brand.logoUrls).slice(0, 10);
 
       console.log("Core mode — returning:", extracted.brand?.name, "products:", extracted.products?.length, "scannedUrls:", scannedUrls.length);
