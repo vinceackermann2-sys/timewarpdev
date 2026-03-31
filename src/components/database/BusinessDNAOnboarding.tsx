@@ -854,7 +854,7 @@ export function BusinessDNAOnboarding({
                     >
                       <div className="relative h-48 bg-white flex items-center justify-center">
                         {imgUrl ? (
-                          <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                         ) : (
                           <div className="w-full h-full bg-[#e5e4df] flex items-center justify-center">
                             <Globe className="w-8 h-8 text-[#697386]/40" />
@@ -1059,7 +1059,11 @@ export function BusinessDNAOnboarding({
           const selectedProductUrls = selectedProducts.map(i => discoveredProducts[i]?.url).filter(Boolean);
           const urls = scannedUrlsRef.current.filter(url => {
             // Always include non-product URLs (homepage, brand pages, etc.)
-            const isProductPage = discoveredProducts.some(p => p.url && url.includes(new URL(p.url.startsWith("http") ? p.url : `https://${p.url}`).pathname.replace(/\/$/, "")));
+            const isProductPage = discoveredProducts.some(p => {
+              try {
+                return p.url && url.includes(new URL(p.url.startsWith("http") ? p.url : `https://${p.url}`).pathname.replace(/\/$/, ""));
+              } catch { return false; }
+            });
             if (!isProductPage) return true;
             // For product-specific URLs, only include if the product was selected
             return selectedProductUrls.some(pUrl => {
@@ -1069,6 +1073,7 @@ export function BusinessDNAOnboarding({
               } catch { return false; }
             });
           });
+          const safeSourceIndex = urls.length > 0 ? activeSourceIndex % urls.length : 0;
 
           return (
           <motion.div
@@ -1125,34 +1130,34 @@ export function BusinessDNAOnboarding({
                     <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[72px]">
                       <AnimatePresence mode="wait">
                         <motion.div
-                          key={activeSourceIndex}
+                          key={safeSourceIndex}
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -12 }}
                           transition={{ duration: 0.3 }}
                           className="flex items-center gap-3"
                         >
-                          {verifiedSources.has(activeSourceIndex) ? (
+                          {verifiedSources.has(safeSourceIndex) ? (
                             <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
                           ) : (
                             <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
                           )}
                           <img
-                            src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(urls[activeSourceIndex])}&sz=16`}
+                            src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(urls[safeSourceIndex])}&sz=16`}
                             alt=""
                             className="w-4 h-4 rounded-sm shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                           />
                           <div className="flex-1 min-w-0">
                             <span className="text-[14px] text-[#1a1f36] truncate block">
-                              {verifiedSources.has(activeSourceIndex) ? "✓ Verified" : "Verifying"}{" "}
-                              <span className="text-[#697386]">{urlToDisplaySource(urls[activeSourceIndex])}</span>
+                              {verifiedSources.has(safeSourceIndex) ? "✓ Verified" : "Verifying"}{" "}
+                              <span className="text-[#697386]">{urlToDisplaySource(urls[safeSourceIndex])}</span>
                             </span>
                             {/* Show a matching social proof quote inline */}
                             {(() => {
-                              const currentDomain = urlToDisplaySource(urls[activeSourceIndex]).split("/")[0];
+                              const currentDomain = urlToDisplaySource(urls[safeSourceIndex])?.split("/")[0] || "";
                               const matched = socialProof.find(sp => sp.source.toLowerCase().includes(currentDomain.toLowerCase()));
-                              const fallback = socialProof[activeSourceIndex % socialProof.length];
+                              const fallback = socialProof[safeSourceIndex % Math.max(socialProof.length, 1)];
                               const quote = matched || fallback;
                               return quote ? (
                                 <p className="text-[12px] text-[#697386] italic mt-1 truncate">
@@ -1173,7 +1178,7 @@ export function BusinessDNAOnboarding({
                         <div
                           key={i}
                           className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                            i === activeSourceIndex
+                            i === safeSourceIndex
                               ? "bg-[#3399ff] w-4"
                               : verifiedSources.has(i)
                                 ? "bg-[#22c55e]"
@@ -1188,9 +1193,9 @@ export function BusinessDNAOnboarding({
                   {socialProof.length > 0 && !persistenceComplete && (
                     <AnimatePresence mode="wait">
                       {(() => {
-                        const currentDomain = urls[activeSourceIndex] ? urlToDisplaySource(urls[activeSourceIndex]).split("/")[0] : "";
+                        const currentDomain = urls[safeSourceIndex] ? urlToDisplaySource(urls[safeSourceIndex])?.split("/")[0] || "" : "";
                         const matched = socialProof.find(sp => sp.source.toLowerCase().includes(currentDomain.toLowerCase()));
-                        const quote = matched || socialProof[activeSourceIndex % socialProof.length];
+                        const quote = matched || socialProof[safeSourceIndex % Math.max(socialProof.length, 1)];
                         return (
                           <motion.div
                             key={activeSourceIndex}
