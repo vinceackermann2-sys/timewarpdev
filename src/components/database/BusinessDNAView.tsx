@@ -330,6 +330,16 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
   const totalInsights = Object.values(segmentEntries).reduce((sum, arr) => sum + arr.length, 0);
   const activeSegmentData = BRAIN_SEGMENTS.find(s => s.id === activeSegment);
 
+  // Don't render until brand data has loaded
+  if (dnaLoading || !activeBrand) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+        <p className="text-sm text-muted-foreground">Loading business DNA…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full items-center">
       <div className="px-6 pt-6 pb-0 space-y-6 border-b border-border/50 w-full max-w-5xl">
