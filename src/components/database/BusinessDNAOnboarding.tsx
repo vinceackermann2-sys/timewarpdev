@@ -103,8 +103,10 @@ export function BusinessDNAOnboarding({
   const [currentProductIndex, setCurrentProductIndex] = useState(0);
   const [selectedImages, setSelectedImages] = useState<Record<number, number>>({});
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   // Background-removed images cache
   const [bgRemovedImages, setBgRemovedImages] = useState<Record<string, string>>({});
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const bgRemovalInFlight = useRef<Set<string>>(new Set());
 
   // Forging DNA tabs (step 4-5)
@@ -237,8 +239,17 @@ export function BusinessDNAOnboarding({
     if (bgRemovedImages[imgUrl] || bgRemovalLoading[imgUrl]) return;
     setBgRemovalLoading(prev => ({ ...prev, [imgUrl]: true }));
     try {
-      const { data } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
-      if (data?.resultUrl) {
+      const { data, error } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
+      if (error || !data?.resultUrl) {
+        // Retry once after a short delay (rate limit)
+        await new Promise(r => setTimeout(r, 2000));
+        const { data: d2 } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
+        if (d2?.resultUrl) {
+          setBgRemovedImages(prev => ({ ...prev, [imgUrl]: d2.resultUrl }));
+        } else {
+          console.warn("BG removal failed after retry for", imgUrl);
+        }
+      } else {
         setBgRemovedImages(prev => ({ ...prev, [imgUrl]: data.resultUrl }));
       }
     } catch (e) {
@@ -853,8 +864,8 @@ export function BusinessDNAOnboarding({
                       }`}
                     >
                       <div className="relative h-48 bg-white flex items-center justify-center">
-                        {imgUrl ? (
-                          <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        {imgUrl && !failedImages.has(imgUrl) ? (
+                          <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" onError={() => setFailedImages(prev => new Set(prev).add(imgUrl!))} />
                         ) : (
                           <div className="w-full h-full bg-[#e5e4df] flex items-center justify-center">
                             <Globe className="w-8 h-8 text-[#697386]/40" />
@@ -962,7 +973,7 @@ export function BusinessDNAOnboarding({
                             selectedImg === idx ? "border-[#3399ff]" : "border-transparent"
                           }`}
                         >
-                          <img src={bgRemovedImages[imgSrc] || imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                          <img src={bgRemovedImages[imgSrc] || imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" onError={() => setFailedImages(prev => new Set(prev).add(imgSrc))} />
                           <div className="absolute top-3 right-3">
                             {selectedImg === idx ? (
                               <div className="w-6 h-6 rounded-full bg-[#3399ff] flex items-center justify-center">
@@ -972,9 +983,12 @@ export function BusinessDNAOnboarding({
                               <div className="w-6 h-6 rounded-full bg-white/50" />
                             )}
                           </div>
-                          <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setFullscreenImage(bgRemovedImages[imgSrc] || imgSrc); }}
+                            className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm hover:bg-black/60 transition-colors"
+                          >
                             <Maximize2 className="w-4 h-4 text-white" />
-                          </div>
+                          </button>
                           {/* Remove Background button */}
                           {!bgRemovedImages[imgSrc] && (
                             <button
@@ -1496,6 +1510,35 @@ export function BusinessDNAOnboarding({
                 )}
               </AnimatePresence>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Fullscreen image modal */}
+      <AnimatePresence>
+        {fullscreenImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8"
+            onClick={() => setFullscreenImage(null)}
+          >
+            <motion.img
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              src={fullscreenImage}
+              alt="Full size"
+              className="max-w-full max-h-full object-contain rounded-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setFullscreenImage(null)}
+              className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
+            >
+              ✕
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
