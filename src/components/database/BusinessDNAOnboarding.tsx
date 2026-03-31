@@ -1485,7 +1485,7 @@ export function BusinessDNAOnboarding({
                       className="w-full bg-[#3399ff] hover:bg-[#287acc] shadow-sm text-white px-6 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                     >
                       Take Me To {agentName.trim()}
-                      <ArrowRight className="w-5 h-5 text-[#3399ff]" />
+                      <ArrowRight className="w-5 h-5 text-white" />
                     </button>
                   </motion.div>
                 )}

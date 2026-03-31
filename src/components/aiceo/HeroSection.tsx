@@ -168,8 +168,8 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
               The future of <span>business</span>
             </h1>
             <p>
-              Levers pulled by{" "}
-              <span className="font-bold">AI CEO</span>
+              Levers pulled{" "}
+              <span className="font-bold">for-you</span>
             </p>
           </div>
 
