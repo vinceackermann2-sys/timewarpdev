@@ -217,11 +217,12 @@ export function BusinessDNAOnboarding({
             const rawImages = Array.isArray(p.images) ? p.images : [p.image, p.images].flat();
             const images = rawImages
               .map((u: any) => {
-                const s = String(u || "").split(",")[0]?.trim().split(" ")[0];
-                if (!s || s.startsWith("data:")) return null;
+                if (!u || typeof u !== 'string') return null;
+                const s = String(u).split(",")[0]?.trim().split(" ")[0];
+                if (!s || s === '' || s.startsWith("data:")) return null;
                 try { return new URL(s.startsWith("//") ? `https:${s}` : s, p.url || activeUrl).toString(); } catch { return null; }
               })
-              .filter(Boolean) as string[];
+              .filter((u): u is string => !!u && u.length > 10);
             return { ...p, images, image: images[0] ?? "" };
           });
           setDiscoveredProducts(normalizedProducts);
