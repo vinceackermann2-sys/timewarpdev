@@ -103,8 +103,10 @@ export function BusinessDNAOnboarding({
   const [currentProductIndex, setCurrentProductIndex] = useState(0);
   const [selectedImages, setSelectedImages] = useState<Record<number, number>>({});
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   // Background-removed images cache
   const [bgRemovedImages, setBgRemovedImages] = useState<Record<string, string>>({});
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const bgRemovalInFlight = useRef<Set<string>>(new Set());
 
   // Forging DNA tabs (step 4-5)
