@@ -641,10 +641,27 @@ serve(async (req) => {
     if (isDiscoverMode) {
       console.log("Discover mode — extracting product names/images from", productPageContents.length, "pages...");
 
+      // Extract og:image from homepage metadata as fallback for products with no images
+      const ogImage = metadata?.ogImage || metadata?.["og:image"] || metadata?.image || null;
+      const ogImageUrl = ogImage ? normalizeImageUrl(ogImage, formattedUrl) : null;
+
       const discoverResults = await Promise.allSettled(
         productPageContents.slice(0, 10).map(async (page) => {
           try {
-            const pageImages = extractImagesFromMarkdown(page.markdown, page.url);
+            let pageImages = extractImagesFromMarkdown(page.markdown, page.url);
+            // If no images found from markdown, try extracting og:image from the page's raw HTML
+            if (pageImages.length === 0) {
+              const ogMatch = page.markdown.match(/og:image[^"]*content=["']([^"']+)["']/i)
+                || page.markdown.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+              if (ogMatch?.[1]) {
+                const ogUrl = normalizeImageUrl(ogMatch[1], page.url);
+                if (ogUrl) pageImages = [ogUrl];
+              }
+            }
+            // Last resort: use the homepage og:image
+            if (pageImages.length === 0 && ogImageUrl) {
+              pageImages = [ogImageUrl];
+            }
             // Quick lightweight AI call to get just name + description
             const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
