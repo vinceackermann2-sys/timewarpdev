@@ -1178,7 +1178,7 @@ export function BusinessDNAOnboarding({
                         <div
                           key={i}
                           className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                            i === activeSourceIndex
+                            i === safeSourceIndex
                               ? "bg-[#3399ff] w-4"
                               : verifiedSources.has(i)
                                 ? "bg-[#22c55e]"
