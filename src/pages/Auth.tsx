@@ -86,8 +86,8 @@ const Auth = () => {
             setShowCelebration(true);
             return true;
           }
-        } catch {
-          // ignore referral errors
+        } catch (err) {
+          console.error("Referral processing error:", err);
         }
       }
       return false;
