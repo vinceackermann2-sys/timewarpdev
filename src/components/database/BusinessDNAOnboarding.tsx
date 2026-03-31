@@ -84,7 +84,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
   const [urlInput, setUrlInput] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [step, setStep] = useState(initialUrl ? 1 : 0);
-  const [showMethodPicker, setShowMethodPicker] = useState(isAddBusiness && !initialUrl);
+  const [showMethodPicker, setShowMethodPicker] = useState(!initialUrl);
   const [agentName, setAgentName] = useState("");
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
