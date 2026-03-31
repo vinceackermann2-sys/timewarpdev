@@ -1059,7 +1059,11 @@ export function BusinessDNAOnboarding({
           const selectedProductUrls = selectedProducts.map(i => discoveredProducts[i]?.url).filter(Boolean);
           const urls = scannedUrlsRef.current.filter(url => {
             // Always include non-product URLs (homepage, brand pages, etc.)
-            const isProductPage = discoveredProducts.some(p => p.url && url.includes(new URL(p.url.startsWith("http") ? p.url : `https://${p.url}`).pathname.replace(/\/$/, "")));
+            const isProductPage = discoveredProducts.some(p => {
+              try {
+                return p.url && url.includes(new URL(p.url.startsWith("http") ? p.url : `https://${p.url}`).pathname.replace(/\/$/, ""));
+              } catch { return false; }
+            });
             if (!isProductPage) return true;
             // For product-specific URLs, only include if the product was selected
             return selectedProductUrls.some(pUrl => {
@@ -1069,6 +1073,7 @@ export function BusinessDNAOnboarding({
               } catch { return false; }
             });
           });
+          const safeSourceIndex = urls.length > 0 ? activeSourceIndex % urls.length : 0;
 
           return (
           <motion.div
