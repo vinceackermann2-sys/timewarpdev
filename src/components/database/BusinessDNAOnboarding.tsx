@@ -540,11 +540,14 @@ export function BusinessDNAOnboarding({
     setScrapeError(false);
     setProgress(0);
     progressRef.current = 0;
+    setDiscoveredProducts([]);
+    scrapeResult.current = null;
     setStep(1);
   }, []);
 
   // ── Helpers ──────────────────────────────────────────────
-  const extractedProducts = scrapeResult.current?.products || (scrapeResult.current?.product ? [scrapeResult.current.product] : []);
+  // For steps 2-3: use discoveredProducts (lightweight). For steps 4+: use scrapeResult (full extraction).
+  const extractedProducts = discoveredProducts;
 
   // ── RENDER ───────────────────────────────────────────────
   return (
