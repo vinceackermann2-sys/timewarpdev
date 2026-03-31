@@ -703,7 +703,8 @@ export function AgentChatView() {
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
 
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
-    chatHistory.push({ role: "user", content: userMsg.content });
+    const userContent = buildMultimodalContent(userMsg.content);
+    chatHistory.push({ role: "user", content: userContent });
 
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
