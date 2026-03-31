@@ -496,7 +496,7 @@ serve(async (req) => {
     const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url: baseUrl, formats: ["markdown", "links", "branding", "screenshot"], onlyMainContent: false }),
+      body: JSON.stringify({ url: baseUrl, formats: ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false }),
     });
 
     if (scrapeResponse.ok) {
@@ -525,17 +525,25 @@ serve(async (req) => {
     }
 
     const homepageMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+    const homepageHtml = scrapeData.data?.html || scrapeData.html || "";
     const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
     const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
     const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
 
-    console.log("Homepage content length:", homepageMarkdown.length, "screenshot:", !!websiteScreenshot);
+    console.log("Homepage content length:", homepageMarkdown.length, "html length:", homepageHtml.length, "screenshot:", !!websiteScreenshot);
     if (firecrawlBranding) console.log("Firecrawl branding data found");
+
+    // Pre-extract homepage images from both markdown and HTML
+    const homepageImages = [...new Set([
+      ...extractImagesFromMarkdown(homepageMarkdown, formattedUrl),
+      ...extractImagesFromMarkdown(homepageHtml, formattedUrl),
+    ])];
+    console.log("Homepage images extracted:", homepageImages.length);
 
     // ══════════════════════════════════════════════
     // STEP 2: Discover product pages (company URLs)
     // ══════════════════════════════════════════════
-    let productPageContents: { url: string; markdown: string }[] = [];
+    let productPageContents: { url: string; markdown: string; extractedImages?: string[] }[] = [];
 
     if (isCompanyUrl) {
       try {
@@ -585,12 +593,17 @@ serve(async (req) => {
                       const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: pUrl, formats: ["markdown"], onlyMainContent: true }),
+                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: true }),
                       });
                       if (res.ok) {
                         const d = await res.json();
                         const md = d.data?.markdown || d.markdown || "";
-                        return { url: pUrl, markdown: md, extractedImages: extractImagesFromMarkdown(md, pUrl) };
+                        const html = d.data?.html || d.html || "";
+                        // Extract images from both markdown and HTML for maximum coverage
+                        const mdImages = extractImagesFromMarkdown(md, pUrl);
+                        const htmlImages = extractImagesFromMarkdown(html, pUrl);
+                        const allImages = [...new Set([...mdImages, ...htmlImages])];
+                        return { url: pUrl, markdown: md, extractedImages: allImages };
                       }
                       const fb = await fetchPageFallback(pUrl);
                       return { url: pUrl, markdown: fb.markdown, extractedImages: extractImagesFromMarkdown(fb.markdown, pUrl) };
@@ -626,7 +639,7 @@ serve(async (req) => {
 
     // If no product pages were scraped, use the homepage as the single product page
     if (productPageContents.length === 0) {
-      productPageContents = [{ url: formattedUrl, markdown: homepageMarkdown }];
+      productPageContents = [{ url: formattedUrl, markdown: homepageMarkdown, extractedImages: homepageImages }];
     }
 
     // Build scannedUrls early (used by both discover and extract modes)
@@ -641,10 +654,30 @@ serve(async (req) => {
     if (isDiscoverMode) {
       console.log("Discover mode — extracting product names/images from", productPageContents.length, "pages...");
 
+      // Extract og:image from homepage metadata as fallback for products with no images
+      const ogImage = metadata?.ogImage || metadata?.["og:image"] || metadata?.image || null;
+      const ogImageUrl = ogImage ? normalizeImageUrl(ogImage, formattedUrl) : null;
+
       const discoverResults = await Promise.allSettled(
         productPageContents.slice(0, 10).map(async (page) => {
           try {
-            const pageImages = extractImagesFromMarkdown(page.markdown, page.url);
+            // Use pre-extracted images (from both markdown + HTML) if available, else extract from markdown
+            let pageImages = (page as any).extractedImages?.length > 0
+              ? (page as any).extractedImages
+              : extractImagesFromMarkdown(page.markdown, page.url);
+            // If no images found from markdown, try extracting og:image from the page's raw HTML
+            if (pageImages.length === 0) {
+              const ogMatch = page.markdown.match(/og:image[^"]*content=["']([^"']+)["']/i)
+                || page.markdown.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+              if (ogMatch?.[1]) {
+                const ogUrl = normalizeImageUrl(ogMatch[1], page.url);
+                if (ogUrl) pageImages = [ogUrl];
+              }
+            }
+            // Last resort: use the homepage og:image
+            if (pageImages.length === 0 && ogImageUrl) {
+              pageImages = [ogImageUrl];
+            }
             // Quick lightweight AI call to get just name + description
             const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",

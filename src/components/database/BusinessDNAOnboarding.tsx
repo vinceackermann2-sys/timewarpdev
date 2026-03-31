@@ -120,6 +120,7 @@ export function BusinessDNAOnboarding({
     { label: "Enrich brand", status: "pending" },
   ]);
   const scannedUrlsRef = useRef<string[]>([]);
+  const filteredUrlsRef = useRef<string[]>([]);
   const [socialProof, setSocialProof] = useState<{ quote: string; source: string }[]>([]);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   // Source carousel state for forging step
@@ -305,8 +306,11 @@ export function BusinessDNAOnboarding({
   useEffect(() => {
     if (step !== 4 && step !== 5) return;
     if (persistenceComplete) return; // stop flipping once finalize is unlocked
-    const urls = scannedUrlsRef.current;
+    const urls = filteredUrlsRef.current;
     if (urls.length === 0) return;
+    // Reset carousel state when filtered URLs change
+    setActiveSourceIndex(0);
+    setVerifiedSources(new Set());
     const interval = setInterval(() => {
       setActiveSourceIndex(prev => {
         const next = (prev + 1) % urls.length;
@@ -1099,6 +1103,8 @@ export function BusinessDNAOnboarding({
               } catch { return false; }
             });
           });
+          // Store filtered URLs so the carousel effect uses the same list
+          filteredUrlsRef.current = urls;
           const safeSourceIndex = urls.length > 0 ? activeSourceIndex % urls.length : 0;
 
           return (
