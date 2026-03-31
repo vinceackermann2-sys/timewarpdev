@@ -202,6 +202,37 @@ export function BusinessDNAOnboarding({
           setScrapeError(true);
         } else {
           scrapeResult.current = data.extracted;
+          // Capture scanned URLs
+          if (Array.isArray(data.scannedUrls)) {
+            scannedUrlsRef.current = data.scannedUrls;
+          }
+          // Extract social proof quotes from scraped content
+          const rawMarkdown = data.rawMarkdown || data.extracted?.rawMarkdown || "";
+          const quotes: { quote: string; source: string }[] = [];
+          // Match patterns like "quote text" — Source or "quote text" - Username
+          const quotePatterns = [
+            /["""]([^"""]{20,200})["""]\s*[—–-]\s*(.+?)(?:\n|$)/g,
+            />\s*["""]?([^""">\n]{20,200})["""]?\s*\n\s*[—–-]\s*(.+?)(?:\n|$)/g,
+          ];
+          for (const pattern of quotePatterns) {
+            let match;
+            while ((match = pattern.exec(rawMarkdown)) !== null && quotes.length < 5) {
+              quotes.push({ quote: match[1].trim(), source: match[2].trim() });
+            }
+          }
+          // Also check extracted testimonials
+          const testimonials = data.extracted?.testimonials || data.extracted?.brand?.testimonials || [];
+          if (Array.isArray(testimonials)) {
+            for (const t of testimonials) {
+              if (quotes.length >= 5) break;
+              if (typeof t === "string" && t.length > 15) {
+                quotes.push({ quote: t, source: "Customer Review" });
+              } else if (t?.quote || t?.text) {
+                quotes.push({ quote: t.quote || t.text, source: t.source || t.author || "Customer Review" });
+              }
+            }
+          }
+          if (quotes.length > 0) setSocialProof(quotes);
         }
       } catch (e) {
         if (!cancelled) {
