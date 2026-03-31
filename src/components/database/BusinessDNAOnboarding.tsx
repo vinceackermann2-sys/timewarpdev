@@ -987,7 +987,7 @@ export function BusinessDNAOnboarding({
           const brandData = extracted.brand || quickBrandRef.current || {};
           const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
           const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
-          // For the Data Found tab, show the selected discovered products while extraction runs
+          // For the Data Found tab, show selected discovered products while extraction runs
           const displayProducts = productsRaw.length > 0 ? productsRaw : selectedProducts.map(i => discoveredProducts[i]).filter(Boolean);
           const brandColors = brandData.colors || {};
           const urls = scannedUrlsRef.current;
