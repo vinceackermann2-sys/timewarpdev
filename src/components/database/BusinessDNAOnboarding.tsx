@@ -276,10 +276,24 @@ export function BusinessDNAOnboarding({
   }, [step, scrapeComplete, scrapeError]);
 
   // ── Step 4: persist via edge function ────────────────────
+  const markTodo = (label: string) => {
+    setForgingTodos(prev => prev.map(t => t.label === label ? { ...t, status: "done" as const, completedAt: new Date() } : t));
+  };
+
   useEffect(() => {
     if (step !== 4) return;
     if (persistenceComplete || persistenceCompleteRef.current) return;
     let cancelled = false;
+
+    // Reset todos for fresh run
+    setForgingTodos([
+      { label: "Analyze business", status: "done", completedAt: new Date() },
+      { label: "Extract brand identity", status: "pending" },
+      { label: "Extract products", status: "pending" },
+      { label: "Extract audiences", status: "pending" },
+      { label: "Save to database", status: "pending" },
+      { label: "Enrich brand", status: "pending" },
+    ]);
 
     (async () => {
       const extracted = scrapeResult.current || {};
@@ -306,6 +320,9 @@ export function BusinessDNAOnboarding({
         visualIdentity: b.visualIdentity || undefined,
       };
 
+      if (!cancelled) markTodo("Extract brand identity");
+      await new Promise(r => setTimeout(r, 400));
+
       // Filter products by user selection
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
       const filteredProducts = selectedProducts.length > 0
@@ -313,7 +330,6 @@ export function BusinessDNAOnboarding({
         : productsRaw.slice(0, 3);
 
       const newProducts: ProductEntry[] = filteredProducts.slice(0, 5).map((p: any, i: number) => {
-        // Apply selected image if available
         const selectedImgIdx = selectedImages[i];
         const images = p.images?.length
           ? p.images.map((imgUrl: string, j: number) => ({
@@ -322,7 +338,6 @@ export function BusinessDNAOnboarding({
               label: `Product Image ${j + 1}`,
             }))
           : DEFAULT_PRODUCT.images;
-        // Move selected image to front if specified
         if (selectedImgIdx !== undefined && selectedImgIdx > 0 && images.length > selectedImgIdx) {
           const [picked] = images.splice(selectedImgIdx, 1);
           images.unshift(picked);
@@ -371,6 +386,9 @@ export function BusinessDNAOnboarding({
         };
       });
 
+      if (!cancelled) markTodo("Extract products");
+      await new Promise(r => setTimeout(r, 300));
+
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
       const newAudiences: AudienceEntry[] = audiencesRaw
         .filter((a: any) => a?.name)
@@ -404,6 +422,9 @@ export function BusinessDNAOnboarding({
           brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
         }));
 
+      if (!cancelled) markTodo("Extract audiences");
+      await new Promise(r => setTimeout(r, 300));
+
       if (cancelled) return;
 
       const { data, error } = await supabase.functions.invoke("save-onboarding", {
@@ -422,6 +443,8 @@ export function BusinessDNAOnboarding({
         setPersistenceError(data?.error || "Failed to save brand. Please try again.");
         return;
       }
+
+      if (!cancelled) markTodo("Save to database");
 
       if (data.workspaceId) {
         localStorage.setItem("preferred_workspace_id", data.workspaceId);
@@ -471,10 +494,16 @@ export function BusinessDNAOnboarding({
             if (res.data?.success && refreshBrand) {
               await refreshBrand(finalBrandId);
             }
+            if (!cancelled) markTodo("Enrich brand");
           } catch (e) {
             console.warn("Brand enrichment failed (non-blocking):", e);
+            if (!cancelled) markTodo("Enrich brand"); // mark done anyway
           }
+        } else {
+          if (!cancelled) markTodo("Enrich brand");
         }
+      } else {
+        if (!cancelled) markTodo("Enrich brand");
       }
 
       if (!cancelled) {
