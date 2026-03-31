@@ -975,6 +975,26 @@ export function BusinessDNAOnboarding({
                           <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm">
                             <Maximize2 className="w-4 h-4 text-white" />
                           </div>
+                          {/* Remove Background button */}
+                          {!bgRemovedImages[imgSrc] && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRemoveBg(imgSrc); }}
+                              disabled={bgRemovalLoading[imgSrc]}
+                              className="absolute bottom-3 left-3 px-2.5 py-1.5 rounded-lg bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white text-[11px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-60"
+                            >
+                              {bgRemovalLoading[imgSrc] ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <WandSparkles className="w-3 h-3" />
+                              )}
+                              Remove BG
+                            </button>
+                          )}
+                          {bgRemovedImages[imgSrc] && (
+                            <div className="absolute bottom-3 left-3 px-2.5 py-1.5 rounded-lg bg-[#22c55e]/80 backdrop-blur-sm text-white text-[11px] font-medium flex items-center gap-1.5">
+                              <Check className="w-3 h-3" /> BG Removed
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
