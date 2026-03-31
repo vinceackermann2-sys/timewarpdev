@@ -275,7 +275,51 @@ export function BusinessDNAOnboarding({
     ]);
 
     (async () => {
-      const extracted = scrapeResult.current || {};
+      // ── Phase 1: Call scrape-product in CORE mode for deep extraction ──
+      // Pass the selected product URLs so the backend only extracts those
+      const selectedUrls = selectedProducts
+        .map(i => discoveredProducts[i]?.url)
+        .filter(Boolean);
+
+      const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
+        url: activeUrl!.trim(),
+        mode: "core",
+        selectedProductUrls: selectedUrls.length > 0 ? selectedUrls : undefined,
+      });
+
+      if (cancelled) return;
+
+      if (extractError || !extractData?.success) {
+        console.error("Full extraction failed:", extractError || extractData?.error);
+        setPersistenceError(extractData?.error || "Failed to analyze business. Please try again.");
+        return;
+      }
+
+      // Store full extraction result
+      scrapeResult.current = extractData.extracted;
+
+      // Capture social proof from full extraction
+      const testimonials = extractData.extracted?.testimonials || extractData.extracted?.brand?.testimonials || [];
+      if (Array.isArray(testimonials)) {
+        const quotes: { quote: string; source: string }[] = [];
+        for (const t of testimonials) {
+          if (quotes.length >= 5) break;
+          if (typeof t === "string" && t.length > 15) {
+            quotes.push({ quote: t, source: "Customer Review" });
+          } else if (t?.quote || t?.text) {
+            quotes.push({ quote: t.quote || t.text, source: t.source || t.author || "Customer Review" });
+          }
+        }
+        if (quotes.length > 0) setSocialProof(quotes);
+      }
+
+      // Update scanned URLs if more were found
+      if (Array.isArray(extractData.scannedUrls)) {
+        scannedUrlsRef.current = extractData.scannedUrls;
+      }
+
+      // ── Phase 2: Build entities from extracted data ──
+      const extracted = extractData.extracted || {};
       const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
       const brandId = `brand-${Date.now()}`;
 
@@ -302,13 +346,10 @@ export function BusinessDNAOnboarding({
       if (!cancelled) markTodo("Extract brand identity");
       await new Promise(r => setTimeout(r, 400));
 
-      // Filter products by user selection
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
-      const filteredProducts = selectedProducts.length > 0
-        ? selectedProducts.map(i => productsRaw[i]).filter(Boolean)
-        : productsRaw.slice(0, 3);
+      const filteredProducts = productsRaw.slice(0, 5);
 
-      const newProducts: ProductEntry[] = filteredProducts.slice(0, 5).map((p: any, i: number) => {
+      const newProducts: ProductEntry[] = filteredProducts.map((p: any, i: number) => {
         const selectedImgIdx = selectedImages[i];
         const images = p.images?.length
           ? p.images.map((imgUrl: string, j: number) => ({
@@ -476,7 +517,7 @@ export function BusinessDNAOnboarding({
             if (!cancelled) markTodo("Enrich brand");
           } catch (e) {
             console.warn("Brand enrichment failed (non-blocking):", e);
-            if (!cancelled) markTodo("Enrich brand"); // mark done anyway
+            if (!cancelled) markTodo("Enrich brand");
           }
         } else {
           if (!cancelled) markTodo("Enrich brand");
