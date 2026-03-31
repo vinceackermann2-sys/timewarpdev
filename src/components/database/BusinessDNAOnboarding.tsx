@@ -239,8 +239,17 @@ export function BusinessDNAOnboarding({
     if (bgRemovedImages[imgUrl] || bgRemovalLoading[imgUrl]) return;
     setBgRemovalLoading(prev => ({ ...prev, [imgUrl]: true }));
     try {
-      const { data } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
-      if (data?.resultUrl) {
+      const { data, error } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
+      if (error || !data?.resultUrl) {
+        // Retry once after a short delay (rate limit)
+        await new Promise(r => setTimeout(r, 2000));
+        const { data: d2 } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
+        if (d2?.resultUrl) {
+          setBgRemovedImages(prev => ({ ...prev, [imgUrl]: d2.resultUrl }));
+        } else {
+          console.warn("BG removal failed after retry for", imgUrl);
+        }
+      } else {
         setBgRemovedImages(prev => ({ ...prev, [imgUrl]: data.resultUrl }));
       }
     } catch (e) {
