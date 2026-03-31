@@ -715,7 +715,7 @@ export function AgentChatView() {
           Authorization: `Bearer ${session.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ employee_id: emp.id, messages: chatHistory }),
+        body: JSON.stringify({ employee_id: emp.id, messages: chatHistory, brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })(), workspaceId: activeWorkspaceId }),
       }
     );
 
