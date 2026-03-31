@@ -1078,7 +1078,7 @@ export function BusinessDNAOnboarding({
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] ${
                     forgingTab === "found" ? "bg-[#1a1f36] text-white" : "bg-[#d1d0cb] text-white"
                   }`}>
-                    {1 + filteredProds.length + audiencesRaw.length}
+                    {1 + displayProducts.length + audiencesRaw.length}
                   </span>
                 </button>
                 <button
@@ -1125,7 +1125,7 @@ export function BusinessDNAOnboarding({
                   </div>
 
                   {/* Products */}
-                  {filteredProds.map((p: any, i: number) => (
+                  {displayProducts.map((p: any, i: number) => (
                     <div key={i} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center gap-3">
                       <ShoppingBag className="w-4 h-4 text-[#3399ff] shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -1171,7 +1171,7 @@ export function BusinessDNAOnboarding({
                           <span className="text-[12px] text-[#697386] ml-2">Brand identity saved</span>
                         </div>
                       </div>
-                      {filteredProds.map((p: any, i: number) => (
+                      {displayProducts.map((p: any, i: number) => (
                         <div key={i} className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
                           <CheckCircle2 className="w-5 h-5 text-[#22c55e] shrink-0" />
                           <span className="text-[15px] font-medium text-[#1a1f36]">{p.name || `Product ${i + 1}`}</span>
