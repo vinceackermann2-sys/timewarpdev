@@ -269,21 +269,22 @@ export function BusinessDNAOnboarding({
     }
   }, [discoveredProducts]);
 
-  // Progress animation for step 1
+  // Progress animation for step 1 — cap at 90% until scrape is done
   useEffect(() => {
     if (step !== 1) return;
     const interval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
+        if (prev >= 90 && !scrapeCompleteRef.current) {
+          // Hold at 90 until scrape finishes
+          return 90;
         }
-        // climb to 80 normally, then slow
         if (scrapeCompleteRef.current) {
-          return Math.min(100, prev + 8);
+          // Scrape done — quickly fill to 95 (step transition handles the rest)
+          if (prev >= 95) { clearInterval(interval); return 95; }
+          return Math.min(95, prev + 6);
         }
-        if (prev < 80) return prev + 2;
-        return prev + 0.3;
+        if (prev < 70) return prev + 2;
+        return prev + 0.4;
       });
     }, 200);
     return () => clearInterval(interval);
