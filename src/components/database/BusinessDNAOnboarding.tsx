@@ -1185,24 +1185,37 @@ export function BusinessDNAOnboarding({
                   )}
 
                   {/* Social proof quote — shows while sources are being verified */}
-                  {socialProof.length > 0 && (
+                  {socialProof.length > 0 && !persistenceComplete && (
                     <AnimatePresence mode="wait">
-                      <motion.div
-                        key={activeSourceIndex % socialProof.length}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.35 }}
-                        className="border-l-4 border-[#3399ff] pl-4 py-2.5 bg-white/40 rounded-r-xl pr-4 mt-1"
-                      >
-                        <p className="text-[14px] text-[#1a1f36] italic leading-relaxed">
-                          "{socialProof[activeSourceIndex % socialProof.length].quote}"
-                        </p>
-                        <p className="text-[12px] text-[#697386] mt-1">
-                          — {socialProof[activeSourceIndex % socialProof.length].source}
-                        </p>
-                      </motion.div>
+                      {(() => {
+                        const currentDomain = urls[activeSourceIndex] ? urlToDisplaySource(urls[activeSourceIndex]).split("/")[0] : "";
+                        const matched = socialProof.find(sp => sp.source.toLowerCase().includes(currentDomain.toLowerCase()));
+                        const quote = matched || socialProof[activeSourceIndex % socialProof.length];
+                        return (
+                          <motion.div
+                            key={activeSourceIndex}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.35 }}
+                            className="border-l-4 border-[#3399ff] pl-4 py-2.5 bg-white/40 rounded-r-xl pr-4 mt-1"
+                          >
+                            <p className="text-[14px] text-[#1a1f36] italic leading-relaxed">
+                              "{quote.quote}"
+                            </p>
+                            <p className="text-[12px] text-[#697386] mt-1">
+                              — {quote.source}
+                            </p>
+                          </motion.div>
+                        );
+                      })()}
                     </AnimatePresence>
+                  )}
+                  {persistenceComplete && (
+                    <div className="flex items-center justify-center gap-2 py-3 bg-[#22c55e]/10 rounded-xl">
+                      <CheckCircle2 className="w-4 h-4 text-[#22c55e]" />
+                      <span className="text-[14px] font-medium text-[#22c55e]">All sources verified ✓</span>
+                    </div>
                   )}
 
                   {/* Verified count */}
