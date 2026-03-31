@@ -153,16 +153,36 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     fetchData();
     checkConnection();
 
-    // Fetch real storage usage from subscription record
+    // Calculate per-brand storage usage from fetched items
     const fetchUsage = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      const { data } = await (supabase as any)
-        .from("user_subscriptions")
-        .select("data_used_bytes")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      if (data) setRealUsageBytes(data.data_used_bytes || 0);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+
+        const wsId = localStorage.getItem("preferred_workspace_id");
+        let query = (supabase as any)
+          .from("user_business_data")
+          .select("title, content, analyzed_content, metadata")
+          .eq("metadata->>brandId", activeBrandId);
+
+        if (wsId) {
+          query = query.eq("workspace_id", wsId);
+        } else {
+          query = query.eq("user_id", session.user.id);
+        }
+
+        const { data: brandData } = await query;
+        if (brandData) {
+          let total = 0;
+          for (const row of brandData) {
+            total += (row.title?.length || 0) + (row.content?.length || 0) + (row.analyzed_content?.length || 0);
+            if (row.metadata?.file_size) total += Number(row.metadata.file_size) || 0;
+          }
+          setRealUsageBytes(total);
+        }
+      } catch (err) {
+        console.error("Failed to fetch brand usage:", err);
+      }
     };
     fetchUsage();
   }, [checkConnection, activeBrandId]);

@@ -98,12 +98,15 @@ serve(async (req) => {
       workspace_id: wsId,
     };
 
+    const brandId = brandData?.id || `brand-${Date.now()}`;
+
     // Insert brand
     const { data: brandInsert, error: brandErr } = await admin.from("user_business_data").insert({
       ...basePayload,
       data_type: "brand",
       title: brandData?.name || "My Business",
       content: JSON.stringify(brandData),
+      metadata: { brandId },
     }).select("id").single();
 
     if (brandErr) {
@@ -122,6 +125,7 @@ serve(async (req) => {
         data_type: "product",
         title: prod?.name || "Imported Product",
         content: JSON.stringify(prod),
+        metadata: { brandId },
       });
       if (productErr) {
         console.error("Product insert failed:", productErr);
@@ -137,6 +141,7 @@ serve(async (req) => {
         data_type: "audience",
         title: aud?.name || "Target Audience",
         content: JSON.stringify(aud),
+        metadata: { brandId },
       });
       if (audErr) {
         console.error("Audience insert failed:", audErr);
