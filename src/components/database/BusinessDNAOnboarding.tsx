@@ -691,7 +691,7 @@ export function BusinessDNAOnboarding({
 
             {/* Product Cards Grid */}
             {extractedProducts.length > 0 ? (
-              <div className="w-full max-w-[900px] grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="w-full max-w-[900px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {extractedProducts.slice(0, 10).map((p: any, i: number) => {
                   const isSelected = selectedProducts.includes(i);
                   const imgUrl = p.images?.[0] || null;
