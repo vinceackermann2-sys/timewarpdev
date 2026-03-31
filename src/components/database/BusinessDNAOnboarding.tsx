@@ -281,18 +281,18 @@ export function BusinessDNAOnboarding({
   // ── Source carousel for forging step ──
   useEffect(() => {
     if (step !== 4 && step !== 5) return;
+    if (persistenceComplete) return; // stop flipping once finalize is unlocked
     const urls = scannedUrlsRef.current;
     if (urls.length === 0) return;
     const interval = setInterval(() => {
       setActiveSourceIndex(prev => {
         const next = (prev + 1) % urls.length;
-        // Mark previous as verified
         setVerifiedSources(vs => new Set([...vs, prev]));
         return next;
       });
     }, 2200);
     return () => clearInterval(interval);
-  }, [step]);
+  }, [step, persistenceComplete]);
 
   // ── Step 4: persist via edge function ────────────────────
   const markTodo = (label: string) => {
