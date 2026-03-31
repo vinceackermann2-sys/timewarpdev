@@ -1123,7 +1123,7 @@ export function BusinessDNAOnboarding({
                 <div className="flex flex-col gap-3">
                   {/* Source carousel — flipping through URLs being verified */}
                   {urls.length > 0 && (
-                    <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[52px]">
+                    <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[72px]">
                       <AnimatePresence mode="wait">
                         <motion.div
                           key={activeSourceIndex}
