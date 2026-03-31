@@ -5,6 +5,7 @@ import {
   Plug, Loader2, Sparkles, ExternalLink, Download
 } from "lucide-react";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
+import { InlineChatChart } from "./InlineChatChart";
 import { SettingsView } from "@/components/database/SettingsView";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
