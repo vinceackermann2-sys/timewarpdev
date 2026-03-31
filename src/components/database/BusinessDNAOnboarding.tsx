@@ -266,12 +266,12 @@ export function BusinessDNAOnboarding({
     return () => clearInterval(interval);
   }, [step]);
 
-  // Transition step 1 → 2 once scrape completes
+  // Transition step 1 → 2 as soon as scrape completes
   useEffect(() => {
     if (step === 1 && scrapeComplete && !scrapeError) {
       setProgress(100);
-      const timeout = setTimeout(() => setStep(2), 600);
-      return () => clearTimeout(timeout);
+      // Immediately move to product selection — no waiting
+      setStep(2);
     }
   }, [step, scrapeComplete, scrapeError]);
 
