@@ -1137,10 +1137,10 @@ export function AgentChatView() {
                     : "rounded-bl-md text-foreground"
                 )}>
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-6 prose-headings:mb-3 prose-p:my-3 prose-p:leading-relaxed prose-ul:my-3 prose-ul:pl-5 prose-ol:my-3 prose-ol:pl-5 prose-li:my-1.5 prose-table:my-4 prose-blockquote:my-4 prose-blockquote:pl-4 prose-blockquote:border-l-2 prose-blockquote:border-primary/30 prose-hr:my-6 prose-strong:text-foreground prose-td:px-3 prose-td:py-2 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold [&>*:first-child]:!mt-0 prose-headings:font-semibold prose-h2:text-base prose-h3:text-sm">
+                    <div className="max-w-none text-foreground text-[14.5px] leading-[1.75]">
                       {/* Task step indicators */}
                       {msg.taskSteps && msg.taskSteps.length > 0 && (
-                        <div className="mb-3 space-y-1 not-prose">
+                        <div className="mb-3 space-y-1">
                           {msg.taskSteps.map((step, idx) => {
                             const isCurrent = idx === (msg.currentStepIndex ?? -1);
                             const isDone = step.status === "done";
@@ -1171,7 +1171,32 @@ export function AgentChatView() {
                       )}
                       {/* Main content (only show if not purely step-tracking) */}
                       {(!msg.taskSteps || msg.taskSteps.length === 0 || !msg.isStreaming) && msg.content && (
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        <ReactMarkdown
+                          components={{
+                            h1: ({children}) => <h1 className="text-xl font-bold text-foreground mt-6 mb-3 first:mt-0">{children}</h1>,
+                            h2: ({children}) => <h2 className="text-lg font-bold text-foreground mt-6 mb-3 first:mt-0">{children}</h2>,
+                            h3: ({children}) => <h3 className="text-[15px] font-semibold text-foreground mt-5 mb-2 first:mt-0">{children}</h3>,
+                            p: ({children}) => <p className="mb-4 last:mb-0 leading-[1.8] text-foreground/90">{children}</p>,
+                            ul: ({children}) => <ul className="my-4 pl-6 space-y-2 list-disc marker:text-foreground/40">{children}</ul>,
+                            ol: ({children}) => <ol className="my-4 pl-6 space-y-2 list-decimal marker:text-foreground/40">{children}</ol>,
+                            li: ({children}) => <li className="leading-[1.7] text-foreground/90 pl-1">{children}</li>,
+                            strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
+                            blockquote: ({children}) => <blockquote className="my-4 pl-4 border-l-2 border-primary/30 text-foreground/70 italic">{children}</blockquote>,
+                            hr: () => <hr className="my-6 border-border/50" />,
+                            code: ({children, className}) => {
+                              const isBlock = className?.includes("language-");
+                              return isBlock
+                                ? <code className={cn("block", className)}>{children}</code>
+                                : <code className="rounded bg-muted px-1.5 py-0.5 text-[13px] font-mono text-foreground/80">{children}</code>;
+                            },
+                            pre: ({children}) => <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4 text-[13px]">{children}</pre>,
+                            table: ({children}) => <div className="my-4 overflow-x-auto rounded-lg border border-border/50"><table className="w-full text-sm">{children}</table></div>,
+                            thead: ({children}) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
+                            th: ({children}) => <th className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px]">{children}</th>,
+                            td: ({children}) => <td className="px-4 py-2.5 border-t border-border/30 text-foreground/80">{children}</td>,
+                            a: ({children, href}) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">{children}</a>,
+                          }}
+                        >{msg.content}</ReactMarkdown>
                       )}
                       {msg.isStreaming && !msg.content && (
                         <div className="flex items-center gap-2">
