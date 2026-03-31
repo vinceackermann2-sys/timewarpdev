@@ -7,6 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const STOPWORDS = new Set(["this","that","with","from","have","been","were","they","their","what","about","which","when","where","will","would","could","should","there","these","those","some","other","into","more","also","than","then","just","only","very","much","such","like","over","after","before","between","under","each","every","both","most","same","does","doing","done","make","made","know","think","want","need","help","find","give","tell","show","look","come","back","take","well","still","even","here","many","while"]);
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -38,8 +40,12 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Load business DNA context
-    const businessContext = await loadBusinessDNA(supabase, user.id, brandId, workspaceId);
+    // Load lightweight identity
+    const identity = await loadBusinessIdentity(supabase, user.id, brandId);
+
+    // RAG: retrieve relevant context based on user's latest message
+    const lastUserMsg = extractLastUserMessage(messages);
+    const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg);
 
     // Build page context section
     let pageSection = "";
@@ -59,10 +65,10 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
     const hasBrowserContext = !!pageContext || browserMode;
 
     const systemPrompt = browserMode
-      ? buildBrowserActionPrompt(pageSection, businessContext)
+      ? buildBrowserActionPrompt(pageSection, identity, relevantContext)
       : hasBrowserContext
-        ? buildBrowserPrompt(pageSection, businessContext)
-        : buildChatPrompt(businessContext);
+        ? buildBrowserPrompt(pageSection, identity, relevantContext)
+        : buildChatPrompt(identity, relevantContext);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -101,7 +107,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
     const userMsg = messages?.[messages.length - 1]?.content || "";
     supabase.from("timewarp_chats").insert({
       user_id: user.id,
-      user_message: userMsg,
+      user_message: typeof userMsg === "string" ? userMsg : JSON.stringify(userMsg),
       page_url: pageContext?.url || null,
     }).then(() => {});
 
@@ -125,133 +131,101 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
   }
 });
 
-async function loadBusinessDNA(supabase: any, userId: string, brandId?: string, workspaceId?: string): Promise<string> {
-  if (!brandId && !workspaceId) return "";
+// --- RAG Helpers ---
 
-  let context = "";
+function extractKeywords(text: string): string[] {
+  return text.toLowerCase().split(/\W+/).filter(w => w.length > 3 && !STOPWORDS.has(w));
+}
 
-  // Load the specific brand
-  if (brandId) {
-    const { data: brandRow } = await supabase
-      .from("user_business_data")
-      .select("title, content, analyzed_content, data_type")
-      .eq("id", brandId)
-      .single();
-
-    if (brandRow) {
-      context += `\n## Your Business: ${brandRow.title}\n`;
-      if (brandRow.content) {
-        try {
-          const parsed = JSON.parse(brandRow.content);
-          // Extract key brand info
-          if (parsed.name) context += `- **Brand Name:** ${parsed.name}\n`;
-          if (parsed.category) context += `- **Category:** ${parsed.category}\n`;
-          if (parsed.colors) context += `- **Brand Colors:** ${JSON.stringify(parsed.colors)}\n`;
-          if (parsed.typography) context += `- **Typography:** ${JSON.stringify(parsed.typography)}\n`;
-          if (parsed.agentName) context += `- **Agent Name:** ${parsed.agentName}\n`;
-        } catch {
-          context += brandRow.content.slice(0, 3000) + "\n";
-        }
-      }
-      if (brandRow.analyzed_content) context += `\n### Brand Analysis\n${brandRow.analyzed_content.slice(0, 3000)}\n`;
+function extractLastUserMessage(messages: any[]): string {
+  if (!messages || messages.length === 0) return "";
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") {
+      const c = messages[i].content;
+      if (typeof c === "string") return c;
+      if (Array.isArray(c)) return c.filter((p: any) => p.type === "text").map((p: any) => p.text).join(" ");
     }
   }
+  return "";
+}
 
-  // Load products and audiences for this brand
-  const wsFilter = workspaceId || null;
+function scoreItem(keywords: string[], title: string, contentSnippet: string): number {
+  if (keywords.length === 0) return 0;
+  const haystack = (title + " " + contentSnippet).toLowerCase();
+  let matches = 0;
+  for (const kw of keywords) {
+    if (haystack.includes(kw)) matches++;
+  }
+  return matches / keywords.length;
+}
+
+async function loadBusinessIdentity(supabase: any, userId: string, brandId?: string): Promise<string> {
+  if (!brandId) return "";
+  const { data: brandRow } = await supabase
+    .from("user_business_data")
+    .select("title, content")
+    .eq("id", brandId)
+    .single();
+
+  if (!brandRow) return "";
+  let identity = `Business: ${brandRow.title}`;
+  if (brandRow.content) {
+    try {
+      const parsed = JSON.parse(brandRow.content);
+      if (parsed.name) identity += ` | Brand: ${parsed.name}`;
+      if (parsed.category) identity += ` | Category: ${parsed.category}`;
+      if (parsed.agentName) identity += ` | Agent: ${parsed.agentName}`;
+    } catch {}
+  }
+  return identity;
+}
+
+async function retrieveRelevantContext(supabase: any, userId: string, workspaceId?: string, userQuery?: string): Promise<string> {
+  const keywords = extractKeywords(userQuery || "");
+  if (keywords.length === 0) return "";
+
   let query = supabase
     .from("user_business_data")
-    .select("title, content, analyzed_content, data_type, source")
-    .eq("source", "business-dna")
-    .in("data_type", ["product", "audience"]);
+    .select("title, content, analyzed_content, data_type, source");
 
-  if (wsFilter) {
-    query = query.eq("workspace_id", wsFilter);
-  } else {
-    query = query.eq("user_id", userId);
+  if (workspaceId) query = query.eq("workspace_id", workspaceId);
+  else query = query.eq("user_id", userId);
+
+  const { data: items } = await query.limit(100);
+  if (!items || items.length === 0) return "";
+
+  const scored = items.map((item: any) => {
+    const snippet = (item.analyzed_content || item.content || "").slice(0, 300);
+    return { ...item, score: scoreItem(keywords, item.title || "", snippet) };
+  }).filter((i: any) => i.score > 0.1)
+    .sort((a: any, b: any) => b.score - a.score)
+    .slice(0, 5);
+
+  if (scored.length === 0) return "";
+
+  let context = "\n\n## Reference Material (from your business database)\n";
+  for (const item of scored) {
+    context += `\n### ${item.title} (${item.data_type})\n`;
+    const text = item.analyzed_content || item.content || "";
+    context += text.slice(0, 500) + "\n";
   }
-
-  const { data: relatedData } = await query.limit(50);
-
-  if (relatedData && relatedData.length > 0) {
-    // Filter by brandId in content
-    const products: any[] = [];
-    const audiences: any[] = [];
-
-    for (const item of relatedData) {
-      try {
-        const parsed = item.content ? JSON.parse(item.content) : {};
-        if (brandId && parsed.brandId && parsed.brandId !== brandId) continue;
-        if (item.data_type === "product") products.push({ ...parsed, _title: item.title, _analyzed: item.analyzed_content });
-        if (item.data_type === "audience") audiences.push({ ...parsed, _title: item.title, _analyzed: item.analyzed_content });
-      } catch {
-        // skip malformed
-      }
-    }
-
-    if (products.length > 0) {
-      context += `\n## Products (${products.length})\n`;
-      for (const p of products.slice(0, 10)) {
-        context += `\n### ${p.name || p._title || "Product"}\n`;
-        if (p.description) context += `${p.description}\n`;
-        if (p.features?.length) context += `- **Features:** ${(Array.isArray(p.features) ? p.features : []).slice(0, 5).join(", ")}\n`;
-        if (p.benefits?.length) context += `- **Benefits:** ${(Array.isArray(p.benefits) ? p.benefits : []).slice(0, 5).join(", ")}\n`;
-        if (p.pricing) context += `- **Pricing:** ${typeof p.pricing === "string" ? p.pricing : JSON.stringify(p.pricing)}\n`;
-        if (p._analyzed) context += `${p._analyzed.slice(0, 800)}\n`;
-      }
-    }
-
-    if (audiences.length > 0) {
-      context += `\n## Target Audiences (${audiences.length})\n`;
-      for (const a of audiences.slice(0, 10)) {
-        context += `\n### ${a.name || a._title || "Audience"}\n`;
-        if (a.demographics) context += `- **Demographics:** ${typeof a.demographics === "string" ? a.demographics : JSON.stringify(a.demographics)}\n`;
-        if (a.painPoints?.length) context += `- **Pain Points:** ${(Array.isArray(a.painPoints) ? a.painPoints : []).slice(0, 5).join(", ")}\n`;
-        if (a.goals?.length) context += `- **Goals:** ${(Array.isArray(a.goals) ? a.goals : []).slice(0, 5).join(", ")}\n`;
-        if (a._analyzed) context += `${a._analyzed.slice(0, 800)}\n`;
-      }
-    }
-  }
-
-  // Also load other business data (documents, files, URLs uploaded to database)
-  {
-    let dbQuery = supabase
-      .from("user_business_data")
-      .select("title, content, analyzed_content, data_type, source")
-      .not("source", "eq", "business-dna");
-
-    if (wsFilter) {
-      dbQuery = dbQuery.eq("workspace_id", wsFilter);
-    } else {
-      dbQuery = dbQuery.eq("user_id", userId);
-    }
-
-    const { data: dbData } = await dbQuery.limit(30);
-
-    if (dbData && dbData.length > 0) {
-      context += `\n## Business Database Files & Documents\n`;
-      for (const item of dbData) {
-        context += `\n### ${item.title} (${item.data_type})\n`;
-        if (item.analyzed_content) context += item.analyzed_content.slice(0, 1500) + "\n";
-        else if (item.content) context += item.content.slice(0, 1500) + "\n";
-      }
-    }
-  }
-
   return context;
 }
 
-function buildBrowserActionPrompt(pageSection: string, businessContext: string): string {
-  return `You are an AI CEO executing tasks through the user's browser. You follow instructions precisely, one action at a time. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base" — just naturally use any business context you have.
+// --- Prompt Builders ---
 
-${businessContext ? `# YOUR BUSINESS CONTEXT\n${businessContext}` : ""}
+function buildBrowserActionPrompt(pageSection: string, identity: string, relevantContext: string): string {
+  return `You are an AI assistant executing tasks through the user's browser. You follow instructions precisely, one action at a time. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base".
+
+${identity ? `# Business Context\n${identity}` : ""}
+${relevantContext}
 ${pageSection}
 
 ## CRITICAL RULES
-1. **One action at a time** — Each call you return EXACTLY ONE action as a JSON code block. After the action executes, you'll receive the updated page context and result, then decide the next action.
-2. **No page context = navigate first** — If there is no page context or the URL is blank/about:blank, your first action MUST be a "navigate" to the appropriate URL. Do NOT return "done" just because there is no page context yet.
-3. **Never stop early** — Even if an action fails, try an alternative approach. Only return "done" after all required steps are completed or you truly cannot proceed after multiple attempts.
-4. **ALWAYS respond with JSON** — You MUST respond with a JSON code block every single time. Never respond with plain text.
+1. **One action at a time** — Each call you return EXACTLY ONE action as a JSON code block.
+2. **No page context = navigate first** — If there is no page context, your first action MUST be a "navigate".
+3. **Never stop early** — Even if an action fails, try an alternative approach.
+4. **ALWAYS respond with JSON** — You MUST respond with a JSON code block every single time.
 
 ## Response Format
 Always respond with a single JSON object wrapped in a markdown code block:
@@ -271,108 +245,83 @@ Always respond with a single JSON object wrapped in a markdown code block:
 8. **done** — \`{ "action": "done", "message": "summary of what was accomplished", "reasoning": "all steps completed", "done": true }\`
 
 ## SAFETY GUARDRAILS — ABSOLUTE RULES
-1. **NEVER make payments** — Do not click "Buy", "Pay", "Purchase", "Checkout", etc.
-2. **NEVER sign up or create accounts** — Do not click "Sign Up", "Register", etc.
-3. **NEVER log in** — Do not enter passwords or interact with auth forms.
-4. **NEVER enter sensitive data** — No credit cards, SSNs, passwords, or PII.
+1. **NEVER make payments**
+2. **NEVER sign up or create accounts**
+3. **NEVER log in**
+4. **NEVER enter sensitive data**
 5. If you encounter any of the above, STOP and use "respond" to ask the user to handle it manually.
 
 ## Guidelines
 - Return ONE action per response
 - Set "done": true ONLY when the full task is completed
-- Use CSS selectors when possible, fall back to descriptive text
-- If you cannot complete a step, use "respond" to ask for clarification`;
+- Use CSS selectors when possible, fall back to descriptive text`;
 }
 
-function buildChatPrompt(businessContext: string): string {
-  return `You are an intelligent executive AI assistant. You have comprehensive knowledge of the user's business and help with strategy, marketing, content creation, analysis, operations, and decision-making.
+function buildChatPrompt(identity: string, relevantContext: string): string {
+  return `You are an intelligent AI assistant. You help with strategy, marketing, content creation, analysis, operations, and decision-making.
 
-${businessContext ? `# YOUR BUSINESS CONTEXT\nThis is your deep knowledge of the user's business — their brand, products, and target audiences. ALWAYS use this information to provide personalized, specific advice — never give generic responses. Reference specific products, audiences, brand details, and data points.\n${businessContext}` : ""}
+${identity ? `# Business Context\n${identity}` : ""}
+${relevantContext}
 
-## Your Role
-- You know the user's business inside and out
-- Give actionable, specific advice grounded in the user's actual business data
-- Proactively reference their products, audiences, brand identity, and market positioning
-- Think strategically — connect dots between their brand, products, audiences, and market opportunities
-- Help with strategy, copywriting, brainstorming, analysis, planning, and problem-solving
-- When suggesting content, match the brand's tone, colors, and style
-- Be decisive, data-informed, and forward-thinking
-- Never refer to yourself as "CEO" or "AI CEO" — you are simply their AI assistant
-- Never mention "RAG", "knowledge files", or "knowledge base" — just naturally use the business context you have
+## CRITICAL CHAT BEHAVIOR
+1. **ALWAYS answer the user's actual question first.** This is your #1 priority.
+2. If the user attached files, analyze that specific content and answer their question about it.
+3. Reference material above is supplementary — only mention it if directly relevant.
+4. Do NOT summarize business context unprompted. Do NOT start responses with business overviews.
+5. Be decisive, data-informed, and forward-thinking.
+6. Never refer to yourself as "CEO" or "AI CEO".
+7. Never mention "RAG", "knowledge files", or "knowledge base".
 
-## FORMATTING RULES — CRITICAL
-- Use proper markdown with clear structure: headings (##, ###), bold, bullet lists, numbered lists
-- Add spacing between sections — use blank lines between paragraphs and sections
+## FORMATTING
+- Use ## and ### headings for structure
 - Use **bold** for key terms and important takeaways
-- Use tables when comparing data, options, or metrics — format properly with | column | headers |
-- Use blockquotes (>) for key insights or callouts
-- When presenting data or analytics, structure it in clear markdown tables with numbers and percentages
-- When asked for reports, create structured documents with executive summary, key findings, detailed analysis, and recommendations
-- When asked for graphs or charts, describe the data in a clear markdown table format that can be visualized, and present the data with clear labels and values
-- When analyzing files, reference specific data points from the file content
-- Keep responses well-organized with clear hierarchy — never dump text in a single block
-- Use --- horizontal rules to separate major sections in longer responses`;
+- Use bullet lists and numbered lists for clarity
+- Use tables when comparing data, options, or metrics
+- Use > blockquotes for key insights
+- Add blank lines between sections
+- Keep paragraphs short (2-3 sentences max)
+- Use --- to separate major sections in longer responses`;
 }
 
-function buildBrowserPrompt(pageSection: string, businessContext: string): string {
-  return `You are an intelligent browser automation AI assistant embedded in a browser extension. You can SEE the user's current page and perform actions on it, informed by your deep knowledge of their business.
+function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string): string {
+  return `You are an intelligent browser automation AI assistant embedded in a browser extension. You can SEE the user's current page and perform actions on it.
 
-${businessContext ? `# YOUR BUSINESS CONTEXT\nUse this business context (brand, products, audiences) to inform your actions, generate relevant content, and provide contextual help.\n${businessContext}` : ""}
-
+${identity ? `# Business Context\n${identity}` : ""}
+${relevantContext}
 ${pageSection}
 
 ## Your Capabilities
 You analyze the user's request and the current page, then return a structured action plan the extension will execute.
 
 ## Response Format
-Always respond with a JSON object wrapped in a markdown code block. The extension parses this to execute actions.
+Always respond with a JSON object wrapped in a markdown code block.
 
 ### Action Types:
-1. **click** — Click an element
-   \`{ "action": "click", "selector": "CSS selector or description", "reasoning": "why" }\`
-
-2. **type** — Type text into a field  
-   \`{ "action": "type", "selector": "CSS selector or description", "value": "text to type", "reasoning": "why" }\`
-
-3. **navigate** — Go to a URL  
-   \`{ "action": "navigate", "url": "https://...", "reasoning": "why" }\`
-
-4. **scroll** — Scroll the page  
-   \`{ "action": "scroll", "direction": "up|down", "amount": 500, "reasoning": "why" }\`
-
-5. **extract** — Extract data from the page  
-   \`{ "action": "extract", "selector": "CSS selector or description", "dataLabel": "what this data is", "reasoning": "why" }\`
-
-6. **wait** — Wait before next action  
-   \`{ "action": "wait", "duration": 1000, "reasoning": "why" }\`
-
-7. **select** — Select a dropdown option  
-   \`{ "action": "select", "selector": "CSS selector", "value": "option value", "reasoning": "why" }\`
-
-8. **copy** — Copy text to clipboard  
-   \`{ "action": "copy", "text": "text to copy", "reasoning": "why" }\`
-
-9. **respond** — Just reply to the user (no browser action needed)  
-   \`{ "action": "respond", "message": "your reply", "reasoning": "why" }\`
+1. **click** — \`{ "action": "click", "selector": "CSS selector or description", "reasoning": "why" }\`
+2. **type** — \`{ "action": "type", "selector": "CSS selector or description", "value": "text to type", "reasoning": "why" }\`
+3. **navigate** — \`{ "action": "navigate", "url": "https://...", "reasoning": "why" }\`
+4. **scroll** — \`{ "action": "scroll", "direction": "up|down", "amount": 500, "reasoning": "why" }\`
+5. **extract** — \`{ "action": "extract", "selector": "CSS selector or description", "dataLabel": "what this data is", "reasoning": "why" }\`
+6. **wait** — \`{ "action": "wait", "duration": 1000, "reasoning": "why" }\`
+7. **select** — \`{ "action": "select", "selector": "CSS selector", "value": "option value", "reasoning": "why" }\`
+8. **copy** — \`{ "action": "copy", "text": "text to copy", "reasoning": "why" }\`
+9. **respond** — \`{ "action": "respond", "message": "your reply", "reasoning": "why" }\`
 
 ### Multi-step tasks
-For multi-step tasks, return an array of actions:
 \`\`\`json
 {
   "steps": [
     { "action": "click", "selector": "#login-btn", "reasoning": "Open login form" },
-    { "action": "wait", "duration": 500, "reasoning": "Wait for form to appear" },
-    { "action": "type", "selector": "#email", "value": "user@example.com", "reasoning": "Enter email" }
+    { "action": "wait", "duration": 500, "reasoning": "Wait for form" }
   ],
-  "summary": "Brief description of what you're doing"
+  "summary": "Brief description"
 }
 \`\`\`
 
 ## Guidelines
-- Use CSS selectors when possible, fall back to descriptive text
-- For complex pages, break tasks into small sequential steps
-- If you cannot determine how to complete a task, use "respond" to ask for clarification
-- Always include "reasoning" so the user understands each step
-- If the task involves sensitive actions (delete, purchase, send), warn the user first
-- When extracting data, be specific about what you're pulling`;
+- Use CSS selectors when possible
+- Break complex tasks into small sequential steps
+- If you cannot complete a task, use "respond" to ask for clarification
+- Always include "reasoning"
+- Warn before sensitive actions (delete, purchase, send)`;
 }
