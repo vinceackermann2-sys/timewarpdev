@@ -1056,7 +1056,20 @@ export function BusinessDNAOnboarding({
           // For the Data Found tab, show selected discovered products while extraction runs
           const displayProducts = productsRaw.length > 0 ? productsRaw : selectedProducts.map(i => discoveredProducts[i]).filter(Boolean);
           const brandColors = brandData.colors || {};
-          const urls = scannedUrlsRef.current;
+          // Filter sources to only show URLs related to selected products (not unselected ones)
+          const selectedProductUrls = selectedProducts.map(i => discoveredProducts[i]?.url).filter(Boolean);
+          const urls = scannedUrlsRef.current.filter(url => {
+            // Always include non-product URLs (homepage, brand pages, etc.)
+            const isProductPage = discoveredProducts.some(p => p.url && url.includes(new URL(p.url.startsWith("http") ? p.url : `https://${p.url}`).pathname.replace(/\/$/, "")));
+            if (!isProductPage) return true;
+            // For product-specific URLs, only include if the product was selected
+            return selectedProductUrls.some(pUrl => {
+              try {
+                const pPath = new URL(pUrl.startsWith("http") ? pUrl : `https://${pUrl}`).pathname.replace(/\/$/, "");
+                return pPath && url.includes(pPath);
+              } catch { return false; }
+            });
+          });
 
           return (
           <motion.div
