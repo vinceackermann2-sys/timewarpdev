@@ -119,6 +119,8 @@ export function BusinessDNAOnboarding({
   const [sourcesOpen, setSourcesOpen] = useState(false);
 
   // Scrape / persistence
+  const [discoveredProducts, setDiscoveredProducts] = useState<{ url: string; name: string; description: string; images: string[] }[]>([]);
+  const quickBrandRef = useRef<any>(null);
   const scrapeResult = useRef<any>(null);
   const [scrapeComplete, setScrapeComplete] = useState(false);
   const [scrapeError, setScrapeError] = useState(false);
