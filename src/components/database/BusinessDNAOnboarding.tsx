@@ -1144,10 +1144,18 @@ export function BusinessDNAOnboarding({
                             className="w-4 h-4 rounded-sm shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                           />
-                          <span className="text-[14px] text-[#1a1f36] truncate">
-                            {verifiedSources.has(activeSourceIndex) ? "Verified" : "Verifying"}{" "}
-                            <span className="text-[#697386]">{urlToDisplaySource(urls[activeSourceIndex])}</span>
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] text-[#1a1f36] truncate block">
+                              {verifiedSources.has(activeSourceIndex) ? "✓ Verified" : "Verifying"}{" "}
+                              <span className="text-[#697386]">{urlToDisplaySource(urls[activeSourceIndex])}</span>
+                            </span>
+                            {/* Show a matching social proof quote inline */}
+                            {socialProof.length > 0 && (
+                              <p className="text-[12px] text-[#697386] italic mt-1 truncate">
+                                "{socialProof[activeSourceIndex % socialProof.length].quote.slice(0, 80)}…"
+                              </p>
+                            )}
+                          </div>
                         </motion.div>
                       </AnimatePresence>
                     </div>
