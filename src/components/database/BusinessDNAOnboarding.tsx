@@ -103,6 +103,9 @@ export function BusinessDNAOnboarding({
   const [currentProductIndex, setCurrentProductIndex] = useState(0);
   const [selectedImages, setSelectedImages] = useState<Record<number, number>>({});
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  // Background-removed images cache
+  const [bgRemovedImages, setBgRemovedImages] = useState<Record<string, string>>({});
+  const bgRemovalInFlight = useRef<Set<string>>(new Set());
 
   // Forging DNA tabs (step 4-5)
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
@@ -117,6 +120,9 @@ export function BusinessDNAOnboarding({
   const scannedUrlsRef = useRef<string[]>([]);
   const [socialProof, setSocialProof] = useState<{ quote: string; source: string }[]>([]);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  // Source carousel state for forging step
+  const [activeSourceIndex, setActiveSourceIndex] = useState(0);
+  const [verifiedSources, setVerifiedSources] = useState<Set<number>>(new Set());
 
   // Scrape / persistence
   const [discoveredProducts, setDiscoveredProducts] = useState<{ url: string; name: string; description: string; images: string[] }[]>([]);
@@ -225,6 +231,44 @@ export function BusinessDNAOnboarding({
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
+  // ── Background removal for discovered product images ──
+  useEffect(() => {
+    if (discoveredProducts.length === 0) return;
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    for (const product of discoveredProducts) {
+      for (const imgUrl of (product.images || []).slice(0, 4)) {
+        if (bgRemovedImages[imgUrl] || bgRemovalInFlight.current.has(imgUrl)) continue;
+        bgRemovalInFlight.current.add(imgUrl);
+        
+        // Fire and forget — update state when done
+        (async () => {
+          try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/remove-bg`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token || ANON_KEY}`,
+                "apikey": ANON_KEY,
+              },
+              body: JSON.stringify({ imageUrl: imgUrl }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.resultUrl) {
+                setBgRemovedImages(prev => ({ ...prev, [imgUrl]: data.resultUrl }));
+              }
+            }
+          } catch (e) {
+            console.warn("BG removal failed for", imgUrl, e);
+          }
+        })();
+      }
+    }
+  }, [discoveredProducts]);
+
   // Progress animation for step 1
   useEffect(() => {
     if (step !== 1) return;
@@ -253,6 +297,22 @@ export function BusinessDNAOnboarding({
       setStep(2);
     }
   }, [step, scrapeComplete, scrapeError]);
+
+  // ── Source carousel for forging step ──
+  useEffect(() => {
+    if (step !== 4 && step !== 5) return;
+    const urls = scannedUrlsRef.current;
+    if (urls.length === 0) return;
+    const interval = setInterval(() => {
+      setActiveSourceIndex(prev => {
+        const next = (prev + 1) % urls.length;
+        // Mark previous as verified
+        setVerifiedSources(vs => new Set([...vs, prev]));
+        return next;
+      });
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [step]);
 
   // ── Step 4: persist via edge function ────────────────────
   const markTodo = (label: string) => {
@@ -790,7 +850,8 @@ export function BusinessDNAOnboarding({
               <div className="w-full max-w-[900px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {extractedProducts.slice(0, 10).map((p: any, i: number) => {
                   const isSelected = selectedProducts.includes(i);
-                  const imgUrl = p.images?.[0] || null;
+                  const rawImgUrl = p.images?.[0] || null;
+                  const imgUrl = rawImgUrl ? (bgRemovedImages[rawImgUrl] || rawImgUrl) : null;
                   return (
                     <div
                       key={i}
@@ -871,7 +932,7 @@ export function BusinessDNAOnboarding({
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                         {productImages[0] ? (
-                          <img src={productImages[0]} alt="" className="w-8 h-8 object-contain" />
+                          <img src={bgRemovedImages[productImages[0]] || productImages[0]} alt="" className="w-8 h-8 object-contain" />
                         ) : (
                           <Globe className="w-5 h-5 text-[#697386]" />
                         )}
@@ -917,7 +978,7 @@ export function BusinessDNAOnboarding({
                             selectedImg === idx ? "border-[#3399ff]" : "border-transparent"
                           }`}
                         >
-                          <img src={imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                          <img src={bgRemovedImages[imgSrc] || imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
                           <div className="absolute top-3 right-3">
                             {selectedImg === idx ? (
                               <div className="w-6 h-6 rounded-full bg-[#3399ff] flex items-center justify-center">
@@ -1003,16 +1064,16 @@ export function BusinessDNAOnboarding({
           >
             <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Forging your business DNA</h1>
 
-            {/* Top Card with todos */}
+            {/* Top Card with source verification carousel */}
             <div className="w-full bg-[#f4f3ee] rounded-2xl p-6 mb-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                     <Sparkles className="w-5 h-5 text-[#3399ff]" />
                   </div>
                   <div>
                     <h3 className="text-[17px] font-semibold text-[#1a1f36]">{activeUrl}</h3>
-                    <p className="text-[14px] text-[#697386]">Step 2 of 3 – Forging your business DNA</p>
+                    <p className="text-[14px] text-[#697386]">Verifying {urls.length} sources</p>
                   </div>
                 </div>
                 <button
@@ -1041,25 +1102,83 @@ export function BusinessDNAOnboarding({
                   </button>
                 </div>
               ) : (
-                <ul className="flex flex-col gap-2">
-                  {forgingTodos.map((todo, i) => (
-                    <li key={i} className="flex items-center gap-2.5 text-[15px]">
-                      {todo.status === "done" ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
-                      ) : (
-                        <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
-                      )}
-                      <span className={todo.status === "done" ? "text-[#1a1f36]" : "text-[#697386]"}>
-                        {todo.label}
-                      </span>
-                      {todo.completedAt && (
-                        <span className="text-[11px] text-[#697386] ml-auto">
-                          {todo.completedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex flex-col gap-3">
+                  {/* Source carousel — flipping through URLs being verified */}
+                  {urls.length > 0 && (
+                    <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[52px]">
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={activeSourceIndex}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -12 }}
+                          transition={{ duration: 0.3 }}
+                          className="flex items-center gap-3"
+                        >
+                          {verifiedSources.has(activeSourceIndex) ? (
+                            <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
+                          ) : (
+                            <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
+                          )}
+                          <img
+                            src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(urls[activeSourceIndex])}&sz=16`}
+                            alt=""
+                            className="w-4 h-4 rounded-sm shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                          <span className="text-[14px] text-[#1a1f36] truncate">
+                            {verifiedSources.has(activeSourceIndex) ? "Verified" : "Verifying"}{" "}
+                            <span className="text-[#697386]">{urlToDisplaySource(urls[activeSourceIndex])}</span>
+                          </span>
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  {/* Progress dots */}
+                  {urls.length > 1 && (
+                    <div className="flex items-center justify-center gap-1.5">
+                      {urls.map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                            i === activeSourceIndex
+                              ? "bg-[#3399ff] w-4"
+                              : verifiedSources.has(i)
+                                ? "bg-[#22c55e]"
+                                : "bg-[#d1d0cb]"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Social proof quote — shows while sources are being verified */}
+                  {socialProof.length > 0 && (
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={activeSourceIndex % socialProof.length}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.35 }}
+                        className="border-l-4 border-[#3399ff] pl-4 py-2.5 bg-white/40 rounded-r-xl pr-4 mt-1"
+                      >
+                        <p className="text-[14px] text-[#1a1f36] italic leading-relaxed">
+                          "{socialProof[activeSourceIndex % socialProof.length].quote}"
+                        </p>
+                        <p className="text-[12px] text-[#697386] mt-1">
+                          — {socialProof[activeSourceIndex % socialProof.length].source}
+                        </p>
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
+
+                  {/* Verified count */}
+                  <p className="text-[12px] text-[#697386] text-center">
+                    {verifiedSources.size} of {urls.length} sources verified
+                  </p>
+                </div>
               )}
             </div>
 
@@ -1193,7 +1312,7 @@ export function BusinessDNAOnboarding({
               )}
             </div>
 
-            {/* Sources */}
+            {/* Sources — collapsible with verification status */}
             {urls.length > 0 && (
               <div className="w-full mt-6">
                 <button
@@ -1201,13 +1320,18 @@ export function BusinessDNAOnboarding({
                   className="flex items-center gap-2 text-[14px] font-medium text-[#697386] hover:text-[#1a1f36] transition-colors w-full"
                 >
                   <Globe className="w-4 h-4" />
-                  <span>{urls.length} sources analyzed</span>
+                  <span>{verifiedSources.size} of {urls.length} sources verified</span>
                   <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${sourcesOpen ? "rotate-180" : ""}`} />
                 </button>
                 {sourcesOpen && (
                   <div className="mt-2 flex flex-col gap-1.5">
                     {urls.map((url, i) => (
                       <div key={i} className="flex items-center gap-2 text-[13px] text-[#697386] py-1 px-2 rounded-lg hover:bg-[#f4f3ee]">
+                        {verifiedSources.has(i) ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
+                        ) : (
+                          <Loader2 className="w-3.5 h-3.5 text-[#3399ff] animate-spin shrink-0" />
+                        )}
                         <img
                           src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(url)}&sz=16`}
                           alt=""
@@ -1219,22 +1343,6 @@ export function BusinessDNAOnboarding({
                     ))}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Social Proof */}
-            {socialProof.length > 0 && (
-              <div className="w-full mt-6 flex flex-col gap-3">
-                <h3 className="text-[14px] font-medium text-[#697386] flex items-center gap-2">
-                  <Quote className="w-4 h-4" />
-                  Social proof found
-                </h3>
-                {socialProof.map((sp, i) => (
-                  <div key={i} className="border-l-4 border-[#3399ff] pl-4 py-2 bg-[#f4f3ee] rounded-r-xl pr-4">
-                    <p className="text-[14px] text-[#1a1f36] italic leading-relaxed">"{sp.quote}"</p>
-                    <p className="text-[12px] text-[#697386] mt-1">— {sp.source}</p>
-                  </div>
-                ))}
               </div>
             )}
           </motion.div>
