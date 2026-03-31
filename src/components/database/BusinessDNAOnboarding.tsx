@@ -298,6 +298,22 @@ export function BusinessDNAOnboarding({
     }
   }, [step, scrapeComplete, scrapeError]);
 
+  // ── Source carousel for forging step ──
+  useEffect(() => {
+    if (step !== 4 && step !== 5) return;
+    const urls = scannedUrlsRef.current;
+    if (urls.length === 0) return;
+    const interval = setInterval(() => {
+      setActiveSourceIndex(prev => {
+        const next = (prev + 1) % urls.length;
+        // Mark previous as verified
+        setVerifiedSources(vs => new Set([...vs, prev]));
+        return next;
+      });
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [step]);
+
   // ── Step 4: persist via edge function ────────────────────
   const markTodo = (label: string) => {
     setForgingTodos(prev => prev.map(t => t.label === label ? { ...t, status: "done" as const, completedAt: new Date() } : t));
