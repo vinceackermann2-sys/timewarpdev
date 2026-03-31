@@ -180,10 +180,10 @@ export function BusinessDNAOnboarding({
     return () => clearTimeout(timeout!);
   }, [charIndex, isDeleting, exampleIndex, step, showMethodPicker]);
 
-  // ── Step 1: Fire scrape-product ──────────────────────────
+  // ── Step 1: Fire scrape-product in DISCOVER mode (fast — names + images only) ──
   useEffect(() => {
     if (step < 1 || !activeUrl) return;
-    if (scrapeComplete || scrapeResult.current) return; // already ran
+    if (scrapeComplete || discoveredProducts.length > 0) return; // already ran
     let cancelled = false;
     (async () => {
       try {
@@ -197,48 +197,25 @@ export function BusinessDNAOnboarding({
           return;
         }
         workspaceIdRef.current = null;
-        const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim(), mode: "core" });
+        const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim(), mode: "discover" });
         if (cancelled) return;
         if (error || !data?.success) {
-          console.error("Scrape failed:", error || data?.error);
+          console.error("Discover failed:", error || data?.error);
           setScrapeError(true);
         } else {
-          scrapeResult.current = data.extracted;
+          // Store discovered products for selection UI
+          const products = Array.isArray(data.discoveredProducts) ? data.discoveredProducts : [];
+          setDiscoveredProducts(products);
+          // Store quick brand info
+          if (data.quickBrand) quickBrandRef.current = data.quickBrand;
           // Capture scanned URLs
           if (Array.isArray(data.scannedUrls)) {
             scannedUrlsRef.current = data.scannedUrls;
           }
-          // Extract social proof quotes from scraped content
-          const rawMarkdown = data.rawMarkdown || data.extracted?.rawMarkdown || "";
-          const quotes: { quote: string; source: string }[] = [];
-          // Match patterns like "quote text" — Source or "quote text" - Username
-          const quotePatterns = [
-            /["""]([^"""]{20,200})["""]\s*[—–-]\s*(.+?)(?:\n|$)/g,
-            />\s*["""]?([^""">\n]{20,200})["""]?\s*\n\s*[—–-]\s*(.+?)(?:\n|$)/g,
-          ];
-          for (const pattern of quotePatterns) {
-            let match;
-            while ((match = pattern.exec(rawMarkdown)) !== null && quotes.length < 5) {
-              quotes.push({ quote: match[1].trim(), source: match[2].trim() });
-            }
-          }
-          // Also check extracted testimonials
-          const testimonials = data.extracted?.testimonials || data.extracted?.brand?.testimonials || [];
-          if (Array.isArray(testimonials)) {
-            for (const t of testimonials) {
-              if (quotes.length >= 5) break;
-              if (typeof t === "string" && t.length > 15) {
-                quotes.push({ quote: t, source: "Customer Review" });
-              } else if (t?.quote || t?.text) {
-                quotes.push({ quote: t.quote || t.text, source: t.source || t.author || "Customer Review" });
-              }
-            }
-          }
-          if (quotes.length > 0) setSocialProof(quotes);
         }
       } catch (e) {
         if (!cancelled) {
-          console.error("Scrape error:", e);
+          console.error("Discover error:", e);
           setScrapeError(true);
         }
       } finally {
