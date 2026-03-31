@@ -1130,34 +1130,34 @@ export function BusinessDNAOnboarding({
                     <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[72px]">
                       <AnimatePresence mode="wait">
                         <motion.div
-                          key={activeSourceIndex}
+                          key={safeSourceIndex}
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -12 }}
                           transition={{ duration: 0.3 }}
                           className="flex items-center gap-3"
                         >
-                          {verifiedSources.has(activeSourceIndex) ? (
+                          {verifiedSources.has(safeSourceIndex) ? (
                             <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
                           ) : (
                             <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
                           )}
                           <img
-                            src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(urls[activeSourceIndex])}&sz=16`}
+                            src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(urls[safeSourceIndex])}&sz=16`}
                             alt=""
                             className="w-4 h-4 rounded-sm shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                           />
                           <div className="flex-1 min-w-0">
                             <span className="text-[14px] text-[#1a1f36] truncate block">
-                              {verifiedSources.has(activeSourceIndex) ? "✓ Verified" : "Verifying"}{" "}
-                              <span className="text-[#697386]">{urlToDisplaySource(urls[activeSourceIndex])}</span>
+                              {verifiedSources.has(safeSourceIndex) ? "✓ Verified" : "Verifying"}{" "}
+                              <span className="text-[#697386]">{urlToDisplaySource(urls[safeSourceIndex])}</span>
                             </span>
                             {/* Show a matching social proof quote inline */}
                             {(() => {
-                              const currentDomain = urlToDisplaySource(urls[activeSourceIndex]).split("/")[0];
+                              const currentDomain = urlToDisplaySource(urls[safeSourceIndex])?.split("/")[0] || "";
                               const matched = socialProof.find(sp => sp.source.toLowerCase().includes(currentDomain.toLowerCase()));
-                              const fallback = socialProof[activeSourceIndex % socialProof.length];
+                              const fallback = socialProof[safeSourceIndex % Math.max(socialProof.length, 1)];
                               const quote = matched || fallback;
                               return quote ? (
                                 <p className="text-[12px] text-[#697386] italic mt-1 truncate">
