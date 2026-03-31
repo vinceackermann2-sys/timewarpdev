@@ -585,12 +585,17 @@ serve(async (req) => {
                       const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: pUrl, formats: ["markdown"], onlyMainContent: true }),
+                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: true }),
                       });
                       if (res.ok) {
                         const d = await res.json();
                         const md = d.data?.markdown || d.markdown || "";
-                        return { url: pUrl, markdown: md, extractedImages: extractImagesFromMarkdown(md, pUrl) };
+                        const html = d.data?.html || d.html || "";
+                        // Extract images from both markdown and HTML for maximum coverage
+                        const mdImages = extractImagesFromMarkdown(md, pUrl);
+                        const htmlImages = extractImagesFromMarkdown(html, pUrl);
+                        const allImages = [...new Set([...mdImages, ...htmlImages])];
+                        return { url: pUrl, markdown: md, extractedImages: allImages };
                       }
                       const fb = await fetchPageFallback(pUrl);
                       return { url: pUrl, markdown: fb.markdown, extractedImages: extractImagesFromMarkdown(fb.markdown, pUrl) };
