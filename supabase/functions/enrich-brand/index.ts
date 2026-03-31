@@ -32,7 +32,7 @@ async function generateImage(apiKey: string, prompt: string): Promise<string | n
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
+        model: "google/gemini-3.1-flash-image-preview",
         messages: [{ role: "user", content: prompt }],
         modalities: ["image", "text"],
       }),
@@ -43,10 +43,38 @@ async function generateImage(apiKey: string, prompt: string): Promise<string | n
     if (!images?.length) return null;
     const imageUrl = images[0].image_url?.url;
     if (!imageUrl) return null;
-    // Return as data URI
     if (imageUrl.startsWith("data:")) return imageUrl;
     return `data:image/png;base64,${imageUrl}`;
   } catch (e) { console.warn("Image generation error:", e); return null; }
+}
+
+/* ── Helper: edit image with product via AI gateway ── */
+async function editImageWithProduct(apiKey: string, prompt: string, productImageUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3.1-flash-image-preview",
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: productImageUrl } },
+          ],
+        }],
+        modalities: ["image", "text"],
+      }),
+    });
+    if (!res.ok) { console.warn("Image edit failed:", res.status); return null; }
+    const d = await res.json();
+    const images = d.choices?.[0]?.message?.images;
+    if (!images?.length) return null;
+    const imageUrl = images[0].image_url?.url;
+    if (!imageUrl) return null;
+    if (imageUrl.startsWith("data:")) return imageUrl;
+    return `data:image/png;base64,${imageUrl}`;
+  } catch (e) { console.warn("Image edit error:", e); return null; }
 }
 
 /* ── Helper: parse JSON array from AI text ── */
@@ -660,7 +688,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { brandRowId, brandName, brandCategory, brandColors, audienceDesc, audiencePowerWords, productBenefits, buyingTriggers, websiteUrl } = await req.json();
+    const { brandRowId, brandName, brandCategory, brandColors, audienceDesc, audiencePowerWords, productBenefits, buyingTriggers, websiteUrl, productImageUrls } = await req.json();
 
     if (!brandRowId) {
       return new Response(JSON.stringify({ success: false, error: "brandRowId required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -780,7 +808,7 @@ serve(async (req) => {
       } catch (e) { console.error("Screenshot pipeline error:", e); }
     })();
 
-    // ── Pipeline 4: Image Guideline Images ──
+    // ── Pipeline 4: Image Guideline Images (using actual product images) ──
     const guidelineImagePipeline = (async () => {
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping guideline images"); return; }
       try {
@@ -795,18 +823,39 @@ serve(async (req) => {
           return;
         }
 
+        const productImgs: string[] = Array.isArray(productImageUrls) ? productImageUrls.filter((u: string) => typeof u === "string" && u.length > 0) : [];
+        const primaryProductImg = productImgs[0] || null;
+
         const urls: string[] = [];
-        // Generate images sequentially to avoid rate limits
         for (let i = 0; i < guidelineRules.length; i++) {
           const rule = guidelineRules[i];
-          const img = await generateImage(LOVABLE_API_KEY,
-            `Create a small product photography example image for this brand guideline rule: "${rule}".
+          let img: string | null = null;
+
+          if (primaryProductImg) {
+            // Use the actual product image — edit it to demonstrate the guideline
+            img = await editImageWithProduct(LOVABLE_API_KEY,
+              `Create a professional product photography example that demonstrates this brand guideline: "${rule}".
+Brand: "${name}", Category: ${cat}.
+Primary color: ${primary}, Secondary color: ${secondary}.
+IMPORTANT: Use the provided product image as the MAIN subject. Place it in a setting that demonstrates the guideline rule.
+Style: Premium, clean, minimal e-commerce product photography.
+The product in the provided image MUST be the focal point. Do NOT replace it with a different product.
+No text overlays.`,
+              primaryProductImg
+            );
+          }
+
+          // Fallback to plain generation if edit failed
+          if (!img) {
+            img = await generateImage(LOVABLE_API_KEY,
+              `Create a small product photography example image for this brand guideline rule: "${rule}".
 Brand: "${name}", Category: ${cat}.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Premium, clean, minimal e-commerce product photography.
 The image should visually demonstrate the guideline rule as an example photo.
 Make it look like a real professional product photograph. No text overlays.`
-          );
+            );
+          }
           urls.push(img || "");
           if (i < guidelineRules.length - 1) {
             await new Promise(r => setTimeout(r, 500));
@@ -817,28 +866,60 @@ Make it look like a real professional product photograph. No text overlays.`
       } catch (e) { console.error("Guideline image pipeline error:", e); }
     })();
 
-    // ── Pipeline 5: Social Media Images (Feed + Story) ──
+    // ── Pipeline 5: Social Media Images (Feed + Story) using actual product ──
     const socialMediaPipeline = (async () => {
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping social media images"); return; }
       try {
         console.log("Generating social media mockup images...");
-        const feedImg = await generateImage(LOVABLE_API_KEY,
-          `Create a premium Instagram feed post mockup for a brand called "${name}" in the ${cat} category.
+        const productImgs: string[] = Array.isArray(productImageUrls) ? productImageUrls.filter((u: string) => typeof u === "string" && u.length > 0) : [];
+        const primaryProductImg = productImgs[0] || null;
+
+        let feedImg: string | null = null;
+        if (primaryProductImg) {
+          feedImg = await editImageWithProduct(LOVABLE_API_KEY,
+            `Create a premium Instagram feed post (square 1:1 format) for a brand called "${name}" in the ${cat} category.
+Primary color: ${primary}, Secondary color: ${secondary}.
+IMPORTANT: Use the provided product image as the MAIN subject of the post. Feature it prominently.
+Style: Clean, premium, minimal e-commerce aesthetic.
+The product MUST be clearly visible and be the hero of the image. Do NOT replace it with a different product.
+Professional photography style, branded color palette. No text overlays, no UI chrome.`,
+            primaryProductImg
+          );
+        }
+        if (!feedImg) {
+          feedImg = await generateImage(LOVABLE_API_KEY,
+            `Create a premium Instagram feed post mockup for a brand called "${name}" in the ${cat} category.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Clean, premium, minimal e-commerce aesthetic.
 Show a product-focused square image that would look great as an Instagram feed post.
 Professional photography style, branded color palette. No text overlays, no UI chrome.`
-        );
+          );
+        }
 
         await new Promise(r => setTimeout(r, 500));
 
-        const storyImg = await generateImage(LOVABLE_API_KEY,
-          `Create a premium Instagram story mockup (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
+        let storyImg: string | null = null;
+        const storyProductImg = productImgs[1] || primaryProductImg;
+        if (storyProductImg) {
+          storyImg = await editImageWithProduct(LOVABLE_API_KEY,
+            `Create a premium Instagram story (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
+Primary color: ${primary}, Secondary color: ${secondary}.
+IMPORTANT: Use the provided product image as the MAIN subject. Feature it prominently in a vertical composition.
+Style: Clean, premium, minimal e-commerce aesthetic.
+The product MUST be clearly visible and be the hero of the image. Do NOT replace it with a different product.
+Professional photography style, branded color palette. No text overlays, no UI chrome.`,
+            storyProductImg
+          );
+        }
+        if (!storyImg) {
+          storyImg = await generateImage(LOVABLE_API_KEY,
+            `Create a premium Instagram story mockup (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Clean, premium, minimal e-commerce aesthetic.
 Show a vertical product or lifestyle image that would look great as an Instagram story.
 Professional photography style, branded color palette. No text overlays, no UI chrome.`
-        );
+          );
+        }
 
         enriched.socialMediaUrls = [feedImg || "", storyImg || ""];
         console.log("Social media images generated:", [feedImg, storyImg].filter(Boolean).length);

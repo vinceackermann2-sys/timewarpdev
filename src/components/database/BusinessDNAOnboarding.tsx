@@ -570,6 +570,10 @@ export function BusinessDNAOnboarding({
               productBenefits: (firstProduct.benefits || []).slice(0, 6).join("; "),
               buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
               websiteUrl: activeUrl || "",
+              productImageUrls: filteredProducts
+                .map((p: any) => p.images?.[0]?.url || p.images?.[0])
+                .filter((u: any) => typeof u === "string" && u.length > 0)
+                .slice(0, 3),
             });
             if (res.data?.success && refreshBrand) {
               await refreshBrand(finalBrandId);
