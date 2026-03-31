@@ -32,7 +32,7 @@ async function generateImage(apiKey: string, prompt: string): Promise<string | n
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
+        model: "google/gemini-3.1-flash-image-preview",
         messages: [{ role: "user", content: prompt }],
         modalities: ["image", "text"],
       }),
@@ -43,10 +43,38 @@ async function generateImage(apiKey: string, prompt: string): Promise<string | n
     if (!images?.length) return null;
     const imageUrl = images[0].image_url?.url;
     if (!imageUrl) return null;
-    // Return as data URI
     if (imageUrl.startsWith("data:")) return imageUrl;
     return `data:image/png;base64,${imageUrl}`;
   } catch (e) { console.warn("Image generation error:", e); return null; }
+}
+
+/* ── Helper: edit image with product via AI gateway ── */
+async function editImageWithProduct(apiKey: string, prompt: string, productImageUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3.1-flash-image-preview",
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: productImageUrl } },
+          ],
+        }],
+        modalities: ["image", "text"],
+      }),
+    });
+    if (!res.ok) { console.warn("Image edit failed:", res.status); return null; }
+    const d = await res.json();
+    const images = d.choices?.[0]?.message?.images;
+    if (!images?.length) return null;
+    const imageUrl = images[0].image_url?.url;
+    if (!imageUrl) return null;
+    if (imageUrl.startsWith("data:")) return imageUrl;
+    return `data:image/png;base64,${imageUrl}`;
+  } catch (e) { console.warn("Image edit error:", e); return null; }
 }
 
 /* ── Helper: parse JSON array from AI text ── */
