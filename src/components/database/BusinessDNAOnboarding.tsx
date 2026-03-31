@@ -660,7 +660,8 @@ export function BusinessDNAOnboarding({
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Add products to business DNA</h1>
+            <h1 className="text-[32px] font-bold text-[#1a1f36] mb-2">Add products to business DNA</h1>
+            <p className="text-[15px] text-[#697386] mb-6">Select up to 3 products to import</p>
 
             {/* URL bar with continue */}
             <div className="w-full max-w-[900px] bg-[#f4f3ee] border-[1.5px] border-[#3399ff] rounded-2xl p-2 shadow-sm mb-8 flex items-center justify-between">
@@ -691,8 +692,8 @@ export function BusinessDNAOnboarding({
 
             {/* Product Cards Grid */}
             {extractedProducts.length > 0 ? (
-              <div className="w-full max-w-[900px] grid grid-cols-1 md:grid-cols-3 gap-6">
-                {extractedProducts.slice(0, 6).map((p: any, i: number) => {
+              <div className="w-full max-w-[900px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {extractedProducts.slice(0, 10).map((p: any, i: number) => {
                   const isSelected = selectedProducts.includes(i);
                   const imgUrl = p.images?.[0] || null;
                   return (

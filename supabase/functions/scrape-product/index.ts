@@ -17,6 +17,26 @@ const htmlToText = (html: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] => {
+  const imgs: string[] = [];
+  const mdImgRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
+  let m;
+  while ((m = mdImgRegex.exec(markdown)) !== null) {
+    imgs.push(m[1]);
+  }
+  // Also try bare image URLs
+  const bareImgRegex = /(https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?)/gi;
+  while ((m = bareImgRegex.exec(markdown)) !== null) {
+    if (!imgs.includes(m[1])) imgs.push(m[1]);
+  }
+  return [...new Set(imgs)].filter(url => {
+    const lower = url.toLowerCase();
+    return !lower.includes('favicon') && !lower.includes('pixel') && !lower.includes('tracking') && 
+           !lower.includes('1x1') && !lower.includes('logo') && !lower.includes('icon') &&
+           !lower.includes('badge') && !lower.includes('flag') && !lower.includes('avatar');
+  }).slice(0, 8);
+};
+
 const extractTitleFromHtml = (html: string) => {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return match?.[1]?.replace(/\s+/g, " ").trim() || "";
@@ -501,7 +521,7 @@ serve(async (req) => {
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-2.5-flash-lite",
-                messages: [{ role: "user", content: `From these URLs, select ONLY the ones that are clearly DISTINCT individual PRODUCT or SERVICE pages. Each URL should represent a genuinely different product — do NOT include variant pages, color options, or size variations of the same product. Exclude category/collection pages, blog posts, about/legal pages.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return []. Maximum 3 URLs.\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
+                messages: [{ role: "user", content: `From these URLs, select ONLY the ones that are clearly DISTINCT individual PRODUCT or SERVICE pages. Each URL should represent a genuinely different product — do NOT include variant pages, color options, or size variations of the same product. Exclude category/collection pages, blog posts, about/legal pages.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return []. Maximum 10 URLs.\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
               }),
             })).text();
             try {
@@ -509,7 +529,7 @@ serve(async (req) => {
               const raw = pickData.choices?.[0]?.message?.content || "";
               const arrMatch = raw.match(/\[[\s\S]*?\]/);
               if (arrMatch) {
-                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, 3);
+                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, 10);
                 console.log("AI selected", selected.length, "product pages:", selected);
                 const scrapeResults = await Promise.allSettled(
                   selected.map(async (pUrl: string) => {
@@ -521,15 +541,16 @@ serve(async (req) => {
                       });
                       if (res.ok) {
                         const d = await res.json();
-                        return { url: pUrl, markdown: d.data?.markdown || d.markdown || "" };
+                        const md = d.data?.markdown || d.markdown || "";
+                        return { url: pUrl, markdown: md, extractedImages: extractImagesFromMarkdown(md, pUrl) };
                       }
                       const fb = await fetchPageFallback(pUrl);
-                      return { url: pUrl, markdown: fb.markdown };
+                      return { url: pUrl, markdown: fb.markdown, extractedImages: extractImagesFromMarkdown(fb.markdown, pUrl) };
                     } catch { return null; }
                   })
                 );
                 productPageContents = scrapeResults
-                  .filter((r): r is PromiseFulfilledResult<{ url: string; markdown: string }> => r.status === 'fulfilled' && !!r.value)
+                  .filter((r): r is PromiseFulfilledResult<{ url: string; markdown: string; extractedImages: string[] }> => r.status === 'fulfilled' && !!r.value)
                   .map(r => r.value);
                 console.log("Scraped", productPageContents.length, "product pages");
               }
@@ -644,7 +665,14 @@ serve(async (req) => {
           const product = normalizeProduct(result.product || result.products?.[0]);
           const audience = normalizeAudience(result.audience || result.audiences?.[0]);
 
-          if (product) sanitizeProductOffers(page.markdown, product);
+          if (product) {
+            sanitizeProductOffers(page.markdown, product);
+            // Merge extracted images from markdown into product images
+            const pageImages = (page as any).extractedImages || [];
+            const aiImages = ensureArr(product.images);
+            const allImages = [...new Set([...aiImages, ...pageImages])].slice(0, 8);
+            product.images = allImages;
+          }
 
           return { product, audience };
         } catch (e) {
@@ -694,6 +722,43 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════
+    // REMOVE BACKGROUNDS FROM PRODUCT IMAGES
+    // ══════════════════════════════════════════════
+    console.log("Removing backgrounds from product images...");
+    const removeBg = async (imageUrl: string): Promise<string> => {
+      try {
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image",
+            messages: [{ role: "user", content: [
+              { type: "text", text: "Remove the background from this product image. Keep ONLY the product itself on a clean pure white background. Output the result." },
+              { type: "image_url", image_url: { url: imageUrl } }
+            ] }],
+            modalities: ["image", "text"],
+          }),
+        });
+        if (res.ok) {
+          const d = await res.json();
+          const resultUrl = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          if (resultUrl) return resultUrl;
+        }
+      } catch (e) { console.warn("BG removal failed for", imageUrl.slice(0, 60), e); }
+      return imageUrl; // fallback to original
+    };
+
+    // Remove background from first image of each product (in parallel, max 10)
+    await Promise.allSettled(
+      products.slice(0, 10).map(async (product: any) => {
+        if (product.images?.length > 0 && typeof product.images[0] === 'string' && product.images[0].startsWith('http')) {
+          product.images[0] = await removeBg(product.images[0]);
+        }
+      })
+    );
+    console.log("Background removal complete");
+
+    // ══════════════════════════════════════════════
     // BUILD FINAL EXTRACTED OBJECT
     // ══════════════════════════════════════════════
     const extracted: any = {
@@ -722,8 +787,8 @@ serve(async (req) => {
       delete extracted.brand.visualIdentity.illustrationSvgs;
       extracted.brand.visualIdentity.moodboardUrls = [];
 
-      extracted.products = ensureArr(extracted.products).slice(0, 5);
-      extracted.audiences = ensureArr(extracted.audiences).slice(0, 5);
+      extracted.products = ensureArr(extracted.products).slice(0, 10);
+      extracted.audiences = ensureArr(extracted.audiences).slice(0, 10);
       extracted.brand.logoUrls = ensureArr(extracted.brand.logoUrls).slice(0, 10);
 
       console.log("Core mode — returning:", extracted.brand?.name, "products:", extracted.products?.length, "scannedUrls:", scannedUrls.length);
