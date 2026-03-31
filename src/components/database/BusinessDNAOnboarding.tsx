@@ -978,7 +978,7 @@ export function BusinessDNAOnboarding({
                             selectedImg === idx ? "border-[#3399ff]" : "border-transparent"
                           }`}
                         >
-                          <img src={imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                          <img src={bgRemovedImages[imgSrc] || imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
                           <div className="absolute top-3 right-3">
                             {selectedImg === idx ? (
                               <div className="w-6 h-6 rounded-full bg-[#3399ff] flex items-center justify-center">
