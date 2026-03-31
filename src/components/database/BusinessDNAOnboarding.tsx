@@ -84,7 +84,7 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
   const [urlInput, setUrlInput] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [step, setStep] = useState(initialUrl ? 1 : 0);
-  const [showMethodPicker, setShowMethodPicker] = useState(!initialUrl);
+  const [showMethodPicker, setShowMethodPicker] = useState(isAddBusiness && !initialUrl);
   const [agentName, setAgentName] = useState("");
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -677,8 +677,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
-              {/* Back button — top left, go back to method picker */}
-              {(
+              {/* Back button — top left */}
+              {isAddBusiness && (
                 <div className="w-full text-left mb-2">
                   <button
                     onClick={() => setShowMethodPicker(true)}
