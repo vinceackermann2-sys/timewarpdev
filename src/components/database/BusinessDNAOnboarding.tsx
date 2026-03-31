@@ -677,8 +677,8 @@ export function BusinessDNAOnboarding({ productUrl: initialUrl, onComplete, isAd
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4 }}
             >
-              {/* Back button — top left */}
-              {isAddBusiness && (
+              {/* Back button — top left, go back to method picker */}
+              {(
                 <div className="w-full text-left mb-2">
                   <button
                     onClick={() => setShowMethodPicker(true)}
