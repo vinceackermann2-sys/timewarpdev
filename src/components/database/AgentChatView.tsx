@@ -465,10 +465,52 @@ export function AgentChatView() {
     setIsSending(false);
   };
 
+  /* ── Helper: build multimodal message content from text that may contain image markers ── */
+  const buildMultimodalContent = (text: string): any => {
+    const IMAGE_MARKER = "__IMAGE_BASE64__";
+    if (!text.includes(IMAGE_MARKER)) return text;
+
+    // Split text around image markers and build multimodal content array
+    const parts: any[] = [];
+    let remaining = text;
+
+    while (remaining.includes(IMAGE_MARKER)) {
+      const markerStart = remaining.indexOf(IMAGE_MARKER);
+      const beforeMarker = remaining.slice(0, markerStart).trim();
+      if (beforeMarker) parts.push({ type: "text", text: beforeMarker });
+
+      const afterMarker = remaining.slice(markerStart + IMAGE_MARKER.length);
+      const mimeEnd = afterMarker.indexOf("__");
+      const mimeType = afterMarker.slice(0, mimeEnd);
+      const restAfterMime = afterMarker.slice(mimeEnd + 2);
+
+      // Find end of base64 (next marker or end of string)
+      const nextMarker = restAfterMime.indexOf(IMAGE_MARKER);
+      let base64: string;
+      if (nextMarker >= 0) {
+        base64 = restAfterMime.slice(0, nextMarker).trim();
+        remaining = restAfterMime.slice(nextMarker);
+      } else {
+        base64 = restAfterMime.trim();
+        remaining = "";
+      }
+
+      parts.push({
+        type: "image_url",
+        image_url: { url: `data:${mimeType};base64,${base64}` },
+      });
+    }
+
+    if (remaining.trim()) parts.push({ type: "text", text: remaining.trim() });
+    return parts.length === 1 && parts[0].type === "text" ? parts[0].text : parts;
+  };
+
   /* ── Agent chat (streaming) ── */
   const runAgentChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
-    chatHistory.push({ role: "user", content: userMsg.content });
+    // Build the last user message as multimodal if it contains images
+    const userContent = buildMultimodalContent(userMsg.content);
+    chatHistory.push({ role: "user", content: userContent });
 
     // Find the active brand's DB row ID to pass business DNA context
     const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
