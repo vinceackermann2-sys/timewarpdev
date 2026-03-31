@@ -665,7 +665,14 @@ serve(async (req) => {
           const product = normalizeProduct(result.product || result.products?.[0]);
           const audience = normalizeAudience(result.audience || result.audiences?.[0]);
 
-          if (product) sanitizeProductOffers(page.markdown, product);
+          if (product) {
+            sanitizeProductOffers(page.markdown, product);
+            // Merge extracted images from markdown into product images
+            const pageImages = (page as any).extractedImages || [];
+            const aiImages = ensureArr(product.images);
+            const allImages = [...new Set([...aiImages, ...pageImages])].slice(0, 8);
+            product.images = allImages;
+          }
 
           return { product, audience };
         } catch (e) {
