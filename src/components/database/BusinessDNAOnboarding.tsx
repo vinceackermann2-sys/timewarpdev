@@ -103,6 +103,9 @@ export function BusinessDNAOnboarding({
   const [currentProductIndex, setCurrentProductIndex] = useState(0);
   const [selectedImages, setSelectedImages] = useState<Record<number, number>>({});
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  // Background-removed images cache
+  const [bgRemovedImages, setBgRemovedImages] = useState<Record<string, string>>({});
+  const bgRemovalInFlight = useRef<Set<string>>(new Set());
 
   // Forging DNA tabs (step 4-5)
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
@@ -117,6 +120,9 @@ export function BusinessDNAOnboarding({
   const scannedUrlsRef = useRef<string[]>([]);
   const [socialProof, setSocialProof] = useState<{ quote: string; source: string }[]>([]);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  // Source carousel state for forging step
+  const [activeSourceIndex, setActiveSourceIndex] = useState(0);
+  const [verifiedSources, setVerifiedSources] = useState<Set<number>>(new Set());
 
   // Scrape / persistence
   const [discoveredProducts, setDiscoveredProducts] = useState<{ url: string; name: string; description: string; images: string[] }[]>([]);
