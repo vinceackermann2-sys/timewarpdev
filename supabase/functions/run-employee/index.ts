@@ -519,10 +519,32 @@ ${relevantContext}
 - Use ## and ### headings for structure
 - Use **bold** for key terms
 - Use bullet lists and numbered lists
-- Use tables for comparisons
+- Use tables for comparisons and data
 - Use > blockquotes for key insights
 - Add blank lines between sections
 - Keep paragraphs short (2-3 sentences max)
+
+## CHARTS & ANALYTICS
+When the user asks for graphs, charts, analytics, reports, or visualizations, you MUST output a chart using a fenced code block with language "chart". The content must be valid JSON with this structure:
+\`\`\`chart
+{
+  "type": "bar",
+  "title": "Monthly Revenue",
+  "xKey": "month",
+  "yKeys": ["revenue"],
+  "data": [
+    {"month": "Jan", "revenue": 1200},
+    {"month": "Feb", "revenue": 1800}
+  ]
+}
+\`\`\`
+
+Supported chart types: "bar", "line", "area", "pie"
+- For pie charts use: { "type": "pie", "title": "...", "nameKey": "name", "valueKey": "value", "data": [...] }
+- For bar/line/area use: { "type": "...", "title": "...", "xKey": "...", "yKeys": ["metric1", "metric2"], "data": [...] }
+- You can output multiple chart blocks in one response
+- Always include real data from the user's files or business context when available
+- Combine charts with text analysis and tables for comprehensive reports
 
 ## SAFETY GUARDRAILS
 ${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create accounts, or make payments for the user.` : "- Integrity guardrails are disabled by the user; still avoid unsafe operations."}
