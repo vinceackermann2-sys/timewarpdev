@@ -549,7 +549,7 @@ serve(async (req) => {
                   })
                 );
                 productPageContents = scrapeResults
-                  .filter((r): r is PromiseFulfilledResult<{ url: string; markdown: string }> => r.status === 'fulfilled' && !!r.value)
+                  .filter((r): r is PromiseFulfilledResult<{ url: string; markdown: string; extractedImages: string[] }> => r.status === 'fulfilled' && !!r.value)
                   .map(r => r.value);
                 console.log("Scraped", productPageContents.length, "product pages");
               }
