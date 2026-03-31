@@ -639,7 +639,7 @@ serve(async (req) => {
 
     // If no product pages were scraped, use the homepage as the single product page
     if (productPageContents.length === 0) {
-      productPageContents = [{ url: formattedUrl, markdown: homepageMarkdown }];
+      productPageContents = [{ url: formattedUrl, markdown: homepageMarkdown, extractedImages: homepageImages }];
     }
 
     // Build scannedUrls early (used by both discover and extract modes)
