@@ -906,15 +906,11 @@ export function BusinessDNAOnboarding({
                   const isSelected = selectedProducts.includes(i);
                   // Find first usable image (skip broken CDN transform stubs)
                   const isUsableImage = (u?: string) => !!u && /^https?:\/\//i.test(u) &&
-                    !/(beacon|atb|tracking|pixel|spacer|blank|transparent|placehold|placeholder)/i.test(u) &&
+                    u.length > 30 &&
+                    !/(beacon|atb|tracking|pixel|spacer|blank|transparent|placehold|placeholder|favicon|1x1|badge)/i.test(u) &&
                     !/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(u) &&
-                    (
-                      /\.(?:jpe?g|png|webp|avif|gif)(?:[?#]|$)/i.test(u) ||
-                      /\/image\/upload\/.+\/[^/?#]+\.(?:jpe?g|png|webp|avif)/i.test(u) ||
-                      /storeimages\.cdn-apple\.com\/.+\/as-images?/i.test(u) ||
-                      /cdn\.shopify\.com\/.*\.(jpg|png|webp)/i.test(u) ||
-                      /digitalassets.*tesla.*\.(?:jpg|png|webp)/i.test(u)
-                    );
+                    !u.endsWith('.svg') &&
+                    !u.includes('data:image');
                   const allImgUrls = (p.images || []).map((img: any) => typeof img === 'string' ? img : img?.url ?? img?.src ?? null);
                   const rawImgUrl = allImgUrls.find(isUsableImage) || null;
                   // Resolve relative/protocol-relative URLs
