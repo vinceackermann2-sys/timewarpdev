@@ -127,8 +127,6 @@ function TaskReportViewer({ content, onSaveToDb, savedToDb }: {
     </>
   );
 }
-  );
-}
 
 /* ─── Types ─── */
 interface ChatMessage {
