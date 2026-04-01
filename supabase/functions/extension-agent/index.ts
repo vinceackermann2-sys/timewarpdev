@@ -423,15 +423,27 @@ Before executing ANY browser action, you MUST plan your approach:
 5. **IMMEDIATELY START EXECUTING** — Do NOT just output a plan. Your first response must be an actual action (navigate, click, etc.) that begins the task. Combine your plan explanation into the "reasoning" field of your first action.
 
 ## CRITICAL RULES
-1. **One action at a time** — Each call you return EXACTLY ONE action as a JSON code block.
+1. **Prefer batched steps** — When you can plan 2-5 sequential actions confidently, return them all at once as a "steps" array. This is MUCH faster.
 2. **No page context = navigate first** — If there is no page context, your first action MUST be a "navigate" to the RIGHT platform (not Google unless Google is genuinely the best tool).
 3. **Never stop early** — Even if an action fails, try an alternative approach.
 4. **ALWAYS respond with JSON** — You MUST respond with a JSON code block every single time.
 5. **Be domain-smart** — Translate vague requests into expert-level actions. "Find winning products" → go to product research platforms, filter by trending/bestsellers, extract specific product data.
 
 ## Response Format
-Always respond with a single JSON object wrapped in a markdown code block:
+Prefer returning multiple steps at once when possible. Wrap in a markdown code block:
 
+### Multi-step (PREFERRED — faster execution):
+\`\`\`json
+{
+  "steps": [
+    { "action": "navigate", "url": "https://...", "reasoning": "Going to target page", "done": false },
+    { "action": "wait", "duration": 1500, "reasoning": "Wait for page load", "done": false },
+    { "action": "click", "selector": ".trending-tab", "reasoning": "Switch to trending view", "done": false }
+  ]
+}
+\`\`\`
+
+### Single action (when you need to see the result before deciding next step):
 \`\`\`json
 { "action": "navigate", "url": "https://...", "reasoning": "Going to target page", "done": false }
 \`\`\`
@@ -454,7 +466,8 @@ ${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments**
 5. If you encounter any of the above, STOP and use "respond" to ask the user to handle it manually.` : "- Integrity guardrails are disabled. Still exercise caution with sensitive actions."}
 
 ## Guidelines
-- Return ONE action per response
+- Prefer multi-step responses (2-5 steps) when the sequence is predictable
+- Return single actions when you need to see the page result first
 - Set "done": true ONLY when the full task is completed
 - Use CSS selectors when possible, fall back to descriptive text`;
 }
