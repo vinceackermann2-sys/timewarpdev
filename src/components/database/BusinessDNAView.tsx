@@ -417,7 +417,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
         </div>
       </div>
 
-      <div className="flex-1 w-full overflow-y-auto" style={{ contain: 'none' }}>
+      <div className="flex-1 w-full">
         <div className="max-w-5xl mx-auto px-6 pb-6">
         <AnimatePresence mode="wait">
           {!activeSegment ? (
