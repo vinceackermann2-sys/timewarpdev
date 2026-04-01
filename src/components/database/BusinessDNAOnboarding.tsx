@@ -916,7 +916,7 @@ export function BusinessDNAOnboarding({
                     try { resolvedImgUrl = new URL(rawImgUrl.startsWith('//') ? `https:${rawImgUrl}` : rawImgUrl, p.url || activeUrl).toString(); } catch { resolvedImgUrl = null; }
                   }
                   const imgUrl = resolvedImgUrl ? (bgRemovedImages[resolvedImgUrl] || resolvedImgUrl) : null;
-                  if (i === 0) console.log("Product card render:", { name: p.name, rawImg, rawImgUrl, resolvedImgUrl, imgUrl, allImages: p.images?.slice(0, 3) });
+                  if (i === 0) console.log("Product card render:", { name: p.name, rawImgUrl, resolvedImgUrl, imgUrl, allImages: p.images?.slice(0, 3) });
                   return (
                     <div
                       key={i}
