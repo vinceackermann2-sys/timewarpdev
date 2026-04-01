@@ -162,11 +162,66 @@ export function AgentChatView() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  /* ── Chat history sidebar state ── */
+  const [showHistory, setShowHistory] = useState(false);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const hasMessages = messages.length > 0;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  /* ── Auto-save chat to DB (debounced) ── */
+  const saveChatSession = useCallback(async (msgs: ChatMessage[], chatId: string | null) => {
+    if (!user || msgs.length === 0) return;
+    const nonStreaming = msgs.filter(m => !m.isStreaming);
+    if (nonStreaming.length === 0) return;
+
+    const title = nonStreaming.find(m => m.role === "user")?.content?.slice(0, 60) || "New Chat";
+    const payload = {
+      user_id: user.id,
+      workspace_id: activeWorkspaceId || null,
+      agent_name: selectedAgent || null,
+      title,
+      messages: nonStreaming,
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      if (chatId) {
+        await (supabase as any).from("agent_chat_sessions")
+          .update({ messages: nonStreaming, updated_at: new Date().toISOString(), title })
+          .eq("id", chatId);
+      } else {
+        const { data } = await (supabase as any).from("agent_chat_sessions")
+          .insert(payload)
+          .select("id")
+          .maybeSingle();
+        if (data?.id) setActiveChatId(data.id);
+      }
+    } catch (e) { console.warn("Failed to save chat session:", e); }
+  }, [user, activeWorkspaceId, selectedAgent]);
+
+  // Debounced save when messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => saveChatSession(messages, activeChatId), 2000);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [messages, activeChatId, saveChatSession]);
+
+  const handleSelectChat = (session: ChatSession) => {
+    setActiveChatId(session.id);
+    setMessages(session.messages as ChatMessage[]);
+    if (session.agent_name) setSelectedAgent(session.agent_name);
+  };
+
+  const handleNewChat = () => {
+    setActiveChatId(null);
+    setMessages([]);
+  };
 
   /* ── Integration connection state ── */
   const [isProviderConnected, setIsProviderConnected] = useState(false);
