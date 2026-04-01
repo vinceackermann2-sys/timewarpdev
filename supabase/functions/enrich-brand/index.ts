@@ -376,16 +376,75 @@ async function scrapePinterestSearchPageForImages(query: string, firecrawlKey: s
 async function scrapePinterestPageForImagesWithBrowserless(pinUrl: string, browserlessKey: string): Promise<string[]> {
   if (!browserlessKey) return [];
 
-  const scrapeRes = await fetch(`https://production-sfo.browserless.io/content?token=${encodeURIComponent(browserlessKey)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url: pinUrl }),
-  });
+  // Use /scrape with JS execution + scroll to trigger lazy-loading
+  const scrollScript = `
+    async () => {
+      await new Promise(r => setTimeout(r, 2000));
+      for (let i = 0; i < 3; i++) {
+        window.scrollBy(0, window.innerHeight);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      window.scrollTo(0, 0);
+      await new Promise(r => setTimeout(r, 500));
+    }
+  `;
 
-  if (!scrapeRes.ok) return [];
+  try {
+    const scrapeRes = await fetch(`https://production-sfo.browserless.io/scrape?token=${encodeURIComponent(browserlessKey)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: pinUrl,
+        waitForSelector: { selector: "img[src*='pinimg.com']", timeout: 10000 },
+        elements: [{ selector: "img[src*='pinimg.com']" }],
+        gotoOptions: { waitUntil: "networkidle2", timeout: 15000 },
+      }),
+    });
 
-  const html = await scrapeRes.text();
-  return extractPinterestUrls(html);
+    if (scrapeRes.ok) {
+      const scrapeData = await scrapeRes.json();
+      // /scrape returns elements with attributes
+      const urls: string[] = [];
+      const dataItems = scrapeData.data || [];
+      for (const item of dataItems) {
+        const results = item.results || [];
+        for (const result of results) {
+          const attrs = result.attributes || [];
+          for (const attr of attrs) {
+            if (attr.name === "src" || attr.name === "srcset") {
+              const val = String(attr.value || "");
+              const matches = val.match(/https?:\/\/i\.pinimg\.com\/[^\s,'"]+/gi) || [];
+              for (const m of matches) urls.push(m);
+            }
+          }
+        }
+      }
+      if (urls.length > 0) {
+        return extractPinterestUrls(urls.join("\n"));
+      }
+    }
+  } catch (e) {
+    console.warn("Browserless /scrape failed, trying /content fallback:", e);
+  }
+
+  // Fallback to /content
+  try {
+    const contentRes = await fetch(`https://production-sfo.browserless.io/content?token=${encodeURIComponent(browserlessKey)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: pinUrl,
+        gotoOptions: { waitUntil: "networkidle2", timeout: 15000 },
+      }),
+    });
+
+    if (contentRes.ok) {
+      const html = await contentRes.text();
+      return extractPinterestUrls(html);
+    }
+  } catch { /* exhausted */ }
+
+  return [];
 }
 
 function mapConceptToLucideIconName(concept: string, index: number): string {
