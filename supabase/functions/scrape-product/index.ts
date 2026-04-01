@@ -443,7 +443,7 @@ serve(async (req) => {
 
   // Race the entire handler against a 50s timeout so we return a proper
   // CORS-enabled error instead of letting the gateway send a bare 504.
-  const INTERNAL_TIMEOUT_MS = 50_000;
+  const INTERNAL_TIMEOUT_MS = 120_000;
 
   const mainLogic = async (): Promise<Response> => {
   try {
@@ -590,7 +590,8 @@ serve(async (req) => {
               const raw = pickData.choices?.[0]?.message?.content || "";
               const arrMatch = raw.match(/\[[\s\S]*?\]/);
               if (arrMatch) {
-                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, 10);
+                const maxPages = isCoreMode ? 3 : 10;
+                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, maxPages);
                 console.log("AI selected", selected.length, "product pages:", selected);
                 const scrapeResults = await Promise.allSettled(
                   selected.map(async (pUrl: string) => {
@@ -893,42 +894,7 @@ serve(async (req) => {
       );
     }
 
-    // ══════════════════════════════════════════════
-    // REMOVE BACKGROUNDS FROM PRODUCT IMAGES
-    // ══════════════════════════════════════════════
-    console.log("Removing backgrounds from product images...");
-    const removeBg = async (imageUrl: string): Promise<string> => {
-      try {
-        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
-            messages: [{ role: "user", content: [
-              { type: "text", text: "Remove the background from this product image. Keep ONLY the product itself on a clean pure white background. Output the result." },
-              { type: "image_url", image_url: { url: imageUrl } }
-            ] }],
-            modalities: ["image", "text"],
-          }),
-        });
-        if (res.ok) {
-          const d = await res.json();
-          const resultUrl = d.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (resultUrl) return resultUrl;
-        }
-      } catch (e) { console.warn("BG removal failed for", imageUrl.slice(0, 60), e); }
-      return imageUrl; // fallback to original
-    };
-
-    // Remove background from first image of each product (in parallel, max 10)
-    await Promise.allSettled(
-      products.slice(0, 10).map(async (product: any) => {
-        if (product.images?.length > 0 && typeof product.images[0] === 'string' && product.images[0].startsWith('http')) {
-          product.images[0] = await removeBg(product.images[0]);
-        }
-      })
-    );
-    console.log("Background removal complete");
+    // BG removal skipped in core mode — available as manual action in the UI
 
     // ══════════════════════════════════════════════
     // BUILD FINAL EXTRACTED OBJECT
