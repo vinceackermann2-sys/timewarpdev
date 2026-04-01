@@ -874,7 +874,8 @@ export function AgentChatView() {
         const timeStr = formatTime(stepTime);
 
         stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
-        taskSteps.push({ action: action.action, label: stepLabel, status: "running" });
+        const stepDetail = [action.reasoning, action.url, action.selector].filter(Boolean).join(" · ");
+        taskSteps.push({ action: action.action, label: stepLabel, status: "running", detail: stepDetail || undefined });
 
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
 
