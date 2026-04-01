@@ -20,9 +20,10 @@ const connectors: ConnectorDef[] = [
 interface ConnectorGridProps {
   onConnect: (name: "Microsoft") => void;
   onModeChange: (mode: "research" | "action") => void;
+  brandId?: string;
 }
 
-export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
+export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGridProps) {
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
   const [showSyncPrefs, setShowSyncPrefs] = useState(false);
