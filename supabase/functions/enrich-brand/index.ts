@@ -584,28 +584,32 @@ No explanation.`,
     }
   }
 
-  // Generate 6 diverse queries using AI so each returns a unique image
+  // Generate SHORT, natural Pinterest queries — no "premium minimal ecommerce" suffix
+  // Pinterest works best with 2-4 word natural queries
   let queries: string[] = [];
   if (aiApiKey) {
     try {
       const queriesRaw = await callAI(aiApiKey,
-        `Generate exactly 6 different Pinterest search queries for a brand moodboard.
+        `Generate exactly 6 different Pinterest search queries to build a brand moodboard.
 
 Brand: "${brandName}", Category: "${category}"
-Trust object (a physical brand/product the audience trusts): "${trustObject}"
+Trust object: "${trustObject}"
 Feeling + color: "${feelingAndColor}"
 
-Each query MUST follow this formula: (trust object) + (feeling/emotion + color) + "premium minimal ecommerce"
+CRITICAL RULES:
+- Each query must be 2-4 words MAXIMUM (Pinterest works best with short queries)
+- Do NOT add "premium", "minimal", "ecommerce", "branding", or "design" — these reduce results
+- Use natural terms people would actually search on Pinterest
+- Each query should target a DIFFERENT visual angle:
+  1. The trust object as a product photo
+  2. A lifestyle/mood scene
+  3. A color palette or texture
+  4. Packaging or branding close-up
+  5. Interior/space inspiration
+  6. Fashion or material texture
 
-Rules:
-- Each query should target a DIFFERENT visual angle (e.g. product photography, lifestyle, packaging, interior, texture, typography)
-- Keep queries short (5-8 words max)
-- Include the trust object or a close alternative in each
-- Include a color or mood word in each
-- Always end with "premium minimal ecommerce"
-
-Example for Tesla:
-["Tesla futuristic white premium minimal ecommerce", "iPhone sleek dark gradients premium minimal ecommerce", "Tesla interior minimalist grey premium minimal ecommerce", "Rivian outdoor adventure green premium minimal ecommerce", "Tesla packaging clean black premium minimal ecommerce", "Apple product photography warm premium minimal ecommerce"]
+Example for a luxury tech brand:
+["iPhone flat lay", "minimalist workspace", "dark gradient texture", "black box packaging", "modern office interior", "leather tech accessories"]
 
 Return ONLY a JSON array of 6 strings. No explanation.`,
         "google/gemini-2.5-flash-lite"
@@ -618,14 +622,13 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
 
   // Fallback if AI didn't return 6 queries
   if (queries.length < 6) {
-    const feelingKeywords = keywordizeMoodboardPhrase(feelingAndColor, 3);
     const base = [
-      `${trustObject} ${feelingKeywords} premium minimal ecommerce`,
-      `${trustObject} product photography premium minimal ecommerce`,
-      `${trustObject} lifestyle ${feelingKeywords} premium minimal ecommerce`,
-      `${trustObject} packaging clean premium minimal ecommerce`,
-      `${trustObject} interior ${feelingKeywords} premium minimal ecommerce`,
-      `${trustObject} texture ${feelingKeywords} premium minimal ecommerce`,
+      `${trustObject} aesthetic`,
+      `${trustObject} product photography`,
+      `${category} moodboard`,
+      `${category} color palette`,
+      `${category} packaging`,
+      `${category} interior design`,
     ].map(normalizeMoodboardQuery);
     while (queries.length < 6 && base.length > 0) {
       const q = base.shift()!;
@@ -646,124 +649,153 @@ Return ONLY a JSON array of 6 strings. No explanation.`,
     return normalized;
   };
 
-  // Run all 6 queries in parallel, collect ALL valid unique images from each
-  const perQueryResults = await Promise.allSettled(
-    queries.map(async (query, qi): Promise<string[]> => {
-      const shortQuery = query
-        .replace(/premium\s+minimal\s+ecommerce/gi, "")
-        .replace(/\s+/g, " ")
-        .trim();
-      const found: string[] = [];
+  // Helper to scrape a single query with all strategies
+  async function scrapeQuery(query: string, qi: number): Promise<string[]> {
+    const found: string[] = [];
 
-      // Strategy 1: Direct Firecrawl scrape of Pinterest search page
+    // Strategy 1: Direct Firecrawl scrape of Pinterest search page
+    try {
+      const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}`;
+      console.log(`Query ${qi + 1}: scraping Pinterest search: "${query}"`);
+      const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: pinterestUrl,
+          formats: ["rawHtml", "html"],
+          waitFor: 8000,
+          onlyMainContent: false,
+        }),
+      });
+
+      if (scrapeRes.ok) {
+        const scrapeData = await scrapeRes.json();
+        const html = [
+          scrapeData.data?.rawHtml,
+          scrapeData.data?.html,
+          scrapeData.rawHtml,
+          scrapeData.html,
+          JSON.stringify(scrapeData.data || scrapeData),
+        ].filter(Boolean).join("\n");
+        const urls = extractPinterestUrls(html);
+        if (urls.length > 0) {
+          console.log(`Query ${qi + 1}: Firecrawl scrape found ${urls.length} pinimg URLs`);
+          for (const u of urls) { const n = addUnique(u); if (n) found.push(n); }
+        }
+      }
+    } catch (e) { console.warn(`Query ${qi + 1} Firecrawl scrape failed:`, e); }
+
+    // Strategy 2: Browserless direct Pinterest scrape (with JS execution + scroll)
+    if (found.length === 0) {
       try {
-        const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(shortQuery)}`;
-        console.log(`Query ${qi + 1}: scraping Pinterest search: "${shortQuery}"`);
-        const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        const bUrls = await scrapePinterestPageForImagesWithBrowserless(
+          `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}&rs=typed`,
+          browserlessKey
+        );
+        if (bUrls.length > 0) {
+          console.log(`Query ${qi + 1}: browserless found ${bUrls.length} URLs`);
+          for (const u of bUrls) { const n = addUnique(u); if (n) found.push(n); }
+        }
+      } catch { /* continue */ }
+    }
+
+    // Strategy 3: Firecrawl search API as fallback
+    if (found.length === 0) {
+      try {
+        const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
           method: "POST",
           headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: pinterestUrl,
-            formats: ["rawHtml", "html"],
-            waitFor: 7000,
-            onlyMainContent: false,
-          }),
+          body: JSON.stringify({ query: `${query} site:pinterest.com`, limit: 5 }),
         });
 
-        if (scrapeRes.ok) {
-          const scrapeData = await scrapeRes.json();
-          const html = [
-            scrapeData.data?.rawHtml,
-            scrapeData.data?.html,
-            scrapeData.rawHtml,
-            scrapeData.html,
-            JSON.stringify(scrapeData.data || scrapeData),
-          ].filter(Boolean).join("\n");
-          const urls = extractPinterestUrls(html);
-          if (urls.length > 0) {
-            console.log(`Query ${qi + 1}: Firecrawl scrape found ${urls.length} pinimg URLs`);
-            for (const u of urls) { const n = addUnique(u); if (n) found.push(n); }
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          const pinUrls = extractPinterestUrls(JSON.stringify(searchData));
+          if (pinUrls.length > 0) {
+            console.log(`Query ${qi + 1}: search API found pinimg URLs`);
+            for (const u of pinUrls) { const n = addUnique(u); if (n) found.push(n); }
+          }
+
+          if (found.length === 0) {
+            const pageUrls = extractPinterestPageUrls(searchData.data || searchData).slice(0, 2);
+            for (const pageUrl of pageUrls) {
+              try {
+                const pinPageUrls = await scrapePinterestPageForImages(pageUrl, firecrawlKey);
+                for (const u of pinPageUrls) { const n = addUnique(u); if (n) found.push(n); }
+                if (found.length > 0) break;
+              } catch { /* continue */ }
+            }
           }
         }
-      } catch (e) { console.warn(`Query ${qi + 1} Firecrawl scrape failed:`, e); }
+      } catch { /* continue */ }
+    }
 
-      // Strategy 2: Browserless direct Pinterest scrape
-      if (found.length === 0) {
-        try {
-          const bUrls = await scrapePinterestPageForImagesWithBrowserless(
-            `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(shortQuery)}&rs=typed`,
-            browserlessKey
-          );
-          if (bUrls.length > 0) {
-            console.log(`Query ${qi + 1}: browserless found ${bUrls.length} URLs`);
-            for (const u of bUrls) { const n = addUnique(u); if (n) found.push(n); }
-          }
-        } catch { /* continue */ }
+    if (found.length === 0) console.log(`Query ${qi + 1}: no images found for "${query}"`);
+    else console.log(`Query ${qi + 1}: collected ${found.length} unique images`);
+    return found;
+  }
+
+  // SERIALIZE queries in batches of 2 with delays to avoid Pinterest rate-limiting
+  // Batch 1: queries 0,1 in parallel → delay → Batch 2: queries 2,3 → delay → Batch 3: queries 4,5
+  const allFoundImages: string[][] = [];
+  const totalNeeded = 6;
+
+  for (let batch = 0; batch < 3; batch++) {
+    const batchStart = batch * 2;
+    const batchQueries = queries.slice(batchStart, batchStart + 2);
+    if (batchQueries.length === 0) break;
+
+    // Check if we already have enough images
+    const currentTotal = allFoundImages.reduce((sum, arr) => sum + arr.length, 0);
+    if (currentTotal >= totalNeeded) {
+      console.log(`Already have ${currentTotal} images, skipping batch ${batch + 1}`);
+      break;
+    }
+
+    // Run batch of 2 in parallel
+    const batchResults = await Promise.allSettled(
+      batchQueries.map((q, i) => scrapeQuery(q, batchStart + i))
+    );
+
+    for (const result of batchResults) {
+      allFoundImages.push(result.status === "fulfilled" ? result.value : []);
+    }
+
+    // Delay between batches to avoid rate-limiting (skip after last batch)
+    if (batch < 2) {
+      const currentImages = allFoundImages.reduce((sum, arr) => sum + arr.length, 0);
+      if (currentImages < totalNeeded) {
+        console.log(`Batch ${batch + 1} complete (${currentImages} images so far), waiting before next batch...`);
+        await new Promise(r => setTimeout(r, 3000));
       }
-
-      // Strategy 3: Firecrawl search API as fallback
-      if (found.length === 0) {
-        try {
-          const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ query: `${shortQuery} site:pinterest.com`, limit: 5 }),
-          });
-
-          if (searchRes.ok) {
-            const searchData = await searchRes.json();
-            const pinUrls = extractPinterestUrls(JSON.stringify(searchData));
-            if (pinUrls.length > 0) {
-              console.log(`Query ${qi + 1}: search API found pinimg URLs`);
-              for (const u of pinUrls) { const n = addUnique(u); if (n) found.push(n); }
-            }
-
-            if (found.length === 0) {
-              const pageUrls = extractPinterestPageUrls(searchData.data || searchData).slice(0, 3);
-              for (const pageUrl of pageUrls) {
-                try {
-                  const pinPageUrls = await scrapePinterestPageForImages(pageUrl, firecrawlKey);
-                  for (const u of pinPageUrls) { const n = addUnique(u); if (n) found.push(n); }
-                  if (found.length > 0) break;
-                } catch { /* continue */ }
-              }
-            }
-          }
-        } catch { /* continue */ }
-      }
-
-      if (found.length === 0) console.log(`Query ${qi + 1}: no images found for "${shortQuery}"`);
-      else console.log(`Query ${qi + 1}: collected ${found.length} unique images`);
-      return found;
-    })
-  );
+    }
+  }
 
   // Phase 1: Take exactly 1 image from each query (guarantees diversity)
-  const perQuery: string[][] = perQueryResults.map(r => r.status === "fulfilled" ? r.value : []);
   const allUrls: string[] = [];
-  const usedPerQuery: number[] = perQuery.map(() => 0);
+  const usedPerQuery: number[] = allFoundImages.map(() => 0);
 
   // First pass: 1 image per query
-  for (let qi = 0; qi < perQuery.length && allUrls.length < 6; qi++) {
-    if (perQuery[qi].length > 0) {
-      allUrls.push(perQuery[qi][0]);
+  for (let qi = 0; qi < allFoundImages.length && allUrls.length < 6; qi++) {
+    if (allFoundImages[qi].length > 0) {
+      allUrls.push(allFoundImages[qi][0]);
       usedPerQuery[qi] = 1;
     }
   }
 
   // Second pass: backfill remaining slots from queries that had extra images
   if (allUrls.length < 6) {
-    for (let qi = 0; qi < perQuery.length && allUrls.length < 6; qi++) {
-      for (let i = usedPerQuery[qi]; i < perQuery[qi].length && allUrls.length < 6; i++) {
-        if (!allUrls.includes(perQuery[qi][i])) {
-          allUrls.push(perQuery[qi][i]);
+    for (let qi = 0; qi < allFoundImages.length && allUrls.length < 6; qi++) {
+      for (let i = usedPerQuery[qi]; i < allFoundImages[qi].length && allUrls.length < 6; i++) {
+        if (!allUrls.includes(allFoundImages[qi][i])) {
+          allUrls.push(allFoundImages[qi][i]);
         }
       }
     }
   }
 
-  const searchUrls = queries.map(q => `pinterest.com/search/pins/?q=${encodeURIComponent(q.replace(/premium\s+minimal\s+ecommerce/gi, "").replace(/\s+/g, " ").trim())}`);
-  console.log(`Moodboard total unique images: ${allUrls.length} (from ${perQuery.filter(q => q.length > 0).length}/6 queries)`);
+  const searchUrls = queries.map(q => `pinterest.com/search/pins/?q=${encodeURIComponent(q)}`);
+  console.log(`Moodboard total unique images: ${allUrls.length} (from ${allFoundImages.filter(q => q.length > 0).length}/${queries.length} queries)`);
   return { urls: allUrls.slice(0, 6), searchUrls };
 }
 
