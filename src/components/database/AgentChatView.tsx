@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2, Sparkles, ExternalLink, Download
+  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose
 } from "lucide-react";
+import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { InlineChatChart } from "./InlineChatChart";
 import { SettingsView } from "@/components/database/SettingsView";
