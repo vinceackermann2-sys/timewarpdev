@@ -1435,7 +1435,7 @@ export function BusinessDNAOnboarding({
                   className="flex items-center gap-2 text-[14px] font-medium text-[#697386] hover:text-[#1a1f36] transition-colors w-full"
                 >
                   <Globe className="w-4 h-4" />
-                  <span>{verifiedSources.size} of {urls.length} sources verified</span>
+                  <span>{Math.min(verifiedSources.size, urls.length)} of {urls.length} sources verified</span>
                   <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${sourcesOpen ? "rotate-180" : ""}`} />
                 </button>
                 {sourcesOpen && (
