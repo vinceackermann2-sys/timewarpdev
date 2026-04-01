@@ -837,8 +837,8 @@ Rules:
         // Just store the primary color as patternSvg marker so the UI knows to render it
         enriched.patternSvg = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="${primary}"/></svg>`;
 
-        if (illustrationIconNames.length > 0 || patternSvg) {
-          console.log("Illustrations enriched:", illustrationIconNames.length + (patternSvg ? 1 : 0));
+        if (illustrationIconNames.length > 0 || enriched.patternSvg) {
+          console.log("Illustrations enriched:", illustrationIconNames.length + (enriched.patternSvg ? 1 : 0));
         }
       } catch (e) { console.error("Illustration pipeline error:", e); }
     })();
