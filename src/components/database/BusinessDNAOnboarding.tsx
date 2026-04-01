@@ -868,8 +868,14 @@ export function BusinessDNAOnboarding({
               <div className="w-full max-w-[900px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {extractedProducts.slice(0, 10).map((p: any, i: number) => {
                   const isSelected = selectedProducts.includes(i);
-                  const rawImgUrl = p.images?.[0] || null;
-                  const imgUrl = rawImgUrl ? (bgRemovedImages[rawImgUrl] || rawImgUrl) : null;
+                  const rawImg = p.images?.[0];
+                  const rawImgUrl = typeof rawImg === 'string' ? rawImg : rawImg?.url ?? rawImg?.src ?? null;
+                  // Resolve relative/protocol-relative URLs
+                  let resolvedImgUrl = rawImgUrl;
+                  if (rawImgUrl && !rawImgUrl.startsWith('http') && !rawImgUrl.startsWith('data:')) {
+                    try { resolvedImgUrl = new URL(rawImgUrl.startsWith('//') ? `https:${rawImgUrl}` : rawImgUrl, p.url || activeUrl).toString(); } catch { resolvedImgUrl = null; }
+                  }
+                  const imgUrl = resolvedImgUrl ? (bgRemovedImages[resolvedImgUrl] || resolvedImgUrl) : null;
                   return (
                     <div
                       key={i}
