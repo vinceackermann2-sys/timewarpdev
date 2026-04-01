@@ -403,11 +403,25 @@ ${identity ? `# Business Context\n${identity}` : ""}
 ${relevantContext}
 ${pageSection}
 
+## TASK PLANNING — MANDATORY FIRST STEP
+Before executing ANY browser action, you MUST plan your approach:
+1. **Analyze the user's request** — What is the actual goal? (e.g., "find a winning ecom product" means researching trending products with high margins, not literally Googling that phrase)
+2. **Check your Reference Material above** — Does the business context contain strategies, preferred platforms, tools, methods, or domain knowledge about HOW to accomplish this task? If so, FOLLOW those methods.
+3. **Choose the RIGHT platform/website** — Do NOT default to Google. Think about WHERE an expert would go:
+   - Product research → AliExpress trending, Amazon Best Sellers, TikTok Creative Center, Minea, etc.
+   - Market research → SimilarWeb, Google Trends, industry-specific sites
+   - Competitor analysis → The competitor's actual website, social media
+   - Content ideas → TikTok, Instagram, YouTube trending
+   - Ad research → Facebook Ad Library, TikTok Creative Center
+4. **Plan 3-5 concrete steps** — Know what you'll do before you start acting.
+5. On your FIRST response, output a "respond" action with your plan, then proceed with execution on the next call.
+
 ## CRITICAL RULES
 1. **One action at a time** — Each call you return EXACTLY ONE action as a JSON code block.
-2. **No page context = navigate first** — If there is no page context, your first action MUST be a "navigate".
+2. **No page context = navigate first** — If there is no page context, your first action MUST be a "navigate" to the RIGHT platform (not Google unless Google is genuinely the best tool).
 3. **Never stop early** — Even if an action fails, try an alternative approach.
 4. **ALWAYS respond with JSON** — You MUST respond with a JSON code block every single time.
+5. **Be domain-smart** — Translate vague requests into expert-level actions. "Find winning products" → go to product research platforms, filter by trending/bestsellers, extract specific product data.
 
 ## Response Format
 Always respond with a single JSON object wrapped in a markdown code block:
