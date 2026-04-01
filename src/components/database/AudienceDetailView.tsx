@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AudiencePageSidebar } from "@/components/database/AudiencePageSidebar";
-import { FixedSidebar } from "@/components/database/FixedSidebar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
@@ -264,7 +263,7 @@ export function AudienceDetailView({
   }
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-border/50">
         <div className="flex items-center gap-3">
@@ -282,7 +281,7 @@ export function AudienceDetailView({
         </div>
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex gap-8">
             <div className="flex-1 min-w-0 space-y-8">
@@ -610,15 +609,14 @@ export function AudienceDetailView({
 
             {/* Right sidebar */}
             <div className="hidden lg:block w-52 shrink-0">
-              <FixedSidebar>
-                <AudiencePageSidebar
-                  activeSection={activeSidebarSection}
-                  onSectionClick={(id) => {
-                    setActiveSidebarSection(id);
-                    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                />
-              </FixedSidebar>
+              <AudiencePageSidebar
+                itemName={audience.name}
+                activeSection={activeSidebarSection}
+                onSectionClick={(id) => {
+                  setActiveSidebarSection(id);
+                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              />
             </div>
           </div>
         </div>

@@ -262,7 +262,7 @@ const Database = () => {
           />
           <SidebarInset className="flex flex-col flex-1">
             <MobileHeader />
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-hidden">
               {currentView === "dataconversion" && user && (
                 <RestrictedFeatureGate
                   featureName="Data Conversion"

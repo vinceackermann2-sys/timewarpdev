@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface TocItem {
@@ -35,38 +35,17 @@ const ITEM_HEIGHT = 32;
 const TOP_PAD = 12;
 
 export function ProductPageSidebar({
-  activeSection: externalActiveSection,
+  itemName,
+  activeSection,
   onSectionClick,
 }: {
+  itemName?: string;
   activeSection?: string;
   onSectionClick?: (id: string) => void;
 }) {
+  const navRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLAnchorElement>(null);
-  const [scrollActiveSection, setScrollActiveSection] = useState<string | null>(null);
-  
-  const activeSection = scrollActiveSection || externalActiveSection;
   const [indicatorTop, setIndicatorTop] = useState(TOP_PAD);
-
-  // Scroll-spy: track which section is visible
-  useEffect(() => {
-    const ids = PRODUCT_TOC_ITEMS.map(s => s.id);
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter(e => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible) {
-          setScrollActiveSection(visible.target.id);
-        }
-      },
-      { root: null, rootMargin: "-20% 0px -55% 0px", threshold: [0.1, 0.35, 0.6] }
-    );
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     const idx = PRODUCT_TOC_ITEMS.findIndex((i) => i.id === activeSection);
@@ -75,10 +54,20 @@ export function ProductPageSidebar({
     }
   }, [activeSection]);
 
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeSection]);
+
   const totalHeight = PRODUCT_TOC_ITEMS.length * ITEM_HEIGHT + TOP_PAD * 2;
 
   return (
-    <nav>
+    <nav
+      ref={navRef}
+      className="sticky top-6"
+    >
+      {itemName && (
+        <p className="text-[11px] text-muted-foreground/70 mb-2 truncate">Business DNA › {itemName}</p>
+      )}
       <h3 className="text-sm font-semibold text-foreground mb-3">On This Page</h3>
       <div className="relative" style={{ height: totalHeight }}>
         {/* Background vertical line */}
@@ -95,7 +84,7 @@ export function ProductPageSidebar({
 
         {/* Items */}
         <div className="relative">
-          {PRODUCT_TOC_ITEMS.map((item) => {
+          {PRODUCT_TOC_ITEMS.map((item, index) => {
             const isActive = activeSection === item.id;
             const paddingLeft = item.level === 1 ? 14 : 26;
 
@@ -106,7 +95,6 @@ export function ProductPageSidebar({
                 href={`#${item.id}`}
                 onClick={(e) => {
                   e.preventDefault();
-                  setScrollActiveSection(null); // let manual click take over briefly
                   onSectionClick?.(item.id);
                 }}
                 data-active={isActive}

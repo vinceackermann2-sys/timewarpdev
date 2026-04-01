@@ -35,46 +35,33 @@ const ITEM_HEIGHT = 32;
 const TOP_PAD = 12;
 
 export function AudiencePageSidebar({
-  activeSection: externalActiveSection,
+  itemName,
+  activeSection,
   onSectionClick,
 }: {
+  itemName?: string;
   activeSection?: string;
   onSectionClick?: (id: string) => void;
 }) {
   const activeRef = useRef<HTMLAnchorElement>(null);
-  const [scrollActiveSection, setScrollActiveSection] = useState<string | null>(null);
-
-  const activeSection = scrollActiveSection || externalActiveSection;
   const [indicatorTop, setIndicatorTop] = useState(TOP_PAD);
-
-  // Scroll-spy
-  useEffect(() => {
-    const ids = AUDIENCE_TOC_ITEMS.map(s => s.id);
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter(e => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible) setScrollActiveSection(visible.target.id);
-      },
-      { root: null, rootMargin: "-20% 0px -55% 0px", threshold: [0.1, 0.35, 0.6] }
-    );
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     const idx = AUDIENCE_TOC_ITEMS.findIndex((i) => i.id === activeSection);
     if (idx !== -1) setIndicatorTop(TOP_PAD + idx * ITEM_HEIGHT);
   }, [activeSection]);
 
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeSection]);
+
   const totalHeight = AUDIENCE_TOC_ITEMS.length * ITEM_HEIGHT + TOP_PAD * 2;
 
   return (
-    <nav>
+    <nav className="sticky top-6">
+      {itemName && (
+        <p className="text-[11px] text-muted-foreground/70 mb-2 truncate">Business DNA › {itemName}</p>
+      )}
       <h3 className="text-sm font-semibold text-foreground mb-3">On This Page</h3>
       <div className="relative" style={{ height: totalHeight }}>
         <div className="absolute w-px bg-border/60" style={{ left: 3, top: TOP_PAD, bottom: TOP_PAD }} />
@@ -91,7 +78,7 @@ export function AudiencePageSidebar({
                 key={item.id}
                 ref={isActive ? activeRef : undefined}
                 href={`#${item.id}`}
-                onClick={(e) => { e.preventDefault(); setScrollActiveSection(null); onSectionClick?.(item.id); }}
+                onClick={(e) => { e.preventDefault(); onSectionClick?.(item.id); }}
                 className={cn(
                   "relative block py-1.5 text-sm transition-colors hover:text-accent-foreground",
                   isActive ? "text-primary font-medium" : "text-muted-foreground"
