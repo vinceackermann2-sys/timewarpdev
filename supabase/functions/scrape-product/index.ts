@@ -131,7 +131,11 @@ const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] 
     if (lower.includes('favicon') || lower.includes('pixel') || lower.includes('tracking') ||
         lower.includes('1x1') || lower.includes('badge') || lower.includes('flag') ||
         lower.includes('avatar') || lower.includes('spacer') ||
-        lower.includes('data:image')) return false;
+        lower.includes('data:image') || lower.includes('placehold') ||
+        lower.includes('placeholder') || lower.includes('blank') ||
+        lower.includes('transparent')) return false;
+    // Block tiny dimension in URL query params (w=30, height=10, etc.)
+    if (/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(url)) return false;
     // Filter tiny dimension indicators in URL
     if (/\/\d{1,2}x\d{1,2}[/.?]/.test(lower)) return false;
     // Filter SVGs (usually icons/logos, not product photos)

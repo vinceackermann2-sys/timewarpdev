@@ -908,8 +908,11 @@ export function BusinessDNAOnboarding({
                   const isUsableImage = (u?: string) => !!u && /^https?:\/\//.test(u) && 
                     !/\/image\/upload\/(?:[a-z]_[a-z0-9]+\/?)*$/i.test(u) &&
                     !/\/(?:c_scale|f_auto|q_auto|w_\d+|h_\d+)$/i.test(u) &&
-                    !u.includes('/**') && !u.includes('/*');
-                  const rawImgUrl = (p.images || []).map((img: any) => typeof img === 'string' ? img : img?.url ?? img?.src ?? null).find(isUsableImage) || null;
+                    !u.includes('/**') && !u.includes('/*') &&
+                    !/(placehold|placeholder|spacer|pixel|blank|transparent|tracking)/i.test(u) &&
+                    !/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(u);
+                  const allImgUrls = (p.images || []).map((img: any) => typeof img === 'string' ? img : img?.url ?? img?.src ?? null);
+                  const rawImgUrl = allImgUrls.find(isUsableImage) || null;
                   // Resolve relative/protocol-relative URLs
                   let resolvedImgUrl = rawImgUrl;
                   if (rawImgUrl && !rawImgUrl.startsWith('http') && !rawImgUrl.startsWith('data:')) {
