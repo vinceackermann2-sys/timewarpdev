@@ -314,7 +314,15 @@ export function BusinessDNAOnboarding({
     const interval = setInterval(() => {
       setActiveSourceIndex(prev => {
         const next = (prev + 1) % urls.length;
-        setVerifiedSources(vs => new Set([...vs, prev]));
+        // Only add indices within the current urls range
+        setVerifiedSources(vs => {
+          const updated = new Set([...vs, prev]);
+          // Cap to only valid indices
+          for (const idx of updated) {
+            if (idx >= urls.length) updated.delete(idx);
+          }
+          return updated;
+        });
         return next;
       });
     }, 2200);
