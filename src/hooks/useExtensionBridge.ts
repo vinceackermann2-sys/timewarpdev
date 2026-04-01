@@ -131,7 +131,7 @@ export function useExtensionBridge() {
           resolversRef.current.delete("action_result");
           resolve({ success: false, action: action.action, error: "Timeout waiting for extension" });
         }
-      }, 30000);
+      }, 15000);
     });
   }, []);
 
