@@ -81,10 +81,14 @@ export function useSubscription() {
     refetchOnWindowFocus: false,
   });
 
-  // On mount (once per session), call check-subscription to sync Stripe → DB
+  // Sync Stripe → DB at most once per 30 minutes (per session)
   useEffect(() => {
     if (!user || authLoading || stripeSyncDone.current) return;
     stripeSyncDone.current = true;
+
+    // Skip if we synced recently (within 30 min)
+    const lastSync = sessionStorage.getItem("stripe_sync_ts");
+    if (lastSync && Date.now() - Number(lastSync) < 30 * 60 * 1000) return;
 
     const syncFromStripe = async () => {
       try {
@@ -93,7 +97,7 @@ export function useSubscription() {
           console.warn("Stripe sync failed:", error.message);
           return;
         }
-        // If Stripe found a plan that differs from DB, refetch from DB
+        sessionStorage.setItem("stripe_sync_ts", String(Date.now()));
         if (data?.plan) {
           refetch();
         }
