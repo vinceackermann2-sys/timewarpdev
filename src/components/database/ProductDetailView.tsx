@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import { ProductPageSidebar } from "@/components/database/ProductPageSidebar";
+import { FixedSidebar } from "@/components/database/FixedSidebar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
@@ -755,7 +756,7 @@ export function ProductDetailView({
 
             {/* Right sidebar */}
             <div className="hidden lg:block w-52 shrink-0">
-              <div className="sticky top-6">
+              <FixedSidebar>
                 <ProductPageSidebar
                   itemName={safeProduct.name}
                   activeSection={activeSidebarSection}
@@ -764,7 +765,7 @@ export function ProductDetailView({
                     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                 />
-              </div>
+              </FixedSidebar>
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AudiencePageSidebar } from "@/components/database/AudiencePageSidebar";
+import { FixedSidebar } from "@/components/database/FixedSidebar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
@@ -609,7 +610,7 @@ export function AudienceDetailView({
 
             {/* Right sidebar */}
             <div className="hidden lg:block w-52 shrink-0">
-              <div className="sticky top-6">
+              <FixedSidebar>
                 <AudiencePageSidebar
                   itemName={audience.name}
                   activeSection={activeSidebarSection}
@@ -618,7 +619,7 @@ export function AudienceDetailView({
                     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                 />
-              </div>
+              </FixedSidebar>
             </div>
           </div>
         </div>

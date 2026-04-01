@@ -3,6 +3,7 @@ import { Palette } from "lucide-react";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
 import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
+import { FixedSidebar } from "@/components/database/FixedSidebar";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 
@@ -68,9 +69,9 @@ export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
             </div>
           </div>
           <div className="hidden lg:block w-52 shrink-0">
-            <div className="sticky top-6">
+            <FixedSidebar>
               <BrandPageSidebar brandName={selectedBrand.name} activeSection={activeSidebarSection} onSectionClick={(id) => { setActiveSidebarSection(id); document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
-            </div>
+            </FixedSidebar>
           </div>
         </div>
       </div>
