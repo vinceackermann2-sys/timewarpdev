@@ -1132,9 +1132,19 @@ export function AgentChatView() {
 
   /* ─────────── Render ─────────── */
   return (
-    <div className="h-full bg-background flex flex-col relative overflow-hidden">
+    <div className="h-full bg-background flex relative overflow-hidden">
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sticky top agent selector */}
       <header className="sticky top-0 z-20 flex justify-center items-center py-3 bg-background/80 backdrop-blur-md border-b border-border/30">
+        {/* History toggle button */}
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="absolute right-4 p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+          title={showHistory ? "Hide chat history" : "Show chat history"}
+        >
+          {showHistory ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+        </button>
         <div className="relative">
           <button
             onClick={() => setShowAgents(!showAgents)}
