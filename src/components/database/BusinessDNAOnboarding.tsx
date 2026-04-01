@@ -314,7 +314,15 @@ export function BusinessDNAOnboarding({
     const interval = setInterval(() => {
       setActiveSourceIndex(prev => {
         const next = (prev + 1) % urls.length;
-        setVerifiedSources(vs => new Set([...vs, prev]));
+        // Only add indices within the current urls range
+        setVerifiedSources(vs => {
+          const updated = new Set([...vs, prev]);
+          // Cap to only valid indices
+          for (const idx of updated) {
+            if (idx >= urls.length) updated.delete(idx);
+          }
+          return updated;
+        });
         return next;
       });
     }, 2200);
@@ -1291,7 +1299,7 @@ export function BusinessDNAOnboarding({
 
                   {/* Verified count */}
                   <p className="text-[12px] text-[#697386] text-center">
-                    {verifiedSources.size} of {urls.length} sources verified
+                    {Math.min(verifiedSources.size, urls.length)} of {urls.length} sources verified
                   </p>
                 </div>
               )}
@@ -1435,7 +1443,7 @@ export function BusinessDNAOnboarding({
                   className="flex items-center gap-2 text-[14px] font-medium text-[#697386] hover:text-[#1a1f36] transition-colors w-full"
                 >
                   <Globe className="w-4 h-4" />
-                  <span>{verifiedSources.size} of {urls.length} sources verified</span>
+                  <span>{Math.min(verifiedSources.size, urls.length)} of {urls.length} sources verified</span>
                   <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${sourcesOpen ? "rotate-180" : ""}`} />
                 </button>
                 {sourcesOpen && (
