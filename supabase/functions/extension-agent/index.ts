@@ -330,9 +330,10 @@ async function loadBusinessIdentity(supabase: any, userId: string, brandId?: str
   return identity;
 }
 
-async function retrieveRelevantContext(supabase: any, userId: string, workspaceId?: string, userQuery?: string, brandId?: string): Promise<string> {
+async function retrieveRelevantContext(supabase: any, userId: string, workspaceId?: string, userQuery?: string, brandId?: string, browserMode?: boolean): Promise<string> {
   const keywords = extractKeywords(userQuery || "");
-  if (keywords.length === 0) return "";
+  // In browser mode, even with no keyword matches, include brand context
+  if (keywords.length === 0 && !browserMode) return "";
 
   // If a brandId is provided, resolve the brand's logical ID so we can scope all results
   let brandLogicalId: string | null = null;
@@ -376,20 +377,25 @@ async function retrieveRelevantContext(supabase: any, userId: string, workspaceI
     });
   }
 
+  // In browser mode: lower threshold + more results so the AI has strategic context
+  const scoreThreshold = browserMode ? 0.0 : 0.1;
+  const maxResults = browserMode ? 8 : 5;
+  const snippetLen = browserMode ? 800 : 500;
+
   const scored = filtered.map((item: any) => {
     const snippet = (item.analyzed_content || item.content || "").slice(0, 300);
-    return { ...item, score: scoreItem(keywords, item.title || "", snippet) };
-  }).filter((i: any) => i.score > 0.1)
+    return { ...item, score: keywords.length > 0 ? scoreItem(keywords, item.title || "", snippet) : 0.05 };
+  }).filter((i: any) => i.score >= scoreThreshold)
     .sort((a: any, b: any) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, maxResults);
 
   if (scored.length === 0) return "";
 
-  let context = "\n\n## Reference Material (from your business database)\n";
+  let context = "\n\n## Reference Material (from your business database)\nUse this knowledge to inform HOW you execute the task. It may contain strategies, preferred tools, platforms, methods, or domain expertise.\n";
   for (const item of scored) {
     context += `\n### ${item.title} (${item.data_type})\n`;
     const text = item.analyzed_content || item.content || "";
-    context += text.slice(0, 500) + "\n";
+    context += text.slice(0, snippetLen) + "\n";
   }
   return context;
 }
