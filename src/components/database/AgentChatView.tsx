@@ -997,6 +997,7 @@ export function AgentChatView() {
         if (shouldBreak) break;
         if (shouldContinue) continue;
         if (!shouldBreak && !shouldContinue && actions.length > 0) continue;
+      }
 
       // Generate results document
       const endTime = new Date();
