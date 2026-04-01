@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import { ProductPageSidebar } from "@/components/database/ProductPageSidebar";
+import { FixedSidebar } from "@/components/database/FixedSidebar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
