@@ -26,7 +26,7 @@ const TOP_PAD = 12;
 
 export function BrandPageSidebar({
   brandName,
-  activeSection,
+  activeSection: externalActiveSection,
   onSectionClick,
 }: {
   brandName?: string;
@@ -34,17 +34,33 @@ export function BrandPageSidebar({
   onSectionClick?: (id: string) => void;
 }) {
   const activeRef = useRef<HTMLAnchorElement>(null);
+  const [scrollActiveSection, setScrollActiveSection] = useState<string | null>(null);
+
+  const activeSection = scrollActiveSection || externalActiveSection;
   const [indicatorTop, setIndicatorTop] = useState(TOP_PAD);
+
+  // Scroll-spy
+  useEffect(() => {
+    const ids = BRAND_TOC_ITEMS.map(s => s.id);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) setScrollActiveSection(visible.target.id);
+      },
+      { root: null, rootMargin: "-20% 0px -55% 0px", threshold: [0.1, 0.35, 0.6] }
+    );
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const idx = BRAND_TOC_ITEMS.findIndex((i) => i.id === activeSection);
-    if (idx !== -1) {
-      setIndicatorTop(TOP_PAD + idx * ITEM_HEIGHT);
-    }
-  }, [activeSection]);
-
-  useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (idx !== -1) setIndicatorTop(TOP_PAD + idx * ITEM_HEIGHT);
   }, [activeSection]);
 
   const totalHeight = BRAND_TOC_ITEMS.length * ITEM_HEIGHT + TOP_PAD * 2;
@@ -56,24 +72,15 @@ export function BrandPageSidebar({
       )}
       <h3 className="text-sm font-semibold text-foreground mb-3">On This Page</h3>
       <div className="relative" style={{ height: totalHeight }}>
-        {/* Background vertical line */}
-        <div
-          className="absolute w-px bg-border/60"
-          style={{ left: 3, top: TOP_PAD, bottom: TOP_PAD }}
-        />
-
-        {/* Active indicator */}
+        <div className="absolute w-px bg-border/60" style={{ left: 3, top: TOP_PAD, bottom: TOP_PAD }} />
         <div
           className="absolute w-[2px] rounded-full bg-primary transition-all duration-200 ease-out"
           style={{ left: 2.5, top: indicatorTop, height: 20 }}
         />
-
-        {/* Items */}
         <div className="relative">
           {BRAND_TOC_ITEMS.map((item) => {
             const isActive = activeSection === item.id;
             const paddingLeft = item.level === 1 ? 14 : 26;
-
             return (
               <a
                 key={item.id}
@@ -81,15 +88,12 @@ export function BrandPageSidebar({
                 href={`#${item.id}`}
                 onClick={(e) => {
                   e.preventDefault();
+                  setScrollActiveSection(null);
                   onSectionClick?.(item.id);
                 }}
-                data-active={isActive}
                 className={cn(
-                  "relative block py-1.5 text-sm transition-colors",
-                  "hover:text-accent-foreground",
-                  isActive
-                    ? "text-primary font-medium"
-                    : "text-muted-foreground"
+                  "relative block py-1.5 text-sm transition-colors hover:text-accent-foreground",
+                  isActive ? "text-primary font-medium" : "text-muted-foreground"
                 )}
                 style={{ paddingInlineStart: paddingLeft }}
               >
