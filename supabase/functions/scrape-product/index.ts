@@ -625,7 +625,7 @@ serve(async (req) => {
         ...extractImagesFromMarkdown(homepageMarkdown, formattedUrl),
         ...extractImagesFromMarkdown(homepageHtml, formattedUrl),
       ])];
-      console.log("Homepage images extracted:", homepageImages.length);
+      console.log("Homepage images extracted:", homepageImages.length, "samples:", homepageImages.slice(0, 3));
     } else {
       console.log("Core mode with selectedProductUrls — skipping homepage scrape");
     }
