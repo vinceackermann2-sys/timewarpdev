@@ -477,6 +477,14 @@ export function AgentChatView() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { toast.error("Please log in first"); return; }
 
+    // Auto-enable Computer Mode for employees
+    setIsActionMode(true);
+
+    if (!extensionConnected) {
+      toast.error("Browser extension not connected. Please install or enable the Timewarp extension to run employees.", { duration: 5000 });
+      return;
+    }
+
     setIsSending(true);
 
     const userMsg: ChatMessage = {
@@ -492,11 +500,7 @@ export function AgentChatView() {
     setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true }]);
 
     try {
-      if (isActionMode && extensionConnected) {
-        await runComputerMode(session, userMsg, assistantId);
-      } else {
-        await runEmployeeChat(session, userMsg, assistantId);
-      }
+      await runComputerMode(session, userMsg, assistantId);
     } catch (err: any) {
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Sorry, something went wrong. Please try again.", isStreaming: false } : m));
     }
