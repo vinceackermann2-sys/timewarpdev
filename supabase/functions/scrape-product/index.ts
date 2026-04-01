@@ -494,63 +494,124 @@ serve(async (req) => {
 
     // ══════════════════════════════════════════════
     // STEP 1: Scrape homepage with Firecrawl
+    // (Skip in core mode with selectedProductUrls — discover already did this)
     // ══════════════════════════════════════════════
     let scrapeData: any = null;
     let usedDirectFallback = false;
+    let homepageMarkdown = "";
+    let homepageHtml = "";
+    let metadata: any = {};
+    let firecrawlBranding: any = null;
+    let websiteScreenshot: any = null;
+    let homepageImages: string[] = [];
+    let productPageContents: { url: string; markdown: string; extractedImages?: string[] }[] = [];
 
-    const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url: baseUrl, formats: ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false }),
-    });
+    const skipHomepageScrape = isCoreMode && Array.isArray(selectedProductUrls) && selectedProductUrls.length > 0;
 
-    if (scrapeResponse.ok) {
-      scrapeData = await scrapeResponse.json();
-    } else {
-      console.warn("Firecrawl scrape failed:", scrapeResponse.status, "- retrying without screenshot");
-      const retryResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    if (!skipHomepageScrape) {
+      const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: baseUrl, formats: ["markdown", "links", "branding"], onlyMainContent: false }),
+        body: JSON.stringify({ url: baseUrl, formats: ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false }),
       });
-      if (retryResponse.ok) {
-        scrapeData = await retryResponse.json();
+
+      if (scrapeResponse.ok) {
+        scrapeData = await scrapeResponse.json();
       } else {
-        try {
-          const fallbackPage = await fetchPageFallback(formattedUrl);
-          usedDirectFallback = true;
-          scrapeData = { data: { markdown: fallbackPage.markdown, metadata: fallbackPage.metadata, branding: null, screenshot: null, links: [] } };
-        } catch {
-          return new Response(
-            JSON.stringify({ success: false, error: `Scraping failed for ${formattedUrl}. The site may be blocking automated requests.` }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+        console.warn("Firecrawl scrape failed:", scrapeResponse.status, "- retrying without screenshot");
+        const retryResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ url: baseUrl, formats: ["markdown", "links", "branding"], onlyMainContent: false }),
+        });
+        if (retryResponse.ok) {
+          scrapeData = await retryResponse.json();
+        } else {
+          try {
+            const fallbackPage = await fetchPageFallback(formattedUrl);
+            usedDirectFallback = true;
+            scrapeData = { data: { markdown: fallbackPage.markdown, metadata: fallbackPage.metadata, branding: null, screenshot: null, links: [] } };
+          } catch {
+            return new Response(
+              JSON.stringify({ success: false, error: `Scraping failed for ${formattedUrl}. The site may be blocking automated requests.` }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
         }
       }
+
+      homepageMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+      homepageHtml = scrapeData.data?.html || scrapeData.html || "";
+      metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
+      firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
+      websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
+
+      console.log("Homepage content length:", homepageMarkdown.length, "html length:", homepageHtml.length, "screenshot:", !!websiteScreenshot);
+      if (firecrawlBranding) console.log("Firecrawl branding data found");
+
+      // Pre-extract homepage images from both markdown and HTML
+      homepageImages = [...new Set([
+        ...extractImagesFromMarkdown(homepageMarkdown, formattedUrl),
+        ...extractImagesFromMarkdown(homepageHtml, formattedUrl),
+      ])];
+      console.log("Homepage images extracted:", homepageImages.length);
+    } else {
+      console.log("Core mode with selectedProductUrls — skipping homepage scrape");
     }
-
-    const homepageMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
-    const homepageHtml = scrapeData.data?.html || scrapeData.html || "";
-    const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
-    const firecrawlBranding = scrapeData.data?.branding || scrapeData.branding || null;
-    const websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
-
-    console.log("Homepage content length:", homepageMarkdown.length, "html length:", homepageHtml.length, "screenshot:", !!websiteScreenshot);
-    if (firecrawlBranding) console.log("Firecrawl branding data found");
-
-    // Pre-extract homepage images from both markdown and HTML
-    const homepageImages = [...new Set([
-      ...extractImagesFromMarkdown(homepageMarkdown, formattedUrl),
-      ...extractImagesFromMarkdown(homepageHtml, formattedUrl),
-    ])];
-    console.log("Homepage images extracted:", homepageImages.length);
 
     // ══════════════════════════════════════════════
     // STEP 2: Discover product pages (company URLs)
+    // (Skip in core mode — we already have selectedProductUrls)
     // ══════════════════════════════════════════════
-    let productPageContents: { url: string; markdown: string; extractedImages?: string[] }[] = [];
 
-    if (isCompanyUrl) {
+    if (skipHomepageScrape) {
+      // Core mode shortcut: directly scrape selected product URLs
+      console.log("Core mode — directly scraping", selectedProductUrls.length, "selected product URLs");
+      const scrapeResults = await Promise.allSettled(
+        selectedProductUrls.map(async (pUrl: string) => {
+          try {
+            const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: true }),
+            });
+            if (res.ok) {
+              const d = await res.json();
+              const md = d.data?.markdown || d.markdown || "";
+              const html = d.data?.html || d.html || "";
+              const mdImages = extractImagesFromMarkdown(md, pUrl);
+              const htmlImages = extractImagesFromMarkdown(html, pUrl);
+              const allImages = [...new Set([...mdImages, ...htmlImages])];
+              // Also grab metadata for brand fallback
+              const pageMeta = d.data?.metadata || d.metadata || {};
+              if (!metadata.title && pageMeta.title) metadata = pageMeta;
+              if (!firecrawlBranding && (d.data?.branding || d.branding)) firecrawlBranding = d.data?.branding || d.branding;
+              return { url: pUrl, markdown: md, extractedImages: allImages };
+            }
+            const fb = await fetchPageFallback(pUrl);
+            return { url: pUrl, markdown: fb.markdown, extractedImages: extractImagesFromMarkdown(fb.markdown, pUrl) };
+          } catch { return null; }
+        })
+      );
+      productPageContents = scrapeResults
+        .filter((r): r is PromiseFulfilledResult<{ url: string; markdown: string; extractedImages: string[] }> => r.status === 'fulfilled' && !!r.value)
+        .map(r => r.value);
+      // Also do a lightweight homepage scrape in parallel for brand data
+      try {
+        const brandRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ url: baseUrl, formats: ["markdown", "branding"], onlyMainContent: false }),
+        });
+        if (brandRes.ok) {
+          const brandData = await brandRes.json();
+          homepageMarkdown = brandData.data?.markdown || brandData.markdown || "";
+          metadata = brandData.data?.metadata || brandData.metadata || metadata;
+          firecrawlBranding = brandData.data?.branding || brandData.branding || firecrawlBranding;
+        }
+      } catch (e) { console.warn("Brand homepage scrape failed (non-fatal):", e); }
+      console.log("Core mode — scraped", productPageContents.length, "product pages");
+    } else if (isCompanyUrl) {
       try {
         console.log("Company URL — mapping site for product pages...");
         const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
@@ -605,7 +666,6 @@ serve(async (req) => {
                         const d = await res.json();
                         const md = d.data?.markdown || d.markdown || "";
                         const html = d.data?.html || d.html || "";
-                        // Extract images from both markdown and HTML for maximum coverage
                         const mdImages = extractImagesFromMarkdown(md, pUrl);
                         const htmlImages = extractImagesFromMarkdown(html, pUrl);
                         const allImages = [...new Set([...mdImages, ...htmlImages])];
