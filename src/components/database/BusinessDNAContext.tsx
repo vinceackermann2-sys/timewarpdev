@@ -393,12 +393,36 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
   const refreshBrand = async (brandId: string) => {
     const wsId = localStorage.getItem("preferred_workspace_id") || activeWorkspaceId;
-    const freshBrands = await loadEntities<BrandEntry>("brand", wsId);
-    const updated = freshBrands.find(b => b.id === brandId);
-    if (updated) {
-      setBrandsState(prev => prev.map(b => b.id === brandId ? updated : b));
-      setPrevBrands(prev => prev.map(b => b.id === brandId ? updated : b));
-      console.log("Brand refreshed with enriched data:", brandId);
+    // Only fetch the single brand row instead of all brands
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    let query = supabase
+      .from("user_business_data")
+      .select("id, content")
+      .eq("data_type", "brand")
+      .eq("source", "business-dna");
+
+    if (wsId) {
+      query = query.eq("workspace_id", wsId);
+    } else {
+      query = query.eq("user_id", session.user.id);
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return;
+
+    // Find the specific brand by parsing content
+    for (const row of data) {
+      try {
+        const parsed = JSON.parse(row.content || "{}");
+        if (parsed.id === brandId) {
+          const updated = { ...parsed, _rowId: row.id } as BrandEntry;
+          setBrandsState(prev => prev.map(b => b.id === brandId ? updated : b));
+          setPrevBrands(prev => prev.map(b => b.id === brandId ? updated : b));
+          return;
+        }
+      } catch {}
     }
   };
 
