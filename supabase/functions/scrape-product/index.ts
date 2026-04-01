@@ -100,16 +100,42 @@ const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] 
     addImg(m[1]);
   }
 
+  // 10. JSON-LD structured data images
+  const jsonLdRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  while ((m = jsonLdRegex.exec(markdown)) !== null) {
+    try {
+      const ld = JSON.parse(m[1]);
+      const extractLdImages = (obj: any) => {
+        if (!obj || typeof obj !== 'object') return;
+        if (typeof obj.image === 'string') addImg(obj.image);
+        if (Array.isArray(obj.image)) obj.image.forEach((i: any) => { if (typeof i === 'string') addImg(i); else if (i?.url) addImg(i.url); });
+        if (obj.image?.url) addImg(obj.image.url);
+        if (obj.image?.contentUrl) addImg(obj.image.contentUrl);
+        if (Array.isArray(obj['@graph'])) obj['@graph'].forEach(extractLdImages);
+        if (obj.offers?.image) addImg(obj.offers.image);
+      };
+      extractLdImages(ld);
+    } catch { /* ignore malformed JSON-LD */ }
+  }
+
+  // 11. Generic "image" JSON property patterns (common in inline JS data)
+  const jsonImageRegex = /"image"\s*:\s*"(https?:\/\/[^"]+)"/gi;
+  while ((m = jsonImageRegex.exec(markdown)) !== null) {
+    addImg(m[1]);
+  }
+
   return [...new Set(imgs)].filter(url => {
     if (!url) return false;
     const lower = url.toLowerCase();
     // Filter out tiny/utility images
     if (lower.includes('favicon') || lower.includes('pixel') || lower.includes('tracking') ||
         lower.includes('1x1') || lower.includes('badge') || lower.includes('flag') ||
-        lower.includes('avatar') || lower.includes('spacer') || lower.includes('.svg') ||
+        lower.includes('avatar') || lower.includes('spacer') ||
         lower.includes('data:image')) return false;
     // Filter tiny dimension indicators in URL
     if (/\/\d{1,2}x\d{1,2}[/.?]/.test(lower)) return false;
+    // Filter SVGs (usually icons/logos, not product photos)
+    if (lower.endsWith('.svg')) return false;
     return true;
   }).slice(0, 12);
 };
@@ -653,7 +679,10 @@ serve(async (req) => {
           const mapData = await mapRes.json();
           const parsedBase = new URL(formattedUrl);
           const baseDomain = parsedBase.hostname.replace(/^www\./, '');
-          const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com|pages\/)/i;
+          const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com|pages\/|inventory|new\/|used\/)/i;
+          // Filter out locale-variant duplicates (e.g., /en_my/modely and /ro_RO/modely)
+          const localePrefix = /^\/[a-z]{2}(?:_[a-zA-Z]{2,4})?\//;
+          const seenPaths = new Set<string>();
           const allUrls: string[] = (mapData.links || []).filter((u: string) => {
             if (!u || !u.startsWith("http")) return false;
             try {
@@ -662,6 +691,10 @@ serve(async (req) => {
               if (linkDomain !== baseDomain) return false;
               if (excludePatterns.test(pu.pathname)) return false;
               if (pu.pathname === '/' || pu.pathname === '') return false;
+              // Deduplicate locale variants
+              const canonicalPath = pu.pathname.replace(localePrefix, '/').replace(/\/+$/g, '');
+              if (seenPaths.has(canonicalPath)) return false;
+              seenPaths.add(canonicalPath);
               return true;
             } catch { return false; }
           });
@@ -673,7 +706,7 @@ serve(async (req) => {
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-2.5-flash-lite",
-                messages: [{ role: "user", content: `From these URLs, select ONLY the ones that are clearly DISTINCT individual PRODUCT or SERVICE pages sold by THIS company. Each URL should represent a genuinely different product — do NOT include variant pages, color options, or size variations of the same product. Exclude category/collection pages, blog posts, about/legal pages, partner integrations, third-party tools, and informational pages. Only select pages selling THIS company's own products or services.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return []. Maximum 10 URLs.\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
+                messages: [{ role: "user", content: `From these URLs, select ONLY the ones that are clearly DISTINCT individual PRODUCT or SERVICE pages sold by THIS company. Each URL should represent a genuinely different product — do NOT include:\n- Variant pages, color options, size variations, or locale versions of the same product\n- Inventory/shop/store listing pages\n- Category/collection pages\n- Blog posts, about/legal pages\n- Partner integrations, third-party tools\n- URLs with locale prefixes like /en_xx/, /fr_FR/, /de_DE/ that are just translations of the same page\n\nPrefer short, clean product URLs (e.g., /model-y, /cybertruck, /product-name) over long parameterized URLs.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return []. Maximum 10 URLs.\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
               }),
             })).text();
             try {
@@ -770,10 +803,15 @@ serve(async (req) => {
                 if (ogUrl) pageImages = [ogUrl];
               }
             }
-            // Last resort: use the homepage og:image
+            // Last resort: use homepage images (first few relevant ones)
+            if (pageImages.length === 0 && homepageImages.length > 0) {
+              pageImages = homepageImages.slice(0, 3);
+            }
+            // Final fallback: homepage og:image
             if (pageImages.length === 0 && ogImageUrl) {
               pageImages = [ogImageUrl];
             }
+            console.log(`Product page ${page.url.slice(0, 60)}: ${pageImages.length} images found`);
             // Quick lightweight AI call to get name, description, and image URLs
             const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
