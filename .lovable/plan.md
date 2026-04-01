@@ -1,52 +1,38 @@
 
 
-## Plan: Agent Name in Onboarding + Sticky Right Sidebars with Breadcrumb Path
+## Plan: Auto-enable Computer Mode for Employees + Improve Execution Speed
 
-### 1. Replace "AI CEO" with configured agent name in onboarding
+### Problem
+1. Clicking an employee with Computer Mode off runs `runEmployeeChat` (a single non-browser call) instead of activating Computer Mode and executing the SOP via browser automation.
+2. The `runComputerMode` function breaks on "respond" actions (line 954-958) instead of continuing execution like `runAgentChatWithBrowser` does — this causes tasks to stop after the planning phase.
+3. Edge functions have a ~60s wall-clock limit per invocation. Each step in the loop calls the edge function separately, so the real bottleneck is the number of round-trips, not a single 60s cap on the whole task.
 
-**Problem**: When adding a business, the onboarding flow and various views fallback to showing "AI CEO" as the default agent name instead of using the name the user configured.
+### Changes
 
-**Fix**: In `BusinessDNAOnboarding.tsx`, the agent naming step (step 6) currently defaults to placeholder text "e.g. My Agent...". The "AI CEO" references throughout the app (in `AgentChatView.tsx`, `BusinessDNAView.tsx`) already use `brand.agentName || "AI CEO"` as fallback — this is correct behavior for when no name is set. The key fix is ensuring the agent name persisted during onboarding is immediately reflected in all views by updating the brand context after saving.
+**1. Auto-enable Computer Mode when selecting an employee** (`AgentChatView.tsx`)
+- In `autoRunEmployee`, force `isActionMode` to `true` before running (call `setIsActionMode(true)`)
+- If the extension is not connected, show a toast prompting the user to install/connect the extension instead of silently falling back to non-browser chat
+- This ensures every employee click triggers full browser automation
 
-No code changes needed for the fallback pattern — "AI CEO" is the correct default when no agent name exists. The onboarding already saves `agentName` to the database on step 6.
+**2. Fix `runComputerMode` to not break on "respond" actions** (`AgentChatView.tsx`)
+- Currently lines 954-958 break the loop on "respond" — same bug that was already fixed in `runAgentChatWithBrowser`
+- Change to match the `runAgentChatWithBrowser` pattern: append "respond" as an intermediate update, push a continuation prompt to `conversationHistory`, increment `stepCount`, and `continue` the loop
 
-### 2. Make right-side sidebars (Brand, Audience, Product) sticky
+**3. Optimize execution speed** (`AgentChatView.tsx` + `extension-agent/index.ts`)
+- **Batch actions**: Update the edge function prompt to encourage returning multi-step arrays (e.g., `{ "steps": [...] }`) so a single API call can yield 3-5 actions that execute sequentially client-side without additional round-trips
+- **Client-side batch execution**: In both `runComputerMode` and `runAgentChatWithBrowser`, after parsing the JSON response, check for a `steps` array. If present, execute all steps in sequence before making the next API call, reducing round-trips by 3-5x
+- **Reduce wait times**: Lower the `getPageContext` timeout from 3s to 1.5s, and reduce the `executeAction` timeout from 30s to 15s for faster failure detection
+- **Streamline conversation history**: Only send the last 6 messages of conversation history to the edge function instead of the full history, reducing payload size and AI processing time
 
-**Problem**: The sidebar wrapper divs use `self-start` which collapses their height, preventing `sticky` from working properly as the user scrolls the content area.
+### Technical details
 
-**Files to change**:
-- `src/components/database/BrandListView.tsx` (line 70)
-- `src/components/database/AudienceDetailView.tsx` (line 611)
-- `src/components/database/ProductDetailView.tsx` (line 758)
+**Files modified:**
+1. `src/components/database/AgentChatView.tsx` — auto-enable computer mode, fix respond loop, add batch execution, optimize timeouts/history
+2. `supabase/functions/extension-agent/index.ts` — update prompt to prefer returning batched `steps` arrays, redeploy
+3. `src/hooks/useExtensionBridge.ts` — reduce `getPageContext` timeout to 1.5s
 
-**Change**: Replace `self-start` with `sticky top-6` on the sidebar wrapper `<div>`, and remove `sticky top-6` from inside the `<nav>` element in each sidebar component to avoid double-sticky. Actually, since the `<nav>` already has `sticky top-6`, the issue is that `self-start` on the parent collapses it. Change the parent wrapper to use `h-fit` instead of `self-start`, so the inner `sticky` works against the scroll container.
-
-Wait — `sticky` requires the element to be inside a scrollable container and the parent to have enough height. The scroll container is on line 420 of `BusinessDNAView.tsx` (`overflow-y-auto`). The sidebar wrapper uses `self-start` which makes it shrink. The fix: remove `self-start` from the wrapper div so it stretches to the full height of the flex row, then the inner `<nav className="sticky top-6">` will stick properly.
-
-**Changes per file**:
-- Remove `self-start` from the sidebar wrapper div (keep `shrink-0`)
-
-### 3. Add breadcrumb path to right sidebars
-
-**Problem**: The right-side "On This Page" sidebars lack a breadcrumb showing the current navigation path (e.g., "Business DNA > Brand" or "Business DNA > Product > Model Y").
-
-**Files to change**:
-- `src/components/database/BrandPageSidebar.tsx`
-- `src/components/database/AudiencePageSidebar.tsx`
-- `src/components/database/ProductPageSidebar.tsx`
-
-**Change**: Add a breadcrumb above the "On This Page" heading showing the current path. Each sidebar will accept optional `brandName` and `itemName` props to build the path:
-- Brand sidebar: "Business DNA › {brandName} › Brand"
-- Audience sidebar: "Business DNA › {brandName} › {audienceName}"
-- Product sidebar: "Business DNA › {brandName} › {productName}"
-
-The parent views (`BrandListView`, `AudienceDetailView`, `ProductDetailView`) will pass the brand/item names to their respective sidebars.
-
-### Summary of files changed
-1. `BrandListView.tsx` — remove `self-start`, pass `brandName` to sidebar
-2. `AudienceDetailView.tsx` — remove `self-start`, pass names to sidebar
-3. `ProductDetailView.tsx` — remove `self-start`, pass names to sidebar
-4. `BrandPageSidebar.tsx` — add breadcrumb path, accept `brandName` prop
-5. `AudiencePageSidebar.tsx` — add breadcrumb path, accept `brandName`/`itemName` props
-6. `ProductPageSidebar.tsx` — add breadcrumb path, accept `brandName`/`itemName` props
+### Summary
+- Employees always run in Computer Mode (auto-enabled on click)
+- "respond" actions no longer terminate `runComputerMode` prematurely
+- Batch action returns reduce API round-trips by 3-5x, making tasks significantly faster
 
