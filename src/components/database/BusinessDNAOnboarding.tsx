@@ -934,6 +934,7 @@ export function BusinessDNAOnboarding({
               const productIdx = selectedProducts[currentProductIndex] ?? 0;
               const product = extractedProducts[productIdx];
               const productImages: string[] = product?.images || [];
+              console.log('[DEBUG] productImages for product', product?.name, ':', JSON.stringify(productImages));
               const selectedImg = selectedImages[currentProductIndex] ?? 0;
 
               return (
