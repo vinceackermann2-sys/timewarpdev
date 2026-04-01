@@ -302,24 +302,45 @@ export function BusinessDNAOnboarding({
     }
   }, [step, scrapeComplete, scrapeError]);
 
-  // ── Source carousel for forging step ──
+   // ── Source carousel for forging step ──
+  const [sourceUrlCount, setSourceUrlCount] = useState(0);
   useEffect(() => {
     if (step !== 4 && step !== 5) return;
-    if (persistenceComplete) return; // stop flipping once finalize is unlocked
-    const urls = filteredUrlsRef.current;
-    if (urls.length === 0) return;
-    // Reset carousel state when filtered URLs change
-    setActiveSourceIndex(0);
-    setVerifiedSources(new Set());
+    // Keep flipping until persistenceComplete (all data ready)
+    if (persistenceComplete) {
+      // Mark all as verified when done
+      const urls = filteredUrlsRef.current;
+      if (urls.length > 0) {
+        setVerifiedSources(new Set(urls.map((_, i) => i)));
+      }
+      return;
+    }
+    // Poll for URL changes since they come from refs
+    const poll = setInterval(() => {
+      const urls = filteredUrlsRef.current;
+      if (urls.length !== sourceUrlCount) {
+        setSourceUrlCount(urls.length);
+        setActiveSourceIndex(0);
+        setVerifiedSources(new Set());
+      }
+    }, 500);
+    return () => clearInterval(poll);
+  }, [step, persistenceComplete, sourceUrlCount]);
+
+  // Separate flip interval
+  useEffect(() => {
+    if (step !== 4 && step !== 5) return;
+    if (persistenceComplete) return;
+    if (sourceUrlCount <= 1) return;
     const interval = setInterval(() => {
       setActiveSourceIndex(prev => {
-        const next = (prev + 1) % urls.length;
-        // Only add indices within the current urls range
+        const count = sourceUrlCount;
+        if (count === 0) return 0;
+        const next = (prev + 1) % count;
         setVerifiedSources(vs => {
           const updated = new Set([...vs, prev]);
-          // Cap to only valid indices
           for (const idx of updated) {
-            if (idx >= urls.length) updated.delete(idx);
+            if (idx >= count) updated.delete(idx);
           }
           return updated;
         });
@@ -327,7 +348,7 @@ export function BusinessDNAOnboarding({
       });
     }, 2200);
     return () => clearInterval(interval);
-  }, [step, persistenceComplete]);
+  }, [step, persistenceComplete, sourceUrlCount]);
 
   // ── Step 4: persist via edge function ────────────────────
   const markTodo = (label: string) => {
