@@ -761,44 +761,81 @@ serve(async (req) => {
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping illustrations"); return; }
       analyzedUrls.push("ai.gateway/illustrations");
       try {
-        console.log("Generating icon concepts...");
-        // Get 9 concepts from AI
+        console.log("Generating paired icon concepts + Lucide names...");
         const benefits = productBenefits || "quality, convenience, value";
         const triggers = buyingTriggers || "ease of use, time saving";
         const power = audiencePowerWords || "trust, quality";
 
-        const conceptsRaw = await callAI(LOVABLE_API_KEY,
-          `Generate exactly 9 single-word or two-word icon concepts for a brand called "${name}" in the ${cat} category.\n\nProduct benefits: ${benefits}\nAudience triggers: ${triggers}\nPower words: ${power}\n\nThese will be turned into simple SVG icons. Each concept should be a concrete visual object (e.g. "shield", "leaf", "clock", "heart", "star", "rocket", "diamond", "globe", "lightning").\n\nReturn ONLY a JSON array of 9 strings. No explanation.`,
+        // Single AI call: generate 9 paired {concept, iconName} entries
+        const pairedRaw = await callAI(LOVABLE_API_KEY,
+          `Generate exactly 9 icon entries for a brand called "${name}" in the ${cat} category.
+
+Product benefits: ${benefits}
+Audience triggers: ${triggers}
+Power words: ${power}
+
+Each entry must have:
+- "concept": a 1-2 word label describing the icon (e.g. "shield", "growth", "speed")
+- "iconName": a Lucide icon name from this EXACT allowlist ONLY:
+${ALLOWED_LUCIDE_ICON_NAMES.join(", ")}
+
+Rules:
+- Return exactly 9 entries
+- Each iconName MUST be from the allowlist above — no made-up names
+- Each concept should be a concrete visual idea relevant to the brand
+- All 9 iconNames should be unique
+- Return ONLY a JSON array of objects like [{"concept":"shield","iconName":"Shield"},...]
+- No explanation, no markdown.`,
           "google/gemini-2.5-flash-lite"
         );
 
-        let concepts = parseStringArray(conceptsRaw);
-        if (concepts.length < 9) {
-          concepts = ["shield", "star", "heart", "leaf", "clock", "diamond", "globe", "rocket", "lightning"].slice(0, 9);
+        // Parse paired results
+        let pairs: { concept: string; iconName: string }[] = [];
+        try {
+          const cleaned = pairedRaw.replace(/\`\`\`json\s*/gi, "").replace(/\`\`\`\s*/g, "").trim();
+          const s = cleaned.indexOf("[");
+          const e = cleaned.lastIndexOf("]");
+          if (s !== -1 && e > s) {
+            pairs = JSON.parse(cleaned.slice(s, e + 1)).filter(
+              (p: any) => p && typeof p.concept === "string" && typeof p.iconName === "string"
+            );
+          }
+        } catch { /* fallback below */ }
+
+        // Validate icon names against allowlist and deduplicate
+        const validPairs: { concept: string; iconName: string }[] = [];
+        const usedNames = new Set<string>();
+        for (const p of pairs) {
+          const normalized = normalizePascalCase(p.iconName);
+          if (ALLOWED_LUCIDE_ICON_SET.has(normalized) && !usedNames.has(normalized)) {
+            validPairs.push({ concept: p.concept, iconName: normalized });
+            usedNames.add(normalized);
+          }
+          if (validPairs.length === 9) break;
         }
-        concepts = concepts.slice(0, 9);
-        console.log("Icon concepts:", concepts);
 
-        const iconNamesRaw = await callAI(
-          LOVABLE_API_KEY,
-          `Choose exactly 9 Lucide icon names for a brand called "${name}" in the ${cat} category.\n\nConcepts: ${concepts.join(", ")}\nProduct benefits: ${benefits}\nAudience triggers: ${triggers}\nPower words: ${power}\n\nYou MUST choose from this allowlist only:\n${ALLOWED_LUCIDE_ICON_NAMES.join(", ")}\n\nRules:\n- Return exactly 9 names\n- Prefer unique names\n- Match each icon semantically to the concepts and business data\n- Return ONLY a JSON array of strings with exact icon names from the allowlist\n- No explanation, no markdown.`,
-          "google/gemini-2.5-flash-lite"
-        );
+        // Fallback if not enough valid pairs
+        const fallbackConcepts = ["shield", "star", "heart", "leaf", "clock", "diamond", "globe", "rocket", "lightning"];
+        if (validPairs.length < 9) {
+          for (let i = validPairs.length; i < 9; i++) {
+            const concept = fallbackConcepts[i] || `icon ${i + 1}`;
+            const iconName = mapConceptToLucideIconName(concept, i);
+            if (!usedNames.has(iconName)) {
+              validPairs.push({ concept, iconName });
+              usedNames.add(iconName);
+            }
+          }
+        }
 
-        const illustrationIconNames = buildLucideIconNames(concepts, iconNamesRaw);
+        const concepts = validPairs.map(p => p.concept);
+        const illustrationIconNames = validPairs.map(p => p.iconName);
         enriched.illustrationIconNames = illustrationIconNames;
         enriched.iconConcepts = concepts;
-        console.log("Lucide icons enriched:", illustrationIconNames);
+        console.log("Lucide icons enriched (paired):", validPairs);
 
-        // Generate 1 header-shaped SVG pattern
-        const patternRaw = await callAI(LOVABLE_API_KEY,
-          `Generate a complete, valid SVG string (viewBox="0 0 1200 200") that looks like a website header banner shape.\n\nBrand: "${name}", category: ${cat}\nPrimary color: ${primary}\nSecondary color: ${secondary}\nBackground: ${colors.background || "#ffffff"}\n\nRequirements:\n- Design a website header/banner shape with a decorative bottom edge (curved wave, diagonal cut, or organic flowing shape)\n- Fill the shape with a gradient using brand colors (primary to secondary)\n- Add subtle decorative elements inside (dots, lines, circles, abstract shapes)\n- The top should be flat/rectangular, the bottom should have an interesting curved or angled edge\n- Use <defs> with linearGradient\n- NO <text> tags, NO letters, NO words\n- Modern, clean, premium feel\n- Use only the brand color palette\n\nReturn ONLY the raw SVG string starting with <svg and ending with </svg>. No markdown.`
-        );
-        const patternSvg = extractSvg(patternRaw);
-        if (patternSvg) {
-          enriched.patternSvg = patternSvg;
-          console.log("✓ Pattern SVG generated");
-        }
+        // No more AI-generated SVG pattern — the UI will show a solid color square
+        // Just store the primary color as patternSvg marker so the UI knows to render it
+        enriched.patternSvg = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="${primary}"/></svg>`;
 
         if (illustrationIconNames.length > 0 || patternSvg) {
           console.log("Illustrations enriched:", illustrationIconNames.length + (patternSvg ? 1 : 0));

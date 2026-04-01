@@ -578,7 +578,7 @@ export function BrandExtendedSections({
                     <div className="w-full rounded-lg border border-border/50 overflow-hidden bg-card p-3">
                       <span className="text-[10px] text-muted-foreground mb-1 block">{patternSlot.label || "Brand pattern"}</span>
                       <div
-                        className="w-full h-24 [&>svg]:w-full [&>svg]:h-full"
+                        className="aspect-square w-24 rounded-md overflow-hidden [&>svg]:w-full [&>svg]:h-full"
                         dangerouslySetInnerHTML={{ __html: patternSlot.svgContent! }}
                       />
                     </div>
