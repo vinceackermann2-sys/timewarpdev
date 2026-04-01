@@ -116,7 +116,7 @@ async function loadEntities<T>(dataType: string, workspaceId?: string | null): P
 
   let query = supabase
     .from("user_business_data")
-    .select("*")
+    .select("id, content")
     .eq("data_type", dataType)
     .eq("source", "business-dna");
 
