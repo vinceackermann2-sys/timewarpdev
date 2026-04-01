@@ -1177,6 +1177,8 @@ export function BusinessDNAOnboarding({
             }
             urls = Array.from(fallback);
           }
+          // Store filtered URLs so the carousel effect uses the same list
+          filteredUrlsRef.current = urls;
           const safeSourceIndex = urls.length > 0 ? activeSourceIndex % urls.length : 0;
 
           return (
