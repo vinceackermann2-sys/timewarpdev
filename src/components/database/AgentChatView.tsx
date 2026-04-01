@@ -1211,34 +1211,11 @@ export function AgentChatView() {
                     <div className="max-w-none text-foreground text-[14.5px] leading-[1.75]">
                       {/* Task step indicators */}
                       {msg.taskSteps && msg.taskSteps.length > 0 && (
-                        <div className="mb-3 space-y-1">
-                          {msg.taskSteps.map((step, idx) => {
-                            const isCurrent = idx === (msg.currentStepIndex ?? -1);
-                            const isDone = step.status === "done";
-                            const isError = step.status === "error";
-                            return (
-                              <div
-                                key={idx}
-                                className={cn(
-                                  "flex items-center gap-2 text-xs rounded-lg px-3 py-1.5 transition-all duration-300",
-                                  isCurrent && step.status === "running" ? "bg-primary/10 text-primary animate-in fade-in slide-in-from-bottom-1" : "",
-                                  isDone ? "text-muted-foreground" : "",
-                                  isError ? "text-destructive" : "",
-                                  !isCurrent && !isDone && !isError ? "text-muted-foreground/50" : ""
-                                )}
-                              >
-                                {step.status === "running" ? (
-                                  <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                ) : isDone ? (
-                                  <span className="w-3 h-3 shrink-0 text-emerald-500">✓</span>
-                                ) : isError ? (
-                                  <span className="w-3 h-3 shrink-0">✗</span>
-                                ) : null}
-                                <span className="truncate">{step.label}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <TaskStepsDisplay
+                          steps={msg.taskSteps}
+                          currentStepIndex={msg.currentStepIndex ?? -1}
+                          isStreaming={msg.isStreaming}
+                        />
                       )}
                       {/* Main content (only show if not purely step-tracking) */}
                       {(!msg.taskSteps || msg.taskSteps.length === 0 || !msg.isStreaming) && msg.content && (
