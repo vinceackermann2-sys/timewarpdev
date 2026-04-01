@@ -25,11 +25,9 @@ const ITEM_HEIGHT = 32;
 const TOP_PAD = 12;
 
 export function BrandPageSidebar({
-  brandName,
   activeSection: externalActiveSection,
   onSectionClick,
 }: {
-  brandName?: string;
   activeSection?: string;
   onSectionClick?: (id: string) => void;
 }) {
