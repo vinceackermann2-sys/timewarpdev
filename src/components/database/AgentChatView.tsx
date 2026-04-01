@@ -471,6 +471,38 @@ export function AgentChatView() {
     return results;
   };
 
+  /* ── Auto-run employee when selected from menu ── */
+  const autoRunEmployee = async (emp: { id: string; name: string; role: string }) => {
+    if (isSending) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error("Please log in first"); return; }
+
+    setIsSending(true);
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: `Run ${emp.name}: Execute the standard operating procedure.`,
+      employees: [emp],
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setSelectedChatEmployees([]);
+
+    const assistantId = crypto.randomUUID();
+    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true }]);
+
+    try {
+      if (isActionMode && extensionConnected) {
+        await runComputerMode(session, userMsg, assistantId);
+      } else {
+        await runEmployeeChat(session, userMsg, assistantId);
+      }
+    } catch (err: any) {
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Sorry, something went wrong. Please try again.", isStreaming: false } : m));
+    }
+    setIsSending(false);
+  };
+
   /* ── Send message ── */
   const handleSendMessage = async () => {
     if (isSending) return;
