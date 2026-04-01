@@ -50,7 +50,7 @@ export function BrandPageSidebar({
   const totalHeight = BRAND_TOC_ITEMS.length * ITEM_HEIGHT + TOP_PAD * 2;
 
   return (
-    <nav>
+    <nav className="sticky top-6">
       {brandName && (
         <p className="text-[11px] text-muted-foreground/70 mb-2 truncate">Business DNA › {brandName} › Brand</p>
       )}
