@@ -967,7 +967,14 @@ export function AgentChatView() {
           break;
         }
 
-        const parsed = JSON.parse(jsonMatch[1]);
+        let parsed: any;
+        try {
+          parsed = JSON.parse(jsonMatch[1]);
+        } catch (parseErr) {
+          conversationHistory.push({ role: "user" as const, content: "Error: Your last response contained invalid JSON. Please re-send your action as valid JSON inside ```json``` fences." });
+          stepCount++;
+          continue;
+        }
         const actions = parsed.steps ? parsed.steps : [parsed];
         let shouldBreak = false;
         let shouldContinue = false;
