@@ -1,48 +1,47 @@
 
 
-## Plan: Fix Three Onboarding Issues
+## Plan: Fix Product Discovery for Non-Shopify Sites
 
-### Issue 1: Non-product pages (like TimeWarp) appearing in product discovery
-The AI URL picker prompt (line 551) asks the model to select product/service pages but doesn't filter out pages that belong to third-party services embedded on the site. The fix: add domain-aware filtering after AI selection — exclude any URL whose path contains third-party brand names or non-product patterns like `/pages/timewarp`, `/pages/`, generic info pages. Also tighten the AI prompt to explicitly exclude partner/integration/tool pages.
+### Root Cause (Two Issues)
 
-**File:** `supabase/functions/scrape-product/index.ts` (line ~531, ~551)
-- Add `/pages/` to `excludePatterns` regex (Shopify info pages live under `/pages/`)
-- Update the AI prompt to say: "Exclude partner integrations, third-party tools, and informational pages. Only select pages selling THIS company's own products."
+**Issue 1 — AI returns relative paths instead of absolute URLs**: The AI URL picker returns paths like `/modely/design` instead of `https://tesla.com/modely/design`. Firecrawl fails on these, resulting in 0 scraped product pages. The system falls back to the homepage, producing only 1 generic product.
 
-### Issue 2: First product image fails to load
-From the screenshot: the first tile shows "Product 1" alt text with a blank area — the image URL is broken or empty. The issue is in `extractImagesFromMarkdown`: it filters out URLs containing "logo", "icon", "badge" etc. but doesn't handle cases where the first product page yields zero valid images, or where the image URL is a relative path that isn't properly resolved.
+Evidence from logs:
+```
+AI selected 4 product pages: ["/modely/design", "/tesla-diner", ...]
+Scraped 0 product pages
+```
 
-The real root cause: some product pages have images in `srcset` or `data-src` (lazy-loaded) attributes that the current regex doesn't capture. Also, the Firecrawl markdown may use `![Product 1]()` with an empty parentheses (no URL).
+**Issue 2 — Products without images get dropped**: Line 871 filters out products that have no name AND no images. On non-Shopify sites where image extraction fails, valid products get excluded.
 
-**File:** `supabase/functions/scrape-product/index.ts` (line ~31-63)
-- Add `data-src` and `data-srcset` attribute extraction
-- Add `srcset="..."` attribute parsing (take the largest/last image)
-- Filter out empty URLs before returning
+### Fix
 
-**File:** `src/components/database/BusinessDNAOnboarding.tsx` (image normalization ~216-226)
-- When normalizing images, skip empty strings and `data:` URIs
-- If a product has zero valid images after normalization, exclude it from display or show a placeholder
+**File: `supabase/functions/scrape-product/index.ts`**
 
-### Issue 3: Remove BG creates a new image instead of removing background
-The current `remove-bg` edge function uses an AI image generation model (`gemini-3.1-flash-image-preview`) which is designed to generate/edit images — it interprets "remove background" as a creative task and synthesizes a new image. This is fundamentally the wrong tool.
+1. **Resolve relative URLs to absolute** (line ~737): After parsing the AI-selected URLs, resolve each one against `baseUrl` before passing to Firecrawl:
+   ```ts
+   const selected: string[] = JSON.parse(arrMatch[0])
+     .filter((u: any) => typeof u === 'string')
+     .map((u: string) => {
+       // AI sometimes returns relative paths — resolve to absolute
+       if (u.startsWith('/')) return `${parsedBase.origin}${u}`;
+       if (!u.startsWith('http')) return `${parsedBase.origin}/${u}`;
+       return u;
+     })
+     .slice(0, maxPages);
+   ```
 
-**Fix:** Use the `remove.bg` API (a dedicated background removal service) instead of the AI image generation model. However, this requires a `REMOVE_BG_API_KEY`. Alternative: change the prompt to be much more explicit about preserving the exact original image pixels and only making the background transparent/white.
+2. **Don't drop products without images** (line ~871): Change the filter to keep all products that have a name, even without images:
+   ```ts
+   .filter(p => p.name || p.description || p.images.length > 0);
+   ```
 
-Since adding a new API key has friction, the practical fix is to heavily constrain the AI prompt:
+3. **Add the Firecrawl `screenshot` format to discover-mode page scrapes** to ensure a visual fallback always exists even when regex/AI image extraction fails on JS-heavy sites (already present in the code, just verify it works with resolved URLs).
 
-**File:** `supabase/functions/remove-bg/index.ts`
-- Change the prompt to: "This is a product photo. Make the background completely transparent (alpha=0). Do NOT change, redraw, or modify the product in any way. The product pixels must remain exactly identical. Only remove/erase the background behind the product. Output the exact same product with a transparent background."
-- This should reduce hallucination, though generative models may still alter the product slightly
+**File: `src/components/database/BusinessDNAOnboarding.tsx`**
 
-**Better alternative:** Ask the user if they want to set up a `REMOVE_BG_API_KEY` for pixel-perfect results, or proceed with the AI approach with improved prompting.
+4. **Remove the product exclusion based on images** (line ~888): The continue button check `extractedProducts.some((p: any) => p.images?.length > 0)` skips the image picker step if no products have images — this is correct behavior. But ensure products without images still show in the card grid (already happens with the Globe fallback icon — no change needed).
 
-Given the constraint that asking for API keys adds friction, I'll improve the prompt significantly and also add a fallback model order that prioritizes the model better at following precise editing instructions.
-
-### Files Changed
-1. `supabase/functions/scrape-product/index.ts` — filter out `/pages/` paths, tighten AI prompt, improve image extraction
-2. `supabase/functions/remove-bg/index.ts` — rewrite prompt to be explicit about preserving original pixels
-3. `src/components/database/BusinessDNAOnboarding.tsx` — skip empty/broken image URLs during normalization
-
-### Deployment
-- Redeploy `scrape-product` and `remove-bg` edge functions after changes
+### Summary
+The core fix is 3 lines: resolve relative URLs to absolute before Firecrawl, and relax the product filter. This will make Tesla, Apple, Nike etc. work because their product pages will actually get scraped instead of silently failing.
 
