@@ -20,9 +20,10 @@ const connectors: ConnectorDef[] = [
 interface ConnectorGridProps {
   onConnect: (name: "Microsoft") => void;
   onModeChange: (mode: "research" | "action") => void;
+  brandId?: string;
 }
 
-export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
+export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGridProps) {
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
   const [showSyncPrefs, setShowSyncPrefs] = useState(false);
@@ -67,7 +68,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status" }),
+          body: JSON.stringify({ action: "check-status", brandId }),
         }
       );
 
@@ -105,6 +106,7 @@ export function ConnectorGrid({ onConnect, onModeChange }: ConnectorGridProps) {
             action: "get-auth-url",
             returnPath: window.location.pathname,
             origin: window.location.origin,
+            brandId,
           }),
         }
       );

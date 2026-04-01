@@ -327,7 +327,7 @@ export function BusinessDNAOnboarding({
     return () => clearInterval(poll);
   }, [step, persistenceComplete, sourceUrlCount]);
 
-  // Separate flip interval
+  // Separate flip interval — only rotates active index, does NOT mark as verified
   useEffect(() => {
     if (step !== 4 && step !== 5) return;
     if (persistenceComplete) return;
@@ -336,15 +336,7 @@ export function BusinessDNAOnboarding({
       setActiveSourceIndex(prev => {
         const count = sourceUrlCount;
         if (count === 0) return 0;
-        const next = (prev + 1) % count;
-        setVerifiedSources(vs => {
-          const updated = new Set([...vs, prev]);
-          for (const idx of updated) {
-            if (idx >= count) updated.delete(idx);
-          }
-          return updated;
-        });
-        return next;
+        return (prev + 1) % count;
       });
     }, 2200);
     return () => clearInterval(interval);
@@ -506,7 +498,7 @@ export function BusinessDNAOnboarding({
       await new Promise(r => setTimeout(r, 300));
 
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
-      const newAudiences: AudienceEntry[] = audiencesRaw
+      const parsedAudiences: AudienceEntry[] = audiencesRaw
         .filter((a: any) => a?.name)
         .slice(0, 5)
         .map((a: any, i: number) => ({
@@ -537,6 +529,20 @@ export function BusinessDNAOnboarding({
           productIds: newProducts[i] ? [newProducts[i].id] : [],
           brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
         }));
+
+      // Ensure at least one audience per product — fill gaps for products without a matched audience
+      const coveredProductIds = new Set(parsedAudiences.flatMap(a => a.productIds || []));
+      const missingProducts = newProducts.filter(p => !coveredProductIds.has(p.id));
+      const fallbackAudiences: AudienceEntry[] = missingProducts.map((p, i) => ({
+        ...DEFAULT_AUDIENCE,
+        id: `audience-${Date.now()}-fill-${i}`,
+        name: `${p.name} Audience`,
+        description: `Target audience for ${p.name}`,
+        lastUpdated: now,
+        productIds: [p.id],
+        brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
+      }));
+      const newAudiences = [...parsedAudiences, ...fallbackAudiences];
 
       if (!cancelled) markTodo("Extract audiences");
       await new Promise(r => setTimeout(r, 300));

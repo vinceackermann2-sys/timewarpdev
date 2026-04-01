@@ -28,9 +28,10 @@ interface ConnectedProvider {
 
 interface ConnectBusinessDNAProps {
   onComplete: () => void;
+  brandId?: string;
 }
 
-export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
+export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAProps) {
   const [connectedProviders, setConnectedProviders] = useState<ConnectedProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
@@ -50,7 +51,7 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status" }),
+          body: JSON.stringify({ action: "check-status", brandId }),
         }
       );
 
@@ -96,7 +97,7 @@ export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: providerId, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin }),
+          body: JSON.stringify({ provider: providerId, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId }),
         }
       );
 
