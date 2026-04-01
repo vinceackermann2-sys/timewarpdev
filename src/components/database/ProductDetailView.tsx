@@ -758,7 +758,6 @@ export function ProductDetailView({
             <div className="hidden lg:block w-52 shrink-0">
               <FixedSidebar>
                 <ProductPageSidebar
-                  itemName={safeProduct.name}
                   activeSection={activeSidebarSection}
                   onSectionClick={(id) => {
                     setActiveSidebarSection(id);

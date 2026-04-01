@@ -612,7 +612,6 @@ export function AudienceDetailView({
             <div className="hidden lg:block w-52 shrink-0">
               <FixedSidebar>
                 <AudiencePageSidebar
-                  itemName={audience.name}
                   activeSection={activeSidebarSection}
                   onSectionClick={(id) => {
                     setActiveSidebarSection(id);

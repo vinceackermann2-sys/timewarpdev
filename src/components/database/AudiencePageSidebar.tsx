@@ -35,11 +35,9 @@ const ITEM_HEIGHT = 32;
 const TOP_PAD = 12;
 
 export function AudiencePageSidebar({
-  itemName,
   activeSection: externalActiveSection,
   onSectionClick,
 }: {
-  itemName?: string;
   activeSection?: string;
   onSectionClick?: (id: string) => void;
 }) {
@@ -77,9 +75,6 @@ export function AudiencePageSidebar({
 
   return (
     <nav>
-      {itemName && (
-        <p className="text-[11px] text-muted-foreground/70 mb-2 truncate">Business DNA › {itemName}</p>
-      )}
       <h3 className="text-sm font-semibold text-foreground mb-3">On This Page</h3>
       <div className="relative" style={{ height: totalHeight }}>
         <div className="absolute w-px bg-border/60" style={{ left: 3, top: TOP_PAD, bottom: TOP_PAD }} />
