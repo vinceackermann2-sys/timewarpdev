@@ -506,7 +506,7 @@ export function BusinessDNAOnboarding({
       await new Promise(r => setTimeout(r, 300));
 
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
-      const newAudiences: AudienceEntry[] = audiencesRaw
+      const parsedAudiences: AudienceEntry[] = audiencesRaw
         .filter((a: any) => a?.name)
         .slice(0, 5)
         .map((a: any, i: number) => ({
@@ -537,6 +537,20 @@ export function BusinessDNAOnboarding({
           productIds: newProducts[i] ? [newProducts[i].id] : [],
           brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
         }));
+
+      // Ensure at least one audience per product — fill gaps for products without a matched audience
+      const coveredProductIds = new Set(parsedAudiences.flatMap(a => a.productIds || []));
+      const missingProducts = newProducts.filter(p => !coveredProductIds.has(p.id));
+      const fallbackAudiences: AudienceEntry[] = missingProducts.map((p, i) => ({
+        ...DEFAULT_AUDIENCE,
+        id: `audience-${Date.now()}-fill-${i}`,
+        name: `${p.name} Audience`,
+        description: `Target audience for ${p.name}`,
+        lastUpdated: now,
+        productIds: [p.id],
+        brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
+      }));
+      const newAudiences = [...parsedAudiences, ...fallbackAudiences];
 
       if (!cancelled) markTodo("Extract audiences");
       await new Promise(r => setTimeout(r, 300));
