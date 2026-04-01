@@ -774,14 +774,14 @@ serve(async (req) => {
             if (pageImages.length === 0 && ogImageUrl) {
               pageImages = [ogImageUrl];
             }
-            // Quick lightweight AI call to get just name + description
+            // Quick lightweight AI call to get name, description, and image URLs
             const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-2.5-flash-lite",
-                max_tokens: 500,
-                messages: [{ role: "user", content: `From this product page content, extract ONLY the product name and a 1-sentence description. Return JSON: {"name": "", "description": ""}\n\nContent (first 3000 chars):\n${page.markdown.slice(0, 3000)}` }],
+                max_tokens: 800,
+                messages: [{ role: "user", content: `From this product page content, extract the product name, a 1-sentence description, and up to 5 product image URLs (full URLs only, not logos or icons). Return JSON: {"name": "", "description": "", "imageUrls": []}\n\nContent (first 4000 chars):\n${page.markdown.slice(0, 4000)}` }],
               }),
             });
             if (!res.ok) return { url: page.url, name: "", description: "", images: pageImages };
@@ -789,7 +789,10 @@ serve(async (req) => {
             const raw = d.choices?.[0]?.message?.content || "";
             try {
               const parsed = robustJsonParse(raw);
-              return { url: page.url, name: parsed.name || "", description: parsed.description || "", images: pageImages };
+              // Merge AI-found images with regex-found images
+              const aiImages = ensureArr(parsed.imageUrls).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
+              const mergedImages = [...new Set([...pageImages, ...aiImages])].slice(0, 8);
+              return { url: page.url, name: parsed.name || "", description: parsed.description || "", images: mergedImages };
             } catch {
               return { url: page.url, name: "", description: "", images: pageImages };
             }
