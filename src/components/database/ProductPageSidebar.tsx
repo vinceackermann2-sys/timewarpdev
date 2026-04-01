@@ -63,7 +63,6 @@ export function ProductPageSidebar({
   return (
     <nav
       ref={navRef}
-      className="sticky top-6"
     >
       {itemName && (
         <p className="text-[11px] text-muted-foreground/70 mb-2 truncate">Business DNA › {itemName}</p>

@@ -608,7 +608,7 @@ export function AudienceDetailView({
             </div>
 
             {/* Right sidebar */}
-            <div className="hidden lg:block w-52 shrink-0">
+            <div className="hidden lg:block w-52 shrink-0 sticky top-6 self-start max-h-[calc(100vh-4rem)] overflow-y-auto">
               <AudiencePageSidebar
                 itemName={audience.name}
                 activeSection={activeSidebarSection}
