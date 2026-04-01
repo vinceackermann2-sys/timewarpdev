@@ -58,7 +58,7 @@ export function AudiencePageSidebar({
   const totalHeight = AUDIENCE_TOC_ITEMS.length * ITEM_HEIGHT + TOP_PAD * 2;
 
   return (
-    <nav className="sticky top-6">
+    <nav>
       {itemName && (
         <p className="text-[11px] text-muted-foreground/70 mb-2 truncate">Business DNA › {itemName}</p>
       )}
