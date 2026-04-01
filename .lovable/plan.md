@@ -1,53 +1,30 @@
 
 
-## Plan: Reliable Product Image Discovery for All Websites
+## Plan: Two Changes
 
-### Problem
-The current `isUsableImage` allowlist requires URLs to match specific CDN patterns (Shopify, Apple, Tesla) or have standard file extensions. This fails for most non-Shopify sites because modern CDNs serve images without extensions (e.g., Apple's `as-images` paths, Cloudflare Image Resizing, imgix, etc.). The allowlist approach is fundamentally unscalable.
+### 1. Footer & Business DNA — AI-CEO Link to Homepage
 
-### New Approach — Let the AI Pick the Best Image
+The `WorkspaceFooter` already has `AI-CEO` linking to `/` (homepage). This is already correct. If there's another location you're referring to, let me know. No change needed here unless you mean a different component.
 
-Instead of regex-guessing which URL is a product image, pass the list of extracted image URLs to the AI during discovery and let it choose the best product image.
+### 2. Fix Moodboard Generation (Pinterest Scraping is Broken)
 
-### Changes
+**Root Cause**: The moodboard pipeline scrapes Pinterest for images using Firecrawl and Browserless. Pinterest is now blocking all 3 scraping strategies — every query returns 0 images. The edge function logs confirm: `Moodboard total unique images: 0 (from 0/6 queries)`.
 
-**1. Edge function discover mode** (`supabase/functions/scrape-product/index.ts`, ~line 854-871)
+**Fix**: Replace the Pinterest-based moodboard with AI-generated moodboard images. The `enrich-brand` function already uses `generateImage()` successfully for guideline images and social media mockups. We'll use the same approach for moodboard — generate 6 moodboard-style images using AI, based on the brand's name, category, colors, and audience description.
 
-Update the AI prompt in discover mode to include the list of extracted `pageImages` and ask the AI to select the best product image URL from that list:
+**Changes in `supabase/functions/enrich-brand/index.ts`:**
 
-```
-From this product page content, extract the product name and a 1-sentence description.
-Here are image URLs found on this page: ${JSON.stringify(pageImages.slice(0, 15))}
-Select the 1-3 URLs that are most likely the MAIN product photo (not logos, icons, banners, or tracking pixels).
-Return JSON: {"name": "", "description": "", "bestImages": []}
-```
+- Replace the `fetchMoodboardImages` call in the moodboard pipeline (line 748-757) with a new `generateMoodboardImages` function
+- The new function generates 6 images via `generateImage()` with prompts like: "Create a premium moodboard-style image for [brand] in [category]. Colors: [primary], [secondary]. Style: [trust/feeling keywords]. Professional aesthetic photography."
+- Use 6 different angle prompts (product close-up, lifestyle scene, texture/material, flat lay, ambient/atmosphere, detail shot) for visual diversity
+- Remove the now-unused Pinterest scraping functions (~300 lines of dead code)
 
-Then use `bestImages` as the primary image source, falling back to the regex-extracted list.
+**Technical details:**
+- Each image uses `generateImage(LOVABLE_API_KEY, prompt)` — same proven pattern as guideline images
+- Add 500ms delay between generations to avoid rate limits (same pattern as existing code)
+- The `moodboardUrls` output format stays identical — array of URL strings — so `BrandExtendedSections` needs no changes
+- Remove: `fetchMoodboardImages`, `scrapePinterestPageForImages`, `scrapePinterestPageForImagesWithBrowserless`, `extractPinterestUrls`, `extractPinterestPageUrls`, `canonicalizePinterestUrl`, `isValidPinterestMoodboardUrl`, `parseMoodboardFormula`, `buildMoodboardQueries`, `normalizeMoodboardQuery`, `keywordizeMoodboardPhrase`, `cleanMoodboardToken`, `getPinterestAssetKey`, `deduplicatePinterestUrls`
 
-**2. Frontend `isUsableImage`** (`src/components/database/BusinessDNAOnboarding.tsx`, ~line 908-917)
-
-Replace the restrictive allowlist with a simple blocklist-only approach. Since the AI already picked the best images, we just need to block obvious junk:
-
-```ts
-const isUsableImage = (u?: string) => !!u && /^https?:\/\//i.test(u) &&
-  u.length > 30 &&
-  !/(beacon|atb|tracking|pixel|spacer|blank|transparent|placehold|placeholder|favicon|1x1|badge)/i.test(u) &&
-  !/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(u) &&
-  !u.endsWith('.svg') &&
-  !u.includes('data:image');
-```
-
-No extension allowlist, no CDN pattern matching. Any real image URL passes.
-
-**3. Redeploy edge function.**
-
-### Why This Works
-- The AI understands context — it knows a product photo from a tracking pixel
-- No more regex arms race against every CDN format
-- Shopify continues working (unchanged)
-- Apple, Tesla, Nike, etc. work because the AI picks the right URL from the extracted list
-
-### Files Changed
-- `supabase/functions/scrape-product/index.ts` — update discover AI prompt to include image selection
-- `src/components/database/BusinessDNAOnboarding.tsx` — simplify `isUsableImage` to blocklist-only
+**Files changed:**
+- `supabase/functions/enrich-brand/index.ts` — replace Pinterest pipeline with AI generation
 
