@@ -443,7 +443,7 @@ serve(async (req) => {
 
   // Race the entire handler against a 50s timeout so we return a proper
   // CORS-enabled error instead of letting the gateway send a bare 504.
-  const INTERNAL_TIMEOUT_MS = 50_000;
+  const INTERNAL_TIMEOUT_MS = 120_000;
 
   const mainLogic = async (): Promise<Response> => {
   try {
