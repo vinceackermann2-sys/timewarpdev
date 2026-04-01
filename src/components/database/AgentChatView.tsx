@@ -16,6 +16,7 @@ import { useBusinessDNA } from "./BusinessDNAContext";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
