@@ -31,57 +31,87 @@ const normalizeImageUrl = (raw: string, pageUrl: string): string | null => {
 const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] => {
   const imgs: string[] = [];
   let m;
-  // Markdown image syntax: ![alt](url) — skip empty parens
+
+  const addImg = (raw: string) => {
+    const url = normalizeImageUrl(raw, pageUrl);
+    if (url && !imgs.includes(url)) imgs.push(url);
+  };
+
+  // 1. Markdown image syntax: ![alt](url)
   const mdImgRegex = /!\[.*?\]\(([^\s)]+)\)/g;
   while ((m = mdImgRegex.exec(markdown)) !== null) {
-    if (m[1] && m[1] !== '') {
-      const url = normalizeImageUrl(m[1], pageUrl);
-      if (url) imgs.push(url);
-    }
+    if (m[1]) addImg(m[1]);
   }
-  // HTML src attributes: src="url"
-  const srcRegex = /src=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi;
+
+  // 2. <img> tag src (ANY src, not just with extensions)
+  const imgSrcRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+  while ((m = imgSrcRegex.exec(markdown)) !== null) {
+    addImg(m[1]);
+  }
+
+  // 3. src attributes with known image extensions
+  const srcRegex = /src=["']([^"']+\.(?:jpg|jpeg|png|webp|avif)(?:\?[^"']*)?)["']/gi;
   while ((m = srcRegex.exec(markdown)) !== null) {
-    const url = normalizeImageUrl(m[1], pageUrl);
-    if (url && !imgs.includes(url)) imgs.push(url);
+    addImg(m[1]);
   }
-  // data-src attributes (lazy-loaded images)
-  const dataSrcRegex = /data-src=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi;
+
+  // 4. data-src / data-original (lazy-loaded images, any URL)
+  const dataSrcRegex = /data-(?:src|original|lazy-src)=["']([^"']+)["']/gi;
   while ((m = dataSrcRegex.exec(markdown)) !== null) {
-    const url = normalizeImageUrl(m[1], pageUrl);
-    if (url && !imgs.includes(url)) imgs.push(url);
+    addImg(m[1]);
   }
-  // srcset attributes — take the largest (last) image
+
+  // 5. srcset attributes — take the largest (last) image
   const srcsetRegex = /(?:data-)?srcset=["']([^"']+)["']/gi;
   while ((m = srcsetRegex.exec(markdown)) !== null) {
     const entries = m[1].split(',').map(s => s.trim()).filter(Boolean);
-    // Take the last entry (usually largest)
     const lastEntry = entries[entries.length - 1];
     if (lastEntry) {
       const srcUrl = lastEntry.split(/\s+/)[0];
-      const url = normalizeImageUrl(srcUrl, pageUrl);
-      if (url && !imgs.includes(url)) imgs.push(url);
+      addImg(srcUrl);
     }
   }
-  // Bare image URLs (http/https)
-  const bareImgRegex = /(https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?)/gi;
+
+  // 6. Bare image URLs with extensions
+  const bareImgRegex = /(https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp|avif)(?:\?[^\s"'<>]*)?)/gi;
   while ((m = bareImgRegex.exec(markdown)) !== null) {
-    const url = normalizeImageUrl(m[1], pageUrl);
-    if (url && !imgs.includes(url)) imgs.push(url);
+    addImg(m[1]);
   }
-  // Protocol-relative URLs
-  const protoRelRegex = /(\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?)/gi;
+
+  // 7. Protocol-relative URLs with extensions
+  const protoRelRegex = /(\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp|avif)(?:\?[^\s"'<>]*)?)/gi;
   while ((m = protoRelRegex.exec(markdown)) !== null) {
-    const url = normalizeImageUrl(m[1], pageUrl);
-    if (url && !imgs.includes(url)) imgs.push(url);
+    addImg(m[1]);
   }
+
+  // 8. og:image and twitter:image meta tags
+  const ogRegex = /(?:property|name)=["'](?:og:image|twitter:image)["'][^>]*content=["']([^"']+)["']/gi;
+  while ((m = ogRegex.exec(markdown)) !== null) {
+    addImg(m[1]);
+  }
+  const ogRegex2 = /content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:image|twitter:image)["']/gi;
+  while ((m = ogRegex2.exec(markdown)) !== null) {
+    addImg(m[1]);
+  }
+
+  // 9. CSS background-image URLs
+  const bgImgRegex = /background(?:-image)?:\s*url\(["']?([^"')]+)["']?\)/gi;
+  while ((m = bgImgRegex.exec(markdown)) !== null) {
+    addImg(m[1]);
+  }
+
   return [...new Set(imgs)].filter(url => {
     if (!url) return false;
     const lower = url.toLowerCase();
-    return !lower.includes('favicon') && !lower.includes('pixel') && !lower.includes('tracking') && 
-           !lower.includes('1x1') && !lower.includes('logo') && !lower.includes('icon') &&
-           !lower.includes('badge') && !lower.includes('flag') && !lower.includes('avatar');
-  }).slice(0, 8);
+    // Filter out tiny/utility images
+    if (lower.includes('favicon') || lower.includes('pixel') || lower.includes('tracking') ||
+        lower.includes('1x1') || lower.includes('badge') || lower.includes('flag') ||
+        lower.includes('avatar') || lower.includes('spacer') || lower.includes('.svg') ||
+        lower.includes('data:image')) return false;
+    // Filter tiny dimension indicators in URL
+    if (/\/\d{1,2}x\d{1,2}[/.?]/.test(lower)) return false;
+    return true;
+  }).slice(0, 12);
 };
 
 const extractTitleFromHtml = (html: string) => {
