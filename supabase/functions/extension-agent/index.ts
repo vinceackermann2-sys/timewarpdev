@@ -442,7 +442,7 @@ ${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments**
 function buildChatPrompt(identity: string, relevantContext: string): string {
   return `You are an intelligent AI assistant. You help with strategy, marketing, content creation, analysis, operations, and decision-making.
 
-${identity ? `# Business Context\n${identity}` : ""}
+${identity ? `# Business Context\n${identity}\n\n**IMPORTANT: You are currently representing ONLY this business. All your answers must be about this specific business. Do NOT reference or provide information about any other business the user may own.**` : ""}
 ${relevantContext}
 
 ## CRITICAL CHAT BEHAVIOR
