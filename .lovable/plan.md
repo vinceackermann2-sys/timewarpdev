@@ -1,47 +1,46 @@
 
 
-## Plan: Fix Product Discovery for Non-Shopify Sites
+## Plan: Filter Placeholder and Junk Images from Product Scraping
 
-### Root Cause (Two Issues)
+### Problem
+The scraper picks up placeholder/tracker images (e.g., `https://placehold.it/30`) as valid product images. These are tiny utility images embedded in non-Shopify sites. Shopify works because its product images are real CDN URLs that pass all filters.
 
-**Issue 1 — AI returns relative paths instead of absolute URLs**: The AI URL picker returns paths like `/modely/design` instead of `https://tesla.com/modely/design`. Firecrawl fails on these, resulting in 0 scraped product pages. The system falls back to the homepage, producing only 1 generic product.
+### Fix — Two locations
 
-Evidence from logs:
+**1. Edge function image filter** (`supabase/functions/scrape-product/index.ts`, line ~127-155)
+
+Add to the filter chain:
+- Block known placeholder domains: `placehold.it`, `via.placeholder.com`, `placeholder.com`
+- Block tiny images: URLs with dimension params like `w=30` or path segments like `/30` (single small number)
+- Block tracking/transparent pixel patterns: `transparent`, `blank`, `spacer`
+
+```ts
+// Add after line 133 (existing filter block):
+if (lower.includes('placehold') || lower.includes('placeholder') || lower.includes('blank') || lower.includes('transparent')) return false;
+// Block tiny dimension in URL query params
+if (/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(url)) return false;
 ```
-AI selected 4 product pages: ["/modely/design", "/tesla-diner", ...]
-Scraped 0 product pages
+
+**2. Frontend `isUsableImage` helper** (`src/components/database/BusinessDNAOnboarding.tsx`, line ~908-911)
+
+Add matching filters so even if the edge function misses something, the UI won't display it:
+
+```ts
+const isUsableImage = (u?: string) => !!u && /^https?:\/\//.test(u) && 
+  !/\/image\/upload\/(?:[a-z]_[a-z0-9]+\/?)*$/i.test(u) &&
+  !/\/(?:c_scale|f_auto|q_auto|w_\d+|h_\d+)$/i.test(u) &&
+  !u.includes('/**') && !u.includes('/*') &&
+  !/(placehold|placeholder|spacer|pixel|blank|transparent|tracking)/i.test(u) &&
+  !/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(u);
 ```
 
-**Issue 2 — Products without images get dropped**: Line 871 filters out products that have no name AND no images. On non-Shopify sites where image extraction fails, valid products get excluded.
+Also add a **fallback**: if `find(isUsableImage)` returns null, try the next images in the array rather than showing nothing. The `allImages` array has 3 items — index 0 is `placehold.it/30` but indices 1-2 may be real product images.
 
-### Fix
+**3. Redeploy edge function** after changes.
 
-**File: `supabase/functions/scrape-product/index.ts`**
-
-1. **Resolve relative URLs to absolute** (line ~737): After parsing the AI-selected URLs, resolve each one against `baseUrl` before passing to Firecrawl:
-   ```ts
-   const selected: string[] = JSON.parse(arrMatch[0])
-     .filter((u: any) => typeof u === 'string')
-     .map((u: string) => {
-       // AI sometimes returns relative paths — resolve to absolute
-       if (u.startsWith('/')) return `${parsedBase.origin}${u}`;
-       if (!u.startsWith('http')) return `${parsedBase.origin}/${u}`;
-       return u;
-     })
-     .slice(0, maxPages);
-   ```
-
-2. **Don't drop products without images** (line ~871): Change the filter to keep all products that have a name, even without images:
-   ```ts
-   .filter(p => p.name || p.description || p.images.length > 0);
-   ```
-
-3. **Add the Firecrawl `screenshot` format to discover-mode page scrapes** to ensure a visual fallback always exists even when regex/AI image extraction fails on JS-heavy sites (already present in the code, just verify it works with resolved URLs).
-
-**File: `src/components/database/BusinessDNAOnboarding.tsx`**
-
-4. **Remove the product exclusion based on images** (line ~888): The continue button check `extractedProducts.some((p: any) => p.images?.length > 0)` skips the image picker step if no products have images — this is correct behavior. But ensure products without images still show in the card grid (already happens with the Globe fallback icon — no change needed).
+### Why Shopify works
+Shopify product pages serve real CDN image URLs (e.g., `cdn.shopify.com/s/files/...product.jpg`) directly in static HTML. No placeholders, no lazy-load stubs. Non-Shopify sites use JS rendering with placeholder `src` attributes that get replaced client-side — the scraper sees the placeholder, not the final image.
 
 ### Summary
-The core fix is 3 lines: resolve relative URLs to absolute before Firecrawl, and relax the product filter. This will make Tesla, Apple, Nike etc. work because their product pages will actually get scraped instead of silently failing.
+Two small filter additions (placeholder domains + tiny dimensions) in both the edge function and frontend. This is the same `pickBestImage` pattern — filter junk first, then pick the best remaining candidate.
 
