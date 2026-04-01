@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, CheckCircle2, XCircle, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TaskStep {
@@ -16,113 +16,95 @@ interface Props {
 }
 
 export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props) {
-  const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
-
-  const toggleStep = (idx: number) => {
-    setExpandedSteps(prev => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  };
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const doneCount = steps.filter(s => s.status === "done").length;
+  const errorCount = steps.filter(s => s.status === "error").length;
   const totalCount = steps.length;
+  const currentStep = steps[currentStepIndex] || steps[steps.length - 1];
+  const isRunning = isStreaming && currentStep?.status === "running";
+
+  if (totalCount === 0) return null;
 
   return (
-    <div className="space-y-0.5 mb-3">
-      {/* Progress summary */}
-      {totalCount > 1 && (
-        <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
-          <div className="flex-1 h-0.5 rounded-full bg-muted overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${totalCount > 0 ? (doneCount / totalCount) * 100 : 0}%` }}
-            />
-          </div>
-          <span className="text-[10px] text-muted-foreground font-medium tabular-nums">
-            {doneCount}/{totalCount}
-          </span>
+    <div className="mb-2">
+      {/* Compact summary bar — always visible */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={cn(
+          "w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border text-left transition-all text-xs",
+          isRunning
+            ? "border-primary/20 bg-primary/[0.04]"
+            : errorCount > 0
+              ? "border-destructive/20 bg-destructive/[0.03]"
+              : "border-border/40 bg-muted/30",
+          "hover:bg-muted/50"
+        )}
+      >
+        {/* Status icon */}
+        {isRunning ? (
+          <Loader2 className="w-3 h-3 animate-spin text-primary shrink-0" />
+        ) : errorCount > 0 ? (
+          <XCircle className="w-3 h-3 text-destructive shrink-0" />
+        ) : (
+          <CheckCircle2 className="w-3 h-3 text-primary shrink-0" />
+        )}
+
+        {/* Current step label */}
+        <span className="flex-1 truncate text-foreground/80">
+          {currentStep?.label || "Processing..."}
+        </span>
+
+        {/* Progress count */}
+        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+          {doneCount}/{totalCount}
+        </span>
+
+        {/* Expand chevron */}
+        <ChevronDown className={cn("w-3 h-3 text-muted-foreground/60 shrink-0 transition-transform", isExpanded && "rotate-180")} />
+      </button>
+
+      {/* Expanded step list */}
+      {isExpanded && (
+        <div className="mt-1 space-y-px pl-1 border-l border-border/30 ml-[17px]">
+          {steps.map((step, idx) => {
+            const isDone = step.status === "done";
+            const isError = step.status === "error";
+            const isActive = step.status === "running" && idx === currentStepIndex;
+
+            return (
+              <div
+                key={idx}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-0.5 text-[10px] leading-tight rounded",
+                  isActive && "text-foreground",
+                  isDone && "text-foreground/50",
+                  isError && "text-destructive",
+                  !isActive && !isDone && !isError && "text-muted-foreground/50"
+                )}
+              >
+                {isActive ? (
+                  <Loader2 className="w-2.5 h-2.5 animate-spin text-primary shrink-0" />
+                ) : isDone ? (
+                  <CheckCircle2 className="w-2.5 h-2.5 text-primary/60 shrink-0" />
+                ) : isError ? (
+                  <XCircle className="w-2.5 h-2.5 text-destructive shrink-0" />
+                ) : (
+                  <div className="w-2.5 h-2.5 rounded-full border border-muted-foreground/20 shrink-0" />
+                )}
+                <span className="truncate">{step.label}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {steps.map((step, idx) => {
-        const isCurrent = idx === currentStepIndex;
-        const isDone = step.status === "done";
-        const isError = step.status === "error";
-        const isRunning = step.status === "running" && isCurrent;
-        const isExpanded = expandedSteps.has(idx);
-        const hasDetail = !!step.detail;
-
-        return (
-          <div
-            key={idx}
-            className={cn(
-              "rounded-lg border transition-all duration-300 overflow-hidden",
-              isRunning ? "border-primary/30 bg-primary/[0.04] shadow-sm shadow-primary/5" : "",
-              isDone ? "border-border/30" : "",
-              isError ? "border-destructive/30 bg-destructive/[0.04]" : "",
-              !isRunning && !isDone && !isError ? "border-border/20 opacity-50" : ""
-            )}
-          >
-            <button
-              onClick={() => hasDetail && toggleStep(idx)}
-              className={cn(
-                "w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-colors",
-                hasDetail ? "cursor-pointer hover:bg-muted/20" : "cursor-default"
-              )}
-            >
-              {/* Status icon */}
-              <div className="shrink-0">
-                {isRunning ? (
-                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                ) : isDone ? (
-                  <CheckCircle2 className="w-3 h-3 text-primary" />
-                ) : isError ? (
-                  <XCircle className="w-3 h-3 text-destructive" />
-                ) : (
-                  <div className="w-3 h-3 rounded-full border border-muted-foreground/25" />
-                )}
-              </div>
-
-              {/* Label */}
-              <span className={cn(
-                "flex-1 text-[11px] leading-tight",
-                isRunning ? "font-medium text-foreground" : "",
-                isDone ? "text-foreground/70" : "",
-                isError ? "text-destructive font-medium" : "",
-                !isRunning && !isDone && !isError ? "text-muted-foreground" : ""
-              )}>
-                {step.label}
-              </span>
-
-              {/* Expand chevron */}
-              {hasDetail && (
-                <div className="shrink-0 text-muted-foreground/60">
-                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                </div>
-              )}
-            </button>
-
-            {/* Detail panel */}
-            {hasDetail && isExpanded && (
-              <div className="px-2.5 pb-2 border-t border-border/20">
-                <p className="text-[10px] text-muted-foreground leading-relaxed pt-1.5 pl-5">
-                  {step.detail}
-                </p>
-              </div>
-            )}
-          </div>
-        );
-      })}
-
       {/* Pulsing dots while working */}
-      {isStreaming && steps.length > 0 && steps[steps.length - 1]?.status === "running" && (
-        <div className="flex items-center gap-1 px-3 py-1">
-          <span className="w-0.5 h-0.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "0ms" }} />
-          <span className="w-0.5 h-0.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "150ms" }} />
-          <span className="w-0.5 h-0.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "300ms" }} />
+      {isRunning && !isExpanded && (
+        <div className="flex items-center gap-0.5 px-3 py-0.5">
+          <span className="w-0.5 h-0.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: "0ms" }} />
+          <span className="w-0.5 h-0.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: "150ms" }} />
+          <span className="w-0.5 h-0.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: "300ms" }} />
         </div>
       )}
     </div>
