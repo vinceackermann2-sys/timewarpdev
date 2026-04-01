@@ -751,20 +751,21 @@ export function ProductDetailView({
               </div>
 
               <div className="h-8" />
-          </div>
-        </div>
+            </div>
 
-        {/* Right sidebar — outside the scroll container */}
-        <div className="hidden lg:block w-52 shrink-0 pr-6 pt-6">
-          <div className="sticky top-6">
-            <ProductPageSidebar
-              itemName={safeProduct.name}
-              activeSection={activeSidebarSection}
-              onSectionClick={(id) => {
-                setActiveSidebarSection(id);
-                document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-            />
+            {/* Right sidebar */}
+            <div className="hidden lg:block w-52 shrink-0">
+              <div className="sticky top-6">
+                <ProductPageSidebar
+                  itemName={safeProduct.name}
+                  activeSection={activeSidebarSection}
+                  onSectionClick={(id) => {
+                    setActiveSidebarSection(id);
+                    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
