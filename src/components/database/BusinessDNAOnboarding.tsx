@@ -906,8 +906,8 @@ export function BusinessDNAOnboarding({
                   const isSelected = selectedProducts.includes(i);
                   // Find first usable image (skip broken CDN transform stubs)
                   const isUsableImage = (u?: string) => !!u && /^https?:\/\//.test(u) && 
-                    !/\/image\/upload\/(?:[a-z]_[a-z0-9]+\/?)*$/i.test(u) &&
-                    !/\/(?:c_scale|f_auto|q_auto|w_\d+|h_\d+)$/i.test(u) &&
+                    !/\/image\/upload\/(?:[a-z]_[a-z0-9,]+\/?)*$/i.test(u) &&
+                    !/\/(?:c_scale|f_auto|q_auto|w_\d+|h_\d+|c_fill|c_fit|c_crop)$/i.test(u) &&
                     !u.includes('/**') && !u.includes('/*') &&
                     !/(placehold|placeholder|spacer|pixel|blank|transparent|tracking)/i.test(u) &&
                     !/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(u);
