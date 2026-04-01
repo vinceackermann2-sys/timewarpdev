@@ -6,24 +6,26 @@ import { useEffect, useRef, useState, ReactNode } from "react";
  */
 export function FixedSidebar({ children, className = "" }: { children: ReactNode; className?: string }) {
   const anchorRef = useRef<HTMLDivElement>(null);
-  const [left, setLeft] = useState<number | null>(null);
+  const [pos, setPos] = useState<{ left: number; width: number } | null>(null);
 
   useEffect(() => {
     const measure = () => {
       if (anchorRef.current) {
-        const rect = anchorRef.current.getBoundingClientRect();
-        setLeft(rect.left);
+        const parent = anchorRef.current.closest("[data-sidebar-anchor]") || anchorRef.current;
+        const rect = parent.getBoundingClientRect();
+        setPos({ left: rect.left, width: rect.width });
       }
     };
 
     measure();
     window.addEventListener("resize", measure);
 
-    // Also observe layout shifts from sidebar collapse/expand
+    // Observe layout shifts from sidebar collapse/expand
     const observer = new ResizeObserver(measure);
-    if (anchorRef.current?.parentElement) {
-      observer.observe(anchorRef.current.parentElement);
-    }
+    const root = anchorRef.current?.closest("[data-radix-scroll-area-viewport]")
+      || anchorRef.current?.closest("main")
+      || document.body;
+    observer.observe(root);
 
     return () => {
       window.removeEventListener("resize", measure);
@@ -32,11 +34,11 @@ export function FixedSidebar({ children, className = "" }: { children: ReactNode
   }, []);
 
   return (
-    <div ref={anchorRef} className={className}>
-      {left !== null && (
+    <div ref={anchorRef} data-sidebar-anchor className={className}>
+      {pos !== null && (
         <div
           className="fixed top-24 max-h-[calc(100vh-8rem)] overflow-y-auto"
-          style={{ left, width: anchorRef.current?.offsetWidth }}
+          style={{ left: pos.left, width: pos.width }}
         >
           {children}
         </div>
