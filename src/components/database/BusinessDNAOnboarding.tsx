@@ -1150,24 +1150,33 @@ export function BusinessDNAOnboarding({
           const brandColors = brandData.colors || {};
           // Filter sources to only show URLs related to selected products (not unselected ones)
           const selectedProductUrls = selectedProducts.map(i => discoveredProducts[i]?.url).filter(Boolean);
-          const urls = scannedUrlsRef.current.filter(url => {
-            // Always include non-product URLs (homepage, brand pages, etc.)
-            const isProductPage = discoveredProducts.some(p => {
-              try {
-                return p.url && url.includes(new URL(p.url.startsWith("http") ? p.url : `https://${p.url}`).pathname.replace(/\/$/, ""));
-              } catch { return false; }
+          // Build source URLs — fall back to selected product URLs + main URL if scannedUrls is empty
+          let urls: string[] = [];
+          if (scannedUrlsRef.current.length > 0) {
+            urls = scannedUrlsRef.current.filter(url => {
+              const isProductPage = discoveredProducts.some(p => {
+                try {
+                  return p.url && url.includes(new URL(p.url.startsWith("http") ? p.url : `https://${p.url}`).pathname.replace(/\/$/, ""));
+                } catch { return false; }
+              });
+              if (!isProductPage) return true;
+              return selectedProductUrls.some(pUrl => {
+                try {
+                  const pPath = new URL(pUrl.startsWith("http") ? pUrl : `https://${pUrl}`).pathname.replace(/\/$/, "");
+                  return pPath && url.includes(pPath);
+                } catch { return false; }
+              });
             });
-            if (!isProductPage) return true;
-            // For product-specific URLs, only include if the product was selected
-            return selectedProductUrls.some(pUrl => {
-              try {
-                const pPath = new URL(pUrl.startsWith("http") ? pUrl : `https://${pUrl}`).pathname.replace(/\/$/, "");
-                return pPath && url.includes(pPath);
-              } catch { return false; }
-            });
-          });
-          // Store filtered URLs so the carousel effect uses the same list
-          filteredUrlsRef.current = urls;
+          }
+          // Fallback: use selected product URLs + main URL
+          if (urls.length === 0) {
+            const fallback = new Set<string>();
+            if (activeUrl) fallback.add(activeUrl);
+            for (const pUrl of selectedProductUrls) {
+              if (pUrl) fallback.add(pUrl);
+            }
+            urls = Array.from(fallback);
+          }
           const safeSourceIndex = urls.length > 0 ? activeSourceIndex % urls.length : 0;
 
           return (
