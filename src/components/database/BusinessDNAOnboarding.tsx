@@ -226,6 +226,7 @@ export function BusinessDNAOnboarding({
               .filter((u): u is string => !!u && u.length > 10);
             return { ...p, images, image: images[0] ?? "" };
           });
+          console.log("Discovered products with images:", normalizedProducts.map((p: any) => ({ name: p.name, imageCount: p.images?.length, firstImage: p.images?.[0]?.slice(0, 80) })));
           setDiscoveredProducts(normalizedProducts);
           // Store quick brand info
           if (data.quickBrand) quickBrandRef.current = data.quickBrand;
