@@ -610,7 +610,7 @@ export function AudienceDetailView({
 
             {/* Right sidebar */}
             <div className="hidden lg:block w-52 shrink-0">
-              <div className="sticky top-6">
+              <FixedSidebar>
                 <AudiencePageSidebar
                   itemName={audience.name}
                   activeSection={activeSidebarSection}
@@ -619,7 +619,7 @@ export function AudienceDetailView({
                     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                 />
-              </div>
+              </FixedSidebar>
             </div>
           </div>
         </div>
