@@ -680,6 +680,9 @@ serve(async (req) => {
           const parsedBase = new URL(formattedUrl);
           const baseDomain = parsedBase.hostname.replace(/^www\./, '');
           const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com|pages\/|inventory|new\/|used\/)/i;
+          // Filter out locale-variant duplicates (e.g., /en_my/modely and /ro_RO/modely)
+          const localePrefix = /^\/[a-z]{2}(?:_[a-zA-Z]{2,4})?\//;
+          const seenPaths = new Set<string>();
           const allUrls: string[] = (mapData.links || []).filter((u: string) => {
             if (!u || !u.startsWith("http")) return false;
             try {
@@ -688,6 +691,10 @@ serve(async (req) => {
               if (linkDomain !== baseDomain) return false;
               if (excludePatterns.test(pu.pathname)) return false;
               if (pu.pathname === '/' || pu.pathname === '') return false;
+              // Deduplicate locale variants
+              const canonicalPath = pu.pathname.replace(localePrefix, '/').replace(/\/+$/g, '');
+              if (seenPaths.has(canonicalPath)) return false;
+              seenPaths.add(canonicalPath);
               return true;
             } catch { return false; }
           });
