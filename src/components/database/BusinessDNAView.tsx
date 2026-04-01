@@ -309,8 +309,15 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
     });
   };
 
-  const { brands, setBrands, products, audiences, isLoading: dnaLoading } = useBusinessDNA();
+  const { brands, setBrands, products, audiences, isLoading: dnaLoading, refreshBrand } = useBusinessDNA();
   const activeBrand = brands.find(b => b.id === activeBrandId);
+
+  // Refresh brand data on mount to pick up latest changes (e.g. agentName from onboarding)
+  useEffect(() => {
+    if (activeBrandId && !dnaLoading) {
+      refreshBrand(activeBrandId);
+    }
+  }, [activeBrandId]); // eslint-disable-line react-hooks/exhaustive-deps
   const brandProductCount = products.filter(p => p.brandId === activeBrandId).length;
   const brandProductIds = products.filter(p => p.brandId === activeBrandId).map(p => p.id);
   const brandAudienceCount = audiences.filter(a => a.brandId === activeBrandId || a.productIds?.some(pid => brandProductIds.includes(pid))).length;
