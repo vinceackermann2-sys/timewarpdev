@@ -210,20 +210,8 @@ export function useWorkspace() {
     return fetchWorkspaceMembersData(wsId);
   }, [fetchWorkspaceMembersData]);
 
-  useEffect(() => {
-    if (authLoading || !user) {
-      setMembers([]);
-      setInvitations([]);
-      return;
-    }
-
-    if (activeWorkspaceId) {
-      loadMembers(activeWorkspaceId);
-    } else {
-      setMembers([]);
-      setInvitations([]);
-    }
-  }, [activeWorkspaceId, authLoading, loadMembers, user]);
+  // Members are loaded lazily — only when loadMembers is called explicitly
+  // (e.g. when opening the workspace settings/members panel)
 
   const invalidateWorkspaces = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["workspaces"] });
@@ -232,6 +220,7 @@ export function useWorkspace() {
   const selectWorkspace = useCallback((wsId: string) => {
     setActiveWorkspaceId(wsId);
     localStorage.setItem("preferred_workspace_id", wsId);
+    window.dispatchEvent(new Event("workspace_changed"));
   }, []);
 
   const createWorkspace = useCallback(async (name: string) => {
