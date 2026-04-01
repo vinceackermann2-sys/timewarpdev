@@ -999,7 +999,21 @@ export function AgentChatView() {
             break;
           }
 
-          const result = await executeAction(action);
+          let result = await executeAction(action);
+
+          // Fallback for extract: if extension can't extract, use page context
+          if (!result.success && action.action === "extract" && pageContext?.pageContent) {
+            result = { success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } };
+          }
+
+          // Detect extension disconnection
+          if (!result.success && result.error === "Timeout waiting for extension") {
+            taskSteps[taskSteps.length - 1].status = "error";
+            taskSteps[taskSteps.length - 1].detail = "Browser extension disconnected";
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "⚠️ Browser extension lost connection. Please check your extension is running and try again.", taskSteps: [...taskSteps], isStreaming: false } : m));
+            break;
+          }
+
           stepLogs[stepLogs.length - 1].result = result.success ? "success" : (result.error || "failed");
           taskSteps[taskSteps.length - 1].status = result.success ? "done" : "error";
           setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
