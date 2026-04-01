@@ -583,7 +583,7 @@ serve(async (req) => {
       const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: baseUrl, formats: ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false }),
+        body: JSON.stringify({ url: baseUrl, formats: ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false, waitFor: 3000 }),
       });
 
       if (scrapeResponse.ok) {
@@ -625,7 +625,7 @@ serve(async (req) => {
         ...extractImagesFromMarkdown(homepageMarkdown, formattedUrl),
         ...extractImagesFromMarkdown(homepageHtml, formattedUrl),
       ])];
-      console.log("Homepage images extracted:", homepageImages.length);
+      console.log("Homepage images extracted:", homepageImages.length, "samples:", homepageImages.slice(0, 3));
     } else {
       console.log("Core mode with selectedProductUrls — skipping homepage scrape");
     }
@@ -644,15 +644,19 @@ serve(async (req) => {
             const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
               method: "POST",
               headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: true }),
+              body: JSON.stringify({ url: pUrl, formats: ["markdown", "html", "screenshot"], onlyMainContent: true, waitFor: 3000 }),
             });
             if (res.ok) {
               const d = await res.json();
               const md = d.data?.markdown || d.markdown || "";
               const html = d.data?.html || d.html || "";
+              const screenshot = d.data?.screenshot || d.screenshot || null;
               const mdImages = extractImagesFromMarkdown(md, pUrl);
               const htmlImages = extractImagesFromMarkdown(html, pUrl);
               const allImages = [...new Set([...mdImages, ...htmlImages])];
+              if (allImages.length === 0 && screenshot && typeof screenshot === 'string' && screenshot.startsWith('http')) {
+                allImages.push(screenshot);
+              }
               // Also grab metadata for brand fallback
               const pageMeta = d.data?.metadata || d.metadata || {};
               if (!metadata.title && pageMeta.title) metadata = pageMeta;
@@ -738,15 +742,20 @@ serve(async (req) => {
                       const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: true }),
+                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "html", "screenshot"], onlyMainContent: true, waitFor: 3000 }),
                       });
                       if (res.ok) {
                         const d = await res.json();
                         const md = d.data?.markdown || d.markdown || "";
                         const html = d.data?.html || d.html || "";
+                        const screenshot = d.data?.screenshot || d.screenshot || null;
                         const mdImages = extractImagesFromMarkdown(md, pUrl);
                         const htmlImages = extractImagesFromMarkdown(html, pUrl);
                         const allImages = [...new Set([...mdImages, ...htmlImages])];
+                        // Use screenshot URL as fallback if no real images found
+                        if (allImages.length === 0 && screenshot && typeof screenshot === 'string' && screenshot.startsWith('http')) {
+                          allImages.push(screenshot);
+                        }
                         return { url: pUrl, markdown: md, extractedImages: allImages };
                       }
                       const fb = await fetchPageFallback(pUrl);
