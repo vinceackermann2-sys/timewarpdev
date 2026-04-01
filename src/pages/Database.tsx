@@ -367,6 +367,12 @@ const Database = () => {
             actionsGranted={125}
             reason="referral"
           />
+          <ActionsCelebration
+            open={showPurchaseCelebration}
+            onOpenChange={setShowPurchaseCelebration}
+            actionsGranted={purchasedActions}
+            reason="purchase"
+          />
         </div>
       </SidebarProvider>
     </BusinessDNAProvider>
