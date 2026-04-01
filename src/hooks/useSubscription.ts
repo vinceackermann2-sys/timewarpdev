@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useRef } from "react";
 
 export type PlanType = "co_founder" | "aristotle" | "timewarp_og" | null;
 
@@ -43,8 +44,9 @@ const PLAN_LIMITS = {
 
 export function useSubscription() {
   const { user, isLoading: authLoading } = useAuth();
+  const stripeSyncDone = useRef(false);
 
-  // Primary: read from DB table only (no edge function call)
+  // Primary: read from DB table
   const { data: subscription, isLoading: queryLoading, refetch } = useQuery({
     queryKey: ["user-subscription", user?.id],
     queryFn: async (): Promise<SubscriptionData | null> => {
@@ -78,6 +80,30 @@ export function useSubscription() {
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  // On mount (once per session), call check-subscription to sync Stripe → DB
+  useEffect(() => {
+    if (!user || authLoading || stripeSyncDone.current) return;
+    stripeSyncDone.current = true;
+
+    const syncFromStripe = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("check-subscription");
+        if (error) {
+          console.warn("Stripe sync failed:", error.message);
+          return;
+        }
+        // If Stripe found a plan that differs from DB, refetch from DB
+        if (data?.plan) {
+          refetch();
+        }
+      } catch (err) {
+        console.warn("Stripe sync error:", err);
+      }
+    };
+
+    syncFromStripe();
+  }, [user, authLoading, refetch]);
 
   const isLoading = authLoading || queryLoading;
 

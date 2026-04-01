@@ -17,7 +17,12 @@ const PRODUCT_TO_PLAN: Record<string, string> = {
   "prod_U5iAwdPTbESFEa": "timewarp_og",
   "prod_U5iBwG21WwMlvs": "timewarp_og",
   "prod_U5iCei9C5DGcAg": "timewarp_og",
+  // One-time OG payment product
+  "prod_UEo19ZSxK1lrq7": "timewarp_og",
 };
+
+// TimeWarp OG one-time price ID (used in create-checkout)
+const OG_ONE_TIME_PRICE_ID = "price_1TGKOzGKbzbe9CQL8pj9zYEf";
 
 const ACTIVE_DB_STATUSES = new Set(["active", "trialing", "past_due"]);
 const ACTIVE_STRIPE_STATUSES = new Set(["active", "trialing", "past_due"]);
@@ -46,9 +51,10 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
+    // Read current DB subscription
     const { data: storedSubscription } = await supabaseClient
       .from("user_subscriptions")
-      .select("plan, status")
+      .select("plan, status, bonus_actions, actions_used")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(1)
@@ -74,19 +80,21 @@ serve(async (req) => {
     }
 
     const customerId = customers.data[0].id;
+
+    // Check for active recurring subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "all",
       limit: 10,
     });
 
-    const activeSubscription = subscriptions.data.find((subscription) =>
-      ACTIVE_STRIPE_STATUSES.has(subscription.status)
+    const activeSubscription = subscriptions.data.find((s) =>
+      ACTIVE_STRIPE_STATUSES.has(s.status)
     );
 
     let plan = fallbackPlan;
-    let productId = null;
-    let subscriptionEnd = null;
+    let productId: string | null = null;
+    let subscriptionEnd: string | null = null;
 
     if (activeSubscription) {
       try {
@@ -101,8 +109,75 @@ serve(async (req) => {
       plan = (productId ? PRODUCT_TO_PLAN[productId] : null) || fallbackPlan;
     }
 
+    // Check for one-time OG payment if no active subscription found
+    if (!activeSubscription) {
+      const sessions = await stripe.checkout.sessions.list({
+        customer: customerId,
+        limit: 10,
+      });
+
+      const ogSession = sessions.data.find(
+        (s) =>
+          s.payment_status === "paid" &&
+          s.mode === "payment" &&
+          s.line_items === undefined // need to expand
+      );
+
+      // Check sessions for OG one-time payment
+      for (const session of sessions.data) {
+        if (session.payment_status === "paid" && session.mode === "payment") {
+          // Retrieve with line items to check for OG price
+          const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+            expand: ["line_items"],
+          });
+          const priceId = fullSession.line_items?.data?.[0]?.price?.id;
+          const sessionProductId = fullSession.line_items?.data?.[0]?.price?.product as string | undefined;
+          if (priceId === OG_ONE_TIME_PRICE_ID || (sessionProductId && PRODUCT_TO_PLAN[sessionProductId] === "timewarp_og")) {
+            plan = "timewarp_og";
+            productId = sessionProductId || null;
+            // OG is 3-month access from payment date
+            const paidAt = fullSession.created ? new Date(fullSession.created * 1000) : new Date();
+            const expiresAt = new Date(paidAt);
+            expiresAt.setMonth(expiresAt.getMonth() + 3);
+            subscriptionEnd = expiresAt.toISOString();
+            break;
+          }
+        }
+      }
+    }
+
+    // Sync plan to user_subscriptions DB
+    if (plan) {
+      const upsertData: Record<string, any> = {
+        user_id: user.id,
+        plan,
+        status: "active",
+        updated_at: new Date().toISOString(),
+      };
+
+      if (storedSubscription) {
+        // Update existing row, preserve bonus_actions and actions_used
+        await supabaseClient
+          .from("user_subscriptions")
+          .update({ plan, status: "active", updated_at: new Date().toISOString() })
+          .eq("user_id", user.id);
+      } else {
+        // Insert new row
+        await supabaseClient
+          .from("user_subscriptions")
+          .insert({
+            user_id: user.id,
+            plan,
+            status: "active",
+            actions_used: 0,
+            bonus_actions: 0,
+          });
+      }
+      console.log(`[check-subscription] Synced plan '${plan}' for user ${user.id}`);
+    }
+
     return new Response(JSON.stringify({
-      subscribed: Boolean(activeSubscription || fallbackPlan),
+      subscribed: Boolean(activeSubscription || plan),
       plan,
       product_id: productId,
       subscription_end: subscriptionEnd,
