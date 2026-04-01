@@ -734,7 +734,15 @@ serve(async (req) => {
               const arrMatch = raw.match(/\[[\s\S]*?\]/);
               if (arrMatch) {
                 const maxPages = isCoreMode ? 3 : 10;
-                const selected: string[] = JSON.parse(arrMatch[0]).filter((u: any) => typeof u === 'string').slice(0, maxPages);
+                const parsedBase = new URL(baseUrl);
+                const selected: string[] = JSON.parse(arrMatch[0])
+                  .filter((u: any) => typeof u === 'string')
+                  .map((u: string) => {
+                    if (u.startsWith('/')) return `${parsedBase.origin}${u}`;
+                    if (!u.startsWith('http')) return `${parsedBase.origin}/${u}`;
+                    return u;
+                  })
+                  .slice(0, maxPages);
                 console.log("AI selected", selected.length, "product pages:", selected);
                 const scrapeResults = await Promise.allSettled(
                   selected.map(async (pUrl: string) => {
