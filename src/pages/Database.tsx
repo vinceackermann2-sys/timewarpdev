@@ -60,6 +60,8 @@ const Database = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
   const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
+  const [showPurchaseCelebration, setShowPurchaseCelebration] = useState(false);
+  const [purchasedActions, setPurchasedActions] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
 
