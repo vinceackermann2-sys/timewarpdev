@@ -710,10 +710,14 @@ export function AgentChatView() {
         }
 
         if (action.action === "respond") {
-          finalMessage = action.message || "";
+          // "respond" is an intermediate step (e.g. plan or status update), NOT terminal
           stepLogs[stepLogs.length - 1].result = "respond";
           taskSteps[taskSteps.length - 1].status = "done";
-          break;
+          taskSteps[taskSteps.length - 1].detail = action.message || "";
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
+          conversationHistory.push({ role: "user" as const, content: `Noted. Now proceed with the next action to execute the task. Do NOT respond again — take an actual browser action (navigate, click, type, etc.).` });
+          stepCount++;
+          continue;
         }
 
         // Execute action via extension
