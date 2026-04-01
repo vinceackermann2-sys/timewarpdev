@@ -187,7 +187,7 @@ serve(async (req) => {
       });
     }
 
-    const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId);
+    const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
 
     // Build page context section
     let pageSection = "";
