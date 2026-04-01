@@ -441,6 +441,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Race the entire handler against a 50s timeout so we return a proper
+  // CORS-enabled error instead of letting the gateway send a bare 504.
+  const INTERNAL_TIMEOUT_MS = 50_000;
+
+  const mainLogic = async (): Promise<Response> => {
   try {
     const { url, mode, selectedProductUrls } = await req.json();
     const isDiscoverMode = mode === "discover";
