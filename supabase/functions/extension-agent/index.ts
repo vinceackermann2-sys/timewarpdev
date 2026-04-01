@@ -420,7 +420,7 @@ Before executing ANY browser action, you MUST plan your approach:
    - Content ideas → TikTok, Instagram, YouTube trending
    - Ad research → Facebook Ad Library, TikTok Creative Center
 4. **Plan 3-5 concrete steps** — Know what you'll do before you start acting.
-5. On your FIRST response, output a "respond" action with your plan, then proceed with execution on the next call.
+5. **IMMEDIATELY START EXECUTING** — Do NOT just output a plan. Your first response must be an actual action (navigate, click, etc.) that begins the task. Combine your plan explanation into the "reasoning" field of your first action.`;
 
 ## CRITICAL RULES
 1. **One action at a time** — Each call you return EXACTLY ONE action as a JSON code block.
