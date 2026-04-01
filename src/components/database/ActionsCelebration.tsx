@@ -69,7 +69,9 @@ export function ActionsCelebration({
 
           {/* Message */}
           <p className="text-muted-foreground mb-2">
-            {reason === "referred"
+            {reason === "purchase"
+              ? "Your Action Pack purchase was successful!"
+              : reason === "referred"
               ? "Welcome to TimeWarp! You've received bonus Actions from a referral."
               : "A friend signed up with your referral link!"}
           </p>
