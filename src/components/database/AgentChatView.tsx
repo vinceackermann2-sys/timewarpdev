@@ -471,6 +471,38 @@ export function AgentChatView() {
     return results;
   };
 
+  /* ── Auto-run employee when selected from menu ── */
+  const autoRunEmployee = async (emp: { id: string; name: string; role: string }) => {
+    if (isSending) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error("Please log in first"); return; }
+
+    setIsSending(true);
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: `Run ${emp.name}: Execute the standard operating procedure.`,
+      employees: [emp],
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setSelectedChatEmployees([]);
+
+    const assistantId = crypto.randomUUID();
+    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true }]);
+
+    try {
+      if (isActionMode && extensionConnected) {
+        await runComputerMode(session, userMsg, assistantId);
+      } else {
+        await runEmployeeChat(session, userMsg, assistantId);
+      }
+    } catch (err: any) {
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Sorry, something went wrong. Please try again.", isStreaming: false } : m));
+    }
+    setIsSending(false);
+  };
+
   /* ── Send message ── */
   const handleSendMessage = async () => {
     if (isSending) return;
@@ -1481,11 +1513,14 @@ export function AgentChatView() {
                         <button
                           key={emp.id}
                           onClick={() => {
+                            const empData = { id: emp.id, name: emp.name, role: emp.role };
                             if (!selectedChatEmployees.find((e) => e.id === emp.id)) {
-                              setSelectedChatEmployees((prev) => [...prev, { id: emp.id, name: emp.name, role: emp.role }]);
+                              setSelectedChatEmployees([empData]);
                             }
                             setIsDropupOpen(false);
                             setShowEmployeesMenu(false);
+                            // Auto-run the employee: send a message to execute their SOP
+                            setTimeout(() => autoRunEmployee(empData), 100);
                           }}
                           className="w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors text-muted-foreground flex flex-col"
                         >

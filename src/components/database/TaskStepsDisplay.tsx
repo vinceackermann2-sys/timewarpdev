@@ -31,17 +31,17 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
   const totalCount = steps.length;
 
   return (
-    <div className="space-y-1.5 mb-4">
+    <div className="space-y-0.5 mb-3">
       {/* Progress summary */}
       {totalCount > 1 && (
-        <div className="flex items-center gap-2 mb-2 px-1">
-          <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+        <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+          <div className="flex-1 h-0.5 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
               style={{ width: `${totalCount > 0 ? (doneCount / totalCount) * 100 : 0}%` }}
             />
           </div>
-          <span className="text-[11px] text-muted-foreground font-medium tabular-nums">
+          <span className="text-[10px] text-muted-foreground font-medium tabular-nums">
             {doneCount}/{totalCount}
           </span>
         </div>
@@ -59,8 +59,8 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
           <div
             key={idx}
             className={cn(
-              "rounded-xl border transition-all duration-300 overflow-hidden",
-              isRunning ? "border-primary/30 bg-primary/[0.04] shadow-sm shadow-primary/5 animate-in fade-in slide-in-from-bottom-1" : "",
+              "rounded-lg border transition-all duration-300 overflow-hidden",
+              isRunning ? "border-primary/30 bg-primary/[0.04] shadow-sm shadow-primary/5" : "",
               isDone ? "border-border/30" : "",
               isError ? "border-destructive/30 bg-destructive/[0.04]" : "",
               !isRunning && !isDone && !isError ? "border-border/20 opacity-50" : ""
@@ -69,26 +69,26 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
             <button
               onClick={() => hasDetail && toggleStep(idx)}
               className={cn(
-                "w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors",
+                "w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-colors",
                 hasDetail ? "cursor-pointer hover:bg-muted/20" : "cursor-default"
               )}
             >
               {/* Status icon */}
               <div className="shrink-0">
                 {isRunning ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
                 ) : isDone ? (
-                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <CheckCircle2 className="w-3 h-3 text-primary" />
                 ) : isError ? (
-                  <XCircle className="w-4 h-4 text-destructive" />
+                  <XCircle className="w-3 h-3 text-destructive" />
                 ) : (
-                  <div className="w-4 h-4 rounded-full border-[1.5px] border-muted-foreground/25" />
+                  <div className="w-3 h-3 rounded-full border border-muted-foreground/25" />
                 )}
               </div>
 
               {/* Label */}
               <span className={cn(
-                "flex-1 text-[13px] leading-snug",
+                "flex-1 text-[11px] leading-tight",
                 isRunning ? "font-medium text-foreground" : "",
                 isDone ? "text-foreground/70" : "",
                 isError ? "text-destructive font-medium" : "",
@@ -100,15 +100,15 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
               {/* Expand chevron */}
               {hasDetail && (
                 <div className="shrink-0 text-muted-foreground/60">
-                  {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </div>
               )}
             </button>
 
             {/* Detail panel */}
             {hasDetail && isExpanded && (
-              <div className="px-3.5 pb-3 border-t border-border/20">
-                <p className="text-[12px] text-muted-foreground leading-relaxed pt-2 pl-7">
+              <div className="px-2.5 pb-2 border-t border-border/20">
+                <p className="text-[10px] text-muted-foreground leading-relaxed pt-1.5 pl-5">
                   {step.detail}
                 </p>
               </div>
@@ -119,10 +119,10 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
 
       {/* Pulsing dots while working */}
       {isStreaming && steps.length > 0 && steps[steps.length - 1]?.status === "running" && (
-        <div className="flex items-center gap-1.5 px-4 py-1.5">
-          <span className="w-1 h-1 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "0ms" }} />
-          <span className="w-1 h-1 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "150ms" }} />
-          <span className="w-1 h-1 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "300ms" }} />
+        <div className="flex items-center gap-1 px-3 py-1">
+          <span className="w-0.5 h-0.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "0ms" }} />
+          <span className="w-0.5 h-0.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "150ms" }} />
+          <span className="w-0.5 h-0.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "300ms" }} />
         </div>
       )}
     </div>
