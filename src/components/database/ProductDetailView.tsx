@@ -298,7 +298,7 @@ export function ProductDetailView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" style={{ contain: 'none' }}>
         <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex gap-8">
             {/* Main content */}
