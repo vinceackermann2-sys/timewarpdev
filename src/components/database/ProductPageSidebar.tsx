@@ -35,9 +35,11 @@ const ITEM_HEIGHT = 32;
 const TOP_PAD = 12;
 
 export function ProductPageSidebar({
+  itemName,
   activeSection,
   onSectionClick,
 }: {
+  itemName?: string;
   activeSection?: string;
   onSectionClick?: (id: string) => void;
 }) {
