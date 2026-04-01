@@ -111,7 +111,7 @@ interface ChatMessage {
   files?: { name: string; url?: string }[];
   employees?: { id: string; name: string; role: string }[];
   isStreaming?: boolean;
-  taskSteps?: { action: string; label: string; status: "running" | "done" | "error" }[];
+  taskSteps?: { action: string; label: string; status: "running" | "done" | "error"; detail?: string }[];
   currentStepIndex?: number;
   reportContent?: string;
   reportSavedToDb?: boolean;
