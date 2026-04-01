@@ -7,6 +7,7 @@ import {
 import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { InlineChatChart } from "./InlineChatChart";
+import { TaskStepsDisplay } from "./TaskStepsDisplay";
 import { SettingsView } from "@/components/database/SettingsView";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,7 +112,7 @@ interface ChatMessage {
   files?: { name: string; url?: string }[];
   employees?: { id: string; name: string; role: string }[];
   isStreaming?: boolean;
-  taskSteps?: { action: string; label: string; status: "running" | "done" | "error" }[];
+  taskSteps?: { action: string; label: string; status: "running" | "done" | "error"; detail?: string }[];
   currentStepIndex?: number;
   reportContent?: string;
   reportSavedToDb?: boolean;
@@ -695,7 +696,8 @@ export function AgentChatView() {
         const timeStr = formatTime(stepTime);
 
         stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
-        taskSteps.push({ action: action.action, label: stepLabel, status: "running" });
+        const stepDetail = [action.reasoning, action.url, action.selector].filter(Boolean).join(" · ");
+        taskSteps.push({ action: action.action, label: stepLabel, status: "running", detail: stepDetail || undefined });
 
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
         updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: stepLabel });
@@ -872,7 +874,8 @@ export function AgentChatView() {
         const timeStr = formatTime(stepTime);
 
         stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
-        taskSteps.push({ action: action.action, label: stepLabel, status: "running" });
+        const stepDetail = [action.reasoning, action.url, action.selector].filter(Boolean).join(" · ");
+        taskSteps.push({ action: action.action, label: stepLabel, status: "running", detail: stepDetail || undefined });
 
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
 
@@ -1210,34 +1213,11 @@ export function AgentChatView() {
                     <div className="max-w-none text-foreground text-[14.5px] leading-[1.75]">
                       {/* Task step indicators */}
                       {msg.taskSteps && msg.taskSteps.length > 0 && (
-                        <div className="mb-3 space-y-1">
-                          {msg.taskSteps.map((step, idx) => {
-                            const isCurrent = idx === (msg.currentStepIndex ?? -1);
-                            const isDone = step.status === "done";
-                            const isError = step.status === "error";
-                            return (
-                              <div
-                                key={idx}
-                                className={cn(
-                                  "flex items-center gap-2 text-xs rounded-lg px-3 py-1.5 transition-all duration-300",
-                                  isCurrent && step.status === "running" ? "bg-primary/10 text-primary animate-in fade-in slide-in-from-bottom-1" : "",
-                                  isDone ? "text-muted-foreground" : "",
-                                  isError ? "text-destructive" : "",
-                                  !isCurrent && !isDone && !isError ? "text-muted-foreground/50" : ""
-                                )}
-                              >
-                                {step.status === "running" ? (
-                                  <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                ) : isDone ? (
-                                  <span className="w-3 h-3 shrink-0 text-emerald-500">✓</span>
-                                ) : isError ? (
-                                  <span className="w-3 h-3 shrink-0">✗</span>
-                                ) : null}
-                                <span className="truncate">{step.label}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <TaskStepsDisplay
+                          steps={msg.taskSteps}
+                          currentStepIndex={msg.currentStepIndex ?? -1}
+                          isStreaming={msg.isStreaming}
+                        />
                       )}
                       {/* Main content (only show if not purely step-tracking) */}
                       {(!msg.taskSteps || msg.taskSteps.length === 0 || !msg.isStreaming) && msg.content && (
