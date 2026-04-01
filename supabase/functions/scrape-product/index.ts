@@ -738,15 +738,20 @@ serve(async (req) => {
                       const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: true }),
+                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "html", "screenshot"], onlyMainContent: true, waitFor: 3000 }),
                       });
                       if (res.ok) {
                         const d = await res.json();
                         const md = d.data?.markdown || d.markdown || "";
                         const html = d.data?.html || d.html || "";
+                        const screenshot = d.data?.screenshot || d.screenshot || null;
                         const mdImages = extractImagesFromMarkdown(md, pUrl);
                         const htmlImages = extractImagesFromMarkdown(html, pUrl);
                         const allImages = [...new Set([...mdImages, ...htmlImages])];
+                        // Use screenshot URL as fallback if no real images found
+                        if (allImages.length === 0 && screenshot && typeof screenshot === 'string' && screenshot.startsWith('http')) {
+                          allImages.push(screenshot);
+                        }
                         return { url: pUrl, markdown: md, extractedImages: allImages };
                       }
                       const fb = await fetchPageFallback(pUrl);
