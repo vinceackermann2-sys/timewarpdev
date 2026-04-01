@@ -1291,7 +1291,7 @@ export function BusinessDNAOnboarding({
 
                   {/* Verified count */}
                   <p className="text-[12px] text-[#697386] text-center">
-                    {verifiedSources.size} of {urls.length} sources verified
+                    {Math.min(verifiedSources.size, urls.length)} of {urls.length} sources verified
                   </p>
                 </div>
               )}
