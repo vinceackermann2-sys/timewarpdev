@@ -28,9 +28,10 @@ interface ConnectedProvider {
 
 interface ConnectBusinessDNAProps {
   onComplete: () => void;
+  brandId?: string;
 }
 
-export function ConnectBusinessDNA({ onComplete }: ConnectBusinessDNAProps) {
+export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAProps) {
   const [connectedProviders, setConnectedProviders] = useState<ConnectedProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
