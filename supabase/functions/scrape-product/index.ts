@@ -803,10 +803,15 @@ serve(async (req) => {
                 if (ogUrl) pageImages = [ogUrl];
               }
             }
-            // Last resort: use the homepage og:image
+            // Last resort: use homepage images (first few relevant ones)
+            if (pageImages.length === 0 && homepageImages.length > 0) {
+              pageImages = homepageImages.slice(0, 3);
+            }
+            // Final fallback: homepage og:image
             if (pageImages.length === 0 && ogImageUrl) {
               pageImages = [ogImageUrl];
             }
+            console.log(`Product page ${page.url.slice(0, 60)}: ${pageImages.length} images found`);
             // Quick lightweight AI call to get name, description, and image URLs
             const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
