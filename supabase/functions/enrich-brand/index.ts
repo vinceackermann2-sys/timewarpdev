@@ -847,39 +847,17 @@ serve(async (req) => {
           return;
         }
 
-        const productImgs: string[] = Array.isArray(productImageUrls) ? productImageUrls.filter((u: string) => typeof u === "string" && u.length > 0) : [];
-        const primaryProductImg = productImgs[0] || null;
-
         const urls: string[] = [];
         for (let i = 0; i < guidelineRules.length; i++) {
           const rule = guidelineRules[i];
-          let img: string | null = null;
-
-          if (primaryProductImg) {
-            // Use the actual product image — edit it to demonstrate the guideline
-            img = await editImageWithProduct(LOVABLE_API_KEY,
-              `Create a professional product photography example that demonstrates this brand guideline: "${rule}".
-Brand: "${name}", Category: ${cat}.
-Primary color: ${primary}, Secondary color: ${secondary}.
-IMPORTANT: Use the provided product image as the MAIN subject. Place it in a setting that demonstrates the guideline rule.
-Style: Premium, clean, minimal e-commerce product photography.
-The product in the provided image MUST be the focal point. Do NOT replace it with a different product.
-No text overlays.`,
-              primaryProductImg
-            );
-          }
-
-          // Fallback to plain generation if edit failed
-          if (!img) {
-            img = await generateImage(LOVABLE_API_KEY,
-              `Create a small product photography example image for this brand guideline rule: "${rule}".
+          const img = await generateImage(LOVABLE_API_KEY,
+            `Create a small product photography example image for this brand guideline rule: "${rule}".
 Brand: "${name}", Category: ${cat}.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Premium, clean, minimal e-commerce product photography.
 The image should visually demonstrate the guideline rule as an example photo.
 Make it look like a real professional product photograph. No text overlays.`
-            );
-          }
+          );
           urls.push(img || "");
           if (i < guidelineRules.length - 1) {
             await new Promise(r => setTimeout(r, 500));
