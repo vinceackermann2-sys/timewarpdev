@@ -843,6 +843,35 @@ export function AgentChatView() {
         if (!shouldBreak && !shouldContinue && actions.length > 0) continue;
       }
 
+      // If no explicit done message, collect results from conversation
+      if (!finalMessage) {
+        const respondMessages = stepLogs.filter(s => s.result === "respond").map(s => s.reasoning);
+        const extractResults = conversationHistory
+          .filter(m => m.role === "user" && m.content.startsWith("Action result:"))
+          .map(m => {
+            try {
+              const parsed = JSON.parse(m.content.replace("Action result: ", ""));
+              if (parsed.success && parsed.action === "extract" && parsed.data?.content) {
+                return parsed.data.content;
+              }
+            } catch {}
+            return null;
+          })
+          .filter(Boolean);
+
+        if (respondMessages.length > 0 || extractResults.length > 0) {
+          const parts: string[] = [];
+          if (respondMessages.length > 0) parts.push(respondMessages.join("\n\n"));
+          if (extractResults.length > 0) parts.push("## Extracted Data\n\n" + extractResults.join("\n\n---\n\n"));
+          finalMessage = parts.join("\n\n");
+        } else {
+          const lastAiMsg = [...conversationHistory].reverse().find(m => m.role === "assistant");
+          if (lastAiMsg) {
+            finalMessage = lastAiMsg.content.replace(/```json[\s\S]*?```/g, "").trim() || "Task ran but no structured results were returned.";
+          }
+        }
+      }
+
       // Generate results document
       const endTime = new Date();
       const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
