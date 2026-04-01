@@ -274,7 +274,7 @@ export function ProductDetailView({
   };
 
    return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-full">
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-border/50">
         <div className="flex items-center justify-between">

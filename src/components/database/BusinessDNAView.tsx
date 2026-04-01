@@ -348,7 +348,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
   }
 
   return (
-    <div className="flex flex-col h-full items-center">
+    <div className="flex flex-col min-h-full items-center">
       <div className="px-6 pt-6 pb-0 space-y-6 border-b border-border/50 w-full max-w-5xl">
         {/* Business Header */}
         <div className="flex items-start gap-4">
