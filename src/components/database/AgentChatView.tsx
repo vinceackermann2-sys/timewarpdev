@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2, Sparkles, ExternalLink, Download
+  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose
 } from "lucide-react";
+import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { InlineChatChart } from "./InlineChatChart";
 import { SettingsView } from "@/components/database/SettingsView";
@@ -161,11 +162,66 @@ export function AgentChatView() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  /* ── Chat history sidebar state ── */
+  const [showHistory, setShowHistory] = useState(false);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const hasMessages = messages.length > 0;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  /* ── Auto-save chat to DB (debounced) ── */
+  const saveChatSession = useCallback(async (msgs: ChatMessage[], chatId: string | null) => {
+    if (!user || msgs.length === 0) return;
+    const nonStreaming = msgs.filter(m => !m.isStreaming);
+    if (nonStreaming.length === 0) return;
+
+    const title = nonStreaming.find(m => m.role === "user")?.content?.slice(0, 60) || "New Chat";
+    const payload = {
+      user_id: user.id,
+      workspace_id: activeWorkspaceId || null,
+      agent_name: selectedAgent || null,
+      title,
+      messages: nonStreaming,
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      if (chatId) {
+        await (supabase as any).from("agent_chat_sessions")
+          .update({ messages: nonStreaming, updated_at: new Date().toISOString(), title })
+          .eq("id", chatId);
+      } else {
+        const { data } = await (supabase as any).from("agent_chat_sessions")
+          .insert(payload)
+          .select("id")
+          .maybeSingle();
+        if (data?.id) setActiveChatId(data.id);
+      }
+    } catch (e) { console.warn("Failed to save chat session:", e); }
+  }, [user, activeWorkspaceId, selectedAgent]);
+
+  // Debounced save when messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => saveChatSession(messages, activeChatId), 2000);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [messages, activeChatId, saveChatSession]);
+
+  const handleSelectChat = (session: ChatSession) => {
+    setActiveChatId(session.id);
+    setMessages(session.messages as ChatMessage[]);
+    if (session.agent_name) setSelectedAgent(session.agent_name);
+  };
+
+  const handleNewChat = () => {
+    setActiveChatId(null);
+    setMessages([]);
+  };
 
   /* ── Integration connection state ── */
   const [isProviderConnected, setIsProviderConnected] = useState(false);
@@ -1076,9 +1132,19 @@ export function AgentChatView() {
 
   /* ─────────── Render ─────────── */
   return (
-    <div className="h-full bg-background flex flex-col relative overflow-hidden">
+    <div className="h-full bg-background flex relative overflow-hidden">
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sticky top agent selector */}
       <header className="sticky top-0 z-20 flex justify-center items-center py-3 bg-background/80 backdrop-blur-md border-b border-border/30">
+        {/* History toggle button */}
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="absolute right-4 p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+          title={showHistory ? "Hide chat history" : "Show chat history"}
+        >
+          {showHistory ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+        </button>
         <div className="relative">
           <button
             onClick={() => setShowAgents(!showAgents)}
@@ -1846,6 +1912,16 @@ export function AgentChatView() {
             </div>
           </div>
         </div>
+      )}
+      </div>{/* end main chat area */}
+
+      {/* Chat History Sidebar */}
+      {showHistory && (
+        <ChatHistorySidebar
+          activeChatId={activeChatId}
+          onSelectChat={handleSelectChat}
+          onNewChat={handleNewChat}
+        />
       )}
     </div>
   );
