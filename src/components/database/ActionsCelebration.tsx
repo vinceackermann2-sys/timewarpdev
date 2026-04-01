@@ -7,7 +7,7 @@ interface ActionsCelebrationProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   actionsGranted?: number;
-  reason?: "referral" | "referred";
+  reason?: "referral" | "referred" | "purchase";
 }
 
 export function ActionsCelebration({
@@ -69,7 +69,9 @@ export function ActionsCelebration({
 
           {/* Message */}
           <p className="text-muted-foreground mb-2">
-            {reason === "referred"
+            {reason === "purchase"
+              ? "Your Action Pack purchase was successful!"
+              : reason === "referred"
               ? "Welcome to TimeWarp! You've received bonus Actions from a referral."
               : "A friend signed up with your referral link!"}
           </p>

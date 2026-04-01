@@ -60,6 +60,8 @@ const Database = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
   const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
+  const [showPurchaseCelebration, setShowPurchaseCelebration] = useState(false);
+  const [purchasedActions, setPurchasedActions] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
 
@@ -157,6 +159,42 @@ const Database = () => {
     };
     checkReferrerRewards();
   }, [user]);
+
+  // Handle action purchase verification
+  useEffect(() => {
+    const actionSession = searchParams.get("action_session");
+    if (!actionSession || !user) return;
+
+    // Strip param immediately to prevent re-runs
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("action_session");
+    const qs = newParams.toString();
+    window.history.replaceState({}, "", `/app${qs ? `?${qs}` : ""}`);
+
+    const verifyPurchase = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("verify-action-purchase", {
+          body: { sessionId: actionSession },
+        });
+        if (error) throw error;
+        if (data?.granted && !data?.already_fulfilled) {
+          setShowReferrerCelebration(false);
+          // Show celebration for purchased actions
+          setPurchasedActions(data.actions);
+          setShowPurchaseCelebration(true);
+          queryClient.invalidateQueries({ queryKey: ["subscription"] });
+        } else if (data?.granted && data?.already_fulfilled) {
+          // Already fulfilled, just refresh
+          queryClient.invalidateQueries({ queryKey: ["subscription"] });
+        }
+      } catch (err) {
+        console.error("Action purchase verification failed:", err);
+        toast.error("Failed to verify action purchase. Please contact support.");
+      }
+    };
+
+    verifyPurchase();
+  }, [searchParams, user]);
 
   // Handle OAuth return — trigger data sync when oauth_success is present
   useEffect(() => {
@@ -328,6 +366,12 @@ const Database = () => {
             onOpenChange={setShowReferrerCelebration}
             actionsGranted={125}
             reason="referral"
+          />
+          <ActionsCelebration
+            open={showPurchaseCelebration}
+            onOpenChange={setShowPurchaseCelebration}
+            actionsGranted={purchasedActions}
+            reason="purchase"
           />
         </div>
       </SidebarProvider>
