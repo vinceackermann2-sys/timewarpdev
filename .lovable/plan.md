@@ -1,46 +1,60 @@
 
 
-## Plan: Filter Placeholder and Junk Images from Product Scraping
+## Plan: Fix Tesla/Cloudinary Image Extraction
 
-### Problem
-The scraper picks up placeholder/tracker images (e.g., `https://placehold.it/30`) as valid product images. These are tiny utility images embedded in non-Shopify sites. Shopify works because its product images are real CDN URLs that pass all filters.
+### Root Cause
 
-### Fix — Two locations
-
-**1. Edge function image filter** (`supabase/functions/scrape-product/index.ts`, line ~127-155)
-
-Add to the filter chain:
-- Block known placeholder domains: `placehold.it`, `via.placeholder.com`, `placeholder.com`
-- Block tiny images: URLs with dimension params like `w=30` or path segments like `/30` (single small number)
-- Block tracking/transparent pixel patterns: `transparent`, `blank`, `spacer`
-
-```ts
-// Add after line 133 (existing filter block):
-if (lower.includes('placehold') || lower.includes('placeholder') || lower.includes('blank') || lower.includes('transparent')) return false;
-// Block tiny dimension in URL query params
-if (/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(url)) return false;
+Tesla's product images use Cloudinary-style URLs like:
+```
+https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Model-3-Standard-Affordable-Desktop.jpg
 ```
 
-**2. Frontend `isUsableImage` helper** (`src/components/database/BusinessDNAOnboarding.tsx`, line ~908-911)
+These URLs exist in raw HTML (in CSS, inline styles, JSON data, script blocks) but are NOT captured by any of the current 11 extraction patterns because:
+1. They're not in standard `<img src>` tags (Tesla uses JS rendering)
+2. The bare image URL regex (pattern 6) requires URLs to end with `.jpg`/`.png` etc., but the comma-separated transform params (`f_auto,q_auto`) can confuse the regex or the URLs are embedded in contexts where whitespace splitting breaks them
+3. The markdown from Firecrawl strips these out since they're in JS/CSS contexts
 
-Add matching filters so even if the edge function misses something, the UI won't display it:
+### Fix — Two changes
+
+**1. Edge function: Add dedicated Cloudinary/CDN image extractor** (`supabase/functions/scrape-product/index.ts`)
+
+Add pattern 12 to `extractImagesFromMarkdown` that specifically targets Cloudinary-style `image/upload` URLs with a real filename at the end:
 
 ```ts
-const isUsableImage = (u?: string) => !!u && /^https?:\/\//.test(u) && 
-  !/\/image\/upload\/(?:[a-z]_[a-z0-9]+\/?)*$/i.test(u) &&
-  !/\/(?:c_scale|f_auto|q_auto|w_\d+|h_\d+)$/i.test(u) &&
-  !u.includes('/**') && !u.includes('/*') &&
-  !/(placehold|placeholder|spacer|pixel|blank|transparent|tracking)/i.test(u) &&
-  !/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(u);
+// 12. Cloudinary-style CDN URLs (Tesla, etc.) embedded anywhere in content
+const cloudinaryRegex = /https?:\/\/[^"'\s>)]+\/image\/upload\/[^"'\s>)]+\.(?:jpg|jpeg|png|webp|avif)/gi;
+while ((m = cloudinaryRegex.exec(markdown)) !== null) {
+  addImg(m[1] || m[0]);
+}
 ```
 
-Also add a **fallback**: if `find(isUsableImage)` returns null, try the next images in the array rather than showing nothing. The `allImages` array has 3 items — index 0 is `placehold.it/30` but indices 1-2 may be real product images.
+This catches URLs like `digitalassets.tesla.com/.../image/upload/f_auto,q_auto/Model-3...jpg` that the other patterns miss.
 
-**3. Redeploy edge function** after changes.
+**2. Frontend: Fix overly aggressive `isUsableImage` filter** (`src/components/database/BusinessDNAOnboarding.tsx`)
 
-### Why Shopify works
-Shopify product pages serve real CDN image URLs (e.g., `cdn.shopify.com/s/files/...product.jpg`) directly in static HTML. No placeholders, no lazy-load stubs. Non-Shopify sites use JS rendering with placeholder `src` attributes that get replaced client-side — the scraper sees the placeholder, not the final image.
+The current regex on line 909 blocks ALL URLs containing `/image/upload/` followed by transform params. But valid Cloudinary URLs have transform params AND a real filename. Fix to only block URLs that END with transform params (no filename):
 
-### Summary
-Two small filter additions (placeholder domains + tiny dimensions) in both the edge function and frontend. This is the same `pickBestImage` pattern — filter junk first, then pick the best remaining candidate.
+```ts
+// Current (too aggressive - blocks valid Cloudinary URLs WITH filenames):
+!/\/image\/upload\/(?:[a-z]_[a-z0-9]+\/?)*$/i.test(u)
+
+// Fixed (only blocks if there's NO real filename after transforms):
+!/\/image\/upload\/(?:[a-z]_[a-z0-9,]+\/?)*$/i.test(u)
+```
+
+Also update line 910 to handle comma-separated transforms:
+```ts
+!/\/(?:c_scale|f_auto|q_auto|w_\d+|h_\d+|c_fill|c_fit|c_crop)$/i.test(u)
+```
+
+**3. Redeploy edge function.**
+
+### Why This Fixes It
+- The new Cloudinary regex explicitly captures Tesla's `image/upload/.../filename.jpg` pattern from raw HTML
+- The relaxed frontend filter stops rejecting valid Cloudinary URLs that have real filenames after the transform params
+- Shopify continues working because its CDN URLs don't use `/image/upload/` patterns
+
+### Files Changed
+- `supabase/functions/scrape-product/index.ts` — add Cloudinary extraction pattern
+- `src/components/database/BusinessDNAOnboarding.tsx` — fix `isUsableImage` regex
 
