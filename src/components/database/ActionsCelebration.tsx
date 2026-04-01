@@ -7,7 +7,7 @@ interface ActionsCelebrationProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   actionsGranted?: number;
-  reason?: "referral" | "referred";
+  reason?: "referral" | "referred" | "purchase";
 }
 
 export function ActionsCelebration({
