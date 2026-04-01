@@ -851,26 +851,29 @@ serve(async (req) => {
             }
             console.log(`Product page ${page.url.slice(0, 60)}: ${pageImages.length} images found`);
             // Quick lightweight AI call to get name, description, and image URLs
+            // Combine regex-extracted images for AI to choose from
+            const candidateImages = [...new Set([...pageImages, ...extractImagesFromMarkdown(page.markdown, page.url)])].slice(0, 20);
             const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-2.5-flash-lite",
                 max_tokens: 800,
-                messages: [{ role: "user", content: `From this product page content, extract the product name, a 1-sentence description, and up to 5 product image URLs (full URLs only, not logos or icons). Return JSON: {"name": "", "description": "", "imageUrls": []}\n\nContent (first 4000 chars):\n${page.markdown.slice(0, 4000)}` }],
+                messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo. Do NOT pick logos, icons, banners, tracking pixels, or tiny images. Pick actual product photography.\n\nReturn JSON: {"name": "", "description": "", "bestImages": []}\n\nContent (first 4000 chars):\n${page.markdown.slice(0, 4000)}` }],
               }),
             });
-            if (!res.ok) return { url: page.url, name: "", description: "", images: pageImages };
+            if (!res.ok) return { url: page.url, name: "", description: "", images: candidateImages };
             const d = await res.json();
             const raw = d.choices?.[0]?.message?.content || "";
             try {
               const parsed = robustJsonParse(raw);
-              // Merge AI-found images with regex-found images
-              const aiImages = ensureArr(parsed.imageUrls).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
-              const mergedImages = [...new Set([...pageImages, ...aiImages])].slice(0, 8);
-              return { url: page.url, name: parsed.name || "", description: parsed.description || "", images: mergedImages };
+              // Use AI-selected best images first, then fall back to all candidates
+              const bestImages = ensureArr(parsed.bestImages || parsed.imageUrls).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
+              const finalImages = bestImages.length > 0 ? [...bestImages, ...candidateImages.filter(c => !bestImages.includes(c))].slice(0, 8) : candidateImages.slice(0, 8);
+              console.log(`AI picked bestImages for ${page.url.slice(0, 50)}:`, bestImages.slice(0, 3));
+              return { url: page.url, name: parsed.name || "", description: parsed.description || "", images: finalImages };
             } catch {
-              return { url: page.url, name: "", description: "", images: pageImages };
+              return { url: page.url, name: "", description: "", images: candidateImages };
             }
           } catch {
             return { url: page.url, name: "", description: "", images: extractImagesFromMarkdown(page.markdown, page.url) };
