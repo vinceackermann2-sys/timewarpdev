@@ -226,6 +226,7 @@ export function BusinessDNAOnboarding({
               .filter((u): u is string => !!u && u.length > 10);
             return { ...p, images, image: images[0] ?? "" };
           });
+          console.log("Discovered products with images:", normalizedProducts.map((p: any) => ({ name: p.name, imageCount: p.images?.length, firstImage: p.images?.[0]?.slice(0, 80) })));
           setDiscoveredProducts(normalizedProducts);
           // Store quick brand info
           if (data.quickBrand) quickBrandRef.current = data.quickBrand;
@@ -911,6 +912,7 @@ export function BusinessDNAOnboarding({
                     try { resolvedImgUrl = new URL(rawImgUrl.startsWith('//') ? `https:${rawImgUrl}` : rawImgUrl, p.url || activeUrl).toString(); } catch { resolvedImgUrl = null; }
                   }
                   const imgUrl = resolvedImgUrl ? (bgRemovedImages[resolvedImgUrl] || resolvedImgUrl) : null;
+                  if (i === 0) console.log("Product card render:", { name: p.name, rawImg, rawImgUrl, resolvedImgUrl, imgUrl, allImages: p.images?.slice(0, 3) });
                   return (
                     <div
                       key={i}
