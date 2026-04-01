@@ -1913,6 +1913,16 @@ export function AgentChatView() {
           </div>
         </div>
       )}
+      </div>{/* end main chat area */}
+
+      {/* Chat History Sidebar */}
+      {showHistory && (
+        <ChatHistorySidebar
+          activeChatId={activeChatId}
+          onSelectChat={handleSelectChat}
+          onNewChat={handleNewChat}
+        />
+      )}
     </div>
   );
 }
