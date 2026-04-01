@@ -116,7 +116,7 @@ export function useExtensionBridge() {
           resolversRef.current.delete("page_context");
           resolve({});
         }
-      }, 3000);
+      }, 1500);
     });
   }, []);
 
