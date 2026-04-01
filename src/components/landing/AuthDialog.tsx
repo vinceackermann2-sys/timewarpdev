@@ -312,9 +312,9 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
                     />
                     <label htmlFor="dialog-terms" className="text-xs text-muted-foreground leading-snug">
                       I agree to our{" "}
-                      <RouterLink to="/terms-of-purchase" className="text-primary hover:underline">Terms of Service</RouterLink>
+                      <RouterLink to="/terms" className="text-primary hover:underline">Terms of Service</RouterLink>
                       {" "}and{" "}
-                      <RouterLink to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</RouterLink>
+                      <RouterLink to="/privacy" className="text-primary hover:underline">Privacy Policy</RouterLink>
                     </label>
                   </div>
                 )}

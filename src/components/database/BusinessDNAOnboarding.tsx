@@ -1237,80 +1237,52 @@ export function BusinessDNAOnboarding({
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {/* Source carousel — flipping through URLs being verified */}
-                  {urls.length > 0 && (
-                    <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[72px]">
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key={safeSourceIndex}
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -12 }}
-                          transition={{ duration: 0.3 }}
-                          className="flex items-center gap-3"
-                        >
-                          {verifiedSources.has(safeSourceIndex) ? (
+                  {/* Step-by-step progress indicator */}
+                  <div className="flex flex-col gap-1">
+                    {forgingTodos.map((todo, i) => {
+                      const isDone = todo.status === "done";
+                      const isActive = !isDone && (i === 0 || forgingTodos[i - 1]?.status === "done");
+                      return (
+                        <div key={todo.label} className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors">
+                          {isDone ? (
                             <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
-                          ) : (
+                          ) : isActive ? (
                             <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border-2 border-[#d1d0cb] shrink-0" />
                           )}
-                          <img
-                            src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(urls[safeSourceIndex])}&sz=16`}
-                            alt=""
-                            className="w-4 h-4 rounded-sm shrink-0"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[14px] text-[#1a1f36] truncate block">
-                              {verifiedSources.has(safeSourceIndex) ? "✓ Verified" : "Verifying"}{" "}
-                              <span className="text-[#697386]">{urlToDisplaySource(urls[safeSourceIndex])}</span>
-                            </span>
-                            {/* Show a matching social proof quote inline */}
-                            {(() => {
-                              const currentDomain = urlToDisplaySource(urls[safeSourceIndex])?.split("/")[0] || "";
-                              const matched = socialProof.find(sp => sp.source.toLowerCase().includes(currentDomain.toLowerCase()));
-                              const fallback = socialProof[safeSourceIndex % Math.max(socialProof.length, 1)];
-                              const quote = matched || fallback;
-                              return quote ? (
-                                <p className="text-[12px] text-[#697386] italic mt-1 truncate">
-                                  "{quote.quote.slice(0, 80)}{quote.quote.length > 80 ? "…" : ""}"
-                                </p>
-                              ) : null;
-                            })()}
-                          </div>
-                        </motion.div>
-                      </AnimatePresence>
-                    </div>
-                  )}
+                          <span className={`text-[14px] ${isDone ? "text-[#22c55e] font-medium" : isActive ? "text-[#1a1f36] font-medium" : "text-[#697386]"}`}>
+                            {todo.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                  {/* Progress dots */}
-                  {urls.length > 1 && (
-                    <div className="flex items-center justify-center gap-1.5">
-                      {urls.map((_, i) => (
-                        <div
-                          key={i}
-                          className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                            i === safeSourceIndex
-                              ? "bg-[#3399ff] w-4"
-                              : verifiedSources.has(i)
-                                ? "bg-[#22c55e]"
-                                : "bg-[#d1d0cb]"
-                          }`}
+                  {/* Progress bar */}
+                  {(() => {
+                    const doneCount = forgingTodos.filter(t => t.status === "done").length;
+                    const pct = Math.round((doneCount / forgingTodos.length) * 100);
+                    return (
+                      <div className="w-full bg-[#e5e4df] rounded-full h-2 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full bg-[#3399ff]"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.5, ease: "easeOut" }}
                         />
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })()}
 
-                  {/* Social proof quote — shows while sources are being verified */}
+                  {/* Social proof quote — shows while forging */}
                   {socialProof.length > 0 && !persistenceComplete && (
                     <AnimatePresence mode="wait">
                       {(() => {
-                        const currentDomain = urls[safeSourceIndex] ? urlToDisplaySource(urls[safeSourceIndex])?.split("/")[0] || "" : "";
-                        const matched = socialProof.find(sp => sp.source.toLowerCase().includes(currentDomain.toLowerCase()));
-                        const quote = matched || socialProof[safeSourceIndex % Math.max(socialProof.length, 1)];
-                        return (
+                        const quote = socialProof[safeSourceIndex % Math.max(socialProof.length, 1)];
+                        return quote ? (
                           <motion.div
-                            key={activeSourceIndex}
+                            key={safeSourceIndex}
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
@@ -1324,21 +1296,16 @@ export function BusinessDNAOnboarding({
                               — {quote.source}
                             </p>
                           </motion.div>
-                        );
+                        ) : null;
                       })()}
                     </AnimatePresence>
                   )}
                   {persistenceComplete && (
                     <div className="flex items-center justify-center gap-2 py-3 bg-[#22c55e]/10 rounded-xl">
                       <CheckCircle2 className="w-4 h-4 text-[#22c55e]" />
-                      <span className="text-[14px] font-medium text-[#22c55e]">All sources verified ✓</span>
+                      <span className="text-[14px] font-medium text-[#22c55e]">All steps complete ✓</span>
                     </div>
                   )}
-
-                  {/* Verified count */}
-                  <p className="text-[12px] text-[#697386] text-center">
-                    {Math.min(verifiedSources.size, urls.length)} of {urls.length} sources verified
-                  </p>
                 </div>
               )}
             </div>
