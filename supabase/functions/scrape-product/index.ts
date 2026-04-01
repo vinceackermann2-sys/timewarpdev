@@ -876,7 +876,7 @@ serve(async (req) => {
         .filter((r): r is PromiseFulfilledResult<{ url: string; name: string; description: string; images: string[] }> =>
           r.status === 'fulfilled' && !!r.value)
         .map(r => r.value)
-        .filter(p => p.name || p.images.length > 0);
+        .filter(p => p.name || p.description || p.images.length > 0);
 
       // Extract basic brand info from firecrawl (no AI call needed)
       const quickBrand = {
