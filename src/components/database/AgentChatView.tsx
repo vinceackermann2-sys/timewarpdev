@@ -1481,11 +1481,14 @@ export function AgentChatView() {
                         <button
                           key={emp.id}
                           onClick={() => {
+                            const empData = { id: emp.id, name: emp.name, role: emp.role };
                             if (!selectedChatEmployees.find((e) => e.id === emp.id)) {
-                              setSelectedChatEmployees((prev) => [...prev, { id: emp.id, name: emp.name, role: emp.role }]);
+                              setSelectedChatEmployees([empData]);
                             }
                             setIsDropupOpen(false);
                             setShowEmployeesMenu(false);
+                            // Auto-run the employee: send a message to execute their SOP
+                            setTimeout(() => autoRunEmployee(empData), 100);
                           }}
                           className="w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors text-muted-foreground flex flex-col"
                         >
