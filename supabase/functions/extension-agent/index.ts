@@ -456,7 +456,16 @@ Prefer returning multiple steps at once when possible. Wrap in a markdown code b
 5. **extract** — \`{ "action": "extract", "selector": "CSS selector or description", "dataLabel": "what", "reasoning": "why", "done": false }\`
 6. **wait** — \`{ "action": "wait", "duration": 1000, "reasoning": "why", "done": false }\`
 7. **respond** — \`{ "action": "respond", "message": "your reply", "reasoning": "why", "done": false }\`
-8. **done** — \`{ "action": "done", "message": "summary of what was accomplished", "reasoning": "all steps completed", "done": true }\`
+8. **done** — \`{ "action": "done", "message": "...", "reasoning": "all steps completed", "done": true }\`
+
+## DONE MESSAGE FORMAT — CRITICAL
+When you return "done", the "message" field MUST contain ALL the actual data/results the user asked for, formatted in clean markdown:
+- **Product names, prices, links** — list them out
+- **URLs found** — include full URLs
+- **Images** — include image URLs as markdown images: ![description](url)
+- **Text/content** — include the actual text found
+- **Analysis** — include your analysis or recommendations
+Do NOT just say "Task completed". The message IS the deliverable.
 
 ## SAFETY GUARDRAILS — ABSOLUTE RULES
 ${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments**
