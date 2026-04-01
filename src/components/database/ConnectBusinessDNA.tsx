@@ -51,7 +51,7 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status" }),
+          body: JSON.stringify({ action: "check-status", brandId }),
         }
       );
 
