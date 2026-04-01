@@ -547,10 +547,11 @@ export function BusinessDNAOnboarding({
 
       const finalBrandId = isAddBusiness && activeBrandId ? activeBrandId : brandId;
       setCreatedBrandId(finalBrandId);
-      setPersistenceComplete(true);
+      // Don't mark persistence complete yet — wait for enrichment to finish
       setForgingTab("confirmed");
 
-      // Enrichment
+      // Enrichment — must complete before user can finalize
+      let enrichmentDone = false;
       if (contextAvailable) {
         let rowId: string | undefined = savedBrandRowId;
         if (!rowId) {
@@ -585,19 +586,25 @@ export function BusinessDNAOnboarding({
             if (res.data?.success && refreshBrand) {
               await refreshBrand(finalBrandId);
             }
+            enrichmentDone = true;
             if (!cancelled) markTodo("Enrich brand");
           } catch (e) {
             console.warn("Brand enrichment failed (non-blocking):", e);
+            enrichmentDone = true; // still allow proceeding on failure
             if (!cancelled) markTodo("Enrich brand");
           }
         } else {
+          enrichmentDone = true;
           if (!cancelled) markTodo("Enrich brand");
         }
       } else {
+        enrichmentDone = true;
         if (!cancelled) markTodo("Enrich brand");
       }
 
+      // NOW mark persistence complete — enrichment is done, branding is fully loaded
       if (!cancelled) {
+        setPersistenceComplete(true);
         setTimeout(() => setStep(6), 800);
       }
     })();
