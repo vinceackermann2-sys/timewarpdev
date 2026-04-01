@@ -281,7 +281,7 @@ export function AudienceDetailView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1">
         <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex gap-8">
             <div className="flex-1 min-w-0 space-y-8">
@@ -609,14 +609,16 @@ export function AudienceDetailView({
 
             {/* Right sidebar */}
             <div className="hidden lg:block w-52 shrink-0">
-              <AudiencePageSidebar
-                itemName={audience.name}
-                activeSection={activeSidebarSection}
-                onSectionClick={(id) => {
-                  setActiveSidebarSection(id);
-                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              />
+              <div className="sticky top-6">
+                <AudiencePageSidebar
+                  itemName={audience.name}
+                  activeSection={activeSidebarSection}
+                  onSectionClick={(id) => {
+                    setActiveSidebarSection(id);
+                    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
