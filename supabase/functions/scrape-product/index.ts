@@ -100,16 +100,42 @@ const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] 
     addImg(m[1]);
   }
 
+  // 10. JSON-LD structured data images
+  const jsonLdRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  while ((m = jsonLdRegex.exec(markdown)) !== null) {
+    try {
+      const ld = JSON.parse(m[1]);
+      const extractLdImages = (obj: any) => {
+        if (!obj || typeof obj !== 'object') return;
+        if (typeof obj.image === 'string') addImg(obj.image);
+        if (Array.isArray(obj.image)) obj.image.forEach((i: any) => { if (typeof i === 'string') addImg(i); else if (i?.url) addImg(i.url); });
+        if (obj.image?.url) addImg(obj.image.url);
+        if (obj.image?.contentUrl) addImg(obj.image.contentUrl);
+        if (Array.isArray(obj['@graph'])) obj['@graph'].forEach(extractLdImages);
+        if (obj.offers?.image) addImg(obj.offers.image);
+      };
+      extractLdImages(ld);
+    } catch { /* ignore malformed JSON-LD */ }
+  }
+
+  // 11. Generic "image" JSON property patterns (common in inline JS data)
+  const jsonImageRegex = /"image"\s*:\s*"(https?:\/\/[^"]+)"/gi;
+  while ((m = jsonImageRegex.exec(markdown)) !== null) {
+    addImg(m[1]);
+  }
+
   return [...new Set(imgs)].filter(url => {
     if (!url) return false;
     const lower = url.toLowerCase();
     // Filter out tiny/utility images
     if (lower.includes('favicon') || lower.includes('pixel') || lower.includes('tracking') ||
         lower.includes('1x1') || lower.includes('badge') || lower.includes('flag') ||
-        lower.includes('avatar') || lower.includes('spacer') || lower.includes('.svg') ||
+        lower.includes('avatar') || lower.includes('spacer') ||
         lower.includes('data:image')) return false;
     // Filter tiny dimension indicators in URL
     if (/\/\d{1,2}x\d{1,2}[/.?]/.test(lower)) return false;
+    // Filter SVGs (usually icons/logos, not product photos)
+    if (lower.endsWith('.svg')) return false;
     return true;
   }).slice(0, 12);
 };
