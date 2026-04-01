@@ -242,15 +242,21 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   );
   const loadedWorkspaceRef = useRef<string | null>(null);
 
-  // Keep in sync with localStorage changes from useWorkspace hook (event-driven, no polling)
+  // Keep in sync with workspace changes (event-driven, no polling)
   useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === "preferred_workspace_id" && e.newValue !== activeWorkspaceId) {
-        setActiveWorkspaceId(e.newValue);
-      }
+    // storage event fires for cross-tab; custom event for same-tab
+    const sync = () => {
+      const stored = localStorage.getItem("preferred_workspace_id");
+      if (stored !== activeWorkspaceId) setActiveWorkspaceId(stored);
     };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
+    const onStorage = (e: StorageEvent) => { if (e.key === "preferred_workspace_id") sync(); };
+    const onCustom = () => sync();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("workspace_changed", onCustom);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("workspace_changed", onCustom);
+    };
   }, [activeWorkspaceId]);
 
   useEffect(() => {

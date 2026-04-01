@@ -220,6 +220,7 @@ export function useWorkspace() {
   const selectWorkspace = useCallback((wsId: string) => {
     setActiveWorkspaceId(wsId);
     localStorage.setItem("preferred_workspace_id", wsId);
+    window.dispatchEvent(new Event("workspace_changed"));
   }, []);
 
   const createWorkspace = useCallback(async (name: string) => {
