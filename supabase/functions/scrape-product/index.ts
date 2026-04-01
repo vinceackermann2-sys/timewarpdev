@@ -1163,4 +1163,26 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
+  }; // end mainLogic
+
+  try {
+    return await Promise.race([
+      mainLogic(),
+      new Promise<Response>((resolve) =>
+        setTimeout(() => {
+          console.error("Internal timeout reached (" + INTERNAL_TIMEOUT_MS + "ms)");
+          resolve(new Response(
+            JSON.stringify({ success: false, error: "Request timed out. Try a simpler URL or try again." }),
+            { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          ));
+        }, INTERNAL_TIMEOUT_MS)
+      ),
+    ]);
+  } catch (err) {
+    console.error("Top-level error:", err);
+    return new Response(
+      JSON.stringify({ success: false, error: (err as Error).message || "Internal error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 });
