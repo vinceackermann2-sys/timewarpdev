@@ -608,8 +608,9 @@ export function AudienceDetailView({
             </div>
 
             {/* Right sidebar */}
-            <div className="hidden lg:block w-52 shrink-0 self-start">
+            <div className="hidden lg:block w-52 shrink-0">
               <AudiencePageSidebar
+                itemName={audience.name}
                 activeSection={activeSidebarSection}
                 onSectionClick={(id) => {
                   setActiveSidebarSection(id);

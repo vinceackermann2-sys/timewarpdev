@@ -67,8 +67,8 @@ export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
               />
             </div>
           </div>
-          <div className="hidden lg:block w-52 shrink-0 self-start">
-            <BrandPageSidebar activeSection={activeSidebarSection} onSectionClick={(id) => { setActiveSidebarSection(id); document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
+          <div className="hidden lg:block w-52 shrink-0">
+            <BrandPageSidebar brandName={selectedBrand.name} activeSection={activeSidebarSection} onSectionClick={(id) => { setActiveSidebarSection(id); document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
           </div>
         </div>
       </div>
