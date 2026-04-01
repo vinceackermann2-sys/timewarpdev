@@ -164,7 +164,7 @@ export function AgentChatView() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   /* ── Chat history sidebar state ── */
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
