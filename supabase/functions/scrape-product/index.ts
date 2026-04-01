@@ -147,7 +147,7 @@ const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] 
     // Filter SVGs (usually icons/logos, not product photos)
     if (lower.endsWith('.svg')) return false;
     // Filter broken Cloudinary/CDN transform-only URLs (no actual file path after transform params)
-    if (/\/image\/upload\/(?:[a-z]_[a-z0-9]+\/?)*$/i.test(url)) return false;
+    if (/\/image\/upload\/(?:[a-z]_[a-z0-9,]+\/?)*$/i.test(url)) return false;
     if (/\/(?:c_scale|f_auto|q_auto|w_\d+|h_\d+|c_fill|c_fit|c_crop|c_thumb|c_pad)$/i.test(url)) return false;
     // Filter URLs with wildcard/glob patterns (not real URLs)
     if (url.includes('/**') || url.includes('/*')) return false;
