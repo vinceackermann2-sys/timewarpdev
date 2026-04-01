@@ -281,10 +281,9 @@ export function AudienceDetailView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto" style={{ contain: 'none' }}>
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          <div className="flex gap-8">
-            <div className="flex-1 min-w-0 space-y-8">
+      <div className="flex-1 flex gap-8 min-h-0">
+        <div className="flex-1 min-w-0 overflow-y-auto px-6 py-6">
+          <div className="max-w-3xl space-y-8">
 
               {/* ── Audience Overview ── */}
               <div id="audience-overview" className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
