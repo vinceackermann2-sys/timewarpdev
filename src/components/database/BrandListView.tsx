@@ -3,6 +3,7 @@ import { Palette } from "lucide-react";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
 import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
+import { FixedSidebar } from "@/components/database/FixedSidebar";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 
