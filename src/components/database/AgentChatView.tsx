@@ -816,7 +816,25 @@ export function AgentChatView() {
           taskSteps[taskSteps.length - 1].status = result.success ? "done" : "error";
           setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
 
-          conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
+          if (result.success) {
+            consecutiveErrors = 0;
+            conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
+          } else {
+            consecutiveErrors++;
+            const recoveryHint = `Action failed: ${result.error || "unknown error"}. Try an alternative approach — use a different selector, scroll to find the element, or navigate differently.`;
+            conversationHistory.push({ role: "user" as const, content: recoveryHint });
+            if (consecutiveErrors >= 3) {
+              finalMessage = "Task stopped after multiple consecutive failures. Here is what was collected so far.";
+              shouldBreak = true;
+              break;
+            }
+          }
+
+          // Handle extract with success but empty data
+          if (result.success && action.action === "extract" && (!result.data || !result.data.content) && pageContext?.pageContent) {
+            conversationHistory[conversationHistory.length - 1] = { role: "user" as const, content: `Action result: ${JSON.stringify({ success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } })}` };
+          }
+
           stepCount++;
         }
 
