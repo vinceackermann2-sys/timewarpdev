@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, CheckCircle2, XCircle, ChevronUp, ChevronDown, Pencil } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TaskStep {
@@ -27,8 +27,26 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
     });
   };
 
+  const doneCount = steps.filter(s => s.status === "done").length;
+  const totalCount = steps.length;
+
   return (
-    <div className="space-y-2 mb-4">
+    <div className="space-y-1.5 mb-4">
+      {/* Progress summary */}
+      {totalCount > 1 && (
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${totalCount > 0 ? (doneCount / totalCount) * 100 : 0}%` }}
+            />
+          </div>
+          <span className="text-[11px] text-muted-foreground font-medium tabular-nums">
+            {doneCount}/{totalCount}
+          </span>
+        </div>
+      )}
+
       {steps.map((step, idx) => {
         const isCurrent = idx === currentStepIndex;
         const isDone = step.status === "done";
@@ -41,82 +59,70 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
           <div
             key={idx}
             className={cn(
-              "rounded-xl border transition-all duration-300",
-              isRunning ? "border-primary/30 bg-primary/5 animate-in fade-in slide-in-from-bottom-2" : "",
-              isDone ? "border-border/40 bg-card/50" : "",
-              isError ? "border-destructive/30 bg-destructive/5" : "",
-              !isRunning && !isDone && !isError ? "border-border/20 bg-muted/20 opacity-60" : ""
+              "rounded-xl border transition-all duration-300 overflow-hidden",
+              isRunning ? "border-primary/30 bg-primary/[0.04] shadow-sm shadow-primary/5 animate-in fade-in slide-in-from-bottom-1" : "",
+              isDone ? "border-border/30" : "",
+              isError ? "border-destructive/30 bg-destructive/[0.04]" : "",
+              !isRunning && !isDone && !isError ? "border-border/20 opacity-50" : ""
             )}
           >
-            {/* Step header */}
             <button
               onClick={() => hasDetail && toggleStep(idx)}
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                hasDetail ? "cursor-pointer hover:bg-muted/30" : "cursor-default"
+                "w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors",
+                hasDetail ? "cursor-pointer hover:bg-muted/20" : "cursor-default"
               )}
             >
               {/* Status icon */}
               <div className="shrink-0">
                 {isRunning ? (
-                  <Loader2 className="w-[18px] h-[18px] animate-spin text-primary" />
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 ) : isDone ? (
-                  <CheckCircle2 className="w-[18px] h-[18px] text-primary" />
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
                 ) : isError ? (
-                  <XCircle className="w-[18px] h-[18px] text-destructive" />
+                  <XCircle className="w-4 h-4 text-destructive" />
                 ) : (
-                  <div className="w-[18px] h-[18px] rounded-full border-2 border-muted-foreground/30" />
+                  <div className="w-4 h-4 rounded-full border-[1.5px] border-muted-foreground/25" />
                 )}
               </div>
 
               {/* Label */}
               <span className={cn(
-                "flex-1 text-sm font-medium leading-snug",
-                isRunning ? "text-foreground" : "",
-                isDone ? "text-foreground/80" : "",
-                isError ? "text-destructive" : "",
+                "flex-1 text-[13px] leading-snug",
+                isRunning ? "font-medium text-foreground" : "",
+                isDone ? "text-foreground/70" : "",
+                isError ? "text-destructive font-medium" : "",
                 !isRunning && !isDone && !isError ? "text-muted-foreground" : ""
               )}>
                 {step.label}
               </span>
 
-              {/* Expand toggle */}
+              {/* Expand chevron */}
               {hasDetail && (
-                <div className="shrink-0 text-muted-foreground">
-                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                <div className="shrink-0 text-muted-foreground/60">
+                  {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </div>
               )}
             </button>
 
-            {/* Expandable detail */}
+            {/* Detail panel */}
             {hasDetail && isExpanded && (
-              <div className="px-4 pb-3 pt-0 ml-[30px] border-t border-border/20 mt-0">
-                <p className="text-[13px] text-muted-foreground leading-relaxed pt-2.5">
+              <div className="px-3.5 pb-3 border-t border-border/20">
+                <p className="text-[12px] text-muted-foreground leading-relaxed pt-2 pl-7">
                   {step.detail}
                 </p>
-                {step.detail && step.detail.includes("http") && (
-                  <div className="mt-2 flex items-center gap-1.5 text-xs text-primary/70">
-                    <Pencil className="w-3 h-3" />
-                    <span className="truncate max-w-[300px]">
-                      {step.detail.match(/https?:\/\/[^\s]+/)?.[0] || ""}
-                    </span>
-                  </div>
-                )}
               </div>
             )}
           </div>
         );
       })}
 
-      {/* Running indicator at the bottom when streaming */}
+      {/* Pulsing dots while working */}
       {isStreaming && steps.length > 0 && steps[steps.length - 1]?.status === "running" && (
-        <div className="flex items-center gap-2 px-4 py-1 text-xs text-muted-foreground">
-          <div className="flex gap-1">
-            <span className="w-1 h-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0ms" }} />
-            <span className="w-1 h-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: "150ms" }} />
-            <span className="w-1 h-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: "300ms" }} />
-          </div>
-          <span>Working...</span>
+        <div className="flex items-center gap-1.5 px-4 py-1.5">
+          <span className="w-1 h-1 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "0ms" }} />
+          <span className="w-1 h-1 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "150ms" }} />
+          <span className="w-1 h-1 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "300ms" }} />
         </div>
       )}
     </div>
