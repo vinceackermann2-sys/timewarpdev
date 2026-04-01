@@ -904,15 +904,19 @@ export function BusinessDNAOnboarding({
               <div className="w-full max-w-[900px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {extractedProducts.slice(0, 10).map((p: any, i: number) => {
                   const isSelected = selectedProducts.includes(i);
-                  const rawImg = p.images?.[0];
-                  const rawImgUrl = typeof rawImg === 'string' ? rawImg : rawImg?.url ?? rawImg?.src ?? null;
+                  // Find first usable image (skip broken CDN transform stubs)
+                  const isUsableImage = (u?: string) => !!u && /^https?:\/\//.test(u) && 
+                    !/\/image\/upload\/(?:[a-z]_[a-z0-9]+\/?)*$/i.test(u) &&
+                    !/\/(?:c_scale|f_auto|q_auto|w_\d+|h_\d+)$/i.test(u) &&
+                    !u.includes('/**') && !u.includes('/*');
+                  const rawImgUrl = (p.images || []).map((img: any) => typeof img === 'string' ? img : img?.url ?? img?.src ?? null).find(isUsableImage) || null;
                   // Resolve relative/protocol-relative URLs
                   let resolvedImgUrl = rawImgUrl;
                   if (rawImgUrl && !rawImgUrl.startsWith('http') && !rawImgUrl.startsWith('data:')) {
                     try { resolvedImgUrl = new URL(rawImgUrl.startsWith('//') ? `https:${rawImgUrl}` : rawImgUrl, p.url || activeUrl).toString(); } catch { resolvedImgUrl = null; }
                   }
                   const imgUrl = resolvedImgUrl ? (bgRemovedImages[resolvedImgUrl] || resolvedImgUrl) : null;
-                  if (i === 0) console.log("Product card render:", { name: p.name, rawImg, rawImgUrl, resolvedImgUrl, imgUrl, allImages: p.images?.slice(0, 3) });
+                  if (i === 0) console.log("Product card render:", { name: p.name, rawImgUrl, resolvedImgUrl, imgUrl, allImages: p.images?.slice(0, 3) });
                   return (
                     <div
                       key={i}
