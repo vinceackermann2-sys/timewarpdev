@@ -124,6 +124,12 @@ const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] 
     addImg(m[1]);
   }
 
+  // 12. Cloudinary-style CDN URLs (Tesla digitalassets, etc.) embedded anywhere in content
+  const cloudinaryRegex = /https?:\/\/[^"'\s>)]+\/image\/upload\/[^"'\s>)]+\.(?:jpg|jpeg|png|webp|avif)/gi;
+  while ((m = cloudinaryRegex.exec(markdown)) !== null) {
+    addImg(m[0]);
+  }
+
   return [...new Set(imgs)].filter(url => {
     if (!url) return false;
     const lower = url.toLowerCase();
