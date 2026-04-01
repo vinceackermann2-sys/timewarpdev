@@ -1237,43 +1237,57 @@ export function BusinessDNAOnboarding({
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {/* Step-by-step progress indicator */}
-                  <div className="flex flex-col gap-1">
-                    {forgingTodos.map((todo, i) => {
-                      const isDone = todo.status === "done";
-                      const isActive = !isDone && (i === 0 || forgingTodos[i - 1]?.status === "done");
-                      return (
-                        <div key={todo.label} className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors">
-                          {isDone ? (
-                            <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
-                          ) : isActive ? (
-                            <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
-                          ) : (
-                            <div className="w-4 h-4 rounded-full border-2 border-[#d1d0cb] shrink-0" />
-                          )}
-                          <span className={`text-[14px] ${isDone ? "text-[#22c55e] font-medium" : isActive ? "text-[#1a1f36] font-medium" : "text-[#697386]"}`}>
-                            {todo.label}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Progress bar */}
+                  {/* Single active step — flips through one at a time */}
                   {(() => {
                     const doneCount = forgingTodos.filter(t => t.status === "done").length;
-                    const pct = Math.round((doneCount / forgingTodos.length) * 100);
+                    // Show the latest completed step, or the first active one
+                    const activeIdx = Math.min(doneCount, forgingTodos.length - 1);
+                    const todo = forgingTodos[activeIdx];
+                    const isDone = todo.status === "done";
+                    const stepNum = activeIdx + 1;
                     return (
-                      <div className="w-full bg-[#e5e4df] rounded-full h-2 overflow-hidden">
-                        <motion.div
-                          className="h-full rounded-full bg-[#3399ff]"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{ duration: 0.5, ease: "easeOut" }}
-                        />
+                      <div className="relative overflow-hidden rounded-xl bg-white/60 border border-black/5 px-4 py-3 min-h-[56px]">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={activeIdx}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -12 }}
+                            transition={{ duration: 0.3 }}
+                            className="flex items-center gap-3"
+                          >
+                            {isDone ? (
+                              <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
+                            ) : (
+                              <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
+                            )}
+                            <span className={`text-[14px] font-medium ${isDone ? "text-[#22c55e]" : "text-[#1a1f36]"}`}>
+                              {todo.label}
+                            </span>
+                            <span className="ml-auto text-[12px] text-[#697386]">
+                              {stepNum} of {forgingTodos.length}
+                            </span>
+                          </motion.div>
+                        </AnimatePresence>
                       </div>
                     );
                   })()}
+
+                  {/* Step dots */}
+                  <div className="flex items-center justify-center gap-1.5">
+                    {forgingTodos.map((todo, i) => (
+                      <div
+                        key={i}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          todo.status === "done"
+                            ? "bg-[#22c55e] w-1.5"
+                            : i === forgingTodos.filter(t => t.status === "done").length
+                              ? "bg-[#3399ff] w-4"
+                              : "bg-[#d1d0cb] w-1.5"
+                        }`}
+                      />
+                    ))}
+                  </div>
 
                   {/* Social proof quote — shows while forging */}
                   {socialProof.length > 0 && !persistenceComplete && (
