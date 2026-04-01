@@ -1,53 +1,52 @@
 
 
-## Plan: Reliable Product Image Discovery for All Websites
+## Plan: Agent Name in Onboarding + Sticky Right Sidebars with Breadcrumb Path
 
-### Problem
-The current `isUsableImage` allowlist requires URLs to match specific CDN patterns (Shopify, Apple, Tesla) or have standard file extensions. This fails for most non-Shopify sites because modern CDNs serve images without extensions (e.g., Apple's `as-images` paths, Cloudflare Image Resizing, imgix, etc.). The allowlist approach is fundamentally unscalable.
+### 1. Replace "AI CEO" with configured agent name in onboarding
 
-### New Approach — Let the AI Pick the Best Image
+**Problem**: When adding a business, the onboarding flow and various views fallback to showing "AI CEO" as the default agent name instead of using the name the user configured.
 
-Instead of regex-guessing which URL is a product image, pass the list of extracted image URLs to the AI during discovery and let it choose the best product image.
+**Fix**: In `BusinessDNAOnboarding.tsx`, the agent naming step (step 6) currently defaults to placeholder text "e.g. My Agent...". The "AI CEO" references throughout the app (in `AgentChatView.tsx`, `BusinessDNAView.tsx`) already use `brand.agentName || "AI CEO"` as fallback — this is correct behavior for when no name is set. The key fix is ensuring the agent name persisted during onboarding is immediately reflected in all views by updating the brand context after saving.
 
-### Changes
+No code changes needed for the fallback pattern — "AI CEO" is the correct default when no agent name exists. The onboarding already saves `agentName` to the database on step 6.
 
-**1. Edge function discover mode** (`supabase/functions/scrape-product/index.ts`, ~line 854-871)
+### 2. Make right-side sidebars (Brand, Audience, Product) sticky
 
-Update the AI prompt in discover mode to include the list of extracted `pageImages` and ask the AI to select the best product image URL from that list:
+**Problem**: The sidebar wrapper divs use `self-start` which collapses their height, preventing `sticky` from working properly as the user scrolls the content area.
 
-```
-From this product page content, extract the product name and a 1-sentence description.
-Here are image URLs found on this page: ${JSON.stringify(pageImages.slice(0, 15))}
-Select the 1-3 URLs that are most likely the MAIN product photo (not logos, icons, banners, or tracking pixels).
-Return JSON: {"name": "", "description": "", "bestImages": []}
-```
+**Files to change**:
+- `src/components/database/BrandListView.tsx` (line 70)
+- `src/components/database/AudienceDetailView.tsx` (line 611)
+- `src/components/database/ProductDetailView.tsx` (line 758)
 
-Then use `bestImages` as the primary image source, falling back to the regex-extracted list.
+**Change**: Replace `self-start` with `sticky top-6` on the sidebar wrapper `<div>`, and remove `sticky top-6` from inside the `<nav>` element in each sidebar component to avoid double-sticky. Actually, since the `<nav>` already has `sticky top-6`, the issue is that `self-start` on the parent collapses it. Change the parent wrapper to use `h-fit` instead of `self-start`, so the inner `sticky` works against the scroll container.
 
-**2. Frontend `isUsableImage`** (`src/components/database/BusinessDNAOnboarding.tsx`, ~line 908-917)
+Wait — `sticky` requires the element to be inside a scrollable container and the parent to have enough height. The scroll container is on line 420 of `BusinessDNAView.tsx` (`overflow-y-auto`). The sidebar wrapper uses `self-start` which makes it shrink. The fix: remove `self-start` from the wrapper div so it stretches to the full height of the flex row, then the inner `<nav className="sticky top-6">` will stick properly.
 
-Replace the restrictive allowlist with a simple blocklist-only approach. Since the AI already picked the best images, we just need to block obvious junk:
+**Changes per file**:
+- Remove `self-start` from the sidebar wrapper div (keep `shrink-0`)
 
-```ts
-const isUsableImage = (u?: string) => !!u && /^https?:\/\//i.test(u) &&
-  u.length > 30 &&
-  !/(beacon|atb|tracking|pixel|spacer|blank|transparent|placehold|placeholder|favicon|1x1|badge)/i.test(u) &&
-  !/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(u) &&
-  !u.endsWith('.svg') &&
-  !u.includes('data:image');
-```
+### 3. Add breadcrumb path to right sidebars
 
-No extension allowlist, no CDN pattern matching. Any real image URL passes.
+**Problem**: The right-side "On This Page" sidebars lack a breadcrumb showing the current navigation path (e.g., "Business DNA > Brand" or "Business DNA > Product > Model Y").
 
-**3. Redeploy edge function.**
+**Files to change**:
+- `src/components/database/BrandPageSidebar.tsx`
+- `src/components/database/AudiencePageSidebar.tsx`
+- `src/components/database/ProductPageSidebar.tsx`
 
-### Why This Works
-- The AI understands context — it knows a product photo from a tracking pixel
-- No more regex arms race against every CDN format
-- Shopify continues working (unchanged)
-- Apple, Tesla, Nike, etc. work because the AI picks the right URL from the extracted list
+**Change**: Add a breadcrumb above the "On This Page" heading showing the current path. Each sidebar will accept optional `brandName` and `itemName` props to build the path:
+- Brand sidebar: "Business DNA › {brandName} › Brand"
+- Audience sidebar: "Business DNA › {brandName} › {audienceName}"
+- Product sidebar: "Business DNA › {brandName} › {productName}"
 
-### Files Changed
-- `supabase/functions/scrape-product/index.ts` — update discover AI prompt to include image selection
-- `src/components/database/BusinessDNAOnboarding.tsx` — simplify `isUsableImage` to blocklist-only
+The parent views (`BrandListView`, `AudienceDetailView`, `ProductDetailView`) will pass the brand/item names to their respective sidebars.
+
+### Summary of files changed
+1. `BrandListView.tsx` — remove `self-start`, pass `brandName` to sidebar
+2. `AudienceDetailView.tsx` — remove `self-start`, pass names to sidebar
+3. `ProductDetailView.tsx` — remove `self-start`, pass names to sidebar
+4. `BrandPageSidebar.tsx` — add breadcrumb path, accept `brandName` prop
+5. `AudiencePageSidebar.tsx` — add breadcrumb path, accept `brandName`/`itemName` props
+6. `ProductPageSidebar.tsx` — add breadcrumb path, accept `brandName`/`itemName` props
 
