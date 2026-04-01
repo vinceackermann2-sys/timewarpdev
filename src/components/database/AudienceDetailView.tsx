@@ -604,19 +604,20 @@ export function AudienceDetailView({
               </div>
 
               <div className="h-8" />
-            </div>
+          </div>
+        </div>
 
-            {/* Right sidebar */}
-            <div className="hidden lg:block w-52 shrink-0">
-              <AudiencePageSidebar
-                itemName={audience.name}
-                activeSection={activeSidebarSection}
-                onSectionClick={(id) => {
-                  setActiveSidebarSection(id);
-                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              />
-            </div>
+        {/* Right sidebar — outside the scroll container */}
+        <div className="hidden lg:block w-52 shrink-0 pr-6 pt-6">
+          <div className="sticky top-6">
+            <AudiencePageSidebar
+              itemName={audience.name}
+              activeSection={activeSidebarSection}
+              onSectionClick={(id) => {
+                setActiveSidebarSection(id);
+                document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
           </div>
         </div>
       </div>
