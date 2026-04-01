@@ -187,7 +187,7 @@ serve(async (req) => {
       });
     }
 
-    const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg);
+    const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId);
 
     // Build page context section
     let pageSection = "";
@@ -330,21 +330,53 @@ async function loadBusinessIdentity(supabase: any, userId: string, brandId?: str
   return identity;
 }
 
-async function retrieveRelevantContext(supabase: any, userId: string, workspaceId?: string, userQuery?: string): Promise<string> {
+async function retrieveRelevantContext(supabase: any, userId: string, workspaceId?: string, userQuery?: string, brandId?: string): Promise<string> {
   const keywords = extractKeywords(userQuery || "");
   if (keywords.length === 0) return "";
 
+  // If a brandId is provided, resolve the brand's logical ID so we can scope all results
+  let brandLogicalId: string | null = null;
+  if (brandId) {
+    const { data: brandRow } = await supabase
+      .from("user_business_data")
+      .select("content")
+      .eq("id", brandId)
+      .single();
+    if (brandRow?.content) {
+      try { brandLogicalId = JSON.parse(brandRow.content)?.id || null; } catch {}
+    }
+  }
+
   let query = supabase
     .from("user_business_data")
-    .select("title, content, analyzed_content, data_type, source");
+    .select("id, title, content, analyzed_content, data_type, source");
 
   if (workspaceId) query = query.eq("workspace_id", workspaceId);
   else query = query.eq("user_id", userId);
 
-  const { data: items } = await query.limit(100);
+  const { data: items } = await query.limit(200);
   if (!items || items.length === 0) return "";
 
-  const scored = items.map((item: any) => {
+  // Filter to only items belonging to the selected brand
+  let filtered = items;
+  if (brandId || brandLogicalId) {
+    filtered = items.filter((item: any) => {
+      // The brand record itself
+      if (item.id === brandId) return true;
+      // Products/audiences/data that reference this brand in their content JSON
+      if (brandLogicalId && item.content) {
+        try {
+          const parsed = JSON.parse(item.content);
+          if (parsed.brandId === brandLogicalId) return true;
+        } catch {}
+      }
+      // Canvas/manual items tagged with the brand in metadata
+      if (item.content?.includes(brandLogicalId || "")) return true;
+      return false;
+    });
+  }
+
+  const scored = filtered.map((item: any) => {
     const snippet = (item.analyzed_content || item.content || "").slice(0, 300);
     return { ...item, score: scoreItem(keywords, item.title || "", snippet) };
   }).filter((i: any) => i.score > 0.1)
@@ -410,7 +442,7 @@ ${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments**
 function buildChatPrompt(identity: string, relevantContext: string): string {
   return `You are an intelligent AI assistant. You help with strategy, marketing, content creation, analysis, operations, and decision-making.
 
-${identity ? `# Business Context\n${identity}` : ""}
+${identity ? `# Business Context\n${identity}\n\n**IMPORTANT: You are currently representing ONLY this business. All your answers must be about this specific business. Do NOT reference or provide information about any other business the user may own.**` : ""}
 ${relevantContext}
 
 ## CRITICAL CHAT BEHAVIOR
