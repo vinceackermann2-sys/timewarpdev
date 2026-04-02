@@ -180,104 +180,11 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
           {/* Get more Actions */}
           {activeTab === "upgrade" && (
             <div className="space-y-4">
-              {/* Plan cards */}
-              <div className="grid grid-cols-3 gap-3">
-                {([
-                  { key: "co_founder" as const, label: "Co Founder", price: "$20", suffix: "/mo", actions: "100 Actions · 3 Employees", desc: "For early-stage founders" },
-                  { key: "aristotle" as const, label: "Aristotle", price: "$29", suffix: "/mo", actions: "1,000 Actions · 10 Employees", desc: "For growing businesses", popular: true },
-                  { key: "timewarp_og" as const, label: "TimeWarp OG", price: "$499", suffix: "/3mo", actions: "Unlimited", desc: "Unlimited power" },
-                ]).map((plan) => (
-                  <button
-                    key={plan.key}
-                    onClick={() => {
-                      // Navigate to pricing page for plan checkout
-                      window.open("/pricing", "_blank");
-                    }}
-                    className={cn(
-                      "relative rounded-xl border p-4 text-left transition-all hover:border-primary/50 hover:shadow-sm",
-                      plan.popular ? "border-primary bg-primary/5" : "border-border/60 bg-card"
-                    )}
-                  >
-                    {plan.popular && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-semibold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">Popular</span>
-                    )}
-                    <p className="text-sm font-bold mt-1">{plan.label}</p>
-                    <p className="text-[11px] text-muted-foreground">{plan.desc}</p>
-                    <div className="mt-2">
-                      <span className="text-lg font-bold">{plan.price}</span>
-                      <span className="text-[11px] text-muted-foreground">{plan.suffix}</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">{plan.actions}</p>
-                  </button>
-                ))}
-              </div>
-
-              <Separator className="my-2" />
-
-              {/* Action packs */}
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-1">Or buy Action Packs</h3>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Buy additional actions instantly.
-                </p>
-              </div>
-
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className={cn(
-                    "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-colors",
-                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                    !selectedPackId && "text-muted-foreground"
-                  )}
-                >
-                  <span>
-                    {selectedPackId
-                      ? `+${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.label} — ${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.price}`
-                      : "Select an action pack"}
-                  </span>
-                  <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", dropdownOpen && "rotate-180")} />
-                </button>
-
-                {dropdownOpen && (
-                  <div className="absolute z-50 top-full mt-1 w-full rounded-xl border border-border/50 bg-popover shadow-md max-h-[200px] overflow-y-auto animate-in fade-in-0 zoom-in-95">
-                    {ACTION_PACKS.map((pack, index) => (
-                      <button
-                        key={pack.priceId}
-                        onClick={() => {
-                          setSelectedPackId(pack.priceId);
-                          setDropdownOpen(false);
-                        }}
-                        className={cn(
-                          "flex w-full items-center justify-between px-5 py-3.5 text-sm transition-colors",
-                          index < ACTION_PACKS.length - 1 && "border-b border-border/30",
-                          selectedPackId === pack.priceId
-                            ? "bg-primary text-primary-foreground font-semibold"
-                            : "hover:bg-primary/10 hover:text-primary text-popover-foreground"
-                        )}
-                      >
-                        <span>+{pack.label}</span>
-                        <span>{pack.price}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Button
-                className="w-full gap-2"
-                onClick={() => selectedPackId && handlePurchase(selectedPackId)}
-                disabled={!selectedPackId || purchasingPriceId !== null}
-              >
-                {purchasingPriceId ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <ShoppingCart className="h-4 w-4" />
-                    Purchase {selectedPackId ? ACTION_PACKS.find(p => p.priceId === selectedPackId)?.label : "Actions"}
-                  </>
-                )}
+              <p className="text-sm text-muted-foreground">
+                Upgrade your plan or purchase action packs to get more actions.
+              </p>
+              <Button className="w-full" asChild>
+                <Link to="/pricing">View Plans & Action Packs</Link>
               </Button>
             </div>
           )}

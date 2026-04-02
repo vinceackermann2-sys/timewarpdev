@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, ArrowLeft, Loader2 } from "lucide-react";
+import { Check, X, ArrowLeft, Loader2, ShoppingCart, ChevronDown, WandSparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 type BillingPeriod = "monthly" | "quarterly" | "annually";
 type PlanKey = "co_founder" | "aristotle" | "timewarp_og";
@@ -34,6 +36,21 @@ const PRICES: Record<BillingPeriod, Record<PlanKey, number>> = {
   annually: { co_founder: 16, aristotle: 23, timewarp_og: 499 },
 };
 
+const ACTION_LIMITS: Record<string, number> = {
+  co_founder: 100,
+  aristotle: 1000,
+  timewarp_og: Infinity,
+};
+
+const ACTION_PACKS = [
+  { label: "50 Actions", price: "$15.00", priceId: "price_1TAvQkGKbzbe9CQLJzFOPcBL" },
+  { label: "100 Actions", price: "$30.00", priceId: "price_1TAvR5GKbzbe9CQLzPPcn891" },
+  { label: "150 Actions", price: "$45.00", priceId: "price_1TAvS9GKbzbe9CQLmpcVUOLW" },
+  { label: "200 Actions", price: "$60.00", priceId: "price_1TAvXcGKbzbe9CQLtQgY1kwy" },
+  { label: "300 Actions", price: "$85.00", priceId: "price_1TBAJTGKbzbe9CQLxrFmBDhw" },
+  { label: "400 Actions", price: "$100.00", priceId: "price_1TBAJoGKbzbe9CQLnIE5C2IC" },
+];
+
 interface Feature {
   name: string;
   co_founder: string | boolean;
@@ -56,16 +73,86 @@ function FeatureValue({ value }: { value: string | boolean }) {
     return <span className="text-sm font-medium text-foreground">{value}</span>;
   }
   return value ? (
-    <Check className="h-5 w-5 text-blue-500" />
+    <Check className="h-5 w-5 text-primary" />
   ) : (
     <X className="h-5 w-5 text-muted-foreground/40" />
+  );
+}
+
+function CurrentPlanCard({ userId }: { userId?: string }) {
+  const { plan, hasActivePlan } = useSubscription();
+
+  const { data } = useQuery<{ actions_used: number; bonus_actions: number }>({
+    queryKey: ["pricing-actions", userId],
+    queryFn: async () => {
+      if (!userId) return { actions_used: 0, bonus_actions: 0 };
+      const { data } = await supabase
+        .from("user_subscriptions")
+        .select("actions_used, bonus_actions")
+        .eq("user_id", userId)
+        .maybeSingle();
+      return {
+        actions_used: (data as any)?.actions_used ?? 0,
+        bonus_actions: (data as any)?.bonus_actions ?? 0,
+      };
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  const planName = plan === "co_founder" ? "Co Founder"
+    : plan === "aristotle" ? "Aristotle"
+    : plan === "timewarp_og" ? "TimeWarp OG"
+    : "Free";
+  const limit = plan ? ACTION_LIMITS[plan] ?? 0 : 0;
+  const bonus = data?.bonus_actions ?? 0;
+  const used = data?.actions_used ?? 0;
+  const total = limit === Infinity ? Infinity : limit + bonus;
+  const remaining = total === Infinity ? "∞" : String(Math.max(0, total - used));
+
+  const planFeatures = plan ? features.map(f => ({
+    name: f.name,
+    value: f[plan],
+  })) : [];
+
+  return (
+    <div className="rounded-2xl border-2 border-primary/30 bg-card p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
+          <p className="text-2xl font-bold mt-0.5">{planName}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Actions Remaining</p>
+          <p className="text-2xl font-bold mt-0.5 flex items-center gap-1.5 justify-end">
+            <WandSparkles className="h-5 w-5 text-primary" />
+            {remaining}
+          </p>
+        </div>
+      </div>
+      {hasActivePlan && planFeatures.length > 0 && (
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-4 pt-4 border-t border-border/50">
+          {planFeatures.map(f => (
+            <div key={f.name} className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">{f.name}</span>
+              <FeatureValue value={f.value} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useState<string | undefined>();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const [purchasingPriceId, setPurchasingPriceId] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { plan: currentPlan } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -74,7 +161,18 @@ export default function PricingPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session);
+      setUserId(session?.user?.id);
     });
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleGetStarted = async (plan: PlanKey) => {
@@ -82,13 +180,10 @@ export default function PricingPage() {
       navigate("/auth?mode=signup");
       return;
     }
-
     if (currentPlan === plan) {
-      // Already on this plan, open customer portal
       handleManageSubscription();
       return;
     }
-
     setLoadingPlan(plan);
     try {
       const priceId = STRIPE_PRICES[billing][plan];
@@ -96,15 +191,9 @@ export default function PricingPage() {
         body: { priceId },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
+      if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
-      toast({
-        title: "Error",
-        description: e.message || "Failed to create checkout session",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: e.message || "Failed to create checkout session", variant: "destructive" });
     } finally {
       setLoadingPlan(null);
     }
@@ -114,15 +203,28 @@ export default function PricingPage() {
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
+      if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
-      toast({
-        title: "Error",
-        description: e.message || "Failed to open subscription management",
-        variant: "destructive",
+      toast({ title: "Error", description: e.message || "Failed to open subscription management", variant: "destructive" });
+    }
+  };
+
+  const handlePurchasePack = async (priceId: string) => {
+    if (!isLoggedIn) {
+      navigate("/auth?mode=signup");
+      return;
+    }
+    setPurchasingPriceId(priceId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-action-purchase", {
+        body: { priceId },
       });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to create purchase session", variant: "destructive" });
+    } finally {
+      setPurchasingPriceId(null);
     }
   };
 
@@ -132,29 +234,36 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen b bg-background">
-      <div className="max-w-[1900px] mx-auto px-4 pt-8 pb-4">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-5xl mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" />
           Back to home
         </Link>
       </div>
 
-      <div className="max-w-[1900px] mx-auto px-4 pb-20">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Choose Your Plan</h1>
+      <div className="max-w-5xl mx-auto px-4 pb-20 space-y-10">
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Plans & Pricing</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Select the perfect plan for your needs. All plans include full access to our platform.
           </p>
         </div>
 
-        <div className="flex justify-center mb-12">
+        {/* Current plan card (only if logged in) */}
+        {isLoggedIn && (
+          <CurrentPlanCard userId={userId} />
+        )}
+
+        {/* Billing toggle */}
+        <div className="flex justify-center">
           <div className="inline-flex items-center rounded-full bg-muted p-1 gap-1">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
               <button
                 key={period}
                 onClick={() => setBilling(period)}
-                className={`p3 sm:px-x-5 py-2 rounded-full text-sm font-medium transition-all capitalize ${
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all capitalize ${
                   billing === period
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -162,19 +271,20 @@ export default function PricingPage() {
               >
                 {period}
                 {period === "annually" && (
-                  <span className="ml-1.5 text-xs text-blue-500 font-semibold">-20%</span>
+                  <span className="ml-1.5 text-xs text-primary font-semibold">-20%</span>
                 )}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        {/* Plan cards */}
+        <div className="grid md:grid-cols-3 gap-6">
           {/* Co Founder */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "co_founder" ? "border-green-500" : "border-border/60"} bg-card p-7 flex flex-col`}>
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "co_founder" ? "border-primary" : "border-border/60"} bg-card p-7 flex flex-col`}>
             {currentPlan === "co_founder" && (
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <Badge className="bg-green-500 text-white border-green-500 px-4 py-1 text-xs">Your Plan</Badge>
+                <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
               </div>
             )}
             <div className="mb-4" />
@@ -192,25 +302,20 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleGetStarted("co_founder")}
-              disabled={loadingPlan === "co_founder"}
-            >
+            <Button variant="outline" className="w-full" onClick={() => handleGetStarted("co_founder")} disabled={loadingPlan === "co_founder"}>
               {loadingPlan === "co_founder" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("co_founder")}
             </Button>
           </div>
 
           {/* Aristotle */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-green-500" : "border-blue-500"} bg-card p-7 flex flex-col scmd:ale-[1.02] z-10`}>
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-primary" : "border-primary/60"} bg-card p-7 flex flex-col z-10`}>
             {currentPlan === "aristotle" ? (
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <Badge className="bg-green-500 text-white border-green-500 px-4 py-1 text-xs">Your Plan</Badge>
+                <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
               </div>
             ) : (
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <Badge className="bg-blue-500 text-white border-blue-500 px-4 py-1 text-xs">Most Popular</Badge>
+                <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Most Popular</Badge>
               </div>
             )}
             <div className="mb-4" />
@@ -228,24 +333,20 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-              onClick={() => handleGetStarted("aristotle")}
-              disabled={loadingPlan === "aristotle"}
-            >
+            <Button className="w-full" onClick={() => handleGetStarted("aristotle")} disabled={loadingPlan === "aristotle"}>
               {loadingPlan === "aristotle" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("aristotle")}
             </Button>
           </div>
 
           {/* TimeWarp OG */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "timewarp_og" ? "border-green-500" : "border-border/60"} bg-card p-7 flex flex-col`}>
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "timewarp_og" ? "border-primary" : "border-border/60"} bg-card p-7 flex flex-col`}>
             {currentPlan === "timewarp_og" && (
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <Badge className="bg-green-500 text-white border-green-500 px-4 py-1 text-xs">Your Plan</Badge>
+                <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
               </div>
             )}
             <div className="mb-4 flex gap-2">
-              <Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200 text-xs">
+              <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
                 Ends April 1st
               </Badge>
             </div>
@@ -264,13 +365,71 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleGetStarted("timewarp_og")}
-              disabled={loadingPlan === "timewarp_og"}
-            >
+            <Button variant="outline" className="w-full" onClick={() => handleGetStarted("timewarp_og")} disabled={loadingPlan === "timewarp_og"}>
               {loadingPlan === "timewarp_og" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("timewarp_og")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Action Packs */}
+        <div className="rounded-2xl border-2 border-border/60 bg-card p-7">
+          <h2 className="text-xl font-bold mb-1">Action Packs</h2>
+          <p className="text-sm text-muted-foreground mb-5">Buy additional actions instantly — no subscription required.</p>
+
+          <div className="flex gap-4 items-end">
+            <div className="flex-1 relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className={cn(
+                  "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-colors",
+                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                  !selectedPackId && "text-muted-foreground"
+                )}
+              >
+                <span>
+                  {selectedPackId
+                    ? `+${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.label} — ${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.price}`
+                    : "Select an action pack"}
+                </span>
+                <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", dropdownOpen && "rotate-180")} />
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute z-50 top-full mt-1 w-full rounded-xl border border-border/50 bg-popover shadow-md max-h-[200px] overflow-y-auto animate-in fade-in-0 zoom-in-95">
+                  {ACTION_PACKS.map((pack, index) => (
+                    <button
+                      key={pack.priceId}
+                      onClick={() => { setSelectedPackId(pack.priceId); setDropdownOpen(false); }}
+                      className={cn(
+                        "flex w-full items-center justify-between px-5 py-3.5 text-sm transition-colors",
+                        index < ACTION_PACKS.length - 1 && "border-b border-border/30",
+                        selectedPackId === pack.priceId
+                          ? "bg-primary text-primary-foreground font-semibold"
+                          : "hover:bg-primary/10 hover:text-primary text-popover-foreground"
+                      )}
+                    >
+                      <span>+{pack.label}</span>
+                      <span>{pack.price}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Button
+              className="gap-2 shrink-0"
+              onClick={() => selectedPackId && handlePurchasePack(selectedPackId)}
+              disabled={!selectedPackId || purchasingPriceId !== null}
+            >
+              {purchasingPriceId ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <ShoppingCart className="h-4 w-4" />
+                  Purchase
+                </>
+              )}
             </Button>
           </div>
         </div>
