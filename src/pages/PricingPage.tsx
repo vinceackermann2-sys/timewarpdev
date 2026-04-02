@@ -29,9 +29,9 @@ const STRIPE_PRICES: Record<BillingPeriod, Record<PlanKey, string>> = {
 };
 
 const PRICES: Record<BillingPeriod, Record<PlanKey, number>> = {
-  monthly: { co_founder: 69, aristotle: 109, timewarp_og: 499 },
-  quarterly: { co_founder: 62, aristotle: 98, timewarp_og: 499 },
-  annually: { co_founder: 55, aristotle: 87, timewarp_og: 499 },
+  monthly: { co_founder: 29, aristotle: 20, timewarp_og: 499 },
+  quarterly: { co_founder: 26, aristotle: 18, timewarp_og: 499 },
+  annually: { co_founder: 23, aristotle: 16, timewarp_og: 499 },
 };
 
 interface Feature {

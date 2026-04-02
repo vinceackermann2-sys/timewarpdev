@@ -14,7 +14,7 @@ import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2, Menu } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { AgentChatView } from "@/components/database/AgentChatView";
-import { RestrictedFeatureGate } from "@/components/database/RestrictedFeatureGate";
+
 import { WorkspacesView } from "@/components/database/WorkspacesView";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -302,12 +302,7 @@ const Database = () => {
             <MobileHeader />
             <main className="flex-1 overflow-hidden">
               {currentView === "dataconversion" && user && (
-                <RestrictedFeatureGate
-                  featureName="Data Conversion"
-                  description="Free users can open this section from the menu, but using Data Conversion requires TimeWarp OG."
-                >
-                  <DataConversionView />
-                </RestrictedFeatureGate>
+                <DataConversionView />
               )}
               {currentView === "aiceo" && user && (
                 <TimeWarpAIView
@@ -349,12 +344,7 @@ const Database = () => {
                 </>
               )}
               {currentView === "employees" && user && (
-                <RestrictedFeatureGate
-                  featureName="Employees"
-                  description="Free users can browse here from the menu, but creating and using AI Employees requires TimeWarp OG."
-                >
-                  <AgentChatView />
-                </RestrictedFeatureGate>
+                <AgentChatView />
               )}
               {currentView === "workspaces" && user && (
                 <WorkspacesView onBack={() => handleViewChange("businessdna")} />
