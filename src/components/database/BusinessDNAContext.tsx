@@ -503,6 +503,8 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       deleteAudience,
       reloadData,
       refreshBrand,
+      businessLimitReached,
+      businessLimit,
     }}>
       {children}
     </BusinessDNAContext.Provider>
