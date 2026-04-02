@@ -51,7 +51,7 @@ const InviteAccept = () => {
           }
           setStatus("success");
           setMessage("You've been added to the workspace!");
-          // Show celebration for the 125 bonus actions granted
+          // Show celebration for the 20 bonus actions granted
           if (result?.actions_granted) {
             setShowCelebration(true);
           }
