@@ -187,32 +187,49 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
               {/* Action Packs Dropdown */}
               <div className="space-y-3">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Action Packs</p>
-                <div className="flex gap-2">
-                  <Select value={selectedPackId} onValueChange={setSelectedPackId}>
-                    <SelectTrigger className="bg-muted/30 flex-1">
-                      <SelectValue placeholder="Select an action pack" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ACTION_PACKS.map((pack) => (
-                        <SelectItem key={pack.priceId} value={pack.priceId}>
-                          +{pack.label} — {pack.price}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    disabled={!selectedPackId || purchasingPriceId !== null}
-                    onClick={() => selectedPackId && handlePurchase(selectedPackId)}
-                    className="shrink-0 gap-1.5"
-                  >
-                    {purchasingPriceId ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <ShoppingCart className="h-4 w-4" />
-                        Purchase
-                      </>
+                <div className="flex gap-3 items-end">
+                  <div className="flex-1 relative" ref={dropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      className={cn(
+                        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-colors",
+                        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                        !selectedPackId && "text-muted-foreground"
+                      )}
+                    >
+                      <span>
+                        {selectedPackId
+                          ? `+${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.label} — ${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.price}`
+                          : "Select an action pack"}
+                      </span>
+                      <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", dropdownOpen && "rotate-180")} />
+                    </button>
+
+                    {dropdownOpen && (
+                      <div className="absolute z-50 top-full mt-1 w-full rounded-xl border border-border/50 bg-popover shadow-md max-h-[200px] overflow-y-auto animate-in fade-in-0 zoom-in-95">
+                        {ACTION_PACKS.map((pack) => (
+                          <button
+                            key={pack.priceId}
+                            onClick={() => { setSelectedPackId(pack.priceId); setDropdownOpen(false); }}
+                            className={cn(
+                              "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-accent",
+                              selectedPackId === pack.priceId && "bg-accent"
+                            )}
+                          >
+                            <span className="font-medium">+{pack.label}</span>
+                            <span className="text-muted-foreground">{pack.price}</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
+                  </div>
+                  <Button
+                    onClick={() => selectedPackId && handlePurchase(selectedPackId)}
+                    disabled={!selectedPackId || purchasingPriceId !== null}
+                    className="gap-1.5 shrink-0"
+                  >
+                    {purchasingPriceId ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ShoppingCart className="h-4 w-4" /> Buy</>}
                   </Button>
                 </div>
               </div>
