@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const [saving, setSaving] = useState(false);
   const { activeWorkspaceId, workspaces } = useWorkspace();
   const { toast } = useToast();
+  const { getEmployeeLimit } = useSubscription();
 
   // Form state
   const [name, setName] = useState("");
@@ -117,6 +119,20 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     setSaving(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) { setSaving(false); return; }
+
+    // Check employee limit
+    const employeeLimit = getEmployeeLimit();
+    if (employeeLimit !== Infinity) {
+      const { count, error: countErr } = await supabase
+        .from("ai_employees")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session.user.id);
+      if (!countErr && (count ?? 0) >= employeeLimit) {
+        setSaving(false);
+        toast({ title: "Employee limit reached", description: `Your plan allows up to ${employeeLimit} employees. Upgrade for more.`, variant: "destructive" });
+        return;
+      }
+    }
 
     const wsId = selectedWorkspaceId || activeWorkspaceId || null;
 

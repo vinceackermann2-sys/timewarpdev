@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
 import { DEFAULT_PRODUCT, ProductData } from "@/components/database/ProductDetailView";
 import { DEFAULT_AUDIENCE, AudienceData } from "@/components/database/AudienceDetailView";
 
@@ -100,6 +101,8 @@ interface BusinessDNAContextType {
   deleteAudience: (audienceId: string) => Promise<void>;
   reloadData: () => Promise<{ brands: BrandEntry[]; products: ProductEntry[]; audiences: AudienceEntry[] }>;
   refreshBrand: (brandId: string) => Promise<void>;
+  businessLimitReached: boolean;
+  businessLimit: number;
 }
 
 const BusinessDNAContext = createContext<BusinessDNAContextType | null>(null);
@@ -235,6 +238,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const [audiences, setAudiencesState] = useState<AudienceEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [prevBrands, setPrevBrands] = useState<BrandEntry[]>([]);
+  const { getBusinessLimit } = useSubscription();
+  const businessLimit = getBusinessLimit();
+  const businessLimitReached = useMemo(() => businessLimit !== Infinity && brands.length >= businessLimit, [brands.length, businessLimit]);
   const [prevProducts, setPrevProducts] = useState<ProductEntry[]>([]);
   const [prevAudiences, setPrevAudiences] = useState<AudienceEntry[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
@@ -497,6 +503,8 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       deleteAudience,
       reloadData,
       refreshBrand,
+      businessLimitReached,
+      businessLimit,
     }}>
       {children}
     </BusinessDNAContext.Provider>

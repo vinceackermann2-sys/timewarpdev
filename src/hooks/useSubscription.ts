@@ -19,6 +19,8 @@ const FREE_LIMITS = {
   actionsPerMonth: 0,
   devLine: false,
   priority: false,
+  maxEmployees: 1,
+  maxBusinesses: 1,
 } as const;
 
 const PLAN_LIMITS = {
@@ -27,18 +29,24 @@ const PLAN_LIMITS = {
     actionsPerMonth: 100,
     devLine: false,
     priority: false,
+    maxEmployees: 3,
+    maxBusinesses: 10,
   },
   aristotle: {
     dataBytes: 10 * 1024 * 1024 * 1024,
     actionsPerMonth: 1000,
     devLine: true,
     priority: false,
+    maxEmployees: 10,
+    maxBusinesses: 3,
   },
   timewarp_og: {
     dataBytes: Infinity,
     actionsPerMonth: Infinity,
     devLine: true,
     priority: true,
+    maxEmployees: Infinity,
+    maxBusinesses: Infinity,
   },
 } as const;
 
@@ -125,5 +133,7 @@ export function useSubscription() {
     canUsePriority: limits.priority,
     getActionLimit: () => limits.actionsPerMonth,
     getDataLimit: () => limits.dataBytes,
+    getEmployeeLimit: () => limits.maxEmployees,
+    getBusinessLimit: () => limits.maxBusinesses,
   };
 }

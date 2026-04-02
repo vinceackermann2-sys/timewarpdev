@@ -44,7 +44,7 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
   const [isDone, setIsDone] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const { toast } = useToast();
-  const { setBrands, setProducts, setAudiences } = useBusinessDNA();
+  const { setBrands, setProducts, setAudiences, businessLimitReached, businessLimit } = useBusinessDNA();
   const { checkCanUseAction } = useActionGate();
 
   useEffect(() => {
@@ -57,6 +57,13 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
 
   const handleContinue = async () => {
     if (!url.trim()) return;
+
+    // Check business limit
+    if (businessLimitReached) {
+      toast({ title: "Business limit reached", description: `Your plan allows up to ${businessLimit} businesses. Upgrade for more.`, variant: "destructive" });
+      return;
+    }
+
     // Allow free users' first business without action check
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
