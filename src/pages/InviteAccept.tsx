@@ -70,7 +70,7 @@ const InviteAccept = () => {
             setShowCelebration(true);
             if (!token) {
               setStatus("success");
-              setMessage("Welcome! You've received 125 bonus Actions!");
+              setMessage("Welcome! You've received 20 bonus Actions!");
             }
           } else if (rr?.error && !token) {
             setStatus("error");
