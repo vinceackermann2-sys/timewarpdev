@@ -133,5 +133,7 @@ export function useSubscription() {
     canUsePriority: limits.priority,
     getActionLimit: () => limits.actionsPerMonth,
     getDataLimit: () => limits.dataBytes,
+    getEmployeeLimit: () => limits.maxEmployees,
+    getBusinessLimit: () => limits.maxBusinesses,
   };
 }
