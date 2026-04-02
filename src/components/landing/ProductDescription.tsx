@@ -186,7 +186,7 @@ export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
                 <div className="space-y-2">
                   <h4 className="font-semibold text-foreground dark:text-white" style={{ fontSize: 16 }}>Product</h4>
                   <ul className="space-y-1.5">
-                    <li><Link to="/" className="text-muted-foreground dark:text-[hsl(0_0%_50%)] hover:text-foreground dark:hover:text-white transition-colors" style={{ fontSize: 14 }}>AI-CEO</Link></li>
+                    <li><Link to="/pricing" className="text-muted-foreground dark:text-[hsl(0_0%_50%)] hover:text-foreground dark:hover:text-white transition-colors" style={{ fontSize: 14 }}>Pricing</Link></li>
                   </ul>
                 </div>
                 <div className="space-y-2">
