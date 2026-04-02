@@ -302,12 +302,7 @@ const Database = () => {
             <MobileHeader />
             <main className="flex-1 overflow-hidden">
               {currentView === "dataconversion" && user && (
-                <RestrictedFeatureGate
-                  featureName="Data Conversion"
-                  description="Free users can open this section from the menu, but using Data Conversion requires TimeWarp OG."
-                >
-                  <DataConversionView />
-                </RestrictedFeatureGate>
+                <DataConversionView />
               )}
               {currentView === "aiceo" && user && (
                 <TimeWarpAIView
