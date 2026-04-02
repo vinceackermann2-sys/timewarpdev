@@ -29,7 +29,7 @@ const plans = [
       "Unlimited team members",
       "5GB connected data",
       "100 Actions/month",
-      "10 Businesses",
+      "3 Businesses",
       "3 Employees",
     ],
     cta: "Start Free Trial",

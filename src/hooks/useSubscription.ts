@@ -38,7 +38,7 @@ const PLAN_LIMITS = {
     devLine: true,
     priority: false,
     maxEmployees: 10,
-    maxBusinesses: 3,
+    maxBusinesses: 10,
   },
   timewarp_og: {
     dataBytes: Infinity,
