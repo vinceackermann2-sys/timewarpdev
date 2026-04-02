@@ -101,6 +101,8 @@ interface BusinessDNAContextType {
   deleteAudience: (audienceId: string) => Promise<void>;
   reloadData: () => Promise<{ brands: BrandEntry[]; products: ProductEntry[]; audiences: AudienceEntry[] }>;
   refreshBrand: (brandId: string) => Promise<void>;
+  businessLimitReached: boolean;
+  businessLimit: number;
 }
 
 const BusinessDNAContext = createContext<BusinessDNAContextType | null>(null);
