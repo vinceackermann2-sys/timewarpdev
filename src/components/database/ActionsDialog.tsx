@@ -181,52 +181,49 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
           {activeTab === "upgrade" && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground">
-                Upgrade your plan or purchase action packs to get more actions.
+                Purchase action packs or upgrade your plan for more actions.
               </p>
 
-              {/* Plans */}
-              <div className="grid grid-cols-3 gap-3">
-                {([
-                  { key: "co_founder", name: "Co Founder", price: "$20", period: "/mo", actions: "100/mo" },
-                  { key: "aristotle", name: "Aristotle", price: "$29", period: "/mo", actions: "1,000/mo" },
-                  { key: "timewarp_og", name: "TimeWarp OG", price: "$499", period: "/3mo", actions: "Unlimited" },
-                ] as const).map((p) => (
-                  <button
-                    key={p.key}
-                    onClick={() => window.open("/pricing", "_self")}
-                    className="rounded-xl border border-border bg-muted/30 p-3 text-left hover:border-primary/40 transition-colors"
+              {/* Action Packs Dropdown */}
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Action Packs</p>
+                <div className="flex gap-2">
+                  <Select value={selectedPackId} onValueChange={setSelectedPackId}>
+                    <SelectTrigger className="bg-muted/30 flex-1">
+                      <SelectValue placeholder="Select an action pack" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ACTION_PACKS.map((pack) => (
+                        <SelectItem key={pack.priceId} value={pack.priceId}>
+                          +{pack.label} — {pack.price}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    disabled={!selectedPackId || purchasingPriceId !== null}
+                    onClick={() => selectedPackId && handlePurchase(selectedPackId)}
+                    className="shrink-0 gap-1.5"
                   >
-                    <p className="text-sm font-semibold text-foreground">{p.name}</p>
-                    <p className="text-lg font-bold text-primary mt-1">{p.price}<span className="text-xs text-muted-foreground font-normal">{p.period}</span></p>
-                    <p className="text-xs text-muted-foreground mt-1">{p.actions} actions</p>
-                  </button>
-                ))}
+                    {purchasingPriceId ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <ShoppingCart className="h-4 w-4" />
+                        Purchase
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
-              {/* Action Packs */}
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Action Packs</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {ACTION_PACKS.map((pack) => (
-                    <Button
-                      key={pack.priceId}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs justify-between"
-                      disabled={purchasingPriceId === pack.priceId}
-                      onClick={() => handlePurchase(pack.priceId)}
-                    >
-                      {purchasingPriceId === pack.priceId ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <>
-                          <span>+{pack.label}</span>
-                          <span className="text-muted-foreground">{pack.price}</span>
-                        </>
-                      )}
-                    </Button>
-                  ))}
-                </div>
+              <Separator />
+
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-3">Want more actions every month?</p>
+                <Button variant="outline" onClick={() => window.open("/pricing", "_self")} className="gap-2">
+                  View Plans
+                </Button>
               </div>
             </div>
           )}
