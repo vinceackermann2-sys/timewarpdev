@@ -40,6 +40,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const [saving, setSaving] = useState(false);
   const { activeWorkspaceId, workspaces } = useWorkspace();
   const { toast } = useToast();
+  const { getEmployeeLimit } = useSubscription();
 
   // Form state
   const [name, setName] = useState("");
