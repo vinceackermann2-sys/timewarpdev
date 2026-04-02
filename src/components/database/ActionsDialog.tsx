@@ -256,7 +256,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
               </div>
 
               <p className="text-xs text-muted-foreground">
-                (Free accounts can have up to 250 Actions at once)
+                (Free accounts can have up to 100 Actions at once)
               </p>
 
               <p className="text-xs text-muted-foreground">

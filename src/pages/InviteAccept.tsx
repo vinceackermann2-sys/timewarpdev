@@ -135,7 +135,7 @@ const InviteAccept = () => {
             navigate("/app");
           }
         }}
-        actionsGranted={125}
+        actionsGranted={20}
         reason="referred"
       />
     </div>
