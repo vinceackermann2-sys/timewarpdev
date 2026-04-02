@@ -179,13 +179,55 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         <div className="px-6 pb-8 pt-4 min-h-[220px]">
           {/* Get more Actions */}
           {activeTab === "upgrade" && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <p className="text-sm text-muted-foreground">
                 Upgrade your plan or purchase action packs to get more actions.
               </p>
-              <Button className="w-full" asChild>
-                <Link to="/pricing">View Plans & Action Packs</Link>
-              </Button>
+
+              {/* Plans */}
+              <div className="grid grid-cols-3 gap-3">
+                {([
+                  { key: "co_founder", name: "Co Founder", price: "$20", period: "/mo", actions: "100/mo" },
+                  { key: "aristotle", name: "Aristotle", price: "$29", period: "/mo", actions: "1,000/mo" },
+                  { key: "timewarp_og", name: "TimeWarp OG", price: "$499", period: "/3mo", actions: "Unlimited" },
+                ] as const).map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => window.open("/pricing", "_self")}
+                    className="rounded-xl border border-border bg-muted/30 p-3 text-left hover:border-primary/40 transition-colors"
+                  >
+                    <p className="text-sm font-semibold text-foreground">{p.name}</p>
+                    <p className="text-lg font-bold text-primary mt-1">{p.price}<span className="text-xs text-muted-foreground font-normal">{p.period}</span></p>
+                    <p className="text-xs text-muted-foreground mt-1">{p.actions} actions</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Action Packs */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Action Packs</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {ACTION_PACKS.map((pack) => (
+                    <Button
+                      key={pack.priceId}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs justify-between"
+                      disabled={purchasingPriceId === pack.priceId}
+                      onClick={() => handlePurchase(pack.priceId)}
+                    >
+                      {purchasingPriceId === pack.priceId ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>
+                          <span>+{pack.label}</span>
+                          <span className="text-muted-foreground">{pack.price}</span>
+                        </>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
