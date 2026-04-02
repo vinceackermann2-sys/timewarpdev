@@ -12,26 +12,26 @@ type PlanKey = "co_founder" | "aristotle" | "timewarp_og";
 
 const STRIPE_PRICES: Record<BillingPeriod, Record<PlanKey, string>> = {
   monthly: {
-    co_founder: "price_1T7WhZGKbzbe9CQL2XgsQJ1i",
-    aristotle: "price_1T7WjHGKbzbe9CQLopjmOrkg",
+    co_founder: "price_1THjCGGKbzbe9CQL4jgCLlXl",
+    aristotle: "price_1THjDRGKbzbe9CQLjZ0ndhNP",
     timewarp_og: "price_1TGKOzGKbzbe9CQL8pj9zYEf",
   },
   quarterly: {
-    co_founder: "price_1T7WicGKbzbe9CQLJc2YAgFa",
-    aristotle: "price_1T7WjhGKbzbe9CQLt570pbGz",
+    co_founder: "price_1THjCkGKbzbe9CQLXFZ9c7ep",
+    aristotle: "price_1THjDpGKbzbe9CQLC3hLvl3o",
     timewarp_og: "price_1TGKOzGKbzbe9CQL8pj9zYEf",
   },
   annually: {
-    co_founder: "price_1T7WirGKbzbe9CQLlNxy4zyK",
-    aristotle: "price_1T7Wk6GKbzbe9CQLzECMgYMt",
+    co_founder: "price_1THjDBGKbzbe9CQL2XGRqWCt",
+    aristotle: "price_1THjEGGKbzbe9CQL877lDRK7",
     timewarp_og: "price_1TGKOzGKbzbe9CQL8pj9zYEf",
   },
 };
 
 const PRICES: Record<BillingPeriod, Record<PlanKey, number>> = {
-  monthly: { co_founder: 29, aristotle: 20, timewarp_og: 499 },
-  quarterly: { co_founder: 26, aristotle: 18, timewarp_og: 499 },
-  annually: { co_founder: 23, aristotle: 16, timewarp_og: 499 },
+  monthly: { co_founder: 20, aristotle: 29, timewarp_og: 499 },
+  quarterly: { co_founder: 18, aristotle: 26, timewarp_og: 499 },
+  annually: { co_founder: 16, aristotle: 23, timewarp_og: 499 },
 };
 
 interface Feature {

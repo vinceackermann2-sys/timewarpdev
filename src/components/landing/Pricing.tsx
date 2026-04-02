@@ -6,7 +6,7 @@ import { Check } from "lucide-react";
 const plans = [
   {
     name: "Aristotle",
-    price: "$20",
+    price: "$29",
     period: "/month",
     description: "For growing businesses scaling operations",
     features: [

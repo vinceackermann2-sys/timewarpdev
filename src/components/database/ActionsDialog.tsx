@@ -183,8 +183,8 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
               {/* Plan cards */}
               <div className="grid grid-cols-3 gap-3">
                 {([
-                  { key: "co_founder" as const, label: "Co Founder", price: "$29", suffix: "/mo", actions: "100 Actions", desc: "For early-stage founders" },
-                  { key: "aristotle" as const, label: "Aristotle", price: "$20", suffix: "/mo", actions: "1,000 Actions", desc: "For growing businesses", popular: true },
+                  { key: "co_founder" as const, label: "Co Founder", price: "$20", suffix: "/mo", actions: "100 Actions", desc: "For early-stage founders" },
+                  { key: "aristotle" as const, label: "Aristotle", price: "$29", suffix: "/mo", actions: "1,000 Actions", desc: "For growing businesses", popular: true },
                   { key: "timewarp_og" as const, label: "TimeWarp OG", price: "$499", suffix: "/3mo", actions: "Unlimited", desc: "Unlimited power" },
                 ]).map((plan) => (
                   <button
