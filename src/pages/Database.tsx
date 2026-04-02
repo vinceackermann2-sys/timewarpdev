@@ -344,12 +344,7 @@ const Database = () => {
                 </>
               )}
               {currentView === "employees" && user && (
-                <RestrictedFeatureGate
-                  featureName="Employees"
-                  description="Free users can browse here from the menu, but creating and using AI Employees requires TimeWarp OG."
-                >
-                  <AgentChatView />
-                </RestrictedFeatureGate>
+                <AgentChatView />
               )}
               {currentView === "workspaces" && user && (
                 <WorkspacesView onBack={() => handleViewChange("businessdna")} />

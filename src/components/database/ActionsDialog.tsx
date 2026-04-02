@@ -179,10 +179,45 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
           {/* Get more Actions */}
           {activeTab === "upgrade" && (
             <div className="space-y-4">
+              {/* Plan cards */}
+              <div className="grid grid-cols-3 gap-3">
+                {([
+                  { key: "co_founder" as const, label: "Co Founder", price: "$29", suffix: "/mo", actions: "100 Actions", desc: "For early-stage founders" },
+                  { key: "aristotle" as const, label: "Aristotle", price: "$20", suffix: "/mo", actions: "1,000 Actions", desc: "For growing businesses", popular: true },
+                  { key: "timewarp_og" as const, label: "TimeWarp OG", price: "$499", suffix: "/3mo", actions: "Unlimited", desc: "Unlimited power" },
+                ]).map((plan) => (
+                  <button
+                    key={plan.key}
+                    onClick={() => {
+                      // Navigate to pricing page for plan checkout
+                      window.open("/pricing", "_blank");
+                    }}
+                    className={cn(
+                      "relative rounded-xl border p-4 text-left transition-all hover:border-primary/50 hover:shadow-sm",
+                      plan.popular ? "border-primary bg-primary/5" : "border-border/60 bg-card"
+                    )}
+                  >
+                    {plan.popular && (
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-semibold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">Popular</span>
+                    )}
+                    <p className="text-sm font-bold mt-1">{plan.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{plan.desc}</p>
+                    <div className="mt-2">
+                      <span className="text-lg font-bold">{plan.price}</span>
+                      <span className="text-[11px] text-muted-foreground">{plan.suffix}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">{plan.actions}</p>
+                  </button>
+                ))}
+              </div>
+
+              <Separator className="my-2" />
+
+              {/* Action packs */}
               <div>
-                <h3 className="text-base font-semibold text-foreground mb-1">Purchase Action Packs</h3>
-                <p className="text-sm text-muted-foreground">
-                  Buy additional actions instantly. Actions are added to your account balance.
+                <h3 className="text-sm font-semibold text-foreground mb-1">Or buy Action Packs</h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Buy additional actions instantly.
                 </p>
               </div>
 
@@ -243,15 +278,6 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                   </>
                 )}
               </Button>
-
-              <div className="pt-2 border-t border-border/30">
-                <p className="text-xs text-muted-foreground text-center">
-                  Need a custom plan?{" "}
-                  <Link to="/support" className="text-primary hover:underline">
-                    Contact us
-                  </Link>
-                </p>
-              </div>
             </div>
           )}
 

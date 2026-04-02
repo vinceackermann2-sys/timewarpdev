@@ -636,20 +636,77 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                 <div className="space-y-6">
                   <PlanUsageSummary fallbackPlan={currentPlan} userId={authUser?.id} />
 
-                  <div className="rounded-lg border border-border/50 bg-muted/20 p-8 text-center space-y-4">
-                    <h3 className="text-lg font-semibold text-foreground">Questions about your plan?</h3>
-                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                      For information about upgrading, downgrading, or any questions regarding your plan, please contact our team.
-                    </p>
-                    <Button asChild>
-                      <Link to="/support">Contact Us</Link>
-                    </Button>
+                  {/* Billing toggle */}
+                  <div className="flex justify-center">
+                    <div className="inline-flex items-center rounded-full bg-muted p-1 gap-1">
+                      {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
+                        <button
+                          key={period}
+                          onClick={() => setBilling(period)}
+                          className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all capitalize ${
+                            billing === period ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {period}
+                          {period === "annually" && <span className="ml-1 text-[10px] text-primary font-semibold">-20%</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Plan cards */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {(["co_founder", "aristotle", "timewarp_og"] as PlanKey[]).map((planKey) => {
+                      const isActive = currentPlan === planKey;
+                      const isBest = planKey === "aristotle";
+                      const label = planKey === "co_founder" ? "Co Founder" : planKey === "aristotle" ? "Aristotle" : "TimeWarp OG";
+                      const desc = planKey === "co_founder" ? "For early-stage founders" : planKey === "aristotle" ? "For growing businesses" : "Unlimited power";
+                      const price = prices[planKey];
+                      const suffix = planKey === "timewarp_og" ? " / 3mo" : " / mo";
+                      return (
+                        <div key={planKey} className={cn("relative rounded-xl border-2 p-5 flex flex-col", isActive ? "border-green-500" : isBest ? "border-primary" : "border-border/60")}>
+                          {isActive && (
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                              <Badge className="bg-green-500 text-white border-green-500 text-[10px]">Your Plan</Badge>
+                            </div>
+                          )}
+                          {!isActive && isBest && (
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                              <Badge className="bg-primary text-primary-foreground border-primary text-[10px]">Popular</Badge>
+                            </div>
+                          )}
+                          <h4 className="text-sm font-bold mt-2">{label}</h4>
+                          <p className="text-xs text-muted-foreground mb-3">{desc}</p>
+                          <div className="mb-4">
+                            <span className="text-2xl font-bold">${price}</span>
+                            <span className="text-xs text-muted-foreground">{suffix}</span>
+                          </div>
+                          <div className="space-y-2 flex-1 mb-4">
+                            {PLAN_FEATURES.map((f) => (
+                              <div key={f.name} className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">{f.name}</span>
+                                <FeatureValue value={f[planKey]} />
+                              </div>
+                            ))}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant={isBest && !isActive ? "default" : "outline"}
+                            className="w-full text-xs"
+                            onClick={() => handleGetStarted(planKey)}
+                            disabled={loadingPlan === planKey}
+                          >
+                            {loadingPlan === planKey ? <Loader2 className="h-3 w-3 animate-spin" /> : getPlanButtonLabel(planKey)}
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {currentPlan && (
                     <div className="text-center">
                       <Button variant="link" size="sm" className="text-muted-foreground" onClick={handleManageSubscription}>
-                        Manage subscription in Stripe →
+                        Manage subscription →
                       </Button>
                     </div>
                   )}
