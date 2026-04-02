@@ -384,7 +384,7 @@ const Auth = () => {
           setShowCelebration(open);
           if (!open) navigateToDashboard();
         }}
-        actionsGranted={125}
+        actionsGranted={20}
         reason={celebrationReason}
       />
     </div>

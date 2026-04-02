@@ -354,7 +354,7 @@ const Database = () => {
           <ActionsCelebration
             open={showReferrerCelebration}
             onOpenChange={setShowReferrerCelebration}
-            actionsGranted={125}
+            actionsGranted={20}
             reason="referral"
           />
           <ActionsCelebration

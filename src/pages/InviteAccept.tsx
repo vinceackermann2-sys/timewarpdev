@@ -51,7 +51,7 @@ const InviteAccept = () => {
           }
           setStatus("success");
           setMessage("You've been added to the workspace!");
-          // Show celebration for the 125 bonus actions granted
+          // Show celebration for the 20 bonus actions granted
           if (result?.actions_granted) {
             setShowCelebration(true);
           }
@@ -70,7 +70,7 @@ const InviteAccept = () => {
             setShowCelebration(true);
             if (!token) {
               setStatus("success");
-              setMessage("Welcome! You've received 125 bonus Actions!");
+              setMessage("Welcome! You've received 20 bonus Actions!");
             }
           } else if (rr?.error && !token) {
             setStatus("error");
@@ -135,7 +135,7 @@ const InviteAccept = () => {
             navigate("/app");
           }
         }}
-        actionsGranted={125}
+        actionsGranted={20}
         reason="referred"
       />
     </div>
