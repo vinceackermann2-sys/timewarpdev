@@ -21,6 +21,7 @@ const FREE_LIMITS = {
   priority: false,
   maxEmployees: 1,
   maxBusinesses: 1,
+  maxTeamMembers: Infinity,
 } as const;
 
 const PLAN_LIMITS = {
