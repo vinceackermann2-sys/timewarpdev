@@ -14,7 +14,7 @@ import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { Loader2, Menu } from "lucide-react";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { AgentChatView } from "@/components/database/AgentChatView";
-import { RestrictedFeatureGate } from "@/components/database/RestrictedFeatureGate";
+
 import { WorkspacesView } from "@/components/database/WorkspacesView";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
