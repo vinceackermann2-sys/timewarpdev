@@ -30,7 +30,7 @@ const PLAN_LIMITS = {
     devLine: false,
     priority: false,
     maxEmployees: 3,
-    maxBusinesses: 10,
+    maxBusinesses: 3,
   },
   aristotle: {
     dataBytes: 10 * 1024 * 1024 * 1024,
@@ -38,7 +38,7 @@ const PLAN_LIMITS = {
     devLine: true,
     priority: false,
     maxEmployees: 10,
-    maxBusinesses: 3,
+    maxBusinesses: 10,
   },
   timewarp_og: {
     dataBytes: Infinity,

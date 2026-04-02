@@ -45,7 +45,7 @@ const features: Feature[] = [
   { name: "Team members", co_founder: "Unlimited", aristotle: "Unlimited", timewarp_og: "Unlimited" },
   { name: "Connected data", co_founder: "5GB", aristotle: "10GB", timewarp_og: "Unlimited" },
   { name: "Actions / month", co_founder: "100", aristotle: "1,000", timewarp_og: "Unlimited" },
-  { name: "Businesses", co_founder: "10", aristotle: "3", timewarp_og: "Unlimited" },
+  { name: "Businesses", co_founder: "3", aristotle: "10", timewarp_og: "Unlimited" },
   { name: "Employees", co_founder: "3", aristotle: "10", timewarp_og: "Unlimited" },
   { name: "Developer Line", co_founder: false, aristotle: true, timewarp_og: true },
   { name: "Priority Support", co_founder: false, aristotle: false, timewarp_og: true },
