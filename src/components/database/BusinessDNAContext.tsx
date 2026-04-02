@@ -238,6 +238,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const [audiences, setAudiencesState] = useState<AudienceEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [prevBrands, setPrevBrands] = useState<BrandEntry[]>([]);
+  const { getBusinessLimit } = useSubscription();
+  const businessLimit = getBusinessLimit();
+  const businessLimitReached = useMemo(() => businessLimit !== Infinity && brands.length >= businessLimit, [brands.length, businessLimit]);
   const [prevProducts, setPrevProducts] = useState<ProductEntry[]>([]);
   const [prevAudiences, setPrevAudiences] = useState<AudienceEntry[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
