@@ -119,6 +119,20 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) { setSaving(false); return; }
 
+    // Check employee limit
+    const employeeLimit = getEmployeeLimit();
+    if (employeeLimit !== Infinity) {
+      const { count, error: countErr } = await supabase
+        .from("ai_employees")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session.user.id);
+      if (!countErr && (count ?? 0) >= employeeLimit) {
+        setSaving(false);
+        toast({ title: "Employee limit reached", description: `Your plan allows up to ${employeeLimit} employees. Upgrade for more.`, variant: "destructive" });
+        return;
+      }
+    }
+
     const wsId = selectedWorkspaceId || activeWorkspaceId || null;
 
     // Build procedure with embedded context
