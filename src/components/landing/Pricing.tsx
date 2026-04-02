@@ -22,7 +22,7 @@ const plans = [
   },
   {
     name: "Co Founder",
-    price: "$29",
+    price: "$20",
     period: "/month",
     description: "For early-stage founders getting started",
     features: [
