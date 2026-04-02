@@ -253,7 +253,61 @@ export default function PricingPage() {
 
         {/* Current plan card (only if logged in) */}
         {isLoggedIn && (
-          <CurrentPlanCard userId={userId} />
+          <div className="grid md:grid-cols-2 gap-6">
+            <CurrentPlanCard userId={userId} />
+
+            {/* Action Packs */}
+            <div className="rounded-2xl border-2 border-border/60 bg-card p-6 flex flex-col">
+              <h2 className="text-xl font-bold mb-1">Action Packs</h2>
+              <p className="text-sm text-muted-foreground mb-5">Buy additional actions instantly — no subscription required.</p>
+
+              <div className="flex gap-3 items-end mt-auto">
+                <div className="flex-1 relative" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className={cn(
+                      "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-colors",
+                      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                      !selectedPackId && "text-muted-foreground"
+                    )}
+                  >
+                    <span>
+                      {selectedPackId
+                        ? `+${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.label} — ${ACTION_PACKS.find(p => p.priceId === selectedPackId)?.price}`
+                        : "Select an action pack"}
+                    </span>
+                    <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", dropdownOpen && "rotate-180")} />
+                  </button>
+
+                  {dropdownOpen && (
+                    <div className="absolute z-50 top-full mt-1 w-full rounded-xl border border-border/50 bg-popover shadow-md max-h-[200px] overflow-y-auto animate-in fade-in-0 zoom-in-95">
+                      {ACTION_PACKS.map((pack) => (
+                        <button
+                          key={pack.priceId}
+                          onClick={() => { setSelectedPackId(pack.priceId); setDropdownOpen(false); }}
+                          className={cn(
+                            "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-accent",
+                            selectedPackId === pack.priceId && "bg-accent"
+                          )}
+                        >
+                          <span className="font-medium">+{pack.label}</span>
+                          <span className="text-muted-foreground">{pack.price}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={() => selectedPackId && handlePurchasePack(selectedPackId)}
+                  disabled={!selectedPackId || purchasingPriceId !== null}
+                  className="gap-1.5 shrink-0"
+                >
+                  {purchasingPriceId ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ShoppingCart className="h-4 w-4" /> Buy</>}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Billing toggle */}
