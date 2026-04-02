@@ -1075,6 +1075,19 @@ export function AgentChatView() {
             break;
           }
 
+          // Handle wait action client-side (don't send to extension)
+          if (action.action === "wait") {
+            const waitMs = Math.min(action.duration || 1000, 5000);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+            stepLogs[stepLogs.length - 1].result = "success";
+            taskSteps[taskSteps.length - 1].status = "done";
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
+            consecutiveErrors = 0;
+            conversationHistory.push({ role: "user" as const, content: `Action result: {"success":true,"action":"wait"}` });
+            stepCount++;
+            continue;
+          }
+
           let result = await executeAction(action);
 
           // Fallback for extract: if extension can't extract, use page context
