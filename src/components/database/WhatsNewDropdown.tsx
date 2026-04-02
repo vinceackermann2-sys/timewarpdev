@@ -17,13 +17,6 @@ const inboxItems: Array<{ id: number; title: string; message: string; time: stri
 
 const updateItems: Array<{ id: number; title: string; message: string; time: string; isNew: boolean; image?: string }> = [
   {
-    id: 2,
-    title: "Subtle Navigation Update",
-    message: "Sidebar nav items now use a soft highlight instead of full-color when selected — cleaner and easier on the eyes.",
-    time: "Just now",
-    isNew: true,
-  },
-  {
     id: 1,
     title: "Introducing TimeWarp Beta",
     message: "If you've ever been at work and thought \"I wish someone could do my work for me\" — this one's for you!",
