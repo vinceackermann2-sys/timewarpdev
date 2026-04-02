@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+
 import { useActionGate } from "@/hooks/useActionGate";
 
 type Tab = "upgrade" | "refer" | "invite";
