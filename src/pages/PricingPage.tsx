@@ -279,7 +279,7 @@ export default function PricingPage() {
         </div>
 
         {/* Plan cards */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-6 items-stretch">
           {/* Co Founder */}
           <div className={`relative rounded-2xl border-2 ${currentPlan === "co_founder" ? "border-primary" : "border-border/60"} bg-card p-7 flex flex-col`}>
             {currentPlan === "co_founder" && (
@@ -287,12 +287,14 @@ export default function PricingPage() {
                 <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
               </div>
             )}
-            <div className="mb-4" />
+            <div className="h-6 mb-4" />
             <h3 className="text-xl font-bold mb-1">Co Founder</h3>
             <p className="text-muted-foreground text-sm mb-5">For early-stage founders getting started</p>
-            <div className="mb-6">
-              <span className="text-4xl font-bold">${prices.co_founder}</span>
-              <span className="text-muted-foreground text-sm"> / mo</span>
+            <div className="mb-6 h-16 flex flex-col justify-center">
+              <div>
+                <span className="text-4xl font-bold">${prices.co_founder}</span>
+                <span className="text-muted-foreground text-sm"> / mo</span>
+              </div>
             </div>
             <div className="space-y-3.5 flex-1 mb-6">
               {features.map((f) => (
@@ -302,13 +304,13 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full" onClick={() => handleGetStarted("co_founder")} disabled={loadingPlan === "co_founder"}>
+            <Button variant="outline" className="w-full mt-auto" onClick={() => handleGetStarted("co_founder")} disabled={loadingPlan === "co_founder"}>
               {loadingPlan === "co_founder" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("co_founder")}
             </Button>
           </div>
 
           {/* Aristotle */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-primary" : "border-primary/60"} bg-card p-7 flex flex-col z-10`}>
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-primary" : "border-primary/60"} bg-card p-7 flex flex-col`}>
             {currentPlan === "aristotle" ? (
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
@@ -318,12 +320,14 @@ export default function PricingPage() {
                 <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Most Popular</Badge>
               </div>
             )}
-            <div className="mb-4" />
+            <div className="h-6 mb-4" />
             <h3 className="text-xl font-bold mb-1">Aristotle</h3>
             <p className="text-muted-foreground text-sm mb-5">For growing businesses scaling operations</p>
-            <div className="mb-6">
-              <span className="text-4xl font-bold">${prices.aristotle}</span>
-              <span className="text-muted-foreground text-sm"> / mo</span>
+            <div className="mb-6 h-16 flex flex-col justify-center">
+              <div>
+                <span className="text-4xl font-bold">${prices.aristotle}</span>
+                <span className="text-muted-foreground text-sm"> / mo</span>
+              </div>
             </div>
             <div className="space-y-3.5 flex-1 mb-6">
               {features.map((f) => (
@@ -333,7 +337,7 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button className="w-full" onClick={() => handleGetStarted("aristotle")} disabled={loadingPlan === "aristotle"}>
+            <Button className="w-full mt-auto" onClick={() => handleGetStarted("aristotle")} disabled={loadingPlan === "aristotle"}>
               {loadingPlan === "aristotle" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("aristotle")}
             </Button>
           </div>
@@ -345,16 +349,18 @@ export default function PricingPage() {
                 <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
               </div>
             )}
-            <div className="mb-4 flex gap-2">
+            <div className="h-6 mb-4 flex items-center gap-2">
               <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
                 Ends April 1st
               </Badge>
             </div>
             <h3 className="text-xl font-bold mb-1">TimeWarp OG</h3>
             <p className="text-muted-foreground text-sm mb-5">Unlimited power for serious operators</p>
-            <div className="mb-6">
-              <span className="text-4xl font-bold">$499</span>
-              <span className="text-muted-foreground text-sm"> / 3 months</span>
+            <div className="mb-6 h-16 flex flex-col justify-center">
+              <div>
+                <span className="text-4xl font-bold">$499</span>
+                <span className="text-muted-foreground text-sm"> / 3 months</span>
+              </div>
               <p className="text-xs text-muted-foreground mt-1">One-time payment</p>
             </div>
             <div className="space-y-3.5 flex-1 mb-6">
@@ -365,7 +371,7 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full" onClick={() => handleGetStarted("timewarp_og")} disabled={loadingPlan === "timewarp_og"}>
+            <Button variant="outline" className="w-full mt-auto" onClick={() => handleGetStarted("timewarp_og")} disabled={loadingPlan === "timewarp_og"}>
               {loadingPlan === "timewarp_og" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("timewarp_og")}
             </Button>
           </div>
