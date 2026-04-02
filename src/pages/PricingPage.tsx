@@ -246,9 +246,6 @@ export default function PricingPage() {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Plans & Pricing</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Select the perfect plan for your needs. All plans include full access to our platform.
-          </p>
         </div>
 
         {/* Current plan card (only if logged in) */}
