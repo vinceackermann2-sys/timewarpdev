@@ -503,49 +503,126 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
 async function fetchSlackData(accessToken: string): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
 
-  const [channelsRes, teamRes] = await Promise.all([
-    fetch("https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=50", { headers }),
+  // Fetch channels, team info, and users in parallel
+  const [channelsRes, teamRes, usersRes] = await Promise.all([
+    fetch("https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=200", { headers }),
     fetch("https://slack.com/api/team.info", { headers }),
+    fetch("https://slack.com/api/users.list?limit=200", { headers }),
   ]);
 
   const channels = await channelsRes.json();
   const team = await teamRes.json();
+  const usersData = await usersRes.json();
 
-  console.log("Slack data fetched, channels:", channels.channels?.length || 0);
+  console.log("Slack data fetched, channels:", channels.channels?.length || 0, "users:", usersData.members?.length || 0);
 
-  if (!channels.ok) {
-    console.error("Slack conversations.list failed");
-  }
+  if (!channels.ok) console.error("Slack conversations.list failed:", channels.error);
 
-  // Fetch recent messages from top 5 active channels
-  const channelList = (channels.channels || []).slice(0, 5);
+  // Parse users (skip bots and deleted)
+  const users = (usersData.members || [])
+    .filter((u: any) => !u.deleted && !u.is_bot && u.id !== "USLACKBOT")
+    .map((u: any) => ({
+      id: u.id,
+      name: u.real_name || u.name,
+      displayName: u.profile?.display_name || null,
+      title: u.profile?.title || null,
+      email: u.profile?.email || null,
+      phone: u.profile?.phone || null,
+      timezone: u.tz_label || null,
+      isAdmin: u.is_admin || false,
+      isOwner: u.is_owner || false,
+      status: u.profile?.status_text || null,
+    }));
+
+  // Fetch recent messages from top 20 active channels + pinned messages
+  const channelList = (channels.channels || []).slice(0, 20);
   const channelMessages: any[] = [];
+  const pinnedMessages: any[] = [];
 
-  for (const ch of channelList) {
+  // Build a user ID → name lookup
+  const userMap: Record<string, string> = {};
+  for (const u of users) userMap[u.id] = u.name;
+
+  // Parallel fetch: history + pins for each channel
+  const channelFetches = channelList.map(async (ch: any) => {
+    const results: { messages?: any; pins?: any } = {};
     try {
-      const histRes = await fetch(`https://slack.com/api/conversations.history?channel=${ch.id}&limit=10`, { headers });
-      if (histRes.ok) {
-        const hist = await histRes.json();
-        channelMessages.push({
+      const [histRes, pinsRes] = await Promise.all([
+        fetch(`https://slack.com/api/conversations.history?channel=${ch.id}&limit=50`, { headers }),
+        fetch(`https://slack.com/api/pins.list?channel=${ch.id}`, { headers }),
+      ]);
+      if (histRes.ok) results.messages = await histRes.json();
+      if (pinsRes.ok) results.pins = await pinsRes.json();
+    } catch { /* skip */ }
+    return { ch, ...results };
+  });
+
+  const channelResults = await Promise.all(channelFetches);
+
+  for (const { ch, messages: hist, pins } of channelResults) {
+    if (hist?.ok && hist.messages?.length) {
+      channelMessages.push({
+        channel: ch.name,
+        messages: hist.messages.map((m: any) => ({
+          text: m.text?.slice(0, 500),
+          ts: m.ts,
+          user: userMap[m.user] || m.user,
+          subtype: m.subtype || null,
+        })),
+      });
+    }
+
+    if (pins?.ok && pins.items?.length) {
+      for (const pin of pins.items) {
+        const msg = pin.message || pin;
+        pinnedMessages.push({
           channel: ch.name,
-          messages: (hist.messages || []).map((m: any) => ({
-            text: m.text?.slice(0, 200),
-            ts: m.ts,
-            user: m.user,
-          })),
+          text: (msg.text || "").slice(0, 1000),
+          user: userMap[msg.user] || msg.user,
+          ts: msg.ts,
         });
       }
-    } catch { /* skip */ }
+    }
   }
+
+  // Fetch shared files (up to 100)
+  let sharedFiles: any[] = [];
+  try {
+    const filesRes = await fetch("https://slack.com/api/files.list?count=100", { headers });
+    if (filesRes.ok) {
+      const filesData = await filesRes.json();
+      sharedFiles = (filesData.files || []).map((f: any) => ({
+        name: f.name,
+        title: f.title,
+        type: f.filetype,
+        size: f.size,
+        user: userMap[f.user] || f.user,
+        created: f.created,
+        url: f.url_private,
+        channels: f.channels?.map((cid: string) => {
+          const found = (channels.channels || []).find((c: any) => c.id === cid);
+          return found?.name || cid;
+        }),
+      }));
+    }
+  } catch { /* skip */ }
 
   return {
     team: team.team?.name || team.name || "Unknown",
+    teamDomain: team.team?.domain || null,
+    teamIcon: team.team?.icon?.image_132 || null,
     channels: (channels.channels || []).map((c: any) => ({
       name: c.name,
+      id: c.id,
       memberCount: c.num_members,
-      topic: c.topic?.value?.slice(0, 100),
+      topic: c.topic?.value?.slice(0, 200),
+      purpose: c.purpose?.value?.slice(0, 200),
+      isPrivate: c.is_private || false,
     })),
     recentMessages: channelMessages,
+    pinnedMessages,
+    users,
+    files: sharedFiles,
   };
 }
 
