@@ -89,6 +89,22 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSelectMenu, setShowSelectMenu] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const selectRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (showFilterMenu && filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilterMenu(false);
+      }
+      if (showSelectMenu && selectRef.current && !selectRef.current.contains(e.target as Node)) {
+        setShowSelectMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showFilterMenu, showSelectMenu]);
 
   // Derived: available source filters
   const availableSources = useMemo(() => {
