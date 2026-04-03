@@ -228,6 +228,9 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           query = query.eq("user_id", session.user.id);
         }
 
+        // Filter to items belonging to this brand
+        query = query.eq("metadata->>brandId", activeBrandId);
+
         const { data, error } = await query;
 
         if (!error && data) {
