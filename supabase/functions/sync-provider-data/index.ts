@@ -974,6 +974,9 @@ serve(async (req) => {
       case "slack":
         providerData = await fetchSlackData(accessToken);
         break;
+      case "hubspot":
+        providerData = await fetchHubSpotData(accessToken);
+        break;
       default:
         return new Response(JSON.stringify({ error: `Unsupported provider: ${provider}` }), {
           status: 400,
