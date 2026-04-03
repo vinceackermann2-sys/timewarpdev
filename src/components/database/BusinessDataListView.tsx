@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Database, Loader2, CheckCircle2, FileText, Image, Globe, Type,
   Mail, Video, Music, Table2, ChevronDown, ChevronUp, Plug, RefreshCw, HardDrive,
-  Trash2, Upload, Plus, Users, StickyNote, ListChecks, Calendar
+  Trash2, Upload, Plus, Users, StickyNote, ListChecks, Calendar, Search, X, CheckSquare, Square
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,6 +79,47 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [showIntegrations, setShowIntegrations] = useState(false);
   const { plan, getDataLimit } = useSubscription();
   const [realUsageBytes, setRealUsageBytes] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSourceFilter, setActiveSourceFilter] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Derived: available source filters
+  const availableSources = useMemo(() => {
+    const sources = new Set(items.map(i => i.source));
+    return Array.from(sources).sort();
+  }, [items]);
+
+  // Derived: filtered items
+  const filteredItems = useMemo(() => {
+    let result = items;
+    if (activeSourceFilter) {
+      result = result.filter(i => i.source === activeSourceFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(i =>
+        i.title.toLowerCase().includes(q) ||
+        i.data_type.toLowerCase().includes(q) ||
+        (i.content && i.content.toLowerCase().includes(q))
+      );
+    }
+    return result;
+  }, [items, activeSourceFilter, searchQuery]);
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(filteredItems.map(i => i.id)));
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
 
   const checkConnection = useCallback(async () => {
     try {
@@ -415,7 +456,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const usagePercent = isFinite(dataLimit) ? Math.min((realUsageBytes / dataLimit) * 100, 100) : 0;
   const planLabel = plan === "timewarp_og" ? "TimeWarp OG" : plan === "aristotle" ? "Aristotle" : plan === "co_founder" ? "Co-Founder" : "Free";
 
-  const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
+  const groupedBySource = filteredItems.reduce<Record<string, DataItem[]>>((acc, item) => {
     const src = item.source || "unknown";
     if (!acc[src]) acc[src] = [];
     acc[src].push(item);
@@ -461,12 +502,74 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         </div>
       </div>
 
+      {/* Search & Filter Bar */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search data..."
+            className="w-full h-9 pl-9 pr-8 rounded-lg border border-border/50 bg-card/50 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {availableSources.length > 1 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setActiveSourceFilter(null)}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border",
+                !activeSourceFilter ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+              )}
+            >
+              All
+            </button>
+            {availableSources.map(src => (
+              <button
+                key={src}
+                onClick={() => setActiveSourceFilter(activeSourceFilter === src ? null : src)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border",
+                  activeSourceFilter === src ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+                )}
+              >
+                {sourceLabels[src] || src}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Selection Bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+            <span className="text-xs font-medium text-primary">{selectedIds.size} selected</span>
+            <button onClick={clearSelection} className="text-xs text-muted-foreground hover:text-foreground ml-auto">
+              Clear
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Data Items Header */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          All your connected business data in one place.
+          {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
+          {searchQuery || activeSourceFilter ? " found" : ""}
         </p>
         <div className="flex items-center gap-2">
+          {filteredItems.length > 0 && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={selectedIds.size === filteredItems.length ? clearSelection : selectAll}>
+              {selectedIds.size === filteredItems.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+              {selectedIds.size === filteredItems.length ? "Deselect All" : "Select All"}
+            </Button>
+          )}
           <input
             ref={fileInputRef}
             type="file"
@@ -614,6 +717,9 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
                       onClick={() => setExpandedId(isExpanded ? null : item.id)}
                     >
                       <div className="flex items-center gap-3 px-3 py-2.5">
+                        <button onClick={(e) => toggleSelect(item.id, e)} className="shrink-0 text-muted-foreground hover:text-primary transition-colors">
+                          {selectedIds.has(item.id) ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
+                        </button>
                         {typeIcons[item.data_type] || <FileText className="h-4 w-4 text-muted-foreground" />}
                         <span className="text-sm font-medium text-foreground truncate flex-1">
                           {item.title}
