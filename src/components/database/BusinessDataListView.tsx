@@ -669,6 +669,30 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
           <span className="text-xs font-medium text-primary">{selectedIds.size} selected</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-7 text-xs gap-1.5 ml-2"
+            onClick={async () => {
+              const idsToDelete = Array.from(selectedIds);
+              if (idsToDelete.length === 0) return;
+              try {
+                await supabase.from("user_business_data").delete().in("id", idsToDelete);
+                setItems(prev => {
+                  const next = prev.filter(i => !selectedIds.has(i.id));
+                  _cachedItems = next;
+                  return next;
+                });
+                setSelectedIds(new Set());
+                toast.success(`Deleted ${idsToDelete.length} item${idsToDelete.length > 1 ? "s" : ""}`);
+              } catch {
+                toast.error("Failed to delete items");
+              }
+            }}
+          >
+            <Trash2 className="h-3 w-3" />
+            Delete ({selectedIds.size})
+          </Button>
           <button onClick={clearSelection} className="text-xs text-muted-foreground hover:text-foreground ml-auto">Clear</button>
         </div>
       )}
