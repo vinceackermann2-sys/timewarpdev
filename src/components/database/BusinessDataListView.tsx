@@ -38,6 +38,9 @@ const typeIcons: Record<string, React.ReactNode> = {
   video: <Video className="h-4 w-4 text-primary" />,
   audio: <Music className="h-4 w-4 text-primary" />,
   spreadsheet: <Table2 className="h-4 w-4 text-primary" />,
+  contact: <Users className="h-4 w-4 text-primary" />,
+  task: <ListChecks className="h-4 w-4 text-primary" />,
+  calendar: <Calendar className="h-4 w-4 text-primary" />,
 };
 
 const sourceLabels: Record<string, string> = {
