@@ -209,7 +209,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         const wsId = localStorage.getItem("preferred_workspace_id");
         const currentKey = `${session.user.id}:${wsId || "personal"}:${activeBrandId}`;
 
-        // If cache matches current user+workspace, skip fetch
+        // If cache matches current user+workspace+brand, skip fetch
         if (_cachedItems && _cachedCacheKey === currentKey) {
           setItems(_cachedItems);
           setIsLoading(false);
