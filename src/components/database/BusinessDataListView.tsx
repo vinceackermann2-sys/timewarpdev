@@ -253,8 +253,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
         const wsId = localStorage.getItem("preferred_workspace_id");
         let query = (supabase as any)
           .from("user_business_data")
-          .select("title, content, analyzed_content, metadata")
-          .eq("metadata->>brandId", activeBrandId);
+          .select("title, content, analyzed_content, metadata");
 
         if (wsId) {
           query = query.eq("workspace_id", wsId);
