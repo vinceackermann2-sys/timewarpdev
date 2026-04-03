@@ -60,6 +60,8 @@ async function getValidToken(supabaseAdmin: any, userId: string, provider: strin
     refreshed = await refreshMicrosoftToken(tokenRow.refresh_token);
   } else if (provider === "google") {
     refreshed = await refreshGoogleToken(tokenRow.refresh_token);
+  } else if (provider === "hubspot") {
+    refreshed = await refreshHubSpotToken(tokenRow.refresh_token);
   } else {
     return tokenRow.access_token; // Slack tokens don't expire typically
   }
