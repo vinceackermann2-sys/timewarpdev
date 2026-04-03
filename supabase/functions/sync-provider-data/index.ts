@@ -571,7 +571,7 @@ serve(async (req) => {
       });
     }
 
-    const { provider, categories, limits, brandId } = await req.json();
+    const { provider, categories, limits, brandId, workspaceId } = await req.json();
 
     // WordPress uses credentials stored differently
     if (provider === "wordpress") {
