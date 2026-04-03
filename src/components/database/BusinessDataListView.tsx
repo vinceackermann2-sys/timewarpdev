@@ -41,6 +41,9 @@ const typeIcons: Record<string, React.ReactNode> = {
   contact: <Users className="h-4 w-4 text-primary" />,
   task: <ListChecks className="h-4 w-4 text-primary" />,
   calendar: <Calendar className="h-4 w-4 text-primary" />,
+  brand: <Globe className="h-4 w-4 text-primary" />,
+  product: <Globe className="h-4 w-4 text-primary" />,
+  audience: <Users className="h-4 w-4 text-primary" />,
 };
 
 const sourceLabels: Record<string, string> = {
@@ -50,6 +53,7 @@ const sourceLabels: Record<string, string> = {
   slack: "Slack",
   wordpress: "WordPress",
   upload: "Upload",
+  "business-dna": "Business DNA",
 };
 
 function formatBytes(bytes: number): string {
@@ -64,7 +68,7 @@ function formatBytes(bytes: number): string {
 let _cachedItems: DataItem[] | null = null;
 let _cachedCacheKey: string | null = null;
 
-export function BusinessDataListView({ activeBrandId }: { activeBrandId: string }) {
+export function BusinessDataListView({ activeBrandId: _activeBrandId }: { activeBrandId: string }) {
   const [items, setItems] = useState<DataItem[]>(_cachedItems ?? []);
   const [isLoading, setIsLoading] = useState(!_cachedItems);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -85,6 +89,22 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSelectMenu, setShowSelectMenu] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const selectRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (showFilterMenu && filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilterMenu(false);
+      }
+      if (showSelectMenu && selectRef.current && !selectRef.current.contains(e.target as Node)) {
+        setShowSelectMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showFilterMenu, showSelectMenu]);
 
   // Derived: available source filters
   const availableSources = useMemo(() => {
@@ -146,7 +166,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status", brandId: activeBrandId }),
+          body: JSON.stringify({ action: "check-status", brandId: _activeBrandId }),
         }
       );
       if (response.ok) {
@@ -163,7 +183,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     } catch (err) {
       console.error("Check connection error:", err);
     }
-  }, [activeBrandId]);
+  }, [_activeBrandId]);
 
   // Auto-sync after OAuth redirect
   useEffect(() => {
@@ -187,9 +207,9 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         if (!session?.user) { setIsLoading(false); return; }
 
         const wsId = localStorage.getItem("preferred_workspace_id");
-        const currentKey = `${session.user.id}:${wsId || "personal"}:${activeBrandId}`;
+        const currentKey = `${session.user.id}:${wsId || "personal"}`;
 
-        // If cache matches current user+workspace+brand, skip fetch
+        // If cache matches current user+workspace, skip fetch
         if (_cachedItems && _cachedCacheKey === currentKey) {
           setItems(_cachedItems);
           setIsLoading(false);
@@ -207,9 +227,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         } else {
           query = query.eq("user_id", session.user.id);
         }
-
-        // Filter to items belonging to this brand
-        query = query.eq("metadata->>brandId", activeBrandId);
 
         const { data, error } = await query;
 
@@ -236,8 +253,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         const wsId = localStorage.getItem("preferred_workspace_id");
         let query = (supabase as any)
           .from("user_business_data")
-          .select("title, content, analyzed_content, metadata")
-          .eq("metadata->>brandId", activeBrandId);
+          .select("title, content, analyzed_content, metadata");
 
         if (wsId) {
           query = query.eq("workspace_id", wsId);
@@ -259,7 +275,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       }
     };
     fetchUsage();
-  }, [checkConnection, activeBrandId]);
+  }, [checkConnection]);
 
   const handleConnect = async () => {
     setConnectingProvider(true);
@@ -275,7 +291,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }),
+          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: _activeBrandId }),
         }
       );
       const data = await response.json();
@@ -307,7 +323,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandId }),
+          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: _activeBrandId }),
         }
       );
       setIsConnected(false);
@@ -335,7 +351,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           body: JSON.stringify({
             provider: "microsoft",
             categories: categories || { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true },
-            brandId: activeBrandId,
+            brandId: _activeBrandId,
             workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
           }),
         }
@@ -358,7 +374,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         let refreshQuery = (supabase as any)
           .from("user_business_data")
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
-          .eq("metadata->>brandId", activeBrandId)
           .order("created_at", { ascending: false })
           .limit(200);
         if (wsId) {
@@ -445,7 +460,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             source: "upload",
             is_analyzed: false,
             workspace_id: localStorage.getItem("preferred_workspace_id"),
-            metadata: { brandId: activeBrandId, file_size: file.size },
+            metadata: { brandId: _activeBrandId, file_size: file.size },
           })
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .single();
@@ -533,7 +548,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         </div>
 
         {/* Filter dropdown */}
-        <div className="relative">
+        <div className="relative" ref={filterRef}>
           <Button
             variant="outline"
             size="sm"
@@ -608,7 +623,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         </div>
 
         {/* Select dropdown */}
-        <div className="relative">
+        <div className="relative" ref={selectRef}>
           <Button
             variant="ghost"
             size="sm"
