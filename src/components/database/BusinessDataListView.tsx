@@ -69,9 +69,17 @@ function formatBytes(bytes: number): string {
 let _cachedItems: DataItem[] | null = null;
 let _cachedCacheKey: string | null = null;
 
+function getCachedForBrand(brandId: string): DataItem[] | null {
+  if (_cachedItems && _cachedCacheKey && _cachedCacheKey.endsWith(`:${brandId}`)) {
+    return _cachedItems;
+  }
+  return null;
+}
+
 export function BusinessDataListView({ activeBrandId }: { activeBrandId: string }) {
-  const [items, setItems] = useState<DataItem[]>(_cachedItems ?? []);
-  const [isLoading, setIsLoading] = useState(!_cachedItems);
+  const brandCache = getCachedForBrand(activeBrandId);
+  const [items, setItems] = useState<DataItem[]>(brandCache ?? []);
+  const [isLoading, setIsLoading] = useState(!brandCache);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
