@@ -53,6 +53,7 @@ const sourceLabels: Record<string, string> = {
   slack: "Slack",
   wordpress: "WordPress",
   upload: "Upload",
+  "business-dna": "Business DNA",
 };
 
 function formatBytes(bytes: number): string {
