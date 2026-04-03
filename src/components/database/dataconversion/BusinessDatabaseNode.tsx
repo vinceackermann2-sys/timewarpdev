@@ -141,46 +141,13 @@ export function BusinessDatabaseNode({
     return [...dnaItems, ...providerItems];
   }, [selectedBrandId, products, audiences, providerItems]);
 
-  // Available sources for filter
-  const availableSources = useMemo(() => {
-    const sources = new Set(items.map(i => i.source));
-    return Array.from(sources);
-  }, [items]);
-
-  // Filtered + searched items
-  const filteredItems = useMemo(() => {
-    let result = items;
-    if (activeSourceFilter) {
-      result = result.filter(i => i.source === activeSourceFilter);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(i =>
-        i.title.toLowerCase().includes(q) ||
-        i.data_type.toLowerCase().includes(q) ||
-        (i.analyzed_content && i.analyzed_content.toLowerCase().includes(q)) ||
-        (i.content && i.content.toLowerCase().includes(q))
-      );
-    }
-    return result;
-  }, [items, activeSourceFilter, searchQuery]);
-
-  // Group filtered items by source
-  const groupedBySource = filteredItems.reduce<Record<string, DataItem[]>>((acc, item) => {
+  // Group items by source directly (no filtering)
+  const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
     const src = item.source || "unknown";
     if (!acc[src]) acc[src] = [];
     acc[src].push(item);
     return acc;
   }, {});
-
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
 
   const getPreview = (item: DataItem) => {
     const text = item.analyzed_content || item.content;
