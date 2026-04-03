@@ -456,7 +456,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const usagePercent = isFinite(dataLimit) ? Math.min((realUsageBytes / dataLimit) * 100, 100) : 0;
   const planLabel = plan === "timewarp_og" ? "TimeWarp OG" : plan === "aristotle" ? "Aristotle" : plan === "co_founder" ? "Co-Founder" : "Free";
 
-  const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
+  const groupedBySource = filteredItems.reduce<Record<string, DataItem[]>>((acc, item) => {
     const src = item.source || "unknown";
     if (!acc[src]) acc[src] = [];
     acc[src].push(item);
