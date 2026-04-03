@@ -79,6 +79,47 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [showIntegrations, setShowIntegrations] = useState(false);
   const { plan, getDataLimit } = useSubscription();
   const [realUsageBytes, setRealUsageBytes] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSourceFilter, setActiveSourceFilter] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Derived: available source filters
+  const availableSources = useMemo(() => {
+    const sources = new Set(items.map(i => i.source));
+    return Array.from(sources).sort();
+  }, [items]);
+
+  // Derived: filtered items
+  const filteredItems = useMemo(() => {
+    let result = items;
+    if (activeSourceFilter) {
+      result = result.filter(i => i.source === activeSourceFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(i =>
+        i.title.toLowerCase().includes(q) ||
+        i.data_type.toLowerCase().includes(q) ||
+        (i.content && i.content.toLowerCase().includes(q))
+      );
+    }
+    return result;
+  }, [items, activeSourceFilter, searchQuery]);
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(filteredItems.map(i => i.id)));
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
 
   const checkConnection = useCallback(async () => {
     try {
