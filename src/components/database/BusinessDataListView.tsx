@@ -281,6 +281,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             categories: categories || { emails: true, events: true, files: true },
             limits: limits || { emails: 50, events: 50, files: 50 },
             brandId: activeBrandId,
+            workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
           }),
         }
       );
@@ -288,14 +289,22 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       if (data.success) {
         const s = data.summary;
         toast.success(`Synced ${s.emails || 0} emails, ${s.events || 0} events, ${s.files || 0} files`);
-        // Refresh data list
-        const { data: refreshed } = await (supabase as any)
+        // Invalidate cache and refresh data list
+        _cachedItems = null;
+        _cachedCacheKey = null;
+        const wsId = localStorage.getItem("preferred_workspace_id");
+        let refreshQuery = (supabase as any)
           .from("user_business_data")
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
-          .eq("user_id", session.user.id)
           .eq("metadata->>brandId", activeBrandId)
           .order("created_at", { ascending: false })
           .limit(200);
+        if (wsId) {
+          refreshQuery = refreshQuery.eq("workspace_id", wsId);
+        } else {
+          refreshQuery = refreshQuery.eq("user_id", session.user.id);
+        }
+        const { data: refreshed } = await refreshQuery;
         if (refreshed) { _cachedItems = refreshed; setItems(refreshed); }
       } else {
         toast.error(data.error || "Sync failed");
