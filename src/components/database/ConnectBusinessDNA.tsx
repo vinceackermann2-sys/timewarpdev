@@ -67,7 +67,7 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
       console.error("Failed to check connections:", err);
     }
     setIsLoading(false);
-  }, []);
+  }, [brandId]);
 
   useEffect(() => { checkConnections(); }, [checkConnections]);
 
@@ -118,6 +118,17 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
     setConnectingProvider(null);
   };
 
+  const handleDisconnect = async (providerId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", providerId);
+      setConnectedProviders(prev => prev.filter(p => p.provider !== providerId));
+      toast.success(`${providerId.charAt(0).toUpperCase() + providerId.slice(1)} disconnected`);
+    } catch {
+      toast.error("Failed to disconnect");
+    }
+  };
 
   const syncProviderData = async (provider: string) => {
     setSyncingProvider(provider);
@@ -234,7 +245,9 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => syncProviderData(integration.id)} disabled={isSyncing}>
                           {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
                         </Button>
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleDisconnect(integration.id)}>
+                          Disconnect
+                        </Button>
                       </div>
                     ) : (
                       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleConnect(integration.id)} disabled={isConnecting}>

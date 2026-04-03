@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp, Download, Database, X, Pencil, Save, Plus } from "lucide-react";
+import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp, Download, Database, X, Pencil, Save, Plus, Plug } from "lucide-react";
+import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoSlack from "@/assets/logo-slack.png";
+import logoHubspot from "@/assets/logo-hubspot.svg";
 import { EmployeeRunOverlay } from "./EmployeeRunOverlay";
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
@@ -78,6 +81,8 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const { activeWorkspace } = useWorkspace();
   const [producedFiles, setProducedFiles] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
+  const [connectedProviders, setConnectedProviders] = useState<Record<string, { email?: string | null }>>({});
+  const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -96,7 +101,90 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   );
   const [savingEdit, setSavingEdit] = useState(false);
 
-  useEffect(() => { loadLogs(); loadProducedFiles(); }, [employee.id]);
+  useEffect(() => { loadLogs(); loadProducedFiles(); loadConnections(); }, [employee.id]);
+
+  const loadConnections = async () => {
+    if (!employee.linked_business_id) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      // Resolve the logical brandId from linked_business_id
+      const { data: brandRow } = await (supabase as any)
+        .from("user_business_data")
+        .select("content")
+        .eq("id", employee.linked_business_id)
+        .single();
+      const brandId = brandRow?.content ? (typeof brandRow.content === "string" ? JSON.parse(brandRow.content) : brandRow.content)?.id : employee.linked_business_id;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ action: "check-status", brandId }),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const map: Record<string, { email?: string | null }> = {};
+        for (const c of (data.connected || [])) {
+          map[c.provider] = { email: c.email || null };
+        }
+        setConnectedProviders(map);
+      }
+    } catch (err) {
+      console.error("Failed to load connections:", err);
+    }
+  };
+
+  const handleConnectProvider = async (provider: string) => {
+    if (!employee.linked_business_id) {
+      toast({ title: "No linked business", description: "Link this employee to a business first.", variant: "destructive" });
+      return;
+    }
+    setConnectingProvider(provider);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setConnectingProvider(false); return; }
+      const { data: brandRow } = await (supabase as any)
+        .from("user_business_data").select("content").eq("id", employee.linked_business_id).single();
+      const brandId = brandRow?.content ? (typeof brandRow.content === "string" ? JSON.parse(brandRow.content) : brandRow.content)?.id : employee.linked_business_id;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId }),
+        }
+      );
+      const data = await response.json();
+      if (data.authUrl) window.location.href = data.authUrl;
+      else toast({ title: "Failed", description: data.error || "Failed to get auth URL", variant: "destructive" });
+    } catch {
+      toast({ title: "Connection failed", variant: "destructive" });
+    }
+    setConnectingProvider(false);
+  };
+
+  const handleDisconnectProvider = async (provider: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", provider);
+      setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
+      toast({ title: `${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected` });
+    } catch {
+      toast({ title: "Failed to disconnect", variant: "destructive" });
+    }
+  };
 
   const loadLogs = async () => {
     setLoadingLogs(true);
@@ -702,6 +790,45 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
               </div>
             )}
           </div>
+
+          {/* Connections */}
+          {employee.linked_business_id && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Connections</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { id: "microsoft", name: "Microsoft", desc: "Outlook, OneDrive, Calendar", logo: logoMicrosoft },
+                  { id: "slack", name: "Slack", desc: "Channels, Messages, Files", logo: logoSlack },
+                  { id: "hubspot", name: "HubSpot", desc: "CRM, Contacts, Deals", logo: logoHubspot },
+                ].map(integration => {
+                  const connected = !!connectedProviders[integration.id];
+                  return (
+                    <div key={integration.id} className={`flex flex-col gap-2 p-4 rounded-xl border transition-all ${connected ? "border-primary/40 bg-primary/5" : "border-border/50"}`}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center p-1">
+                          <img src={integration.logo} alt={integration.name} className="h-5 w-5 object-contain" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium">{integration.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{integration.desc}</p>
+                        </div>
+                      </div>
+                      {connected ? (
+                        <Button variant="outline" size="sm" className="h-7 text-[11px] w-full text-destructive hover:text-destructive" onClick={() => handleDisconnectProvider(integration.id)}>
+                          Disconnect
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" className="h-7 text-[11px] w-full gap-1" onClick={() => handleConnectProvider(integration.id)} disabled={!!connectingProvider}>
+                          {connectingProvider === integration.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plug className="h-3 w-3" />}
+                          Connect
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Activity Log */}
           <div className="space-y-3">
