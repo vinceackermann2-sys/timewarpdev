@@ -512,15 +512,15 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         </div>
       </div>
 
-      {/* Compact header row: search + select + actions */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-[220px]">
+      {/* Compact header row: search + filter + select + actions */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative max-w-[180px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search data..."
+            placeholder="Search..."
             className="w-full h-8 pl-8 pr-7 rounded-md border border-border/50 bg-card/50 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
           {searchQuery && (
@@ -529,16 +529,121 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             </button>
           )}
         </div>
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
-        </span>
-        <div className="flex items-center gap-1.5 ml-auto">
-          {filteredItems.length > 0 && (
-            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={selectedIds.size === filteredItems.length ? clearSelection : selectAll}>
-              {selectedIds.size === filteredItems.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
-              {selectedIds.size > 0 ? `${selectedIds.size} sel.` : "Select"}
-            </Button>
+
+        {/* Filter dropdown */}
+        <div className="relative">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => setShowFilterMenu(prev => !prev)}
+          >
+            <Database className="h-3.5 w-3.5" />
+            Filter
+            {(activeSourceFilter || activeTypeFilter) && (
+              <span className="ml-0.5 h-4 min-w-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">
+                {(activeSourceFilter ? 1 : 0) + (activeTypeFilter ? 1 : 0)}
+              </span>
+            )}
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+          {showFilterMenu && (
+            <div className="absolute top-full left-0 mt-1 z-50 w-56 rounded-lg border border-border bg-popover shadow-lg p-2 space-y-2">
+              {/* Source section */}
+              <div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">Source</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  <button
+                    onClick={() => setActiveSourceFilter(null)}
+                    className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border",
+                      !activeSourceFilter ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+                    )}
+                  >All</button>
+                  {availableSources.map(src => (
+                    <button
+                      key={src}
+                      onClick={() => setActiveSourceFilter(activeSourceFilter === src ? null : src)}
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border",
+                        activeSourceFilter === src ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+                      )}
+                    >{sourceLabels[src] || src}</button>
+                  ))}
+                </div>
+              </div>
+              {/* Type section */}
+              <div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">Type</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  <button
+                    onClick={() => setActiveTypeFilter(null)}
+                    className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border",
+                      !activeTypeFilter ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+                    )}
+                  >All</button>
+                  {availableTypes.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setActiveTypeFilter(activeTypeFilter === t ? null : t)}
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border capitalize",
+                        activeTypeFilter === t ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+                      )}
+                    >{t}</button>
+                  ))}
+                </div>
+              </div>
+              {(activeSourceFilter || activeTypeFilter) && (
+                <button
+                  onClick={() => { setActiveSourceFilter(null); setActiveTypeFilter(null); }}
+                  className="text-[10px] text-primary hover:underline px-1"
+                >Clear all filters</button>
+              )}
+            </div>
           )}
+        </div>
+
+        {/* Select dropdown */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => setShowSelectMenu(prev => !prev)}
+          >
+            {selectedIds.size > 0 ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+            {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select"}
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+          {showSelectMenu && (
+            <div className="absolute top-full left-0 mt-1 z-50 w-44 rounded-lg border border-border bg-popover shadow-lg p-1">
+              <button onClick={() => { selectAll(); setShowSelectMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent rounded-md">
+                Select all ({filteredItems.length})
+              </button>
+              {[5, 10, 25, 50].filter(n => n <= filteredItems.length).map(n => (
+                <button
+                  key={n}
+                  onClick={() => {
+                    setSelectedIds(new Set(filteredItems.slice(0, n).map(i => i.id)));
+                    setShowSelectMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent rounded-md"
+                >
+                  Select first {n}
+                </button>
+              ))}
+              {selectedIds.size > 0 && (
+                <button onClick={() => { clearSelection(); setShowSelectMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent rounded-md text-destructive">
+                  Clear selection
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 ml-auto">
           <input
             ref={fileInputRef}
             type="file"
@@ -557,66 +662,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           </Button>
         </div>
       </div>
-
-      {/* Filter chips row: source + type */}
-      {(availableSources.length > 1 || availableTypes.length > 1) && (
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Source filters */}
-          {availableSources.length > 1 && (
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[10px] text-muted-foreground/60 mr-0.5">Source:</span>
-              <button
-                onClick={() => setActiveSourceFilter(null)}
-                className={cn(
-                  "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border",
-                  !activeSourceFilter ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
-                )}
-              >
-                All
-              </button>
-              {availableSources.map(src => (
-                <button
-                  key={src}
-                  onClick={() => setActiveSourceFilter(activeSourceFilter === src ? null : src)}
-                  className={cn(
-                    "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border",
-                    activeSourceFilter === src ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
-                  )}
-                >
-                  {sourceLabels[src] || src}
-                </button>
-              ))}
-            </div>
-          )}
-          {/* Type filters */}
-          {availableTypes.length > 1 && (
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[10px] text-muted-foreground/60 mr-0.5">Type:</span>
-              <button
-                onClick={() => setActiveTypeFilter(null)}
-                className={cn(
-                  "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border",
-                  !activeTypeFilter ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
-                )}
-              >
-                All
-              </button>
-              {availableTypes.map(t => (
-                <button
-                  key={t}
-                  onClick={() => setActiveTypeFilter(activeTypeFilter === t ? null : t)}
-                  className={cn(
-                    "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border capitalize",
-                    activeTypeFilter === t ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
-                  )}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Selection Bar */}
       {selectedIds.size > 0 && (
