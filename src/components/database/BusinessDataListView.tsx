@@ -109,6 +109,21 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     }
   }, [activeBrandId]);
 
+  // Auto-sync after OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("oauth_success") === "microsoft") {
+      // Clean URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete("oauth_success");
+      url.searchParams.delete("brandId");
+      window.history.replaceState({}, "", url.pathname + url.search);
+      // Trigger auto-sync
+      handleSync();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
