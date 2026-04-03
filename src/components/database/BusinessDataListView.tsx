@@ -68,7 +68,7 @@ function formatBytes(bytes: number): string {
 let _cachedItems: DataItem[] | null = null;
 let _cachedCacheKey: string | null = null;
 
-export function BusinessDataListView({ activeBrandId: _activeBrandId }: { activeBrandId: string }) { 
+export function BusinessDataListView({ activeBrandId }: { activeBrandId: string }) { 
   const [items, setItems] = useState<DataItem[]>(_cachedItems ?? []);
   const [isLoading, setIsLoading] = useState(!_cachedItems);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -166,7 +166,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status", brandId: _activeBrandId }),
+          body: JSON.stringify({ action: "check-status", brandId: activeBrandId }),
         }
       );
       if (response.ok) {
@@ -183,7 +183,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
     } catch (err) {
       console.error("Check connection error:", err);
     }
-  }, [_activeBrandId]);
+  }, [activeBrandId]);
 
   // Auto-sync after OAuth redirect
   useEffect(() => {
@@ -207,9 +207,9 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
         if (!session?.user) { setIsLoading(false); return; }
 
         const wsId = localStorage.getItem("preferred_workspace_id");
-        const currentKey = `${session.user.id}:${wsId || "personal"}`;
+        const currentKey = `${session.user.id}:${wsId || "personal"}:${activeBrandId}`;
 
-        // If cache matches current user+workspace, skip fetch
+        // If cache matches current user+workspace+brand, skip fetch
         if (_cachedItems && _cachedCacheKey === currentKey) {
           setItems(_cachedItems);
           setIsLoading(false);
@@ -227,6 +227,9 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
         } else {
           query = query.eq("user_id", session.user.id);
         }
+
+        // Filter to items belonging to this brand
+        query = query.eq("metadata->>brandId", activeBrandId);
 
         const { data, error } = await query;
 
@@ -253,7 +256,8 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
         const wsId = localStorage.getItem("preferred_workspace_id");
         let query = (supabase as any)
           .from("user_business_data")
-          .select("title, content, analyzed_content, metadata");
+          .select("title, content, analyzed_content, metadata")
+          .eq("metadata->>brandId", activeBrandId);
 
         if (wsId) {
           query = query.eq("workspace_id", wsId);
@@ -275,7 +279,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
       }
     };
     fetchUsage();
-  }, [checkConnection]);
+  }, [checkConnection, activeBrandId]);
 
   const handleConnect = async () => {
     setConnectingProvider(true);
@@ -291,7 +295,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: _activeBrandId }),
+          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }),
         }
       );
       const data = await response.json();
@@ -323,7 +327,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: _activeBrandId }),
+          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandId }),
         }
       );
       setIsConnected(false);
@@ -351,7 +355,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
           body: JSON.stringify({
             provider: "microsoft",
             categories: categories || { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true },
-            brandId: _activeBrandId,
+            brandId: activeBrandId,
             workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
           }),
         }
@@ -374,6 +378,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
         let refreshQuery = (supabase as any)
           .from("user_business_data")
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
+          .eq("metadata->>brandId", activeBrandId)
           .order("created_at", { ascending: false })
           .limit(200);
         if (wsId) {
@@ -460,7 +465,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
             source: "upload",
             is_analyzed: false,
             workspace_id: localStorage.getItem("preferred_workspace_id"),
-            metadata: { brandId: _activeBrandId, file_size: file.size },
+            metadata: { brandId: activeBrandId, file_size: file.size },
           })
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .single();
