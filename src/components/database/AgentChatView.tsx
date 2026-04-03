@@ -1989,7 +1989,7 @@ export function AgentChatView() {
                 {settingsTab === "connections" && (
                   <div className="space-y-6 flex-1">
                     <h4 className="text-sm font-semibold text-foreground">Integrations</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       {/* Microsoft */}
                       {(() => { const connected = !!connectedProviders["microsoft"]; return (
                       <div className={cn(
