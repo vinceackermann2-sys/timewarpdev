@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Database, CheckCircle2, FileText, Image, Globe, Type, Mail, Video, Music, Table2, ChevronDown, ChevronUp, Calendar, Search, Filter, Check } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Database, CheckCircle2, FileText, Image, Globe, Type, Mail, Video, Music, Table2, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -67,11 +67,7 @@ export function BusinessDatabaseNode({
     return localStorage.getItem("preferred_business_id");
   });
 
-  // Filter, search, select state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeSourceFilter, setActiveSourceFilter] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  // No filter/search/select on node – that lives in Business DNA Database view
 
   // Listen for business selection changes
   useEffect(() => {
@@ -145,46 +141,13 @@ export function BusinessDatabaseNode({
     return [...dnaItems, ...providerItems];
   }, [selectedBrandId, products, audiences, providerItems]);
 
-  // Available sources for filter
-  const availableSources = useMemo(() => {
-    const sources = new Set(items.map(i => i.source));
-    return Array.from(sources);
-  }, [items]);
-
-  // Filtered + searched items
-  const filteredItems = useMemo(() => {
-    let result = items;
-    if (activeSourceFilter) {
-      result = result.filter(i => i.source === activeSourceFilter);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(i =>
-        i.title.toLowerCase().includes(q) ||
-        i.data_type.toLowerCase().includes(q) ||
-        (i.analyzed_content && i.analyzed_content.toLowerCase().includes(q)) ||
-        (i.content && i.content.toLowerCase().includes(q))
-      );
-    }
-    return result;
-  }, [items, activeSourceFilter, searchQuery]);
-
-  // Group filtered items by source
-  const groupedBySource = filteredItems.reduce<Record<string, DataItem[]>>((acc, item) => {
+  // Group items by source directly (no filtering)
+  const groupedBySource = items.reduce<Record<string, DataItem[]>>((acc, item) => {
     const src = item.source || "unknown";
     if (!acc[src]) acc[src] = [];
     acc[src].push(item);
     return acc;
   }, {});
-
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
 
   const getPreview = (item: DataItem) => {
     const text = item.analyzed_content || item.content;
@@ -234,78 +197,8 @@ export function BusinessDatabaseNode({
         </div>
       </div>
 
-      {/* Search + Filter bar */}
-      {!isLoading && items.length > 0 && (
-        <div className="px-2 pt-2 pb-1 border-b border-border/50 space-y-1.5">
-          {/* Search */}
-          <div className="flex items-center gap-1.5 bg-muted/40 rounded-md px-2 py-1">
-            <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Search data…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="bg-transparent text-xs w-full outline-none placeholder:text-muted-foreground/60 text-foreground"
-            />
-            {searchQuery && (
-              <button
-                className="text-[10px] text-muted-foreground hover:text-foreground"
-                onClick={() => setSearchQuery("")}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          {/* Source filter chips */}
-          <div className="flex items-center gap-1 flex-wrap">
-            <button
-              className={cn(
-                "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
-                !activeSourceFilter
-                  ? "bg-primary/15 border-primary/30 text-primary font-semibold"
-                  : "bg-muted/30 border-border/50 text-muted-foreground hover:border-primary/30"
-              )}
-              onClick={() => setActiveSourceFilter(null)}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              All
-            </button>
-            {availableSources.map(src => (
-              <button
-                key={src}
-                className={cn(
-                  "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
-                  activeSourceFilter === src
-                    ? "bg-primary/15 border-primary/30 text-primary font-semibold"
-                    : "bg-muted/30 border-border/50 text-muted-foreground hover:border-primary/30"
-                )}
-                onClick={() => setActiveSourceFilter(activeSourceFilter === src ? null : src)}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                {sourceLabels[src] || src}
-              </button>
-            ))}
-          </div>
-          {/* Selection summary */}
-          {selectedIds.size > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-primary font-semibold">{selectedIds.size} selected</span>
-              <button
-                className="text-[10px] text-muted-foreground hover:text-foreground"
-                onClick={() => setSelectedIds(new Set())}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Content */}
-      <ScrollArea className={cn("h-[calc(100%-44px)]", !isLoading && items.length > 0 && "h-[calc(100%-44px-72px)]")} onWheel={(e) => e.stopPropagation()}>
+      <ScrollArea className="h-[calc(100%-44px)]" onWheel={(e) => e.stopPropagation()}>
         <div className="p-2">
           {isLoading ? (
             <div className="space-y-3 p-1">
@@ -327,7 +220,7 @@ export function BusinessDatabaseNode({
                 </div>
               ))}
             </div>
-          ) : filteredItems.length > 0 ? (
+          ) : items.length > 0 ? (
             <div className="space-y-3">
               {Object.entries(groupedBySource).map(([source, sourceItems]) => (
                 <div key={source}>
@@ -340,43 +233,23 @@ export function BusinessDatabaseNode({
                   <div className="space-y-1">
                     {sourceItems.map((item) => {
                       const isExpanded = expandedId === item.id;
-                      const isItemSelected = selectedIds.has(item.id);
                       return (
                         <div
                           key={item.id}
                           className={cn(
                             "rounded-lg border border-border/40 transition-all cursor-pointer hover:border-primary/30",
-                            isExpanded && "border-primary/40 bg-muted/30",
-                            isItemSelected && "border-primary/50 bg-primary/5"
+                            isExpanded && "border-primary/40 bg-muted/30"
                           )}
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={() => setExpandedId(isExpanded ? null : item.id)}
                         >
                           <div className="flex items-center gap-2 px-2.5 py-2">
-                            {/* Select checkbox */}
-                            <button
-                              className={cn(
-                                "w-3.5 h-3.5 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
-                                isItemSelected
-                                  ? "bg-primary border-primary"
-                                  : "border-border hover:border-primary/50"
-                              )}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleSelect(item.id);
-                              }}
-                              onMouseDown={(e) => e.stopPropagation()}
-                            >
-                              {isItemSelected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
-                            </button>
                             {typeIcons[item.data_type] || <FileText className="h-3.5 w-3.5 text-muted-foreground" />}
                             <span className="text-xs font-semibold text-foreground truncate flex-1">
                               {item.title}
                             </span>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {item.is_analyzed && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500" title="Analyzed" />
-                              )}
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{item.data_type}</span>
                               {isExpanded ? (
                                 <ChevronUp className="h-3 w-3 text-muted-foreground" />
                               ) : (
@@ -407,12 +280,6 @@ export function BusinessDatabaseNode({
                   </div>
                 </div>
               ))}
-            </div>
-          ) : items.length > 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <Search className="h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground text-center">No matching data</p>
-              <p className="text-xs text-muted-foreground/60 text-center mt-1">Try a different search or filter</p>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 px-4">
