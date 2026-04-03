@@ -204,6 +204,18 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reset state when brand changes to prevent stale data leaking across businesses
+  useEffect(() => {
+    const cached = getCachedForBrand(activeBrandId);
+    setItems(cached ?? []);
+    setIsLoading(!cached);
+    setSelectedIds(new Set());
+    setExpandedId(null);
+    setSearchQuery("");
+    setActiveSourceFilter(null);
+    setActiveTypeFilter(null);
+  }, [activeBrandId]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
