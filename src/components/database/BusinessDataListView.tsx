@@ -41,6 +41,9 @@ const typeIcons: Record<string, React.ReactNode> = {
   contact: <Users className="h-4 w-4 text-primary" />,
   task: <ListChecks className="h-4 w-4 text-primary" />,
   calendar: <Calendar className="h-4 w-4 text-primary" />,
+  brand: <Globe className="h-4 w-4 text-primary" />,
+  product: <Globe className="h-4 w-4 text-primary" />,
+  audience: <Users className="h-4 w-4 text-primary" />,
 };
 
 const sourceLabels: Record<string, string> = {
