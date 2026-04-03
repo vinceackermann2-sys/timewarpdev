@@ -148,6 +148,14 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
   // Always ensure we have a workspace_id — fall back to localStorage
   const resolvedWorkspaceId = workspaceId || localStorage.getItem("preferred_workspace_id");
 
+  // Determine brandId for metadata so items appear in the Database tab
+  let brandId: string | undefined;
+  if (dataType === "brand") {
+    brandId = entity.id;
+  } else if (entity.brandId) {
+    brandId = entity.brandId;
+  }
+
   const payload: any = {
     user_id: session.user.id,
     data_type: dataType,
@@ -155,6 +163,7 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
     title: entity.name || "Untitled",
     content: JSON.stringify(entity),
     is_analyzed: true,
+    metadata: brandId ? { brandId } : undefined,
   };
 
   if (resolvedWorkspaceId) {
