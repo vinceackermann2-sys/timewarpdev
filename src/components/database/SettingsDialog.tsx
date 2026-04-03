@@ -100,6 +100,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
 
 const integrations = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" as const },
+  { id: "slack", name: "Slack", description: "Channels, Messages, Files, Users", logo: logoSlack, authType: "oauth" as const },
 ];
 
 type SettingsTab = "settings" | "workspace" | "plans" | "connections";
