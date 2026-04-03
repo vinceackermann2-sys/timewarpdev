@@ -7,6 +7,7 @@ import { BgGradient } from "@/components/ui/bg-gradient";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoSlack from "@/assets/logo-slack.png";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 
 interface Integration {
@@ -19,6 +20,7 @@ interface Integration {
 
 const integrations: Integration[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" },
+  { id: "slack", name: "Slack", description: "Channels, Messages, Team Info", logo: logoSlack, authType: "oauth" },
 ];
 
 interface ConnectedProvider {

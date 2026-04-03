@@ -13,7 +13,8 @@ serve(async (req) => {
   const CLIENT_SECRET = Deno.env.get("SLACK_CLIENT_SECRET")!;
   const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/slack-oauth-callback`;
 
-  const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://digital-guide-genie.lovable.app";
+  const origin = stateParam ? (() => { try { return JSON.parse(atob(stateParam)).origin; } catch { return ""; } })() : "";
+  const frontendUrl = origin || Deno.env.get("FRONTEND_URL") || "https://timewarpdev.lovable.app";
 
   if (error || !code || !stateParam) {
     return Response.redirect(`${frontendUrl}/?oauth_error=${error || "missing_code"}`, 302);
