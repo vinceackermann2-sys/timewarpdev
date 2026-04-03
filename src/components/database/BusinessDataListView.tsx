@@ -207,7 +207,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         if (!session?.user) { setIsLoading(false); return; }
 
         const wsId = localStorage.getItem("preferred_workspace_id");
-        const currentKey = `${session.user.id}:${wsId || "personal"}`;
+        const currentKey = `${session.user.id}:${wsId || "personal"}:${activeBrandId}`;
 
         // If cache matches current user+workspace, skip fetch
         if (_cachedItems && _cachedCacheKey === currentKey) {
