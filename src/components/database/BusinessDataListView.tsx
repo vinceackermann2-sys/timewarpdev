@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Database, Loader2, CheckCircle2, FileText, Image, Globe, Type,
   Mail, Video, Music, Table2, ChevronDown, ChevronUp, Plug, RefreshCw, HardDrive,
-  Trash2, Upload, Plus
+  Trash2, Upload, Plus, Users, StickyNote, ListChecks, Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,9 @@ const typeIcons: Record<string, React.ReactNode> = {
   video: <Video className="h-4 w-4 text-primary" />,
   audio: <Music className="h-4 w-4 text-primary" />,
   spreadsheet: <Table2 className="h-4 w-4 text-primary" />,
+  contact: <Users className="h-4 w-4 text-primary" />,
+  task: <ListChecks className="h-4 w-4 text-primary" />,
+  calendar: <Calendar className="h-4 w-4 text-primary" />,
 };
 
 const sourceLabels: Record<string, string> = {
@@ -262,7 +265,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     }
   };
 
-  const handleSync = async (categories?: { emails: boolean; events: boolean; files: boolean }, limits?: { emails: number; events: number; files: number }) => {
+  const handleSync = async (categories?: Record<string, boolean>, limits?: Record<string, number>) => {
     setSyncingProvider(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -278,8 +281,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           },
           body: JSON.stringify({
             provider: "microsoft",
-            categories: categories || { emails: true, events: true, files: true },
-            limits: limits || { emails: 50, events: 50, files: 50 },
+            categories: categories || { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true },
             brandId: activeBrandId,
             workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
           }),
@@ -288,7 +290,14 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       const data = await response.json();
       if (data.success) {
         const s = data.summary;
-        toast.success(`Synced ${s.emails || 0} emails, ${s.events || 0} events, ${s.files || 0} files`);
+        const parts = [];
+        if (s.emails) parts.push(`${s.emails} emails`);
+        if (s.events) parts.push(`${s.events} events`);
+        if (s.files) parts.push(`${s.files} files`);
+        if (s.contacts) parts.push(`${s.contacts} contacts`);
+        if (s.notes) parts.push(`${s.notes} notes`);
+        if (s.tasks) parts.push(`${s.tasks} tasks`);
+        toast.success(`Synced ${parts.join(", ") || "data"}`);
         // Invalidate cache and refresh data list
         _cachedItems = null;
         _cachedCacheKey = null;

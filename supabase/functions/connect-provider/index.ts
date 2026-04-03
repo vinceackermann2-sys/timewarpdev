@@ -106,7 +106,7 @@ serve(async (req) => {
           const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
           if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
           const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
-          const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read";
+          const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read Contacts.Read Notes.Read Tasks.Read";
           const state = btoa(JSON.stringify({ ...stateBase, origin }));
           authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&response_mode=query`;
           break;
