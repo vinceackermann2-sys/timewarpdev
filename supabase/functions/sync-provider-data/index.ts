@@ -661,6 +661,100 @@ async function fetchSlackData(accessToken: string): Promise<any> {
   };
 }
 
+async function paginateHubSpot(url: string, accessToken: string, resultsKey: string, maxPages = 10): Promise<any[]> {
+  let all: any[] = [];
+  let after = "";
+  for (let page = 0; page < maxPages; page++) {
+    const sep = url.includes("?") ? "&" : "?";
+    const pageUrl = after ? `${url}${sep}after=${after}` : url;
+    try {
+      const res = await fetch(pageUrl, {
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      });
+      if (!res.ok) break;
+      const data = await res.json();
+      all = all.concat(data[resultsKey] || []);
+      after = data.paging?.next?.after || "";
+      if (!after) break;
+    } catch { break; }
+  }
+  return all;
+}
+
+async function fetchHubSpotData(accessToken: string): Promise<any> {
+  const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+
+  // Fetch contacts, companies, deals in parallel with pagination
+  const [contacts, companies, deals, owners] = await Promise.all([
+    paginateHubSpot(
+      "https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=firstname,lastname,email,phone,company,jobtitle,lifecyclestage,hs_lead_status,createdate,lastmodifieddate",
+      accessToken, "results"
+    ),
+    paginateHubSpot(
+      "https://api.hubapi.com/crm/v3/objects/companies?limit=100&properties=name,domain,industry,city,state,country,numberofemployees,annualrevenue,phone,description,createdate",
+      accessToken, "results"
+    ),
+    paginateHubSpot(
+      "https://api.hubapi.com/crm/v3/objects/deals?limit=100&properties=dealname,amount,dealstage,pipeline,closedate,createdate,hs_lastmodifieddate,hubspot_owner_id",
+      accessToken, "results"
+    ),
+    (async () => {
+      try {
+        const res = await fetch("https://api.hubapi.com/crm/v3/owners/?limit=100", { headers });
+        if (res.ok) { const d = await res.json(); return d.results || []; }
+      } catch { /* skip */ }
+      return [];
+    })(),
+  ]);
+
+  // Fetch recent emails (engagement)
+  let emails: any[] = [];
+  try {
+    const emailRes = await fetch(
+      "https://api.hubapi.com/crm/v3/objects/emails?limit=100&properties=hs_email_subject,hs_email_text,hs_email_direction,hs_email_status,hs_timestamp,hs_email_sender_email,hs_email_to_email",
+      { headers }
+    );
+    if (emailRes.ok) {
+      const emailData = await emailRes.json();
+      emails = emailData.results || [];
+    }
+  } catch { /* skip */ }
+
+  // Fetch notes
+  let notes: any[] = [];
+  try {
+    const notesRes = await fetch(
+      "https://api.hubapi.com/crm/v3/objects/notes?limit=100&properties=hs_note_body,hs_timestamp,hubspot_owner_id",
+      { headers }
+    );
+    if (notesRes.ok) {
+      const notesData = await notesRes.json();
+      notes = notesData.results || [];
+    }
+  } catch { /* skip */ }
+
+  // Fetch tasks
+  let tasks: any[] = [];
+  try {
+    const tasksRes = await fetch(
+      "https://api.hubapi.com/crm/v3/objects/tasks?limit=100&properties=hs_task_subject,hs_task_body,hs_task_status,hs_task_priority,hs_timestamp,hs_task_completion_date,hubspot_owner_id",
+      { headers }
+    );
+    if (tasksRes.ok) {
+      const tasksData = await tasksRes.json();
+      tasks = tasksData.results || [];
+    }
+  } catch { /* skip */ }
+
+  // Build owner lookup
+  const ownerMap: Record<string, string> = {};
+  for (const o of owners) {
+    ownerMap[o.id] = `${o.firstName || ""} ${o.lastName || ""}`.trim() || o.email || o.id;
+  }
+
+  return { contacts, companies, deals, emails, notes, tasks, owners, ownerMap };
+}
+
 async function fetchWordPressData(siteUrl: string, basicAuth: string): Promise<any> {
   const headers = { Authorization: `Basic ${basicAuth}` };
 
