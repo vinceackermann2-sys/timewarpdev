@@ -81,6 +81,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [realUsageBytes, setRealUsageBytes] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSourceFilter, setActiveSourceFilter] = useState<string | null>(null);
+  const [activeTypeFilter, setActiveTypeFilter] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Derived: available source filters
@@ -89,11 +90,20 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     return Array.from(sources).sort();
   }, [items]);
 
+  // Derived: available type filters
+  const availableTypes = useMemo(() => {
+    const types = new Set(items.map(i => i.data_type));
+    return Array.from(types).sort();
+  }, [items]);
+
   // Derived: filtered items
   const filteredItems = useMemo(() => {
     let result = items;
     if (activeSourceFilter) {
       result = result.filter(i => i.source === activeSourceFilter);
+    }
+    if (activeTypeFilter) {
+      result = result.filter(i => i.data_type === activeTypeFilter);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -104,7 +114,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       );
     }
     return result;
-  }, [items, activeSourceFilter, searchQuery]);
+  }, [items, activeSourceFilter, activeTypeFilter, searchQuery]);
 
   const toggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
