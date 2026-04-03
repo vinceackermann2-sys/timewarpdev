@@ -279,7 +279,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       }
     };
     fetchUsage();
-  }, [checkConnection]);
+  }, [checkConnection, activeBrandId]);
 
   const handleConnect = async () => {
     setConnectingProvider(true);
