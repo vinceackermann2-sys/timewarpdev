@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Database, Loader2, CheckCircle2, FileText, Image, Globe, Type,
   Mail, Video, Music, Table2, ChevronDown, ChevronUp, Plug, RefreshCw, HardDrive,
-  Trash2, Upload, Plus, Users, StickyNote, ListChecks, Calendar
+  Trash2, Upload, Plus, Users, StickyNote, ListChecks, Calendar, Search, X, CheckSquare, Square
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
