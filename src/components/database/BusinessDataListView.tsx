@@ -170,14 +170,11 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       );
       if (response.ok) {
         const data = await response.json();
-        const ms = (data.connected || []).find((p: any) => p.provider === "microsoft");
-        if (ms) {
-          setIsConnected(true);
-          setConnectedEmail(ms.email || null);
-        } else {
-          setIsConnected(false);
-          setConnectedEmail(null);
+        const map: Record<string, { email?: string | null }> = {};
+        for (const c of (data.connected || [])) {
+          map[c.provider] = { email: c.email || null };
         }
+        setConnectedProviders(map);
       }
     } catch (err) {
       console.error("Check connection error:", err);
@@ -187,14 +184,13 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   // Auto-sync after OAuth redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("oauth_success") === "microsoft") {
-      // Clean URL
+    const oauthProvider = params.get("oauth_success");
+    if (oauthProvider && ["microsoft", "slack"].includes(oauthProvider)) {
       const url = new URL(window.location.href);
       url.searchParams.delete("oauth_success");
       url.searchParams.delete("brandId");
       window.history.replaceState({}, "", url.pathname + url.search);
-      // Trigger auto-sync
-      handleSync();
+      handleSyncProvider(oauthProvider);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
