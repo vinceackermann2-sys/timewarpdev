@@ -25,6 +25,7 @@ serve(async (req) => {
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
+    const logicalBrandId = state.logicalBrandId || state.brandId || null;
     frontendUrl = state.origin || frontendUrl;
 
     if (!userId) throw new Error("No userId in state");
@@ -98,7 +99,7 @@ serve(async (req) => {
       }, { onConflict: "user_id,provider,brand_id" });
 
     // Pass brandId in redirect so auto-sync can use it
-    const brandParam = brandId ? `&brandId=${brandId}` : "";
+    const brandParam = logicalBrandId ? `&brandId=${encodeURIComponent(logicalBrandId)}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=microsoft${brandParam}`, 302);
   } catch (e) {
     console.error("Microsoft OAuth callback error occurred");
