@@ -99,12 +99,15 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         if (ms) {
           setIsConnected(true);
           setConnectedEmail(ms.email || null);
+        } else {
+          setIsConnected(false);
+          setConnectedEmail(null);
         }
       }
     } catch (err) {
       console.error("Check connection error:", err);
     }
-  }, []);
+  }, [activeBrandId]);
 
   useEffect(() => {
     const fetchData = async () => {
