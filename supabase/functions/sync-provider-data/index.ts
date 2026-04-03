@@ -787,10 +787,13 @@ serve(async (req) => {
       });
     }
 
-    // Inject brandId into all metadata
-    if (brandId) {
-      for (const item of dataItems) {
+    // Inject brandId and workspaceId into all items
+    for (const item of dataItems) {
+      if (brandId) {
         item.metadata = { ...item.metadata, brandId };
+      }
+      if (workspaceId) {
+        item.workspace_id = workspaceId;
       }
     }
 
