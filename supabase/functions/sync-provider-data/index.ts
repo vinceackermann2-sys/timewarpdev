@@ -36,6 +36,20 @@ async function refreshGoogleToken(refreshToken: string): Promise<any> {
   return res.json();
 }
 
+async function refreshHubSpotToken(refreshToken: string): Promise<any> {
+  const res = await fetch("https://api.hubapi.com/oauth/v1/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: Deno.env.get("HUBSPOT_CLIENT_ID")!,
+      client_secret: Deno.env.get("HUBSPOT_CLIENT_SECRET")!,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  return res.json();
+}
+
 async function getValidToken(supabaseAdmin: any, userId: string, provider: string): Promise<string | null> {
   const { data: tokenRow } = await supabaseAdmin
     .from("user_oauth_tokens")
@@ -60,6 +74,8 @@ async function getValidToken(supabaseAdmin: any, userId: string, provider: strin
     refreshed = await refreshMicrosoftToken(tokenRow.refresh_token);
   } else if (provider === "google") {
     refreshed = await refreshGoogleToken(tokenRow.refresh_token);
+  } else if (provider === "hubspot") {
+    refreshed = await refreshHubSpotToken(tokenRow.refresh_token);
   } else {
     return tokenRow.access_token; // Slack tokens don't expire typically
   }
@@ -645,6 +661,100 @@ async function fetchSlackData(accessToken: string): Promise<any> {
   };
 }
 
+async function paginateHubSpot(url: string, accessToken: string, resultsKey: string, maxPages = 10): Promise<any[]> {
+  let all: any[] = [];
+  let after = "";
+  for (let page = 0; page < maxPages; page++) {
+    const sep = url.includes("?") ? "&" : "?";
+    const pageUrl = after ? `${url}${sep}after=${after}` : url;
+    try {
+      const res = await fetch(pageUrl, {
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      });
+      if (!res.ok) break;
+      const data = await res.json();
+      all = all.concat(data[resultsKey] || []);
+      after = data.paging?.next?.after || "";
+      if (!after) break;
+    } catch { break; }
+  }
+  return all;
+}
+
+async function fetchHubSpotData(accessToken: string): Promise<any> {
+  const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+
+  // Fetch contacts, companies, deals in parallel with pagination
+  const [contacts, companies, deals, owners] = await Promise.all([
+    paginateHubSpot(
+      "https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=firstname,lastname,email,phone,company,jobtitle,lifecyclestage,hs_lead_status,createdate,lastmodifieddate",
+      accessToken, "results"
+    ),
+    paginateHubSpot(
+      "https://api.hubapi.com/crm/v3/objects/companies?limit=100&properties=name,domain,industry,city,state,country,numberofemployees,annualrevenue,phone,description,createdate",
+      accessToken, "results"
+    ),
+    paginateHubSpot(
+      "https://api.hubapi.com/crm/v3/objects/deals?limit=100&properties=dealname,amount,dealstage,pipeline,closedate,createdate,hs_lastmodifieddate,hubspot_owner_id",
+      accessToken, "results"
+    ),
+    (async () => {
+      try {
+        const res = await fetch("https://api.hubapi.com/crm/v3/owners/?limit=100", { headers });
+        if (res.ok) { const d = await res.json(); return d.results || []; }
+      } catch { /* skip */ }
+      return [];
+    })(),
+  ]);
+
+  // Fetch recent emails (engagement)
+  let emails: any[] = [];
+  try {
+    const emailRes = await fetch(
+      "https://api.hubapi.com/crm/v3/objects/emails?limit=100&properties=hs_email_subject,hs_email_text,hs_email_direction,hs_email_status,hs_timestamp,hs_email_sender_email,hs_email_to_email",
+      { headers }
+    );
+    if (emailRes.ok) {
+      const emailData = await emailRes.json();
+      emails = emailData.results || [];
+    }
+  } catch { /* skip */ }
+
+  // Fetch notes
+  let notes: any[] = [];
+  try {
+    const notesRes = await fetch(
+      "https://api.hubapi.com/crm/v3/objects/notes?limit=100&properties=hs_note_body,hs_timestamp,hubspot_owner_id",
+      { headers }
+    );
+    if (notesRes.ok) {
+      const notesData = await notesRes.json();
+      notes = notesData.results || [];
+    }
+  } catch { /* skip */ }
+
+  // Fetch tasks
+  let tasks: any[] = [];
+  try {
+    const tasksRes = await fetch(
+      "https://api.hubapi.com/crm/v3/objects/tasks?limit=100&properties=hs_task_subject,hs_task_body,hs_task_status,hs_task_priority,hs_timestamp,hs_task_completion_date,hubspot_owner_id",
+      { headers }
+    );
+    if (tasksRes.ok) {
+      const tasksData = await tasksRes.json();
+      tasks = tasksData.results || [];
+    }
+  } catch { /* skip */ }
+
+  // Build owner lookup
+  const ownerMap: Record<string, string> = {};
+  for (const o of owners) {
+    ownerMap[o.id] = `${o.firstName || ""} ${o.lastName || ""}`.trim() || o.email || o.id;
+  }
+
+  return { contacts, companies, deals, emails, notes, tasks, owners, ownerMap };
+}
+
 async function fetchWordPressData(siteUrl: string, basicAuth: string): Promise<any> {
   const headers = { Authorization: `Basic ${basicAuth}` };
 
@@ -864,6 +974,9 @@ serve(async (req) => {
       case "slack":
         providerData = await fetchSlackData(accessToken);
         break;
+      case "hubspot":
+        providerData = await fetchHubSpotData(accessToken);
+        break;
       default:
         return new Response(JSON.stringify({ error: `Unsupported provider: ${provider}` }), {
           status: 400,
@@ -1077,7 +1190,134 @@ serve(async (req) => {
       });
     }
 
-    // Inject brandId and workspaceId into all items
+    // HubSpot contacts
+    if (providerData.contacts?.length) {
+      for (const c of providerData.contacts) {
+        const p = c.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "contact",
+          source: provider,
+          title: `${p.firstname || ""} ${p.lastname || ""}`.trim() || "Unnamed Contact",
+          content: [
+            p.email ? `Email: ${p.email}` : null,
+            p.phone ? `Phone: ${p.phone}` : null,
+            p.company ? `Company: ${p.company}` : null,
+            p.jobtitle ? `Title: ${p.jobtitle}` : null,
+            p.lifecyclestage ? `Stage: ${p.lifecyclestage}` : null,
+            p.hs_lead_status ? `Lead Status: ${p.hs_lead_status}` : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { hubspotId: c.id, email: p.email, company: p.company, jobtitle: p.jobtitle, lifecyclestage: p.lifecyclestage, leadStatus: p.hs_lead_status },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot companies
+    if (providerData.companies?.length) {
+      for (const c of providerData.companies) {
+        const p = c.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "contact",
+          source: provider,
+          title: p.name || "Unnamed Company",
+          content: [
+            p.domain ? `Domain: ${p.domain}` : null,
+            p.industry ? `Industry: ${p.industry}` : null,
+            p.annualrevenue ? `Revenue: $${p.annualrevenue}` : null,
+            p.numberofemployees ? `Employees: ${p.numberofemployees}` : null,
+            p.city && p.state ? `Location: ${p.city}, ${p.state}` : p.city || p.state || null,
+            p.country ? `Country: ${p.country}` : null,
+            p.phone ? `Phone: ${p.phone}` : null,
+            p.description ? `Description: ${p.description}` : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { hubspotId: c.id, type: "company", domain: p.domain, industry: p.industry, revenue: p.annualrevenue, employees: p.numberofemployees },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot deals
+    if (providerData.deals?.length) {
+      const ownerMap = providerData.ownerMap || {};
+      for (const d of providerData.deals) {
+        const p = d.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "document",
+          source: provider,
+          title: p.dealname || "Untitled Deal",
+          content: [
+            p.amount ? `Amount: $${p.amount}` : null,
+            p.dealstage ? `Stage: ${p.dealstage}` : null,
+            p.pipeline ? `Pipeline: ${p.pipeline}` : null,
+            p.closedate ? `Close Date: ${p.closedate}` : null,
+            p.hubspot_owner_id ? `Owner: ${ownerMap[p.hubspot_owner_id] || p.hubspot_owner_id}` : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { hubspotId: d.id, type: "deal", amount: p.amount, stage: p.dealstage, pipeline: p.pipeline, closeDate: p.closedate },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot emails
+    if (providerData.emails?.length) {
+      for (const e of providerData.emails) {
+        const p = e.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "email",
+          source: provider,
+          title: p.hs_email_subject || "No subject",
+          content: (p.hs_email_text || "").slice(0, 5000) || null,
+          metadata: { hubspotId: e.id, direction: p.hs_email_direction, status: p.hs_email_status, from: p.hs_email_sender_email, to: p.hs_email_to_email, date: p.hs_timestamp },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot notes
+    if (providerData.notes?.length) {
+      const ownerMap = providerData.ownerMap || {};
+      for (const n of providerData.notes) {
+        const p = n.properties || {};
+        const body = (p.hs_note_body || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        dataItems.push({
+          user_id: user.id,
+          data_type: "document",
+          source: provider,
+          title: body.slice(0, 80) || "Note",
+          content: body.slice(0, 5000) || null,
+          metadata: { hubspotId: n.id, type: "note", date: p.hs_timestamp, owner: ownerMap[p.hubspot_owner_id] || p.hubspot_owner_id || null },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot tasks
+    if (providerData.tasks?.length) {
+      const ownerMap = providerData.ownerMap || {};
+      for (const t of providerData.tasks) {
+        const p = t.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "task",
+          source: provider,
+          title: p.hs_task_subject || "Untitled Task",
+          content: [
+            p.hs_task_status ? `Status: ${p.hs_task_status}` : null,
+            p.hs_task_priority ? `Priority: ${p.hs_task_priority}` : null,
+            p.hs_task_completion_date ? `Completed: ${p.hs_task_completion_date}` : null,
+            p.hubspot_owner_id ? `Owner: ${ownerMap[p.hubspot_owner_id] || p.hubspot_owner_id}` : null,
+            p.hs_task_body ? p.hs_task_body.replace(/<[^>]+>/g, " ").trim().slice(0, 2000) : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { hubspotId: t.id, status: p.hs_task_status, priority: p.hs_task_priority },
+          is_analyzed: false,
+        });
+      }
+    }
+
     for (const item of dataItems) {
       if (brandId) {
         item.metadata = { ...item.metadata, brandId };
@@ -1116,12 +1356,15 @@ serve(async (req) => {
         events: providerData.events?.length || 0,
         files: providerData.files?.length || 0,
         contacts: providerData.contacts?.length || 0,
+        companies: providerData.companies?.length || 0,
+        deals: providerData.deals?.length || 0,
         notes: providerData.notes?.length || 0,
         tasks: providerData.tasks?.length || 0,
         channels: providerData.channels?.length || 0,
         messages: providerData.recentMessages?.length || 0,
         pinnedMessages: providerData.pinnedMessages?.length || 0,
         users: providerData.users?.length || 0,
+        owners: providerData.owners?.length || 0,
       },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

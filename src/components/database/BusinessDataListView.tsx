@@ -51,6 +51,7 @@ const sourceLabels: Record<string, string> = {
   google: "Google",
   microsoft: "Microsoft",
   slack: "Slack",
+  hubspot: "HubSpot",
   wordpress: "WordPress",
   upload: "Upload",
   "business-dna": "Business DNA",
