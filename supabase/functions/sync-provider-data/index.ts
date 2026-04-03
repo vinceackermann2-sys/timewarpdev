@@ -176,36 +176,55 @@ interface SyncLimits {
   emails?: number;
   events?: number;
   files?: number;
+  contacts?: number;
+  notes?: number;
+  tasks?: number;
 }
 
 interface SyncCategories {
   emails?: boolean;
   events?: boolean;
   files?: boolean;
+  contacts?: boolean;
+  notes?: boolean;
+  tasks?: boolean;
 }
 
 async function fetchMicrosoftData(accessToken: string, categories?: SyncCategories, limits?: SyncLimits): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
-  const cats = categories || { emails: true, events: true, files: true };
-  const lims = limits || { emails: 50, events: 50, files: 50 };
+  const cats = categories || { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true };
+  const lims = limits || {};
 
   const fetches: Promise<Response>[] = [];
   const fetchKeys: string[] = [];
 
   if (cats.emails !== false) {
-    const emailLimit = Math.min(Math.max(lims.emails || 50, 1), 200);
+    const emailLimit = Math.min(Math.max(lims.emails || 200, 1), 500);
     fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${emailLimit}&$select=subject,from,receivedDateTime,body&$orderby=receivedDateTime desc`, { headers }));
     fetchKeys.push("mail");
   }
   if (cats.events !== false) {
-    const eventLimit = Math.min(Math.max(lims.events || 50, 1), 200);
+    const eventLimit = Math.min(Math.max(lims.events || 200, 1), 500);
     fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/events?$top=${eventLimit}&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc`, { headers }));
     fetchKeys.push("cal");
   }
   if (cats.files !== false) {
-    const fileLimit = Math.min(Math.max(lims.files || 50, 1), 200);
+    const fileLimit = Math.min(Math.max(lims.files || 200, 1), 500);
     fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/drive/recent?$top=${fileLimit}`, { headers }));
     fetchKeys.push("files");
+  }
+  if (cats.contacts !== false) {
+    const contactLimit = Math.min(Math.max(lims.contacts || 200, 1), 500);
+    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/contacts?$top=${contactLimit}&$select=displayName,emailAddresses,businessPhones,companyName,jobTitle,department`, { headers }));
+    fetchKeys.push("contacts");
+  }
+  if (cats.notes !== false) {
+    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/onenote/pages?$top=100&$select=title,createdDateTime,lastModifiedDateTime,contentUrl&$orderby=lastModifiedDateTime desc`, { headers }));
+    fetchKeys.push("notes");
+  }
+  if (cats.tasks !== false) {
+    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/todo/lists`, { headers }));
+    fetchKeys.push("tasks");
   }
 
   const responses = await Promise.all(fetches);
@@ -217,6 +236,9 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
   const mail = results.mail || { value: [] };
   const calendar = results.cal || { value: [] };
   const files = results.files || { value: [] };
+  const contactsData = results.contacts || { value: [] };
+  const notesData = results.notes || { value: [] };
+  const tasksListData = results.tasks || { value: [] };
 
   // Extract full email body text (strip HTML)
   const emails = (mail.value || []).map((m: any) => {
@@ -237,10 +259,62 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
     };
   });
 
+  // Contacts
+  const contacts = (contactsData.value || []).map((c: any) => ({
+    name: c.displayName,
+    emails: (c.emailAddresses || []).map((e: any) => e.address),
+    phones: c.businessPhones || [],
+    company: c.companyName,
+    jobTitle: c.jobTitle,
+    department: c.department,
+  }));
+
+  // OneNote pages
+  const notes = (notesData.value || []).map((p: any) => ({
+    title: p.title,
+    created: p.createdDateTime,
+    lastModified: p.lastModifiedDateTime,
+  }));
+
+  // Fetch OneNote page content for top pages
+  for (let i = 0; i < Math.min(notes.length, 50); i++) {
+    const page = notesData.value[i];
+    if (page?.contentUrl) {
+      try {
+        const contentRes = await fetch(page.contentUrl, { headers });
+        if (contentRes.ok) {
+          let html = await contentRes.text();
+          html = html.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          notes[i].content = html.slice(0, 8000);
+        }
+      } catch { /* skip */ }
+    }
+  }
+
+  // To Do tasks - fetch tasks from each list
+  const todoTasks: any[] = [];
+  for (const list of (tasksListData.value || []).slice(0, 10)) {
+    try {
+      const tasksRes = await fetch(`https://graph.microsoft.com/v1.0/me/todo/lists/${list.id}/tasks?$top=100`, { headers });
+      if (tasksRes.ok) {
+        const tasksJson = await tasksRes.json();
+        for (const t of (tasksJson.value || [])) {
+          todoTasks.push({
+            title: t.title,
+            status: t.status,
+            importance: t.importance,
+            dueDate: t.dueDateTime?.dateTime,
+            listName: list.displayName,
+            body: t.body?.content?.replace(/<[^>]+>/g, " ").trim().slice(0, 1000) || null,
+          });
+        }
+      }
+    } catch { /* skip */ }
+  }
+
   // Try to download text content from files (PDFs, docs, etc.)
   const fileDetails = [];
-  const fileLimit = Math.min(Math.max(lims.files || 50, 1), 200);
-  for (const f of (files.value || []).slice(0, fileLimit)) {
+  for (const f of (files.value || [])) {
     const fileInfo: any = {
       name: f.name,
       size: f.size,
@@ -293,6 +367,9 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
       attendees: e.attendees?.length || 0,
     })) : [],
     files: cats.files !== false ? fileDetails : [],
+    contacts: cats.contacts !== false ? contacts : [],
+    notes: cats.notes !== false ? notes : [],
+    tasks: cats.tasks !== false ? todoTasks : [],
   };
 }
 
