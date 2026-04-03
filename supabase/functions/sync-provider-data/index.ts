@@ -988,6 +988,58 @@ serve(async (req) => {
       }
     }
 
+    // Persist Slack pinned messages
+    if (providerData.pinnedMessages?.length) {
+      for (const pin of providerData.pinnedMessages) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "message",
+          source: provider,
+          title: `📌 Pinned in #${pin.channel}`,
+          content: pin.text || null,
+          metadata: { channel: pin.channel, user: pin.user, ts: pin.ts, pinned: true },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // Persist Slack users
+    if (providerData.users?.length) {
+      for (const u of providerData.users) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "contact",
+          source: provider,
+          title: u.name || u.displayName || "Unknown User",
+          content: [
+            u.title ? `Title: ${u.title}` : null,
+            u.email ? `Email: ${u.email}` : null,
+            u.phone ? `Phone: ${u.phone}` : null,
+            u.timezone ? `Timezone: ${u.timezone}` : null,
+            u.isAdmin ? "Role: Admin" : u.isOwner ? "Role: Owner" : null,
+            u.status ? `Status: ${u.status}` : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { slackId: u.id, email: u.email, title: u.title, isAdmin: u.isAdmin, isOwner: u.isOwner },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // Persist Slack shared files
+    if (providerData.files?.length) {
+      for (const f of providerData.files) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "document",
+          source: provider,
+          title: f.title || f.name || "Untitled File",
+          content: null,
+          metadata: { fileType: f.type, size: f.size, user: f.user, created: f.created, channels: f.channels },
+          is_analyzed: false,
+        });
+      }
+    }
+
     // Persist Slack team info
     if (providerData.team) {
       dataItems.push({
@@ -995,8 +1047,13 @@ serve(async (req) => {
         data_type: "integration",
         source: provider,
         title: `Slack Workspace: ${providerData.team}`,
-        content: `Workspace "${providerData.team}" with ${providerData.channels?.length || 0} channels`,
-        metadata: { team: providerData.team },
+        content: [
+          `Workspace "${providerData.team}"`,
+          providerData.teamDomain ? `Domain: ${providerData.teamDomain}.slack.com` : null,
+          `${providerData.channels?.length || 0} channels`,
+          `${providerData.users?.length || 0} team members`,
+        ].filter(Boolean).join("\n"),
+        metadata: { team: providerData.team, domain: providerData.teamDomain, icon: providerData.teamIcon },
         is_analyzed: false,
       });
     }
@@ -1044,6 +1101,8 @@ serve(async (req) => {
         tasks: providerData.tasks?.length || 0,
         channels: providerData.channels?.length || 0,
         messages: providerData.recentMessages?.length || 0,
+        pinnedMessages: providerData.pinnedMessages?.length || 0,
+        users: providerData.users?.length || 0,
       },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
