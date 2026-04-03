@@ -14,6 +14,7 @@ import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoGoogle from "@/assets/logo-google.png";
 import logoSlack from "@/assets/logo-slack.png";
 import logoFortknox from "@/assets/logo-fortknox.png";
+import logoHubspot from "@/assets/logo-hubspot.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 import { SyncPreferencesDialog } from "@/components/database/SyncPreferencesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
