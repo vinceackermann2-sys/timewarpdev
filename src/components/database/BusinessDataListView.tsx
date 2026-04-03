@@ -75,9 +75,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
-  const [connectingProvider, setConnectingProvider] = useState(false);
+  const [connectedProviders, setConnectedProviders] = useState<Record<string, { email?: string | null }>>({});
+  const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
   const [syncingProvider, setSyncingProvider] = useState(false);
   const [showSyncPrefs, setShowSyncPrefs] = useState(false);
   const [showIntegrations, setShowIntegrations] = useState(false);
