@@ -7,6 +7,35 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+async function resolveBrandRowId(supabaseAdmin: any, userId: string, brandId?: string | null) {
+  if (!brandId) return null;
+  if (UUID_REGEX.test(brandId)) return brandId;
+
+  const { data: brandRows, error } = await supabaseAdmin
+    .from("user_business_data")
+    .select("id, content")
+    .eq("user_id", userId)
+    .eq("data_type", "brand")
+    .eq("source", "business-dna");
+
+  if (error || !brandRows) return null;
+
+  for (const row of brandRows) {
+    try {
+      const parsedContent = typeof row.content === "string" ? JSON.parse(row.content) : row.content;
+      if (parsedContent?.id === brandId) {
+        return row.id;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -40,15 +69,26 @@ serve(async (req) => {
       });
     }
 
+    const requestedBrandId = typeof brandId === "string" && brandId.trim() ? brandId : null;
+    const resolvedBrandId = requestedBrandId
+      ? await resolveBrandRowId(supabaseAdmin, user.id, requestedBrandId)
+      : null;
+
     // Action: check-status - return which providers are connected (optionally filtered by brandId)
     if (action === "check-status") {
+      if (requestedBrandId && !resolvedBrandId) {
+        return new Response(JSON.stringify({ connected: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       let connectionsQuery = supabaseAdmin
         .from("user_connections")
         .select("provider, status, brand_id")
         .eq("user_id", user.id);
 
-      if (brandId) {
-        connectionsQuery = connectionsQuery.eq("brand_id", brandId);
+      if (resolvedBrandId) {
+        connectionsQuery = connectionsQuery.eq("brand_id", resolvedBrandId);
       }
 
       const { data: connections } = await connectionsQuery;
@@ -74,6 +114,13 @@ serve(async (req) => {
 
     // Action: get-auth-url - generate OAuth URL for a provider
     if (action === "get-auth-url") {
+      if (requestedBrandId && !resolvedBrandId) {
+        return new Response(JSON.stringify({ error: "Business not found" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const redirectBase = `${SUPABASE_URL}/functions/v1`;
       const returnPath = body.returnPath || "/";
       const origin = body.origin || "";
@@ -99,7 +146,14 @@ serve(async (req) => {
         .join("");
 
       // Include brandId in state so callbacks can scope connections
-      const stateBase = { userId: user.id, returnPath, nonce, hmac, brandId: brandId || null };
+      const stateBase = {
+        userId: user.id,
+        returnPath,
+        nonce,
+        hmac,
+        brandId: resolvedBrandId,
+        logicalBrandId: requestedBrandId,
+      };
 
       switch (provider) {
         case "microsoft": {
@@ -143,6 +197,13 @@ serve(async (req) => {
 
     // Action: save-credentials (for WordPress Application Passwords)
     if (action === "save-credentials" && provider === "wordpress") {
+      if (requestedBrandId && !resolvedBrandId) {
+        return new Response(JSON.stringify({ error: "Business not found" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       if (!body.siteUrl || !body.username || !body.appPassword) {
         return new Response(JSON.stringify({ error: "Missing siteUrl, username, or appPassword" }), {
           status: 400,
@@ -184,7 +245,7 @@ serve(async (req) => {
           user_id: user.id,
           provider: "wordpress",
           status: "connected",
-          brand_id: brandId || null,
+          brand_id: resolvedBrandId,
           metadata: { siteUrl: normalizedUrl, username: body.username, displayName: wpUser.name },
         }, { onConflict: "user_id,provider,brand_id" });
 
@@ -195,6 +256,13 @@ serve(async (req) => {
 
     // Action: disconnect
     if (action === "disconnect") {
+      if (requestedBrandId && !resolvedBrandId) {
+        return new Response(JSON.stringify({ error: "Business not found" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Remove business data sourced from this provider, scoped to brand if provided
       let deleteQuery = supabaseAdmin
         .from("user_business_data")
@@ -202,8 +270,8 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .eq("source", provider);
 
-      if (brandId) {
-        deleteQuery = deleteQuery.eq("metadata->>brandId", brandId);
+      if (requestedBrandId) {
+        deleteQuery = deleteQuery.eq("metadata->>brandId", requestedBrandId);
       }
       await deleteQuery;
 
@@ -214,8 +282,8 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .eq("provider", provider);
 
-      if (brandId) {
-        connQuery = connQuery.eq("brand_id", brandId);
+      if (resolvedBrandId) {
+        connQuery = connQuery.eq("brand_id", resolvedBrandId);
       }
       await connQuery;
 

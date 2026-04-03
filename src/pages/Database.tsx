@@ -200,6 +200,7 @@ const Database = () => {
   useEffect(() => {
     const oauthSuccess = searchParams.get("oauth_success");
     const oauthError = searchParams.get("oauth_error");
+    const oauthBrandId = searchParams.get("brandId");
     if (!oauthSuccess && !oauthError) return;
 
     if (oauthError) {
@@ -209,6 +210,15 @@ const Database = () => {
     }
 
     toast.success(`${oauthSuccess.charAt(0).toUpperCase() + oauthSuccess.slice(1)} connected!`);
+
+    if (oauthBrandId) {
+      setCurrentView("businessdna");
+      localStorage.setItem("tw_current_view", "businessdna");
+      setActiveBrandId(oauthBrandId);
+      setShowBusinessDNA(true);
+      setShowAddProduct(false);
+    }
+
     window.history.replaceState({}, "", window.location.pathname);
 
     // Auto-sync provider data
@@ -226,7 +236,11 @@ const Database = () => {
               Authorization: `Bearer ${session.access_token}`,
               apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
-            body: JSON.stringify({ provider: oauthSuccess }),
+            body: JSON.stringify({
+              provider: oauthSuccess,
+              brandId: oauthBrandId || undefined,
+              workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
+            }),
           }
         );
 
