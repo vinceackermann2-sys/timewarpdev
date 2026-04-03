@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoGoogle from "@/assets/logo-google.png";
 import logoSlack from "@/assets/logo-slack.png";
+import logoHubspot from "@/assets/logo-hubspot.png";
 import logoFortknox from "@/assets/logo-fortknox.png";
 import adEvoIcon from "@/assets/ad-evo-icon.svg";
 import type { AIEmployee } from "./EmployeesView";
