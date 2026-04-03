@@ -67,11 +67,7 @@ export function BusinessDatabaseNode({
     return localStorage.getItem("preferred_business_id");
   });
 
-  // Filter, search, select state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeSourceFilter, setActiveSourceFilter] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  // No filter/search/select on node – that lives in Business DNA Database view
 
   // Listen for business selection changes
   useEffect(() => {
