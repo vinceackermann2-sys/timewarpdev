@@ -19,6 +19,7 @@ import {
 import { useTheme } from "next-themes";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoSlack from "@/assets/logo-slack.png";
+import logoHubspot from "@/assets/logo-hubspot.png";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace, WorkspaceMember, WorkspaceInvitation } from "@/hooks/useWorkspace";
@@ -101,6 +102,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
 const integrations = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" as const },
   { id: "slack", name: "Slack", description: "Channels, Messages, Files, Users", logo: logoSlack, authType: "oauth" as const },
+  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth" as const },
 ];
 
 type SettingsTab = "settings" | "workspace" | "plans" | "connections";

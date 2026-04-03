@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoSlack from "@/assets/logo-slack.png";
+import logoHubspot from "@/assets/logo-hubspot.png";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 
 interface Integration {
@@ -21,6 +22,7 @@ interface Integration {
 const integrations: Integration[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" },
   { id: "slack", name: "Slack", description: "Channels, Messages, Team Info", logo: logoSlack, authType: "oauth" },
+  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth" },
 ];
 
 interface ConnectedProvider {
