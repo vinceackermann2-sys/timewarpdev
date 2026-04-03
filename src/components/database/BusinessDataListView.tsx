@@ -374,7 +374,6 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
         let refreshQuery = (supabase as any)
           .from("user_business_data")
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
-          .eq("metadata->>brandId", activeBrandId)
           .order("created_at", { ascending: false })
           .limit(200);
         if (wsId) {
