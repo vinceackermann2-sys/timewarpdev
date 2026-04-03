@@ -183,6 +183,15 @@ serve(async (req) => {
           authUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
           break;
         }
+        case "hubspot": {
+          const clientId = Deno.env.get("HUBSPOT_CLIENT_ID");
+          if (!clientId) throw new Error("HUBSPOT_CLIENT_ID not configured");
+          const redirectUri = `${redirectBase}/hubspot-oauth-callback`;
+          const scopes = "crm.objects.contacts.read crm.objects.companies.read crm.objects.deals.read crm.objects.owners.read sales-email-read";
+          const state = btoa(JSON.stringify({ ...stateBase, origin }));
+          authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
+          break;
+        }
         default:
           return new Response(JSON.stringify({ error: `Unsupported provider: ${provider}` }), {
             status: 400,
