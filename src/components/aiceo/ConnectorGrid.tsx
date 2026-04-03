@@ -3,6 +3,7 @@ import { Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoSlack from "@/assets/logo-slack.png";
 import { SyncPreferencesDialog } from "@/components/database/SyncPreferencesDialog";
 
 interface ConnectorDef {
@@ -15,6 +16,7 @@ interface ConnectorDef {
 
 const connectors: ConnectorDef[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar", logo: logoMicrosoft, authType: "oauth" },
+  { id: "slack", name: "Slack", description: "Channels, Messages, Team", logo: logoSlack, authType: "oauth" },
 ];
 
 interface ConnectorGridProps {
