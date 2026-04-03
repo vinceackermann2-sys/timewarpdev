@@ -548,7 +548,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
         </div>
 
         {/* Filter dropdown */}
-        <div className="relative">
+        <div className="relative" ref={filterRef}>
           <Button
             variant="outline"
             size="sm"
