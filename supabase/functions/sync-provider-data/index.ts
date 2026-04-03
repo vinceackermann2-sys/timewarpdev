@@ -36,6 +36,20 @@ async function refreshGoogleToken(refreshToken: string): Promise<any> {
   return res.json();
 }
 
+async function refreshHubSpotToken(refreshToken: string): Promise<any> {
+  const res = await fetch("https://api.hubapi.com/oauth/v1/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: Deno.env.get("HUBSPOT_CLIENT_ID")!,
+      client_secret: Deno.env.get("HUBSPOT_CLIENT_SECRET")!,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  return res.json();
+}
+
 async function getValidToken(supabaseAdmin: any, userId: string, provider: string): Promise<string | null> {
   const { data: tokenRow } = await supabaseAdmin
     .from("user_oauth_tokens")
