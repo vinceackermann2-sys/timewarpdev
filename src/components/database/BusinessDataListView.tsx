@@ -83,6 +83,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [activeSourceFilter, setActiveSourceFilter] = useState<string | null>(null);
   const [activeTypeFilter, setActiveTypeFilter] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showSelectMenu, setShowSelectMenu] = useState(false);
 
   // Derived: available source filters
   const availableSources = useMemo(() => {
