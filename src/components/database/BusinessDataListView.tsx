@@ -275,7 +275,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
       }
     };
     fetchUsage();
-  }, [checkConnection, activeBrandId]);
+  }, [checkConnection]);
 
   const handleConnect = async () => {
     setConnectingProvider(true);
