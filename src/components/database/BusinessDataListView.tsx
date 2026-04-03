@@ -276,8 +276,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     fetchUsage();
   }, [checkConnection, activeBrandId]);
 
-  const handleConnect = async () => {
-    setConnectingProvider(true);
+  const handleConnectProvider = async (provider: string) => {
+    setConnectingProvider(provider);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please log in first"); setConnectingProvider(false); return; }
@@ -290,7 +290,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }),
+          body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }),
         }
       );
       const data = await response.json();
@@ -305,14 +305,11 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     setConnectingProvider(false);
   };
 
-  const handleDisconnect = async () => {
+  const handleDisconnectProvider = async (provider: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      // Delete the connection record
-      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", "microsoft");
-      // Delete OAuth tokens
-      // (tokens table has RLS deny-all, but we try; the connect-provider function handles this server-side)
+      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", provider);
       await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
         {
@@ -322,18 +319,17 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandId }),
+          body: JSON.stringify({ provider, action: "disconnect", brandId: activeBrandId }),
         }
       );
-      setIsConnected(false);
-      setConnectedEmail(null);
-      toast.success("Microsoft disconnected");
+      setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
+      toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected`);
     } catch {
       toast.error("Failed to disconnect");
     }
   };
 
-  const handleSync = async (categories?: Record<string, boolean>, limits?: Record<string, number>) => {
+  const handleSyncProvider = async (provider: string, categories?: Record<string, boolean>, limits?: Record<string, number>) => {
     setSyncingProvider(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -348,8 +344,10 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
-            provider: "microsoft",
-            categories: categories || { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true },
+            provider,
+            categories: categories || (provider === "microsoft"
+              ? { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true }
+              : undefined),
             brandId: activeBrandId,
             workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
           }),
@@ -365,8 +363,11 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         if (s.contacts) parts.push(`${s.contacts} contacts`);
         if (s.notes) parts.push(`${s.notes} notes`);
         if (s.tasks) parts.push(`${s.tasks} tasks`);
+        if (s.channels) parts.push(`${s.channels} channels`);
+        if (s.messages) parts.push(`${s.messages} message groups`);
+        if (s.users) parts.push(`${s.users} users`);
+        if (s.pinnedMessages) parts.push(`${s.pinnedMessages} pinned`);
         toast.success(`Synced ${parts.join(", ") || "data"}`);
-        // Invalidate cache and refresh data list
         _cachedItems = null;
         _cachedCacheKey = null;
         const wsId = localStorage.getItem("preferred_workspace_id");
