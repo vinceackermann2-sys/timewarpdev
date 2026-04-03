@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoSlack from "@/assets/logo-slack.png";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace, WorkspaceMember, WorkspaceInvitation } from "@/hooks/useWorkspace";
