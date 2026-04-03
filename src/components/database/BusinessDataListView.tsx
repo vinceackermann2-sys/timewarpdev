@@ -720,16 +720,17 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             <DialogTitle>Integrations</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-2">
-            {/* Microsoft - Active */}
+            {/* Microsoft */}
+            {(() => { const connected = !!connectedProviders["microsoft"]; return (
             <div className={cn(
               "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-              isConnected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+              connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
             )}>
               <div className="flex items-center justify-between">
                 <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
                   <img src={logoMicrosoft} alt="Microsoft" className="h-7 w-7 object-contain" />
                 </div>
-                {isConnected && (
+                {connected && (
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
                 )}
               </div>
@@ -737,17 +738,49 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
                 <p className="text-sm font-medium">Microsoft</p>
                 <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
               </div>
-              {isConnected ? (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={handleDisconnect}>
+              {connected ? (
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleDisconnectProvider("microsoft")}>
                   Disconnect
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={handleConnect} disabled={connectingProvider}>
-                  {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleConnectProvider("microsoft")} disabled={!!connectingProvider}>
+                  {connectingProvider === "microsoft" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
                   Connect
                 </Button>
               )}
             </div>
+            ); })()}
+
+            {/* Slack */}
+            {(() => { const connected = !!connectedProviders["slack"]; return (
+            <div className={cn(
+              "flex flex-col gap-3 p-5 rounded-xl border transition-all",
+              connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+            )}>
+              <div className="flex items-center justify-between">
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                  <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" />
+                </div>
+                {connected && (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium">Slack</p>
+                <p className="text-xs text-muted-foreground">Channels, Messages, Files</p>
+              </div>
+              {connected ? (
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleDisconnectProvider("slack")}>
+                  Disconnect
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleConnectProvider("slack")} disabled={!!connectingProvider}>
+                  {connectingProvider === "slack" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                  Connect
+                </Button>
+              )}
+            </div>
+            ); })()}
 
             {/* Google - Coming Soon */}
             <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
@@ -760,20 +793,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
               <div>
                 <p className="text-sm font-medium">Google</p>
                 <p className="text-xs text-muted-foreground">Gmail, Drive, Calendar</p>
-              </div>
-            </div>
-
-            {/* Slack - Coming Soon */}
-            <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
-              <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                  <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" loading="lazy" />
-                </div>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Slack</p>
-                <p className="text-xs text-muted-foreground">Messages and workspace data</p>
               </div>
             </div>
 
