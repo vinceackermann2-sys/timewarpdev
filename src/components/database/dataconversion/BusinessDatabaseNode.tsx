@@ -197,78 +197,8 @@ export function BusinessDatabaseNode({
         </div>
       </div>
 
-      {/* Search + Filter bar */}
-      {!isLoading && items.length > 0 && (
-        <div className="px-2 pt-2 pb-1 border-b border-border/50 space-y-1.5">
-          {/* Search */}
-          <div className="flex items-center gap-1.5 bg-muted/40 rounded-md px-2 py-1">
-            <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Search data…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="bg-transparent text-xs w-full outline-none placeholder:text-muted-foreground/60 text-foreground"
-            />
-            {searchQuery && (
-              <button
-                className="text-[10px] text-muted-foreground hover:text-foreground"
-                onClick={() => setSearchQuery("")}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          {/* Source filter chips */}
-          <div className="flex items-center gap-1 flex-wrap">
-            <button
-              className={cn(
-                "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
-                !activeSourceFilter
-                  ? "bg-primary/15 border-primary/30 text-primary font-semibold"
-                  : "bg-muted/30 border-border/50 text-muted-foreground hover:border-primary/30"
-              )}
-              onClick={() => setActiveSourceFilter(null)}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              All
-            </button>
-            {availableSources.map(src => (
-              <button
-                key={src}
-                className={cn(
-                  "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
-                  activeSourceFilter === src
-                    ? "bg-primary/15 border-primary/30 text-primary font-semibold"
-                    : "bg-muted/30 border-border/50 text-muted-foreground hover:border-primary/30"
-                )}
-                onClick={() => setActiveSourceFilter(activeSourceFilter === src ? null : src)}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                {sourceLabels[src] || src}
-              </button>
-            ))}
-          </div>
-          {/* Selection summary */}
-          {selectedIds.size > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-primary font-semibold">{selectedIds.size} selected</span>
-              <button
-                className="text-[10px] text-muted-foreground hover:text-foreground"
-                onClick={() => setSelectedIds(new Set())}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Content */}
-      <ScrollArea className={cn("h-[calc(100%-44px)]", !isLoading && items.length > 0 && "h-[calc(100%-44px-72px)]")} onWheel={(e) => e.stopPropagation()}>
+      <ScrollArea className="h-[calc(100%-44px)]" onWheel={(e) => e.stopPropagation()}>
         <div className="p-2">
           {isLoading ? (
             <div className="space-y-3 p-1">
