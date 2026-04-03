@@ -512,72 +512,31 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* Compact header row: search + select + actions */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-[220px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search data..."
-            className="w-full h-9 pl-9 pr-8 rounded-lg border border-border/50 bg-card/50 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full h-8 pl-8 pr-7 rounded-md border border-border/50 bg-card/50 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              <X className="h-3.5 w-3.5" />
+            <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
-
-        {availableSources.length > 1 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <button
-              onClick={() => setActiveSourceFilter(null)}
-              className={cn(
-                "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border",
-                !activeSourceFilter ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
-              )}
-            >
-              All
-            </button>
-            {availableSources.map(src => (
-              <button
-                key={src}
-                onClick={() => setActiveSourceFilter(activeSourceFilter === src ? null : src)}
-                className={cn(
-                  "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border",
-                  activeSourceFilter === src ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
-                )}
-              >
-                {sourceLabels[src] || src}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Selection Bar */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
-            <span className="text-xs font-medium text-primary">{selectedIds.size} selected</span>
-            <button onClick={clearSelection} className="text-xs text-muted-foreground hover:text-foreground ml-auto">
-              Clear
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Data Items Header */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
           {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
-          {searchQuery || activeSourceFilter ? " found" : ""}
-        </p>
-        <div className="flex items-center gap-2">
+        </span>
+        <div className="flex items-center gap-1.5 ml-auto">
           {filteredItems.length > 0 && (
-            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={selectedIds.size === filteredItems.length ? clearSelection : selectAll}>
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={selectedIds.size === filteredItems.length ? clearSelection : selectAll}>
               {selectedIds.size === filteredItems.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
-              {selectedIds.size === filteredItems.length ? "Deselect All" : "Select All"}
+              {selectedIds.size > 0 ? `${selectedIds.size} sel.` : "Select"}
             </Button>
           )}
           <input
@@ -588,27 +547,84 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             onChange={handleFileUpload}
             className="hidden"
           />
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs gap-1.5"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-          >
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
             {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
             Upload
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs gap-1.5"
-            onClick={() => setShowIntegrations(prev => !prev)}
-          >
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowIntegrations(prev => !prev)}>
             <Plug className="h-3.5 w-3.5" />
             Integrations
           </Button>
         </div>
       </div>
+
+      {/* Filter chips row: source + type */}
+      {(availableSources.length > 1 || availableTypes.length > 1) && (
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Source filters */}
+          {availableSources.length > 1 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-[10px] text-muted-foreground/60 mr-0.5">Source:</span>
+              <button
+                onClick={() => setActiveSourceFilter(null)}
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border",
+                  !activeSourceFilter ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+                )}
+              >
+                All
+              </button>
+              {availableSources.map(src => (
+                <button
+                  key={src}
+                  onClick={() => setActiveSourceFilter(activeSourceFilter === src ? null : src)}
+                  className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border",
+                    activeSourceFilter === src ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+                  )}
+                >
+                  {sourceLabels[src] || src}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Type filters */}
+          {availableTypes.length > 1 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-[10px] text-muted-foreground/60 mr-0.5">Type:</span>
+              <button
+                onClick={() => setActiveTypeFilter(null)}
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border",
+                  !activeTypeFilter ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+                )}
+              >
+                All
+              </button>
+              {availableTypes.map(t => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTypeFilter(activeTypeFilter === t ? null : t)}
+                  className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors border capitalize",
+                    activeTypeFilter === t ? "bg-primary text-primary-foreground border-primary" : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/30"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Selection Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+          <span className="text-xs font-medium text-primary">{selectedIds.size} selected</span>
+          <button onClick={clearSelection} className="text-xs text-muted-foreground hover:text-foreground ml-auto">Clear</button>
+        </div>
+      )}
 
       {/* Integrations Dialog */}
       <Dialog open={showIntegrations} onOpenChange={setShowIntegrations}>
