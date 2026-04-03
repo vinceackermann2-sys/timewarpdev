@@ -643,12 +643,15 @@ serve(async (req) => {
         });
       }
 
-      // Inject brandId into all metadata
+    // Inject brandId and workspaceId into all items
+    for (const item of dataItems) {
       if (brandId) {
-        for (const item of dataItems) {
-          item.metadata = { ...item.metadata, brandId };
-        }
+        item.metadata = { ...item.metadata, brandId };
       }
+      if (workspaceId) {
+        item.workspace_id = workspaceId;
+      }
+    }
 
       if (dataItems.length > 0) {
         let delQuery = supabaseAdmin.from("user_business_data").delete().eq("user_id", user.id).eq("source", "wordpress");
