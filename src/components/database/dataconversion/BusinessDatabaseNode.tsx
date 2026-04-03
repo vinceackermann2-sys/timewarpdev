@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Database, CheckCircle2, FileText, Image, Globe, Type, Mail, Video, Music, Table2, ChevronDown, ChevronUp, Calendar, Search, Filter, Check } from "lucide-react";
+import { Database, CheckCircle2, FileText, Image, Globe, Type, Mail, Video, Music, Table2, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
