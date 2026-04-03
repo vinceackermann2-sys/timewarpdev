@@ -118,6 +118,17 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
     setConnectingProvider(null);
   };
 
+  const handleDisconnect = async (providerId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", providerId);
+      setConnectedProviders(prev => prev.filter(p => p.provider !== providerId));
+      toast.success(`${providerId.charAt(0).toUpperCase() + providerId.slice(1)} disconnected`);
+    } catch {
+      toast.error("Failed to disconnect");
+    }
+  };
 
   const syncProviderData = async (provider: string) => {
     setSyncingProvider(provider);
