@@ -166,7 +166,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status", brandId: activeBrandId }),
+          body: JSON.stringify({ action: "check-status", brandId: _activeBrandId }),
         }
       );
       if (response.ok) {
@@ -183,7 +183,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
     } catch (err) {
       console.error("Check connection error:", err);
     }
-  }, [activeBrandId]);
+  }, [_activeBrandId]);
 
   // Auto-sync after OAuth redirect
   useEffect(() => {
@@ -291,7 +291,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }),
+          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: _activeBrandId }),
         }
       );
       const data = await response.json();
@@ -323,7 +323,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandId }),
+          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: _activeBrandId }),
         }
       );
       setIsConnected(false);
@@ -351,7 +351,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
           body: JSON.stringify({
             provider: "microsoft",
             categories: categories || { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true },
-            brandId: activeBrandId,
+            brandId: _activeBrandId,
             workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
           }),
         }
@@ -460,7 +460,7 @@ export function BusinessDataListView({ activeBrandId: _activeBrandId }: { active
             source: "upload",
             is_analyzed: false,
             workspace_id: localStorage.getItem("preferred_workspace_id"),
-            metadata: { brandId: activeBrandId, file_size: file.size },
+            metadata: { brandId: _activeBrandId, file_size: file.size },
           })
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .single();
