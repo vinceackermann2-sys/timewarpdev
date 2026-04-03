@@ -1190,7 +1190,134 @@ serve(async (req) => {
       });
     }
 
-    // Inject brandId and workspaceId into all items
+    // HubSpot contacts
+    if (providerData.contacts?.length) {
+      for (const c of providerData.contacts) {
+        const p = c.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "contact",
+          source: provider,
+          title: `${p.firstname || ""} ${p.lastname || ""}`.trim() || "Unnamed Contact",
+          content: [
+            p.email ? `Email: ${p.email}` : null,
+            p.phone ? `Phone: ${p.phone}` : null,
+            p.company ? `Company: ${p.company}` : null,
+            p.jobtitle ? `Title: ${p.jobtitle}` : null,
+            p.lifecyclestage ? `Stage: ${p.lifecyclestage}` : null,
+            p.hs_lead_status ? `Lead Status: ${p.hs_lead_status}` : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { hubspotId: c.id, email: p.email, company: p.company, jobtitle: p.jobtitle, lifecyclestage: p.lifecyclestage, leadStatus: p.hs_lead_status },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot companies
+    if (providerData.companies?.length) {
+      for (const c of providerData.companies) {
+        const p = c.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "contact",
+          source: provider,
+          title: p.name || "Unnamed Company",
+          content: [
+            p.domain ? `Domain: ${p.domain}` : null,
+            p.industry ? `Industry: ${p.industry}` : null,
+            p.annualrevenue ? `Revenue: $${p.annualrevenue}` : null,
+            p.numberofemployees ? `Employees: ${p.numberofemployees}` : null,
+            p.city && p.state ? `Location: ${p.city}, ${p.state}` : p.city || p.state || null,
+            p.country ? `Country: ${p.country}` : null,
+            p.phone ? `Phone: ${p.phone}` : null,
+            p.description ? `Description: ${p.description}` : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { hubspotId: c.id, type: "company", domain: p.domain, industry: p.industry, revenue: p.annualrevenue, employees: p.numberofemployees },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot deals
+    if (providerData.deals?.length) {
+      const ownerMap = providerData.ownerMap || {};
+      for (const d of providerData.deals) {
+        const p = d.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "document",
+          source: provider,
+          title: p.dealname || "Untitled Deal",
+          content: [
+            p.amount ? `Amount: $${p.amount}` : null,
+            p.dealstage ? `Stage: ${p.dealstage}` : null,
+            p.pipeline ? `Pipeline: ${p.pipeline}` : null,
+            p.closedate ? `Close Date: ${p.closedate}` : null,
+            p.hubspot_owner_id ? `Owner: ${ownerMap[p.hubspot_owner_id] || p.hubspot_owner_id}` : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { hubspotId: d.id, type: "deal", amount: p.amount, stage: p.dealstage, pipeline: p.pipeline, closeDate: p.closedate },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot emails
+    if (providerData.emails?.length) {
+      for (const e of providerData.emails) {
+        const p = e.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "email",
+          source: provider,
+          title: p.hs_email_subject || "No subject",
+          content: (p.hs_email_text || "").slice(0, 5000) || null,
+          metadata: { hubspotId: e.id, direction: p.hs_email_direction, status: p.hs_email_status, from: p.hs_email_sender_email, to: p.hs_email_to_email, date: p.hs_timestamp },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot notes
+    if (providerData.notes?.length) {
+      const ownerMap = providerData.ownerMap || {};
+      for (const n of providerData.notes) {
+        const p = n.properties || {};
+        const body = (p.hs_note_body || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        dataItems.push({
+          user_id: user.id,
+          data_type: "document",
+          source: provider,
+          title: body.slice(0, 80) || "Note",
+          content: body.slice(0, 5000) || null,
+          metadata: { hubspotId: n.id, type: "note", date: p.hs_timestamp, owner: ownerMap[p.hubspot_owner_id] || p.hubspot_owner_id || null },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // HubSpot tasks
+    if (providerData.tasks?.length) {
+      const ownerMap = providerData.ownerMap || {};
+      for (const t of providerData.tasks) {
+        const p = t.properties || {};
+        dataItems.push({
+          user_id: user.id,
+          data_type: "task",
+          source: provider,
+          title: p.hs_task_subject || "Untitled Task",
+          content: [
+            p.hs_task_status ? `Status: ${p.hs_task_status}` : null,
+            p.hs_task_priority ? `Priority: ${p.hs_task_priority}` : null,
+            p.hs_task_completion_date ? `Completed: ${p.hs_task_completion_date}` : null,
+            p.hubspot_owner_id ? `Owner: ${ownerMap[p.hubspot_owner_id] || p.hubspot_owner_id}` : null,
+            p.hs_task_body ? p.hs_task_body.replace(/<[^>]+>/g, " ").trim().slice(0, 2000) : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { hubspotId: t.id, status: p.hs_task_status, priority: p.hs_task_priority },
+          is_analyzed: false,
+        });
+      }
+    }
+
     for (const item of dataItems) {
       if (brandId) {
         item.metadata = { ...item.metadata, brandId };
