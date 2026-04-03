@@ -717,6 +717,9 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
                       onClick={() => setExpandedId(isExpanded ? null : item.id)}
                     >
                       <div className="flex items-center gap-3 px-3 py-2.5">
+                        <button onClick={(e) => toggleSelect(item.id, e)} className="shrink-0 text-muted-foreground hover:text-primary transition-colors">
+                          {selectedIds.has(item.id) ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
+                        </button>
                         {typeIcons[item.data_type] || <FileText className="h-4 w-4 text-muted-foreground" />}
                         <span className="text-sm font-medium text-foreground truncate flex-1">
                           {item.title}
