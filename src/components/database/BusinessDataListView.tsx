@@ -911,7 +911,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       <SyncPreferencesDialog
         open={showSyncPrefs}
         onOpenChange={setShowSyncPrefs}
-        onConfirm={(cats, lims) => handleSync(cats, lims)}
+        onConfirm={(cats, lims) => handleSyncProvider("microsoft", cats, lims)}
         isSyncing={syncingProvider}
         currentUsageBytes={realUsageBytes}
         dataLimitBytes={dataLimit}
