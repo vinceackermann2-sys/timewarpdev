@@ -81,6 +81,8 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const { activeWorkspace } = useWorkspace();
   const [producedFiles, setProducedFiles] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
+  const [connectedProviders, setConnectedProviders] = useState<Record<string, { email?: string | null }>>({});
+  const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
