@@ -500,26 +500,41 @@ async function fetchGoogleData(accessToken: string): Promise<any> {
   };
 }
 
+async function paginateSlack(url: string, headers: Record<string, string>, key: string, maxPages = 20): Promise<any[]> {
+  let all: any[] = [];
+  let cursor = "";
+  for (let page = 0; page < maxPages; page++) {
+    const sep = url.includes("?") ? "&" : "?";
+    const pageUrl = cursor ? `${url}${sep}cursor=${encodeURIComponent(cursor)}` : url;
+    try {
+      const res = await fetch(pageUrl, { headers });
+      if (!res.ok) break;
+      const data = await res.json();
+      if (!data.ok) break;
+      all = all.concat(data[key] || []);
+      cursor = data.response_metadata?.next_cursor || "";
+      if (!cursor) break;
+    } catch { break; }
+  }
+  return all;
+}
+
 async function fetchSlackData(accessToken: string): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
 
-  // Fetch channels, team info, and users in parallel
-  const [channelsRes, teamRes, usersRes] = await Promise.all([
-    fetch("https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=200", { headers }),
+  // Paginate all channels and users; fetch team info
+  const [allChannels, allMembers, teamRes] = await Promise.all([
+    paginateSlack("https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=200", headers, "channels"),
+    paginateSlack("https://slack.com/api/users.list?limit=200", headers, "members"),
     fetch("https://slack.com/api/team.info", { headers }),
-    fetch("https://slack.com/api/users.list?limit=200", { headers }),
   ]);
 
-  const channels = await channelsRes.json();
   const team = await teamRes.json();
-  const usersData = await usersRes.json();
 
-  console.log("Slack data fetched, channels:", channels.channels?.length || 0, "users:", usersData.members?.length || 0);
-
-  if (!channels.ok) console.error("Slack conversations.list failed:", channels.error);
+  console.log("Slack data fetched, channels:", allChannels.length, "users:", allMembers.length);
 
   // Parse users (skip bots and deleted)
-  const users = (usersData.members || [])
+  const users = allMembers
     .filter((u: any) => !u.deleted && !u.is_bot && u.id !== "USLACKBOT")
     .map((u: any) => ({
       id: u.id,
@@ -534,46 +549,53 @@ async function fetchSlackData(accessToken: string): Promise<any> {
       status: u.profile?.status_text || null,
     }));
 
-  // Fetch recent messages from top 20 active channels + pinned messages
-  const channelList = (channels.channels || []).slice(0, 20);
-  const channelMessages: any[] = [];
-  const pinnedMessages: any[] = [];
-
   // Build a user ID → name lookup
   const userMap: Record<string, string> = {};
   for (const u of users) userMap[u.id] = u.name;
 
-  // Parallel fetch: history + pins for each channel
-  const channelFetches = channelList.map(async (ch: any) => {
-    const results: { messages?: any; pins?: any } = {};
-    try {
-      const [histRes, pinsRes] = await Promise.all([
-        fetch(`https://slack.com/api/conversations.history?channel=${ch.id}&limit=50`, { headers }),
-        fetch(`https://slack.com/api/pins.list?channel=${ch.id}`, { headers }),
-      ]);
-      if (histRes.ok) results.messages = await histRes.json();
-      if (pinsRes.ok) results.pins = await pinsRes.json();
-    } catch { /* skip */ }
-    return { ch, ...results };
-  });
+  const channelMessages: any[] = [];
+  const pinnedMessages: any[] = [];
 
-  const channelResults = await Promise.all(channelFetches);
+  // Fetch ALL messages from ALL channels (paginate history, up to 1000 msgs per channel)
+  // Process in batches of 5 to avoid rate limits
+  for (let i = 0; i < allChannels.length; i += 5) {
+    const batch = allChannels.slice(i, i + 5);
+    const channelFetches = batch.map(async (ch: any) => {
+      // Paginate full history (up to 1000 messages per channel)
+      const allMsgs = await paginateSlack(
+        `https://slack.com/api/conversations.history?channel=${ch.id}&limit=200`,
+        headers, "messages", 5
+      );
 
-  for (const { ch, messages: hist, pins } of channelResults) {
-    if (hist?.ok && hist.messages?.length) {
-      channelMessages.push({
-        channel: ch.name,
-        messages: hist.messages.map((m: any) => ({
-          text: m.text?.slice(0, 500),
-          ts: m.ts,
-          user: userMap[m.user] || m.user,
-          subtype: m.subtype || null,
-        })),
-      });
-    }
+      // Fetch pins
+      let pins: any[] = [];
+      try {
+        const pinsRes = await fetch(`https://slack.com/api/pins.list?channel=${ch.id}`, { headers });
+        if (pinsRes.ok) {
+          const pinsData = await pinsRes.json();
+          if (pinsData.ok) pins = pinsData.items || [];
+        }
+      } catch { /* skip */ }
 
-    if (pins?.ok && pins.items?.length) {
-      for (const pin of pins.items) {
+      return { ch, allMsgs, pins };
+    });
+
+    const results = await Promise.all(channelFetches);
+
+    for (const { ch, allMsgs, pins } of results) {
+      if (allMsgs.length) {
+        channelMessages.push({
+          channel: ch.name,
+          messages: allMsgs.map((m: any) => ({
+            text: m.text?.slice(0, 500),
+            ts: m.ts,
+            user: userMap[m.user] || m.user,
+            subtype: m.subtype || null,
+          })),
+        });
+      }
+
+      for (const pin of pins) {
         const msg = pin.message || pin;
         pinnedMessages.push({
           channel: ch.name,
@@ -585,33 +607,30 @@ async function fetchSlackData(accessToken: string): Promise<any> {
     }
   }
 
-  // Fetch shared files (up to 100)
+  // Paginate all shared files
   let sharedFiles: any[] = [];
   try {
-    const filesRes = await fetch("https://slack.com/api/files.list?count=100", { headers });
-    if (filesRes.ok) {
-      const filesData = await filesRes.json();
-      sharedFiles = (filesData.files || []).map((f: any) => ({
-        name: f.name,
-        title: f.title,
-        type: f.filetype,
-        size: f.size,
-        user: userMap[f.user] || f.user,
-        created: f.created,
-        url: f.url_private,
-        channels: f.channels?.map((cid: string) => {
-          const found = (channels.channels || []).find((c: any) => c.id === cid);
-          return found?.name || cid;
-        }),
-      }));
-    }
+    const allFiles = await paginateSlack("https://slack.com/api/files.list?count=100", headers, "files", 10);
+    sharedFiles = allFiles.map((f: any) => ({
+      name: f.name,
+      title: f.title,
+      type: f.filetype,
+      size: f.size,
+      user: userMap[f.user] || f.user,
+      created: f.created,
+      url: f.url_private,
+      channels: f.channels?.map((cid: string) => {
+        const found = allChannels.find((c: any) => c.id === cid);
+        return found?.name || cid;
+      }),
+    }));
   } catch { /* skip */ }
 
   return {
     team: team.team?.name || team.name || "Unknown",
     teamDomain: team.team?.domain || null,
     teamIcon: team.team?.icon?.image_132 || null,
-    channels: (channels.channels || []).map((c: any) => ({
+    channels: allChannels.map((c: any) => ({
       name: c.name,
       id: c.id,
       memberCount: c.num_members,
