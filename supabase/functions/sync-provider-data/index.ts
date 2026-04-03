@@ -820,6 +820,63 @@ serve(async (req) => {
       }
     }
 
+    // Contacts
+    if (providerData.contacts) {
+      for (const contact of providerData.contacts) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "contact",
+          source: provider,
+          title: contact.name || "Unnamed Contact",
+          content: [
+            contact.company ? `Company: ${contact.company}` : null,
+            contact.jobTitle ? `Title: ${contact.jobTitle}` : null,
+            contact.department ? `Department: ${contact.department}` : null,
+            (contact.emails || []).length ? `Email: ${contact.emails.join(", ")}` : null,
+            (contact.phones || []).length ? `Phone: ${contact.phones.join(", ")}` : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { company: contact.company, jobTitle: contact.jobTitle, emails: contact.emails, phones: contact.phones },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // OneNote pages
+    if (providerData.notes) {
+      for (const note of providerData.notes) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "document",
+          source: provider,
+          title: note.title || "Untitled Note",
+          content: note.content || null,
+          metadata: { type: "onenote", created: note.created, lastModified: note.lastModified },
+          is_analyzed: !!note.content,
+        });
+      }
+    }
+
+    // To Do tasks
+    if (providerData.tasks) {
+      for (const task of providerData.tasks) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "task",
+          source: provider,
+          title: task.title || "Untitled Task",
+          content: [
+            `Status: ${task.status || "unknown"}`,
+            task.importance ? `Importance: ${task.importance}` : null,
+            task.dueDate ? `Due: ${task.dueDate}` : null,
+            task.listName ? `List: ${task.listName}` : null,
+            task.body || null,
+          ].filter(Boolean).join("\n"),
+          metadata: { status: task.status, importance: task.importance, dueDate: task.dueDate, listName: task.listName },
+          is_analyzed: false,
+        });
+      }
+    }
+
     if (providerData.channels) {
       for (const channel of providerData.channels) {
         dataItems.push({
