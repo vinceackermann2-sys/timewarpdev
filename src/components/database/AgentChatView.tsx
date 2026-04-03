@@ -276,8 +276,8 @@ export function AgentChatView() {
   };
 
   /* ── Integration connection state ── */
-  const [isProviderConnected, setIsProviderConnected] = useState(false);
-  const [connectingProvider, setConnectingProvider] = useState(false);
+  const [connectedProviders, setConnectedProviders] = useState<Record<string, boolean>>({});
+  const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
 
   const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
 
@@ -292,23 +292,24 @@ export function AgentChatView() {
       );
       if (response.ok) {
         const data = await response.json();
-        const ms = (data.connected || []).find((p: any) => p.provider === "microsoft");
-        setIsProviderConnected(!!ms);
+        const map: Record<string, boolean> = {};
+        for (const c of (data.connected || [])) map[c.provider] = true;
+        setConnectedProviders(map);
       }
     } catch (err) { console.error("Check connection error:", err); }
   }, [activeBrandForConnections?.id]);
 
   useEffect(() => { checkConnection(); }, [checkConnection]);
 
-  const handleProviderConnect = async () => {
+  const handleProviderConnect = async (provider: string) => {
     if (!activeBrandForConnections) return;
-    setConnectingProvider(true);
+    setConnectingProvider(provider);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please log in first"); setConnectingProvider(false); return; }
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandForConnections.id }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandForConnections.id }) }
       );
       const data = await response.json();
       if (data.authUrl) window.location.href = data.authUrl;
@@ -317,17 +318,17 @@ export function AgentChatView() {
     setConnectingProvider(false);
   };
 
-  const handleProviderDisconnect = async () => {
+  const handleProviderDisconnect = async (provider: string) => {
     if (!activeBrandForConnections) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandForConnections.id }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider, action: "disconnect", brandId: activeBrandForConnections.id }) }
       );
-      setIsProviderConnected(false);
-      toast.success("Microsoft disconnected");
+      setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
+      toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected`);
     } catch { toast.error("Failed to disconnect"); }
   };
 
@@ -1990,15 +1991,16 @@ export function AgentChatView() {
                     <h4 className="text-sm font-semibold text-foreground">Integrations</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {/* Microsoft */}
+                      {(() => { const connected = !!connectedProviders["microsoft"]; return (
                       <div className={cn(
                         "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-                        isProviderConnected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+                        connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
                       )}>
                         <div className="flex items-center justify-between">
                           <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
                             <img src={logoMicrosoft} alt="Microsoft" className="h-7 w-7 object-contain" />
                           </div>
-                          {isProviderConnected && (
+                          {connected && (
                             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
                           )}
                         </div>
@@ -2006,17 +2008,49 @@ export function AgentChatView() {
                           <p className="text-sm font-medium">Microsoft</p>
                           <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
                         </div>
-                        {isProviderConnected ? (
-                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={handleProviderDisconnect}>
+                        {connected ? (
+                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleProviderDisconnect("microsoft")}>
                             Disconnect
                           </Button>
                         ) : (
-                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={handleProviderConnect} disabled={connectingProvider}>
-                            {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleProviderConnect("microsoft")} disabled={!!connectingProvider}>
+                            {connectingProvider === "microsoft" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
                             Connect
                           </Button>
                         )}
                       </div>
+                      ); })()}
+
+                      {/* Slack */}
+                      {(() => { const connected = !!connectedProviders["slack"]; return (
+                      <div className={cn(
+                        "flex flex-col gap-3 p-5 rounded-xl border transition-all",
+                        connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+                      )}>
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                            <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" />
+                          </div>
+                          {connected && (
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Slack</p>
+                          <p className="text-xs text-muted-foreground">Channels, Messages, Files</p>
+                        </div>
+                        {connected ? (
+                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleProviderDisconnect("slack")}>
+                            Disconnect
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleProviderConnect("slack")} disabled={!!connectingProvider}>
+                            {connectingProvider === "slack" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                            Connect
+                          </Button>
+                        )}
+                      </div>
+                      ); })()}
 
                       {/* Google - Coming Soon */}
                       <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
@@ -2029,20 +2063,6 @@ export function AgentChatView() {
                         <div>
                           <p className="text-sm font-medium">Google</p>
                           <p className="text-xs text-muted-foreground">Gmail, Drive, Calendar</p>
-                        </div>
-                      </div>
-
-                      {/* Slack - Coming Soon */}
-                      <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
-                        <div className="flex items-center justify-between">
-                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                            <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" loading="lazy" />
-                          </div>
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Slack</p>
-                          <p className="text-xs text-muted-foreground">Messages and workspace data</p>
                         </div>
                       </div>
 

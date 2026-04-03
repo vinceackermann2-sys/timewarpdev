@@ -75,9 +75,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
-  const [connectingProvider, setConnectingProvider] = useState(false);
+  const [connectedProviders, setConnectedProviders] = useState<Record<string, { email?: string | null }>>({});
+  const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
   const [syncingProvider, setSyncingProvider] = useState(false);
   const [showSyncPrefs, setShowSyncPrefs] = useState(false);
   const [showIntegrations, setShowIntegrations] = useState(false);
@@ -171,14 +170,11 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       );
       if (response.ok) {
         const data = await response.json();
-        const ms = (data.connected || []).find((p: any) => p.provider === "microsoft");
-        if (ms) {
-          setIsConnected(true);
-          setConnectedEmail(ms.email || null);
-        } else {
-          setIsConnected(false);
-          setConnectedEmail(null);
+        const map: Record<string, { email?: string | null }> = {};
+        for (const c of (data.connected || [])) {
+          map[c.provider] = { email: c.email || null };
         }
+        setConnectedProviders(map);
       }
     } catch (err) {
       console.error("Check connection error:", err);
@@ -188,14 +184,13 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   // Auto-sync after OAuth redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("oauth_success") === "microsoft") {
-      // Clean URL
+    const oauthProvider = params.get("oauth_success");
+    if (oauthProvider && ["microsoft", "slack"].includes(oauthProvider)) {
       const url = new URL(window.location.href);
       url.searchParams.delete("oauth_success");
       url.searchParams.delete("brandId");
       window.history.replaceState({}, "", url.pathname + url.search);
-      // Trigger auto-sync
-      handleSync();
+      handleSyncProvider(oauthProvider);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -281,8 +276,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     fetchUsage();
   }, [checkConnection, activeBrandId]);
 
-  const handleConnect = async () => {
-    setConnectingProvider(true);
+  const handleConnectProvider = async (provider: string) => {
+    setConnectingProvider(provider);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please log in first"); setConnectingProvider(false); return; }
@@ -295,7 +290,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }),
+          body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }),
         }
       );
       const data = await response.json();
@@ -310,14 +305,11 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     setConnectingProvider(false);
   };
 
-  const handleDisconnect = async () => {
+  const handleDisconnectProvider = async (provider: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      // Delete the connection record
-      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", "microsoft");
-      // Delete OAuth tokens
-      // (tokens table has RLS deny-all, but we try; the connect-provider function handles this server-side)
+      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", provider);
       await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
         {
@@ -327,18 +319,17 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: "microsoft", action: "disconnect", brandId: activeBrandId }),
+          body: JSON.stringify({ provider, action: "disconnect", brandId: activeBrandId }),
         }
       );
-      setIsConnected(false);
-      setConnectedEmail(null);
-      toast.success("Microsoft disconnected");
+      setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
+      toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected`);
     } catch {
       toast.error("Failed to disconnect");
     }
   };
 
-  const handleSync = async (categories?: Record<string, boolean>, limits?: Record<string, number>) => {
+  const handleSyncProvider = async (provider: string, categories?: Record<string, boolean>, limits?: Record<string, number>) => {
     setSyncingProvider(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -353,8 +344,10 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
-            provider: "microsoft",
-            categories: categories || { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true },
+            provider,
+            categories: categories || (provider === "microsoft"
+              ? { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true }
+              : undefined),
             brandId: activeBrandId,
             workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
           }),
@@ -370,8 +363,11 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         if (s.contacts) parts.push(`${s.contacts} contacts`);
         if (s.notes) parts.push(`${s.notes} notes`);
         if (s.tasks) parts.push(`${s.tasks} tasks`);
+        if (s.channels) parts.push(`${s.channels} channels`);
+        if (s.messages) parts.push(`${s.messages} message groups`);
+        if (s.users) parts.push(`${s.users} users`);
+        if (s.pinnedMessages) parts.push(`${s.pinnedMessages} pinned`);
         toast.success(`Synced ${parts.join(", ") || "data"}`);
-        // Invalidate cache and refresh data list
         _cachedItems = null;
         _cachedCacheKey = null;
         const wsId = localStorage.getItem("preferred_workspace_id");
@@ -724,16 +720,17 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             <DialogTitle>Integrations</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-2">
-            {/* Microsoft - Active */}
+            {/* Microsoft */}
+            {(() => { const connected = !!connectedProviders["microsoft"]; return (
             <div className={cn(
               "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-              isConnected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+              connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
             )}>
               <div className="flex items-center justify-between">
                 <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
                   <img src={logoMicrosoft} alt="Microsoft" className="h-7 w-7 object-contain" />
                 </div>
-                {isConnected && (
+                {connected && (
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
                 )}
               </div>
@@ -741,17 +738,49 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
                 <p className="text-sm font-medium">Microsoft</p>
                 <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
               </div>
-              {isConnected ? (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={handleDisconnect}>
+              {connected ? (
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleDisconnectProvider("microsoft")}>
                   Disconnect
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={handleConnect} disabled={connectingProvider}>
-                  {connectingProvider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleConnectProvider("microsoft")} disabled={!!connectingProvider}>
+                  {connectingProvider === "microsoft" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
                   Connect
                 </Button>
               )}
             </div>
+            ); })()}
+
+            {/* Slack */}
+            {(() => { const connected = !!connectedProviders["slack"]; return (
+            <div className={cn(
+              "flex flex-col gap-3 p-5 rounded-xl border transition-all",
+              connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+            )}>
+              <div className="flex items-center justify-between">
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
+                  <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" />
+                </div>
+                {connected && (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium">Slack</p>
+                <p className="text-xs text-muted-foreground">Channels, Messages, Files</p>
+              </div>
+              {connected ? (
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleDisconnectProvider("slack")}>
+                  Disconnect
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleConnectProvider("slack")} disabled={!!connectingProvider}>
+                  {connectingProvider === "slack" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                  Connect
+                </Button>
+              )}
+            </div>
+            ); })()}
 
             {/* Google - Coming Soon */}
             <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
@@ -764,20 +793,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
               <div>
                 <p className="text-sm font-medium">Google</p>
                 <p className="text-xs text-muted-foreground">Gmail, Drive, Calendar</p>
-              </div>
-            </div>
-
-            {/* Slack - Coming Soon */}
-            <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
-              <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                  <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" loading="lazy" />
-                </div>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Slack</p>
-                <p className="text-xs text-muted-foreground">Messages and workspace data</p>
               </div>
             </div>
 
@@ -896,7 +911,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       <SyncPreferencesDialog
         open={showSyncPrefs}
         onOpenChange={setShowSyncPrefs}
-        onConfirm={(cats, lims) => handleSync(cats, lims)}
+        onConfirm={(cats, lims) => handleSyncProvider("microsoft", cats, lims)}
         isSyncing={syncingProvider}
         currentUsageBytes={realUsageBytes}
         dataLimitBytes={dataLimit}
