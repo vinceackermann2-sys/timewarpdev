@@ -413,8 +413,29 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshBrand = async (brandId: string) => {
+    // Try to refresh using the existing _rowId first (single row fetch)
+    const existing = brands.find(b => b.id === brandId);
+    const rowId = (existing as any)?._rowId;
+
+    if (rowId) {
+      const { data, error } = await supabase
+        .from("user_business_data")
+        .select("id, content")
+        .eq("id", rowId)
+        .maybeSingle();
+      if (!error && data) {
+        try {
+          const parsed = JSON.parse(data.content || "{}");
+          const updated = { ...parsed, _rowId: data.id } as BrandEntry;
+          setBrandsState(prev => prev.map(b => b.id === brandId ? updated : b));
+          setPrevBrands(prev => prev.map(b => b.id === brandId ? updated : b));
+          return;
+        } catch {}
+      }
+    }
+
+    // Fallback: scan brands for this workspace (only if _rowId is missing)
     const wsId = localStorage.getItem("preferred_workspace_id") || activeWorkspaceId;
-    // Only fetch the single brand row instead of all brands
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
@@ -433,7 +454,6 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     const { data, error } = await query;
     if (error || !data) return;
 
-    // Find the specific brand by parsing content
     for (const row of data) {
       try {
         const parsed = JSON.parse(row.content || "{}");
