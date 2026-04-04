@@ -178,9 +178,29 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", provider);
-      setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
-      toast({ title: `${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected` });
+      // Resolve brandId from linked business
+      const { data: brandRow } = await (supabase as any)
+        .from("user_business_data").select("content").eq("id", employee.linked_business_id).single();
+      const brandId = brandRow?.content ? (typeof brandRow.content === "string" ? JSON.parse(brandRow.content) : brandRow.content)?.id : employee.linked_business_id;
+      // Use edge function to disconnect scoped by brand
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ provider, action: "disconnect", brandId }),
+        }
+      );
+      if (response.ok) {
+        setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
+        toast({ title: `${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected` });
+      } else {
+        toast({ title: "Failed to disconnect", variant: "destructive" });
+      }
     } catch {
       toast({ title: "Failed to disconnect", variant: "destructive" });
     }

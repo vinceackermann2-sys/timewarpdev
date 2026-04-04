@@ -331,8 +331,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", provider);
-      await fetch(
+      // Use edge function to disconnect scoped by brand
+      const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
         {
           method: "POST",
@@ -344,8 +344,12 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           body: JSON.stringify({ provider, action: "disconnect", brandId: activeBrandId }),
         }
       );
-      setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
-      toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected`);
+      if (response.ok) {
+        setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
+        toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected`);
+      } else {
+        toast.error("Failed to disconnect");
+      }
     } catch {
       toast.error("Failed to disconnect");
     }
