@@ -216,7 +216,7 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
 
   if (cats.emails !== false) {
     const emailLimit = Math.min(Math.max(lims.emails || 200, 1), 500);
-    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${emailLimit}&$select=subject,from,receivedDateTime,body&$orderby=receivedDateTime desc`, { headers }));
+    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${emailLimit}&$select=subject,from,receivedDateTime,body,bodyPreview&$orderby=receivedDateTime desc`, { headers }));
     fetchKeys.push("mail");
   }
   if (cats.events !== false) {
