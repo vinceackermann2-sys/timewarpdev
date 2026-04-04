@@ -122,7 +122,31 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", providerId);
+      // Scope disconnect by brand_id to only disconnect for this business
+      let deleteQuery = (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", providerId);
+      if (brandId) {
+        // Resolve brand row ID to scope the delete
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ provider: providerId, action: "disconnect", brandId }),
+          }
+        );
+        if (response.ok) {
+          setConnectedProviders(prev => prev.filter(p => p.provider !== providerId));
+          toast.success(`${providerId.charAt(0).toUpperCase() + providerId.slice(1)} disconnected`);
+        } else {
+          toast.error("Failed to disconnect");
+        }
+        return;
+      }
+      await deleteQuery;
       setConnectedProviders(prev => prev.filter(p => p.provider !== providerId));
       toast.success(`${providerId.charAt(0).toUpperCase() + providerId.slice(1)} disconnected`);
     } catch {
