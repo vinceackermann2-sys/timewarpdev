@@ -937,9 +937,9 @@ serve(async (req) => {
     }
 
       if (dataItems.length > 0) {
-        let delQuery = supabaseAdmin.from("user_business_data").delete().eq("user_id", user.id).eq("source", "wordpress");
-        if (brandId) delQuery = delQuery.eq("metadata->>brandId", brandId);
-        await delQuery;
+        if (brandId) {
+          await supabaseAdmin.from("user_business_data").delete().eq("user_id", user.id).eq("source", "wordpress").eq("metadata->>brandId", brandId);
+        }
         for (let i = 0; i < dataItems.length; i += 50) {
           await supabaseAdmin.from("user_business_data").insert(dataItems.slice(i, i + 50));
         }
