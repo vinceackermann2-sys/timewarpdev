@@ -272,17 +272,16 @@ serve(async (req) => {
         });
       }
 
-      // Remove business data sourced from this provider, scoped to brand if provided
-      let deleteQuery = supabaseAdmin
-        .from("user_business_data")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("source", provider);
-
+      // Remove business data sourced from this provider, scoped to brand
+      // IMPORTANT: Only delete if we have a brandId to prevent wiping data from other businesses
       if (requestedBrandId) {
-        deleteQuery = deleteQuery.eq("metadata->>brandId", requestedBrandId);
+        await supabaseAdmin
+          .from("user_business_data")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("source", provider)
+          .eq("metadata->>brandId", requestedBrandId);
       }
-      await deleteQuery;
 
       // Update connection status, scoped to brand
       let connQuery = supabaseAdmin

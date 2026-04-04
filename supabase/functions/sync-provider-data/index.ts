@@ -216,7 +216,7 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
 
   if (cats.emails !== false) {
     const emailLimit = Math.min(Math.max(lims.emails || 200, 1), 500);
-    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${emailLimit}&$select=subject,from,receivedDateTime,body&$orderby=receivedDateTime desc`, { headers }));
+    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${emailLimit}&$select=subject,from,receivedDateTime,body,bodyPreview&$orderby=receivedDateTime desc`, { headers }));
     fetchKeys.push("mail");
   }
   if (cats.events !== false) {
@@ -259,14 +259,20 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
   // Extract full email body text (strip HTML)
   const emails = (mail.value || []).map((m: any) => {
     let bodyText = m.body?.content || "";
-    bodyText = bodyText
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 5000);
+    if (bodyText) {
+      bodyText = bodyText
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 5000);
+    }
+    // Use bodyPreview as fallback if body extraction yielded nothing
+    if (!bodyText && m.bodyPreview) {
+      bodyText = m.bodyPreview.slice(0, 5000);
+    }
     return {
       subject: m.subject,
       from: m.from?.emailAddress?.address,
@@ -937,9 +943,9 @@ serve(async (req) => {
     }
 
       if (dataItems.length > 0) {
-        let delQuery = supabaseAdmin.from("user_business_data").delete().eq("user_id", user.id).eq("source", "wordpress");
-        if (brandId) delQuery = delQuery.eq("metadata->>brandId", brandId);
-        await delQuery;
+        if (brandId) {
+          await supabaseAdmin.from("user_business_data").delete().eq("user_id", user.id).eq("source", "wordpress").eq("metadata->>brandId", brandId);
+        }
         for (let i = 0; i < dataItems.length; i += 50) {
           await supabaseAdmin.from("user_business_data").insert(dataItems.slice(i, i + 50));
         }
@@ -1329,13 +1335,16 @@ serve(async (req) => {
 
     // Batch insert (clear old data from this provider first, scoped to brand)
     if (dataItems.length > 0) {
-      let delQuery = supabaseAdmin
-        .from("user_business_data")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("source", provider);
-      if (brandId) delQuery = delQuery.eq("metadata->>brandId", brandId);
-      await delQuery;
+      // IMPORTANT: Always scope delete by brandId to avoid wiping data from other businesses.
+      // If no brandId is provided, skip delete to preserve existing data.
+      if (brandId) {
+        await supabaseAdmin
+          .from("user_business_data")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("source", provider)
+          .eq("metadata->>brandId", brandId);
+      }
 
       // Insert in batches of 50
       for (let i = 0; i < dataItems.length; i += 50) {
