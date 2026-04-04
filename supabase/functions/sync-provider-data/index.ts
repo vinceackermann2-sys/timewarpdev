@@ -259,14 +259,20 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
   // Extract full email body text (strip HTML)
   const emails = (mail.value || []).map((m: any) => {
     let bodyText = m.body?.content || "";
-    bodyText = bodyText
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 5000);
+    if (bodyText) {
+      bodyText = bodyText
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 5000);
+    }
+    // Use bodyPreview as fallback if body extraction yielded nothing
+    if (!bodyText && m.bodyPreview) {
+      bodyText = m.bodyPreview.slice(0, 5000);
+    }
     return {
       subject: m.subject,
       from: m.from?.emailAddress?.address,
