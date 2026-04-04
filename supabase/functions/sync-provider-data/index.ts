@@ -1329,13 +1329,16 @@ serve(async (req) => {
 
     // Batch insert (clear old data from this provider first, scoped to brand)
     if (dataItems.length > 0) {
-      let delQuery = supabaseAdmin
-        .from("user_business_data")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("source", provider);
-      if (brandId) delQuery = delQuery.eq("metadata->>brandId", brandId);
-      await delQuery;
+      // IMPORTANT: Always scope delete by brandId to avoid wiping data from other businesses.
+      // If no brandId is provided, skip delete to preserve existing data.
+      if (brandId) {
+        await supabaseAdmin
+          .from("user_business_data")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("source", provider)
+          .eq("metadata->>brandId", brandId);
+      }
 
       // Insert in batches of 50
       for (let i = 0; i < dataItems.length; i += 50) {
