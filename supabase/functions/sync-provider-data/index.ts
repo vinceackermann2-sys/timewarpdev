@@ -273,8 +273,22 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
     if (!bodyText && m.bodyPreview) {
       bodyText = m.bodyPreview.slice(0, 5000);
     }
+    // Build a meaningful subject fallback from body preview or sender
+    let subject = m.subject;
+    if (!subject || subject.trim() === "") {
+      if (m.bodyPreview) {
+        subject = m.bodyPreview.slice(0, 80).trim();
+        if (m.bodyPreview.length > 80) subject += "…";
+      } else if (m.from?.emailAddress?.name) {
+        subject = `Email from ${m.from.emailAddress.name}`;
+      } else if (m.from?.emailAddress?.address) {
+        subject = `Email from ${m.from.emailAddress.address}`;
+      } else {
+        subject = `Email (${m.receivedDateTime ? new Date(m.receivedDateTime).toLocaleDateString() : "no date"})`;
+      }
+    }
     return {
-      subject: m.subject,
+      subject,
       from: m.from?.emailAddress?.address,
       date: m.receivedDateTime,
       body: bodyText,
