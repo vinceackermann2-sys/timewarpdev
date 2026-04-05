@@ -281,15 +281,21 @@ export function AgentChatView() {
   const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
 
   const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+  const activeBrandId = activeBrandForConnections?.id ?? null;
+
+  // Clear connection state immediately when agent/brand changes
+  useEffect(() => {
+    setConnectedProviders({});
+  }, [activeBrandId]);
 
   const checkConnection = useCallback(async () => {
-    if (!activeBrandForConnections) return;
+    if (!activeBrandId) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ action: "check-status", brandId: activeBrandForConnections.id }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ action: "check-status", brandId: activeBrandId }) }
       );
       if (response.ok) {
         const data = await response.json();
@@ -298,9 +304,19 @@ export function AgentChatView() {
         setConnectedProviders(map);
       }
     } catch (err) { console.error("Check connection error:", err); }
-  }, [activeBrandForConnections?.id]);
+  }, [activeBrandId]);
 
   useEffect(() => { checkConnection(); }, [checkConnection]);
+
+  // Handle OAuth return in agent chat
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthSuccess = params.get("oauth_success");
+    if (oauthSuccess) {
+      window.history.replaceState({}, "", window.location.pathname);
+      checkConnection();
+    }
+  }, [checkConnection]);
 
   const handleProviderConnect = async (provider: string) => {
     if (!activeBrandForConnections) return;
