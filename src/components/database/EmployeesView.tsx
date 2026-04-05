@@ -173,7 +173,7 @@ export function EmployeesView() {
 
   // List view
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-y-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold">My Employees</h1>

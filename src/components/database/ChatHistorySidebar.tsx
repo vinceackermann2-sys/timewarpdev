@@ -69,7 +69,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
   };
 
   return (
-    <div className="w-64 h-full border-l border-border bg-card/50 flex flex-col sticky top-0">
+    <div className="w-64 shrink-0 h-full border-l border-border bg-card/50 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
         <div className="flex items-center gap-2">
