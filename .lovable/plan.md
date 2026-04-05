@@ -1,39 +1,62 @@
 
+Goal: make integration status truly business-scoped everywhere, especially in Employees chat, so connecting Microsoft/Slack/HubSpot to Business A does not show as connected for Business B.
 
-## Plan: Fix Task Failures + Redesign Logging Cards
+1. Fix the backend status lookup
+- Update the `connect-provider` edge function `check-status` logic so a selected business only returns connections tied to that exact business.
+- Remove the current fallback that also treats `brand_id = null` legacy rows as connected for every business.
+- Keep a safe fallback only when no business is selected at all.
+- Preserve disconnect behavior and token cleanup logic.
 
-### Why tasks fail
+2. Normalize how business IDs are resolved
+- Use one consistent rule everywhere:
+  - Business DNA / Database / Settings pass the logical business id (`brand.id`)
+  - Employee detail resolves `linked_business_id` row -> logical `brand.id`
+  - Agent chat resolves the selected agent -> exact brand record -> logical `brand.id`
+- This avoids mixed use of logical IDs vs row UUIDs causing false “connected” states.
 
-After reviewing both execution loops (`runComputerMode` and `runAgentChatWithBrowser`), the main failure points are:
+3. Tighten Agent Chat business scoping
+- Refactor `AgentChatView.tsx` so connection state is keyed from the selected agent’s exact business identity, not just provider presence.
+- Clear the connection map immediately when the selected agent changes, then reload for that business only.
+- Ensure connect/disconnect actions always use the active agent’s business id.
+- Handle cases where two businesses have the same display/agent name by preferring a stable business identifier instead of name matching alone.
 
-1. **Failed actions don't retry** — When a click/type/extract fails, the error is passed back to the AI but the AI often doesn't recover well. The loop continues but accumulates errors.
-2. **JSON parse failures crash the loop** — `JSON.parse(jsonMatch[1])` on line 963 has no try/catch. If the AI returns malformed JSON, the entire task throws and stops.
-3. **No error recovery guidance** — When an action fails, the result is sent back raw (`Action result: {"success":false,"error":"..."}`) without telling the AI to try an alternative approach.
-4. **Extract actions fail silently on JS-heavy pages** — The fallback only triggers when `!result.success`, but sometimes the extension returns `success: true` with empty data.
+4. Refresh status correctly after OAuth return
+- In Agent Chat, add the same OAuth-return handling pattern used elsewhere so after a provider connects, the UI reloads status for the currently selected business/agent.
+- Make sure the returned `brandId` in the URL is used to refresh only the matching business state, not a global provider state.
 
-### Changes
+5. Verify the other integration surfaces stay business-scoped
+- Review and lightly align these views so they all use the same exact-scoped status expectations:
+  - `ConnectBusinessDNA.tsx`
+  - `BusinessDataListView.tsx`
+  - `EmployeeDetailView.tsx`
+  - `SettingsDialog.tsx`
+- Main goal: no screen should infer “connected” from another business’s connection.
 
-**1. Fix task completion reliability** (`AgentChatView.tsx`)
+6. Edge cases to cover
+- Business A connected, Business B not connected -> B must still show “Connect”
+- Same provider connected to two different businesses -> each business shows its own correct state
+- Legacy unscoped rows -> they should not appear as connected for every business anymore
+- Employee with linked business -> employee connections reflect only that linked business
+- Agent chat selected agent switched quickly -> no stale status flash from previous agent
 
-- Wrap `JSON.parse` in try/catch in both loops — if parsing fails, push the raw content back into conversation history and ask the AI to re-format as valid JSON, then `continue` the loop instead of crashing
-- When an action fails (non-extract), append recovery instructions: `"Action failed: [error]. Try an alternative approach — use a different selector, scroll to find the element, or navigate differently."`
-- For extract: also handle `success: true` but empty/missing `data` as a fallback trigger
-- Add a consecutive error counter — if 3 actions fail in a row, generate the report with what was collected and stop gracefully instead of burning through all 30 steps
+Technical notes
+- Root cause appears to be in `supabase/functions/connect-provider/index.ts`:
+  - `check-status` currently returns rows for `c.brand_id === resolvedBrandId || c.brand_id === null`
+  - that makes legacy/unscoped connections appear connected across businesses
+- Agent chat also relies on `selectedAgent` name matching:
+```text
+brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent)
+```
+  This is fragile if names collide or stale state persists.
+- Files most likely involved:
+  - `supabase/functions/connect-provider/index.ts`
+  - `src/components/database/AgentChatView.tsx`
+  - `src/components/database/EmployeeDetailView.tsx`
+  - `src/components/database/ConnectBusinessDNA.tsx`
+  - `src/components/database/BusinessDataListView.tsx`
+  - `src/components/database/SettingsDialog.tsx`
 
-**2. Redesign logging cards — stacked list with thinking animation** (`TaskStepsDisplay.tsx`)
-
-Based on the reference image (Manus-style), redesign to show each step as an individual line item stacked vertically (not a collapsible summary bar):
-
-- Remove the summary button bar — instead show all steps directly as a vertical list
-- Each step: a single line with icon (spinner/check/x) + label, small text, minimal padding
-- Active step shows a thinking/typing animation (3 pulsing dots after the label)
-- Completed steps show a muted check icon
-- The whole list auto-scrolls to keep the current step visible
-- Wrap in a container with max-height and overflow-y-auto so it doesn't take over the chat
-
-### Technical details
-
-**Files modified:**
-1. `src/components/database/AgentChatView.tsx` — JSON parse safety, error recovery prompts, consecutive error bail-out (both `runAgentChatWithBrowser` and `runComputerMode`)
-2. `src/components/database/TaskStepsDisplay.tsx` — Full redesign to stacked list with thinking animation
-
+Expected outcome
+- Integrations become truly business-level across the app.
+- In Employees chat, the selected agent/business controls which integrations show connected.
+- No business will incorrectly inherit another business’s connected state.
