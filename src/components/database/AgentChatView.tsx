@@ -1725,7 +1725,7 @@ export function AgentChatView() {
                   <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showEmployeesMenu ? "rotate-90" : ""}`} />
                 </button>
                 {showEmployeesMenu && (
-                  <div className="absolute left-[calc(100%+8px)] top-0 w-48 bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50">
+                  <div className="absolute left-[calc(100%+8px)] bottom-0 w-48 bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50 max-h-64 overflow-y-auto">
                     {employees.length > 0 ? (
                       employees.map((emp) => (
                         <button
