@@ -82,11 +82,18 @@ serve(async (req) => {
         });
       }
 
-      // Fetch connections: include brand-scoped AND legacy unscoped connections
+      // Fetch connections strictly scoped to the requested brand
       let connectionsQuery = supabaseAdmin
         .from("user_connections")
         .select("provider, status, brand_id")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("status", "connected");
+
+      // Strict brand scoping: only return connections for the exact brand
+      if (resolvedBrandId) {
+        connectionsQuery = connectionsQuery.eq("brand_id", resolvedBrandId);
+      }
+      // If no brand selected at all, return all connections (global view)
 
       const { data: connections } = await connectionsQuery;
 
@@ -97,26 +104,17 @@ serve(async (req) => {
 
       const tokenProviders = (tokens || []).map((t: any) => t.provider);
       const connected = (connections || [])
-        .filter((c: any) => {
-          if (c.status !== "connected") return false;
-          if (!tokenProviders.includes(c.provider)) return false;
-          // If a brand filter is active, show connections for that brand OR unscoped (null brand_id)
-          if (resolvedBrandId) {
-            return c.brand_id === resolvedBrandId || c.brand_id === null;
-          }
-          return true;
-        })
+        .filter((c: any) => tokenProviders.includes(c.provider))
         .map((c: any) => ({
           provider: c.provider,
           email: tokens?.find((t: any) => t.provider === c.provider)?.provider_email,
           brand_id: c.brand_id,
         }));
 
-      // Deduplicate by provider (prefer brand-scoped over unscoped)
+      // Deduplicate by provider
       const deduped = new Map<string, any>();
       for (const c of connected) {
-        const existing = deduped.get(c.provider);
-        if (!existing || (c.brand_id && !existing.brand_id)) {
+        if (!deduped.has(c.provider)) {
           deduped.set(c.provider, c);
         }
       }
