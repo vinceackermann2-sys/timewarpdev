@@ -76,6 +76,7 @@ serve(async (req) => {
 
     // Action: check-status - return which providers are connected (optionally filtered by brandId)
     if (action === "check-status") {
+      console.log("[check-status] requestedBrandId:", requestedBrandId, "resolvedBrandId:", resolvedBrandId);
       // Fetch connections scoped to the requested brand
       let connectionsQuery = supabaseAdmin
         .from("user_connections")
@@ -94,7 +95,8 @@ serve(async (req) => {
       }
       // If no brand selected at all, return all connections (global view)
 
-      const { data: connections } = await connectionsQuery;
+      const { data: connections, error: connErr } = await connectionsQuery;
+      console.log("[check-status] connections:", JSON.stringify(connections), "error:", connErr);
 
       const { data: tokens } = await supabaseAdmin
         .from("user_oauth_tokens")
