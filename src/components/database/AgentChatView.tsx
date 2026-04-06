@@ -1432,7 +1432,7 @@ export function AgentChatView() {
   return (
     <div className="h-full bg-background flex relative overflow-hidden">
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Sticky top agent selector */}
       <header className="sticky top-0 z-20 flex justify-center items-center py-3 bg-background/80 backdrop-blur-md border-b border-border/30">
         {/* History toggle button */}
