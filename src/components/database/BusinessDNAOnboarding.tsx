@@ -1204,18 +1204,18 @@ export function BusinessDNAOnboarding({
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Forging your business DNA</h1>
+            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-6 sm:mb-8">Forging your business DNA</h1>
 
             {/* Top Card with source verification carousel */}
-            <div className="w-full bg-[#f4f3ee] rounded-2xl p-6 mb-6 shadow-sm">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-full bg-[#f4f3ee] rounded-2xl p-4 sm:p-6 mb-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                     <Sparkles className="w-5 h-5 text-[#3399ff]" />
                   </div>
-                  <div>
-                    <h3 className="text-[17px] font-semibold text-[#1a1f36]">{activeUrl}</h3>
-                    <p className="text-[14px] text-[#697386]">Verifying {urls.length} sources</p>
+                  <div className="min-w-0">
+                    <h3 className="text-[15px] sm:text-[17px] font-semibold text-[#1a1f36] truncate">{activeUrl}</h3>
+                    <p className="text-[13px] sm:text-[14px] text-[#697386]">Verifying {urls.length} sources</p>
                   </div>
                 </div>
                 <button
@@ -1223,7 +1223,7 @@ export function BusinessDNAOnboarding({
                   disabled={!persistenceComplete}
                   className={`${
                     !persistenceComplete ? "bg-[#3399ff]/50 cursor-not-allowed" : "bg-[#3399ff] hover:bg-[#287acc]"
-                  } text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px] transition-colors`}
+                  } text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] transition-colors w-full sm:w-auto shrink-0`}
                 >
                   Finalize Agent <ArrowRight className="w-4 h-4" />
                 </button>
@@ -1514,7 +1514,7 @@ export function BusinessDNAOnboarding({
               <BusinessBrainOrb size={160} className="hidden sm:flex" />
             </div>
 
-            <h1 className="text-[32px] font-bold text-[#1a1f36] mb-8">Choose agent name</h1>
+            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-6 sm:mb-8">Choose agent name</h1>
 
             <div className="w-full max-w-md">
               <AnimatePresence mode="wait">
@@ -1539,7 +1539,7 @@ export function BusinessDNAOnboarding({
                               setIsNameSubmitted(true);
                             }
                           }}
-                          className="flex-1 bg-transparent border-none outline-none text-[#1a1f36] text-[15px]"
+                          className="flex-1 bg-transparent border-none outline-none text-[#1a1f36] text-[16px] sm:text-[15px]"
                           placeholder="e.g. My Agent..."
                           autoFocus
                         />
