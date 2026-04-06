@@ -1016,20 +1016,20 @@ export function BusinessDNAOnboarding({
               return (
                 <>
                   {/* Top bar */}
-                  <div className="w-full bg-[#f4f3ee] rounded-2xl p-4 flex items-center justify-between shadow-sm mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-full bg-[#f4f3ee] rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm mb-4 sm:mb-6">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                         {productImages[0] ? (
-                          <img src={bgRemovedImages[productImages[0]] || productImages[0]} alt="" className="w-8 h-8 object-contain" />
+                          <img src={bgRemovedImages[productImages[0]] || productImages[0]} alt="" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
                         ) : (
                           <Globe className="w-5 h-5 text-[#697386]" />
                         )}
                       </div>
-                      <div>
-                        <h3 className="text-[17px] font-semibold text-[#1a1f36]">
+                      <div className="min-w-0">
+                        <h3 className="text-[15px] sm:text-[17px] font-semibold text-[#1a1f36] truncate">
                           {product?.name || "Product"}
                         </h3>
-                        <p className="text-[14px] text-[#697386]">
+                        <p className="text-[13px] sm:text-[14px] text-[#697386]">
                           Product {currentProductIndex + 1} of {selectedProducts.length} – Select best image
                         </p>
                       </div>
@@ -1042,7 +1042,7 @@ export function BusinessDNAOnboarding({
                           setStep(4);
                         }
                       }}
-                      className="bg-[#3399ff] hover:bg-[#287acc] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                      className="bg-[#3399ff] hover:bg-[#287acc] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] w-full sm:w-auto shrink-0"
                     >
                       {currentProductIndex < selectedProducts.length - 1 ? "Next product" : "Use this image"}{" "}
                       <ArrowRight className="w-4 h-4" />
@@ -1112,12 +1112,12 @@ export function BusinessDNAOnboarding({
                   )}
 
                   {/* Upload Card */}
-                  <div className="w-full bg-[#f4f3ee] rounded-2xl p-5 flex items-center justify-between mb-8">
+                  <div className="w-full bg-[#f4f3ee] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
                     <div>
-                      <h3 className="text-[16px] font-semibold text-[#1a1f36] mb-1">Upload your own photo</h3>
-                      <p className="text-[14px] text-[#697386]">Uploading will set the image as the new main photo.</p>
+                      <h3 className="text-[15px] sm:text-[16px] font-semibold text-[#1a1f36] mb-1">Upload your own photo</h3>
+                      <p className="text-[13px] sm:text-[14px] text-[#697386]">Uploading will set the image as the new main photo.</p>
                     </div>
-                    <button className="bg-white border border-[#e5e4df] hover:bg-gray-50 transition-colors text-[#1a1f36] px-4 py-2 rounded-xl font-medium flex items-center gap-2 text-[14px]">
+                    <button className="bg-white border border-[#e5e4df] hover:bg-gray-50 transition-colors text-[#1a1f36] px-4 py-2 rounded-xl font-medium flex items-center gap-2 text-[14px] w-full sm:w-auto justify-center shrink-0">
                       <UploadCloud className="w-4 h-4" /> Upload image
                     </button>
                   </div>
