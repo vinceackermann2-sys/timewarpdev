@@ -193,14 +193,14 @@ export default function ZipHowItWorks() {
   }, [activeStep]);
 
   return (
-    <section className="py-24 lg:py-32 bg-background relative z-10 overflow-hidden">
+    <section className="py-16 lg:py-32 bg-background relative z-10 overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="max-w-xl">
-            <h3 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div className="max-w-xl text-center lg:text-left mx-auto lg:mx-0">
+            <h3 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 sm:mb-6 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               How we clone your genius.
             </h3>
-            <p className="text-xl text-muted-foreground leading-relaxed">Millions of data points analyzed in seconds.</p>
+            <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">Millions of data points analyzed in seconds.</p>
           </div>
           <div className="flex justify-center lg:justify-end">
             <PhoneMockup activeStep={activeStep} />
