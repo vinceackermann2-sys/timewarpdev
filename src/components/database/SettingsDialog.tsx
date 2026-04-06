@@ -242,14 +242,14 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       if (!session) return;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ action: "check-status", brandId: selectedBrandId }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ action: "check-status" }) }
       );
       if (response.ok) {
         const data = await response.json();
         setConnectedProviders((data.connected || []).map((c: any) => c.provider));
       }
     } catch (err) { console.error("Failed to check connections:", err); }
-  }, [selectedBrandId]);
+  }, []);
 
   useEffect(() => { if (open) checkConnections(); }, [open, checkConnections]);
 
@@ -260,7 +260,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       if (!session) return;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: providerId, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: selectedBrandId }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: providerId, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin }) }
       );
       const data = await response.json();
       if (data.authUrl) window.location.href = data.authUrl;
@@ -276,7 +276,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       if (!session) return;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: providerId, action: "disconnect", brandId: selectedBrandId }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider: providerId, action: "disconnect" }) }
       );
       const data = await response.json();
       if (data.success) { toast({ title: "Disconnected", description: `${integrations.find(i => i.id === providerId)?.name} has been disconnected.` }); checkConnections(); }
