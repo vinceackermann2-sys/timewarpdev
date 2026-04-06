@@ -665,7 +665,7 @@ export function BusinessDNAOnboarding({
 
   // ── RENDER ───────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#fcfbf9] flex flex-col items-center justify-center py-6 sm:py-12 px-2 sm:px-0 font-sans">
+    <div className="min-h-screen bg-[#fcfbf9] flex flex-col items-center justify-center py-6 sm:py-12 px-3 sm:px-4 font-sans overflow-y-auto">
       <AnimatePresence mode="wait">
         {/* ─── METHOD PICKER (add-business only) ─── */}
         {showMethodPicker && step === 0 && (
