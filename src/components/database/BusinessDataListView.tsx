@@ -341,7 +341,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider, action: "disconnect", brandId: activeBrandId }),
+          body: JSON.stringify({ provider, action: "disconnect" }),
         }
       );
       if (response.ok) {
