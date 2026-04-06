@@ -1684,7 +1684,7 @@ export function AgentChatView() {
                 </button>
                 {showReference && (
                   <div
-                    className="absolute left-[calc(100%+8px)] top-0 w-72 bg-card/80 backdrop-blur-xl shadow-2xl border border-border/40 rounded-2xl p-3 animate-in fade-in zoom-in-95 duration-200 z-50"
+                    className="absolute left-0 sm:left-[calc(100%+8px)] bottom-0 sm:bottom-auto sm:top-0 w-72 bg-card/80 backdrop-blur-xl shadow-2xl border border-border/40 rounded-2xl p-3 animate-in fade-in zoom-in-95 duration-200 z-50"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="relative">
