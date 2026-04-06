@@ -260,10 +260,23 @@ serve(async (req) => {
       });
     }
 
-    // Action: disconnect
+    // Action: disconnect — user-level (disconnect all connections for this provider)
     if (action === "disconnect") {
-      // Remove business data sourced from this provider, scoped to brand
-      // IMPORTANT: Only delete if we have a brandId to prevent wiping data from other businesses
+      // Disconnect all connection rows for this provider
+      await supabaseAdmin
+        .from("user_connections")
+        .update({ status: "disconnected" })
+        .eq("user_id", user.id)
+        .eq("provider", provider);
+
+      // Delete OAuth tokens
+      await supabaseAdmin
+        .from("user_oauth_tokens")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("provider", provider);
+
+      // Optionally delete synced data if brandId provided
       if (requestedBrandId) {
         await supabaseAdmin
           .from("user_business_data")
@@ -271,38 +284,6 @@ serve(async (req) => {
           .eq("user_id", user.id)
           .eq("source", provider)
           .eq("metadata->>brandId", requestedBrandId);
-      }
-
-      // Update connection status, scoped to brand
-      let connQuery = supabaseAdmin
-        .from("user_connections")
-        .update({ status: "disconnected" })
-        .eq("user_id", user.id)
-        .eq("provider", provider);
-
-      if (requestedBrandId) {
-        if (resolvedBrandId) {
-          connQuery = connQuery.or(`brand_id.eq.${resolvedBrandId},brand_id.is.null`);
-        } else {
-          connQuery = connQuery.is("brand_id", null);
-        }
-      }
-      await connQuery;
-
-      // Only delete tokens if no other brands use this provider
-      const { data: remainingConns } = await supabaseAdmin
-        .from("user_connections")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("provider", provider)
-        .eq("status", "connected");
-
-      if (!remainingConns || remainingConns.length === 0) {
-        await supabaseAdmin
-          .from("user_oauth_tokens")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("provider", provider);
       }
 
       return new Response(JSON.stringify({ success: true }), {
