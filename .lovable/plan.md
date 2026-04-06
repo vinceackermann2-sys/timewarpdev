@@ -1,62 +1,41 @@
 
-Goal: make integration status truly business-scoped everywhere, especially in Employees chat, so connecting Microsoft/Slack/HubSpot to Business A does not show as connected for Business B.
 
-1. Fix the backend status lookup
-- Update the `connect-provider` edge function `check-status` logic so a selected business only returns connections tied to that exact business.
-- Remove the current fallback that also treats `brand_id = null` legacy rows as connected for every business.
-- Keep a safe fallback only when no business is selected at all.
-- Preserve disconnect behavior and token cleanup logic.
+## Plan: Fix Integration Disconnect Visibility and Slack Sync
 
-2. Normalize how business IDs are resolved
-- Use one consistent rule everywhere:
-  - Business DNA / Database / Settings pass the logical business id (`brand.id`)
-  - Employee detail resolves `linked_business_id` row -> logical `brand.id`
-  - Agent chat resolves the selected agent -> exact brand record -> logical `brand.id`
-- This avoids mixed use of logical IDs vs row UUIDs causing false “connected” states.
+### Problem Summary
+1. **Disconnect button never appears** in Business DNA Database and Employee Settings because all existing `user_connections` rows have `brand_id = null`, but the backend strictly requires `brand_id = exactUUID`.
+2. **Slack sync produces no data** because the connection status check fails (same root cause), so the sync flow either cannot find the token or the UI does not trigger it.
 
-3. Tighten Agent Chat business scoping
-- Refactor `AgentChatView.tsx` so connection state is keyed from the selected agent’s exact business identity, not just provider presence.
-- Clear the connection map immediately when the selected agent changes, then reload for that business only.
-- Ensure connect/disconnect actions always use the active agent’s business id.
-- Handle cases where two businesses have the same display/agent name by preferring a stable business identifier instead of name matching alone.
+### Root Cause
+The `connect-provider` edge function's `check-status` action filters strictly by `brand_id = resolvedBrandId`. However, the OAuth callbacks (Slack, Microsoft, HubSpot) store the `brandId` from the state parameter, which goes through `resolveBrandRowId`. If the logical brand ID resolves to a row UUID that differs from what was stored, or if the callback stored `null`, connections become invisible.
 
-4. Refresh status correctly after OAuth return
-- In Agent Chat, add the same OAuth-return handling pattern used elsewhere so after a provider connects, the UI reloads status for the currently selected business/agent.
-- Make sure the returned `brandId` in the URL is used to refresh only the matching business state, not a global provider state.
+Current DB state: all `user_connections` rows have `brand_id = null`.
 
-5. Verify the other integration surfaces stay business-scoped
-- Review and lightly align these views so they all use the same exact-scoped status expectations:
-  - `ConnectBusinessDNA.tsx`
-  - `BusinessDataListView.tsx`
-  - `EmployeeDetailView.tsx`
-  - `SettingsDialog.tsx`
-- Main goal: no screen should infer “connected” from another business’s connection.
+### Changes
 
-6. Edge cases to cover
-- Business A connected, Business B not connected -> B must still show “Connect”
-- Same provider connected to two different businesses -> each business shows its own correct state
-- Legacy unscoped rows -> they should not appear as connected for every business anymore
-- Employee with linked business -> employee connections reflect only that linked business
-- Agent chat selected agent switched quickly -> no stale status flash from previous agent
+#### 1. Backend: Re-add legacy fallback in `check-status` (connect-provider edge function)
+- When a `brandId` is provided, query for connections where `brand_id = resolvedBrandId` **OR** `brand_id IS NULL`.
+- This ensures existing unscoped connections are visible when viewing any business, while new connections get properly scoped.
+- For the `disconnect` action, keep strict scoping (already correct).
 
-Technical notes
-- Root cause appears to be in `supabase/functions/connect-provider/index.ts`:
-  - `check-status` currently returns rows for `c.brand_id === resolvedBrandId || c.brand_id === null`
-  - that makes legacy/unscoped connections appear connected across businesses
-- Agent chat also relies on `selectedAgent` name matching:
-```text
-brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent)
-```
-  This is fragile if names collide or stale state persists.
-- Files most likely involved:
-  - `supabase/functions/connect-provider/index.ts`
-  - `src/components/database/AgentChatView.tsx`
-  - `src/components/database/EmployeeDetailView.tsx`
-  - `src/components/database/ConnectBusinessDNA.tsx`
-  - `src/components/database/BusinessDataListView.tsx`
-  - `src/components/database/SettingsDialog.tsx`
+#### 2. Backend: Ensure OAuth callbacks store `brand_id` correctly
+- Review `slack-oauth-callback`, `microsoft-oauth-callback`, and `hubspot-oauth-callback` to verify they correctly write the `brand_id` from the state to `user_connections`.
+- The `brandId` in the state comes from `resolveBrandRowId` in `connect-provider`, which converts logical IDs to row UUIDs. Verify callbacks pass this value through to the upsert.
 
-Expected outcome
-- Integrations become truly business-level across the app.
-- In Employees chat, the selected agent/business controls which integrations show connected.
-- No business will incorrectly inherit another business’s connected state.
+#### 3. Frontend: Add Slack to OAuth success handler in BusinessDataListView
+- The `oauth_success` handler currently only checks for `["microsoft", "slack"]` — confirm this includes slack and that sync is triggered.
+
+#### 4. Verify Slack sync-provider-data flow
+- Confirm the Slack sync code in `sync-provider-data` correctly fetches the token (the `getValidToken` function handles Slack by returning the access token directly).
+- The Slack sync fetches channels, users, messages, pinned items, and files — this code exists and should work once the connection is properly detected.
+
+### Files to Edit
+- `supabase/functions/connect-provider/index.ts` — re-add `IS NULL` fallback in `check-status`
+- Possibly `supabase/functions/slack-oauth-callback/index.ts` — verify `brand_id` is written correctly
+- Possibly `supabase/functions/microsoft-oauth-callback/index.ts` and `hubspot-oauth-callback/index.ts` — same verification
+
+### Expected Outcome
+- Existing connections (with `brand_id = null`) show as connected with disconnect buttons in all views
+- New connections get properly scoped with `brand_id` set
+- Slack sync works after OAuth redirect because the connection is now detected
+
