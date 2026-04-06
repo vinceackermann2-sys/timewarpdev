@@ -89,9 +89,9 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .eq("status", "connected");
 
-      // Strict brand scoping: only return connections for the exact brand
+      // Return connections for the exact brand OR legacy unscoped (null) connections
       if (resolvedBrandId) {
-        connectionsQuery = connectionsQuery.eq("brand_id", resolvedBrandId);
+        connectionsQuery = connectionsQuery.or(`brand_id.eq.${resolvedBrandId},brand_id.is.null`);
       }
       // If no brand selected at all, return all connections (global view)
 
