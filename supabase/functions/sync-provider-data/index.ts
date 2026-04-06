@@ -264,6 +264,11 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
   const tasksListData = results.tasks || { value: [] };
 
   // Extract full email body text (strip HTML)
+  // Log first email for debugging
+  if ((mail.value || []).length > 0) {
+    console.log("Sample email object keys:", JSON.stringify(Object.keys(mail.value[0])));
+    console.log("Sample email:", JSON.stringify(mail.value[0]).slice(0, 1000));
+  }
   const emails = (mail.value || []).map((m: any) => {
     let bodyText = m.body?.content || "";
     if (bodyText) {
