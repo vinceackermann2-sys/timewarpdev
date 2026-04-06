@@ -135,7 +135,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
             {!isCollapsed && <SidebarGroupLabel>Workspace</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
+                <SidebarMenuItem className="hidden md:block">
                   <SidebarMenuButton 
                     isActive={currentView === "dataconversion"}
                     onClick={() => onViewChange("dataconversion")}
