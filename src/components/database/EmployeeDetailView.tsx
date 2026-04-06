@@ -142,17 +142,10 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   };
 
   const handleConnectProvider = async (provider: string) => {
-    if (!employee.linked_business_id) {
-      toast({ title: "No linked business", description: "Link this employee to a business first.", variant: "destructive" });
-      return;
-    }
     setConnectingProvider(provider);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setConnectingProvider(false); return; }
-      const { data: brandRow } = await (supabase as any)
-        .from("user_business_data").select("content").eq("id", employee.linked_business_id).single();
-      const brandId = brandRow?.content ? (typeof brandRow.content === "string" ? JSON.parse(brandRow.content) : brandRow.content)?.id : employee.linked_business_id;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
         {
@@ -162,7 +155,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId }),
+          body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin }),
         }
       );
       const data = await response.json();
