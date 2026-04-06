@@ -60,7 +60,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
 
   return (
     <>
-    <div className="flex flex-col h-full items-center">
+    <div className="flex flex-col h-full items-center overflow-y-auto">
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-4 w-full max-w-3xl">
         <div className="flex items-center gap-3">

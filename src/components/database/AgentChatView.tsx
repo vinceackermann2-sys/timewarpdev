@@ -225,6 +225,8 @@ export function AgentChatView() {
   useEffect(() => {
     if (!isMobileChatView) {
       setShowHistory(true);
+    } else {
+      setShowHistory(false);
     }
   }, [isMobileChatView]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
