@@ -330,7 +330,7 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
         .dark .orb-hero__bullets { background: hsl(0 0% 100% / 0.3); border-color: hsl(0 0% 100% / 0.6); }
         .dark .orb-hero__bullets span { color: hsl(var(--hero-muted)); }
 
-        /* ── Header (unchanged) ── */
+        /* ── Header ── */
         .orb-hero__header {
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           background: transparent;
@@ -522,13 +522,13 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
         /* ── Mobile ── */
         @media (max-width: 640px) {
           .orb-hero__header-inner { padding: 0.75rem 1rem; }
-          .orb-hero__logo { height: 44px; }
-          .orb-hero__nav-actions { gap: 0.6rem; }
-          .orb-hero__icon-btn { width: 34px; height: 34px; }
-          .orb-hero__pill-link, .orb-hero__cta-link { min-height: 34px; font-size: 0.8rem; padding: 0.4rem 0.9rem; }
+          .orb-hero__logo { height: 36px; }
+          .orb-hero__nav-actions { gap: 0.5rem; }
+          .orb-hero__icon-btn { width: 32px; height: 32px; }
+          .orb-hero__pill-link, .orb-hero__cta-link { min-height: 32px; font-size: 0.78rem; padding: 0.35rem 0.75rem; }
 
           .orb-hero__stage { --sz: min(260vw, 1600px); }
-          .orb-hero__content { width: clamp(300px, 88vw, 440px); top: 50%; transform: translate(-50%, -50%); animation: orb-fade-up-mobile 0.8s ease-out both; }
+          .orb-hero__content { width: clamp(300px, 88vw, 440px); top: 48%; transform: translate(-50%, -50%); animation: orb-fade-up-mobile 0.8s ease-out both; }
           .orb-hero__content h1 { font-size: clamp(28px, 7vw, 44px); }
           .orb-hero__content p { font-size: 15px; }
 
@@ -541,8 +541,8 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
             padding: 10px 14px; min-height: 44px;
           }
           .orb-hero__url-icon { width: 18px; height: 18px; margin-right: 10px; }
-          .orb-hero__input input { font-size: 14px; }
-          .orb-hero__btn { padding: 12px 16px; border-radius: 12px; font-size: 14px; width: 100%; justify-content: center; }
+          .orb-hero__input input { font-size: 16px; } /* 16px prevents iOS auto-zoom */
+          .orb-hero__btn { padding: 12px 16px; border-radius: 12px; font-size: 14px; width: 100%; justify-content: center; min-height: 48px; }
           .orb-hero__bullets { gap: 10px; padding: 3px 10px; align-self: center; }
           .orb-hero__bullets span { font-size: 11px; }
         }
