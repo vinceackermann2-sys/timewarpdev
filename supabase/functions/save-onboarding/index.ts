@@ -148,9 +148,17 @@ serve(async (req) => {
       }
     }
 
-    // Rename workspace to brand name
+    // Rename workspace to brand name only for the first business
     if (brandName) {
-      await admin.from("workspaces").update({ name: brandName }).eq("id", wsId);
+      const { count } = await admin
+        .from("user_business_data")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", wsId)
+        .eq("data_type", "brand");
+      // count includes the brand we just inserted, so first business means count === 1
+      if ((count ?? 0) <= 1) {
+        await admin.from("workspaces").update({ name: brandName }).eq("id", wsId);
+      }
     }
 
     return new Response(
