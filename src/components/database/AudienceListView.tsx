@@ -248,6 +248,7 @@ export function AudienceListView({ activeBrandId }: { activeBrandId: string }) {
         open={!!connectAudienceId}
         onOpenChange={(open) => { if (!open) setConnectAudienceId(null); }}
         focusEntityId={connectAudienceId}
+        activeBrandId={activeBrandId}
       />
     </div>
   );
