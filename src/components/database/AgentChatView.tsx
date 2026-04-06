@@ -2254,7 +2254,8 @@ export function AgentChatView() {
       </div>{/* end main chat area */}
 
       {/* Chat History Sidebar — hidden on mobile */}
-      {showHistory && (
+      {/* Desktop: inline sidebar */}
+      {showHistory && !isMobile && (
         <div className="hidden md:block shrink-0 h-full max-h-full">
           <ChatHistorySidebar
             activeChatId={activeChatId}
@@ -2262,6 +2263,22 @@ export function AgentChatView() {
             onNewChat={handleNewChat}
           />
         </div>
+      )}
+
+      {/* Mobile: Sheet overlay */}
+      {isMobile && (
+        <Sheet open={showHistory} onOpenChange={setShowHistory}>
+          <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Chat History</SheetTitle>
+            </SheetHeader>
+            <ChatHistorySidebar
+              activeChatId={activeChatId}
+              onSelectChat={(session) => { handleSelectChat(session); setShowHistory(false); }}
+              onNewChat={() => { handleNewChat(); setShowHistory(false); }}
+            />
+          </SheetContent>
+        </Sheet>
       )}
     </div>
   );
