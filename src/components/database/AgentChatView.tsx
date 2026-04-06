@@ -1430,9 +1430,9 @@ export function AgentChatView() {
 
   /* ─────────── Render ─────────── */
   return (
-    <div className="h-full bg-background flex relative overflow-hidden">
+    <div className="h-full min-h-0 w-full bg-background flex relative overflow-hidden">
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden">
       {/* Sticky top agent selector */}
       <header className="shrink-0 z-20 flex justify-center items-center py-3 bg-background/80 backdrop-blur-md border-b border-border/30">
         {/* History toggle button */}
@@ -1472,7 +1472,7 @@ export function AgentChatView() {
       </header>
 
       {/* Central area: Orb when no messages, chat when messages exist */}
-      <main ref={chatContainerRef} className="flex-1 flex flex-col relative z-10 overflow-y-auto">
+      <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain">
         {!hasMessages ? (
           /* ── Empty state with centered orb ── */
           <div className="flex-1 flex flex-col items-center justify-center">
@@ -1487,7 +1487,7 @@ export function AgentChatView() {
           </div>
         ) : (
           /* ── Chat messages ── */
-          <div className="flex-1 px-4 md:px-6 py-6 space-y-5 max-w-3xl mx-auto w-full">
+          <div className="flex-1 min-h-full px-4 md:px-6 py-6 space-y-5 max-w-3xl mx-auto w-full">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                 {msg.role === "assistant" && (
@@ -1606,7 +1606,7 @@ export function AgentChatView() {
       </main>
 
       {/* Chat Input */}
-      <footer className="shrink-0 p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20">
+      <footer className="shrink-0 p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-background">
         <input
           type="file"
           multiple
@@ -2245,11 +2245,13 @@ export function AgentChatView() {
 
       {/* Chat History Sidebar */}
       {showHistory && (
-        <ChatHistorySidebar
-          activeChatId={activeChatId}
-          onSelectChat={handleSelectChat}
-          onNewChat={handleNewChat}
-        />
+        <div className="shrink-0 h-full max-h-full">
+          <ChatHistorySidebar
+            activeChatId={activeChatId}
+            onSelectChat={handleSelectChat}
+            onNewChat={handleNewChat}
+          />
+        </div>
       )}
     </div>
   );
