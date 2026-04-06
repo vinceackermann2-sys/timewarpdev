@@ -286,19 +286,14 @@ export function AgentChatView() {
   const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
   const activeBrandId = activeBrandForConnections?.id ?? null;
 
-  // Clear connection state immediately when agent/brand changes
-  useEffect(() => {
-    setConnectedProviders({});
-  }, [activeBrandId]);
-
+  // Check connections at user level (not brand-scoped)
   const checkConnection = useCallback(async () => {
-    if (!activeBrandId) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ action: "check-status", brandId: activeBrandId }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ action: "check-status" }) }
       );
       if (response.ok) {
         const data = await response.json();
@@ -307,7 +302,7 @@ export function AgentChatView() {
         setConnectedProviders(map);
       }
     } catch (err) { console.error("Check connection error:", err); }
-  }, [activeBrandId]);
+  }, []);
 
   useEffect(() => { checkConnection(); }, [checkConnection]);
 
@@ -322,14 +317,13 @@ export function AgentChatView() {
   }, [checkConnection]);
 
   const handleProviderConnect = async (provider: string) => {
-    if (!activeBrandForConnections) return;
     setConnectingProvider(provider);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please log in first"); setConnectingProvider(false); return; }
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandForConnections.id }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }) }
       );
       const data = await response.json();
       if (data.authUrl) window.location.href = data.authUrl;
@@ -339,13 +333,12 @@ export function AgentChatView() {
   };
 
   const handleProviderDisconnect = async (provider: string) => {
-    if (!activeBrandForConnections) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider, action: "disconnect", brandId: activeBrandForConnections.id }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider, action: "disconnect" }) }
       );
       setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
       toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected`);

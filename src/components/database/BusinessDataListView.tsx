@@ -175,7 +175,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status", brandId: activeBrandId }),
+          body: JSON.stringify({ action: "check-status" }),
         }
       );
       if (response.ok) {
@@ -189,7 +189,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     } catch (err) {
       console.error("Check connection error:", err);
     }
-  }, [activeBrandId]);
+  }, []);
 
   // Auto-sync after OAuth redirect
   useEffect(() => {
