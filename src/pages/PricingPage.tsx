@@ -343,7 +343,7 @@ export default function PricingPage() {
             )}
             <div className="h-6 mb-4 flex items-center gap-2">
               <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
-                Ends April 1st
+                Ends April 20th
               </Badge>
             </div>
             <h3 className="text-xl font-bold mb-1">TimeWarp OG</h3>
