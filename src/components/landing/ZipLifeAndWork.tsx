@@ -3,8 +3,8 @@ import familyVacation from "@/assets/family-vacation.jpeg";
 
 export default function ZipLifeAndWork() {
   return (
-    <section className="py-24 lg:py-32 bg-background relative z-10 flex justify-center items-center">
-      <div className="max-w-4xl w-full mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
+    <section className="py-16 lg:py-32 bg-background relative z-10 flex justify-center items-center">
+      <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
         {/* Left Card */}
         <div className="flex flex-col gap-4">
           <p className="text-muted-foreground font-medium text-sm text-center md:text-left uppercase tracking-wider">

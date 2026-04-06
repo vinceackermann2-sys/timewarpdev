@@ -1907,19 +1907,19 @@ export function AgentChatView() {
 
       {/* Settings Modal */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsSettingsOpen(false)} />
-          <div className="relative w-full max-w-4xl h-[600px] bg-background shadow-2xl border border-border rounded-2xl z-50 animate-in zoom-in-95 fade-in duration-200 flex flex-col overflow-hidden">
+          <div className="relative w-full sm:max-w-4xl h-[85vh] sm:h-[600px] bg-background shadow-2xl border border-border rounded-t-2xl sm:rounded-2xl z-50 animate-in slide-in-from-bottom sm:zoom-in-95 fade-in duration-200 flex flex-col overflow-hidden">
             {/* Modal header with agent dropdown */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-card">
               <div className="w-8" />
-              <div className="flex items-center gap-3 flex-1 justify-center">
-                <h3 className="text-lg font-bold text-foreground">Settings</h3>
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-center">
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Settings</h3>
                 <span className="text-muted-foreground">·</span>
                 <select
                   value={selectedAgent}
                   onChange={(e) => setSelectedAgent(e.target.value)}
-                  className="bg-transparent border border-border rounded-lg px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer"
+                  className="bg-transparent border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate"
                 >
                   {agents.map((agent) => (
                     <option key={agent.id} value={agent.name}>{agent.name}</option>
@@ -1931,9 +1931,9 @@ export function AgentChatView() {
               </button>
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
-              {/* Sidebar */}
-              <div className="w-64 bg-card border-r border-border p-4 space-y-1 overflow-y-auto">
+            <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
+              {/* Sidebar — horizontal on mobile */}
+              <div className="sm:w-64 bg-card border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-y-auto shrink-0">
                 {([
                   { key: "safety", label: "Safety", icon: Shield },
                   { key: "employees", label: "Employees", icon: Users },
@@ -1942,7 +1942,7 @@ export function AgentChatView() {
                   <button
                     key={key}
                     onClick={() => setSettingsTab(key)}
-                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-3 ${settingsTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}
+                    className={`text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 sm:gap-3 whitespace-nowrap ${settingsTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}
                   >
                     <Icon className="w-4 h-4" />
                     {label}
