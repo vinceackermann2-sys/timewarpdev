@@ -1460,7 +1460,7 @@ export function AgentChatView() {
             <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showAgents ? "rotate-180" : ""}`} />
           </button>
           {showAgents && (
-            <div className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] w-56 bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50">
+            <div className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] w-56 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50">
               {agents.map((agent) => (
                 <button
                   key={agent.id}
@@ -2250,9 +2250,9 @@ export function AgentChatView() {
       )}
       </div>{/* end main chat area */}
 
-      {/* Chat History Sidebar */}
+      {/* Chat History Sidebar — hidden on mobile */}
       {showHistory && (
-        <div className="shrink-0 h-full max-h-full">
+        <div className="hidden md:block shrink-0 h-full max-h-full">
           <ChatHistorySidebar
             activeChatId={activeChatId}
             onSelectChat={handleSelectChat}
