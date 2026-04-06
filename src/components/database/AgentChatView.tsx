@@ -1951,7 +1951,7 @@ export function AgentChatView() {
               </div>
 
               {/* Content */}
-              <div className="flex-1 p-8 overflow-y-auto flex flex-col">
+              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col">
                 {settingsTab === "safety" && (
                   <div className="flex-1">
                     {(() => {
