@@ -218,8 +218,8 @@ export function AgentChatView() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   /* ── Chat history sidebar state ── */
-  const [showHistory, setShowHistory] = useState(true);
-  const isMobile = useIsMobile();
+  const isMobileChatView = useIsMobile();
+  const [showHistory, setShowHistory] = useState(!isMobileChatView);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
