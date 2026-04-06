@@ -76,27 +76,12 @@ serve(async (req) => {
 
     // Action: check-status - return which providers are connected (optionally filtered by brandId)
     if (action === "check-status") {
-      console.log("[check-status] requestedBrandId:", requestedBrandId, "resolvedBrandId:", resolvedBrandId);
-      // Fetch connections scoped to the requested brand
-      let connectionsQuery = supabaseAdmin
+      // User-level: return all connected providers for this user (no brand filtering)
+      const { data: connections } = await supabaseAdmin
         .from("user_connections")
         .select("provider, status, brand_id")
         .eq("user_id", user.id)
         .eq("status", "connected");
-
-      if (requestedBrandId) {
-        if (resolvedBrandId) {
-          // Return connections for the exact brand OR legacy unscoped (null) connections
-          connectionsQuery = connectionsQuery.or(`brand_id.eq.${resolvedBrandId},brand_id.is.null`);
-        } else {
-          // If the logical brand ID cannot be resolved, only surface legacy unscoped rows
-          connectionsQuery = connectionsQuery.is("brand_id", null);
-        }
-      }
-      // If no brand selected at all, return all connections (global view)
-
-      const { data: connections, error: connErr } = await connectionsQuery;
-      console.log("[check-status] connections:", JSON.stringify(connections), "error:", connErr);
 
       const { data: tokens } = await supabaseAdmin
         .from("user_oauth_tokens")
@@ -109,7 +94,6 @@ serve(async (req) => {
         .map((c: any) => ({
           provider: c.provider,
           email: tokens?.find((t: any) => t.provider === c.provider)?.provider_email,
-          brand_id: c.brand_id,
         }));
 
       // Deduplicate by provider
