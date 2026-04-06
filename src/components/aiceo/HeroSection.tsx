@@ -334,8 +334,10 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
         .orb-hero__header {
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           background: transparent;
+          pointer-events: none;
         }
         .orb-hero__header-inner {
+          pointer-events: auto;
           width: 100%; display: flex; align-items: center;
           justify-content: space-between; padding: 1.25rem 2.5rem;
         }
