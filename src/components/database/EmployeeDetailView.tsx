@@ -178,11 +178,6 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      // Resolve brandId from linked business
-      const { data: brandRow } = await (supabase as any)
-        .from("user_business_data").select("content").eq("id", employee.linked_business_id).single();
-      const brandId = brandRow?.content ? (typeof brandRow.content === "string" ? JSON.parse(brandRow.content) : brandRow.content)?.id : employee.linked_business_id;
-      // Use edge function to disconnect scoped by brand
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
         {
@@ -192,7 +187,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider, action: "disconnect", brandId }),
+          body: JSON.stringify({ provider, action: "disconnect" }),
         }
       );
       if (response.ok) {
