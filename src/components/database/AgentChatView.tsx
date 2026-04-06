@@ -2255,7 +2255,7 @@ export function AgentChatView() {
 
       {/* Chat History Sidebar — hidden on mobile */}
       {/* Desktop: inline sidebar */}
-      {showHistory && !isMobile && (
+      {showHistory && !isMobileChatView && (
         <div className="hidden md:block shrink-0 h-full max-h-full">
           <ChatHistorySidebar
             activeChatId={activeChatId}
@@ -2266,7 +2266,7 @@ export function AgentChatView() {
       )}
 
       {/* Mobile: Sheet overlay */}
-      {isMobile && (
+      {isMobileChatView && (
         <Sheet open={showHistory} onOpenChange={setShowHistory}>
           <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
             <SheetHeader className="sr-only">
