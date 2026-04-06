@@ -219,7 +219,14 @@ export function AgentChatView() {
 
   /* ── Chat history sidebar state ── */
   const isMobileChatView = useIsMobile();
-  const [showHistory, setShowHistory] = useState(!isMobileChatView);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // On desktop, default history open; on mobile keep closed
+  useEffect(() => {
+    if (!isMobileChatView) {
+      setShowHistory(true);
+    }
+  }, [isMobileChatView]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

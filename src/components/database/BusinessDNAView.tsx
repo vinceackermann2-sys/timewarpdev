@@ -349,15 +349,15 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
 
   return (
     <div className="flex flex-col h-full items-center">
-      <div className="px-6 pt-6 pb-0 space-y-6 border-b border-border/50 w-full max-w-5xl">
+      <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-0 space-y-4 sm:space-y-6 border-b border-border/50 w-full max-w-5xl">
         {/* Business Header */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3 sm:gap-4">
           {onBack && (
             <button onClick={onBack} className="mt-1.5 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-           <div className="h-24 w-24 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+           <div className="h-16 w-16 sm:h-24 sm:w-24 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
              {activeBrand?.logoUrls && activeBrand.logoUrls.length > 0 ? (
                <img
                  src={activeBrand.logoUrls[activeBrand.selectedLogo ?? 0]}
@@ -365,17 +365,17 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
                  className="h-full w-full object-contain p-2"
                />
              ) : (
-               <Building2 className="h-11 w-11 text-muted-foreground/60" />
+               <Building2 className="h-8 w-8 sm:h-11 sm:w-11 text-muted-foreground/60" />
              )}
            </div>
-           <div className="flex flex-col gap-2 pt-1">
-             <h1 className="text-2xl font-bold text-foreground leading-tight">{activeBrand?.name || "Your Business"}</h1>
+           <div className="flex flex-col gap-1.5 sm:gap-2 pt-1 min-w-0">
+             <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight truncate">{activeBrand?.name || "Your Business"}</h1>
               <AgentNameEditor brand={activeBrand} onRename={handleRenameAgent} isBrainLearning={isBrainLearning} />
            </div>
         </div>
 
         {/* Segment Tabs */}
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-4 sm:gap-8 overflow-x-auto scrollbar-hide -mx-4 sm:-mx-6 px-4 sm:px-6">
           {BRAIN_SEGMENTS.map((seg) => {
             const Icon = seg.icon;
             const count = getSegmentCount(seg.id);
@@ -385,16 +385,16 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
                 key={seg.id}
                 onClick={() => setActiveSegment(isActive ? null : seg.id)}
                 className={cn(
-                  "relative flex items-center gap-2 pb-3 text-sm font-medium transition-colors",
+                  "relative flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0",
                   isActive
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className={cn("h-4 w-4", isActive ? seg.color : "")} />
+                <Icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", isActive ? seg.color : "")} />
                 <span>{seg.label}</span>
                 {seg.beta && (
-                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
+                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
                     Beta
                   </span>
                 )}
@@ -418,7 +418,7 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
       </div>
 
       <div className="flex-1 w-full overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-6 pb-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-6">
         <AnimatePresence mode="wait">
           {!activeSegment ? (
             <motion.div
