@@ -2,27 +2,27 @@ import { motion } from "framer-motion";
 
 export default function ZipGreaterGood() {
   return (
-    <section className="py-24 lg:py-32 bg-background text-foreground relative overflow-hidden z-10 min-h-[80vh] flex items-center">
+    <section className="py-16 lg:py-32 bg-background text-foreground relative overflow-hidden z-10 min-h-[60vh] sm:min-h-[80vh] flex items-center">
       {/* Atmospheric Background */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] opacity-50" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[80px] opacity-50" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] sm:w-[800px] h-[400px] sm:h-[800px] bg-primary/10 rounded-full blur-[120px] opacity-50" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] sm:w-[400px] h-[200px] sm:h-[400px] bg-primary/5 rounded-full blur-[80px] opacity-50" />
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center mb-10 sm:mb-16">
           <h2
-            className="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight text-foreground"
+            className="text-3xl sm:text-4xl md:text-6xl font-extrabold mb-3 sm:mb-4 tracking-tight text-foreground"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             This Is TimeWarp
           </h2>
-          <p className="text-xl md:text-2xl text-muted-foreground font-light">
+          <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground font-light">
             Enjoy life without being chained to your work
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-12">
           <motion.div
             className="bg-card p-6 rounded-3xl shadow-lg border border-border"
             whileHover={{ y: -10 }}

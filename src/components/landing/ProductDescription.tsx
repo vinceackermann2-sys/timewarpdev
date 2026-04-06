@@ -83,18 +83,18 @@ export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
       
 
       {/* ── Making Work Optional ── */}
-      <section className="relative z-10 py-24 lg:py-32 bg-background dark:bg-[#1a1a1a]">
+      <section className="relative z-10 py-16 lg:py-32 bg-background dark:bg-[#1a1a1a]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
           {/* Text */}
-          <div className="space-y-6 max-w-3xl mb-12">
+          <div className="space-y-4 sm:space-y-6 max-w-3xl mb-8 sm:mb-12">
             <h2
-              className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground dark:text-white"
+              className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground dark:text-white"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
               Making work optional.
             </h2>
             <p
-              className="text-lg text-muted-foreground dark:text-white/60 leading-relaxed"
+              className="text-base sm:text-lg text-muted-foreground dark:text-white/60 leading-relaxed"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
               For centuries, human potential has been chained to the desk, bound by the necessity of economic survival. By replacing the CEO and the operational workforce with autonomous intelligence, we are accelerating the transition to a post-labor economy.
@@ -115,13 +115,13 @@ export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
       </section>
 
       {/* ── Bottom CTA ── */}
-      <section className="relative z-10 py-24 lg:py-32 overflow-hidden text-center bg-background dark:bg-[hsl(0_0%_10%)]">
+      <section className="relative z-10 py-16 lg:py-32 overflow-hidden text-center bg-background dark:bg-[hsl(0_0%_10%)]">
         {/* Top glow — dark only */}
         <div className="absolute pointer-events-none left-0 right-0 hidden dark:block" style={{ height: 400, top: 0, background: "radial-gradient(ellipse 80% 100% at center top, rgba(51,153,255,0.08) 0%, transparent 60%)" }} />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10">
-          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Ready to have levers pulled?</h3>
-          <p className="text-base text-muted-foreground dark:text-white/50 mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Paste your website URL.</p>
+          <h3 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-foreground dark:text-white mb-3 sm:mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Ready to have levers pulled?</h3>
+          <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 mb-8 sm:mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Paste your website URL.</p>
 
           {/* Hero-style input card */}
           <div className="max-w-xl mx-auto">
