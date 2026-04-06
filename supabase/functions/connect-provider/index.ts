@@ -76,22 +76,21 @@ serve(async (req) => {
 
     // Action: check-status - return which providers are connected (optionally filtered by brandId)
     if (action === "check-status") {
-      if (requestedBrandId && !resolvedBrandId) {
-        return new Response(JSON.stringify({ connected: [] }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Fetch connections strictly scoped to the requested brand
+      // Fetch connections scoped to the requested brand
       let connectionsQuery = supabaseAdmin
         .from("user_connections")
         .select("provider, status, brand_id")
         .eq("user_id", user.id)
         .eq("status", "connected");
 
-      // Return connections for the exact brand OR legacy unscoped (null) connections
-      if (resolvedBrandId) {
-        connectionsQuery = connectionsQuery.or(`brand_id.eq.${resolvedBrandId},brand_id.is.null`);
+      if (requestedBrandId) {
+        if (resolvedBrandId) {
+          // Return connections for the exact brand OR legacy unscoped (null) connections
+          connectionsQuery = connectionsQuery.or(`brand_id.eq.${resolvedBrandId},brand_id.is.null`);
+        } else {
+          // If the logical brand ID cannot be resolved, only surface legacy unscoped rows
+          connectionsQuery = connectionsQuery.is("brand_id", null);
+        }
       }
       // If no brand selected at all, return all connections (global view)
 
