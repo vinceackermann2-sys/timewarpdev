@@ -1434,7 +1434,7 @@ export function AgentChatView() {
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Sticky top agent selector */}
-      <header className="sticky top-0 z-20 flex justify-center items-center py-3 bg-background/80 backdrop-blur-md border-b border-border/30">
+      <header className="shrink-0 z-20 flex justify-center items-center py-3 bg-background/80 backdrop-blur-md border-b border-border/30">
         {/* History toggle button */}
         <button
           onClick={() => setShowHistory(!showHistory)}
@@ -1606,7 +1606,7 @@ export function AgentChatView() {
       </main>
 
       {/* Chat Input */}
-      <footer className="p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20">
+      <footer className="shrink-0 p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20">
         <input
           type="file"
           multiple
