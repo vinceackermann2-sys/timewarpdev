@@ -246,7 +246,14 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
   const responses = await Promise.all(fetches);
   const results: Record<string, any> = {};
   for (let i = 0; i < fetchKeys.length; i++) {
-    results[fetchKeys[i]] = responses[i].ok ? await responses[i].json() : { value: [] };
+    if (responses[i].ok) {
+      results[fetchKeys[i]] = await responses[i].json();
+      console.log(`Microsoft ${fetchKeys[i]}: ${(results[fetchKeys[i]].value || []).length} items`);
+    } else {
+      const errText = await responses[i].text().catch(() => "");
+      console.error(`Microsoft ${fetchKeys[i]} failed (${responses[i].status}): ${errText.slice(0, 500)}`);
+      results[fetchKeys[i]] = { value: [] };
+    }
   }
 
   const mail = results.mail || { value: [] };
