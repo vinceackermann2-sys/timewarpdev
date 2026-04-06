@@ -621,7 +621,14 @@ export function AgentChatView() {
         await runAgentChat(session, userMsg, assistantId);
       }
     } catch (err: any) {
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Sorry, something went wrong. Please try again.", isStreaming: false } : m));
+      setMessages(prev => prev.map(m => {
+        if (m.id !== assistantId) return m;
+        // If we already have partial content from streaming, keep it with a notice
+        if (m.content && m.content.trim().length > 20) {
+          return { ...m, content: m.content + "\n\n---\n⚠️ *Response was cut short due to a timeout. The content above is what was generated before the interruption. Try asking for a shorter or more focused output.*", isStreaming: false };
+        }
+        return { ...m, content: "Sorry, something went wrong. Please try again with a more specific request.", isStreaming: false };
+      }));
       console.error("Send error:", err);
     }
 
