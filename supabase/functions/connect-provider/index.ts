@@ -276,13 +276,6 @@ serve(async (req) => {
 
     // Action: disconnect
     if (action === "disconnect") {
-      if (requestedBrandId && !resolvedBrandId) {
-        return new Response(JSON.stringify({ error: "Business not found" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
       // Remove business data sourced from this provider, scoped to brand
       // IMPORTANT: Only delete if we have a brandId to prevent wiping data from other businesses
       if (requestedBrandId) {
@@ -301,8 +294,12 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .eq("provider", provider);
 
-      if (resolvedBrandId) {
-        connQuery = connQuery.eq("brand_id", resolvedBrandId);
+      if (requestedBrandId) {
+        if (resolvedBrandId) {
+          connQuery = connQuery.or(`brand_id.eq.${resolvedBrandId},brand_id.is.null`);
+        } else {
+          connQuery = connQuery.is("brand_id", null);
+        }
       }
       await connQuery;
 
