@@ -216,7 +216,7 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
 
   if (cats.emails !== false) {
     const emailLimit = Math.min(Math.max(lims.emails || 200, 1), 500);
-    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${emailLimit}&$select=subject,from,receivedDateTime,body,bodyPreview&$orderby=receivedDateTime desc`, { headers }));
+    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${emailLimit}&$orderby=receivedDateTime desc`, { headers }));
     fetchKeys.push("mail");
   }
   if (cats.events !== false) {
@@ -246,7 +246,14 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
   const responses = await Promise.all(fetches);
   const results: Record<string, any> = {};
   for (let i = 0; i < fetchKeys.length; i++) {
-    results[fetchKeys[i]] = responses[i].ok ? await responses[i].json() : { value: [] };
+    if (responses[i].ok) {
+      results[fetchKeys[i]] = await responses[i].json();
+      console.log(`Microsoft ${fetchKeys[i]}: ${(results[fetchKeys[i]].value || []).length} items`);
+    } else {
+      const errText = await responses[i].text().catch(() => "");
+      console.error(`Microsoft ${fetchKeys[i]} failed (${responses[i].status}): ${errText.slice(0, 500)}`);
+      results[fetchKeys[i]] = { value: [] };
+    }
   }
 
   const mail = results.mail || { value: [] };
@@ -257,6 +264,11 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
   const tasksListData = results.tasks || { value: [] };
 
   // Extract full email body text (strip HTML)
+  // Log first email for debugging
+  if ((mail.value || []).length > 0) {
+    console.log("Sample email object keys:", JSON.stringify(Object.keys(mail.value[0])));
+    console.log("Sample email:", JSON.stringify(mail.value[0]).slice(0, 1000));
+  }
   const emails = (mail.value || []).map((m: any) => {
     let bodyText = m.body?.content || "";
     if (bodyText) {
