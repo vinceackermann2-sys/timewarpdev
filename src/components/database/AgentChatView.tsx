@@ -19,6 +19,8 @@ import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoGoogle from "@/assets/logo-google.png";
@@ -216,7 +218,8 @@ export function AgentChatView() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   /* ── Chat history sidebar state ── */
-  const [showHistory, setShowHistory] = useState(true);
+  const isMobileChatView = useIsMobile();
+  const [showHistory, setShowHistory] = useState(!isMobileChatView);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -2251,7 +2254,8 @@ export function AgentChatView() {
       </div>{/* end main chat area */}
 
       {/* Chat History Sidebar — hidden on mobile */}
-      {showHistory && (
+      {/* Desktop: inline sidebar */}
+      {showHistory && !isMobileChatView && (
         <div className="hidden md:block shrink-0 h-full max-h-full">
           <ChatHistorySidebar
             activeChatId={activeChatId}
@@ -2259,6 +2263,22 @@ export function AgentChatView() {
             onNewChat={handleNewChat}
           />
         </div>
+      )}
+
+      {/* Mobile: Sheet overlay */}
+      {isMobileChatView && (
+        <Sheet open={showHistory} onOpenChange={setShowHistory}>
+          <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Chat History</SheetTitle>
+            </SheetHeader>
+            <ChatHistorySidebar
+              activeChatId={activeChatId}
+              onSelectChat={(session) => { handleSelectChat(session); setShowHistory(false); }}
+              onNewChat={() => { handleNewChat(); setShowHistory(false); }}
+            />
+          </SheetContent>
+        </Sheet>
       )}
     </div>
   );
