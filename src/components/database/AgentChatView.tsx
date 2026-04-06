@@ -1664,7 +1664,7 @@ export function AgentChatView() {
           <div className="relative flex items-center">
           {/* Dropup Menu */}
           {isDropupOpen && (
-            <div className="absolute bottom-[calc(100%+12px)] left-0 w-56 max-h-[50vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border overflow-visible py-2 animate-in slide-in-from-bottom-2 fade-in duration-200 z-40">
+            <div className="absolute bottom-[calc(100%+12px)] left-0 w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border py-2 animate-in slide-in-from-bottom-2 fade-in duration-200 z-40">
               <button
                 onClick={() => { fileInputRef.current?.click(); setIsDropupOpen(false); }}
                 className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
@@ -1673,8 +1673,8 @@ export function AgentChatView() {
                 Upload Files
               </button>
 
-              {/* Reference sub-menu */}
-              <div className="relative">
+              {/* Reference sub-menu (inline expand) */}
+              <div>
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
@@ -1683,13 +1683,10 @@ export function AgentChatView() {
                     <Globe className="w-4 h-4 text-muted-foreground" />
                     Reference (@)
                   </div>
-                  <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showReference ? "rotate-90" : ""}`} />
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showReference ? "rotate-180" : ""}`} />
                 </button>
                 {showReference && (
-                  <div
-                    className="absolute left-0 sm:left-[calc(100%+8px)] bottom-0 sm:bottom-auto sm:top-0 w-72 bg-card/80 backdrop-blur-xl shadow-2xl border border-border/40 rounded-2xl p-3 animate-in fade-in zoom-in-95 duration-200 z-50"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <div className="px-3 pb-2" onClick={(e) => e.stopPropagation()}>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <input
@@ -1738,8 +1735,8 @@ export function AgentChatView() {
                 )}
               </div>
 
-              {/* Employees sub-menu */}
-              <div className="relative">
+              {/* Employees sub-menu (inline expand) */}
+              <div>
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
@@ -1748,37 +1745,38 @@ export function AgentChatView() {
                     <Users className="w-4 h-4 text-muted-foreground" />
                     Employees
                   </div>
-                  <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showEmployeesMenu ? "rotate-90" : ""}`} />
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showEmployeesMenu ? "rotate-180" : ""}`} />
                 </button>
                 {showEmployeesMenu && (
-                  <div className="absolute left-[calc(100%+8px)] bottom-0 w-48 bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50 max-h-64 overflow-y-auto">
-                    {employees.length > 0 ? (
-                      employees.map((emp) => (
-                        <button
-                          key={emp.id}
-                          onClick={() => {
-                            const empData = { id: emp.id, name: emp.name, role: emp.role };
-                            if (!selectedChatEmployees.find((e) => e.id === emp.id)) {
-                              setSelectedChatEmployees([empData]);
-                            }
-                            setIsDropupOpen(false);
-                            setShowEmployeesMenu(false);
-                            // Auto-run the employee: send a message to execute their SOP
-                            setTimeout(() => autoRunEmployee(empData), 100);
-                          }}
-                          className="w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors text-muted-foreground flex flex-col"
-                        >
-                          <span className="font-medium text-foreground">{emp.name}</span>
-                          <span className="text-xs text-muted-foreground">{emp.role}</span>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-4 py-2 text-sm text-muted-foreground text-center">No employees added</div>
-                    )}
+                  <div className="px-2 pb-2">
+                    <div className="max-h-64 overflow-y-auto">
+                      {employees.length > 0 ? (
+                        employees.map((emp) => (
+                          <button
+                            key={emp.id}
+                            onClick={() => {
+                              const empData = { id: emp.id, name: emp.name, role: emp.role };
+                              if (!selectedChatEmployees.find((e) => e.id === emp.id)) {
+                                setSelectedChatEmployees([empData]);
+                              }
+                              setIsDropupOpen(false);
+                              setShowEmployeesMenu(false);
+                              setTimeout(() => autoRunEmployee(empData), 100);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-muted-foreground flex flex-col"
+                          >
+                            <span className="font-medium text-foreground">{emp.name}</span>
+                            <span className="text-xs text-muted-foreground">{emp.role}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted-foreground text-center">No employees added</div>
+                      )}
+                    </div>
                     <div className="border-t border-border mt-1 pt-1">
                       <button
                         onClick={() => { setIsSettingsOpen(true); setSettingsTab("employees"); setIsDropupOpen(false); setShowEmployeesMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors text-primary font-medium flex items-center gap-2"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-primary font-medium flex items-center gap-2"
                       >
                         <Settings className="w-3 h-3" />
                         Manage Employees
