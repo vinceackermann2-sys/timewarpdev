@@ -204,10 +204,12 @@ export function ConnectionDialog({
   open,
   onOpenChange,
   focusEntityId,
+  activeBrandId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   focusEntityId?: string | null;
+  activeBrandId?: string;
 }) {
   const { brands, products, audiences, setProducts, setAudiences } = useBusinessDNA();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -365,18 +367,24 @@ export function ConnectionDialog({
     entityConns.forEach(conn => removeConnection(conn));
   };
 
-  // Build entity lists
-  const brandEntities: EntityItem[] = brands.map((b) => ({
+  // Build entity lists – scoped to activeBrandId when provided
+  const scopedBrands = activeBrandId ? brands.filter(b => b.id === activeBrandId) : brands;
+  const scopedProducts = activeBrandId ? products.filter(p => p.brandId === activeBrandId) : products;
+  const scopedAudiences = activeBrandId
+    ? audiences.filter(a => a.productIds?.some(pid => scopedProducts.some(p => p.id === pid)))
+    : audiences;
+
+  const brandEntities: EntityItem[] = scopedBrands.map((b) => ({
     id: b.id,
     name: b.name,
     type: "brand" as EntityType,
   }));
-  const productEntities: EntityItem[] = products.map((p) => ({
+  const productEntities: EntityItem[] = scopedProducts.map((p) => ({
     id: p.id,
     name: p.name,
     type: "product" as EntityType,
   }));
-  const audienceEntities: EntityItem[] = audiences.map((a) => ({
+  const audienceEntities: EntityItem[] = scopedAudiences.map((a) => ({
     id: a.id,
     name: a.name,
     type: "audience" as EntityType,

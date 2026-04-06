@@ -260,6 +260,7 @@ export function ProductListView({ activeBrandId }: { activeBrandId: string }) {
         open={!!connectProductId}
         onOpenChange={(open) => { if (!open) setConnectProductId(null); }}
         focusEntityId={connectProductId}
+        activeBrandId={activeBrandId}
       />
     </div>
   );
