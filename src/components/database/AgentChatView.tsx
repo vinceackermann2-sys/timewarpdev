@@ -1613,7 +1613,7 @@ export function AgentChatView() {
       </main>
 
       {/* Chat Input */}
-      <footer className="shrink-0 p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-background">
+      <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-background">
         <input
           type="file"
           multiple
@@ -1661,7 +1661,7 @@ export function AgentChatView() {
           <div className="relative flex items-center">
           {/* Dropup Menu */}
           {isDropupOpen && (
-            <div className="absolute bottom-[calc(100%+12px)] left-0 w-56 bg-card rounded-2xl shadow-xl border border-border overflow-visible py-2 animate-in slide-in-from-bottom-2 fade-in duration-200 z-40">
+            <div className="absolute bottom-[calc(100%+12px)] left-0 w-56 max-h-[50vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border overflow-visible py-2 animate-in slide-in-from-bottom-2 fade-in duration-200 z-40">
               <button
                 onClick={() => { fileInputRef.current?.click(); setIsDropupOpen(false); }}
                 className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
