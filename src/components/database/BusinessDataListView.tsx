@@ -5,6 +5,7 @@ import {
   Trash2, Upload, Plus, Users, StickyNote, ListChecks, Calendar, Search, X, CheckSquare, Square
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
