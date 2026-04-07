@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square
+  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square,
+  Palette, BarChart3, PieChart, Table2, Presentation
 } from "lucide-react";
 import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
@@ -207,6 +208,8 @@ export function AgentChatView() {
   const [isActionMode, setIsActionMode] = useState(false);
   const [settingsTab, setSettingsTab] = useState("safety");
   const [showReference, setShowReference] = useState(false);
+  const [showGraphicsMenu, setShowGraphicsMenu] = useState(false);
+  const [selectedGraphic, setSelectedGraphic] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string; file?: File }[]>([]);
   const [referencedUrls, setReferencedUrls] = useState<{ id: string; url: string; name: string; logo: string }[]>([]);
   const [referenceUrlInput, setReferenceUrlInput] = useState("");
@@ -623,6 +626,16 @@ export function AgentChatView() {
         }
       }
     }
+    if (selectedGraphic) {
+      const graphicInstructions: Record<string, string> = {
+        "Document": "Format your response as a professional, well-structured document with clear headings, sections, and proper formatting. Use markdown with headers, lists, and emphasis.",
+        "Graph": "Include a data visualization in your response. Use ```chart``` code blocks with JSON data for charts (bar, line, pie). Provide the data and chart configuration.",
+        "Analytics": "Provide a detailed analytics report with key metrics, trends, insights, and data breakdowns. Use tables, statistics, and clear data-driven conclusions.",
+        "Spreadsheet": "Structure your response as tabular data using markdown tables. Include headers, organized rows, calculated totals, and clear column categories.",
+        "Slide": "Format your response as a presentation slide — use a bold headline, 3-5 concise bullet points, and a key takeaway. Keep it visual and scannable.",
+      };
+      userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
+    }
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -639,6 +652,7 @@ export function AgentChatView() {
     setUploadedFiles([]);
     setReferencedUrls([]);
     setSelectedChatEmployees([]);
+    setSelectedGraphic(null);
     setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
 
     // Add assistant placeholder
@@ -1495,6 +1509,7 @@ export function AgentChatView() {
         setShowAgents(false);
         setShowEmployeesMenu(false);
         setShowReference(false);
+        setShowGraphicsMenu(false);
       }
     }
     if (isDropupOpen) document.addEventListener("mousedown", handleClickOutside);
@@ -1781,12 +1796,21 @@ export function AgentChatView() {
 
         <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
           {/* Chips row: files, employees, computer mode — all inline */}
-          {(uploadedFiles.length > 0 || selectedChatEmployees.length > 0 || (isActionMode && extensionConnected)) && (
+          {(uploadedFiles.length > 0 || selectedChatEmployees.length > 0 || selectedGraphic || (isActionMode && extensionConnected)) && (
             <div className="flex flex-wrap gap-1.5 px-1 pb-2">
               {isActionMode && extensionConnected && (
                 <div className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5">
                   <Monitor className="w-3.5 h-3.5 text-foreground" />
                   <span className="text-xs font-medium text-foreground">Computer ON</span>
+                </div>
+              )}
+              {selectedGraphic && (
+                <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
+                  <Palette className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-medium text-primary">{selectedGraphic}</span>
+                  <button onClick={() => setSelectedGraphic(null)} className="text-primary/60 hover:text-primary">
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
               )}
               {uploadedFiles.map((file) => (
@@ -1824,7 +1848,7 @@ export function AgentChatView() {
               {/* Reference sub-menu (inline expand) */}
               <div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); }}
+                  onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); setShowGraphicsMenu(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -1883,10 +1907,57 @@ export function AgentChatView() {
                 )}
               </div>
 
+              {/* Graphics sub-menu (inline expand) */}
+              <div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowGraphicsMenu(!showGraphicsMenu); setShowReference(false); setShowEmployeesMenu(false); }}
+                  className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Palette className="w-4 h-4 text-muted-foreground" />
+                    Graphics
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showGraphicsMenu ? "rotate-180" : ""}`} />
+                </button>
+                {showGraphicsMenu && (
+                  <div className="px-2 pb-2">
+                    {[
+                      { label: "Document", icon: FileText, desc: "Generate a formatted document" },
+                      { label: "Graph", icon: BarChart3, desc: "Create a data visualization" },
+                      { label: "Analytics", icon: PieChart, desc: "Build an analytics report" },
+                      { label: "Spreadsheet", icon: Table2, desc: "Generate a spreadsheet" },
+                      { label: "Slide", icon: Presentation, desc: "Create a presentation slide" },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => {
+                          setSelectedGraphic(item.label);
+                          setIsDropupOpen(false);
+                          setShowGraphicsMenu(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-3",
+                          selectedGraphic === item.label ? "bg-primary/10 text-primary" : "text-muted-foreground"
+                        )}
+                      >
+                        <item.icon className="w-4 h-4 shrink-0" />
+                        <div className="flex flex-col">
+                          <span className={cn("font-medium", selectedGraphic === item.label ? "text-primary" : "text-foreground")}>{item.label}</span>
+                          <span className="text-xs text-muted-foreground">{item.desc}</span>
+                        </div>
+                        {selectedGraphic === item.label && (
+                          <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">Selected</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Employees sub-menu (inline expand) */}
               <div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); }}
+                  onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); setShowGraphicsMenu(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -1940,7 +2011,7 @@ export function AgentChatView() {
                   href="https://microsoftedge.microsoft.com/addons/detail/timewarp-%E2%80%93-ai-ceo/fajgkgjioehbiccafonfbdkjhoedceim"
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                  onClick={() => { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -1954,7 +2025,7 @@ export function AgentChatView() {
                 </a>
               ) : (
                 <button
-                  onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                  onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -1969,7 +2040,7 @@ export function AgentChatView() {
 
               {/* Settings */}
               <button
-                onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
                 className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
               >
                 <Settings className="w-4 h-4 text-muted-foreground" />
@@ -1978,10 +2049,12 @@ export function AgentChatView() {
             </div>
           )}
 
-          {/* Plus button */}
-          <div className="group relative">
+          {/* Plus button — opens on hover */}
+          <div className="group relative"
+            onMouseEnter={() => { if (!isDropupOpen) setIsDropupOpen(true); }}
+          >
             <button
-              onClick={() => { setIsDropupOpen(!isDropupOpen); if (isDropupOpen) { setShowEmployeesMenu(false); setShowReference(false); } }}
+              onClick={() => { setIsDropupOpen(!isDropupOpen); if (isDropupOpen) { setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); } }}
               className={`p-2.5 rounded-full transition-all active:scale-95 flex items-center justify-center ${
                 isActionMode
                   ? isDropupOpen ? "bg-primary/20 text-primary" : "text-primary hover:bg-primary/10"
