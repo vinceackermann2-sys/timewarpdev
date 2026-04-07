@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square
+  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square,
+  Palette, BarChart3, PieChart, Table2, Presentation
 } from "lucide-react";
 import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
@@ -207,6 +208,8 @@ export function AgentChatView() {
   const [isActionMode, setIsActionMode] = useState(false);
   const [settingsTab, setSettingsTab] = useState("safety");
   const [showReference, setShowReference] = useState(false);
+  const [showGraphicsMenu, setShowGraphicsMenu] = useState(false);
+  const [selectedGraphic, setSelectedGraphic] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string; file?: File }[]>([]);
   const [referencedUrls, setReferencedUrls] = useState<{ id: string; url: string; name: string; logo: string }[]>([]);
   const [referenceUrlInput, setReferenceUrlInput] = useState("");
@@ -1781,12 +1784,21 @@ export function AgentChatView() {
 
         <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
           {/* Chips row: files, employees, computer mode — all inline */}
-          {(uploadedFiles.length > 0 || selectedChatEmployees.length > 0 || (isActionMode && extensionConnected)) && (
+          {(uploadedFiles.length > 0 || selectedChatEmployees.length > 0 || selectedGraphic || (isActionMode && extensionConnected)) && (
             <div className="flex flex-wrap gap-1.5 px-1 pb-2">
               {isActionMode && extensionConnected && (
                 <div className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5">
                   <Monitor className="w-3.5 h-3.5 text-foreground" />
                   <span className="text-xs font-medium text-foreground">Computer ON</span>
+                </div>
+              )}
+              {selectedGraphic && (
+                <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
+                  <Palette className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-medium text-primary">{selectedGraphic}</span>
+                  <button onClick={() => setSelectedGraphic(null)} className="text-primary/60 hover:text-primary">
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
               )}
               {uploadedFiles.map((file) => (
