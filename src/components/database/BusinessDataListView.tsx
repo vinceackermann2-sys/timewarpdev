@@ -224,7 +224,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       url.searchParams.delete("brandId");
       window.history.replaceState({}, "", url.pathname + url.search);
       // Refresh connection status so UI shows Disconnect
-      checkConnection();
+      checkConnection(true);
       handleSyncProvider(oauthProvider);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

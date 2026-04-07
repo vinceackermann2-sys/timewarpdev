@@ -113,8 +113,11 @@ export function useBusinessDNA() {
   return ctx;
 }
 
-async function loadEntities<T>(dataType: string, workspaceId?: string | null): Promise<T[]> {
-  const { data: { session } } = await supabase.auth.getSession();
+async function loadEntities<T>(dataType: string, workspaceId?: string | null, session?: { user: { id: string } } | null): Promise<T[]> {
+  if (!session) {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  }
   if (!session?.user) return [];
 
   let query = supabase
