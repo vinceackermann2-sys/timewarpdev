@@ -525,9 +525,36 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-        <p className="text-sm text-muted-foreground">Loading business data...</p>
+      <div className="space-y-4 p-1">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-5 w-32" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-[140px] rounded-md" />
+            <Skeleton className="h-8 w-20 rounded-md" />
+            <Skeleton className="h-8 w-20 rounded-md" />
+          </div>
+        </div>
+        {/* Storage bar skeleton */}
+        <Skeleton className="h-2.5 w-full rounded-full" />
+        {/* Source group skeletons */}
+        {Array.from({ length: 2 }).map((_, gi) => (
+          <div key={gi} className="space-y-2">
+            <div className="flex items-center gap-2 px-1">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-6" />
+            </div>
+            <div className="space-y-1.5">
+              {Array.from({ length: gi === 0 ? 4 : 2 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2.5">
+                  <Skeleton className="h-4 w-4 rounded" />
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="h-5 w-14 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
