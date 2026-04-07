@@ -628,15 +628,22 @@ export function AgentChatView() {
         await runAgentChat(session, userMsg, assistantId);
       }
     } catch (err: any) {
+      console.error("Send error:", err);
+      const errorMsg = err.message || "Something went wrong";
       setMessages(prev => prev.map(m => {
         if (m.id !== assistantId) return m;
+        // Mark any running task steps as error
+        const updatedSteps = (m.taskSteps || []).map(s => 
+          s.status === "running" ? { ...s, status: "error" as const } : s
+        );
+        // Add an explicit error step
+        updatedSteps.push({ action: "error", label: `Failed: ${errorMsg}`, status: "error" as const });
         // If we already have partial content from streaming, keep it with a notice
         if (m.content && m.content.trim().length > 20) {
-          return { ...m, content: m.content + "\n\n---\n⚠️ *Response was cut short due to a timeout. The content above is what was generated before the interruption. Try asking for a shorter or more focused output.*", isStreaming: false };
+          return { ...m, content: m.content + "\n\n---\n⚠️ *Response was cut short. Try again with a more specific request.*", taskSteps: updatedSteps, isStreaming: false };
         }
-        return { ...m, content: "Sorry, something went wrong. Please try again with a more specific request.", isStreaming: false };
+        return { ...m, content: `⚠️ ${errorMsg}`, taskSteps: updatedSteps, isStreaming: false };
       }));
-      console.error("Send error:", err);
     }
 
     setIsSending(false);
