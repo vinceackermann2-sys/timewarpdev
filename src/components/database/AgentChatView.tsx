@@ -548,7 +548,7 @@ export function AgentChatView() {
     setSelectedChatEmployees([]);
 
     const assistantId = crypto.randomUUID();
-    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true }]);
+    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
 
     try {
       await runComputerMode(session, userMsg, assistantId);
@@ -602,7 +602,7 @@ export function AgentChatView() {
 
     // Add assistant placeholder
     const assistantId = crypto.randomUUID();
-    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true }]);
+    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
 
     try {
       // If files are attached, always use chat mode (not browser automation) so the AI analyzes them
