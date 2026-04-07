@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Loader2, CheckCircle2, XCircle, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
 
@@ -14,6 +14,32 @@ interface Props {
   steps: TaskStep[];
   currentStepIndex: number;
   isStreaming?: boolean;
+}
+
+const stepEmoji: Record<string, string> = {
+  "Working on memory...": "🧠",
+  "Analyzing request...": "🔍",
+  "Generating response...": "✍️",
+  "Continuing generation...": "🔄",
+  "Done": "✅",
+  "Error": "❌",
+  "Cancelled by user": "⏹",
+};
+
+function getStepEmoji(label: string): string {
+  for (const [key, emoji] of Object.entries(stepEmoji)) {
+    if (label.startsWith(key.replace("...", ""))) return emoji;
+  }
+  if (label.toLowerCase().includes("error") || label.toLowerCase().includes("fail")) return "❌";
+  if (label.toLowerCase().includes("cancel")) return "⏹";
+  if (label.toLowerCase().includes("continu")) return "🔄";
+  if (label.toLowerCase().includes("navigat")) return "🌐";
+  if (label.toLowerCase().includes("click")) return "👆";
+  if (label.toLowerCase().includes("type") || label.toLowerCase().includes("fill")) return "⌨️";
+  if (label.toLowerCase().includes("extract") || label.toLowerCase().includes("read")) return "📋";
+  if (label.toLowerCase().includes("scroll")) return "📜";
+  if (label.toLowerCase().includes("wait")) return "⏳";
+  return "⚡";
 }
 
 export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props) {
@@ -45,79 +71,78 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
     }
   }
 
-  const headerLabel = allDone
-    ? `Completed ${doneCount} task${doneCount !== 1 ? "s" : ""}`
-    : `Hatching ${steps.length} task${steps.length !== 1 ? "s" : ""}...`;
-
   return (
-    <div className="mb-3">
-      {/* Header */}
+    <div className="mb-4">
+      {/* Collapsible header */}
       <button
         onClick={() => setCollapsed(prev => !prev)}
-        className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors py-1 select-none"
+        className="flex items-center gap-2 w-full group"
       >
-        <span className="font-medium">{headerLabel}</span>
-        <span className="text-muted-foreground/60">·</span>
-        <ThinkingTimer startTime={startTime} stopped={allDone} className="text-[12px]" />
-        {collapsed ? (
-          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60" />
-        ) : (
-          <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/60" />
-        )}
+        <div className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-colors",
+          allDone
+            ? "bg-primary/10 text-primary"
+            : "bg-muted text-muted-foreground"
+        )}>
+          {!allDone && <Loader2 className="w-3 h-3 animate-spin" />}
+          {allDone && <CheckCircle2 className="w-3 h-3" />}
+          <span className="font-medium">
+            {allDone ? `Done · ${doneCount} step${doneCount !== 1 ? "s" : ""}` : "Working..."}
+          </span>
+          <span className="text-[11px] opacity-60">·</span>
+          <ThinkingTimer startTime={startTime} stopped={allDone} className="text-[11px] opacity-70" />
+        </div>
+        <ChevronDown className={cn(
+          "w-3.5 h-3.5 text-muted-foreground/40 transition-transform duration-200",
+          !collapsed && "rotate-180"
+        )} />
       </button>
 
-      {/* Steps list with collapse animation */}
-      <div
-        className={cn(
-          "overflow-hidden transition-all duration-300 ease-in-out",
-          collapsed ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100"
-        )}
-      >
-        <div
-          ref={scrollRef}
-          className="max-h-[240px] overflow-y-auto ml-1 mt-1"
-        >
+      {/* Steps */}
+      <div className={cn(
+        "overflow-hidden transition-all duration-300 ease-in-out",
+        collapsed ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100"
+      )}>
+        <div ref={scrollRef} className="max-h-[240px] overflow-y-auto mt-2 ml-1 space-y-0.5">
           {groupedSteps.map((step, idx) => {
             const isActive = step.status === "running" && isStreaming;
             const isDone = step.status === "done";
             const isError = step.status === "error";
-            const isLast = idx === groupedSteps.length - 1;
 
             return (
-              <div key={idx} className="flex items-stretch gap-0 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                {/* Vertical timeline */}
-                <div className="flex flex-col items-center w-6 shrink-0">
-                  {/* Icon */}
-                  <div className="flex items-center justify-center w-5 h-5 shrink-0">
-                    {isActive ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground/60" />
-                    ) : isDone ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/50" />
-                    ) : isError ? (
-                      <XCircle className="w-3.5 h-3.5 text-destructive/60" />
-                    ) : (
-                      <div className="w-2.5 h-2.5 rounded-full border border-muted-foreground/20" />
-                    )}
-                  </div>
-                  {/* Connecting line */}
-                  {!isLast && (
-                    <div className="w-px flex-1 min-h-[12px] bg-muted-foreground/15" />
+              <div
+                key={idx}
+                className={cn(
+                  "flex items-center gap-2 py-1.5 px-2 rounded-md text-[12px] animate-in fade-in slide-in-from-bottom-1 duration-200",
+                  isActive && "bg-muted/60"
+                )}
+              >
+                {/* Status icon */}
+                <span className="w-4 text-center shrink-0">
+                  {isActive ? (
+                    <Loader2 className="w-3 h-3 animate-spin text-primary mx-auto" />
+                  ) : isError ? (
+                    <XCircle className="w-3 h-3 text-destructive mx-auto" />
+                  ) : isDone ? (
+                    <span className="text-[11px]">{getStepEmoji(step.label)}</span>
+                  ) : (
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30 mx-auto" />
                   )}
-                </div>
+                </span>
 
                 {/* Label */}
-                <div className={cn(
-                  "flex items-center gap-1.5 pb-2 pt-0.5 text-[12px] leading-tight min-h-[28px]",
-                  isActive && "text-foreground/80",
-                  isDone && "text-muted-foreground/60",
-                  isError && "text-destructive/70",
-                  !isActive && !isDone && !isError && "text-muted-foreground/40"
+                <span className={cn(
+                  "truncate",
+                  isActive && "text-foreground font-medium",
+                  isDone && "text-muted-foreground",
+                  isError && "text-destructive",
                 )}>
-                  <span className="truncate">{step.label}</span>
-                  {step.count > 1 && (
-                    <span className="text-muted-foreground/40 text-[11px] shrink-0">({step.count}×)</span>
-                  )}
-                </div>
+                  {step.label}
+                </span>
+
+                {step.count > 1 && (
+                  <span className="text-muted-foreground/40 text-[10px] shrink-0">×{step.count}</span>
+                )}
               </div>
             );
           })}
