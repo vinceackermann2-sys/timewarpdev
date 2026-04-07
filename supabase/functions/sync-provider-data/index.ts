@@ -206,6 +206,29 @@ interface SyncCategories {
   tasks?: boolean;
 }
 
+async function fetchAllMicrosoftEmails(accessToken: string): Promise<any[]> {
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  const allEmails: any[] = [];
+  let url: string | null = `https://graph.microsoft.com/v1.0/me/messages?$top=500&$orderby=receivedDateTime desc`;
+
+  while (url) {
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error(`Microsoft mail pagination failed (${res.status}): ${errText.slice(0, 500)}`);
+      break;
+    }
+    const data = await res.json();
+    const items = data.value || [];
+    allEmails.push(...items);
+    console.log(`Microsoft mail page: ${items.length} items, total so far: ${allEmails.length}`);
+    url = data["@odata.nextLink"] || null;
+    // Safety cap at 5000 to avoid edge function timeout
+    if (allEmails.length >= 5000) break;
+  }
+  return allEmails;
+}
+
 async function fetchMicrosoftData(accessToken: string, categories?: SyncCategories, limits?: SyncLimits): Promise<any> {
   const headers = { Authorization: `Bearer ${accessToken}` };
   const cats = categories || { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true };
@@ -214,11 +237,7 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
   const fetches: Promise<Response>[] = [];
   const fetchKeys: string[] = [];
 
-  if (cats.emails !== false) {
-    const emailLimit = Math.min(Math.max(lims.emails || 200, 1), 500);
-    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${emailLimit}&$orderby=receivedDateTime desc`, { headers }));
-    fetchKeys.push("mail");
-  }
+  // Emails are fetched separately with pagination below
   if (cats.events !== false) {
     const eventLimit = Math.min(Math.max(lims.events || 200, 1), 500);
     fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/events?$top=${eventLimit}&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc`, { headers }));
@@ -243,6 +262,9 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
     fetchKeys.push("tasks");
   }
 
+  // Fetch emails with full pagination in parallel with other requests
+  const emailPromise = cats.emails !== false ? fetchAllMicrosoftEmails(accessToken) : Promise.resolve([]);
+
   const responses = await Promise.all(fetches);
   const results: Record<string, any> = {};
   for (let i = 0; i < fetchKeys.length; i++) {
@@ -256,7 +278,9 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
     }
   }
 
-  const mail = results.mail || { value: [] };
+  const rawEmails = await emailPromise;
+  console.log(`Microsoft mail total: ${rawEmails.length} emails`);
+
   const calendar = results.cal || { value: [] };
   const files = results.files || { value: [] };
   const contactsData = results.contacts || { value: [] };
@@ -264,12 +288,10 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
   const tasksListData = results.tasks || { value: [] };
 
   // Extract full email body text (strip HTML)
-  // Log first email for debugging
-  if ((mail.value || []).length > 0) {
-    console.log("Sample email object keys:", JSON.stringify(Object.keys(mail.value[0])));
-    console.log("Sample email:", JSON.stringify(mail.value[0]).slice(0, 1000));
+  if (rawEmails.length > 0) {
+    console.log("Sample email object keys:", JSON.stringify(Object.keys(rawEmails[0])));
   }
-  const emails = (mail.value || []).map((m: any) => {
+  const emails = rawEmails.map((m: any) => {
     let bodyText = m.body?.content || "";
     if (bodyText) {
       bodyText = bodyText
@@ -281,11 +303,9 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
         .trim()
         .slice(0, 5000);
     }
-    // Use bodyPreview as fallback if body extraction yielded nothing
     if (!bodyText && m.bodyPreview) {
       bodyText = m.bodyPreview.slice(0, 5000);
     }
-    // Build a meaningful subject fallback from body preview or sender
     let subject = m.subject;
     if (!subject || subject.trim() === "") {
       if (m.bodyPreview) {

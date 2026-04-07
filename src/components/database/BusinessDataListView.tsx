@@ -238,7 +238,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           .from("user_business_data")
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .order("created_at", { ascending: false })
-          .limit(200);
+          .limit(1000);
 
         if (wsId) {
           query = query.eq("workspace_id", wsId);
