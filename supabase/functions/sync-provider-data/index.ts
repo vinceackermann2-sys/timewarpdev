@@ -239,13 +239,44 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
 
   // Emails are fetched separately with pagination below
   if (cats.events !== false) {
-    const eventLimit = Math.min(Math.max(lims.events || 200, 1), 500);
-    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/events?$top=${eventLimit}&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc`, { headers }));
+    // Fetch all events with pagination
+    const allEvents: any[] = [];
+    let evUrl: string | null = `https://graph.microsoft.com/v1.0/me/events?$top=500&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc`;
+    while (evUrl) {
+      const r = await fetch(evUrl, { headers });
+      if (!r.ok) break;
+      const d = await r.json();
+      allEvents.push(...(d.value || []));
+      evUrl = d["@odata.nextLink"] || null;
+      if (allEvents.length >= 5000) break;
+    }
+    console.log(`Microsoft cal total: ${allEvents.length} events`);
+    fetches.push(Promise.resolve(new Response(JSON.stringify({ value: allEvents }), { status: 200 })));
     fetchKeys.push("cal");
   }
   if (cats.files !== false) {
-    const fileLimit = Math.min(Math.max(lims.files || 200, 1), 500);
-    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/drive/recent?$top=${fileLimit}`, { headers }));
+    // Fetch all files with pagination
+    const allFiles: any[] = [];
+    let fUrl: string | null = `https://graph.microsoft.com/v1.0/me/drive/root/children?$top=500`;
+    while (fUrl) {
+      const r = await fetch(fUrl, { headers });
+      if (!r.ok) break;
+      const d = await r.json();
+      allFiles.push(...(d.value || []));
+      fUrl = d["@odata.nextLink"] || null;
+      if (allFiles.length >= 5000) break;
+    }
+    // Also fetch recent files
+    const recentRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/recent?$top=200`, { headers });
+    if (recentRes.ok) {
+      const recentData = await recentRes.json();
+      const existingIds = new Set(allFiles.map((f: any) => f.id));
+      for (const f of (recentData.value || [])) {
+        if (!existingIds.has(f.id)) allFiles.push(f);
+      }
+    }
+    console.log(`Microsoft files total: ${allFiles.length} files`);
+    fetches.push(Promise.resolve(new Response(JSON.stringify({ value: allFiles }), { status: 200 })));
     fetchKeys.push("files");
   }
   if (cats.contacts !== false) {
@@ -1041,11 +1072,15 @@ serve(async (req) => {
 
     if (providerData.emails) {
       for (const email of providerData.emails) {
+        // Skip emails with no meaningful subject AND no body content
+        const hasSubject = email.subject && email.subject.trim() !== "" && email.subject !== "No subject";
+        const hasBody = !!(email.body || email.preview || email.snippet);
+        if (!hasSubject && !hasBody) continue;
         dataItems.push({
           user_id: user.id,
           data_type: "email",
           source: provider,
-          title: email.subject || "No subject",
+          title: (hasSubject ? email.subject : (email.body || email.preview || email.snippet || "").slice(0, 80).trim()) || "Email",
           content: email.body || email.preview || email.snippet || null,
           metadata: { from: email.from, date: email.date },
           is_analyzed: false,
@@ -1055,11 +1090,13 @@ serve(async (req) => {
 
     if (providerData.events) {
       for (const event of providerData.events) {
+        const title = event.subject || event.summary;
+        if (!title || title.trim() === "") continue;
         dataItems.push({
           user_id: user.id,
           data_type: "calendar",
           source: provider,
-          title: event.subject || event.summary || "No title",
+          title,
           content: null,
           metadata: { start: event.start, end: event.end, attendees: event.attendees },
           is_analyzed: false,
@@ -1069,11 +1106,12 @@ serve(async (req) => {
 
     if (providerData.files) {
       for (const file of providerData.files) {
+        if (!file.name || file.name.trim() === "") continue;
         dataItems.push({
           user_id: user.id,
           data_type: "document",
           source: provider,
-          title: file.name || "Untitled",
+          title: file.name,
           content: file.extractedContent || null,
           metadata: { size: file.size, type: file.type || file.mimeType, webUrl: file.webUrl, lastModified: file.lastModified },
           is_analyzed: !!file.extractedContent,
