@@ -102,7 +102,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
 const integrations = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" as const },
   { id: "slack", name: "Slack", description: "Channels, Messages, Files, Users", logo: logoSlack, authType: "oauth" as const },
-  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth" as const },
+  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth" as const, comingSoon: true },
 ];
 
 type SettingsTab = "settings" | "workspace" | "plans" | "connections";

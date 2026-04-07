@@ -22,7 +22,7 @@ interface Integration {
 const integrations: Integration[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" },
   { id: "slack", name: "Slack", description: "Channels, Messages, Team Info", logo: logoSlack, authType: "oauth" },
-  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth" },
+  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth", comingSoon: true },
 ];
 
 interface ConnectedProvider {
