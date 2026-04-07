@@ -2037,10 +2037,12 @@ export function AgentChatView() {
             </div>
           )}
 
-          {/* Plus button */}
-          <div className="group relative">
+          {/* Plus button — opens on hover */}
+          <div className="group relative"
+            onMouseEnter={() => { if (!isDropupOpen) setIsDropupOpen(true); }}
+          >
             <button
-              onClick={() => { setIsDropupOpen(!isDropupOpen); if (isDropupOpen) { setShowEmployeesMenu(false); setShowReference(false); } }}
+              onClick={() => { setIsDropupOpen(!isDropupOpen); if (isDropupOpen) { setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); } }}
               className={`p-2.5 rounded-full transition-all active:scale-95 flex items-center justify-center ${
                 isActionMode
                   ? isDropupOpen ? "bg-primary/20 text-primary" : "text-primary hover:bg-primary/10"
