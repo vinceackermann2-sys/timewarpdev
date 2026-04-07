@@ -629,31 +629,36 @@ export function AgentChatView() {
     }
     if (selectedGraphic) {
       const graphicInstructions: Record<string, string> = {
-        "Document": `IMPORTANT: You MUST include a \`\`\`document code block with JSON in this format BEFORE your normal text answer:
+        "Document": `You MUST create a professional document that directly answers the user's question above. Analyze their request carefully and produce a well-structured document with relevant, specific content.
+Include a \`\`\`document code block with JSON BEFORE your text explanation:
 \`\`\`document
-{"title":"Document Title","sections":[{"heading":"Section","content":"Content here"}],"date":"Today's date"}
+{"title":"Relevant Title","sections":[{"heading":"Section Heading","content":"Detailed content addressing the user's question"}],"date":"${new Date().toLocaleDateString()}"}
 \`\`\`
-Then provide your normal text explanation below it.`,
-        "Graph": `IMPORTANT: You MUST include a \`\`\`chart code block with JSON BEFORE your normal text answer:
+Make sections comprehensive with real actionable content related to the question. Then provide a brief summary below.`,
+        "Graph": `You MUST create a chart/graph that visualizes data relevant to the user's question above. Think about what data would be most useful to show visually for their request.
+Include a \`\`\`chart code block with JSON BEFORE your text explanation:
 \`\`\`chart
 {"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
 \`\`\`
-Supported types: bar, line, area, pie. For pie use nameKey and valueKey instead of xKey/yKeys. Then provide your normal text explanation below it.`,
-        "Analytics": `IMPORTANT: You MUST include a \`\`\`analytics code block with JSON BEFORE your normal text answer:
+Supported types: bar, line, area, pie. For pie use nameKey and valueKey. Use realistic, relevant data that helps answer their question. Then explain the data below.`,
+        "Analytics": `You MUST create an analytics dashboard with metrics directly relevant to the user's question above. Choose metrics that would genuinely help them understand the topic.
+Include a \`\`\`analytics code block with JSON BEFORE your text explanation:
 \`\`\`analytics
-{"title":"Analytics Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Key insight 1"],"chart":{"data":[{"month":"Jan","value":100}],"xKey":"month","yKeys":["value"]}}
+{"title":"Analytics Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Key insight"],"chart":{"data":[{"month":"Jan","value":100}],"xKey":"month","yKeys":["value"]}}
 \`\`\`
-Each metric can have: label, value, change (percentage number, positive=green negative=red), unit. Chart is optional. Then provide your normal text explanation below it.`,
-        "Spreadsheet": `IMPORTANT: You MUST include a \`\`\`spreadsheet code block with JSON BEFORE your normal text answer:
+Each metric: label, value, change (positive=growth, negative=decline), unit. Create metrics that directly answer the user's question. Then explain below.`,
+        "Spreadsheet": `You MUST create a spreadsheet/table with data directly relevant to the user's question above. Organize the data in a way that helps them understand or act on their request.
+Include a \`\`\`spreadsheet code block with JSON BEFORE your text explanation:
 \`\`\`spreadsheet
 {"title":"Table Title","headers":["Col1","Col2"],"rows":[["A","B"],["C","D"]],"footer":["Total","100"]}
 \`\`\`
-Footer row is optional (for totals). Then provide your normal text explanation below it.`,
-        "Slide": `IMPORTANT: You MUST include a \`\`\`slide code block with JSON BEFORE your normal text answer:
+Footer is optional. Fill with realistic, relevant data that addresses their question. Then explain below.`,
+        "Slide": `You MUST create a presentation slide with content directly relevant to the user's question above. Distill the key points into a clear, impactful slide.
+Include a \`\`\`slide code block with JSON BEFORE your text explanation:
 \`\`\`slide
-{"title":"Slide Title","subtitle":"Optional subtitle","bullets":["Point 1","Point 2","Point 3"],"takeaway":"The key takeaway message"}
+{"title":"Relevant Title","subtitle":"Context","bullets":["Key point 1","Key point 2","Key point 3"],"takeaway":"Main takeaway"}
 \`\`\`
-Then provide your normal text explanation below it.`,
+Make bullet points specific and actionable based on their question. Then provide additional context below.`,
       };
       userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
     }
@@ -810,7 +815,7 @@ Then provide your normal text explanation below it.`,
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
     };
 
-    addStep("Working on memory...");
+    addStep("Loading context");
 
     const response = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
@@ -839,7 +844,7 @@ Then provide your normal text explanation below it.`,
     }
 
     completeStep();
-    addStep("Generating response...");
+    addStep("Writing response");
 
     // Stream SSE response
     const reader = response.body?.getReader();
@@ -869,7 +874,7 @@ Then provide your normal text explanation below it.`,
     }
 
     completeStep();
-    addStep("Done");
+    addStep("Complete");
     completeStep();
 
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", taskSteps: [...taskSteps], isStreaming: false } : m));
@@ -1115,7 +1120,7 @@ Then provide your normal text explanation below it.`,
     // Show processing state
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
 
-    addStep("Working on memory...");
+    addStep("Loading context");
 
     // Log to DB
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
@@ -1127,7 +1132,7 @@ Then provide your normal text explanation below it.`,
     const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
 
     completeStep();
-    addStep("Analyzing request...");
+    addStep("Processing with employee");
 
     // Continuation loop
     let accumulatedContent = "";
@@ -1136,7 +1141,7 @@ Then provide your normal text explanation below it.`,
 
     while (continuationCount <= MAX_CONTINUATIONS) {
       if (continuationCount > 0) {
-        addStep(`Continuing generation... (${continuationCount})`);
+        addStep(`Extending response (part ${continuationCount + 1})`);
       }
 
       const response = await fetchWithTimeout(
@@ -1180,7 +1185,7 @@ Then provide your normal text explanation below it.`,
       continuationCount++;
     }
 
-    addStep("Done");
+    addStep("Complete");
     completeStep();
 
     const endTime = new Date();
