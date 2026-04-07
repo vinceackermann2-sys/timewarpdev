@@ -2082,14 +2082,14 @@ Then provide your normal text explanation below it.`,
           )}
           <div className="relative flex items-center">
           {/* Dropup Menu — side panel on desktop, bottom sheet on mobile */}
-          {isDropupOpen && !isMobile && (
+          {isDropupOpen && !isMobileChatView && (
             <div className="absolute bottom-0 left-[calc(100%+8px)] w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border py-2 animate-in slide-in-from-left-2 fade-in duration-200 z-40">
               {plusMenuContent}
             </div>
           )}
 
           {/* Mobile bottom sheet */}
-          <Sheet open={isDropupOpen && isMobile} onOpenChange={(open) => { if (!open) { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); } }}>
+          <Sheet open={isDropupOpen && isMobileChatView} onOpenChange={(open) => { if (!open) { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); } }}>
             <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto px-2 pb-6">
               <SheetHeader className="sr-only"><SheetTitle>Menu</SheetTitle></SheetHeader>
               <div className="py-2">
@@ -2100,7 +2100,7 @@ Then provide your normal text explanation below it.`,
 
           {/* Plus button — opens on hover (desktop only) */}
           <div className="group relative"
-            onMouseEnter={() => { if (!isMobile && !isDropupOpen) setIsDropupOpen(true); }}
+            onMouseEnter={() => { if (!isMobileChatView && !isDropupOpen) setIsDropupOpen(true); }}
           >
             <button
               onClick={() => { setIsDropupOpen(!isDropupOpen); if (isDropupOpen) { setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); } }}
