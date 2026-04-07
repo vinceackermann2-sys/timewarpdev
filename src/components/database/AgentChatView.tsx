@@ -166,6 +166,7 @@ interface ChatMessage {
   files?: { name: string; url?: string }[];
   employees?: { id: string; name: string; role: string }[];
   isStreaming?: boolean;
+  streamStartTime?: number;
   taskSteps?: { action: string; label: string; status: "running" | "done" | "error"; detail?: string }[];
   currentStepIndex?: number;
   reportContent?: string;
