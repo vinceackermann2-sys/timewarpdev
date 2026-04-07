@@ -685,13 +685,23 @@ export function AgentChatView() {
   /* ── Agent chat (streaming) ── */
   const runAgentChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
-    // Build the last user message as multimodal if it contains images
     const userContent = buildMultimodalContent(userMsg.content);
     chatHistory.push({ role: "user", content: userContent });
 
-    // Find the active brand's DB row ID to pass business DNA context
     const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
     const brandRowId = activeBrand ? (activeBrand as any)._rowId : undefined;
+
+    const taskSteps: ChatMessage["taskSteps"] = [];
+    const addStep = (label: string, status: "running" | "done" | "error" = "running") => {
+      taskSteps.push({ action: "process", label, status });
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true, streamStartTime: m.streamStartTime || Date.now() } : m));
+    };
+    const completeStep = () => {
+      if (taskSteps.length > 0) taskSteps[taskSteps.length - 1].status = "done";
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
+    };
+
+    addStep("Working on memory...");
 
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
@@ -712,9 +722,15 @@ export function AgentChatView() {
     );
 
     if (!response.ok) {
+      completeStep();
+      addStep("Error");
+      taskSteps[taskSteps.length - 1].status = "error";
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || "Failed to get response");
     }
+
+    completeStep();
+    addStep("Generating response...");
 
     // Stream SSE response
     const reader = response.body?.getReader();
@@ -737,13 +753,17 @@ export function AgentChatView() {
           const delta = parsed.choices?.[0]?.delta?.content || "";
           if (delta) {
             fullContent += delta;
-            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, isStreaming: true } : m));
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, taskSteps: [...taskSteps], isStreaming: true } : m));
           }
         } catch {}
       }
     }
 
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", isStreaming: false } : m));
+    completeStep();
+    addStep("Done");
+    completeStep();
+
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", taskSteps: [...taskSteps], isStreaming: false } : m));
   };
 
   /* ── Agent chat with browser context (computer mode, no employee) ── */
