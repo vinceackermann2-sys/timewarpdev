@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose
+  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square
 } from "lucide-react";
 import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
@@ -216,6 +216,7 @@ export function AgentChatView() {
   /* ── Chat state ── */
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -585,7 +586,42 @@ export function AgentChatView() {
       }
     }
     if (referencedUrls.length > 0) {
-      userContent += `\n\n🔗 Referenced: ${referencedUrls.map(r => r.url).join(", ")}`;
+      // Fetch content from referenced URLs so the AI can analyze them
+      userContent += `\n\n🔗 Referenced URLs:`;
+      const urlFetches = await Promise.allSettled(
+        referencedUrls.map(async (r) => {
+          try {
+            const res = await fetchWithTimeout(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${session.access_token}`,
+                  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                },
+                body: JSON.stringify({ url: r.url, type: "url" }),
+              },
+              30000 // 30s timeout per URL
+            );
+            if (res.ok) {
+              const data = await res.json();
+              return { url: r.url, content: data.analyzed_content || data.content || "" };
+            }
+            return { url: r.url, content: "" };
+          } catch {
+            return { url: r.url, content: "" };
+          }
+        })
+      );
+      for (const result of urlFetches) {
+        if (result.status === "fulfilled" && result.value.content) {
+          userContent += `\n\n--- ${result.value.url} ---\n${result.value.content.slice(0, 5000)}\n`;
+        } else {
+          const url = result.status === "fulfilled" ? result.value.url : "unknown";
+          userContent += `\n${url} (could not fetch content)`;
+        }
+      }
     }
 
     const userMsg: ChatMessage = {
@@ -634,16 +670,21 @@ export function AgentChatView() {
       }
     } catch (err: any) {
       console.error("Send error:", err);
-      const errorMsg = err.message || "Something went wrong";
+      const isCancelled = err.message === "Cancelled";
+      const errorMsg = isCancelled ? "Message cancelled" : (err.message || "Something went wrong");
       setMessages(prev => prev.map(m => {
         if (m.id !== assistantId) return m;
-        // Mark any running task steps as error
         const updatedSteps = (m.taskSteps || []).map(s => 
-          s.status === "running" ? { ...s, status: "error" as const } : s
+          s.status === "running" ? { ...s, status: "done" as const } : s
         );
-        // Add an explicit error step
+        if (isCancelled) {
+          updatedSteps.push({ action: "cancel", label: "Cancelled by user", status: "done" as const });
+          if (m.content && m.content.trim().length > 5) {
+            return { ...m, content: m.content + "\n\n---\n*⏹ Generation stopped by user*", taskSteps: updatedSteps, isStreaming: false };
+          }
+          return { ...m, content: "⏹ Message cancelled", taskSteps: updatedSteps, isStreaming: false };
+        }
         updatedSteps.push({ action: "error", label: `Failed: ${errorMsg}`, status: "error" as const });
-        // If we already have partial content from streaming, keep it with a notice
         if (m.content && m.content.trim().length > 20) {
           return { ...m, content: m.content + "\n\n---\n⚠️ *Response was cut short. Try again with a more specific request.*", taskSteps: updatedSteps, isStreaming: false };
         }
@@ -694,16 +735,25 @@ export function AgentChatView() {
     return parts.length === 1 && parts[0].type === "text" ? parts[0].text : parts;
   };
 
-  /* ── Fetch with timeout to prevent infinite hanging ── */
+  /* ── Fetch with timeout and cancellation support ── */
   const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000): Promise<Response> => {
     const controller = new AbortController();
+    abortControllerRef.current = controller;
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     return fetch(url, { ...options, signal: controller.signal })
       .catch(err => {
-        if (err.name === "AbortError") throw new Error("Request timed out. The server took too long to respond.");
+        if (err.name === "AbortError") throw new Error("Cancelled");
         throw err;
       })
       .finally(() => clearTimeout(timer));
+  };
+
+  /* ── Cancel in-progress message ── */
+  const handleCancelMessage = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
   };
 
   /* ── Agent chat (streaming) ── */
@@ -1990,16 +2040,25 @@ export function AgentChatView() {
             />
           </div>
 
-          {/* Send button */}
-          <button
-            onClick={handleSendMessage}
-            disabled={isSending}
-            className={`p-2.5 rounded-full text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm ${
-              isSending ? "opacity-50 cursor-not-allowed" : ""
-            } ${isActionMode ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90"}`}
-          >
-            {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUp className="w-5 h-5" />}
-          </button>
+          {/* Send / Stop button */}
+          {isSending ? (
+            <button
+              onClick={handleCancelMessage}
+              className="p-2.5 rounded-full bg-destructive text-destructive-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm hover:bg-destructive/90"
+              title="Stop generating"
+            >
+              <Square className="w-4 h-4 fill-current" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSendMessage}
+              className={`p-2.5 rounded-full text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm ${
+                isActionMode ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90"
+              }`}
+            >
+              <ArrowUp className="w-5 h-5" />
+            </button>
+          )}
           </div>
         </div>
       </footer>
