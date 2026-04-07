@@ -239,13 +239,44 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
 
   // Emails are fetched separately with pagination below
   if (cats.events !== false) {
-    const eventLimit = Math.min(Math.max(lims.events || 200, 1), 500);
-    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/events?$top=${eventLimit}&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc`, { headers }));
+    // Fetch all events with pagination
+    const allEvents: any[] = [];
+    let evUrl: string | null = `https://graph.microsoft.com/v1.0/me/events?$top=500&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc`;
+    while (evUrl) {
+      const r = await fetch(evUrl, { headers });
+      if (!r.ok) break;
+      const d = await r.json();
+      allEvents.push(...(d.value || []));
+      evUrl = d["@odata.nextLink"] || null;
+      if (allEvents.length >= 5000) break;
+    }
+    console.log(`Microsoft cal total: ${allEvents.length} events`);
+    fetches.push(Promise.resolve(new Response(JSON.stringify({ value: allEvents }), { status: 200 })));
     fetchKeys.push("cal");
   }
   if (cats.files !== false) {
-    const fileLimit = Math.min(Math.max(lims.files || 200, 1), 500);
-    fetches.push(fetch(`https://graph.microsoft.com/v1.0/me/drive/recent?$top=${fileLimit}`, { headers }));
+    // Fetch all files with pagination
+    const allFiles: any[] = [];
+    let fUrl: string | null = `https://graph.microsoft.com/v1.0/me/drive/root/children?$top=500`;
+    while (fUrl) {
+      const r = await fetch(fUrl, { headers });
+      if (!r.ok) break;
+      const d = await r.json();
+      allFiles.push(...(d.value || []));
+      fUrl = d["@odata.nextLink"] || null;
+      if (allFiles.length >= 5000) break;
+    }
+    // Also fetch recent files
+    const recentRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/recent?$top=200`, { headers });
+    if (recentRes.ok) {
+      const recentData = await recentRes.json();
+      const existingIds = new Set(allFiles.map((f: any) => f.id));
+      for (const f of (recentData.value || [])) {
+        if (!existingIds.has(f.id)) allFiles.push(f);
+      }
+    }
+    console.log(`Microsoft files total: ${allFiles.length} files`);
+    fetches.push(Promise.resolve(new Response(JSON.stringify({ value: allFiles }), { status: 200 })));
     fetchKeys.push("files");
   }
   if (cats.contacts !== false) {
