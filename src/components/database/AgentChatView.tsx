@@ -1138,7 +1138,7 @@ export function AgentChatView() {
         updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
 
         // Call run-employee
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
           {
             method: "POST",
