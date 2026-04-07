@@ -553,7 +553,12 @@ export function AgentChatView() {
     try {
       await runComputerMode(session, userMsg, assistantId);
     } catch (err: any) {
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Sorry, something went wrong. Please try again.", isStreaming: false } : m));
+      setMessages(prev => prev.map(m => {
+        if (m.id !== assistantId) return m;
+        const updatedSteps = (m.taskSteps || []).map(s => s.status === "running" ? { ...s, status: "error" as const } : s);
+        updatedSteps.push({ action: "error", label: `Failed: ${err.message || "Unknown error"}`, status: "error" as const });
+        return { ...m, content: `⚠️ ${err.message || "Something went wrong. Please try again."}`, taskSteps: updatedSteps, isStreaming: false };
+      }));
     }
     setIsSending(false);
   };
@@ -628,15 +633,22 @@ export function AgentChatView() {
         await runAgentChat(session, userMsg, assistantId);
       }
     } catch (err: any) {
+      console.error("Send error:", err);
+      const errorMsg = err.message || "Something went wrong";
       setMessages(prev => prev.map(m => {
         if (m.id !== assistantId) return m;
+        // Mark any running task steps as error
+        const updatedSteps = (m.taskSteps || []).map(s => 
+          s.status === "running" ? { ...s, status: "error" as const } : s
+        );
+        // Add an explicit error step
+        updatedSteps.push({ action: "error", label: `Failed: ${errorMsg}`, status: "error" as const });
         // If we already have partial content from streaming, keep it with a notice
         if (m.content && m.content.trim().length > 20) {
-          return { ...m, content: m.content + "\n\n---\n⚠️ *Response was cut short due to a timeout. The content above is what was generated before the interruption. Try asking for a shorter or more focused output.*", isStreaming: false };
+          return { ...m, content: m.content + "\n\n---\n⚠️ *Response was cut short. Try again with a more specific request.*", taskSteps: updatedSteps, isStreaming: false };
         }
-        return { ...m, content: "Sorry, something went wrong. Please try again with a more specific request.", isStreaming: false };
+        return { ...m, content: `⚠️ ${errorMsg}`, taskSteps: updatedSteps, isStreaming: false };
       }));
-      console.error("Send error:", err);
     }
 
     setIsSending(false);
@@ -682,6 +694,18 @@ export function AgentChatView() {
     return parts.length === 1 && parts[0].type === "text" ? parts[0].text : parts;
   };
 
+  /* ── Fetch with timeout to prevent infinite hanging ── */
+  const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000): Promise<Response> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal })
+      .catch(err => {
+        if (err.name === "AbortError") throw new Error("Request timed out. The server took too long to respond.");
+        throw err;
+      })
+      .finally(() => clearTimeout(timer));
+  };
+
   /* ── Agent chat (streaming) ── */
   const runAgentChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
@@ -703,7 +727,7 @@ export function AgentChatView() {
 
     addStep("Working on memory...");
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
       {
         method: "POST",
@@ -795,7 +819,7 @@ export function AgentChatView() {
         const stepTime = new Date();
         updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: `Step ${stepCount + 1}...` });
 
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
           {
             method: "POST",
@@ -1030,7 +1054,7 @@ export function AgentChatView() {
         addStep(`Continuing generation... (${continuationCount})`);
       }
 
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
         {
           method: "POST",
@@ -1119,7 +1143,7 @@ export function AgentChatView() {
         updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
 
         // Call run-employee
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
           {
             method: "POST",
