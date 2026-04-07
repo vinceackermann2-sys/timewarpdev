@@ -2005,16 +2005,25 @@ export function AgentChatView() {
             />
           </div>
 
-          {/* Send button */}
-          <button
-            onClick={handleSendMessage}
-            disabled={isSending}
-            className={`p-2.5 rounded-full text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm ${
-              isSending ? "opacity-50 cursor-not-allowed" : ""
-            } ${isActionMode ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90"}`}
-          >
-            {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUp className="w-5 h-5" />}
-          </button>
+          {/* Send / Stop button */}
+          {isSending ? (
+            <button
+              onClick={handleCancelMessage}
+              className="p-2.5 rounded-full bg-destructive text-destructive-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm hover:bg-destructive/90"
+              title="Stop generating"
+            >
+              <Square className="w-4 h-4 fill-current" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSendMessage}
+              className={`p-2.5 rounded-full text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm ${
+                isActionMode ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90"
+              }`}
+            >
+              <ArrowUp className="w-5 h-5" />
+            </button>
+          )}
           </div>
         </div>
       </footer>
