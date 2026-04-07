@@ -1895,6 +1895,53 @@ export function AgentChatView() {
                 )}
               </div>
 
+              {/* Graphics sub-menu (inline expand) */}
+              <div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowGraphicsMenu(!showGraphicsMenu); setShowReference(false); setShowEmployeesMenu(false); }}
+                  className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Palette className="w-4 h-4 text-muted-foreground" />
+                    Graphics
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showGraphicsMenu ? "rotate-180" : ""}`} />
+                </button>
+                {showGraphicsMenu && (
+                  <div className="px-2 pb-2">
+                    {[
+                      { label: "Document", icon: FileText, desc: "Generate a formatted document" },
+                      { label: "Graph", icon: BarChart3, desc: "Create a data visualization" },
+                      { label: "Analytics", icon: PieChart, desc: "Build an analytics report" },
+                      { label: "Spreadsheet", icon: Table2, desc: "Generate a spreadsheet" },
+                      { label: "Slide", icon: Presentation, desc: "Create a presentation slide" },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => {
+                          setSelectedGraphic(item.label);
+                          setIsDropupOpen(false);
+                          setShowGraphicsMenu(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-3",
+                          selectedGraphic === item.label ? "bg-primary/10 text-primary" : "text-muted-foreground"
+                        )}
+                      >
+                        <item.icon className="w-4 h-4 shrink-0" />
+                        <div className="flex flex-col">
+                          <span className={cn("font-medium", selectedGraphic === item.label ? "text-primary" : "text-foreground")}>{item.label}</span>
+                          <span className="text-xs text-muted-foreground">{item.desc}</span>
+                        </div>
+                        {selectedGraphic === item.label && (
+                          <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">Selected</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Employees sub-menu (inline expand) */}
               <div>
                 <button
