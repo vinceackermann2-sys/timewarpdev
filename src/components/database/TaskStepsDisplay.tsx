@@ -117,11 +117,18 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] text-muted-foreground">
           {!sectionDone && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground/60" />}
           {sectionDone && <CheckCircle2 className="w-3 h-3 text-muted-foreground/60" />}
-          <span className={cn("font-medium", !sectionDone && "animate-pulse")}>
+          <span className="font-medium">
             {sectionDone
               ? `Completed ${taskCount} task${taskCount !== 1 ? "s" : ""}`
-              : `Thinking...`}
+              : `Thinking`}
           </span>
+          {!sectionDone && (
+            <span className="inline-flex gap-[2px] items-end h-[14px]">
+              <span className="w-[3px] h-[3px] rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
+              <span className="w-[3px] h-[3px] rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
+              <span className="w-[3px] h-[3px] rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+            </span>
+          )}
           <span className="text-[11px] opacity-40">·</span>
           <ThinkingTimer startTime={section.startTime} stopped={sectionDone} className="text-[11px] opacity-50" />
         </div>
@@ -163,7 +170,7 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
                 {/* Label - thinking animation only on active text */}
                 <span className={cn(
                   "truncate",
-                  isActive && "text-muted-foreground animate-pulse",
+                  isActive && "text-muted-foreground",
                   isDone && "text-muted-foreground/70",
                   isError && "text-destructive",
                 )}>
