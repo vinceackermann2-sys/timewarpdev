@@ -178,7 +178,12 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const checkConnection = useCallback(async () => {
+  const checkConnection = useCallback(async (forceRefresh = false) => {
+    // Return cached connections if fresh enough
+    if (!forceRefresh && _cachedConnections && Date.now() - _connectionsCacheTs < CONNECTIONS_CACHE_TTL) {
+      setConnectedProviders(_cachedConnections);
+      return;
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
@@ -200,6 +205,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         for (const c of (data.connected || [])) {
           map[c.provider] = { email: c.email || null };
         }
+        _cachedConnections = map;
+        _connectionsCacheTs = Date.now();
         setConnectedProviders(map);
       }
     } catch (err) {
