@@ -2110,7 +2110,7 @@ Then provide your normal text explanation below it.`,
                       {msg.employees && msg.employees.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {msg.employees.map(e => (
-                            <span key={e.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-foreground/20 text-xs">
+                            <span key={e.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-foreground/10 text-xs">
                               <User className="w-3 h-3" /> {e.name}
                             </span>
                           ))}
