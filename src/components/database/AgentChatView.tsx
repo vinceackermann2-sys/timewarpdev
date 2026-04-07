@@ -2527,30 +2527,18 @@ Make bullet points specific and actionable based on their question. Then provide
                       {(() => { const connected = !!connectedProviders["hubspot"]; return (
                       <div className={cn(
                         "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-                        connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
+                        "border-border/50 opacity-60 cursor-default"
                       )}>
                         <div className="flex items-center justify-between">
                           <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
                             <img src={logoHubspot} alt="HubSpot" className="h-7 w-7 object-contain" />
                           </div>
-                          {connected && (
-                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
-                          )}
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Coming Soon</span>
                         </div>
                         <div>
                           <p className="text-sm font-medium">HubSpot</p>
                           <p className="text-xs text-muted-foreground">CRM, Contacts, Deals</p>
                         </div>
-                        {connected ? (
-                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleProviderDisconnect("hubspot")}>
-                            Disconnect
-                          </Button>
-                        ) : (
-                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleProviderConnect("hubspot")} disabled={!!connectingProvider}>
-                            {connectingProvider === "hubspot" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                            Connect
-                          </Button>
-                        )}
                       </div>
                       ); })()}
 
