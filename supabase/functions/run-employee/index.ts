@@ -188,7 +188,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId } = await req.json();
+    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId, continuationContent } = await req.json();
     if (!employee_id) throw new Error("employee_id required");
 
     // Load employee
