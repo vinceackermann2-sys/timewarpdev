@@ -1805,10 +1805,10 @@ export function AgentChatView() {
                 </div>
               )}
               {selectedGraphic && (
-                <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                  <Palette className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs font-medium text-primary">{selectedGraphic}</span>
-                  <button onClick={() => setSelectedGraphic(null)} className="text-primary/60 hover:text-primary">
+                <div className="flex items-center gap-1.5 bg-[#3399ff]/10 border border-[#3399ff]/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
+                  <Palette className="w-3.5 h-3.5 text-[#3399ff]" />
+                  <span className="text-xs font-medium text-[#3399ff]">{selectedGraphic}</span>
+                  <button onClick={() => setSelectedGraphic(null)} className="text-[#3399ff]/60 hover:text-[#3399ff]">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
