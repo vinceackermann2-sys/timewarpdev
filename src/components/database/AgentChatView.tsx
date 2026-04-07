@@ -815,7 +815,7 @@ Make bullet points specific and actionable based on their question. Then provide
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
     };
 
-    addStep("Loading context");
+    addStep("Loading context...");
 
     const response = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
@@ -844,7 +844,9 @@ Make bullet points specific and actionable based on their question. Then provide
     }
 
     completeStep();
-    addStep("Writing response");
+    addStep("Analyzing request...");
+    completeStep();
+    addStep("Writing response...");
 
     // Stream SSE response
     const reader = response.body?.getReader();
@@ -874,7 +876,7 @@ Make bullet points specific and actionable based on their question. Then provide
     }
 
     completeStep();
-    addStep("Complete");
+    addStep("Done");
     completeStep();
 
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", taskSteps: [...taskSteps], isStreaming: false } : m));
