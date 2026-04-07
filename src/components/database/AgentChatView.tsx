@@ -2173,10 +2173,21 @@ Then provide your normal text explanation below it.`,
             </div>
           )}
           <div className="relative flex items-center">
-          {/* Dropup Menu — side panel on desktop, bottom sheet on mobile */}
+          {/* Desktop: main menu opens upward, sub-menus fly out to the right */}
           {isDropupOpen && !isMobileChatView && (
-            <div className="absolute bottom-0 left-[calc(100%+8px)] w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border py-2 animate-in slide-in-from-left-2 fade-in duration-200 z-40">
-              {plusMenuContent}
+            <div className="absolute bottom-[calc(100%+12px)] left-0 flex items-end z-40">
+              {/* Main menu */}
+              <div className="w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border py-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
+                {plusMenuItems}
+              </div>
+              {/* Flyout sub-menu to the right */}
+              {activeSubMenu && (
+                <div className="ml-2 w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border animate-in slide-in-from-left-2 fade-in duration-150">
+                  {activeSubMenu === "reference" && referenceSubContent}
+                  {activeSubMenu === "graphics" && graphicsSubContent}
+                  {activeSubMenu === "employees" && employeesSubContent}
+                </div>
+              )}
             </div>
           )}
 
@@ -2185,7 +2196,7 @@ Then provide your normal text explanation below it.`,
             <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto px-2 pb-6">
               <SheetHeader className="sr-only"><SheetTitle>Menu</SheetTitle></SheetHeader>
               <div className="py-2">
-                {plusMenuContent}
+                {plusMenuMobileContent}
               </div>
             </SheetContent>
           </Sheet>
