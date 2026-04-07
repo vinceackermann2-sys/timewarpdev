@@ -1106,11 +1106,12 @@ serve(async (req) => {
 
     if (providerData.files) {
       for (const file of providerData.files) {
+        if (!file.name || file.name.trim() === "") continue;
         dataItems.push({
           user_id: user.id,
           data_type: "document",
           source: provider,
-          title: file.name || "Untitled",
+          title: file.name,
           content: file.extractedContent || null,
           metadata: { size: file.size, type: file.type || file.mimeType, webUrl: file.webUrl, lastModified: file.lastModified },
           is_analyzed: !!file.extractedContent,
