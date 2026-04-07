@@ -170,7 +170,7 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
                 {/* Label - thinking animation only on active text */}
                 <span className={cn(
                   "truncate",
-                  isActive && "text-muted-foreground animate-pulse",
+                  isActive && "text-muted-foreground",
                   isDone && "text-muted-foreground/70",
                   isError && "text-destructive",
                 )}>
