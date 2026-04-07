@@ -635,16 +635,21 @@ export function AgentChatView() {
       }
     } catch (err: any) {
       console.error("Send error:", err);
-      const errorMsg = err.message || "Something went wrong";
+      const isCancelled = err.message === "Cancelled";
+      const errorMsg = isCancelled ? "Message cancelled" : (err.message || "Something went wrong");
       setMessages(prev => prev.map(m => {
         if (m.id !== assistantId) return m;
-        // Mark any running task steps as error
         const updatedSteps = (m.taskSteps || []).map(s => 
-          s.status === "running" ? { ...s, status: "error" as const } : s
+          s.status === "running" ? { ...s, status: "done" as const } : s
         );
-        // Add an explicit error step
+        if (isCancelled) {
+          updatedSteps.push({ action: "cancel", label: "Cancelled by user", status: "done" as const });
+          if (m.content && m.content.trim().length > 5) {
+            return { ...m, content: m.content + "\n\n---\n*⏹ Generation stopped by user*", taskSteps: updatedSteps, isStreaming: false };
+          }
+          return { ...m, content: "⏹ Message cancelled", taskSteps: updatedSteps, isStreaming: false };
+        }
         updatedSteps.push({ action: "error", label: `Failed: ${errorMsg}`, status: "error" as const });
-        // If we already have partial content from streaming, keep it with a notice
         if (m.content && m.content.trim().length > 20) {
           return { ...m, content: m.content + "\n\n---\n⚠️ *Response was cut short. Try again with a more specific request.*", taskSteps: updatedSteps, isStreaming: false };
         }
