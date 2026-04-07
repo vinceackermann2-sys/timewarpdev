@@ -1573,6 +1573,7 @@ export function AgentChatView() {
                         <div className="flex items-center gap-2">
                           <Loader2 className="h-4 w-4 animate-spin text-primary" />
                           <span className="text-muted-foreground">Thinking...</span>
+                          {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} className="text-[11px]" />}
                         </div>
                       )}
                       {msg.isStreaming && msg.content && (!msg.taskSteps || msg.taskSteps.length === 0) && (
