@@ -86,7 +86,7 @@ serve(async (req) => {
         status: "connected",
         brand_id: brandId,
         metadata: { team: teamName, team_id: tokenData.team?.id },
-      }, { onConflict: "user_id,provider,brand_id" });
+      }, { onConflict: "user_id,provider" });
 
     const brandParam = brandId ? `&brandId=${brandId}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=slack${brandParam}`, 302);

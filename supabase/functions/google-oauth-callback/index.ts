@@ -92,7 +92,7 @@ serve(async (req) => {
         status: "connected",
         brand_id: brandId,
         metadata: { email: profile.email, name: profile.name },
-      }, { onConflict: "user_id,provider,brand_id" });
+      }, { onConflict: "user_id,provider" });
 
     const brandParam = brandId ? `&brandId=${brandId}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=google${brandParam}`, 302);

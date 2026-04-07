@@ -253,7 +253,7 @@ serve(async (req) => {
           status: "connected",
           brand_id: resolvedBrandId,
           metadata: { siteUrl: normalizedUrl, username: body.username, displayName: wpUser.name },
-        }, { onConflict: "user_id,provider,brand_id" });
+        }, { onConflict: "user_id,provider" });
 
       return new Response(JSON.stringify({ success: true, displayName: wpUser.name }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

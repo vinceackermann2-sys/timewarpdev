@@ -96,7 +96,7 @@ serve(async (req) => {
         status: "connected",
         brand_id: brandId,
         metadata: { email: profile.mail || profile.userPrincipalName },
-      }, { onConflict: "user_id,provider,brand_id" });
+      }, { onConflict: "user_id,provider" });
 
     // Pass brandId in redirect so auto-sync can use it
     const brandParam = logicalBrandId ? `&brandId=${encodeURIComponent(logicalBrandId)}` : "";
