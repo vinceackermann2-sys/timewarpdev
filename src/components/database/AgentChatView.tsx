@@ -2000,7 +2000,7 @@ Then provide your normal text explanation below it.`,
                 <div className={cn(
                   "max-w-[80%] rounded-2xl px-5 py-3 text-sm",
                   msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-md"
+                    ? "bg-[#e5e7eb] text-foreground rounded-br-md"
                     : "rounded-bl-md text-foreground"
                 )}>
                   {msg.role === "assistant" ? (
@@ -2097,11 +2097,20 @@ Then provide your normal text explanation below it.`,
                     </div>
                   ) : (
                     <>
-                      {msg.content}
+                      {(() => {
+                        let display = msg.content;
+                        // Strip graphic instructions appended after emoji
+                        const graphicIdx = display.indexOf("\n\n🎨 Output format:");
+                        if (graphicIdx !== -1) display = display.slice(0, graphicIdx);
+                        // Strip fetched reference content appended after ---
+                        const refIdx = display.indexOf("\n\n--- http");
+                        if (refIdx !== -1) display = display.slice(0, refIdx);
+                        return display;
+                      })()}
                       {msg.employees && msg.employees.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {msg.employees.map(e => (
-                            <span key={e.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-foreground/20 text-xs">
+                            <span key={e.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-foreground/10 text-xs">
                               <User className="w-3 h-3" /> {e.name}
                             </span>
                           ))}
