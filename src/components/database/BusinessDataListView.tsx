@@ -78,6 +78,21 @@ function getCachedForBrand(brandId: string): DataItem[] | null {
   return null;
 }
 
+// Module-level cache for connection status (avoid calling edge function on every brand switch)
+let _cachedConnections: Record<string, { email?: string | null }> | null = null;
+let _connectionsCacheTs = 0;
+const CONNECTIONS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function calculateUsageFromItems(items: Array<{ title?: string; content?: string | null; analyzed_content?: string | null; metadata?: any; source?: string }>): number {
+  let total = 0;
+  for (const row of items) {
+    if (row.source === "business-dna") continue;
+    total += (row.title?.length || 0) + (row.content?.length || 0) + (row.analyzed_content?.length || 0);
+    if (row.metadata?.file_size) total += Number(row.metadata.file_size) || 0;
+  }
+  return total;
+}
+
 export function BusinessDataListView({ activeBrandId }: { activeBrandId: string }) {
   const brandCache = getCachedForBrand(activeBrandId);
   const [items, setItems] = useState<DataItem[]>(brandCache ?? []);
