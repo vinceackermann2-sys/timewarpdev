@@ -586,7 +586,42 @@ export function AgentChatView() {
       }
     }
     if (referencedUrls.length > 0) {
-      userContent += `\n\n🔗 Referenced: ${referencedUrls.map(r => r.url).join(", ")}`;
+      // Fetch content from referenced URLs so the AI can analyze them
+      userContent += `\n\n🔗 Referenced URLs:`;
+      const urlFetches = await Promise.allSettled(
+        referencedUrls.map(async (r) => {
+          try {
+            const res = await fetchWithTimeout(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${session.access_token}`,
+                  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                },
+                body: JSON.stringify({ url: r.url, type: "url" }),
+              },
+              30000 // 30s timeout per URL
+            );
+            if (res.ok) {
+              const data = await res.json();
+              return { url: r.url, content: data.analyzed_content || data.content || "" };
+            }
+            return { url: r.url, content: "" };
+          } catch {
+            return { url: r.url, content: "" };
+          }
+        })
+      );
+      for (const result of urlFetches) {
+        if (result.status === "fulfilled" && result.value.content) {
+          userContent += `\n\n--- ${result.value.url} ---\n${result.value.content.slice(0, 5000)}\n`;
+        } else {
+          const url = result.status === "fulfilled" ? result.value.url : "unknown";
+          userContent += `\n${url} (could not fetch content)`;
+        }
+      }
     }
 
     const userMsg: ChatMessage = {
