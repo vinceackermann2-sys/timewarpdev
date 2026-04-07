@@ -58,7 +58,7 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
       >
         <span className="font-medium">{headerLabel}</span>
         <span className="text-muted-foreground/60">·</span>
-        <ThinkingTimer startTime={startTime} className="text-[12px]" />
+        <ThinkingTimer startTime={startTime} stopped={allDone} className="text-[12px]" />
         {collapsed ? (
           <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60" />
         ) : (
@@ -66,8 +66,13 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
         )}
       </button>
 
-      {/* Steps list */}
-      {!collapsed && (
+      {/* Steps list with collapse animation */}
+      <div
+        className={cn(
+          "overflow-hidden transition-all duration-300 ease-in-out",
+          collapsed ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100"
+        )}
+      >
         <div
           ref={scrollRef}
           className="max-h-[240px] overflow-y-auto ml-1 mt-1"
@@ -79,7 +84,7 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
             const isLast = idx === groupedSteps.length - 1;
 
             return (
-              <div key={idx} className="flex items-stretch gap-0">
+              <div key={idx} className="flex items-stretch gap-0 animate-in fade-in slide-in-from-bottom-1 duration-200">
                 {/* Vertical timeline */}
                 <div className="flex flex-col items-center w-6 shrink-0">
                   {/* Icon */}
@@ -117,7 +122,7 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
             );
           })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
