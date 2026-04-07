@@ -733,7 +733,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
             Upload
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowIntegrations(prev => !prev)}>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setShowIntegrations(prev => !prev); checkConnection(); }}>
             <Plug className="h-3.5 w-3.5" />
             Integrations
           </Button>
