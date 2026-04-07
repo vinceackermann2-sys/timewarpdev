@@ -17,6 +17,7 @@ interface Integration {
   description: string;
   logo: string;
   authType: "oauth" | "credentials";
+  comingSoon?: boolean;
 }
 
 const integrations: Integration[] = [
