@@ -722,7 +722,7 @@ export function AgentChatView() {
 
     addStep("Working on memory...");
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
       {
         method: "POST",
@@ -1049,7 +1049,7 @@ export function AgentChatView() {
         addStep(`Continuing generation... (${continuationCount})`);
       }
 
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
         {
           method: "POST",
