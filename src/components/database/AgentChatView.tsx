@@ -629,11 +629,31 @@ export function AgentChatView() {
     }
     if (selectedGraphic) {
       const graphicInstructions: Record<string, string> = {
-        "Document": "Format your response as a professional, well-structured document with clear headings, sections, and proper formatting. Use markdown with headers, lists, and emphasis.",
-        "Graph": "Include a data visualization in your response. Use ```chart``` code blocks with JSON data for charts (bar, line, pie). Provide the data and chart configuration.",
-        "Analytics": "Provide a detailed analytics report with key metrics, trends, insights, and data breakdowns. Use tables, statistics, and clear data-driven conclusions.",
-        "Spreadsheet": "Structure your response as tabular data using markdown tables. Include headers, organized rows, calculated totals, and clear column categories.",
-        "Slide": "Format your response as a presentation slide — use a bold headline, 3-5 concise bullet points, and a key takeaway. Keep it visual and scannable.",
+        "Document": `IMPORTANT: You MUST include a \`\`\`document code block with JSON in this format BEFORE your normal text answer:
+\`\`\`document
+{"title":"Document Title","sections":[{"heading":"Section","content":"Content here"}],"date":"Today's date"}
+\`\`\`
+Then provide your normal text explanation below it.`,
+        "Graph": `IMPORTANT: You MUST include a \`\`\`chart code block with JSON BEFORE your normal text answer:
+\`\`\`chart
+{"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
+\`\`\`
+Supported types: bar, line, area, pie. For pie use nameKey and valueKey instead of xKey/yKeys. Then provide your normal text explanation below it.`,
+        "Analytics": `IMPORTANT: You MUST include a \`\`\`analytics code block with JSON BEFORE your normal text answer:
+\`\`\`analytics
+{"title":"Analytics Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Key insight 1"],"chart":{"data":[{"month":"Jan","value":100}],"xKey":"month","yKeys":["value"]}}
+\`\`\`
+Each metric can have: label, value, change (percentage number, positive=green negative=red), unit. Chart is optional. Then provide your normal text explanation below it.`,
+        "Spreadsheet": `IMPORTANT: You MUST include a \`\`\`spreadsheet code block with JSON BEFORE your normal text answer:
+\`\`\`spreadsheet
+{"title":"Table Title","headers":["Col1","Col2"],"rows":[["A","B"],["C","D"]],"footer":["Total","100"]}
+\`\`\`
+Footer row is optional (for totals). Then provide your normal text explanation below it.`,
+        "Slide": `IMPORTANT: You MUST include a \`\`\`slide code block with JSON BEFORE your normal text answer:
+\`\`\`slide
+{"title":"Slide Title","subtitle":"Optional subtitle","bullets":["Point 1","Point 2","Point 3"],"takeaway":"The key takeaway message"}
+\`\`\`
+Then provide your normal text explanation below it.`,
       };
       userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
     }
