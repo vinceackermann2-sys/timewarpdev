@@ -1638,7 +1638,7 @@ export function AgentChatView() {
                           }}
                         >{msg.content}</ReactMarkdown>
                       )}
-                      {msg.isStreaming && !msg.content && (
+                      {msg.isStreaming && !msg.content && (!msg.taskSteps || msg.taskSteps.length === 0) && (
                         <div className="flex items-center gap-2">
                           <Loader2 className="h-4 w-4 animate-spin text-primary" />
                           <span className="text-muted-foreground">Thinking...</span>
