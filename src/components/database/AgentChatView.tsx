@@ -814,7 +814,7 @@ export function AgentChatView() {
         const stepTime = new Date();
         updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: `Step ${stepCount + 1}...` });
 
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
           {
             method: "POST",
