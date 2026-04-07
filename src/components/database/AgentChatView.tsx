@@ -694,6 +694,13 @@ export function AgentChatView() {
     return parts.length === 1 && parts[0].type === "text" ? parts[0].text : parts;
   };
 
+  /* ── Fetch with timeout to prevent infinite hanging ── */
+  const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000): Promise<Response> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+  };
+
   /* ── Agent chat (streaming) ── */
   const runAgentChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
