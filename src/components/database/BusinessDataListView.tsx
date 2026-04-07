@@ -275,7 +275,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         let query = (supabase as any)
           .from("user_business_data")
           .select("title, content, analyzed_content, metadata")
-          .eq("metadata->>brandId", activeBrandId);
+          .eq("metadata->>brandId", activeBrandId)
+          .not("source", "eq", "business-dna");
 
         if (wsId) {
           query = query.eq("workspace_id", wsId);
