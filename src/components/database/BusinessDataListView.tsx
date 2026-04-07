@@ -406,7 +406,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .eq("metadata->>brandId", activeBrandId)
           .order("created_at", { ascending: false })
-          .limit(200);
+          .limit(1000);
         if (wsId) {
           refreshQuery = refreshQuery.eq("workspace_id", wsId);
         } else {
