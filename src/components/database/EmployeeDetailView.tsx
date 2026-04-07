@@ -807,11 +807,11 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 {[
                   { id: "microsoft", name: "Microsoft", desc: "Outlook, OneDrive, Calendar", logo: logoMicrosoft },
                   { id: "slack", name: "Slack", desc: "Channels, Messages, Files", logo: logoSlack },
-                  { id: "hubspot", name: "HubSpot", desc: "CRM, Contacts, Deals", logo: logoHubspot },
+                  { id: "hubspot", name: "HubSpot", desc: "CRM, Contacts, Deals", logo: logoHubspot, comingSoon: true },
                 ].map(integration => {
                   const connected = !!connectedProviders[integration.id];
                   return (
-                    <div key={integration.id} className={`flex flex-col gap-2 p-4 rounded-xl border transition-all ${connected ? "border-primary/40 bg-primary/5" : "border-border/50"}`}>
+                    <div key={integration.id} className={`flex flex-col gap-2 p-4 rounded-xl border transition-all ${(integration as any).comingSoon ? "border-border/50 opacity-60" : connected ? "border-primary/40 bg-primary/5" : "border-border/50"}`}>
                       <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center p-1">
                           <img src={integration.logo} alt={integration.name} className="h-5 w-5 object-contain" />
@@ -821,7 +821,9 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                           <p className="text-[10px] text-muted-foreground truncate">{integration.desc}</p>
                         </div>
                       </div>
-                      {connected ? (
+                      {(integration as any).comingSoon ? (
+                        <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-center">Coming Soon</span>
+                      ) : connected ? (
                         <Button variant="outline" size="sm" className="h-7 text-[11px] w-full text-destructive hover:text-destructive" onClick={() => handleDisconnectProvider(integration.id)}>
                           Disconnect
                         </Button>

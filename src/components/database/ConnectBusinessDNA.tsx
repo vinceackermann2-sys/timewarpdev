@@ -17,12 +17,13 @@ interface Integration {
   description: string;
   logo: string;
   authType: "oauth" | "credentials";
+  comingSoon?: boolean;
 }
 
 const integrations: Integration[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" },
   { id: "slack", name: "Slack", description: "Channels, Messages, Team Info", logo: logoSlack, authType: "oauth" },
-  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth" },
+  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth", comingSoon: true },
 ];
 
 interface ConnectedProvider {
@@ -249,7 +250,9 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.07, duration: 0.35 }}
                   className={`relative flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
-                    connected
+                    integration.comingSoon
+                      ? "border-border/50 opacity-60 cursor-default"
+                    : connected
                       ? "border-green-500/50 bg-green-500/5"
                       : "border-border hover:border-primary/40 hover:bg-muted/50"
                   }`}
@@ -264,7 +267,9 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
                     )}
                   </div>
                   <div className="flex-shrink-0">
-                    {connected ? (
+                    {integration.comingSoon ? (
+                      <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground whitespace-nowrap">Coming Soon</span>
+                    ) : connected ? (
                       <div className="flex items-center gap-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => syncProviderData(integration.id)} disabled={isSyncing}>
                           {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}

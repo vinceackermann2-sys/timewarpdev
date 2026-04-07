@@ -102,7 +102,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
 const integrations = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft, authType: "oauth" as const },
   { id: "slack", name: "Slack", description: "Channels, Messages, Files, Users", logo: logoSlack, authType: "oauth" as const },
-  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth" as const },
+  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, authType: "oauth" as const, comingSoon: true },
 ];
 
 type SettingsTab = "settings" | "workspace" | "plans" | "connections";
@@ -728,13 +728,15 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                       const connected = connectedProviders.includes(integration.id);
                       const isActioning = actionProvider === integration.id;
                       return (
-                        <div key={integration.id} className={cn("p-4 rounded-xl border transition-colors", connected ? "border-primary/40 bg-primary/5" : "border-border bg-muted/20")}>
+                        <div key={integration.id} className={cn("p-4 rounded-xl border transition-colors", (integration as any).comingSoon ? "border-border/50 opacity-60" : connected ? "border-primary/40 bg-primary/5" : "border-border bg-muted/20")}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-2"><img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" /></div>
                               <div><p className="text-sm font-medium">{integration.name}</p><p className="text-xs text-muted-foreground">{integration.description}</p></div>
                             </div>
-                            {connected ? (
+                            {(integration as any).comingSoon ? (
+                              <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">Coming Soon</span>
+                            ) : connected ? (
                               <Button variant="destructive" size="sm" onClick={() => handleDisconnect(integration.id)} disabled={isActioning}>
                                 {isActioning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unplug className="h-3 w-3 mr-1" />} Disconnect
                               </Button>
