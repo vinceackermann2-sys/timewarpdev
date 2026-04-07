@@ -8,6 +8,7 @@ import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { InlineChatChart } from "./InlineChatChart";
 import { TaskStepsDisplay } from "./TaskStepsDisplay";
+import { ThinkingTimer } from "./ThinkingTimer";
 import { SettingsView } from "@/components/database/SettingsView";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -165,6 +166,7 @@ interface ChatMessage {
   files?: { name: string; url?: string }[];
   employees?: { id: string; name: string; role: string }[];
   isStreaming?: boolean;
+  streamStartTime?: number;
   taskSteps?: { action: string; label: string; status: "running" | "done" | "error"; detail?: string }[];
   currentStepIndex?: number;
   reportContent?: string;
@@ -546,7 +548,7 @@ export function AgentChatView() {
     setSelectedChatEmployees([]);
 
     const assistantId = crypto.randomUUID();
-    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true }]);
+    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
 
     try {
       await runComputerMode(session, userMsg, assistantId);
@@ -600,7 +602,7 @@ export function AgentChatView() {
 
     // Add assistant placeholder
     const assistantId = crypto.randomUUID();
-    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true }]);
+    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
 
     try {
       // If files are attached, always use chat mode (not browser automation) so the AI analyzes them
@@ -971,8 +973,8 @@ export function AgentChatView() {
     const startTime = new Date();
     const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-    // Show processing state with timestamp
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `🚀 **Processing** · \`${formatTime(startTime)}\`\nRunning employee **${emp.name}**...`, isStreaming: true } : m));
+    // Show processing state with timestamp and timer
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now() } : m));
 
     // Log to DB
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
@@ -981,33 +983,59 @@ export function AgentChatView() {
     const userContent = buildMultimodalContent(userMsg.content);
     chatHistory.push({ role: "user", content: userContent });
 
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({ employee_id: emp.id, messages: chatHistory, brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })(), workspaceId: activeWorkspaceId }),
-      }
-    );
+    const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.error || "Failed" }).then(() => {});
-      throw new Error(err.error || "Employee failed");
+    // Continuation loop — keeps calling the edge function if it returns partial content
+    let accumulatedContent = "";
+    let continuationCount = 0;
+    const MAX_CONTINUATIONS = 5;
+
+    while (continuationCount <= MAX_CONTINUATIONS) {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            employee_id: emp.id,
+            messages: chatHistory,
+            brandId: brandRowId,
+            workspaceId: activeWorkspaceId,
+            skip_action: continuationCount > 0,
+            ...(accumulatedContent ? { continuationContent: accumulatedContent } : {}),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.error || "Failed" }).then(() => {});
+        throw new Error(err.error || "Employee failed");
+      }
+
+      const data = await response.json();
+      accumulatedContent = data.content || accumulatedContent;
+
+      // Update message with accumulated content so far
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent, isStreaming: true } : m));
+
+      // If no continuation needed, we're done
+      if (!data.continuation) break;
+
+      continuationCount++;
     }
 
-    const data = await response.json();
     const endTime = new Date();
     const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
 
     // Log completion
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
-    const finalContent = `${data.content || "Task completed."}\n\n---\n⏱️ *Completed in ${durationSec}s · ${formatTime(endTime)}*`;
+    const finalContent = `${accumulatedContent || "Task completed."}\n\n---\n⏱️ *Completed in ${durationSec}s · ${formatTime(endTime)}*`;
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: finalContent, isStreaming: false } : m));
   };
 
@@ -1571,6 +1599,7 @@ export function AgentChatView() {
                         <div className="flex items-center gap-2">
                           <Loader2 className="h-4 w-4 animate-spin text-primary" />
                           <span className="text-muted-foreground">Thinking...</span>
+                          {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} className="text-[11px]" />}
                         </div>
                       )}
                       {msg.isStreaming && msg.content && (!msg.taskSteps || msg.taskSteps.length === 0) && (

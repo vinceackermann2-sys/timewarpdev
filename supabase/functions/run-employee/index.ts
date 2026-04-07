@@ -188,7 +188,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId } = await req.json();
+    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId, continuationContent } = await req.json();
     if (!employee_id) throw new Error("employee_id required");
 
     // Load employee
@@ -251,12 +251,24 @@ serve(async (req) => {
 
     // Build system prompt
     const isBrowserMode = !!pageContext;
+
+    // If this is a continuation, prepend the partial content as an assistant message
+    let effectiveMessages = [...(messages || [])];
+    if (continuationContent) {
+      effectiveMessages.push({ role: "assistant", content: continuationContent });
+      effectiveMessages.push({ role: "user", content: "Continue exactly where you left off. Do not repeat what you already wrote." });
+    }
+
     const systemPrompt = isBrowserMode
       ? buildBrowserSystemPrompt(employee, identity, relevantContext, pageContext, safetySettings)
       : buildEmployeeChatPrompt(employee, identity, relevantContext, safetySettings);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    // Use streaming internally so we can collect partial output before timeout
+    const TIMEOUT_MS = 45_000; // 45s safety margin before 60s platform limit
+    const startTime = Date.now();
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -268,9 +280,9 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          ...(messages || []),
+          ...effectiveMessages,
         ],
-        stream: false,
+        stream: true,
       }),
     });
 
@@ -291,8 +303,55 @@ serve(async (req) => {
       throw new Error("AI service unavailable");
     }
 
-    const aiResult = await response.json();
-    let content = aiResult.choices?.[0]?.message?.content || "";
+    // Read the stream, collecting content until done or timeout
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No response body");
+
+    const decoder = new TextDecoder();
+    let fullContent = "";
+    let timedOut = false;
+    let streamDone = false;
+
+    try {
+      while (true) {
+        // Check timeout
+        if (Date.now() - startTime > TIMEOUT_MS) {
+          timedOut = true;
+          break;
+        }
+
+        const { done, value } = await reader.read();
+        if (done) { streamDone = true; break; }
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") { streamDone = true; break; }
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content || "";
+            if (delta) fullContent += delta;
+          } catch {}
+        }
+        if (streamDone) break;
+      }
+    } finally {
+      try { reader.cancel(); } catch {}
+    }
+
+    // Combine with any previous continuation content
+    const totalContent = (continuationContent || "") + fullContent;
+
+    // If timed out and we have partial content, return continuation token
+    if (timedOut && totalContent.length > 0) {
+      return new Response(JSON.stringify({ content: totalContent, continuation: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    let content = totalContent || "";
 
     // --- MIDDLEWARE LAYER 2: Post-flight output validation (only if guardrails enabled) ---
     content = runPostflightGuardrails(content, safetySettings);

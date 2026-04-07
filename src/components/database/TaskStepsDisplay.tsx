@@ -1,6 +1,7 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThinkingTimer } from "./ThinkingTimer";
 
 interface TaskStep {
   action: string;
@@ -17,12 +18,23 @@ interface Props {
 
 export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [thinkingStart, setThinkingStart] = useState<number | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [steps, currentStepIndex]);
+
+  // Track when the current step starts "thinking" (running)
+  useEffect(() => {
+    const hasActive = steps.some((s, i) => s.status === "running" && i === currentStepIndex && isStreaming);
+    if (hasActive) {
+      setThinkingStart(prev => prev ?? Date.now());
+    } else {
+      setThinkingStart(null);
+    }
+  }, [steps, currentStepIndex, isStreaming]);
 
   if (steps.length === 0) return null;
 
@@ -71,7 +83,7 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
           );
         })}
       </div>
-      {/* Thinking indicator */}
+      {/* Thinking indicator with timer */}
       {hasActiveStep && (
         <div className="mt-2 flex items-center gap-2 text-[12px] text-muted-foreground">
           <span className="inline-flex gap-[2px]">
@@ -80,6 +92,7 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms", animationDuration: "1s" }} />
           </span>
           <span className="italic text-muted-foreground/70">TimeWarp is thinking</span>
+          {thinkingStart && <ThinkingTimer startTime={thinkingStart} className="text-[11px]" />}
         </div>
       )}
     </div>
