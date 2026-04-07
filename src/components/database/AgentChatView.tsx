@@ -553,7 +553,12 @@ export function AgentChatView() {
     try {
       await runComputerMode(session, userMsg, assistantId);
     } catch (err: any) {
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Sorry, something went wrong. Please try again.", isStreaming: false } : m));
+      setMessages(prev => prev.map(m => {
+        if (m.id !== assistantId) return m;
+        const updatedSteps = (m.taskSteps || []).map(s => s.status === "running" ? { ...s, status: "error" as const } : s);
+        updatedSteps.push({ action: "error", label: `Failed: ${err.message || "Unknown error"}`, status: "error" as const });
+        return { ...m, content: `⚠️ ${err.message || "Something went wrong. Please try again."}`, taskSteps: updatedSteps, isStreaming: false };
+      }));
     }
     setIsSending(false);
   };
