@@ -78,6 +78,21 @@ function getCachedForBrand(brandId: string): DataItem[] | null {
   return null;
 }
 
+// Module-level cache for connection status (avoid calling edge function on every brand switch)
+let _cachedConnections: Record<string, { email?: string | null }> | null = null;
+let _connectionsCacheTs = 0;
+const CONNECTIONS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function calculateUsageFromItems(items: Array<{ title?: string; content?: string | null; analyzed_content?: string | null; metadata?: any; source?: string }>): number {
+  let total = 0;
+  for (const row of items) {
+    if (row.source === "business-dna") continue;
+    total += (row.title?.length || 0) + (row.content?.length || 0) + (row.analyzed_content?.length || 0);
+    if (row.metadata?.file_size) total += Number(row.metadata.file_size) || 0;
+  }
+  return total;
+}
+
 export function BusinessDataListView({ activeBrandId }: { activeBrandId: string }) {
   const brandCache = getCachedForBrand(activeBrandId);
   const [items, setItems] = useState<DataItem[]>(brandCache ?? []);
@@ -163,7 +178,12 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const checkConnection = useCallback(async () => {
+  const checkConnection = useCallback(async (forceRefresh = false) => {
+    // Return cached connections if fresh enough
+    if (!forceRefresh && _cachedConnections && Date.now() - _connectionsCacheTs < CONNECTIONS_CACHE_TTL) {
+      setConnectedProviders(_cachedConnections);
+      return;
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
@@ -185,6 +205,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         for (const c of (data.connected || [])) {
           map[c.provider] = { email: c.email || null };
         }
+        _cachedConnections = map;
+        _connectionsCacheTs = Date.now();
         setConnectedProviders(map);
       }
     } catch (err) {
@@ -202,7 +224,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       url.searchParams.delete("brandId");
       window.history.replaceState({}, "", url.pathname + url.search);
       // Refresh connection status so UI shows Disconnect
-      checkConnection();
+      checkConnection(true);
       handleSyncProvider(oauthProvider);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -232,6 +254,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         // If cache matches current user+workspace+brand, skip fetch
         if (_cachedItems && _cachedCacheKey === currentKey) {
           setItems(_cachedItems);
+          setRealUsageBytes(calculateUsageFromItems(_cachedItems));
           setIsLoading(false);
           return;
         }
@@ -257,6 +280,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           _cachedItems = data;
           _cachedCacheKey = currentKey;
           setItems(data);
+          // Calculate usage from already-fetched data (no separate query needed)
+          setRealUsageBytes(calculateUsageFromItems(data));
         }
       } catch (err) {
         console.error("Failed to fetch business data:", err);
@@ -266,40 +291,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
     };
     fetchData();
     checkConnection();
-
-    // Calculate per-brand storage usage from fetched items
-    const fetchUsage = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
-
-        const wsId = localStorage.getItem("preferred_workspace_id");
-        let query = (supabase as any)
-          .from("user_business_data")
-          .select("title, content, analyzed_content, metadata")
-          .eq("metadata->>brandId", activeBrandId)
-          .not("source", "eq", "business-dna");
-
-        if (wsId) {
-          query = query.eq("workspace_id", wsId);
-        } else {
-          query = query.eq("user_id", session.user.id);
-        }
-
-        const { data: brandData } = await query;
-        if (brandData) {
-          let total = 0;
-          for (const row of brandData) {
-            total += (row.title?.length || 0) + (row.content?.length || 0) + (row.analyzed_content?.length || 0);
-            if (row.metadata?.file_size) total += Number(row.metadata.file_size) || 0;
-          }
-          setRealUsageBytes(total);
-        }
-      } catch (err) {
-        console.error("Failed to fetch brand usage:", err);
-      }
-    };
-    fetchUsage();
   }, [checkConnection, activeBrandId]);
 
   const handleConnectProvider = async (provider: string) => {

@@ -113,8 +113,11 @@ export function useBusinessDNA() {
   return ctx;
 }
 
-async function loadEntities<T>(dataType: string, workspaceId?: string | null): Promise<T[]> {
-  const { data: { session } } = await supabase.auth.getSession();
+async function loadEntities<T>(dataType: string, workspaceId?: string | null, session?: { user: { id: string } } | null): Promise<T[]> {
+  if (!session) {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  }
   if (!session?.user) return [];
 
   let query = supabase
@@ -293,10 +296,12 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       if (isWorkspaceSwitch) {
         setIsLoading(true);
       }
+      // Share a single session across all three parallel loads
+      const { data: { session } } = await supabase.auth.getSession();
       const [b, p, a] = await Promise.all([
-        loadEntities<BrandEntry>("brand", activeWorkspaceId),
-        loadEntities<ProductEntry>("product", activeWorkspaceId),
-        loadEntities<AudienceEntry>("audience", activeWorkspaceId),
+        loadEntities<BrandEntry>("brand", activeWorkspaceId, session),
+        loadEntities<ProductEntry>("product", activeWorkspaceId, session),
+        loadEntities<AudienceEntry>("audience", activeWorkspaceId, session),
       ]);
       setBrandsState(b);
       setProductsState(p);
