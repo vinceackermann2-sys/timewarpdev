@@ -1621,185 +1621,183 @@ Then provide your normal text explanation below it.`,
     toast.success(`${generatedEmployee.name} has been created!`);
   };
 
-  /* ─── Plus menu content (shared between desktop popover & mobile sheet) ─── */
-  const plusMenuContent = (
-    <>
-      <button
-        onClick={() => { fileInputRef.current?.click(); setIsDropupOpen(false); }}
-        className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
-      >
-        <FileUp className="w-4 h-4 text-muted-foreground" />
-        Upload Files
-      </button>
-
-      {/* Reference sub-menu */}
-      <div>
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); setShowGraphicsMenu(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Globe className="w-4 h-4 text-muted-foreground" />
-            Reference (@)
-          </div>
-          <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showReference ? "rotate-90" : ""}`} />
-        </button>
-        {showReference && (
-          <div className="px-3 pb-2" onClick={(e) => e.stopPropagation()}>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search website or app..."
-                className="w-full bg-background/50 border border-border/50 rounded-xl pl-9 pr-3 py-2.5 text-[16px] sm:text-sm focus:ring-0 focus:border-border outline-none transition-all placeholder-muted-foreground text-foreground"
-                value={referenceUrlInput}
-                onChange={(e) => setReferenceUrlInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && searchResults.length > 0) {
-                    const result = searchResults[0];
-                    setReferencedUrls((prev) => [...prev, { id: Math.random().toString(), ...result }]);
-                    insertReference(result);
-                    setReferenceUrlInput("");
-                    setIsDropupOpen(false);
-                    setShowReference(false);
-                  }
-                }}
-                autoFocus
-              />
-            </div>
-            {searchResults.length > 0 && (
-              <div className="mt-2 flex flex-col gap-1 max-h-[200px] overflow-y-auto">
-                {searchResults.map((result) => (
-                  <button
-                    key={result.id}
-                    onClick={() => {
-                      setReferencedUrls((prev) => [...prev, { id: Math.random().toString(), ...result }]);
-                      insertReference(result);
-                      setReferenceUrlInput("");
-                      setIsDropupOpen(false);
-                      setShowReference(false);
-                    }}
-                    className="w-full flex items-center gap-3 p-2 hover:bg-muted/50 rounded-xl transition-colors text-left"
-                  >
-                    <img src={result.logo} alt="" className="w-8 h-8 rounded-full bg-card p-1 shadow-sm object-contain" />
-                    <div className="flex flex-col overflow-hidden">
-                      <span className="text-sm font-semibold text-foreground truncate">{result.name}</span>
-                      <span className="text-xs text-muted-foreground truncate">{result.url}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Graphics sub-menu */}
-      <div>
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowGraphicsMenu(!showGraphicsMenu); setShowReference(false); setShowEmployeesMenu(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Palette className="w-4 h-4 text-muted-foreground" />
-            Graphics
-          </div>
-          <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showGraphicsMenu ? "rotate-90" : ""}`} />
-        </button>
-        {showGraphicsMenu && (
-          <div className="px-2 pb-2">
-            {[
-              { label: "Document", icon: FileText, desc: "Generate a formatted document" },
-              { label: "Graph", icon: BarChart3, desc: "Create a data visualization" },
-              { label: "Analytics", icon: PieChart, desc: "Build an analytics report" },
-              { label: "Spreadsheet", icon: Table2, desc: "Generate a spreadsheet" },
-              { label: "Slide", icon: Presentation, desc: "Create a presentation slide" },
-            ].map((item) => (
+  /* ─── Sub-menu flyout content (rendered beside the main menu on desktop) ─── */
+  const referenceSubContent = (
+    <div className="py-2" onClick={(e) => e.stopPropagation()}>
+      <div className="px-3 pb-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search website or app..."
+            className="w-full bg-background/50 border border-border/50 rounded-xl pl-9 pr-3 py-2.5 text-[16px] sm:text-sm focus:ring-0 focus:border-border outline-none transition-all placeholder-muted-foreground text-foreground"
+            value={referenceUrlInput}
+            onChange={(e) => setReferenceUrlInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && searchResults.length > 0) {
+                const result = searchResults[0];
+                setReferencedUrls((prev) => [...prev, { id: Math.random().toString(), ...result }]);
+                insertReference(result);
+                setReferenceUrlInput("");
+                setIsDropupOpen(false);
+                setShowReference(false);
+              }
+            }}
+            autoFocus
+          />
+        </div>
+        {searchResults.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1 max-h-[200px] overflow-y-auto">
+            {searchResults.map((result) => (
               <button
-                key={item.label}
+                key={result.id}
                 onClick={() => {
-                  setSelectedGraphic(item.label);
+                  setReferencedUrls((prev) => [...prev, { id: Math.random().toString(), ...result }]);
+                  insertReference(result);
+                  setReferenceUrlInput("");
                   setIsDropupOpen(false);
-                  setShowGraphicsMenu(false);
+                  setShowReference(false);
                 }}
-                className={cn(
-                  "w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-3",
-                  selectedGraphic === item.label ? "bg-primary/10 text-primary" : "text-muted-foreground"
-                )}
+                className="w-full flex items-center gap-3 p-2 hover:bg-muted/50 rounded-xl transition-colors text-left"
               >
-                <item.icon className="w-4 h-4 shrink-0" />
-                <div className="flex flex-col">
-                  <span className={cn("font-medium", selectedGraphic === item.label ? "text-primary" : "text-foreground")}>{item.label}</span>
-                  <span className="text-xs text-muted-foreground">{item.desc}</span>
+                <img src={result.logo} alt="" className="w-8 h-8 rounded-full bg-card p-1 shadow-sm object-contain" />
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-sm font-semibold text-foreground truncate">{result.name}</span>
+                  <span className="text-xs text-muted-foreground truncate">{result.url}</span>
                 </div>
-                {selectedGraphic === item.label && (
-                  <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">Selected</span>
-                )}
               </button>
             ))}
           </div>
         )}
       </div>
+    </div>
+  );
 
-      {/* Employees sub-menu */}
-      <div>
+  const graphicsSubContent = (
+    <div className="py-2 px-2">
+      {[
+        { label: "Document", icon: FileText, desc: "Generate a formatted document" },
+        { label: "Graph", icon: BarChart3, desc: "Create a data visualization" },
+        { label: "Analytics", icon: PieChart, desc: "Build an analytics report" },
+        { label: "Spreadsheet", icon: Table2, desc: "Generate a spreadsheet" },
+        { label: "Slide", icon: Presentation, desc: "Create a presentation slide" },
+      ].map((item) => (
         <button
-          onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); setShowGraphicsMenu(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+          key={item.label}
+          onClick={() => {
+            setSelectedGraphic(item.label);
+            setIsDropupOpen(false);
+            setShowGraphicsMenu(false);
+          }}
+          className={cn(
+            "w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-3",
+            selectedGraphic === item.label ? "bg-primary/10 text-primary" : "text-muted-foreground"
+          )}
         >
-          <div className="flex items-center gap-3">
-            <Users className="w-4 h-4 text-muted-foreground" />
-            Employees
+          <item.icon className="w-4 h-4 shrink-0" />
+          <div className="flex flex-col">
+            <span className={cn("font-medium", selectedGraphic === item.label ? "text-primary" : "text-foreground")}>{item.label}</span>
+            <span className="text-xs text-muted-foreground">{item.desc}</span>
           </div>
-          <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showEmployeesMenu ? "rotate-90" : ""}`} />
+          {selectedGraphic === item.label && (
+            <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">Selected</span>
+          )}
         </button>
-        {showEmployeesMenu && (
-          <div className="px-2 pb-2">
-            <div className="max-h-64 overflow-y-auto">
-              {employees.length > 0 ? (
-                employees.map((emp) => (
-                  <button
-                    key={emp.id}
-                    onClick={() => {
-                      const empData = { id: emp.id, name: emp.name, role: emp.role };
-                      if (!selectedChatEmployees.find((e) => e.id === emp.id)) {
-                        setSelectedChatEmployees([empData]);
-                      }
-                      setIsDropupOpen(false);
-                      setShowEmployeesMenu(false);
-                      setTimeout(() => autoRunEmployee(empData), 100);
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-muted-foreground flex flex-col"
-                  >
-                    <span className="font-medium text-foreground">{emp.name}</span>
-                    <span className="text-xs text-muted-foreground">{emp.role}</span>
-                  </button>
-                ))
-              ) : (
-                <div className="px-3 py-2 text-sm text-muted-foreground text-center">No employees added</div>
-              )}
-            </div>
-            <div className="border-t border-border mt-1 pt-1">
-              <button
-                onClick={() => { setIsSettingsOpen(true); setSettingsTab("employees"); setIsDropupOpen(false); setShowEmployeesMenu(false); }}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-primary font-medium flex items-center gap-2"
-              >
-                <Settings className="w-3 h-3" />
-                Manage Employees
-              </button>
-            </div>
-          </div>
+      ))}
+    </div>
+  );
+
+  const employeesSubContent = (
+    <div className="py-2 px-2">
+      <div className="max-h-64 overflow-y-auto">
+        {employees.length > 0 ? (
+          employees.map((emp) => (
+            <button
+              key={emp.id}
+              onClick={() => {
+                const empData = { id: emp.id, name: emp.name, role: emp.role };
+                if (!selectedChatEmployees.find((e) => e.id === emp.id)) {
+                  setSelectedChatEmployees([empData]);
+                }
+                setIsDropupOpen(false);
+                setShowEmployeesMenu(false);
+                setTimeout(() => autoRunEmployee(empData), 100);
+              }}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-muted-foreground flex flex-col"
+            >
+              <span className="font-medium text-foreground">{emp.name}</span>
+              <span className="text-xs text-muted-foreground">{emp.role}</span>
+            </button>
+          ))
+        ) : (
+          <div className="px-3 py-2 text-sm text-muted-foreground text-center">No employees added</div>
         )}
       </div>
+      <div className="border-t border-border mt-1 pt-1">
+        <button
+          onClick={() => { setIsSettingsOpen(true); setSettingsTab("employees"); setIsDropupOpen(false); setShowEmployeesMenu(false); }}
+          className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-primary font-medium flex items-center gap-2"
+        >
+          <Settings className="w-3 h-3" />
+          Manage Employees
+        </button>
+      </div>
+    </div>
+  );
 
-      {/* Computer mode */}
+  /* ─── Main menu items (desktop: flat list, sub-menus fly out to side) ─── */
+  const activeSubMenu = showReference ? "reference" : showGraphicsMenu ? "graphics" : showEmployeesMenu ? "employees" : null;
+
+  const plusMenuItems = (
+    <>
+      <button
+        onClick={() => { fileInputRef.current?.click(); setIsDropupOpen(false); }}
+        className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors rounded-lg"
+      >
+        <FileUp className="w-4 h-4 text-muted-foreground" />
+        Upload Files
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); setShowGraphicsMenu(false); }}
+        className={cn("w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg", showReference && "bg-muted/50")}
+      >
+        <div className="flex items-center gap-3">
+          <Globe className="w-4 h-4 text-muted-foreground" />
+          Reference (@)
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowGraphicsMenu(!showGraphicsMenu); setShowReference(false); setShowEmployeesMenu(false); }}
+        className={cn("w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg", showGraphicsMenu && "bg-muted/50")}
+      >
+        <div className="flex items-center gap-3">
+          <Palette className="w-4 h-4 text-muted-foreground" />
+          Graphics
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); setShowGraphicsMenu(false); }}
+        className={cn("w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg", showEmployeesMenu && "bg-muted/50")}
+      >
+        <div className="flex items-center gap-3">
+          <Users className="w-4 h-4 text-muted-foreground" />
+          Employees
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+      </button>
+
       {!extensionConnected ? (
         <a
           href="https://microsoftedge.microsoft.com/addons/detail/timewarp-%E2%80%93-ai-ceo/fajgkgjioehbiccafonfbdkjhoedceim"
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg"
         >
           <div className="flex items-center gap-3">
             <Monitor className="w-4 h-4 text-muted-foreground" />
@@ -1813,6 +1811,101 @@ Then provide your normal text explanation below it.`,
       ) : (
         <button
           onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
+          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg"
+        >
+          <div className="flex items-center gap-3">
+            <Monitor className={`w-4 h-4 ${isActionMode ? "text-primary" : "text-muted-foreground"}`} />
+            Computer
+          </div>
+          <span className={`text-xs font-semibold ${isActionMode ? "text-primary" : "text-muted-foreground"}`}>
+            {isActionMode ? "ON" : "OFF"}
+          </span>
+        </button>
+      )}
+
+      <button
+        onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
+        className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors rounded-lg"
+      >
+        <Settings className="w-4 h-4 text-muted-foreground" />
+        Settings
+      </button>
+    </>
+  );
+
+  /* ─── Mobile menu content (inline expanding sub-menus) ─── */
+  const plusMenuMobileContent = (
+    <>
+      <button
+        onClick={() => { fileInputRef.current?.click(); setIsDropupOpen(false); }}
+        className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
+      >
+        <FileUp className="w-4 h-4 text-muted-foreground" />
+        Upload Files
+      </button>
+
+      <div>
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); setShowGraphicsMenu(false); }}
+          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Globe className="w-4 h-4 text-muted-foreground" />
+            Reference (@)
+          </div>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showReference ? "rotate-180" : ""}`} />
+        </button>
+        {showReference && referenceSubContent}
+      </div>
+
+      <div>
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowGraphicsMenu(!showGraphicsMenu); setShowReference(false); setShowEmployeesMenu(false); }}
+          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Palette className="w-4 h-4 text-muted-foreground" />
+            Graphics
+          </div>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showGraphicsMenu ? "rotate-180" : ""}`} />
+        </button>
+        {showGraphicsMenu && graphicsSubContent}
+      </div>
+
+      <div>
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); setShowGraphicsMenu(false); }}
+          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            Employees
+          </div>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showEmployeesMenu ? "rotate-180" : ""}`} />
+        </button>
+        {showEmployeesMenu && employeesSubContent}
+      </div>
+
+      {!extensionConnected ? (
+        <a
+          href="https://microsoftedge.microsoft.com/addons/detail/timewarp-%E2%80%93-ai-ceo/fajgkgjioehbiccafonfbdkjhoedceim"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => { setIsDropupOpen(false); }}
+          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Monitor className="w-4 h-4 text-muted-foreground" />
+            Computer
+          </div>
+          <span className="text-xs font-semibold text-primary flex items-center gap-1">
+            <ExternalLink className="w-3 h-3" />
+            Get Extension
+          </span>
+        </a>
+      ) : (
+        <button
+          onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); }}
           className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
         >
           <div className="flex items-center gap-3">
@@ -1825,9 +1918,8 @@ Then provide your normal text explanation below it.`,
         </button>
       )}
 
-      {/* Settings */}
       <button
-        onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
+        onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); }}
         className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
       >
         <Settings className="w-4 h-4 text-muted-foreground" />
@@ -2081,10 +2173,21 @@ Then provide your normal text explanation below it.`,
             </div>
           )}
           <div className="relative flex items-center">
-          {/* Dropup Menu — side panel on desktop, bottom sheet on mobile */}
+          {/* Desktop: main menu opens upward, sub-menus fly out to the right */}
           {isDropupOpen && !isMobileChatView && (
-            <div className="absolute bottom-0 left-[calc(100%+8px)] w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border py-2 animate-in slide-in-from-left-2 fade-in duration-200 z-40">
-              {plusMenuContent}
+            <div className="absolute bottom-[calc(100%+12px)] left-0 flex items-end z-40">
+              {/* Main menu */}
+              <div className="w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border py-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
+                {plusMenuItems}
+              </div>
+              {/* Flyout sub-menu to the right */}
+              {activeSubMenu && (
+                <div className="ml-2 w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border animate-in slide-in-from-left-2 fade-in duration-150">
+                  {activeSubMenu === "reference" && referenceSubContent}
+                  {activeSubMenu === "graphics" && graphicsSubContent}
+                  {activeSubMenu === "employees" && employeesSubContent}
+                </div>
+              )}
             </div>
           )}
 
@@ -2093,7 +2196,7 @@ Then provide your normal text explanation below it.`,
             <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto px-2 pb-6">
               <SheetHeader className="sr-only"><SheetTitle>Menu</SheetTitle></SheetHeader>
               <div className="py-2">
-                {plusMenuContent}
+                {plusMenuMobileContent}
               </div>
             </SheetContent>
           </Sheet>
