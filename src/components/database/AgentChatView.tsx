@@ -815,7 +815,7 @@ Make bullet points specific and actionable based on their question. Then provide
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
     };
 
-    addStep("Loading context");
+    addStep("Loading context...");
 
     const response = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
@@ -844,7 +844,9 @@ Make bullet points specific and actionable based on their question. Then provide
     }
 
     completeStep();
-    addStep("Writing response");
+    addStep("Analyzing request...");
+    completeStep();
+    addStep("Writing response...");
 
     // Stream SSE response
     const reader = response.body?.getReader();
@@ -874,7 +876,7 @@ Make bullet points specific and actionable based on their question. Then provide
     }
 
     completeStep();
-    addStep("Complete");
+    addStep("Done");
     completeStep();
 
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", taskSteps: [...taskSteps], isStreaming: false } : m));
@@ -1120,7 +1122,7 @@ Make bullet points specific and actionable based on their question. Then provide
     // Show processing state
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
 
-    addStep("Loading context");
+    addStep("Loading context...");
 
     // Log to DB
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
@@ -1132,7 +1134,9 @@ Make bullet points specific and actionable based on their question. Then provide
     const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
 
     completeStep();
-    addStep("Processing with employee");
+    addStep("Analyzing request...");
+    completeStep();
+    addStep("Processing with employee...");
 
     // Continuation loop
     let accumulatedContent = "";
@@ -1141,7 +1145,7 @@ Make bullet points specific and actionable based on their question. Then provide
 
     while (continuationCount <= MAX_CONTINUATIONS) {
       if (continuationCount > 0) {
-        addStep(`Extending response (part ${continuationCount + 1})`);
+        addStep(`Continuing response (part ${continuationCount + 1})...`);
       }
 
       const response = await fetchWithTimeout(
@@ -1185,7 +1189,7 @@ Make bullet points specific and actionable based on their question. Then provide
       continuationCount++;
     }
 
-    addStep("Complete");
+    addStep("Done");
     completeStep();
 
     const endTime = new Date();
