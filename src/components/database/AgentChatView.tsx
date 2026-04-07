@@ -698,7 +698,12 @@ export function AgentChatView() {
   const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000): Promise<Response> => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+    return fetch(url, { ...options, signal: controller.signal })
+      .catch(err => {
+        if (err.name === "AbortError") throw new Error("Request timed out. The server took too long to respond.");
+        throw err;
+      })
+      .finally(() => clearTimeout(timer));
   };
 
   /* ── Agent chat (streaming) ── */
