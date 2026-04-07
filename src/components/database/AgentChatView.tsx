@@ -973,8 +973,20 @@ export function AgentChatView() {
     const startTime = new Date();
     const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-    // Show processing state with timestamp and timer
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now() } : m));
+    const taskSteps: ChatMessage["taskSteps"] = [];
+    const addStep = (label: string, status: "running" | "done" | "error" = "running") => {
+      taskSteps.push({ action: "process", label, status });
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true, streamStartTime: m.streamStartTime || Date.now() } : m));
+    };
+    const completeStep = () => {
+      if (taskSteps.length > 0) taskSteps[taskSteps.length - 1].status = "done";
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
+    };
+
+    // Show processing state
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
+
+    addStep("Working on memory...");
 
     // Log to DB
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
@@ -985,12 +997,19 @@ export function AgentChatView() {
 
     const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
 
-    // Continuation loop — keeps calling the edge function if it returns partial content
+    completeStep();
+    addStep("Analyzing request...");
+
+    // Continuation loop
     let accumulatedContent = "";
     let continuationCount = 0;
     const MAX_CONTINUATIONS = 5;
 
     while (continuationCount <= MAX_CONTINUATIONS) {
+      if (continuationCount > 0) {
+        addStep(`Continuing generation... (${continuationCount})`);
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
         {
@@ -1013,6 +1032,9 @@ export function AgentChatView() {
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
+        completeStep();
+        addStep("Error");
+        taskSteps[taskSteps.length - 1].status = "error";
         supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.error || "Failed" }).then(() => {});
         throw new Error(err.error || "Employee failed");
       }
@@ -1020,23 +1042,24 @@ export function AgentChatView() {
       const data = await response.json();
       accumulatedContent = data.content || accumulatedContent;
 
-      // Update message with accumulated content so far
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent, isStreaming: true } : m));
+      completeStep();
 
-      // If no continuation needed, we're done
+      // Update message with accumulated content
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent, taskSteps: [...taskSteps], isStreaming: true } : m));
+
       if (!data.continuation) break;
-
       continuationCount++;
     }
+
+    addStep("Done");
+    completeStep();
 
     const endTime = new Date();
     const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
 
-    // Log completion
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
-    const finalContent = `${accumulatedContent || "Task completed."}\n\n---\n⏱️ *Completed in ${durationSec}s · ${formatTime(endTime)}*`;
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: finalContent, isStreaming: false } : m));
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent || "Task completed.", taskSteps: [...taskSteps], isStreaming: false } : m));
   };
 
   /* ── Computer mode: run employee via browser extension ── */
