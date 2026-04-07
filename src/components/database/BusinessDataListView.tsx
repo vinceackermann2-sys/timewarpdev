@@ -196,11 +196,13 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthProvider = params.get("oauth_success");
-    if (oauthProvider && ["microsoft", "slack"].includes(oauthProvider)) {
+    if (oauthProvider && ["microsoft", "slack", "hubspot"].includes(oauthProvider)) {
       const url = new URL(window.location.href);
       url.searchParams.delete("oauth_success");
       url.searchParams.delete("brandId");
       window.history.replaceState({}, "", url.pathname + url.search);
+      // Refresh connection status so UI shows Disconnect
+      checkConnection();
       handleSyncProvider(oauthProvider);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -404,7 +406,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
           .eq("metadata->>brandId", activeBrandId)
           .order("created_at", { ascending: false })
-          .limit(200);
+          .limit(1000);
         if (wsId) {
           refreshQuery = refreshQuery.eq("workspace_id", wsId);
         } else {
@@ -412,6 +414,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         }
         const { data: refreshed } = await refreshQuery;
         if (refreshed) { _cachedItems = refreshed; setItems(refreshed); }
+        // Refresh connection status so UI shows Disconnect button
+        checkConnection();
       } else {
         toast.error(data.error || "Sync failed");
       }
@@ -729,7 +733,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
             Upload
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowIntegrations(prev => !prev)}>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setShowIntegrations(prev => !prev); checkConnection(); }}>
             <Plug className="h-3.5 w-3.5" />
             Integrations
           </Button>
