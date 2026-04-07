@@ -1509,6 +1509,7 @@ export function AgentChatView() {
         setShowAgents(false);
         setShowEmployeesMenu(false);
         setShowReference(false);
+        setShowGraphicsMenu(false);
       }
     }
     if (isDropupOpen) document.addEventListener("mousedown", handleClickOutside);
