@@ -11,7 +11,8 @@ import { BusinessDNAView } from "@/components/database/BusinessDNAView";
 import { MyBusinessesView } from "@/components/database/MyBusinessesView";
 import { BusinessDNAOnboarding } from "@/components/database/BusinessDNAOnboarding";
 import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
-import { Loader2, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { AgentChatView } from "@/components/database/AgentChatView";
 
