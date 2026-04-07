@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Loader2, CheckCircle2, XCircle, ChevronDown } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
 
@@ -16,96 +16,132 @@ interface Props {
   isStreaming?: boolean;
 }
 
-const stepEmoji: Record<string, string> = {
-  "Working on memory...": "🧠",
-  "Analyzing request...": "🔍",
-  "Generating response...": "✍️",
-  "Continuing generation...": "🔄",
-  "Done": "✅",
-  "Error": "❌",
-  "Cancelled by user": "⏹",
-};
-
-function getStepEmoji(label: string): string {
-  for (const [key, emoji] of Object.entries(stepEmoji)) {
-    if (label.startsWith(key.replace("...", ""))) return emoji;
-  }
-  if (label.toLowerCase().includes("error") || label.toLowerCase().includes("fail")) return "❌";
-  if (label.toLowerCase().includes("cancel")) return "⏹";
-  if (label.toLowerCase().includes("continu")) return "🔄";
-  if (label.toLowerCase().includes("navigat")) return "🌐";
-  if (label.toLowerCase().includes("click")) return "👆";
-  if (label.toLowerCase().includes("type") || label.toLowerCase().includes("fill")) return "⌨️";
-  if (label.toLowerCase().includes("extract") || label.toLowerCase().includes("read")) return "📋";
-  if (label.toLowerCase().includes("scroll")) return "📜";
-  if (label.toLowerCase().includes("wait")) return "⏳";
+/* ── Emoji map for step labels ── */
+function getStepIcon(label: string): string {
+  const l = label.toLowerCase();
+  if (l.includes("context") || l.includes("memory")) return "🧠";
+  if (l.includes("analyz")) return "🔍";
+  if (l.includes("writing") || l.includes("generating") || l.includes("response")) return "✍️";
+  if (l.includes("processing") || l.includes("employee")) return "⚙️";
+  if (l.includes("extending") || l.includes("continu") || l.includes("part")) return "🔄";
+  if (l.includes("complete") || l.includes("done")) return "✅";
+  if (l.includes("error") || l.includes("fail")) return "❌";
+  if (l.includes("cancel")) return "⏹";
+  if (l.includes("navigat")) return "🌐";
+  if (l.includes("click")) return "👆";
+  if (l.includes("type") || l.includes("fill")) return "⌨️";
+  if (l.includes("extract") || l.includes("read")) return "📋";
+  if (l.includes("scroll")) return "📜";
+  if (l.includes("wait")) return "⏳";
+  if (l.includes("search")) return "🔎";
+  if (l.includes("load")) return "📥";
   return "⚡";
 }
 
-export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props) {
+/* ── Section: a group of related steps with its own timer ── */
+interface Section {
+  steps: { label: string; status: TaskStep["status"]; count: number; detail?: string }[];
+  startTime: number;
+  isDone: boolean;
+}
+
+/** Split flat steps into logical sections. A new section starts after a "Complete" step. */
+function buildSections(steps: TaskStep[], globalStartTime: number): Section[] {
+  if (steps.length === 0) return [];
+
+  const sections: Section[] = [];
+  let currentSteps: Section["steps"] = [];
+  let sectionStart = globalStartTime;
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const isComplete = step.label.toLowerCase().includes("complete") && step.status === "done";
+
+    // Group consecutive same-label steps
+    const last = currentSteps[currentSteps.length - 1];
+    if (last && last.label === step.label && last.status === "done" && step.status !== "error") {
+      last.count++;
+      last.status = step.status;
+    } else {
+      currentSteps.push({ label: step.label, status: step.status, count: 1, detail: step.detail });
+    }
+
+    // If this is a "Complete" step and there are more steps after, close section
+    if (isComplete && i < steps.length - 1) {
+      sections.push({ steps: currentSteps, startTime: sectionStart, isDone: true });
+      currentSteps = [];
+      sectionStart = Date.now(); // Next section starts now-ish
+    }
+  }
+
+  // Remaining steps form the last (potentially active) section
+  if (currentSteps.length > 0) {
+    const allDone = currentSteps.every(s => s.status === "done" || s.status === "error");
+    sections.push({ steps: currentSteps, startTime: sectionStart, isDone: allDone });
+  }
+
+  return sections;
+}
+
+/* ── Individual Section Component ── */
+function SectionDisplay({ section, isLast, isStreaming }: { section: Section; isLast: boolean; isStreaming?: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [startTime] = useState(() => Date.now());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionDone = section.isDone && !(isLast && isStreaming);
 
   useEffect(() => {
     if (scrollRef.current && !collapsed) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [steps, currentStepIndex, collapsed]);
+  }, [section.steps, collapsed]);
 
-  if (steps.length === 0) return null;
-
-  const doneCount = steps.filter(s => s.status === "done").length;
-  const hasRunning = steps.some(s => s.status === "running");
-  const allDone = !isStreaming && !hasRunning;
-
-  // Group consecutive same-label steps
-  const groupedSteps: { label: string; status: TaskStep["status"]; count: number; detail?: string }[] = [];
-  for (const step of steps) {
-    const last = groupedSteps[groupedSteps.length - 1];
-    if (last && last.label === step.label && last.status === "done" && step.status !== "error") {
-      last.count++;
-      last.status = step.status;
-    } else {
-      groupedSteps.push({ label: step.label, status: step.status, count: 1, detail: step.detail });
+  // Auto-collapse completed sections that aren't the last
+  useEffect(() => {
+    if (sectionDone && !isLast) {
+      const timer = setTimeout(() => setCollapsed(true), 800);
+      return () => clearTimeout(timer);
     }
-  }
+  }, [sectionDone, isLast]);
+
+  const taskCount = section.steps.filter(s => !s.label.toLowerCase().includes("complete")).length;
 
   return (
-    <div className="mb-4">
-      {/* Collapsible header */}
+    <div className="mb-3">
+      {/* Section header */}
       <button
         onClick={() => setCollapsed(prev => !prev)}
         className="flex items-center gap-2 w-full group"
       >
         <div className={cn(
           "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-colors",
-          allDone
-            ? "bg-primary/10 text-primary"
-            : "bg-muted text-muted-foreground"
+          sectionDone
+            ? "text-muted-foreground"
+            : "text-muted-foreground"
         )}>
-          {!allDone && <Loader2 className="w-3 h-3 animate-spin" />}
-          {allDone && <CheckCircle2 className="w-3 h-3" />}
+          {!sectionDone && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground/60" />}
+          {sectionDone && <CheckCircle2 className="w-3 h-3 text-muted-foreground/60" />}
           <span className="font-medium">
-            {allDone ? `Done · ${doneCount} step${doneCount !== 1 ? "s" : ""}` : "Working..."}
+            {sectionDone
+              ? `Completed ${taskCount} task${taskCount !== 1 ? "s" : ""}`
+              : `Working...`}
           </span>
-          <span className="text-[11px] opacity-60">·</span>
-          <ThinkingTimer startTime={startTime} stopped={allDone} className="text-[11px] opacity-70" />
+          <span className="text-[11px] opacity-40">·</span>
+          <ThinkingTimer startTime={section.startTime} stopped={sectionDone} className="text-[11px] opacity-50" />
         </div>
-        <ChevronDown className={cn(
-          "w-3.5 h-3.5 text-muted-foreground/40 transition-transform duration-200",
-          !collapsed && "rotate-180"
+        <ChevronUp className={cn(
+          "w-3.5 h-3.5 text-muted-foreground/30 transition-transform duration-200",
+          collapsed && "rotate-180"
         )} />
       </button>
 
-      {/* Steps */}
+      {/* Steps timeline */}
       <div className={cn(
         "overflow-hidden transition-all duration-300 ease-in-out",
         collapsed ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100"
       )}>
-        <div ref={scrollRef} className="max-h-[240px] overflow-y-auto mt-2 ml-1 space-y-0.5">
-          {groupedSteps.map((step, idx) => {
-            const isActive = step.status === "running" && isStreaming;
+        <div ref={scrollRef} className="max-h-[260px] overflow-y-auto mt-1.5 ml-3 space-y-0.5">
+          {section.steps.map((step, idx) => {
+            const isActive = step.status === "running" && isStreaming && isLast;
             const isDone = step.status === "done";
             const isError = step.status === "error";
 
@@ -113,41 +149,62 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props
               <div
                 key={idx}
                 className={cn(
-                  "flex items-center gap-2 py-1.5 px-2 rounded-md text-[12px] animate-in fade-in slide-in-from-bottom-1 duration-200",
-                  isActive && "bg-muted/60"
+                  "flex items-center gap-2.5 py-1 px-1 text-[13px] animate-in fade-in slide-in-from-bottom-1 duration-200",
                 )}
               >
-                {/* Status icon */}
-                <span className="w-4 text-center shrink-0">
+                {/* Icon */}
+                <span className="w-5 text-center shrink-0">
                   {isActive ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-primary mx-auto" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground/50 mx-auto" />
                   ) : isError ? (
-                    <XCircle className="w-3 h-3 text-destructive mx-auto" />
+                    <XCircle className="w-3.5 h-3.5 text-destructive mx-auto" />
                   ) : isDone ? (
-                    <span className="text-[11px]">{getStepEmoji(step.label)}</span>
+                    <span className="text-[13px] opacity-70">{getStepIcon(step.label)}</span>
                   ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30 mx-auto" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20 mx-auto" />
                   )}
                 </span>
 
                 {/* Label */}
                 <span className={cn(
                   "truncate",
-                  isActive && "text-foreground font-medium",
-                  isDone && "text-muted-foreground",
+                  isActive && "text-muted-foreground",
+                  isDone && "text-muted-foreground/70",
                   isError && "text-destructive",
                 )}>
                   {step.label}
                 </span>
 
                 {step.count > 1 && (
-                  <span className="text-muted-foreground/40 text-[10px] shrink-0">×{step.count}</span>
+                  <span className="text-muted-foreground/30 text-[11px] shrink-0">({step.count}×)</span>
                 )}
               </div>
             );
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Main Component ── */
+export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props) {
+  const [startTime] = useState(() => Date.now());
+
+  if (steps.length === 0) return null;
+
+  const sections = buildSections(steps, startTime);
+
+  return (
+    <div className="mb-4">
+      {sections.map((section, idx) => (
+        <SectionDisplay
+          key={idx}
+          section={section}
+          isLast={idx === sections.length - 1}
+          isStreaming={isStreaming}
+        />
+      ))}
     </div>
   );
 }
