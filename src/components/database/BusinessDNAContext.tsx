@@ -296,10 +296,12 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       if (isWorkspaceSwitch) {
         setIsLoading(true);
       }
+      // Share a single session across all three parallel loads
+      const { data: { session } } = await supabase.auth.getSession();
       const [b, p, a] = await Promise.all([
-        loadEntities<BrandEntry>("brand", activeWorkspaceId),
-        loadEntities<ProductEntry>("product", activeWorkspaceId),
-        loadEntities<AudienceEntry>("audience", activeWorkspaceId),
+        loadEntities<BrandEntry>("brand", activeWorkspaceId, session),
+        loadEntities<ProductEntry>("product", activeWorkspaceId, session),
+        loadEntities<AudienceEntry>("audience", activeWorkspaceId, session),
       ]);
       setBrandsState(b);
       setProductsState(p);
