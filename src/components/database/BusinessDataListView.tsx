@@ -414,6 +414,8 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         }
         const { data: refreshed } = await refreshQuery;
         if (refreshed) { _cachedItems = refreshed; setItems(refreshed); }
+        // Refresh connection status so UI shows Disconnect button
+        checkConnection();
       } else {
         toast.error(data.error || "Sync failed");
       }
