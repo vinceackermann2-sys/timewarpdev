@@ -196,11 +196,13 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthProvider = params.get("oauth_success");
-    if (oauthProvider && ["microsoft", "slack"].includes(oauthProvider)) {
+    if (oauthProvider && ["microsoft", "slack", "hubspot"].includes(oauthProvider)) {
       const url = new URL(window.location.href);
       url.searchParams.delete("oauth_success");
       url.searchParams.delete("brandId");
       window.history.replaceState({}, "", url.pathname + url.search);
+      // Refresh connection status so UI shows Disconnect
+      checkConnection();
       handleSyncProvider(oauthProvider);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
