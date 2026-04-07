@@ -1596,8 +1596,8 @@ export function AgentChatView() {
                           isStreaming={msg.isStreaming}
                         />
                       )}
-                      {/* Main content (only show if not purely step-tracking) */}
-                      {(!msg.taskSteps || msg.taskSteps.length === 0 || !msg.isStreaming) && msg.content && (
+                      {/* Main content */}
+                      {msg.content && (
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
