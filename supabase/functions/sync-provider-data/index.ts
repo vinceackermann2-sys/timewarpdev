@@ -1072,11 +1072,15 @@ serve(async (req) => {
 
     if (providerData.emails) {
       for (const email of providerData.emails) {
+        // Skip emails with no meaningful subject AND no body content
+        const hasSubject = email.subject && email.subject.trim() !== "" && email.subject !== "No subject";
+        const hasBody = !!(email.body || email.preview || email.snippet);
+        if (!hasSubject && !hasBody) continue;
         dataItems.push({
           user_id: user.id,
           data_type: "email",
           source: provider,
-          title: email.subject || "No subject",
+          title: (hasSubject ? email.subject : (email.body || email.preview || email.snippet || "").slice(0, 80).trim()) || "Email",
           content: email.body || email.preview || email.snippet || null,
           metadata: { from: email.from, date: email.date },
           is_analyzed: false,
@@ -1086,11 +1090,13 @@ serve(async (req) => {
 
     if (providerData.events) {
       for (const event of providerData.events) {
+        const title = event.subject || event.summary;
+        if (!title || title.trim() === "") continue;
         dataItems.push({
           user_id: user.id,
           data_type: "calendar",
           source: provider,
-          title: event.subject || event.summary || "No title",
+          title,
           content: null,
           metadata: { start: event.start, end: event.end, attendees: event.attendees },
           is_analyzed: false,
