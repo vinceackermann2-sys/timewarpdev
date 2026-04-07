@@ -626,6 +626,16 @@ export function AgentChatView() {
         }
       }
     }
+    if (selectedGraphic) {
+      const graphicInstructions: Record<string, string> = {
+        "Document": "Format your response as a professional, well-structured document with clear headings, sections, and proper formatting. Use markdown with headers, lists, and emphasis.",
+        "Graph": "Include a data visualization in your response. Use ```chart``` code blocks with JSON data for charts (bar, line, pie). Provide the data and chart configuration.",
+        "Analytics": "Provide a detailed analytics report with key metrics, trends, insights, and data breakdowns. Use tables, statistics, and clear data-driven conclusions.",
+        "Spreadsheet": "Structure your response as tabular data using markdown tables. Include headers, organized rows, calculated totals, and clear column categories.",
+        "Slide": "Format your response as a presentation slide — use a bold headline, 3-5 concise bullet points, and a key takeaway. Keep it visual and scannable.",
+      };
+      userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
+    }
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -642,6 +652,7 @@ export function AgentChatView() {
     setUploadedFiles([]);
     setReferencedUrls([]);
     setSelectedChatEmployees([]);
+    setSelectedGraphic(null);
     setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
 
     // Add assistant placeholder
