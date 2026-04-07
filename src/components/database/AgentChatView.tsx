@@ -1847,7 +1847,7 @@ export function AgentChatView() {
               {/* Reference sub-menu (inline expand) */}
               <div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); }}
+                  onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); setShowGraphicsMenu(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -1956,7 +1956,7 @@ export function AgentChatView() {
               {/* Employees sub-menu (inline expand) */}
               <div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); }}
+                  onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); setShowGraphicsMenu(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -2010,7 +2010,7 @@ export function AgentChatView() {
                   href="https://microsoftedge.microsoft.com/addons/detail/timewarp-%E2%80%93-ai-ceo/fajgkgjioehbiccafonfbdkjhoedceim"
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                  onClick={() => { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -2024,7 +2024,7 @@ export function AgentChatView() {
                 </a>
               ) : (
                 <button
-                  onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                  onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -2039,7 +2039,7 @@ export function AgentChatView() {
 
               {/* Settings */}
               <button
-                onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); }}
+                onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
                 className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
               >
                 <Settings className="w-4 h-4 text-muted-foreground" />
