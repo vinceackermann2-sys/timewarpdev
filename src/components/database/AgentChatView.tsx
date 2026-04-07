@@ -8,6 +8,7 @@ import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { InlineChatChart } from "./InlineChatChart";
 import { TaskStepsDisplay } from "./TaskStepsDisplay";
+import { ThinkingTimer } from "./ThinkingTimer";
 import { SettingsView } from "@/components/database/SettingsView";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
