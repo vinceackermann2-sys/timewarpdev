@@ -1702,10 +1702,21 @@ export function AgentChatView() {
                             blockquote: ({children}) => <blockquote className="my-4 pl-4 border-l-2 border-primary/30 text-foreground/70 italic">{children}</blockquote>,
                             hr: () => <hr className="my-6 border-border/50" />,
                             code: ({children, className}) => {
-                              const isChart = className?.includes("language-chart");
-                              if (isChart) {
-                                const text = String(children).replace(/\n$/, "");
+                              const text = String(children).replace(/\n$/, "");
+                              if (className?.includes("language-chart") || className?.includes("language-graph")) {
                                 return <InlineChatChart jsonString={text} />;
+                              }
+                              if (className?.includes("language-document")) {
+                                return <InlineDocument jsonString={text} />;
+                              }
+                              if (className?.includes("language-analytics")) {
+                                return <InlineAnalytics jsonString={text} />;
+                              }
+                              if (className?.includes("language-spreadsheet")) {
+                                return <InlineSpreadsheet jsonString={text} />;
+                              }
+                              if (className?.includes("language-slide")) {
+                                return <InlineSlide jsonString={text} />;
                               }
                               const isBlock = className?.includes("language-");
                               return isBlock
@@ -1713,9 +1724,9 @@ export function AgentChatView() {
                                 : <code className="rounded bg-muted px-1.5 py-0.5 text-[13px] font-mono text-foreground/80">{children}</code>;
                             },
                             pre: ({children}) => {
-                              // If the child is a chart, don't wrap in pre styling
                               const child = children as any;
-                              if (child?.props?.className?.includes("language-chart")) {
+                              const cls = child?.props?.className || "";
+                              if (cls.includes("language-chart") || cls.includes("language-graph") || cls.includes("language-document") || cls.includes("language-analytics") || cls.includes("language-spreadsheet") || cls.includes("language-slide")) {
                                 return <>{children}</>;
                               }
                               return <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4 text-[13px]">{children}</pre>;
