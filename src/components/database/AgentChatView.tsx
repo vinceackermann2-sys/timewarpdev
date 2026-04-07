@@ -8,6 +8,7 @@ import {
 import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { InlineChatChart } from "./InlineChatChart";
+import { InlineDocument, InlineAnalytics, InlineSpreadsheet, InlineSlide } from "./InlineChatGraphics";
 import { TaskStepsDisplay } from "./TaskStepsDisplay";
 import { ThinkingTimer } from "./ThinkingTimer";
 import { SettingsView } from "@/components/database/SettingsView";
@@ -628,11 +629,31 @@ export function AgentChatView() {
     }
     if (selectedGraphic) {
       const graphicInstructions: Record<string, string> = {
-        "Document": "Format your response as a professional, well-structured document with clear headings, sections, and proper formatting. Use markdown with headers, lists, and emphasis.",
-        "Graph": "Include a data visualization in your response. Use ```chart``` code blocks with JSON data for charts (bar, line, pie). Provide the data and chart configuration.",
-        "Analytics": "Provide a detailed analytics report with key metrics, trends, insights, and data breakdowns. Use tables, statistics, and clear data-driven conclusions.",
-        "Spreadsheet": "Structure your response as tabular data using markdown tables. Include headers, organized rows, calculated totals, and clear column categories.",
-        "Slide": "Format your response as a presentation slide — use a bold headline, 3-5 concise bullet points, and a key takeaway. Keep it visual and scannable.",
+        "Document": `IMPORTANT: You MUST include a \`\`\`document code block with JSON in this format BEFORE your normal text answer:
+\`\`\`document
+{"title":"Document Title","sections":[{"heading":"Section","content":"Content here"}],"date":"Today's date"}
+\`\`\`
+Then provide your normal text explanation below it.`,
+        "Graph": `IMPORTANT: You MUST include a \`\`\`chart code block with JSON BEFORE your normal text answer:
+\`\`\`chart
+{"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
+\`\`\`
+Supported types: bar, line, area, pie. For pie use nameKey and valueKey instead of xKey/yKeys. Then provide your normal text explanation below it.`,
+        "Analytics": `IMPORTANT: You MUST include a \`\`\`analytics code block with JSON BEFORE your normal text answer:
+\`\`\`analytics
+{"title":"Analytics Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Key insight 1"],"chart":{"data":[{"month":"Jan","value":100}],"xKey":"month","yKeys":["value"]}}
+\`\`\`
+Each metric can have: label, value, change (percentage number, positive=green negative=red), unit. Chart is optional. Then provide your normal text explanation below it.`,
+        "Spreadsheet": `IMPORTANT: You MUST include a \`\`\`spreadsheet code block with JSON BEFORE your normal text answer:
+\`\`\`spreadsheet
+{"title":"Table Title","headers":["Col1","Col2"],"rows":[["A","B"],["C","D"]],"footer":["Total","100"]}
+\`\`\`
+Footer row is optional (for totals). Then provide your normal text explanation below it.`,
+        "Slide": `IMPORTANT: You MUST include a \`\`\`slide code block with JSON BEFORE your normal text answer:
+\`\`\`slide
+{"title":"Slide Title","subtitle":"Optional subtitle","bullets":["Point 1","Point 2","Point 3"],"takeaway":"The key takeaway message"}
+\`\`\`
+Then provide your normal text explanation below it.`,
       };
       userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
     }
@@ -1701,10 +1722,21 @@ export function AgentChatView() {
                             blockquote: ({children}) => <blockquote className="my-4 pl-4 border-l-2 border-primary/30 text-foreground/70 italic">{children}</blockquote>,
                             hr: () => <hr className="my-6 border-border/50" />,
                             code: ({children, className}) => {
-                              const isChart = className?.includes("language-chart");
-                              if (isChart) {
-                                const text = String(children).replace(/\n$/, "");
+                              const text = String(children).replace(/\n$/, "");
+                              if (className?.includes("language-chart") || className?.includes("language-graph")) {
                                 return <InlineChatChart jsonString={text} />;
+                              }
+                              if (className?.includes("language-document")) {
+                                return <InlineDocument jsonString={text} />;
+                              }
+                              if (className?.includes("language-analytics")) {
+                                return <InlineAnalytics jsonString={text} />;
+                              }
+                              if (className?.includes("language-spreadsheet")) {
+                                return <InlineSpreadsheet jsonString={text} />;
+                              }
+                              if (className?.includes("language-slide")) {
+                                return <InlineSlide jsonString={text} />;
                               }
                               const isBlock = className?.includes("language-");
                               return isBlock
@@ -1712,9 +1744,9 @@ export function AgentChatView() {
                                 : <code className="rounded bg-muted px-1.5 py-0.5 text-[13px] font-mono text-foreground/80">{children}</code>;
                             },
                             pre: ({children}) => {
-                              // If the child is a chart, don't wrap in pre styling
                               const child = children as any;
-                              if (child?.props?.className?.includes("language-chart")) {
+                              const cls = child?.props?.className || "";
+                              if (cls.includes("language-chart") || cls.includes("language-graph") || cls.includes("language-document") || cls.includes("language-analytics") || cls.includes("language-spreadsheet") || cls.includes("language-slide")) {
                                 return <>{children}</>;
                               }
                               return <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4 text-[13px]">{children}</pre>;
@@ -1805,10 +1837,10 @@ export function AgentChatView() {
                 </div>
               )}
               {selectedGraphic && (
-                <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                  <Palette className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs font-medium text-primary">{selectedGraphic}</span>
-                  <button onClick={() => setSelectedGraphic(null)} className="text-primary/60 hover:text-primary">
+                <div className="flex items-center gap-1.5 bg-[#3399ff]/10 border border-[#3399ff]/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
+                  <Palette className="w-3.5 h-3.5 text-[#3399ff]" />
+                  <span className="text-xs font-medium text-[#3399ff]">{selectedGraphic}</span>
+                  <button onClick={() => setSelectedGraphic(null)} className="text-[#3399ff]/60 hover:text-[#3399ff]">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
