@@ -695,16 +695,25 @@ export function AgentChatView() {
     return parts.length === 1 && parts[0].type === "text" ? parts[0].text : parts;
   };
 
-  /* ── Fetch with timeout to prevent infinite hanging ── */
+  /* ── Fetch with timeout and cancellation support ── */
   const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000): Promise<Response> => {
     const controller = new AbortController();
+    abortControllerRef.current = controller;
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     return fetch(url, { ...options, signal: controller.signal })
       .catch(err => {
-        if (err.name === "AbortError") throw new Error("Request timed out. The server took too long to respond.");
+        if (err.name === "AbortError") throw new Error("Cancelled");
         throw err;
       })
       .finally(() => clearTimeout(timer));
+  };
+
+  /* ── Cancel in-progress message ── */
+  const handleCancelMessage = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
   };
 
   /* ── Agent chat (streaming) ── */
