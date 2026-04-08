@@ -247,7 +247,11 @@ serve(async (req) => {
 
     // RAG: retrieve relevant context scoped to selected agent's brand/workspace
     const effectiveWsId = workspaceId || employee.workspace_id;
-    const relevantContext = await retrieveRelevantContext(supabase, { ...employee, workspace_id: effectiveWsId }, lastUserMsg);
+    const relevantContext = await retrieveRelevantContext(supabase, {
+      ...employee,
+      workspace_id: effectiveWsId,
+      linked_business_id: effectiveBrandId,
+    }, lastUserMsg);
 
     // Build system prompt
     const isBrowserMode = !!pageContext;
@@ -376,7 +380,23 @@ serve(async (req) => {
 // --- RAG Helpers ---
 
 function extractKeywords(text: string): string[] {
-  return text.toLowerCase().split(/\W+/).filter(w => w.length > 3 && !STOPWORDS.has(w));
+  const normalized = text.toLowerCase();
+  const baseKeywords = normalized.split(/\W+/).filter(w => w.length > 2 && !STOPWORDS.has(w));
+  const expanded = [...baseKeywords];
+
+  if (/\bprice|pricing|cost|plan|plans|package|packages|offer|offers|subscription|subscriptions|tier|tiers\b/i.test(text)) {
+    expanded.push("price", "pricing", "cost", "plan", "plans", "offer", "offers", "subscription", "subscriptions", "tier", "tiers");
+  }
+
+  if (/\bmrr|arr|revenue|profit|margin|ltv|cac|arpu\b/i.test(text)) {
+    expanded.push("mrr", "arr", "revenue", "profit", "margin", "ltv", "cac", "arpu");
+  }
+
+  if (/\bcustomer|customers|client|clients|lead|leads|close|closing|deal|deals|sale|sales\b/i.test(text)) {
+    expanded.push("customer", "customers", "client", "clients", "lead", "leads", "close", "closing", "deal", "deals", "sale", "sales");
+  }
+
+  return [...new Set(expanded)];
 }
 
 function extractLastUserMessage(messages: any[]): string {
@@ -391,14 +411,102 @@ function extractLastUserMessage(messages: any[]): string {
   return "";
 }
 
-function scoreItem(keywords: string[], title: string, contentSnippet: string): number {
-  if (keywords.length === 0) return 0;
-  const haystack = (title + " " + contentSnippet).toLowerCase();
-  let matches = 0;
-  for (const kw of keywords) {
-    if (haystack.includes(kw)) matches++;
+function stringifyContent(value: unknown): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
   }
-  return matches / keywords.length;
+}
+
+function tryParseJson(value: unknown): any | null {
+  if (typeof value !== "string") return value && typeof value === "object" ? value : null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function getLogicalBrandIdFromRow(row: any): string | null {
+  const parsed = tryParseJson(row?.content);
+  return typeof parsed?.id === "string" && parsed.id.trim() ? parsed.id : null;
+}
+
+function getItemLogicalBrandId(item: any): string | null {
+  if (typeof item?.metadata?.brandId === "string" && item.metadata.brandId.trim()) {
+    return item.metadata.brandId;
+  }
+
+  const parsedContent = tryParseJson(item?.content);
+  if (typeof parsedContent?.brandId === "string" && parsedContent.brandId.trim()) {
+    return parsedContent.brandId;
+  }
+
+  return null;
+}
+
+function buildSearchText(item: any): string {
+  return [
+    item.title,
+    item.data_type,
+    item.source,
+    stringifyContent(item.metadata),
+    stringifyContent(item.analyzed_content),
+    stringifyContent(item.content),
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase()
+    .slice(0, 16000);
+}
+
+function extractRelevantSnippet(text: string, keywords: string[], maxChars = 1400): string {
+  if (!text) return "";
+
+  const normalized = text.toLowerCase();
+  let matchIndex = -1;
+
+  for (const keyword of [...keywords].sort((a, b) => b.length - a.length)) {
+    const index = normalized.indexOf(keyword.toLowerCase());
+    if (index !== -1) {
+      matchIndex = index;
+      break;
+    }
+  }
+
+  if (matchIndex === -1) {
+    const priceIndex = normalized.search(/\$\s?\d|€\s?\d|£\s?\d|\b\d+(?:[.,]\d+)?\s?(?:usd|eur|sek|kr)\b/i);
+    matchIndex = priceIndex;
+  }
+
+  if (matchIndex === -1) {
+    return text.slice(0, maxChars);
+  }
+
+  const start = Math.max(0, matchIndex - Math.floor(maxChars * 0.25));
+  const end = Math.min(text.length, start + maxChars);
+  const prefix = start > 0 ? "... " : "";
+  const suffix = end < text.length ? " ..." : "";
+  return prefix + text.slice(start, end) + suffix;
+}
+
+function scoreItem(keywords: string[], searchText: string, item: any, userQuery: string): number {
+  if (keywords.length === 0) return 0;
+
+  let score = 0;
+  for (const kw of keywords) {
+    if (searchText.includes(kw)) score += kw.length > 4 ? 1.25 : 1;
+  }
+
+  if (/\bprice|pricing|cost|plan|offer|subscription|mrr|arr|revenue|customer|customers|deal|deals\b/i.test(userQuery)) {
+    if (item.data_type === "product" || item.data_type === "brand") score += 1.5;
+    if (/\$\s?\d|€\s?\d|£\s?\d|\b\d+(?:[.,]\d+)?\s?(?:usd|eur|sek|kr)\b/i.test(searchText)) score += 2;
+  }
+
+  return score / keywords.length;
 }
 
 async function loadBusinessIdentity(supabase: any, employee: any): Promise<{ identity: string; safetySettings: any | null }> {
@@ -435,28 +543,55 @@ async function retrieveRelevantContext(supabase: any, employee: any, userQuery: 
   const wsFilter = employee.workspace_id || null;
   let query = supabase
     .from("user_business_data")
-    .select("title, content, analyzed_content, data_type, source");
+    .select("id, title, content, analyzed_content, data_type, source, metadata");
 
   if (wsFilter) query = query.eq("workspace_id", wsFilter);
   else query = query.eq("user_id", employee.user_id);
 
-  const { data: items } = await query.limit(100);
+  const { data: items } = await query.limit(500);
   if (!items || items.length === 0) return "";
 
-  const scored = items.map((item: any) => {
-    const snippet = (item.analyzed_content || item.content || "").slice(0, 300);
-    return { ...item, score: scoreItem(keywords, item.title || "", snippet) };
+  let scopedItems = items;
+  let selectedBusinessTitle = "";
+
+  if (employee.linked_business_id) {
+    const brandRow = items.find((item: any) => item.id === employee.linked_business_id)
+      || (await supabase
+        .from("user_business_data")
+        .select("id, title, content")
+        .eq("id", employee.linked_business_id)
+        .maybeSingle()).data;
+
+    const logicalBrandId = getLogicalBrandIdFromRow(brandRow);
+    selectedBusinessTitle = brandRow?.title || "";
+
+    if (logicalBrandId) {
+      scopedItems = items.filter((item: any) => item.id === employee.linked_business_id || getItemLogicalBrandId(item) === logicalBrandId);
+    } else {
+      scopedItems = items.filter((item: any) => item.id === employee.linked_business_id);
+    }
+
+    if (scopedItems.length === 0) {
+      return `\n\n## Reference Material\nNo verified records were found for the selected business${selectedBusinessTitle ? ` (${selectedBusinessTitle})` : ""} in the database for this request. Ask the user for the missing business-specific number or source instead of estimating.`;
+    }
+  }
+
+  const scored = scopedItems.map((item: any) => {
+    const searchText = buildSearchText(item);
+    return { ...item, score: scoreItem(keywords, searchText, item, userQuery), searchText };
   }).filter((i: any) => i.score > 0.1)
     .sort((a: any, b: any) => b.score - a.score)
     .slice(0, 5);
 
   if (scored.length === 0) return "";
 
-  let context = "\n\n## Reference Material (from your business database)\n";
+  let context = `\n\n## Reference Material (${employee.linked_business_id ? "verified records from the selected business database" : "from your business database"})\n`;
   for (const item of scored) {
     context += `\n### ${item.title} (${item.data_type})\n`;
-    const text = item.analyzed_content || item.content || "";
-    context += text.slice(0, 500) + "\n";
+    if (item.source) context += `Source: ${item.source}\n`;
+    const text = stringifyContent(item.analyzed_content || item.content || "");
+    const excerpt = extractRelevantSnippet(text, keywords);
+    context += excerpt + "\n";
   }
   return context;
 }
@@ -605,6 +740,9 @@ ${relevantContext}
 7. Use clean markdown: headings, bullets, tables, bold for key terms. Add spacing between sections.
 8. **NEVER fabricate or invent business data.** If the Reference Material above does not contain specific numbers (revenue, customers, pricing, MRR, etc.), do NOT make them up. Instead, clearly state what data you need from the user and ask them to provide it. Only use actual numbers from the Reference Material or from files the user attached.
 9. When doing calculations or projections, ALWAYS state your assumptions explicitly (e.g. "Assuming your average deal size is $X — please correct me if different"). Never present made-up numbers as if they are the user's real data.
+10. If the user asks about pricing, plans, MRR, ARR, revenue, conversion, CAC, LTV, or how many customers they need, answer ONLY from verified numbers found in the Reference Material or attached files. If those verified numbers are missing, say that you can't verify it from the database yet and ask for the exact missing number.
+11. If the selected business has no matching database records for the request, do NOT borrow data from another business, do NOT use generic benchmarks, and do NOT guess. Ask for the missing source or tell the user where to add it in their business data.
+12. Never use hypothetical industry averages unless the user explicitly asks for a hypothetical example or benchmark scenario.
 
 ## FORMATTING
 - Use ## and ### headings for structure
