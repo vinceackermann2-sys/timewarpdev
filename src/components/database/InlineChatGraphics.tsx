@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback } from "react";
-import { FileText, BarChart3, PieChart, Table2, Presentation, TrendingUp, TrendingDown, Minus, Download, Save, Check } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { FileText, PieChart, Table2, Presentation, TrendingUp, TrendingDown, Minus, Download, Save, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart as RePieChart, Pie, Cell,
@@ -7,13 +7,13 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { GraphicEditorDialog } from "./GraphicEditorDialog";
 
 const COLORS = [
   "#3399ff", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6",
 ];
 
-/* ─── Shared Action Buttons ─── */
-function GraphicActions({ onSave, onDownload }: { onSave: () => void; onDownload: () => void }) {
+function GraphicActions({ onSave, onDownload, editor }: { onSave: () => void; onDownload: () => void; editor?: ReactNode }) {
   const [saved, setSaved] = useState(false);
 
   const handleSave = async () => {
@@ -24,18 +24,11 @@ function GraphicActions({ onSave, onDownload }: { onSave: () => void; onDownload
 
   return (
     <div className="ml-auto flex items-center gap-1">
-      <button
-        onClick={handleSave}
-        className="p-1 rounded hover:bg-[#3399ff]/20 transition-colors"
-        title="Save to database"
-      >
+      {editor}
+      <button onClick={handleSave} className="p-1 rounded hover:bg-[#3399ff]/20 transition-colors" title="Save to database">
         {saved ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Save className="w-3.5 h-3.5 text-[#3399ff]" />}
       </button>
-      <button
-        onClick={onDownload}
-        className="p-1 rounded hover:bg-[#3399ff]/20 transition-colors"
-        title="Download"
-      >
+      <button onClick={onDownload} className="p-1 rounded hover:bg-[#3399ff]/20 transition-colors" title="Download">
         <Download className="w-3.5 h-3.5 text-[#3399ff]" />
       </button>
     </div>
@@ -66,17 +59,18 @@ function downloadFile(filename: string, content: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
-/* ─── Document Renderer ─── */
 interface DocSection { heading?: string; content: string }
 interface DocConfig { title: string; sections: DocSection[]; author?: string; date?: string }
 
-export function InlineDocument({ jsonString }: { jsonString: string }) {
+export function InlineDocument({ jsonString, editorEnabled = true }: { jsonString: string; editorEnabled?: boolean }) {
+  const [draftJson, setDraftJson] = useState(jsonString);
+  useEffect(() => setDraftJson(jsonString), [jsonString]);
   const config = useMemo<DocConfig | null>(() => {
-    try { return JSON.parse(jsonString); } catch { return null; }
-  }, [jsonString]);
+    try { return JSON.parse(draftJson); } catch { return null; }
+  }, [draftJson]);
   if (!config) return null;
 
-  const handleSave = () => saveToDatabase(config.title, "document", jsonString);
+  const handleSave = () => saveToDatabase(config.title, "document", draftJson);
   const handleDownload = async () => {
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF();
@@ -105,13 +99,15 @@ export function InlineDocument({ jsonString }: { jsonString: string }) {
     doc.save(`${config.title}.pdf`);
   };
 
+  const editor = editorEnabled ? <GraphicEditorDialog title="Edit document" value={draftJson} onApply={setDraftJson} renderPreview={(value) => <InlineDocument jsonString={value} editorEnabled={false} />} /> : null;
+
   return (
     <div className="my-4 rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
       <div className="bg-[#3399ff]/10 border-b border-[#3399ff]/20 px-5 py-3 flex items-center gap-2">
         <FileText className="w-4 h-4 text-[#3399ff]" />
         <span className="text-sm font-semibold text-foreground">{config.title}</span>
         {config.date && <span className="text-xs text-muted-foreground">{config.date}</span>}
-        <GraphicActions onSave={handleSave} onDownload={handleDownload} />
+        <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
       <div className="px-5 py-4 space-y-4 max-h-[400px] overflow-y-auto">
         {config.sections.map((sec, i) => (
@@ -125,29 +121,33 @@ export function InlineDocument({ jsonString }: { jsonString: string }) {
   );
 }
 
-/* ─── Analytics Renderer ─── */
 interface AnalyticsMetric { label: string; value: string; change?: number; unit?: string }
 interface AnalyticsConfig { title: string; metrics: AnalyticsMetric[]; chart?: any; insights?: string[] }
 
-export function InlineAnalytics({ jsonString }: { jsonString: string }) {
+export function InlineAnalytics({ jsonString, editorEnabled = true }: { jsonString: string; editorEnabled?: boolean }) {
+  const [draftJson, setDraftJson] = useState(jsonString);
+  useEffect(() => setDraftJson(jsonString), [jsonString]);
   const config = useMemo<AnalyticsConfig | null>(() => {
-    try { return JSON.parse(jsonString); } catch { return null; }
-  }, [jsonString]);
+    try { return JSON.parse(draftJson); } catch { return null; }
+  }, [draftJson]);
   if (!config) return null;
 
-  const handleSave = () => saveToDatabase(config.title, "analytics", jsonString);
+  const handleSave = () => saveToDatabase(config.title, "analytics", draftJson);
   const handleDownload = () => {
     const lines = config.metrics.map(m => `${m.label}: ${m.value}${m.unit || ""}${m.change !== undefined ? ` (${m.change > 0 ? "+" : ""}${m.change}%)` : ""}`);
     if (config.insights) lines.push("", "Insights:", ...config.insights.map(i => `- ${i}`));
-    downloadFile(`${config.title}.txt`, lines.join("\n"), "text/plain");
+    downloadFile(`${config.title}.txt`, lines.join("
+"), "text/plain");
   };
+
+  const editor = editorEnabled ? <GraphicEditorDialog title="Edit analytics" value={draftJson} onApply={setDraftJson} renderPreview={(value) => <InlineAnalytics jsonString={value} editorEnabled={false} />} /> : null;
 
   return (
     <div className="my-4 rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
       <div className="bg-[#3399ff]/10 border-b border-[#3399ff]/20 px-5 py-3 flex items-center gap-2">
         <PieChart className="w-4 h-4 text-[#3399ff]" />
         <span className="text-sm font-semibold text-foreground">{config.title}</span>
-        <GraphicActions onSave={handleSave} onDownload={handleDownload} />
+        <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
       <div className="p-4">
         <div className={cn("grid gap-3 mb-4", config.metrics.length <= 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
@@ -194,28 +194,31 @@ export function InlineAnalytics({ jsonString }: { jsonString: string }) {
   );
 }
 
-/* ─── Spreadsheet Renderer ─── */
 interface SpreadsheetConfig { title: string; headers: string[]; rows: (string | number)[][]; footer?: string[] }
 
-export function InlineSpreadsheet({ jsonString }: { jsonString: string }) {
+export function InlineSpreadsheet({ jsonString, editorEnabled = true }: { jsonString: string; editorEnabled?: boolean }) {
+  const [draftJson, setDraftJson] = useState(jsonString);
+  useEffect(() => setDraftJson(jsonString), [jsonString]);
   const config = useMemo<SpreadsheetConfig | null>(() => {
-    try { return JSON.parse(jsonString); } catch { return null; }
-  }, [jsonString]);
+    try { return JSON.parse(draftJson); } catch { return null; }
+  }, [draftJson]);
   if (!config) return null;
 
-  const handleSave = () => saveToDatabase(config.title, "spreadsheet", jsonString);
+  const handleSave = () => saveToDatabase(config.title, "spreadsheet", draftJson);
   const handleDownload = () => {
     const csvRows = [config.headers.join(","), ...config.rows.map(r => r.join(","))];
     if (config.footer) csvRows.push(config.footer.join(","));
     downloadFile(`${config.title}.csv`, csvRows.join("\n"), "text/csv");
   };
 
+  const editor = editorEnabled ? <GraphicEditorDialog title="Edit spreadsheet" value={draftJson} onApply={setDraftJson} renderPreview={(value) => <InlineSpreadsheet jsonString={value} editorEnabled={false} />} /> : null;
+
   return (
     <div className="my-4 rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
       <div className="bg-[#3399ff]/10 border-b border-[#3399ff]/20 px-5 py-3 flex items-center gap-2">
         <Table2 className="w-4 h-4 text-[#3399ff]" />
         <span className="text-sm font-semibold text-foreground">{config.title}</span>
-        <GraphicActions onSave={handleSave} onDownload={handleDownload} />
+        <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -250,7 +253,6 @@ export function InlineSpreadsheet({ jsonString }: { jsonString: string }) {
   );
 }
 
-/* ─── Slide Renderer ─── */
 interface SlideStat { value: string; label: string }
 interface SlideConfig {
   title: string; subtitle?: string; bullets?: string[]; takeaway?: string; image?: string;
@@ -259,23 +261,24 @@ interface SlideConfig {
   left_column?: string[]; right_column?: string[];
 }
 
-export function InlineSlide({ jsonString }: { jsonString: string }) {
+export function InlineSlide({ jsonString, editorEnabled = true }: { jsonString: string; editorEnabled?: boolean }) {
+  const [draftJson, setDraftJson] = useState(jsonString);
+  useEffect(() => setDraftJson(jsonString), [jsonString]);
   const config = useMemo<SlideConfig | null>(() => {
-    try { return JSON.parse(jsonString); } catch { return null; }
-  }, [jsonString]);
+    try { return JSON.parse(draftJson); } catch { return null; }
+  }, [draftJson]);
   if (!config) return null;
 
   const layout = config.layout || (config.stats && config.stats.length > 0 ? "stat-callout" : "bullets");
   const accent = config.accent_color || "#3399ff";
 
-  const handleSave = () => saveToDatabase(config.title, "slide", jsonString);
+  const handleSave = () => saveToDatabase(config.title, "slide", draftJson);
   const handleDownload = async () => {
     const pptxgenjs = await import("pptxgenjs");
     const pptx = new pptxgenjs.default();
     const slide = pptx.addSlide();
     slide.background = { fill: "1a1a2e" };
 
-    // Icon
     if (config.icon) slide.addText(config.icon, { x: 0.5, y: 0.3, w: 1, fontSize: 36 });
     const titleY = config.icon ? 0.9 : 0.5;
     slide.addText(config.title, { x: 0.5, y: titleY, w: 9, fontSize: 28, bold: true, color: "FFFFFF" });
@@ -301,6 +304,8 @@ export function InlineSlide({ jsonString }: { jsonString: string }) {
     pptx.writeFile({ fileName: `${config.title}.pptx` });
   };
 
+  const editor = editorEnabled ? <GraphicEditorDialog title="Edit slide" value={draftJson} onApply={setDraftJson} renderPreview={(value) => <InlineSlide jsonString={value} editorEnabled={false} />} /> : null;
+
   return (
     <div className="my-4 rounded-xl border border-border/50 overflow-hidden shadow-sm">
       <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] text-white p-6 min-h-[220px] flex flex-col">
@@ -309,7 +314,6 @@ export function InlineSlide({ jsonString }: { jsonString: string }) {
           <h3 className="text-xl font-bold mb-1 tracking-tight">{config.title}</h3>
           {config.subtitle && <p className="text-sm text-white/60 mb-4">{config.subtitle}</p>}
 
-          {/* Stat callout layout */}
           {layout === "stat-callout" && config.stats && config.stats.length > 0 && (
             <div className={cn("grid gap-4 mt-4", config.stats.length <= 2 ? "grid-cols-2" : config.stats.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
               {config.stats.map((s, i) => (
@@ -321,7 +325,6 @@ export function InlineSlide({ jsonString }: { jsonString: string }) {
             </div>
           )}
 
-          {/* Two-column layout */}
           {layout === "two-column" && (
             <div className="grid grid-cols-2 gap-6 mt-4">
               <ul className="space-y-2">
@@ -345,7 +348,6 @@ export function InlineSlide({ jsonString }: { jsonString: string }) {
             </div>
           )}
 
-          {/* Default bullets layout */}
           {(layout === "bullets" || (!config.stats?.length && layout !== "two-column" && layout !== "title-only")) && config.bullets && config.bullets.length > 0 && (
             <ul className="space-y-2 mt-4">
               {config.bullets.map((b, i) => (
@@ -367,7 +369,7 @@ export function InlineSlide({ jsonString }: { jsonString: string }) {
       <div className="bg-[#3399ff]/10 px-5 py-2 flex items-center gap-2">
         <Presentation className="w-3.5 h-3.5 text-[#3399ff]" />
         <span className="text-xs text-muted-foreground">Slide</span>
-        <GraphicActions onSave={handleSave} onDownload={handleDownload} />
+        <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
     </div>
   );

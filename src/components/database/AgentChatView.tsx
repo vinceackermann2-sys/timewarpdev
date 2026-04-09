@@ -808,13 +808,28 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     const brandRowId = activeBrand ? (activeBrand as any)._rowId : undefined;
 
     const taskSteps: ChatMessage["taskSteps"] = [];
+    const syncTaskSteps = (content?: string) => {
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        ...(content !== undefined ? { content } : {}),
+        taskSteps: [...taskSteps],
+        currentStepIndex: taskSteps.length - 1,
+        isStreaming: true,
+        streamStartTime: m.streamStartTime || Date.now(),
+      } : m));
+    };
     const addStep = (label: string, status: "running" | "done" | "error" = "running") => {
       taskSteps.push({ action: "process", label, status });
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true, streamStartTime: m.streamStartTime || Date.now() } : m));
+      syncTaskSteps();
     };
-    const completeStep = () => {
-      if (taskSteps.length > 0) taskSteps[taskSteps.length - 1].status = "done";
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
+    const completeStep = (status: "done" | "error" = "done") => {
+      for (let i = taskSteps.length - 1; i >= 0; i--) {
+        if (taskSteps[i].status === "running") {
+          taskSteps[i].status = status;
+          break;
+        }
+      }
+      syncTaskSteps();
     };
 
     // Derive contextual step labels from the user's message
@@ -1212,6 +1227,33 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       if (msgLower.includes("report") || msgLower.includes("analytics")) return "Verifying data accuracy";
       return "Fact-checking against your data";
     };
+    const getProgressPulseLabels = () => {
+      if (msgLower.includes("pitch") || msgLower.includes("investor") || msgLower.includes("slide") || msgLower.includes("presentation")) {
+        return ["Checking brand positioning", "Pulling product proof points", "Matching audience insights", "Structuring the visual narrative"];
+      }
+      if (msgLower.includes("report") || msgLower.includes("analytics") || msgLower.includes("graph") || msgLower.includes("spreadsheet")) {
+        return ["Checking brand context", "Reviewing product data", "Matching audience signals", "Organizing the final output"];
+      }
+      return ["Checking brand context", "Reviewing product details", "Matching audience data", "Preparing the final answer"];
+    };
+    const startProgressPulse = () => {
+      const labels = getProgressPulseLabels();
+      let index = 0;
+      const timer = window.setInterval(() => {
+        if (index >= labels.length) {
+          window.clearInterval(timer);
+          return;
+        }
+        completeStep();
+        addStep(labels[index]);
+        index += 1;
+      }, 1200);
+
+      return () => {
+        window.clearInterval(timer);
+        completeStep();
+      };
+    };
 
     // Show processing state
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
@@ -1245,6 +1287,8 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         addStep(`Extending response (part ${continuationCount + 1})...`);
       }
 
+      const stopProgressPulse = startProgressPulse();
+
       const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
         {
@@ -1266,8 +1310,8 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       );
 
       if (!response.ok) {
+        stopProgressPulse();
         const err = await response.json().catch(() => ({}));
-        completeStep();
         addStep("Error");
         taskSteps[taskSteps.length - 1].status = "error";
         supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.error || "Failed" }).then(() => {});
@@ -1277,7 +1321,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       const data = await response.json();
       accumulatedContent = data.content || accumulatedContent;
 
-      completeStep();
+      stopProgressPulse();
 
       // Add verify step after getting content
       if (continuationCount === 0 && accumulatedContent) {
@@ -1287,7 +1331,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       }
 
       // Update message with accumulated content
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent, taskSteps: [...taskSteps], isStreaming: true } : m));
+      syncTaskSteps(accumulatedContent);
 
       if (!data.continuation) break;
       continuationCount++;

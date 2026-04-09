@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
+import { GraphicEditorDialog } from "./GraphicEditorDialog";
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -25,14 +26,17 @@ interface ChartConfig {
   data: Record<string, any>[];
 }
 
-export function InlineChatChart({ jsonString }: { jsonString: string }) {
+export function InlineChatChart({ jsonString, editorEnabled = true }: { jsonString: string; editorEnabled?: boolean }) {
+  const [draftJson, setDraftJson] = useState(jsonString);
+  useEffect(() => setDraftJson(jsonString), [jsonString]);
+
   const config = useMemo<ChartConfig | null>(() => {
     try {
-      return JSON.parse(jsonString);
+      return JSON.parse(draftJson);
     } catch {
       return null;
     }
-  }, [jsonString]);
+  }, [draftJson]);
 
   if (!config || !config.data || config.data.length === 0) return null;
 
@@ -94,7 +98,6 @@ export function InlineChatChart({ jsonString }: { jsonString: string }) {
       );
     }
 
-    // Default: bar
     return (
       <BarChart data={data} {...commonProps}>
         {axes}
@@ -107,7 +110,12 @@ export function InlineChatChart({ jsonString }: { jsonString: string }) {
 
   return (
     <div className="my-4 rounded-xl border border-border/50 bg-card p-4 overflow-hidden">
-      {title && <h4 className="text-sm font-semibold text-foreground mb-3">{title}</h4>}
+      <div className="mb-3 flex items-center gap-2">
+        {title && <h4 className="text-sm font-semibold text-foreground">{title}</h4>}
+        <div className="ml-auto">
+          {editorEnabled ? <GraphicEditorDialog title="Edit chart" value={draftJson} onApply={setDraftJson} renderPreview={(value) => <InlineChatChart jsonString={value} editorEnabled={false} />} /> : null}
+        </div>
+      </div>
       <ResponsiveContainer width="100%" height={260}>
         {renderChart()}
       </ResponsiveContainer>

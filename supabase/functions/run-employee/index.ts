@@ -1024,7 +1024,7 @@ ${relevantContext}
 1. **ALWAYS answer the user's actual question first.** This is your #1 priority. Read their message carefully and respond to exactly what they asked.
 2. If the user attached files (marked with "--- filename ---" or "[Analysis of filename]"), analyze that specific content and answer their question about it.
 3. If a file could not be analyzed (e.g. "could not analyze"), tell the user and suggest re-uploading.
-4. Reference material above contains verified business data. When creating any pitch, presentation, report, slide, or document, you MUST use this data to personalize the content. For general questions, reference it when relevant.
+4. Reference material above contains verified business data. When creating any pitch, presentation, report, slide, document, graph, chart, analytics output, spreadsheet, or visual deliverable, you MUST use this data to personalize the content. For general questions, reference it when relevant.
 5. Do NOT summarize business context unprompted. Do NOT start responses with business overviews.
 6. Do NOT return JSON action blocks in chat mode.
 7. Use clean markdown: headings, bullets, tables, bold for key terms. Add spacing between sections.
@@ -1068,8 +1068,8 @@ Supported chart types: "bar", "line", "area", "pie"
 - Always include real data from the user's files or business context when available
 - Combine charts with text analysis and tables for comprehensive reports
 
-## SLIDES & DOCUMENTS
-When the user asks for a pitch, presentation, slide, report, or document, you MUST output the appropriate fenced code block. You MUST use the business's brand name, products, audience, and any metrics from the Reference Material above. Do NOT create generic content. Every slide, document, or pitch must reflect THIS business's actual data. Treat every request as being about THIS business unless the user explicitly says otherwise.
+## SLIDES, GRAPHICS & DOCUMENTS
+When the user asks for a pitch, presentation, slide, report, document, graph, chart, analytics output, spreadsheet, or other visual deliverable, you MUST output the appropriate fenced code block. You MUST use the business's brand name, products, audience, and any metrics from the Reference Material above. Do NOT create generic content. Every graphic, slide, document, or pitch must reflect THIS business's actual data. Treat every request as being about THIS business unless the user explicitly says otherwise.
 
 For slides use a \`\`\`slide code block:
 \`\`\`slide
