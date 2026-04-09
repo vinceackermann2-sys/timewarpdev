@@ -628,7 +628,7 @@ export function AgentChatView() {
       }
     }
     if (selectedGraphic) {
-      const businessContextRule = `\n\nIMPORTANT: You MUST use the business's actual brand name, product details, and audience information from the Reference Material to personalize this content. Never create generic content — personalize everything to THIS specific business. If the user asks for a pitch, report, or presentation, base ALL content on the business's real data.`;
+      const businessContextRule = `\n\nIMPORTANT: You MUST use the business's actual brand, product, audience, and any verified metrics from the Reference Material to personalize this graphic. Cross-check every claim against that business data before answering. Never create generic content, placeholders, or made-up numbers. If key business details are missing, clearly say what is missing instead of inventing it.`;
       const graphicInstructions: Record<string, string> = {
         "Document": `You MUST create a professional document that directly answers the user's question above. Analyze their request carefully and produce a well-structured document with relevant, specific content.${businessContextRule}
 Include a \`\`\`document code block with JSON BEFORE your text explanation:
@@ -641,26 +641,26 @@ Include a \`\`\`chart code block with JSON BEFORE your text explanation:
 \`\`\`chart
 {"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
 \`\`\`
-Supported types: bar, line, area, pie. For pie use nameKey and valueKey. Use realistic, relevant data that helps answer their question. Then explain the data below.`,
+Supported types: bar, line, area, pie. For pie use nameKey and valueKey. Use realistic, relevant data that helps answer their question. Titles, labels, segments, and insights must reflect the business's actual brand, product, and audience context. Then explain the data below.`,
         "Analytics": `You MUST create an analytics dashboard with metrics directly relevant to the user's question above. Choose metrics that would genuinely help them understand the topic.${businessContextRule}
 Include a \`\`\`analytics code block with JSON BEFORE your text explanation:
 \`\`\`analytics
 {"title":"Analytics Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Key insight"],"chart":{"data":[{"month":"Jan","value":100}],"xKey":"month","yKeys":["value"]}}
 \`\`\`
-Each metric: label, value, change (positive=growth, negative=decline), unit. Create metrics that directly answer the user's question. Then explain below.`,
+Each metric: label, value, change (positive=growth, negative=decline), unit. Create metrics that directly answer the user's question and tie them to the business's actual offer, brand, or audience. Then explain below.`,
         "Spreadsheet": `You MUST create a spreadsheet/table with data directly relevant to the user's question above. Organize the data in a way that helps them understand or act on their request.${businessContextRule}
 Include a \`\`\`spreadsheet code block with JSON BEFORE your text explanation:
 \`\`\`spreadsheet
 {"title":"Table Title","headers":["Col1","Col2"],"rows":[["A","B"],["C","D"]],"footer":["Total","100"]}
 \`\`\`
-Footer is optional. Fill with realistic, relevant data that addresses their question. Then explain below.`,
+Footer is optional. Fill with realistic, relevant data that addresses their question. Column names and rows must reflect the business's actual product, audience, offer, or verified metrics. Then explain below.`,
         "Slide": `You MUST create a visually rich presentation slide with content directly relevant to the user's question above.${businessContextRule}
 Include a \`\`\`slide code block with JSON BEFORE your text explanation:
 \`\`\`slide
 {"title":"Slide Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"},{"value":"15K","label":"Users"}],"bullets":["Key point 1","Key point 2"],"takeaway":"Main takeaway","accent_color":"#3399ff"}
 \`\`\`
 Supported layouts: "bullets" (default list), "stat-callout" (big numbers + optional bullets), "two-column" (use left_column and right_column arrays), "title-only".
-Always include an icon emoji. Use stats with large formatted numbers when presenting metrics. Use the business's actual data for stats. Then provide additional context below.`,
+Always include an icon emoji. Use stats with large formatted numbers when presenting metrics. The slide must clearly reflect this business's DNA, product, and target audience. Use the business's actual data for stats. Then provide additional context below.`,
       };
       userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
     }
@@ -808,13 +808,28 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     const brandRowId = activeBrand ? (activeBrand as any)._rowId : undefined;
 
     const taskSteps: ChatMessage["taskSteps"] = [];
+    const syncTaskSteps = (content?: string) => {
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        ...(content !== undefined ? { content } : {}),
+        taskSteps: [...taskSteps],
+        currentStepIndex: taskSteps.length - 1,
+        isStreaming: true,
+        streamStartTime: m.streamStartTime || Date.now(),
+      } : m));
+    };
     const addStep = (label: string, status: "running" | "done" | "error" = "running") => {
       taskSteps.push({ action: "process", label, status });
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true, streamStartTime: m.streamStartTime || Date.now() } : m));
+      syncTaskSteps();
     };
-    const completeStep = () => {
-      if (taskSteps.length > 0) taskSteps[taskSteps.length - 1].status = "done";
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
+    const completeStep = (status: "done" | "error" = "done") => {
+      for (let i = taskSteps.length - 1; i >= 0; i--) {
+        if (taskSteps[i].status === "running") {
+          taskSteps[i].status = status;
+          break;
+        }
+      }
+      syncTaskSteps();
     };
 
     // Derive contextual step labels from the user's message
@@ -1212,6 +1227,33 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       if (msgLower.includes("report") || msgLower.includes("analytics")) return "Verifying data accuracy";
       return "Fact-checking against your data";
     };
+    const getProgressPulseLabels = () => {
+      if (msgLower.includes("pitch") || msgLower.includes("investor") || msgLower.includes("slide") || msgLower.includes("presentation")) {
+        return ["Checking brand positioning", "Pulling product proof points", "Matching audience insights", "Structuring the visual narrative"];
+      }
+      if (msgLower.includes("report") || msgLower.includes("analytics") || msgLower.includes("graph") || msgLower.includes("spreadsheet")) {
+        return ["Checking brand context", "Reviewing product data", "Matching audience signals", "Organizing the final output"];
+      }
+      return ["Checking brand context", "Reviewing product details", "Matching audience data", "Preparing the final answer"];
+    };
+    const startProgressPulse = () => {
+      const labels = getProgressPulseLabels();
+      let index = 0;
+      const timer = window.setInterval(() => {
+        if (index >= labels.length) {
+          window.clearInterval(timer);
+          return;
+        }
+        completeStep();
+        addStep(labels[index]);
+        index += 1;
+      }, 1200);
+
+      return () => {
+        window.clearInterval(timer);
+        completeStep();
+      };
+    };
 
     // Show processing state
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
@@ -1245,6 +1287,8 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         addStep(`Extending response (part ${continuationCount + 1})...`);
       }
 
+      const stopProgressPulse = startProgressPulse();
+
       const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
         {
@@ -1266,8 +1310,8 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       );
 
       if (!response.ok) {
+        stopProgressPulse();
         const err = await response.json().catch(() => ({}));
-        completeStep();
         addStep("Error");
         taskSteps[taskSteps.length - 1].status = "error";
         supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.error || "Failed" }).then(() => {});
@@ -1277,7 +1321,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       const data = await response.json();
       accumulatedContent = data.content || accumulatedContent;
 
-      completeStep();
+      stopProgressPulse();
 
       // Add verify step after getting content
       if (continuationCount === 0 && accumulatedContent) {
@@ -1287,7 +1331,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       }
 
       // Update message with accumulated content
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent, taskSteps: [...taskSteps], isStreaming: true } : m));
+      syncTaskSteps(accumulatedContent);
 
       if (!data.continuation) break;
       continuationCount++;
