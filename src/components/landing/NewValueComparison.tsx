@@ -6,10 +6,10 @@ import logoPhysvital from '@/assets/logo-physvital.png';
 import logoFlawskin from '@/assets/logo-flawskin.png';
 
 const logos = [
-  { src: logoMms, alt: 'Matrix Muscle Support', name: 'Matrix Muscle Support' },
-  { src: logoAckermann, alt: 'Ackermann College', name: 'Ackermann College' },
-  { src: logoPhysvital, alt: 'PhysVital', name: 'PhysVital' },
-  { src: logoFlawskin, alt: 'Flawskin', name: null },
+  { src: logoMms, alt: 'Matrix Muscle Support', name: 'Matrix Muscle Support', className: 'h-8 sm:h-10' },
+  { src: logoAckermann, alt: 'Ackermann College', name: 'Ackermann College', className: 'h-8 sm:h-10' },
+  { src: logoPhysvital, alt: 'PhysVital', name: 'PhysVital', className: 'h-8 sm:h-10' },
+  { src: logoFlawskin, alt: 'Flawskin', name: null, className: 'h-16 sm:h-20' },
 ];
 
 export default function NewValueComparison() {
