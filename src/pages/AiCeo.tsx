@@ -68,7 +68,8 @@ const AiCeo = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <HeroSection onAuthRequest={handleAuthRequest} />
+      <Header />
+      <NewHero />
       <NewHowItWorks />
       <NewValueComparison />
       <NewVision />
