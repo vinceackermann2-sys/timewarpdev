@@ -181,7 +181,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
 
       {/* Footer */}
       <div className="mt-16">
-        <WorkspaceFooter />
+        <WorkspaceFooter compact />
       </div>
 
     </div>

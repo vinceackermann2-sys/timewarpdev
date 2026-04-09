@@ -170,7 +170,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
 
       {/* Footer - hidden on mobile to save space */}
       <div className="hidden md:block">
-        <WorkspaceFooterShared />
+        <WorkspaceFooterShared compact />
       </div>
 
 

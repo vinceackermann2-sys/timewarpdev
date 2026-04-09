@@ -1,10 +1,14 @@
 import { Link } from "react-router-dom";
 
-export function WorkspaceFooter() {
+interface WorkspaceFooterProps {
+  compact?: boolean;
+}
+
+export function WorkspaceFooter({ compact = false }: WorkspaceFooterProps) {
   return (
-    <div className="w-full bg-white">
+    <div className={compact ? "w-full" : "w-full bg-white"}>
       <div className="w-full mx-auto px-4 sm:px-6 py-8 sm:py-14" style={{ maxWidth: 1900 }}>
-        <div className="rounded-2xl border border-slate-200 bg-slate-100 px-5 sm:px-12 py-8 sm:py-14">
+        <div className={`rounded-2xl border border-slate-200 ${compact ? "bg-transparent border-none" : "bg-slate-100"} px-5 sm:px-12 py-8 sm:py-14`}>
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-14">
             {/* Left: logo + links */}
             <div className="flex flex-col gap-8 sm:flex-row sm:gap-14 flex-1">
@@ -41,13 +45,15 @@ export function WorkspaceFooter() {
               </div>
             </div>
 
-            {/* Right: Vision text */}
-            <div className="lg:max-w-sm shrink-0">
-              <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3">Making work optional.</h3>
-              <p className="text-sm sm:text-base text-slate-500 leading-relaxed font-light">
-                For centuries, human potential has been chained to manual labor, bound by the necessity of economic survival. By replacing the human workforce with autonomous intelligence, we are accelerating the transition to a post-labor economy.
-              </p>
-            </div>
+            {/* Right: Vision text - hidden in compact mode */}
+            {!compact && (
+              <div className="lg:max-w-sm shrink-0">
+                <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3">Making work optional.</h3>
+                <p className="text-sm sm:text-base text-slate-500 leading-relaxed font-light">
+                  For centuries, human potential has been chained to manual labor, bound by the necessity of economic survival. By replacing the human workforce with autonomous intelligence, we are accelerating the transition to a post-labor economy.
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-10 pt-5 border-t border-slate-200">
             <p className="text-slate-500 text-center sm:text-left" style={{ fontSize: 14 }}>© 2026 Vincent Ackermann, All rights reserved</p>
