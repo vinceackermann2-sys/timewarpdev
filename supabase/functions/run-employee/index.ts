@@ -852,18 +852,15 @@ async function retrieveRelevantContext(supabase: any, employee: any, userQuery: 
     return `\n\n## Reference Material\nNo verified brand or product records were found for the selected business${selectedBusinessTitle ? ` (${selectedBusinessTitle})` : ""}. Ask the user for the exact missing price or offer instead of estimating.`;
   }
 
-  const scored = scopedItems.map((item: any) => {
+  const allScored = scopedItems.map((item: any) => {
     const searchText = buildSearchText(item);
-    return { ...item, score: scoreItem(keywords, searchText, item, userQuery), searchText };
-  }).filter((i: any) => i.score > 0.1)
-    .sort((a: any, b: any) => b.score - a.score);
+    return { ...item, score: keywords.length > 0 ? scoreItem(keywords, searchText, item, userQuery) : (["brand","product","audience"].includes(item.data_type) ? 1 : 0.5), searchText };
+  }).sort((a: any, b: any) => b.score - a.score);
+
+  const scored = allScored.filter((i: any) => i.score > 0.1);
 
   // Always ensure brand, product, and audience are represented for fact-checking
   const top = scored.slice(0, 5);
-  const allScored = scopedItems.map((item: any) => {
-    const searchText = buildSearchText(item);
-    return { ...item, score: scoreItem(keywords, searchText, item, userQuery), searchText };
-  }).sort((a: any, b: any) => b.score - a.score);
   const requiredTypes = ["brand", "product", "audience"];
   for (const dt of requiredTypes) {
     if (!top.some((i: any) => i.data_type === dt)) {
