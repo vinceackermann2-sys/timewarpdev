@@ -4,9 +4,8 @@ import { Loader2 } from "lucide-react";
 import { getSafeSession } from "@/lib/authSession";
 import { AuthDialog } from "@/components/landing/AuthDialog";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
-import { LandingHeader } from "@/components/landing/LandingHeader";
+import { HeroSection } from "@/components/aiceo/HeroSection";
 import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
-import NewHero from "@/components/landing/NewHero";
 import NewHowItWorks from "@/components/landing/NewHowItWorks";
 import NewValueComparison from "@/components/landing/NewValueComparison";
 import NewVision from "@/components/landing/NewVision";
@@ -68,8 +67,7 @@ const AiCeo = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <LandingHeader />
-      <NewHero />
+      <HeroSection onAuthRequest={handleAuthRequest} />
       <NewHowItWorks />
       <NewValueComparison />
       <NewVision />
