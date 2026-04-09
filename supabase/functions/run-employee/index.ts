@@ -871,10 +871,10 @@ async function retrieveRelevantContext(supabase: any, employee: any, userQuery: 
   }
   const scored_final = top;
 
-  if (scored.length === 0) return "";
+  if (scored_final.length === 0) return "";
 
   let context = `\n\n## Reference Material (${employee.linked_business_id ? "verified records from the selected business database" : "from your business database"})\n`;
-  for (const item of scored) {
+  for (const item of scored_final) {
     context += `\n### ${item.title} (${item.data_type})\n`;
     if (item.source) context += `Source: ${item.source}\n`;
     const text = stringifyContent(item.analyzed_content || item.content || "");
@@ -1033,6 +1033,9 @@ ${relevantContext}
 12. Never use hypothetical industry averages unless the user explicitly asks for a hypothetical example or benchmark scenario.
 
 ## FORMATTING
+13. When the Reference Material includes brand, product, or audience records, always cross-check your response against those records for accuracy before answering. Ensure claims about the business align with the verified data.
+
+
 - Use ## and ### headings for structure
 - Use **bold** for key terms
 - Use bullet lists and numbered lists
