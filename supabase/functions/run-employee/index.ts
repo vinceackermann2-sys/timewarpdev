@@ -853,8 +853,23 @@ async function retrieveRelevantContext(supabase: any, employee: any, userQuery: 
     const searchText = buildSearchText(item);
     return { ...item, score: scoreItem(keywords, searchText, item, userQuery), searchText };
   }).filter((i: any) => i.score > 0.1)
-    .sort((a: any, b: any) => b.score - a.score)
-    .slice(0, 5);
+    .sort((a: any, b: any) => b.score - a.score);
+
+  // Ensure brand, product, and audience are represented in results for fact-checking
+  const top = scored.slice(0, 5);
+  if (scopedItems.length >= 10) {
+    const requiredTypes = ["brand", "product", "audience"];
+    for (const dt of requiredTypes) {
+      if (!top.some((i: any) => i.data_type === dt)) {
+        const candidate = scored.find((i: any) => i.data_type === dt && !top.includes(i));
+        if (candidate) {
+          top.pop();
+          top.push(candidate);
+        }
+      }
+    }
+  }
+  const scored_final = top;
 
   if (scored.length === 0) return "";
 

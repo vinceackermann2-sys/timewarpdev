@@ -112,12 +112,11 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
         className="flex items-center gap-2 w-full group"
       >
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] text-muted-foreground">
-          {!sectionDone && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground/60" />}
           {sectionDone && <CheckCircle2 className="w-3 h-3 text-muted-foreground/60" />}
-          <span className={cn("font-medium", !sectionDone && "animate-pulse")}>
+          <span className="font-medium">
             {sectionDone
               ? `Completed ${taskCount} task${taskCount !== 1 ? "s" : ""}`
-              : `Thinking`}
+              : "Thinking"}
           </span>
           {!sectionDone && (
             <span className="inline-flex gap-[2px] items-end h-[14px]">
