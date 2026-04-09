@@ -21,7 +21,7 @@ export default function NewValueComparison() {
           <div className="flex animate-marquee whitespace-nowrap gap-16 sm:gap-24 opacity-60 grayscale">
             {[...logos, ...logos].map((logo, i) => (
               <div key={i} className="flex items-center gap-2 shrink-0">
-                <img src={logo.src} alt={logo.alt} className={`${logo.className} object-contain`} loading="lazy" />
+                {logo.src && <img src={logo.src} alt={logo.alt} className="h-8 sm:h-10 object-contain" loading="lazy" />}
                 {logo.name && <span className="text-sm sm:text-base font-bold tracking-tight text-slate-800">{logo.name}</span>}
               </div>
             ))}
