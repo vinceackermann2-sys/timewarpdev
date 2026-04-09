@@ -377,22 +377,33 @@ async function retrieveRelevantContext(supabase: any, userId: string, workspaceI
     });
   }
 
-  // In browser mode: lower threshold + more results so the AI has strategic context
   const scoreThreshold = browserMode ? 0.0 : 0.1;
   const maxResults = browserMode ? 8 : 5;
   const snippetLen = browserMode ? 800 : 500;
 
-  const scored = filtered.map((item: any) => {
+  const allScored = filtered.map((item: any) => {
     const snippet = (item.analyzed_content || item.content || "").slice(0, 300);
     return { ...item, score: keywords.length > 0 ? scoreItem(keywords, item.title || "", snippet) : 0.05 };
-  }).filter((i: any) => i.score >= scoreThreshold)
-    .sort((a: any, b: any) => b.score - a.score)
-    .slice(0, maxResults);
+  }).sort((a: any, b: any) => b.score - a.score);
 
-  if (scored.length === 0) return "";
+  const top = allScored.filter((i: any) => i.score >= scoreThreshold).slice(0, maxResults);
 
-  let context = "\n\n## Reference Material (from your business database)\nUse this knowledge to inform HOW you execute the task. It may contain strategies, preferred tools, platforms, methods, or domain expertise.\n";
-  for (const item of scored) {
+  // Always ensure brand, product, and audience are represented for fact-checking
+  const requiredTypes = ["brand", "product", "audience"];
+  for (const dt of requiredTypes) {
+    if (!top.some((i: any) => i.data_type === dt)) {
+      const candidate = allScored.find((i: any) => i.data_type === dt && !top.includes(i));
+      if (candidate) {
+        if (top.length >= maxResults) top.pop();
+        top.push(candidate);
+      }
+    }
+  }
+
+  if (top.length === 0) return "";
+
+  let context = "\n\n## Reference Material (from your business database)\nUse this knowledge to inform HOW you execute the task. It may contain strategies, preferred tools, platforms, methods, or domain expertise. When the Reference Material includes brand, product, or audience records, always cross-check your response against those records for accuracy.\n";
+  for (const item of top) {
     context += `\n### ${item.title} (${item.data_type})\n`;
     const text = item.analyzed_content || item.content || "";
     context += text.slice(0, snippetLen) + "\n";
@@ -495,6 +506,8 @@ ${relevantContext}
 5. Be decisive, data-informed, and forward-thinking.
 6. Never refer to yourself as "CEO" or "AI CEO".
 7. Never mention "RAG", "knowledge files", or "knowledge base".
+8. **NEVER fabricate or invent business data.** If the Reference Material does not contain specific numbers, do NOT make them up. Ask the user to provide them.
+9. When the Reference Material includes brand, product, or audience records, always cross-check your response against those records for accuracy before answering.
 
 ## FORMATTING
 - Use ## and ### headings for structure
