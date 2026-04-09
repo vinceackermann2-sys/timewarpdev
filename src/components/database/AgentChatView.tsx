@@ -891,8 +891,6 @@ Make bullet points specific and actionable based on their question. Then provide
 
     completeStep();
     addStep(getAnalyzeLabel());
-    completeStep();
-    addStep(getWriteLabel());
 
     // Stream SSE response
     const reader = response.body?.getReader();
@@ -900,6 +898,7 @@ Make bullet points specific and actionable based on their question. Then provide
 
     const decoder = new TextDecoder();
     let fullContent = "";
+    let transitionedToWrite = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -914,6 +913,11 @@ Make bullet points specific and actionable based on their question. Then provide
           const parsed = JSON.parse(data);
           const delta = parsed.choices?.[0]?.delta?.content || "";
           if (delta) {
+            if (!transitionedToWrite) {
+              transitionedToWrite = true;
+              completeStep();
+              addStep(getWriteLabel());
+            }
             fullContent += delta;
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, taskSteps: [...taskSteps], isStreaming: true } : m));
           }

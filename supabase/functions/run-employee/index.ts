@@ -853,13 +853,28 @@ async function retrieveRelevantContext(supabase: any, employee: any, userQuery: 
     const searchText = buildSearchText(item);
     return { ...item, score: scoreItem(keywords, searchText, item, userQuery), searchText };
   }).filter((i: any) => i.score > 0.1)
-    .sort((a: any, b: any) => b.score - a.score)
-    .slice(0, 5);
+    .sort((a: any, b: any) => b.score - a.score);
 
-  if (scored.length === 0) return "";
+  // Ensure brand, product, and audience are represented in results for fact-checking
+  const top = scored.slice(0, 5);
+  if (scopedItems.length >= 10) {
+    const requiredTypes = ["brand", "product", "audience"];
+    for (const dt of requiredTypes) {
+      if (!top.some((i: any) => i.data_type === dt)) {
+        const candidate = scored.find((i: any) => i.data_type === dt && !top.includes(i));
+        if (candidate) {
+          top.pop();
+          top.push(candidate);
+        }
+      }
+    }
+  }
+  const scored_final = top;
+
+  if (scored_final.length === 0) return "";
 
   let context = `\n\n## Reference Material (${employee.linked_business_id ? "verified records from the selected business database" : "from your business database"})\n`;
-  for (const item of scored) {
+  for (const item of scored_final) {
     context += `\n### ${item.title} (${item.data_type})\n`;
     if (item.source) context += `Source: ${item.source}\n`;
     const text = stringifyContent(item.analyzed_content || item.content || "");
@@ -1018,6 +1033,9 @@ ${relevantContext}
 12. Never use hypothetical industry averages unless the user explicitly asks for a hypothetical example or benchmark scenario.
 
 ## FORMATTING
+13. When the Reference Material includes brand, product, or audience records, always cross-check your response against those records for accuracy before answering. Ensure claims about the business align with the verified data.
+
+
 - Use ## and ### headings for structure
 - Use **bold** for key terms
 - Use bullet lists and numbered lists
