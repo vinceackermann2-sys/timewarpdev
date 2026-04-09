@@ -1,65 +1,32 @@
 
 
-## Plan: Fix Shining Animation Visibility, Slide Visuals, and Business Context in Employee Chat
+## Plan: Slower Shining Animation, Bigger Thinking Text, Fix Slide Business Context
 
-### Issues Identified
+### Issues
 
-1. **ShiningText animation too subtle** — The gradient uses `muted-foreground` to `foreground` which is low contrast, making the shimmer barely visible.
-
-2. **Slides only produce text, no visuals** — The slide JSON schema only supports `title`, `subtitle`, `bullets`, and `takeaway` — no visual elements like icons, images, accent colors, or layout variations. The `InlineSlide` component renders a basic bullet list with no visual richness.
-
-3. **"Create an investor pitch" doesn't use business data** — When users type requests like "create an investor pitch" without selecting a graphic type, the graphic instructions are NOT appended. Even when Slide is selected, the prompt says "relevant to the user's question" but never explicitly tells the AI to use the business's brand/product/audience data from the Reference Material. The AI treats it as a generic task.
+1. **Shining animation too fast** — Currently 1.5s duration, needs to be slower for readability.
+2. **"Thinking" text too small** — Currently `text-[15px]`, needs to be larger.
+3. **Slides ignore Business DNA** — The system prompt in `run-employee/index.ts` line 1027 says "Reference material above is supplementary — only mention it if directly relevant." This contradicts the slide/pitch instructions, causing the AI to treat business data as optional even when creating investor pitches.
 
 ### Changes
 
-#### 1. ShiningText — Higher contrast gradient
+#### 1. ShiningText — Slower animation
 **File:** `src/components/ui/shining-text.tsx`
-- Change the gradient to use a brighter highlight: swap `hsl(var(--foreground))` for a white/bright highlight (`#fff` or `hsl(var(--foreground))` with a sharper, narrower band)
-- Tighten the gradient stops (e.g., `45%,#fff,55%`) so the shine is a crisp flash rather than a broad fade
-- Reduce duration from 2s to 1.5s for snappier feel
+- Change duration from `1.5` to `3` seconds for a smoother, more visible sweep
 
-#### 2. Slide schema — Add visual elements
-**File:** `src/components/database/InlineChatGraphics.tsx`
-- Extend `SlideConfig` to support: `layout` (title-only, bullets, two-column, stat-callout), `stats` (large number callouts), `accent_color`, `icon` (emoji)
-- Update the `InlineSlide` renderer to support these layouts — e.g., stat callouts show big numbers, two-column splits content
-- Update PPTX export to match the new layouts
+#### 2. Thinking text — Bigger
+**File:** `src/components/database/TaskStepsDisplay.tsx`
+- Change the "Thinking" / "Completed X tasks" text from `text-[15px]` to `text-[17px]`
 
-**File:** `src/components/database/AgentChatView.tsx`
-- Update the Slide graphic instruction to include the extended JSON schema and tell the AI to use visual layouts, stats, and icons
-- Add explicit instruction: "Use the business's brand, product, and audience data from the Reference Material to personalize the slide content"
-
-#### 3. Business context in all graphic outputs + auto-detect graphics
-**File:** `src/components/database/AgentChatView.tsx`
-- Add to ALL graphic instructions (Document, Slide, Spreadsheet, Analytics, Graph): "You MUST use the business's actual brand name, product details, and audience information from the Reference Material. Never create generic content — personalize everything to this specific business."
-
+#### 3. Fix conflicting system prompt instructions
 **File:** `supabase/functions/run-employee/index.ts`
-- Add slide/document/spreadsheet/analytics code block instructions to `buildEmployeeChatPrompt` so the AI knows how to output these formats even when graphic type isn't selected client-side
-- Add an instruction: "When the user asks for a pitch, presentation, report, or document, ALWAYS base the content on the business's brand, product, and audience data from the Reference Material. Treat every request as being about THIS business unless the user explicitly says otherwise."
+- Line 1027: Change "Reference material above is supplementary — only mention it if directly relevant" to "Reference material above contains verified business data. When creating any pitch, presentation, report, slide, or document, you MUST use this data to personalize the content. For general questions, reference it when relevant."
+- Line 1071-1072: Strengthen the SLIDES & DOCUMENTS section to say "You MUST use the business's brand name, products, audience, and any metrics from the Reference Material above. Do NOT create generic content. Every slide, document, or pitch must reflect THIS business's actual data."
 
 **File:** `supabase/functions/extension-agent/index.ts`
-- Same addition as above for the extension-agent system prompt
+- Apply the same prompt fix if a similar "supplementary" instruction exists
 
 ### Technical Details
-
-**ShiningText gradient change:**
-```
-bg-[linear-gradient(110deg,hsl(var(--muted-foreground)),45%,#fff,50%,hsl(var(--muted-foreground)),55%,hsl(var(--muted-foreground)))]
-```
-Narrower bright band + white highlight = more visible flash.
-
-**Extended slide JSON schema:**
-```json
-{
-  "title": "...",
-  "subtitle": "...",
-  "layout": "stat-callout",
-  "bullets": [...],
-  "stats": [{"value": "$2.4M", "label": "ARR"}],
-  "takeaway": "...",
-  "icon": "🚀"
-}
-```
-
-**System prompt addition (run-employee + extension-agent):**
-A paragraph instructing the AI that when users request presentations, pitches, reports, or documents, it must use the business's actual data from Reference Material and personalize all content to that business.
+- The core bug is a prompt contradiction: one rule says "only mention reference material if relevant" while another says "always use business data for pitches." The AI follows the first rule and ignores the business data.
+- The fix removes the ambiguity by making business data mandatory for content creation tasks while keeping it optional for simple Q&A.
 
