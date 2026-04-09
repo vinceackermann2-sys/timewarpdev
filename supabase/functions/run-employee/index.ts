@@ -831,9 +831,12 @@ async function loadBusinessIdentity(supabase: any, employee: any): Promise<{ ide
 
 async function retrieveRelevantContext(supabase: any, employee: any, userQuery: string): Promise<string> {
   const keywords = extractKeywords(userQuery);
-  if (keywords.length === 0) return "";
 
   const intent = getVerificationIntent(userQuery);
+
+  // For content-creation queries (slides, pitches, graphics, documents), always load business context even if keywords are empty
+  const isContentCreation = /\b(slide|pitch|present|report|document|graphic|chart|spreadsheet|analytics|brand|investor|deck|proposal|summary|overview)\b/i.test(userQuery);
+  if (keywords.length === 0 && !isContentCreation) return "";
   const { items: initialItems, selectedBusinessTitle, warning } = await loadScopedBusinessItems(supabase, employee, intent.needsStrictVerification);
   if (warning) {
     return `\n\n## Reference Material\n${warning} Ask the user for the missing business-specific source instead of estimating.`;
