@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useInView } from 'motion/react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { Dna, Brain, Globe, Search, FileText, LayoutTemplate, Table, BarChart, Mail, Code2, Sparkles, ArrowRight, Rocket, X, Database, Check, CheckCircle2, Loader2 } from 'lucide-react';
 
 export const steps = [
