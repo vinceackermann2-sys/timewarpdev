@@ -168,8 +168,10 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
         </div>
       </div>
 
-      {/* Footer */}
-      <WorkspaceFooterShared />
+      {/* Footer - hidden on mobile to save space */}
+      <div className="hidden md:block">
+        <WorkspaceFooterShared />
+      </div>
 
 
       {/* Workspace Settings */}
