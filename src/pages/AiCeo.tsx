@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { HeroSection } from "@/components/aiceo/HeroSection";
-import { ProductDescription } from "@/components/landing/ProductDescription";
-import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 import { Loader2 } from "lucide-react";
 import { getSafeSession } from "@/lib/authSession";
 import { AuthDialog } from "@/components/landing/AuthDialog";
+import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
+import { Header } from "@/components/landing/Header";
+import { Footer } from "@/components/landing/Footer";
+import NewHero from "@/components/landing/NewHero";
+import NewHowItWorks from "@/components/landing/NewHowItWorks";
+import NewValueComparison from "@/components/landing/NewValueComparison";
+import NewVision from "@/components/landing/NewVision";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
@@ -45,15 +49,10 @@ const AiCeo = () => {
     };
   }, [navigate, isOAuthReturn, searchParams]);
 
-  const handleAuthRequest = (productUrl?: string) => {
-    setAuthProductUrl(productUrl);
-    setAuthOpen(true);
-  };
-
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#3399ff]" />
       </div>
     );
   }
@@ -63,11 +62,15 @@ const AiCeo = () => {
   }
 
   return (
-    <>
-      <HeroSection onAuthRequest={handleAuthRequest} />
-      <ProductDescription onAuthRequest={handleAuthRequest} />
+    <div className="min-h-screen bg-white">
+      <Header />
+      <NewHero />
+      <NewHowItWorks />
+      <NewValueComparison />
+      <NewVision />
+      <Footer />
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} productUrl={authProductUrl} />
-    </>
+    </div>
   );
 };
 
