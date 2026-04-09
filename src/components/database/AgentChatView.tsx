@@ -628,7 +628,7 @@ export function AgentChatView() {
       }
     }
     if (selectedGraphic) {
-      const businessContextRule = `\n\nIMPORTANT: You MUST use the business's actual brand name, product details, and audience information from the Reference Material to personalize this content. Never create generic content — personalize everything to THIS specific business. If the user asks for a pitch, report, or presentation, base ALL content on the business's real data.`;
+      const businessContextRule = `\n\nIMPORTANT: You MUST use the business's actual brand, product, audience, and any verified metrics from the Reference Material to personalize this graphic. Cross-check every claim against that business data before answering. Never create generic content, placeholders, or made-up numbers. If key business details are missing, clearly say what is missing instead of inventing it.`;
       const graphicInstructions: Record<string, string> = {
         "Document": `You MUST create a professional document that directly answers the user's question above. Analyze their request carefully and produce a well-structured document with relevant, specific content.${businessContextRule}
 Include a \`\`\`document code block with JSON BEFORE your text explanation:
@@ -641,26 +641,26 @@ Include a \`\`\`chart code block with JSON BEFORE your text explanation:
 \`\`\`chart
 {"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
 \`\`\`
-Supported types: bar, line, area, pie. For pie use nameKey and valueKey. Use realistic, relevant data that helps answer their question. Then explain the data below.`,
+Supported types: bar, line, area, pie. For pie use nameKey and valueKey. Use realistic, relevant data that helps answer their question. Titles, labels, segments, and insights must reflect the business's actual brand, product, and audience context. Then explain the data below.`,
         "Analytics": `You MUST create an analytics dashboard with metrics directly relevant to the user's question above. Choose metrics that would genuinely help them understand the topic.${businessContextRule}
 Include a \`\`\`analytics code block with JSON BEFORE your text explanation:
 \`\`\`analytics
 {"title":"Analytics Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Key insight"],"chart":{"data":[{"month":"Jan","value":100}],"xKey":"month","yKeys":["value"]}}
 \`\`\`
-Each metric: label, value, change (positive=growth, negative=decline), unit. Create metrics that directly answer the user's question. Then explain below.`,
+Each metric: label, value, change (positive=growth, negative=decline), unit. Create metrics that directly answer the user's question and tie them to the business's actual offer, brand, or audience. Then explain below.`,
         "Spreadsheet": `You MUST create a spreadsheet/table with data directly relevant to the user's question above. Organize the data in a way that helps them understand or act on their request.${businessContextRule}
 Include a \`\`\`spreadsheet code block with JSON BEFORE your text explanation:
 \`\`\`spreadsheet
 {"title":"Table Title","headers":["Col1","Col2"],"rows":[["A","B"],["C","D"]],"footer":["Total","100"]}
 \`\`\`
-Footer is optional. Fill with realistic, relevant data that addresses their question. Then explain below.`,
+Footer is optional. Fill with realistic, relevant data that addresses their question. Column names and rows must reflect the business's actual product, audience, offer, or verified metrics. Then explain below.`,
         "Slide": `You MUST create a visually rich presentation slide with content directly relevant to the user's question above.${businessContextRule}
 Include a \`\`\`slide code block with JSON BEFORE your text explanation:
 \`\`\`slide
 {"title":"Slide Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"},{"value":"15K","label":"Users"}],"bullets":["Key point 1","Key point 2"],"takeaway":"Main takeaway","accent_color":"#3399ff"}
 \`\`\`
 Supported layouts: "bullets" (default list), "stat-callout" (big numbers + optional bullets), "two-column" (use left_column and right_column arrays), "title-only".
-Always include an icon emoji. Use stats with large formatted numbers when presenting metrics. Use the business's actual data for stats. Then provide additional context below.`,
+Always include an icon emoji. Use stats with large formatted numbers when presenting metrics. The slide must clearly reflect this business's DNA, product, and target audience. Use the business's actual data for stats. Then provide additional context below.`,
       };
       userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
     }
