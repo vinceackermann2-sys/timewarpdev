@@ -58,7 +58,7 @@ import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-type View = "dataconversion" | "aiceo" | "businessdna" | "employees" | "workspaces";
+type View = "aiceo" | "businessdna" | "employees" | "workspaces";
 
 interface DatabaseSidebarProps {
   currentView: View;
@@ -81,12 +81,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
   const [showNewWsInput, setShowNewWsInput] = useState(false);
   const [newWsName, setNewWsName] = useState("");
 
-  // Auto-collapse sidebar when entering dataconversion view
-  useEffect(() => {
-    if (currentView === "dataconversion") {
-      setOpen(false);
-    }
-  }, [currentView, setOpen]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
@@ -135,17 +129,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
             {!isCollapsed && <SidebarGroupLabel>Workspace</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem className="hidden md:block">
-                  <SidebarMenuButton 
-                    isActive={currentView === "dataconversion"}
-                    onClick={() => onViewChange("dataconversion")}
-                    tooltip="Data Conversion"
-                    className={currentView === "dataconversion" ? "bg-primary/10 text-primary" : ""}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    {!isCollapsed && <span>Data Conversion</span>}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     isActive={currentView === "businessdna"}

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
-import { DataConversionView } from "@/components/database/DataConversionView";
+
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { BusinessDNAView } from "@/components/database/BusinessDNAView";
 import { MyBusinessesView } from "@/components/database/MyBusinessesView";
@@ -36,7 +36,7 @@ function MobileHeader() {
   );
 }
 
-type View = "dataconversion" | "aiceo" | "businessdna" | "employees" | "workspaces";
+type View = "aiceo" | "businessdna" | "employees" | "workspaces";
 
 interface PendingTask {
   role: string;
@@ -51,7 +51,7 @@ const Database = () => {
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem("tw_current_view");
-    if (saved && ["dataconversion", "aiceo", "businessdna", "employees", "workspaces"].includes(saved)) {
+    if (saved && ["aiceo", "businessdna", "employees", "workspaces"].includes(saved)) {
       return saved as View;
     }
     return "businessdna";
@@ -350,9 +350,6 @@ const Database = () => {
           <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden">
             <MobileHeader />
             <main className="flex-1 min-h-0 overflow-hidden">
-              {currentView === "dataconversion" && user && (
-                <DataConversionView />
-              )}
               {currentView === "aiceo" && user && (
                 <TimeWarpAIView
                   initialTask={pendingTask}
