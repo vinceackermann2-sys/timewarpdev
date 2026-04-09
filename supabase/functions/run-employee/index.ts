@@ -880,7 +880,10 @@ async function retrieveRelevantContext(supabase: any, employee: any, userQuery: 
     context += `\n### ${item.title} (${item.data_type})\n`;
     if (item.source) context += `Source: ${item.source}\n`;
     const text = stringifyContent(item.analyzed_content || item.content || "");
-    const excerpt = extractRelevantSnippet(text, keywords);
+    // For content creation (slides, pitches, graphics), include full DNA records so the AI has all business data
+    const isDnaType = ["brand", "product", "audience"].includes(item.data_type);
+    const snippetLimit = (isContentCreation && isDnaType) ? 4000 : 1400;
+    const excerpt = (isContentCreation && isDnaType && keywords.length === 0) ? text.slice(0, snippetLimit) : extractRelevantSnippet(text, keywords, snippetLimit);
     context += excerpt + "\n";
   }
   return context;
