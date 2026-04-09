@@ -251,7 +251,13 @@ export function InlineSpreadsheet({ jsonString }: { jsonString: string }) {
 }
 
 /* ─── Slide Renderer ─── */
-interface SlideConfig { title: string; subtitle?: string; bullets?: string[]; takeaway?: string; image?: string }
+interface SlideStat { value: string; label: string }
+interface SlideConfig {
+  title: string; subtitle?: string; bullets?: string[]; takeaway?: string; image?: string;
+  layout?: "bullets" | "stat-callout" | "two-column" | "title-only";
+  stats?: SlideStat[]; icon?: string; accent_color?: string;
+  left_column?: string[]; right_column?: string[];
+}
 
 export function InlineSlide({ jsonString }: { jsonString: string }) {
   const config = useMemo<SlideConfig | null>(() => {
@@ -259,21 +265,36 @@ export function InlineSlide({ jsonString }: { jsonString: string }) {
   }, [jsonString]);
   if (!config) return null;
 
+  const layout = config.layout || (config.stats && config.stats.length > 0 ? "stat-callout" : "bullets");
+  const accent = config.accent_color || "#3399ff";
+
   const handleSave = () => saveToDatabase(config.title, "slide", jsonString);
   const handleDownload = async () => {
     const pptxgenjs = await import("pptxgenjs");
     const pptx = new pptxgenjs.default();
     const slide = pptx.addSlide();
     slide.background = { fill: "1a1a2e" };
-    slide.addText(config.title, { x: 0.5, y: 0.5, w: 9, fontSize: 28, bold: true, color: "FFFFFF" });
-    if (config.subtitle) slide.addText(config.subtitle, { x: 0.5, y: 1.2, w: 9, fontSize: 14, color: "999999" });
+
+    // Icon
+    if (config.icon) slide.addText(config.icon, { x: 0.5, y: 0.3, w: 1, fontSize: 36 });
+    const titleY = config.icon ? 0.9 : 0.5;
+    slide.addText(config.title, { x: 0.5, y: titleY, w: 9, fontSize: 28, bold: true, color: "FFFFFF" });
+    if (config.subtitle) slide.addText(config.subtitle, { x: 0.5, y: titleY + 0.7, w: 9, fontSize: 14, color: "999999" });
+
+    if (layout === "stat-callout" && config.stats) {
+      const statW = 9 / Math.min(config.stats.length, 4);
+      config.stats.forEach((s, i) => {
+        slide.addText(s.value, { x: 0.5 + i * statW, y: 2.2, w: statW, fontSize: 36, bold: true, color: accent.replace("#", ""), align: "center" });
+        slide.addText(s.label, { x: 0.5 + i * statW, y: 3.0, w: statW, fontSize: 12, color: "AAAAAA", align: "center" });
+      });
+    }
     if (config.bullets && config.bullets.length > 0) {
       const bulletText = config.bullets.map(b => ({ text: b, options: { bullet: true, color: "DDDDDD", fontSize: 14 } }));
-      slide.addText(bulletText, { x: 0.5, y: 2, w: 9, h: 3 });
+      slide.addText(bulletText, { x: 0.5, y: layout === "stat-callout" ? 3.6 : 2, w: 9, h: 2.5 });
     }
     if (config.takeaway) {
       slide.addText([
-        { text: "Key Takeaway: ", options: { bold: true, color: "3399ff", fontSize: 12 } },
+        { text: "Key Takeaway: ", options: { bold: true, color: accent.replace("#", ""), fontSize: 12 } },
         { text: config.takeaway, options: { color: "EEEEEE", fontSize: 12 } },
       ], { x: 0.5, y: 4.5, w: 9 });
     }
@@ -284,13 +305,52 @@ export function InlineSlide({ jsonString }: { jsonString: string }) {
     <div className="my-4 rounded-xl border border-border/50 overflow-hidden shadow-sm">
       <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] text-white p-6 min-h-[220px] flex flex-col">
         <div className="flex-1">
+          {config.icon && <span className="text-3xl mb-2 block">{config.icon}</span>}
           <h3 className="text-xl font-bold mb-1 tracking-tight">{config.title}</h3>
           {config.subtitle && <p className="text-sm text-white/60 mb-4">{config.subtitle}</p>}
-          {config.bullets && config.bullets.length > 0 && (
+
+          {/* Stat callout layout */}
+          {layout === "stat-callout" && config.stats && config.stats.length > 0 && (
+            <div className={cn("grid gap-4 mt-4", config.stats.length <= 2 ? "grid-cols-2" : config.stats.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
+              {config.stats.map((s, i) => (
+                <div key={i} className="text-center rounded-lg p-3" style={{ backgroundColor: `${accent}15` }}>
+                  <p className="text-2xl font-bold" style={{ color: accent }}>{s.value}</p>
+                  <p className="text-xs text-white/60 mt-1">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Two-column layout */}
+          {layout === "two-column" && (
+            <div className="grid grid-cols-2 gap-6 mt-4">
+              <ul className="space-y-2">
+                {(config.left_column || config.bullets || []).map((b, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-white/85">
+                    <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: accent }} />
+                    {b}
+                  </li>
+                ))}
+              </ul>
+              {config.right_column && (
+                <ul className="space-y-2">
+                  {config.right_column.map((b, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-white/85">
+                      <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: accent }} />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/* Default bullets layout */}
+          {(layout === "bullets" || (!config.stats?.length && layout !== "two-column" && layout !== "title-only")) && config.bullets && config.bullets.length > 0 && (
             <ul className="space-y-2 mt-4">
               {config.bullets.map((b, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm text-white/85">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#3399ff] mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: accent }} />
                   {b}
                 </li>
               ))}
@@ -299,7 +359,7 @@ export function InlineSlide({ jsonString }: { jsonString: string }) {
         </div>
         {config.takeaway && (
           <div className="mt-4 pt-3 border-t border-white/10">
-            <p className="text-xs text-[#3399ff] font-semibold uppercase tracking-wider mb-1">Key Takeaway</p>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: accent }}>Key Takeaway</p>
             <p className="text-sm text-white/90 font-medium">{config.takeaway}</p>
           </div>
         )}

@@ -1068,6 +1068,30 @@ Supported chart types: "bar", "line", "area", "pie"
 - Always include real data from the user's files or business context when available
 - Combine charts with text analysis and tables for comprehensive reports
 
+## SLIDES & DOCUMENTS
+When the user asks for a pitch, presentation, slide, report, or document, you MUST output the appropriate fenced code block. Use the business's actual brand name, product details, and audience data from the Reference Material to personalize ALL content. Treat every request as being about THIS business unless the user explicitly says otherwise.
+
+For slides use a \`\`\`slide code block:
+\`\`\`slide
+{"title":"Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"}],"bullets":["Point 1"],"takeaway":"Key insight","accent_color":"#3399ff"}
+\`\`\`
+Supported layouts: "bullets", "stat-callout" (big numbers), "two-column" (left_column + right_column arrays), "title-only". Always include an icon emoji and use stats for metrics.
+
+For documents use a \`\`\`document code block:
+\`\`\`document
+{"title":"Title","sections":[{"heading":"Section","content":"Content"}],"date":"..."}
+\`\`\`
+
+For spreadsheets use a \`\`\`spreadsheet code block:
+\`\`\`spreadsheet
+{"title":"Title","headers":["Col1","Col2"],"rows":[["A","B"]],"footer":["Total","100"]}
+\`\`\`
+
+For analytics dashboards use a \`\`\`analytics code block:
+\`\`\`analytics
+{"title":"Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Insight"],"chart":{"data":[{"month":"Jan","value":100}],"xKey":"month","yKeys":["value"]}}
+\`\`\`
+
 ## SAFETY GUARDRAILS
 ${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create accounts, or make payments for the user.` : "- Integrity guardrails are disabled by the user; still avoid unsafe operations."}
 ${buildSafetySection(safetySettings)}`;
