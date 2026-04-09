@@ -136,8 +136,7 @@ export function InlineAnalytics({ jsonString, editorEnabled = true }: { jsonStri
   const handleDownload = () => {
     const lines = config.metrics.map(m => `${m.label}: ${m.value}${m.unit || ""}${m.change !== undefined ? ` (${m.change > 0 ? "+" : ""}${m.change}%)` : ""}`);
     if (config.insights) lines.push("", "Insights:", ...config.insights.map(i => `- ${i}`));
-    downloadFile(`${config.title}.txt`, lines.join("
-"), "text/plain");
+    downloadFile(`${config.title}.txt`, lines.join("\n"), "text/plain");
   };
 
   const editor = editorEnabled ? <GraphicEditorDialog title="Edit analytics" value={draftJson} onApply={setDraftJson} renderPreview={(value) => <InlineAnalytics jsonString={value} editorEnabled={false} />} /> : null;

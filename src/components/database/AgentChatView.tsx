@@ -1331,7 +1331,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       }
 
       // Update message with accumulated content
-      syncTaskSteps(accumulatedContent);
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent, taskSteps: [...taskSteps], isStreaming: true } : m));
 
       if (!data.continuation) break;
       continuationCount++;
