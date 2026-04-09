@@ -77,9 +77,32 @@ export function InlineDocument({ jsonString }: { jsonString: string }) {
   if (!config) return null;
 
   const handleSave = () => saveToDatabase(config.title, "document", jsonString);
-  const handleDownload = () => {
-    const md = config.sections.map(s => `${s.heading ? `## ${s.heading}\n\n` : ""}${s.content}`).join("\n\n");
-    downloadFile(`${config.title}.md`, `# ${config.title}\n\n${md}`, "text/markdown");
+  const handleDownload = async () => {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text(config.title, 20, 20);
+    let y = 35;
+    doc.setFontSize(11);
+    config.sections.forEach(sec => {
+      if (sec.heading) {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.text(sec.heading, 20, y);
+        y += 7;
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+      }
+      const lines = doc.splitTextToSize(sec.content, 170);
+      lines.forEach((line: string) => {
+        if (y > 280) { doc.addPage(); y = 20; }
+        doc.text(line, 20, y);
+        y += 6;
+      });
+      y += 4;
+    });
+    doc.save(`${config.title}.pdf`);
   };
 
   return (
@@ -237,12 +260,24 @@ export function InlineSlide({ jsonString }: { jsonString: string }) {
   if (!config) return null;
 
   const handleSave = () => saveToDatabase(config.title, "slide", jsonString);
-  const handleDownload = () => {
-    const lines = [`# ${config.title}`];
-    if (config.subtitle) lines.push(config.subtitle);
-    if (config.bullets) lines.push("", ...config.bullets.map(b => `- ${b}`));
-    if (config.takeaway) lines.push("", `**Key Takeaway:** ${config.takeaway}`);
-    downloadFile(`${config.title}.md`, lines.join("\n"), "text/markdown");
+  const handleDownload = async () => {
+    const pptxgenjs = await import("pptxgenjs");
+    const pptx = new pptxgenjs.default();
+    const slide = pptx.addSlide();
+    slide.background = { fill: "1a1a2e" };
+    slide.addText(config.title, { x: 0.5, y: 0.5, w: 9, fontSize: 28, bold: true, color: "FFFFFF" });
+    if (config.subtitle) slide.addText(config.subtitle, { x: 0.5, y: 1.2, w: 9, fontSize: 14, color: "999999" });
+    if (config.bullets && config.bullets.length > 0) {
+      const bulletText = config.bullets.map(b => ({ text: b, options: { bullet: true, color: "DDDDDD", fontSize: 14 } }));
+      slide.addText(bulletText, { x: 0.5, y: 2, w: 9, h: 3 });
+    }
+    if (config.takeaway) {
+      slide.addText([
+        { text: "Key Takeaway: ", options: { bold: true, color: "3399ff", fontSize: 12 } },
+        { text: config.takeaway, options: { color: "EEEEEE", fontSize: 12 } },
+      ], { x: 0.5, y: 4.5, w: 9 });
+    }
+    pptx.writeFile({ fileName: `${config.title}.pptx` });
   };
 
   return (
