@@ -825,3 +825,12 @@
   0% { opacity: 0.2; transform: scale(0.8); }
   100% { opacity: 0.8; transform: scale(1.2); }
 }
+
+.orb-container-original {
+  background: radial-gradient(circle at 30% 30%, #ffffff 0%, #d1e3ff 20%, #85b0ff 50%, #5a94ff 100%);
+  box-shadow: inset -10px -10px 30px rgba(0,0,0,0.1), inset 10px 10px 30px rgba(255,255,255,0.8), 0 0 120px rgba(133,176,255,0.3);
+}
+
+.animate-edge-rotate {
+  animation: edge-rotate 12s linear infinite;
+}
