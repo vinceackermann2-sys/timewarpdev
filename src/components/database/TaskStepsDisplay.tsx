@@ -56,35 +56,22 @@ interface Section {
 function buildSections(steps: TaskStep[], globalStartTime: number): Section[] {
   if (steps.length === 0) return [];
 
-  const sections: Section[] = [];
-  let currentSteps: Section["steps"] = [];
-  let sectionStart = globalStartTime;
+  // Put all steps into a single section — no splitting
+  const sectionSteps: Section["steps"] = [];
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
-    const isComplete = step.label.toLowerCase().includes("complete") && step.status === "done";
-
-    const last = currentSteps[currentSteps.length - 1];
+    const last = sectionSteps[sectionSteps.length - 1];
     if (last && last.label === step.label && last.status === "done" && step.status !== "error") {
       last.count++;
       last.status = step.status;
     } else {
-      currentSteps.push({ label: step.label, status: step.status, count: 1, detail: step.detail });
-    }
-
-    if (isComplete && i < steps.length - 1) {
-      sections.push({ steps: currentSteps, startTime: sectionStart, isDone: true });
-      currentSteps = [];
-      sectionStart = Date.now();
+      sectionSteps.push({ label: step.label, status: step.status, count: 1, detail: step.detail });
     }
   }
 
-  if (currentSteps.length > 0) {
-    const allDone = currentSteps.every(s => s.status === "done" || s.status === "error");
-    sections.push({ steps: currentSteps, startTime: sectionStart, isDone: allDone });
-  }
-
-  return sections;
+  const allDone = sectionSteps.every(s => s.status === "done" || s.status === "error");
+  return [{ steps: sectionSteps, startTime: globalStartTime, isDone: allDone }];
 }
 
 /* ── Section Component ── */
