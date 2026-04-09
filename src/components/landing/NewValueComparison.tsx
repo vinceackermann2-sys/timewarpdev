@@ -1,5 +1,8 @@
-import { Hexagon, Triangle, Circle, Square, Command, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import logoMms from '@/assets/logo-mms.png';
+import logoAckermann from '@/assets/logo-ackermann.jpeg';
+import logoPhysvital from '@/assets/logo-physvital.png';
 
 export default function NewValueComparison() {
   return (
@@ -7,29 +10,17 @@ export default function NewValueComparison() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Logo List */}
         <div className="text-center mb-16 sm:mb-24">
-          <p className="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider mb-6 sm:mb-8">
-            Trusted by innovative teams worldwide
-          </p>
-          <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-10 md:gap-16 opacity-40 grayscale">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Hexagon className="w-5 h-5 sm:w-7 sm:h-7" />
-              <span className="text-lg sm:text-2xl font-bold tracking-tight">AcmeCorp</span>
+          <div className="flex flex-wrap justify-center items-center gap-10 sm:gap-16 md:gap-24 opacity-60 grayscale">
+            <div className="flex items-center gap-2">
+              <img src={logoMms} alt="Matrix Muscle Support" className="h-8 sm:h-10 object-contain" />
+              <span className="text-sm sm:text-base font-bold tracking-tight text-slate-800">Matrix Muscle Support</span>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Triangle className="w-5 h-5 sm:w-7 sm:h-7" />
-              <span className="text-lg sm:text-2xl font-bold tracking-tight">GlobalTech</span>
+            <div className="flex items-center gap-2">
+              <img src={logoAckermann} alt="Ackermann College" className="h-10 sm:h-12 object-contain" />
+              <span className="text-sm sm:text-base font-bold tracking-tight text-slate-800">Ackermann College</span>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Circle className="w-5 h-5 sm:w-7 sm:h-7" />
-              <span className="text-lg sm:text-2xl font-bold tracking-tight">Quantum</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Square className="w-5 h-5 sm:w-7 sm:h-7" />
-              <span className="text-lg sm:text-2xl font-bold tracking-tight">Nexus</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Command className="w-5 h-5 sm:w-7 sm:h-7" />
-              <span className="text-lg sm:text-2xl font-bold tracking-tight">Stark</span>
+            <div className="flex items-center gap-2">
+              <img src={logoPhysvital} alt="PhysVital" className="h-8 sm:h-10 object-contain" />
             </div>
           </div>
         </div>
