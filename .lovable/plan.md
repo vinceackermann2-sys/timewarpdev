@@ -1,40 +1,65 @@
 
 
-## Plan: Fix Employee Chat Logging UX + RAG Fact-Checking
+## Plan: Fix Shining Animation Visibility, Slide Visuals, and Business Context in Employee Chat
 
 ### Issues Identified
 
-1. **Loader spinner next to "Thinking" text** — The `Loader2` spinning icon appears alongside the "Thinking" text and bouncing dots, making it redundant/cluttered.
-2. **"Thinking" text and dots not synchronized** — The `animate-pulse` on text and `animate-bounce` on dots run independently with different timings.
-3. **Step icons only show chevron during streaming, other icons appear after completion** — The `getStepIcon()` function maps icons by label keywords, but each step's icon (`StepIcon`) is always rendered. The issue is that steps 2 and 3 ("Analyzing..." and "Composing...") are added and immediately completed (`completeStep()` right after `addStep()`), so they flash through too quickly to be seen during streaming. Only the first step stays in "running" state long enough to be visible.
-4. **RAG fact-checking** — Currently, brand/product/audience data is only prioritized when `needsStrictVerification` is true (pricing/revenue queries). For general queries with lots of RAG data, the system doesn't always include brand, product, and audience records for cross-referencing.
+1. **ShiningText animation too subtle** — The gradient uses `muted-foreground` to `foreground` which is low contrast, making the shimmer barely visible.
+
+2. **Slides only produce text, no visuals** — The slide JSON schema only supports `title`, `subtitle`, `bullets`, and `takeaway` — no visual elements like icons, images, accent colors, or layout variations. The `InlineSlide` component renders a basic bullet list with no visual richness.
+
+3. **"Create an investor pitch" doesn't use business data** — When users type requests like "create an investor pitch" without selecting a graphic type, the graphic instructions are NOT appended. Even when Slide is selected, the prompt says "relevant to the user's question" but never explicitly tells the AI to use the business's brand/product/audience data from the Reference Material. The AI treats it as a generic task.
 
 ### Changes
 
-#### 1. TaskStepsDisplay.tsx — Remove Loader2 and sync animations
-- Remove the `<Loader2>` spinner from the section header when `!sectionDone`
-- Sync the "Thinking" text animation with the bouncing dots by using the same `animate-bounce` timing or removing `animate-pulse` and keeping just the dots as the visual indicator
+#### 1. ShiningText — Higher contrast gradient
+**File:** `src/components/ui/shining-text.tsx`
+- Change the gradient to use a brighter highlight: swap `hsl(var(--foreground))` for a white/bright highlight (`#fff` or `hsl(var(--foreground))` with a sharper, narrower band)
+- Tighten the gradient stops (e.g., `45%,#fff,55%`) so the shine is a crisp flash rather than a broad fade
+- Reduce duration from 2s to 1.5s for snappier feel
 
-#### 2. AgentChatView.tsx — Stagger step additions so all icons are visible
-- Currently steps 2 and 3 are added + completed instantly after the response comes back (lines 892-895). Instead, add small delays between steps so users can see each step appear with its icon during streaming:
-  - After response OK: complete step 1, add step 2 ("Analyzing...")
-  - After ~500ms or first content chunk: complete step 2, add step 3 ("Composing...")
-  - This way all step icons are visible during the streaming phase, not just retroactively
+#### 2. Slide schema — Add visual elements
+**File:** `src/components/database/InlineChatGraphics.tsx`
+- Extend `SlideConfig` to support: `layout` (title-only, bullets, two-column, stat-callout), `stats` (large number callouts), `accent_color`, `icon` (emoji)
+- Update the `InlineSlide` renderer to support these layouts — e.g., stat callouts show big numbers, two-column splits content
+- Update PPTX export to match the new layouts
 
-#### 3. run-employee/index.ts — Always include brand/product/audience in RAG
-- In `retrieveRelevantContext`, when the total item count is above a threshold (e.g., 10+), always ensure at least one brand, one product, and one audience record are included in the top-5 results, even if their keyword score is lower. This acts as a fact-checking anchor so the AI can cross-reference claims against core business data.
-- Add a system prompt line in `buildEmployeeChatPrompt` instructing the AI to cross-check any claims about the business against the brand, product, and audience records in the Reference Material.
+**File:** `src/components/database/AgentChatView.tsx`
+- Update the Slide graphic instruction to include the extended JSON schema and tell the AI to use visual layouts, stats, and icons
+- Add explicit instruction: "Use the business's brand, product, and audience data from the Reference Material to personalize the slide content"
+
+#### 3. Business context in all graphic outputs + auto-detect graphics
+**File:** `src/components/database/AgentChatView.tsx`
+- Add to ALL graphic instructions (Document, Slide, Spreadsheet, Analytics, Graph): "You MUST use the business's actual brand name, product details, and audience information from the Reference Material. Never create generic content — personalize everything to this specific business."
+
+**File:** `supabase/functions/run-employee/index.ts`
+- Add slide/document/spreadsheet/analytics code block instructions to `buildEmployeeChatPrompt` so the AI knows how to output these formats even when graphic type isn't selected client-side
+- Add an instruction: "When the user asks for a pitch, presentation, report, or document, ALWAYS base the content on the business's brand, product, and audience data from the Reference Material. Treat every request as being about THIS business unless the user explicitly says otherwise."
+
+**File:** `supabase/functions/extension-agent/index.ts`
+- Same addition as above for the extension-agent system prompt
 
 ### Technical Details
 
-**TaskStepsDisplay.tsx changes:**
-- Line 115: Remove `Loader2` spinner, keep only the dots as the active indicator
-- Line 117: Remove `animate-pulse` from "Thinking" text — the bouncing dots already signal activity
+**ShiningText gradient change:**
+```
+bg-[linear-gradient(110deg,hsl(var(--muted-foreground)),45%,#fff,50%,hsl(var(--muted-foreground)),55%,hsl(var(--muted-foreground)))]
+```
+Narrower bright band + white highlight = more visible flash.
 
-**AgentChatView.tsx changes:**
-- Lines 892-895: Instead of instantly adding and completing steps 2+3, trigger step 2 after response OK, then transition step 2→3 when first content arrives from the stream
+**Extended slide JSON schema:**
+```json
+{
+  "title": "...",
+  "subtitle": "...",
+  "layout": "stat-callout",
+  "bullets": [...],
+  "stats": [{"value": "$2.4M", "label": "ARR"}],
+  "takeaway": "...",
+  "icon": "🚀"
+}
+```
 
-**run-employee/index.ts changes:**
-- In `retrieveRelevantContext` (line 852-857): After scoring and sorting, check if the top 5 results include at least one each of brand/product/audience. If missing, swap in the highest-scored item of the missing type
-- In `buildEmployeeChatPrompt` (around line 1014): Add instruction: "When the Reference Material includes brand, product, or audience records, always cross-check your response against those records for accuracy before answering"
+**System prompt addition (run-employee + extension-agent):**
+A paragraph instructing the AI that when users request presentations, pitches, reports, or documents, it must use the business's actual data from Reference Material and personalize all content to that business.
 
