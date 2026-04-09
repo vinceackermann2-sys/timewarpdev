@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  Loader2, CheckCircle2, XCircle, ChevronUp,
+  CheckCircle2, XCircle, ChevronUp,
   Brain, Search, PenLine, Cog, RefreshCw, CircleCheck,
   CircleX, StopCircle, Globe, MousePointerClick,
   Keyboard, ClipboardList, ScrollText, Clock,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
+import { ShiningText } from "@/components/ui/shining-text";
 
 interface TaskStep {
   action: string;
