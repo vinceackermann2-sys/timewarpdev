@@ -99,10 +99,7 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
   }, [section.steps, collapsed]);
 
   useEffect(() => {
-    if (sectionDone && !isLast) {
-      const timer = setTimeout(() => setCollapsed(true), 800);
-      return () => clearTimeout(timer);
-    }
+    // Don't auto-collapse — keep all steps visible
   }, [sectionDone, isLast]);
 
   const taskCount = section.steps.filter(s => !s.label.toLowerCase().includes("complete")).length;
