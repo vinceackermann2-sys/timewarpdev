@@ -73,8 +73,8 @@ const AiCeo = () => {
       <NewHero />
       <NewHowItWorks />
       <NewValueComparison />
-      <NewVision />
       <NewCTA />
+      <NewVision />
       <WorkspaceFooter />
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} productUrl={authProductUrl} />
     </div>
