@@ -138,9 +138,9 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
       {/* Steps timeline */}
       <div className={cn(
         "overflow-hidden transition-all duration-300 ease-in-out",
-        collapsed ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100"
+        collapsed ? "max-h-0 opacity-0" : "max-h-[2000px] opacity-100"
       )}>
-        <div ref={scrollRef} className="max-h-[260px] overflow-y-auto mt-1.5 ml-3 space-y-0.5">
+        <div ref={scrollRef} className="max-h-[400px] overflow-y-auto mt-1.5 ml-3 space-y-0.5">
           {section.steps.map((step, idx) => {
             const isActive = step.status === "running" && isStreaming && isLast;
             const isDone = step.status === "done";
