@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion';
 import { Globe, ArrowRight, Lock, Zap } from 'lucide-react';
 import { TypewriterInput } from './TypewriterInput';
+import futureCity from '@/assets/future-city.jpeg';
 
 export default function NewVision() {
   return (
-    <section className="py-16 sm:py-32 bg-white text-slate-900 relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,rgba(51,153,255,0.08)_0%,transparent_70%)] pointer-events-none" />
-      
+    <section className="py-16 sm:py-32 text-white relative overflow-hidden">
+      <img src={futureCity} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-black/60" />
       <div className="max-w-4xl mx-auto px-6 lg:px-8 relative z-10 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
