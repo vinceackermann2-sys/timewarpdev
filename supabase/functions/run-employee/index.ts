@@ -855,17 +855,19 @@ async function retrieveRelevantContext(supabase: any, employee: any, userQuery: 
   }).filter((i: any) => i.score > 0.1)
     .sort((a: any, b: any) => b.score - a.score);
 
-  // Ensure brand, product, and audience are represented in results for fact-checking
+  // Always ensure brand, product, and audience are represented for fact-checking
   const top = scored.slice(0, 5);
-  if (scopedItems.length >= 10) {
-    const requiredTypes = ["brand", "product", "audience"];
-    for (const dt of requiredTypes) {
-      if (!top.some((i: any) => i.data_type === dt)) {
-        const candidate = scored.find((i: any) => i.data_type === dt && !top.includes(i));
-        if (candidate) {
-          top.pop();
-          top.push(candidate);
-        }
+  const allScored = scopedItems.map((item: any) => {
+    const searchText = buildSearchText(item);
+    return { ...item, score: scoreItem(keywords, searchText, item, userQuery), searchText };
+  }).sort((a: any, b: any) => b.score - a.score);
+  const requiredTypes = ["brand", "product", "audience"];
+  for (const dt of requiredTypes) {
+    if (!top.some((i: any) => i.data_type === dt)) {
+      const candidate = allScored.find((i: any) => i.data_type === dt && !top.includes(i));
+      if (candidate) {
+        if (top.length >= 5) top.pop();
+        top.push(candidate);
       }
     }
   }
