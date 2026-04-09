@@ -114,7 +114,7 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] text-muted-foreground">
           {!sectionDone && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground/60" />}
           {sectionDone && <CheckCircle2 className="w-3 h-3 text-muted-foreground/60" />}
-          <span className="font-medium">
+          <span className={cn("font-medium", !sectionDone && "animate-pulse")}>
             {sectionDone
               ? `Completed ${taskCount} task${taskCount !== 1 ? "s" : ""}`
               : `Thinking`}
