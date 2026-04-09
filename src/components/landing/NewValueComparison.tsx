@@ -6,10 +6,10 @@ import logoPhysvital from '@/assets/logo-physvital.png';
 import logoFlawskin from '@/assets/logo-flawskin.png';
 
 const logos = [
-  { src: logoMms, alt: 'Matrix Muscle Support', name: 'Matrix Muscle Support' },
-  { src: logoAckermann, alt: 'Ackermann College', name: 'Ackermann College' },
-  { src: logoPhysvital, alt: 'PhysVital', name: 'PhysVital' },
-  { src: logoFlawskin, alt: 'Flawskin', name: null },
+  { src: logoMms, alt: 'Matrix Muscle Support', name: 'Matrix Muscle Support', className: 'h-8 sm:h-10' },
+  { src: logoAckermann, alt: 'Ackermann College', name: 'Ackermann College', className: 'h-8 sm:h-10' },
+  { src: logoPhysvital, alt: 'PhysVital', name: 'PhysVital', className: 'h-8 sm:h-10' },
+  { src: logoFlawskin, alt: 'Flawskin', name: null, className: 'h-16 sm:h-20' },
 ];
 
 export default function NewValueComparison() {
@@ -21,7 +21,7 @@ export default function NewValueComparison() {
           <div className="flex animate-marquee whitespace-nowrap gap-16 sm:gap-24 opacity-60 grayscale">
             {[...logos, ...logos].map((logo, i) => (
               <div key={i} className="flex items-center gap-2 shrink-0">
-                <img src={logo.src} alt={logo.alt} className="h-8 sm:h-10 object-contain" loading="lazy" />
+                <img src={logo.src} alt={logo.alt} className={`${logo.className} object-contain`} loading="lazy" />
                 {logo.name && <span className="text-sm sm:text-base font-bold tracking-tight text-slate-800">{logo.name}</span>}
               </div>
             ))}
