@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  Loader2, CheckCircle2, XCircle, ChevronUp,
+  CheckCircle2, XCircle, ChevronUp,
   Brain, Search, PenLine, Cog, RefreshCw, CircleCheck,
   CircleX, StopCircle, Globe, MousePointerClick,
   Keyboard, ClipboardList, ScrollText, Clock,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
+import { ShiningText } from "@/components/ui/shining-text";
 
 interface TaskStep {
   action: string;
@@ -55,35 +56,22 @@ interface Section {
 function buildSections(steps: TaskStep[], globalStartTime: number): Section[] {
   if (steps.length === 0) return [];
 
-  const sections: Section[] = [];
-  let currentSteps: Section["steps"] = [];
-  let sectionStart = globalStartTime;
+  // Put all steps into a single section — no splitting
+  const sectionSteps: Section["steps"] = [];
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
-    const isComplete = step.label.toLowerCase().includes("complete") && step.status === "done";
-
-    const last = currentSteps[currentSteps.length - 1];
+    const last = sectionSteps[sectionSteps.length - 1];
     if (last && last.label === step.label && last.status === "done" && step.status !== "error") {
       last.count++;
       last.status = step.status;
     } else {
-      currentSteps.push({ label: step.label, status: step.status, count: 1, detail: step.detail });
-    }
-
-    if (isComplete && i < steps.length - 1) {
-      sections.push({ steps: currentSteps, startTime: sectionStart, isDone: true });
-      currentSteps = [];
-      sectionStart = Date.now();
+      sectionSteps.push({ label: step.label, status: step.status, count: 1, detail: step.detail });
     }
   }
 
-  if (currentSteps.length > 0) {
-    const allDone = currentSteps.every(s => s.status === "done" || s.status === "error");
-    sections.push({ steps: currentSteps, startTime: sectionStart, isDone: allDone });
-  }
-
-  return sections;
+  const allDone = sectionSteps.every(s => s.status === "done" || s.status === "error");
+  return [{ steps: sectionSteps, startTime: globalStartTime, isDone: allDone }];
 }
 
 /* ── Section Component ── */
@@ -113,17 +101,12 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
       >
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] text-muted-foreground">
           {sectionDone && <CheckCircle2 className="w-3 h-3 text-muted-foreground/60" />}
-          <span className="font-medium">
-            {sectionDone
-              ? `Completed ${taskCount} task${taskCount !== 1 ? "s" : ""}`
-              : "Thinking"}
-          </span>
-          {!sectionDone && (
-            <span className="inline-flex gap-[2px] items-end h-[14px]">
-              <span className="w-[3px] h-[3px] rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
-              <span className="w-[3px] h-[3px] rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
-              <span className="w-[3px] h-[3px] rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+          {sectionDone ? (
+            <span className="font-medium">
+              {`Completed ${taskCount} task${taskCount !== 1 ? "s" : ""}`}
             </span>
+          ) : (
+            <ShiningText text="Thinking" className="font-medium text-[13px]" />
           )}
           <span className="text-[11px] opacity-40">·</span>
           <ThinkingTimer startTime={section.startTime} stopped={sectionDone} className="text-[11px] opacity-50" />
