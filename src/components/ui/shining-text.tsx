@@ -18,7 +18,7 @@ export function ShiningText({ text, className }: ShiningTextProps) {
       animate={{ backgroundPosition: "-200% 0" }}
       transition={{
         repeat: Infinity,
-        duration: 3,
+        duration: 5,
         ease: "linear",
       }}
     >
