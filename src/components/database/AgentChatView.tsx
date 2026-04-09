@@ -1159,7 +1159,6 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     if (!emp) return;
 
     const startTime = new Date();
-    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
     const taskSteps: ChatMessage["taskSteps"] = [];
     const addStep = (label: string, status: "running" | "done" | "error" = "running") => {
@@ -1171,10 +1170,53 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
     };
 
+    // Derive contextual step labels from the user's message
+    const rawText = typeof userMsg.content === "string" ? userMsg.content : "";
+    const msgLower = rawText.toLowerCase();
+    const getContextLabel = () => {
+      if (msgLower.includes("email") || msgLower.includes("mail")) return "Gathering your email context";
+      if (msgLower.includes("report") || msgLower.includes("analytics")) return "Pulling relevant data & metrics";
+      if (msgLower.includes("pitch") || msgLower.includes("investor")) return "Loading your business profile";
+      if (msgLower.includes("slide") || msgLower.includes("presentation")) return "Preparing presentation data";
+      if (msgLower.includes("marketing") || msgLower.includes("campaign")) return "Reviewing your marketing assets";
+      if (msgLower.includes("social") || msgLower.includes("post") || msgLower.includes("content")) return "Reviewing your content strategy";
+      if (msgLower.includes("brand") || msgLower.includes("logo")) return "Loading your brand profile";
+      if (msgLower.includes("competitor") || msgLower.includes("research")) return "Researching the market";
+      if (msgLower.includes("sales") || msgLower.includes("lead")) return "Analyzing your sales data";
+      if (msgLower.includes("product") || msgLower.includes("pricing")) return "Reviewing your product details";
+      if (msgLower.includes("customer") || msgLower.includes("audience")) return "Analyzing your audience data";
+      return "Gathering your business context";
+    };
+    const getAnalyzeLabel = () => {
+      if (msgLower.includes("email") || msgLower.includes("mail")) return "Crafting the right tone & message";
+      if (msgLower.includes("report") || msgLower.includes("analytics")) return "Crunching the numbers";
+      if (msgLower.includes("pitch") || msgLower.includes("investor")) return "Building your pitch strategy";
+      if (msgLower.includes("slide") || msgLower.includes("presentation")) return "Designing slide layout";
+      if (msgLower.includes("marketing") || msgLower.includes("campaign")) return "Building your campaign approach";
+      if (msgLower.includes("social") || msgLower.includes("post")) return "Planning your content angle";
+      if (msgLower.includes("competitor") || msgLower.includes("research")) return "Comparing market insights";
+      return "Analyzing the best approach";
+    };
+    const getProcessLabel = () => {
+      if (msgLower.includes("email") || msgLower.includes("mail")) return "Writing your email";
+      if (msgLower.includes("report") || msgLower.includes("analytics")) return "Compiling your report";
+      if (msgLower.includes("pitch") || msgLower.includes("investor")) return "Crafting your investor pitch";
+      if (msgLower.includes("slide") || msgLower.includes("presentation")) return "Creating your slides";
+      if (msgLower.includes("marketing") || msgLower.includes("campaign")) return "Drafting your campaign";
+      if (msgLower.includes("social") || msgLower.includes("post")) return "Creating your content";
+      if (msgLower.includes("plan") || msgLower.includes("strategy")) return "Building your plan";
+      return "Composing your response";
+    };
+    const getVerifyLabel = () => {
+      if (msgLower.includes("pitch") || msgLower.includes("investor") || msgLower.includes("slide")) return "Cross-checking with business DNA";
+      if (msgLower.includes("report") || msgLower.includes("analytics")) return "Verifying data accuracy";
+      return "Fact-checking against your data";
+    };
+
     // Show processing state
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
 
-    addStep("Loading context...");
+    addStep(getContextLabel());
 
     // Log to DB
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
@@ -1185,10 +1227,13 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
     const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
 
+    // Stagger the initial steps with small delays so user sees them appear
+    await new Promise(r => setTimeout(r, 600));
     completeStep();
-    addStep("Analyzing request...");
+    addStep(getAnalyzeLabel());
+    await new Promise(r => setTimeout(r, 500));
     completeStep();
-    addStep("Processing with employee...");
+    addStep(getProcessLabel());
 
     // Continuation loop
     let accumulatedContent = "";
@@ -1197,7 +1242,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
     while (continuationCount <= MAX_CONTINUATIONS) {
       if (continuationCount > 0) {
-        addStep(`Continuing response (part ${continuationCount + 1})...`);
+        addStep(`Extending response (part ${continuationCount + 1})...`);
       }
 
       const response = await fetchWithTimeout(
@@ -1234,6 +1279,13 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
       completeStep();
 
+      // Add verify step after getting content
+      if (continuationCount === 0 && accumulatedContent) {
+        addStep(getVerifyLabel());
+        await new Promise(r => setTimeout(r, 400));
+        completeStep();
+      }
+
       // Update message with accumulated content
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent, taskSteps: [...taskSteps], isStreaming: true } : m));
 
@@ -1241,7 +1293,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       continuationCount++;
     }
 
-    addStep("Done");
+    addStep("Finished");
     completeStep();
 
     const endTime = new Date();
