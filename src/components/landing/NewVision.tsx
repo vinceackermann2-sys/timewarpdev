@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion';
 import { Globe, ArrowRight, Lock, Zap } from 'lucide-react';
 import { TypewriterInput } from './TypewriterInput';
+import futureCity from '@/assets/future-city.jpeg';
 
 export default function NewVision() {
   return (
-    <section className="py-16 sm:py-32 bg-white text-slate-900 relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,rgba(51,153,255,0.08)_0%,transparent_70%)] pointer-events-none" />
-      
+    <section className="py-16 sm:py-32 text-white relative overflow-hidden">
+      <img src={futureCity} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-black/60" />
       <div className="max-w-4xl mx-auto px-6 lg:px-8 relative z-10 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -15,15 +16,15 @@ export default function NewVision() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="flex flex-col items-center"
         >
-          <h2 className="text-3xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-4 sm:mb-8">
-            Making work <span className="text-black">optional.</span>
+           <h2 className="text-3xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-4 sm:mb-8">
+            Making work <span className="text-white">optional.</span>
           </h2>
-          <p className="text-base sm:text-xl md:text-3xl text-slate-600 leading-relaxed font-light mb-8 sm:mb-16">
+          <p className="text-base sm:text-xl md:text-3xl text-white/70 leading-relaxed font-light mb-8 sm:mb-16">
             For centuries, human potential has been chained to the desk, bound by the necessity of economic survival. By replacing the CEO and the operational workforce with autonomous intelligence, we are accelerating the transition to a post-labor economy.
           </p>
 
           <div className="flex flex-col items-center gap-3 sm:gap-4 w-full max-w-lg mt-4 sm:mt-8">
-            <h3 className="text-2xl sm:text-4xl font-extrabold text-slate-900 text-center mb-1 sm:mb-2">Get levers pulled for you.</h3>
+            <h3 className="text-2xl sm:text-4xl font-bold text-white text-center mb-1 sm:mb-2">Get levers pulled for you.</h3>
             <p className="text-[10px] sm:text-xs font-medium text-[#3399ff] uppercase tracking-wider">Paste company url</p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl p-2 w-full shadow-xl shadow-slate-200/50 border border-slate-200 gap-2 sm:gap-0">
               <div className="flex items-center flex-1 min-w-0 px-4 py-2 sm:py-0">
@@ -36,12 +37,12 @@ export default function NewVision() {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-1 sm:mt-2">
               <div className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-slate-500" />
-                <span className="text-sm font-medium text-slate-500">No credit card</span>
+                <Lock className="w-3.5 h-3.5 text-white/60" />
+                <span className="text-sm font-medium text-white/60">No credit card</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-slate-500" />
-                <span className="text-sm font-medium text-slate-500">30 seconds</span>
+                <Zap className="w-3.5 h-3.5 text-white/60" />
+                <span className="text-sm font-medium text-white/60">30 seconds</span>
               </div>
             </div>
           </div>
