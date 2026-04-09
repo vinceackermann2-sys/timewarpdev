@@ -23,7 +23,7 @@ export function Header() {
             <Button variant="ghost" asChild>
               <Link to="/auth">Log in</Link>
             </Button>
-            <Link to="/auth?mode=signup" className="rounded-full bg-gradient-to-r from-[#3399ff] to-[#7c3aed] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity">
+            <Link to="/auth?mode=signup" className="rounded-full bg-gradient-to-r from-[#2b7de9] to-[#59b3ff] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity">
               Start Free
             </Link>
           </div>
