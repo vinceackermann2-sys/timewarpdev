@@ -384,7 +384,7 @@ async function retrieveRelevantContext(supabase: any, userId: string, workspaceI
 
   const allScored = filtered.map((item: any) => {
     const snippet = (item.analyzed_content || item.content || "").slice(0, 300);
-    return { ...item, score: keywords.length > 0 ? scoreItem(keywords, item.title || "", snippet) : 0.05 };
+    return { ...item, score: keywords.length > 0 ? scoreItem(keywords, item.title || "", snippet) : (["brand","product","audience"].includes(item.data_type) ? 1 : 0.05) };
   }).sort((a: any, b: any) => b.score - a.score);
 
   const top = allScored.filter((i: any) => i.score >= scoreThreshold).slice(0, maxResults);
