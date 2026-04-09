@@ -4,9 +4,8 @@ import { Loader2 } from "lucide-react";
 import { getSafeSession } from "@/lib/authSession";
 import { AuthDialog } from "@/components/landing/AuthDialog";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
-import { Header } from "@/components/landing/Header";
-import { Footer } from "@/components/landing/Footer";
-import NewHero from "@/components/landing/NewHero";
+import { HeroSection } from "@/components/aiceo/HeroSection";
+import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
 import NewHowItWorks from "@/components/landing/NewHowItWorks";
 import NewValueComparison from "@/components/landing/NewValueComparison";
 import NewVision from "@/components/landing/NewVision";
@@ -49,10 +48,15 @@ const AiCeo = () => {
     };
   }, [navigate, isOAuthReturn, searchParams]);
 
+  const handleAuthRequest = (productUrl?: string) => {
+    setAuthProductUrl(productUrl);
+    setAuthOpen(true);
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#3399ff]" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
     );
   }
@@ -62,13 +66,12 @@ const AiCeo = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <Header />
-      <NewHero />
+    <div className="min-h-screen bg-white flex flex-col">
+      <HeroSection onAuthRequest={handleAuthRequest} />
       <NewHowItWorks />
       <NewValueComparison />
       <NewVision />
-      <Footer />
+      <WorkspaceFooter />
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} productUrl={authProductUrl} />
     </div>
   );
