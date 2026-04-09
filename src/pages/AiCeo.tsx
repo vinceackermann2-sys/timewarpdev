@@ -10,6 +10,7 @@ import NewHero from "@/components/landing/NewHero";
 import NewHowItWorks from "@/components/landing/NewHowItWorks";
 import NewValueComparison from "@/components/landing/NewValueComparison";
 import NewVision from "@/components/landing/NewVision";
+import NewCTA from "@/components/landing/NewCTA";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
