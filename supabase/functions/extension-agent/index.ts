@@ -333,7 +333,8 @@ async function loadBusinessIdentity(supabase: any, userId: string, brandId?: str
 async function retrieveRelevantContext(supabase: any, userId: string, workspaceId?: string, userQuery?: string, brandId?: string, browserMode?: boolean): Promise<string> {
   const keywords = extractKeywords(userQuery || "");
   // In browser mode, even with no keyword matches, include brand context
-  if (keywords.length === 0 && !browserMode) return "";
+  const isContentCreation = /\b(slide|pitch|present|report|document|graphic|chart|spreadsheet|analytics|brand|investor|deck|proposal|summary|overview)\b/i.test(userQuery || "");
+  if (keywords.length === 0 && !browserMode && !isContentCreation) return "";
 
   // If a brandId is provided, resolve the brand's logical ID so we can scope all results
   let brandLogicalId: string | null = null;
