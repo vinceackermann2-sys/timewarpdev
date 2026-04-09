@@ -3,25 +3,28 @@ import { motion } from 'framer-motion';
 import logoMms from '@/assets/logo-mms.png';
 import logoAckermann from '@/assets/logo-ackermann.jpeg';
 import logoPhysvital from '@/assets/logo-physvital.png';
+import logoFlawskin from '@/assets/logo-flawskin.png';
+
+const logos = [
+  { src: logoMms, alt: 'Matrix Muscle Support', name: 'Matrix Muscle Support' },
+  { src: logoAckermann, alt: 'Ackermann College', name: 'Ackermann College' },
+  { src: logoPhysvital, alt: 'PhysVital', name: 'PhysVital' },
+  { src: logoFlawskin, alt: 'Flawskin', name: null },
+];
 
 export default function NewValueComparison() {
   return (
     <section className="py-12 sm:py-20 bg-white border-t border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Logo List */}
-        <div className="text-center mb-16 sm:mb-24">
-          <div className="flex flex-wrap justify-center items-center gap-10 sm:gap-16 md:gap-24 opacity-60 grayscale">
-            <div className="flex items-center gap-2">
-              <img src={logoMms} alt="Matrix Muscle Support" className="h-8 sm:h-10 object-contain" />
-              <span className="text-sm sm:text-base font-bold tracking-tight text-slate-800">Matrix Muscle Support</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <img src={logoAckermann} alt="Ackermann College" className="h-10 sm:h-12 object-contain" />
-              <span className="text-sm sm:text-base font-bold tracking-tight text-slate-800">Ackermann College</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <img src={logoPhysvital} alt="PhysVital" className="h-8 sm:h-10 object-contain" />
-            </div>
+        {/* Logo Carousel */}
+        <div className="mb-16 sm:mb-24 overflow-hidden">
+          <div className="flex animate-marquee whitespace-nowrap gap-16 sm:gap-24 opacity-60 grayscale">
+            {[...logos, ...logos].map((logo, i) => (
+              <div key={i} className="flex items-center gap-2 shrink-0">
+                <img src={logo.src} alt={logo.alt} className="h-8 sm:h-10 object-contain" loading="lazy" />
+                {logo.name && <span className="text-sm sm:text-base font-bold tracking-tight text-slate-800">{logo.name}</span>}
+              </div>
+            ))}
           </div>
         </div>
 
