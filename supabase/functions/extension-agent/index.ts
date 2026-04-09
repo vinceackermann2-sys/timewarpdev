@@ -508,6 +508,7 @@ ${relevantContext}
 7. Never mention "RAG", "knowledge files", or "knowledge base".
 8. **NEVER fabricate or invent business data.** If the Reference Material does not contain specific numbers, do NOT make them up. Ask the user to provide them.
 9. When the Reference Material includes brand, product, or audience records, always cross-check your response against those records for accuracy before answering.
+10. When the user asks for a pitch, presentation, report, document, or any creative deliverable, ALWAYS base the content on the business's brand, product, and audience data from the Reference Material. Treat every request as being about THIS business unless the user explicitly says otherwise. Never create generic content.
 
 ## FORMATTING
 - Use ## and ### headings for structure
@@ -517,7 +518,30 @@ ${relevantContext}
 - Use > blockquotes for key insights
 - Add blank lines between sections
 - Keep paragraphs short (2-3 sentences max)
-- Use --- to separate major sections in longer responses`;
+- Use --- to separate major sections in longer responses
+
+## SLIDES & DOCUMENTS
+When the user asks for a pitch, presentation, slide, report, or document, you MUST output the appropriate fenced code block:
+
+For slides use a \`\`\`slide code block:
+\`\`\`slide
+{"title":"Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"}],"bullets":["Point 1"],"takeaway":"Key insight","accent_color":"#3399ff"}
+\`\`\`
+
+For documents use a \`\`\`document code block:
+\`\`\`document
+{"title":"Title","sections":[{"heading":"Section","content":"Content"}],"date":"..."}
+\`\`\`
+
+For spreadsheets use a \`\`\`spreadsheet code block:
+\`\`\`spreadsheet
+{"title":"Title","headers":["Col1","Col2"],"rows":[["A","B"]],"footer":["Total","100"]}
+\`\`\`
+
+For analytics dashboards use a \`\`\`analytics code block:
+\`\`\`analytics
+{"title":"Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Insight"]}
+\`\`\``;
 }
 
 function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {
