@@ -1,12 +1,9 @@
 import { Link } from "react-router-dom";
-import futureCity from '@/assets/future-city.jpeg';
 
 export function WorkspaceFooter() {
   return (
-    <div className="w-full relative">
-      <img src={futureCity} alt="" className="absolute inset-0 w-full h-full object-cover" />
-      <div className="absolute inset-0 bg-black/60" />
-      <div className="relative z-10 w-full mx-auto px-4 sm:px-6 py-8 sm:py-14" style={{ maxWidth: 1900 }}>
+    <div className="w-full bg-slate-950">
+      <div className="w-full mx-auto px-4 sm:px-6 py-8 sm:py-14" style={{ maxWidth: 1900 }}>
         <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm px-5 sm:px-12 py-8 sm:py-14">
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-14">
             {/* Left: logo + links */}

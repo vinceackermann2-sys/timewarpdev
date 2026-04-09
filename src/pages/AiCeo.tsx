@@ -9,7 +9,6 @@ import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
 import NewHero from "@/components/landing/NewHero";
 import NewHowItWorks from "@/components/landing/NewHowItWorks";
 import NewValueComparison from "@/components/landing/NewValueComparison";
-import NewVision from "@/components/landing/NewVision";
 import NewCTA from "@/components/landing/NewCTA";
 
 const AiCeo = () => {
@@ -50,8 +49,8 @@ const AiCeo = () => {
     };
   }, [navigate, isOAuthReturn, searchParams]);
 
-  const handleAuthRequest = (productUrl?: string) => {
-    setAuthProductUrl(productUrl);
+  const handleGetDNA = (url?: string) => {
+    setAuthProductUrl(url || undefined);
     setAuthOpen(true);
   };
 
@@ -70,10 +69,10 @@ const AiCeo = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
-      <NewHero />
+      <NewHero onGetDNA={handleGetDNA} />
       <NewHowItWorks />
       <NewValueComparison />
-      <NewCTA />
+      <NewCTA onGetDNA={handleGetDNA} />
       <WorkspaceFooter />
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} productUrl={authProductUrl} />
     </div>

@@ -54,8 +54,13 @@ const BrowserMockup = ({ activeStep }: { activeStep: number }) => {
   );
 };
 
-export default function NewHero() {
+interface NewHeroProps {
+  onGetDNA?: (url: string) => void;
+}
+
+export default function NewHero({ onGetDNA }: NewHeroProps) {
   const [activeStep, setActiveStep] = useState(0);
+  const [url, setUrl] = useState("");
 
   useEffect(() => {
     if (activeStep === 3) return;
@@ -64,6 +69,10 @@ export default function NewHero() {
     }, STEP_DURATIONS[activeStep]);
     return () => clearTimeout(timer);
   }, [activeStep]);
+
+  const handleGetDNA = () => {
+    onGetDNA?.(url);
+  };
 
   return (
     <div className="relative w-full min-h-[calc(100vh-48px)] overflow-hidden flex flex-col lg:flex-row items-center justify-center bg-white py-12 sm:py-20 px-4 sm:px-6 pt-28 sm:pt-32">
@@ -82,9 +91,9 @@ export default function NewHero() {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl p-2 w-full shadow-lg border border-slate-200 gap-2 sm:gap-0">
               <div className="flex items-center flex-1 min-w-0 px-4 py-2 sm:py-0">
                 <Globe className="w-5 h-5 mr-3 shrink-0 text-slate-400" />
-                <TypewriterInput className="w-full bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400 text-sm sm:text-base" />
+                <TypewriterInput value={url} onChange={setUrl} className="w-full bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400 text-sm sm:text-base" />
               </div>
-              <button className="bg-[#3399ff] hover:bg-[#287acc] shrink-0 px-6 py-3 rounded-xl text-white font-bold text-sm border-none cursor-pointer transition-colors whitespace-nowrap flex items-center justify-center gap-2">
+              <button onClick={handleGetDNA} className="bg-[#3399ff] hover:bg-[#287acc] shrink-0 px-6 py-3 rounded-xl text-white font-bold text-sm border-none cursor-pointer transition-colors whitespace-nowrap flex items-center justify-center gap-2">
                 Get DNA <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
               </button>
             </div>

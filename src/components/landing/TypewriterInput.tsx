@@ -9,7 +9,13 @@ const EXAMPLES = [
   "netflix.com"
 ];
 
-export const TypewriterInput = ({ className }: { className?: string }) => {
+interface TypewriterInputProps {
+  className?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+}
+
+export const TypewriterInput = ({ className, value, onChange }: TypewriterInputProps) => {
   const [placeholder, setPlaceholder] = useState("");
   const [exampleIndex, setExampleIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -45,6 +51,8 @@ export const TypewriterInput = ({ className }: { className?: string }) => {
   return (
     <input 
       type="text" 
+      value={value}
+      onChange={(e) => onChange?.(e.target.value)}
       placeholder={isFocused ? "" : placeholder + (placeholder === EXAMPLES[exampleIndex] && !isDeleting ? "" : "|")} 
       className={className}
       onFocus={() => setIsFocused(true)}
