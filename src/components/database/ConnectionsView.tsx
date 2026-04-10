@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, Plug, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
@@ -27,11 +28,31 @@ interface ConnectedProvider {
   email?: string;
 }
 
+function ConnectionCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-border p-5">
+      <div className="flex items-start justify-between gap-3">
+        <Skeleton className="h-10 w-10 rounded-lg" />
+        <Skeleton className="h-4 w-10" />
+      </div>
+
+      <div className="mt-4 space-y-2">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-4/5" />
+      </div>
+
+      <div className="mt-5 flex gap-2">
+        <Skeleton className="h-7 w-24 rounded-md" />
+      </div>
+    </div>
+  );
+}
+
 export function ConnectionsView() {
   const [connectedProviders, setConnectedProviders] = useState<ConnectedProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
-  const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
 
   const checkConnections = useCallback(async () => {
     try {
@@ -71,7 +92,6 @@ export function ConnectionsView() {
       toast.success(`${oauthSuccess.charAt(0).toUpperCase() + oauthSuccess.slice(1)} connected successfully!`);
       window.history.replaceState({}, "", window.location.pathname);
       checkConnections();
-      syncProviderData(oauthSuccess);
     } else if (oauthError) {
       toast.error(`Connection failed: ${oauthError}`);
       window.history.replaceState({}, "", window.location.pathname);
@@ -122,46 +142,24 @@ export function ConnectionsView() {
     }
   };
 
-  const syncProviderData = async (provider: string) => {
-    setSyncingProvider(provider);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-provider-data`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ provider, workspaceId: localStorage.getItem("preferred_workspace_id") || undefined }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        const s = data.summary;
-        toast.success(`Synced ${s.emails || 0} emails, ${s.events || 0} events, ${s.files || 0} files`);
-      } else {
-        toast.error(data.error || "Sync failed");
-      }
-    } catch (err) {
-      console.error("Sync error:", err);
-      toast.error("Failed to sync data");
-    }
-    setSyncingProvider(null);
-  };
-
   const isProviderConnected = (id: string) => connectedProviders.some(p => p.provider === id);
   const getProviderEmail = (id: string) => connectedProviders.find(p => p.provider === id)?.email;
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="h-full overflow-auto">
+        <div className="max-w-4xl mx-auto px-6 py-10">
+          <div className="mb-8 space-y-2">
+            <Skeleton className="h-8 w-36" />
+            <Skeleton className="h-4 w-80 max-w-full" />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <ConnectionCardSkeleton key={index} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -181,7 +179,6 @@ export function ConnectionsView() {
             const connected = isProviderConnected(integration.id);
             const email = getProviderEmail(integration.id);
             const isConnecting = connectingProvider === integration.id;
-            const isSyncing = syncingProvider === integration.id;
 
             return (
               <div
@@ -236,16 +233,6 @@ export function ConnectionsView() {
                 {/* Connected actions */}
                 {connected && !integration.comingSoon && (
                   <div className="flex items-center gap-1 mt-auto pt-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs gap-1"
-                      onClick={(e) => { e.stopPropagation(); syncProviderData(integration.id); }}
-                      disabled={isSyncing}
-                    >
-                      {isSyncing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                      Sync
-                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
