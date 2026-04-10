@@ -98,6 +98,7 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
 
   useEffect(() => { loadLogs(); loadProducedFiles(); }, [employee.id]);
 
+  const loadLogs = async () => {
     setLoadingLogs(true);
     const { data } = await supabase
       .from("ai_employee_logs")
