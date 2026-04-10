@@ -397,6 +397,194 @@ serve(async (req) => {
   }
 });
 
+// --- Live Connection Search ---
+
+async function refreshMicrosoftToken(refreshToken: string): Promise<any> {
+  const res = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: Deno.env.get("MICROSOFT_CLIENT_ID")!,
+      client_secret: Deno.env.get("MICROSOFT_CLIENT_SECRET")!,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  return res.json();
+}
+
+async function getValidProviderToken(supabaseAdmin: any, userId: string, provider: string): Promise<string | null> {
+  const { data: tokenRow } = await supabaseAdmin
+    .from("user_oauth_tokens")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("provider", provider)
+    .maybeSingle();
+
+  if (!tokenRow) return null;
+
+  const expiresAt = tokenRow.token_expires_at ? new Date(tokenRow.token_expires_at) : null;
+  const isExpired = expiresAt && expiresAt < new Date(Date.now() + 60000);
+
+  if (!isExpired) return tokenRow.access_token;
+  if (!tokenRow.refresh_token) return null;
+
+  if (provider === "microsoft") {
+    const refreshed = await refreshMicrosoftToken(tokenRow.refresh_token);
+    if (refreshed.access_token) {
+      await supabaseAdmin.from("user_oauth_tokens").update({
+        access_token: refreshed.access_token,
+        refresh_token: refreshed.refresh_token || tokenRow.refresh_token,
+        token_expires_at: refreshed.expires_in ? new Date(Date.now() + refreshed.expires_in * 1000).toISOString() : tokenRow.token_expires_at,
+      }).eq("user_id", userId).eq("provider", provider);
+      return refreshed.access_token;
+    }
+  }
+
+  // Slack tokens don't expire
+  if (provider === "slack") return tokenRow.access_token;
+
+  return null;
+}
+
+async function searchMicrosoftData(token: string, query: string): Promise<{ emails: string[]; files: string[] }> {
+  const results = { emails: [] as string[], files: [] as string[] };
+  const keywords = query.split(/\s+/).filter(w => w.length > 2).slice(0, 5).join(" ");
+  if (!keywords) return results;
+
+  try {
+    // Search emails
+    const emailRes = await fetch(
+      `https://graph.microsoft.com/v1.0/me/messages?$search="${encodeURIComponent(keywords)}"&$top=5&$select=subject,bodyPreview,from,receivedDateTime`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (emailRes.ok) {
+      const data = await emailRes.json();
+      for (const msg of (data.value || [])) {
+        if (msg.subject || msg.bodyPreview) {
+          results.emails.push(`📧 **${msg.subject || "No subject"}** (from: ${msg.from?.emailAddress?.address || "unknown"}, ${msg.receivedDateTime?.slice(0, 10) || ""})\n${(msg.bodyPreview || "").slice(0, 300)}`);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Microsoft email search error:", e);
+  }
+
+  try {
+    // Search files
+    const fileRes = await fetch(
+      `https://graph.microsoft.com/v1.0/me/drive/root/search(q='${encodeURIComponent(keywords)}')?$top=5&$select=name,webUrl,lastModifiedDateTime,size`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (fileRes.ok) {
+      const data = await fileRes.json();
+      for (const file of (data.value || [])) {
+        results.files.push(`📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""}) — [link](${file.webUrl || ""})`);
+      }
+    }
+  } catch (e) {
+    console.error("Microsoft file search error:", e);
+  }
+
+  return results;
+}
+
+async function searchSlackData(token: string, query: string): Promise<string[]> {
+  const results: string[] = [];
+  const keywords = query.split(/\s+/).filter(w => w.length > 2).slice(0, 5).join(" ");
+  if (!keywords) return results;
+
+  try {
+    const res = await fetch(
+      `https://slack.com/api/search.messages?query=${encodeURIComponent(keywords)}&count=5`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok && data.messages?.matches) {
+        for (const match of data.messages.matches.slice(0, 5)) {
+          const channel = match.channel?.name || "unknown";
+          const user = match.username || "unknown";
+          const text = (match.text || "").slice(0, 300);
+          const ts = match.ts ? new Date(parseFloat(match.ts) * 1000).toISOString().slice(0, 10) : "";
+          results.push(`💬 **#${channel}** (${user}, ${ts}): ${text}`);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Slack search error:", e);
+  }
+
+  return results;
+}
+
+async function searchConnectedProviders(
+  supabase: any,
+  userId: string,
+  userQuery: string
+): Promise<{ connectionContext: string; searchedProviders: string[] }> {
+  const searchedProviders: string[] = [];
+  let connectionContext = "";
+
+  if (!userQuery || userQuery.length < 3) return { connectionContext, searchedProviders };
+
+  // Check which providers are connected
+  const { data: connections } = await supabase
+    .from("user_connections")
+    .select("provider, status")
+    .eq("user_id", userId)
+    .eq("status", "connected");
+
+  if (!connections || connections.length === 0) return { connectionContext, searchedProviders };
+
+  const connectedProviders = connections.map((c: any) => c.provider);
+  const searchPromises: Promise<void>[] = [];
+
+  // Search Microsoft
+  if (connectedProviders.includes("microsoft")) {
+    searchPromises.push((async () => {
+      try {
+        const token = await getValidProviderToken(supabase, userId, "microsoft");
+        if (!token) return;
+        searchedProviders.push("microsoft");
+        const results = await searchMicrosoftData(token, userQuery);
+        if (results.emails.length > 0 || results.files.length > 0) {
+          connectionContext += "\n\n## Live Data from Microsoft 365\n";
+          if (results.emails.length > 0) {
+            connectionContext += `\n### Relevant Emails\n${results.emails.join("\n\n")}\n`;
+          }
+          if (results.files.length > 0) {
+            connectionContext += `\n### Relevant Files\n${results.files.join("\n")}\n`;
+          }
+        }
+      } catch (e) { console.error("Microsoft search failed:", e); }
+    })());
+  }
+
+  // Search Slack
+  if (connectedProviders.includes("slack")) {
+    searchPromises.push((async () => {
+      try {
+        const token = await getValidProviderToken(supabase, userId, "slack");
+        if (!token) return;
+        searchedProviders.push("slack");
+        const results = await searchSlackData(token, userQuery);
+        if (results.length > 0) {
+          connectionContext += `\n\n## Live Data from Slack\n${results.join("\n\n")}\n`;
+        }
+      } catch (e) { console.error("Slack search failed:", e); }
+    })());
+  }
+
+  await Promise.all(searchPromises);
+
+  if (connectionContext) {
+    connectionContext = `\n\n## Connected Sources (Live Search Results)\nThe following data was retrieved in real-time from the user's connected integrations. Use it to provide more informed answers when relevant.\n${connectionContext}`;
+  }
+
+  return { connectionContext, searchedProviders };
+}
+
 // --- RAG Helpers ---
 
 function extractKeywords(text: string): string[] {
