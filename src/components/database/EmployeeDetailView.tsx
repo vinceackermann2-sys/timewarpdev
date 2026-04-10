@@ -81,8 +81,6 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   const { activeWorkspace } = useWorkspace();
   const [producedFiles, setProducedFiles] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
-  const [connectedProviders, setConnectedProviders] = useState<Record<string, { email?: string | null }>>({});
-  const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -101,100 +99,8 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
   );
   const [savingEdit, setSavingEdit] = useState(false);
 
-  useEffect(() => { loadLogs(); loadProducedFiles(); loadConnections(); }, [employee.id]);
+  useEffect(() => { loadLogs(); loadProducedFiles(); }, [employee.id]);
 
-  const loadConnections = async () => {
-    if (!employee.linked_business_id) return;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      // Resolve the logical brandId from linked_business_id
-      const { data: brandRow } = await (supabase as any)
-        .from("user_business_data")
-        .select("content")
-        .eq("id", employee.linked_business_id)
-        .single();
-      const brandId = brandRow?.content ? (typeof brandRow.content === "string" ? JSON.parse(brandRow.content) : brandRow.content)?.id : employee.linked_business_id;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ action: "check-status", brandId }),
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        const map: Record<string, { email?: string | null }> = {};
-        for (const c of (data.connected || [])) {
-          map[c.provider] = { email: c.email || null };
-        }
-        setConnectedProviders(map);
-      }
-    } catch (err) {
-      console.error("Failed to load connections:", err);
-    }
-  };
-
-  const handleConnectProvider = async (provider: string) => {
-    setConnectingProvider(provider);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setConnectingProvider(false); return; }
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin }),
-        }
-      );
-      const data = await response.json();
-      if (data.authUrl) window.location.href = data.authUrl;
-      else toast({ title: "Failed", description: data.error || "Failed to get auth URL", variant: "destructive" });
-    } catch {
-      toast({ title: "Connection failed", variant: "destructive" });
-    }
-    setConnectingProvider(false);
-  };
-
-  const handleDisconnectProvider = async (provider: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ provider, action: "disconnect" }),
-        }
-      );
-      if (response.ok) {
-        setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
-        toast({ title: `${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected` });
-      } else {
-        toast({ title: "Failed to disconnect", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Failed to disconnect", variant: "destructive" });
-    }
-  };
-
-  const loadLogs = async () => {
     setLoadingLogs(true);
     const { data } = await supabase
       .from("ai_employee_logs")
