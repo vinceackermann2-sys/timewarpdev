@@ -576,12 +576,20 @@ async function searchConnectedProviders(
   const connectedProviders = connections.map((c: any) => c.provider);
   const searchPromises: Promise<void>[] = [];
 
+  // Track providers that are connected but not searched
+  const allKnownProviders = ["microsoft", "slack", "hubspot"];
+  for (const p of allKnownProviders) {
+    if (!connectedProviders.includes(p)) {
+      skippedProviders.push(p);
+    }
+  }
+
   // Search Microsoft
   if (connectedProviders.includes("microsoft")) {
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "microsoft");
-        if (!token) { console.log("[connections] No valid Microsoft token"); return; }
+        if (!token) { console.log("[connections] No valid Microsoft token"); skippedProviders.push("microsoft"); return; }
         searchedProviders.push("microsoft");
         console.log("[connections] Searching Microsoft with query:", userQuery.slice(0, 60));
         const results = await searchMicrosoftData(token, userQuery);
@@ -604,7 +612,7 @@ async function searchConnectedProviders(
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "slack");
-        if (!token) { console.log("[connections] No valid Slack token"); return; }
+        if (!token) { console.log("[connections] No valid Slack token"); skippedProviders.push("slack"); return; }
         searchedProviders.push("slack");
         console.log("[connections] Searching Slack with query:", userQuery.slice(0, 60));
         const results = await searchSlackData(token, userQuery);
@@ -622,8 +630,8 @@ async function searchConnectedProviders(
     connectionContext = `\n\n## Connected Sources (Live Search Results)\nThe following data was retrieved in real-time from the user's connected integrations. Use it to provide more informed answers when relevant.\n${connectionContext}`;
   }
 
-  console.log("[connections] Final searchedProviders:", searchedProviders, "hasContext:", connectionContext.length > 0);
-  return { connectionContext, searchedProviders };
+  console.log("[connections] Final searchedProviders:", searchedProviders, "skipped:", skippedProviders, "hasContext:", connectionContext.length > 0);
+  return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
 }
 
 // --- RAG Helpers ---
