@@ -157,11 +157,15 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
                 <span className="w-5 text-center shrink-0">
                   {isError ? (
                     <XCircle className="w-3.5 h-3.5 text-destructive mx-auto" />
-                  ) : (
+                  ) : typeof StepIcon === "string" && PROVIDER_LOGOS[StepIcon] ? (
+                    <img src={PROVIDER_LOGOS[StepIcon]} alt={StepIcon} className="w-3.5 h-3.5 mx-auto object-contain" />
+                  ) : typeof StepIcon !== "string" ? (
                     <StepIcon className={cn(
                       "w-3.5 h-3.5 mx-auto",
                       isActive ? "text-muted-foreground/60" : "text-muted-foreground/50"
                     )} />
+                  ) : (
+                    <Zap className={cn("w-3.5 h-3.5 mx-auto", isActive ? "text-muted-foreground/60" : "text-muted-foreground/50")} />
                   )}
                 </span>
 
