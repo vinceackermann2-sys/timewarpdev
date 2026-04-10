@@ -386,7 +386,7 @@ serve(async (req) => {
       if (actionBlock) content = actionBlock;
     }
 
-    return new Response(JSON.stringify({ content }), {
+    return new Response(JSON.stringify({ content, searchedProviders }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
