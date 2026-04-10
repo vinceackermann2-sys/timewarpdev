@@ -130,6 +130,7 @@ function ChartRenderer({ chart }: { chart: ChartConfig }) {
 
 export function InlineChatAnalytics({ jsonString, editorEnabled = true }: { jsonString: string; editorEnabled?: boolean }) {
   const [draftJson, setDraftJson] = useState(jsonString);
+  const [saved, setSaved] = useState(false);
   useEffect(() => setDraftJson(jsonString), [jsonString]);
 
   const config = useMemo<AnalyticsConfig | null>(() => {
@@ -143,8 +144,6 @@ export function InlineChatAnalytics({ jsonString, editorEnabled = true }: { json
   const hasInsights = config.insights && config.insights.length > 0;
 
   if (!hasMetrics && !hasChart) return null;
-
-  const [saved, setSaved] = useState(false);
 
   const handleSave = async () => {
     const { data: { session } } = await supabase.auth.getSession();
