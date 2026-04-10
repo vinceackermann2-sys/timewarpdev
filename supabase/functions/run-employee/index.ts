@@ -387,29 +387,32 @@ serve(async (req) => {
 
         (async () => {
           try {
-            sendStep("Analyzing your request", "running", "analysis");
-            sendStep("Analyzing your request", "done", "analysis", shouldSearchConnections(lastUserMsg).reason);
+            const topic = extractQueryTopic(lastUserMsg);
+            sendStep(`Understanding your question about ${topic}`, "running", "analysis");
+            const decision = shouldSearchConnections(lastUserMsg);
+            sendStep(`Understanding your question about ${topic}`, "done", "analysis", decision.reason);
 
-            sendStep("Retrieving business context", "running", "context");
+            sendStep(`Gathering business data on ${topic}`, "running", "context");
             const relevantContext = await retrieveRelevantContext(supabase, {
               ...employee,
               workspace_id: effectiveWsId,
               linked_business_id: effectiveBrandId,
             }, lastUserMsg);
-            sendStep("Retrieving business context", "done", "context");
+            sendStep(`Gathered business data on ${topic}`, "done", "context");
 
             const { connectionContext, searchedProviders, skippedProviders, connectionDecision } = await searchConnectedProviders(
               supabase,
               user.id,
               lastUserMsg,
-              (step) => send({ type: "progress", step })
+              (step) => send({ type: "progress", step }),
+              topic,
             );
 
-            sendStep("Generating response", "running", "response");
+            sendStep(`Crafting your answer on ${topic}`, "running", "response");
             const result = await buildAiResponse(relevantContext, connectionContext, (delta) => {
               send({ type: "content", delta });
             });
-            sendStep("Generating response", "done", "response");
+            sendStep(`Crafting your answer on ${topic}`, "done", "response");
             if (!result.continuation) sendStep("Finished", "done", "complete");
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, connectionDecision });
