@@ -175,6 +175,100 @@ interface ChatMessage {
   reportSavedToDb?: boolean;
 }
 
+type EmployeeContext = { id: string; name: string; role: string };
+type ChatTaskStep = NonNullable<ChatMessage["taskSteps"]>[number];
+
+const EMPLOYEE_COMPUTER_MODE_DIRECT_PATTERNS = [
+  /\b(run|execute|perform|carry\s+out)\b.{0,30}\b(sop|standard operating procedure|workflow|task|steps?)\b/i,
+  /\b(open|navigate|go\s+to|visit|browse|log\s?in|sign\s?in|click|tap|select|choose|fill|type|enter|submit|scroll|upload|download)\b/i,
+];
+
+const EMPLOYEE_COMPUTER_MODE_TARGET_PATTERNS = [
+  /\b(on|in|inside|through|using)\b.{0,25}\b(page|browser|site|website|dashboard|app|portal|account|form|crm|ads?\s+manager)\b/i,
+  /\b(meta|facebook ads|google ads|linkedin|hubspot|shopify|gmail|slack|notion|airtable|stripe)\b/i,
+  /\bthis\s+page\b/i,
+];
+
+function isExplicitEmployeeComputerRequest(message: string) {
+  const normalized = message.trim();
+  if (!normalized) return false;
+  if (/^run\s+.+?:\s*execute the standard operating procedure\.?$/i.test(normalized)) return true;
+  if (EMPLOYEE_COMPUTER_MODE_DIRECT_PATTERNS.some((pattern) => pattern.test(normalized))) return true;
+  return /^(create|update|edit|delete|launch|publish|build)\b/i.test(normalized)
+    && EMPLOYEE_COMPUTER_MODE_TARGET_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function getConnectionSearchLabel(provider: string, topic: string) {
+  if (provider === "microsoft") return `Searching Microsoft 365 emails & files for ${topic}`;
+  if (provider === "slack") return `Searching Slack messages & channels for ${topic}`;
+  if (provider === "hubspot") return `Searching HubSpot records for ${topic}`;
+  return `Searching ${provider} for ${topic}`;
+}
+
+function getConnectionSkipLabel(provider: string, reason: string) {
+  if (provider === "microsoft") return `Skipped Microsoft — ${reason}`;
+  if (provider === "slack") return `Skipped Slack — ${reason}`;
+  if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
+  return `Skipped ${provider} — ${reason}`;
+}
+
+function upsertChatTaskStep(taskSteps: ChatTaskStep[], nextStep: ChatTaskStep) {
+  const existingIndex = taskSteps.findIndex((step) => step.label === nextStep.label);
+  if (existingIndex === -1) {
+    taskSteps.push(nextStep);
+    return;
+  }
+
+  taskSteps[existingIndex] = {
+    ...taskSteps[existingIndex],
+    ...nextStep,
+    detail: nextStep.detail ?? taskSteps[existingIndex].detail,
+  };
+}
+
+function buildConnectionTaskSteps(payload: {
+  connectionDecision?: { shouldSearch?: boolean; reason?: string };
+  searchedProviders?: string[];
+  skippedProviderDetails?: { provider: string; reason: string }[];
+  queryTopic?: string;
+}): ChatTaskStep[] {
+  if (!payload.connectionDecision) return [];
+
+  const topic = payload.queryTopic?.trim() || "your request";
+  if (!payload.connectionDecision.shouldSearch) {
+    return [{
+      action: "connections",
+      label: `Skipping connected sources for ${topic} — ${payload.connectionDecision.reason || "not needed for this request"}`,
+      status: "done",
+    }];
+  }
+
+  const steps: ChatTaskStep[] = [{
+    action: "connections",
+    label: `Checking connected sources for ${topic}`,
+    status: "done",
+    detail: payload.connectionDecision.reason,
+  }];
+
+  for (const provider of payload.searchedProviders || []) {
+    steps.push({
+      action: "connections",
+      label: getConnectionSearchLabel(provider, topic),
+      status: "done",
+    });
+  }
+
+  for (const skipped of payload.skippedProviderDetails || []) {
+    steps.push({
+      action: "connections",
+      label: getConnectionSkipLabel(skipped.provider, skipped.reason),
+      status: "done",
+    });
+  }
+
+  return steps;
+}
+
 /* ─── Main view ─── */
 export function AgentChatView() {
   const { user } = useAuth();
@@ -694,6 +788,11 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     };
 
     const hasSelectedEmployeeForMessage = (selectedEmployeesForMessage?.length ?? 0) > 0;
+    const shouldUseEmployeeComputerMode =
+      hasSelectedEmployeeForMessage &&
+      isActionMode &&
+      extensionConnected &&
+      isExplicitEmployeeComputerRequest(inputText);
 
     // If we inferred employee context from history, persist it in state for future messages
     if (hasSelectedEmployeeForMessage && selectedChatEmployees.length === 0 && selectedEmployeesForMessage) {
@@ -723,10 +822,10 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       } else if (hasFiles) {
         // Files attached without employee: use agent chat to analyze files
         await runAgentChat(session, userMsg, assistantId);
-      } else if (isActionMode && extensionConnected && hasSelectedEmployeeForMessage) {
-        // Computer mode with employee: run employee via extension
+      } else if (shouldUseEmployeeComputerMode) {
+        // Explicit browser execution with employee
         await runComputerMode(session, userMsg, assistantId);
-      } else if (isActionMode && extensionConnected) {
+      } else if (isActionMode && extensionConnected && !hasSelectedEmployeeForMessage) {
         // Computer mode without employee: agent chat with browser context
         await runAgentChatWithBrowser(session, userMsg, assistantId);
       } else if (hasSelectedEmployeeForMessage) {
@@ -1316,18 +1415,13 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       } else {
         // Fallback: JSON response (browser mode returns this)
         const data = await response.json();
-        if (data.connectionDecision) {
-          if (data.connectionDecision.shouldSearch) {
-            handleProgressStep({ label: "Searching connected sources", status: "done" });
-            for (const provider of (data.searchedProviders || [])) {
-              const label = provider === "microsoft" ? "Searched Microsoft 365 emails & files"
-                : provider === "slack" ? "Searched Slack messages & channels"
-                : `Searched ${provider}`;
-              handleProgressStep({ label, status: "done" });
-            }
-          } else {
-            handleProgressStep({ label: "Skipping connected sources — answering from business context", status: "done" });
-          }
+        for (const step of buildConnectionTaskSteps(data)) {
+          handleProgressStep({
+            label: step.label,
+            status: step.status,
+            action: step.action,
+            detail: step.detail,
+          });
         }
         accumulatedContent = data.content || accumulatedContent;
         syncUI(accumulatedContent);
@@ -1412,6 +1506,18 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         const data = await response.json();
         const content = data.content || "";
         conversationHistory.push({ role: "assistant" as const, content });
+
+        for (const step of buildConnectionTaskSteps(data)) {
+          upsertChatTaskStep(taskSteps, step);
+        }
+        if (buildConnectionTaskSteps(data).length > 0) {
+          setMessages(prev => prev.map(m => m.id === assistantId ? {
+            ...m,
+            taskSteps: [...taskSteps],
+            currentStepIndex: taskSteps.length - 1,
+            isStreaming: true,
+          } : m));
+        }
 
         // Parse action JSON from response
         const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
