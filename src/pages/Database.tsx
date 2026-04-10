@@ -222,44 +222,6 @@ const Database = () => {
     }
 
     window.history.replaceState({}, "", window.location.pathname);
-
-    // Auto-sync provider data
-    const syncData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-provider-data`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-            body: JSON.stringify({
-              provider: oauthSuccess,
-              brandId: oauthBrandId || undefined,
-              workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
-            }),
-          }
-        );
-
-        const data = await response.json();
-        if (data.success) {
-          const s = data.summary;
-          toast.success(`Synced ${s.emails || 0} emails, ${s.events || 0} events, ${s.files || 0} files`);
-        } else {
-          toast.error(data.error || "Data sync failed");
-        }
-      } catch (err) {
-        console.error("Auto-sync error:", err);
-        toast.error("Failed to sync provider data");
-      }
-    };
-
-    syncData();
   }, [searchParams]);
 
   if (isLoading) {

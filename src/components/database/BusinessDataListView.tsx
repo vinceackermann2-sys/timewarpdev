@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
-  Database, Loader2, CheckCircle2, FileText, Image, Globe, Type,
-  Mail, Video, Music, Table2, ChevronDown, ChevronUp, Plug, RefreshCw, HardDrive,
-  Trash2, Upload, Plus, Users, StickyNote, ListChecks, Calendar, Search, X, CheckSquare, Square
+  Database, Loader2, FileText, Image, Globe, Type,
+  Mail, Video, Music, Table2, ChevronDown, ChevronUp, HardDrive,
+  Trash2, Upload, Users, ListChecks, Calendar, Search, X, CheckSquare, Square
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,14 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
-import logoMicrosoft from "@/assets/logo-microsoft.png";
-import logoGoogle from "@/assets/logo-google.png";
-import logoSlack from "@/assets/logo-slack.png";
-import logoFortknox from "@/assets/logo-fortknox.png";
-import logoHubspot from "@/assets/logo-hubspot.svg";
-import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
-import { SyncPreferencesDialog } from "@/components/database/SyncPreferencesDialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface DataItem {
   id: string;
@@ -78,11 +70,6 @@ function getCachedForBrand(brandId: string): DataItem[] | null {
   return null;
 }
 
-// Module-level cache for connection status (avoid calling edge function on every brand switch)
-let _cachedConnections: Record<string, { email?: string | null }> | null = null;
-let _connectionsCacheTs = 0;
-const CONNECTIONS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
 function calculateUsageFromItems(items: Array<{ title?: string; content?: string | null; analyzed_content?: string | null; metadata?: any; source?: string }>): number {
   let total = 0;
   for (const row of items) {
@@ -101,11 +88,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [connectedProviders, setConnectedProviders] = useState<Record<string, { email?: string | null }>>({});
-  const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
-  const [syncingProvider, setSyncingProvider] = useState(false);
-  const [showSyncPrefs, setShowSyncPrefs] = useState(false);
-  const [showIntegrations, setShowIntegrations] = useState(false);
   const { plan, getDataLimit } = useSubscription();
   const [realUsageBytes, setRealUsageBytes] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -178,58 +160,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const checkConnection = useCallback(async (forceRefresh = false) => {
-    // Return cached connections if fresh enough
-    if (!forceRefresh && _cachedConnections && Date.now() - _connectionsCacheTs < CONNECTIONS_CACHE_TTL) {
-      setConnectedProviders(_cachedConnections);
-      return;
-    }
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ action: "check-status" }),
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        const map: Record<string, { email?: string | null }> = {};
-        for (const c of (data.connected || [])) {
-          map[c.provider] = { email: c.email || null };
-        }
-        _cachedConnections = map;
-        _connectionsCacheTs = Date.now();
-        setConnectedProviders(map);
-      }
-    } catch (err) {
-      console.error("Check connection error:", err);
-    }
-  }, []);
-
-  // Auto-sync after OAuth redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const oauthProvider = params.get("oauth_success");
-    if (oauthProvider && ["microsoft", "slack", "hubspot"].includes(oauthProvider)) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("oauth_success");
-      url.searchParams.delete("brandId");
-      window.history.replaceState({}, "", url.pathname + url.search);
-      // Refresh connection status so UI shows Disconnect
-      checkConnection(true);
-      handleSyncProvider(oauthProvider);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Reset state when brand changes to prevent stale data leaking across businesses
   useEffect(() => {
     const cached = getCachedForBrand(activeBrandId);
@@ -290,132 +220,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
       }
     };
     fetchData();
-    checkConnection();
-  }, [checkConnection, activeBrandId]);
-
-  const handleConnectProvider = async (provider: string) => {
-    setConnectingProvider(provider);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast.error("Please log in first"); setConnectingProvider(false); return; }
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }),
-        }
-      );
-      const data = await response.json();
-      if (data.authUrl) {
-        window.location.href = data.authUrl;
-      } else {
-        toast.error(data.error || "Failed to get authorization URL");
-      }
-    } catch (err) {
-      toast.error("Failed to start connection");
-    }
-    setConnectingProvider(false);
-  };
-
-  const handleDisconnectProvider = async (provider: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      // Use edge function to disconnect scoped by brand
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ provider, action: "disconnect" }),
-        }
-      );
-      if (response.ok) {
-        setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
-        toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected`);
-      } else {
-        toast.error("Failed to disconnect");
-      }
-    } catch {
-      toast.error("Failed to disconnect");
-    }
-  };
-
-  const handleSyncProvider = async (provider: string, categories?: Record<string, boolean>, limits?: Record<string, number>) => {
-    setSyncingProvider(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-provider-data`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            provider,
-            categories: categories || (provider === "microsoft"
-              ? { emails: true, events: true, files: true, contacts: true, notes: true, tasks: true }
-              : undefined),
-            brandId: activeBrandId,
-            workspaceId: localStorage.getItem("preferred_workspace_id") || undefined,
-          }),
-        }
-      );
-      const data = await response.json();
-      if (data.success) {
-        const s = data.summary;
-        const parts = [];
-        if (s.emails) parts.push(`${s.emails} emails`);
-        if (s.events) parts.push(`${s.events} events`);
-        if (s.files) parts.push(`${s.files} files`);
-        if (s.contacts) parts.push(`${s.contacts} contacts`);
-        if (s.notes) parts.push(`${s.notes} notes`);
-        if (s.tasks) parts.push(`${s.tasks} tasks`);
-        if (s.channels) parts.push(`${s.channels} channels`);
-        if (s.messages) parts.push(`${s.messages} message groups`);
-        if (s.users) parts.push(`${s.users} users`);
-        if (s.pinnedMessages) parts.push(`${s.pinnedMessages} pinned`);
-        toast.success(`Synced ${parts.join(", ") || "data"}`);
-        _cachedItems = null;
-        _cachedCacheKey = null;
-        const wsId = localStorage.getItem("preferred_workspace_id");
-        let refreshQuery = (supabase as any)
-          .from("user_business_data")
-          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
-          .eq("metadata->>brandId", activeBrandId)
-          .order("created_at", { ascending: false })
-          .limit(1000);
-        if (wsId) {
-          refreshQuery = refreshQuery.eq("workspace_id", wsId);
-        } else {
-          refreshQuery = refreshQuery.eq("user_id", session.user.id);
-        }
-        const { data: refreshed } = await refreshQuery;
-        if (refreshed) { _cachedItems = refreshed; setItems(refreshed); }
-        // Refresh connection status so UI shows Disconnect button
-        checkConnection();
-      } else {
-        toast.error(data.error || "Sync failed");
-      }
-    } catch (err) {
-      toast.error("Failed to sync data");
-    }
-    setSyncingProvider(false);
-    setShowSyncPrefs(false);
-  };
+  }, [activeBrandId]);
 
   const handleDeleteItem = async (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
@@ -724,10 +529,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
             {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
             Upload
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setShowIntegrations(prev => !prev); checkConnection(); }}>
-            <Plug className="h-3.5 w-3.5" />
-            Integrations
-          </Button>
         </div>
       </div>
 
@@ -763,140 +564,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
         </div>
       )}
 
-      {/* Integrations Dialog */}
-      <Dialog open={showIntegrations} onOpenChange={setShowIntegrations}>
-        <DialogContent className="sm:max-w-[700px] sm:max-h-[700px] overflow-auto">
-          <DialogHeader>
-            <DialogTitle>Integrations</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-2">
-            {/* Microsoft */}
-            {(() => { const connected = !!connectedProviders["microsoft"]; return (
-            <div className={cn(
-              "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-              connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
-            )}>
-              <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                  <img src={logoMicrosoft} alt="Microsoft" className="h-7 w-7 object-contain" />
-                </div>
-                {connected && (
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium">Microsoft</p>
-                <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
-              </div>
-              {connected ? (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleDisconnectProvider("microsoft")}>
-                  Disconnect
-                </Button>
-              ) : (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleConnectProvider("microsoft")} disabled={!!connectingProvider}>
-                  {connectingProvider === "microsoft" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                  Connect
-                </Button>
-              )}
-            </div>
-            ); })()}
-
-            {/* Slack */}
-            {(() => { const connected = !!connectedProviders["slack"]; return (
-            <div className={cn(
-              "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-              connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
-            )}>
-              <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                  <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" />
-                </div>
-                {connected && (
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium">Slack</p>
-                <p className="text-xs text-muted-foreground">Channels, Messages, Files</p>
-              </div>
-              {connected ? (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleDisconnectProvider("slack")}>
-                  Disconnect
-                </Button>
-              ) : (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleConnectProvider("slack")} disabled={!!connectingProvider}>
-                  {connectingProvider === "slack" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                  Connect
-                </Button>
-              )}
-            </div>
-            ); })()}
-
-            {/* HubSpot */}
-            {(() => { const connected = !!connectedProviders["hubspot"]; return (
-            <div className={cn(
-              "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-              connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
-            )}>
-              <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                  <img src={logoHubspot} alt="HubSpot" className="h-7 w-7 object-contain" />
-                </div>
-                {connected && (
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium">HubSpot</p>
-                <p className="text-xs text-muted-foreground">CRM, Contacts, Deals</p>
-              </div>
-              {connected ? (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleDisconnectProvider("hubspot")}>
-                  Disconnect
-                </Button>
-              ) : (
-                <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleConnectProvider("hubspot")} disabled={!!connectingProvider}>
-                  {connectingProvider === "hubspot" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                  Connect
-                </Button>
-              )}
-            </div>
-            ); })()}
-
-            {/* Google - Coming Soon */}
-            <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
-              <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                  <img src={logoGoogle} alt="Google" className="h-7 w-7 object-contain" loading="lazy" />
-                </div>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Google</p>
-                <p className="text-xs text-muted-foreground">Gmail, Drive, Calendar</p>
-              </div>
-            </div>
-
-            {/* FortKnox - Coming Soon */}
-            <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
-              <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                  <img src={logoFortknox} alt="FortKnox" className="h-7 w-7 object-contain" loading="lazy" />
-                </div>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium">FortKnox</p>
-                <p className="text-xs text-muted-foreground">Secure data vault integration</p>
-              </div>
-            </div>
-          </div>
-          <div className="text-center pt-2">
-            <IntegrationRequestDialog />
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
@@ -904,7 +571,7 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           </div>
           <p className="text-sm text-muted-foreground">No business data yet</p>
           <p className="text-xs text-muted-foreground/60 mt-1">
-            Connect integrations or add data via the Data Conversion canvas
+            Upload files or add data to get started
           </p>
         </div>
       ) : (
@@ -989,15 +656,6 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
           ))}
         </div>
       )}
-      <SyncPreferencesDialog
-        open={showSyncPrefs}
-        onOpenChange={setShowSyncPrefs}
-        onConfirm={(cats, lims) => handleSyncProvider("microsoft", cats, lims)}
-        isSyncing={syncingProvider}
-        currentUsageBytes={realUsageBytes}
-        dataLimitBytes={dataLimit}
-        planLabel={planLabel}
-      />
     </div>
   );
 }
