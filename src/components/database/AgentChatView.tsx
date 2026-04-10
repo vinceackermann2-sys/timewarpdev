@@ -550,7 +550,7 @@ export function AgentChatView() {
       employees: [emp],
     };
     setMessages(prev => [...prev, userMsg]);
-    setSelectedChatEmployees([]);
+    setSelectedChatEmployees([emp]);
 
     const assistantId = crypto.randomUUID();
     setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
