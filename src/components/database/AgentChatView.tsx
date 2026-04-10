@@ -1227,6 +1227,12 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       if (msgLower.includes("report") || msgLower.includes("analytics")) return "Verifying data accuracy";
       return "Fact-checking against your data";
     };
+    const getProviderSourceLabel = (provider: string) => {
+      if (provider === "microsoft") return "Checked Microsoft 365 sources";
+      if (provider === "slack") return "Checked Slack sources";
+      if (provider === "hubspot") return "Checked HubSpot sources";
+      return `Checked ${provider} sources`;
+    };
     const getProgressPulseLabels = () => {
       if (msgLower.includes("pitch") || msgLower.includes("investor") || msgLower.includes("slide") || msgLower.includes("presentation")) {
         return ["Checking brand positioning", "Pulling product proof points", "Matching audience insights", "Structuring the visual narrative"];
@@ -1268,19 +1274,16 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     chatHistory.push({ role: "user", content: userContent });
 
     const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
+    const connectedProviderNames = Object.keys(connectedProviders).filter(provider => connectedProviders[provider]);
 
     // Stagger the initial steps with small delays so user sees them appear
     await new Promise(r => setTimeout(r, 600));
     completeStep();
 
-    // Show connection search steps for connected providers
-    const providerNames = Object.keys(connectedProviders).filter(p => connectedProviders[p]);
-    for (const provider of providerNames) {
-      const label = provider === "microsoft" ? "Searching Microsoft 365 emails & files" : provider === "slack" ? "Searching Slack messages & channels" : provider === "hubspot" ? "Searching HubSpot contacts & deals" : `Searching ${provider}`;
-      addStep(label);
-      await new Promise(r => setTimeout(r, 800));
+    if (connectedProviderNames.length > 0) {
+      addStep("Checking connected sources");
+      await new Promise(r => setTimeout(r, 350));
       completeStep();
-      await new Promise(r => setTimeout(r, 300));
     }
 
     addStep(getAnalyzeLabel());
@@ -1330,9 +1333,20 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       }
 
       const data = await response.json();
+      const searchedProviders = continuationCount === 0 && Array.isArray(data?.searchedProviders)
+        ? Array.from(new Set(data.searchedProviders.filter((provider: unknown): provider is string => typeof provider === "string" && provider.length > 0)))
+        : [];
       accumulatedContent = data.content || accumulatedContent;
 
       stopProgressPulse();
+
+      if (searchedProviders.length > 0) {
+        for (const provider of searchedProviders) {
+          addStep(getProviderSourceLabel(provider));
+          await new Promise(r => setTimeout(r, 450));
+          completeStep();
+        }
+      }
 
       // Add verify step after getting content
       if (continuationCount === 0 && accumulatedContent) {
