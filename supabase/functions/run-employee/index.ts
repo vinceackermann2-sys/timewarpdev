@@ -731,7 +731,7 @@ async function searchConnectedProviders(
           emitProgress?.({ label: getProviderSkipLabel("slack", "connection expired"), status: "done", action: "connections" });
           return;
         }
-        emitProgress?.({ label: getProviderSearchLabel("slack"), status: "running", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "running", action: "connections" });
         searchedProviders.push("slack");
         console.log("[connections] Searching Slack with query:", userQuery.slice(0, 60));
         const results = await searchSlackData(token, userQuery);
@@ -739,10 +739,10 @@ async function searchConnectedProviders(
         if (results.length > 0) {
           connectionContext += `\n\n## Live Data from Slack\n${results.join("\n\n")}\n`;
         }
-        emitProgress?.({ label: getProviderSearchLabel("slack"), status: "done", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "done", action: "connections" });
       } catch (e) {
         console.error("[connections] Slack search failed:", e);
-        emitProgress?.({ label: getProviderSearchLabel("slack"), status: "error", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "error", action: "connections" });
       }
     })());
   }
