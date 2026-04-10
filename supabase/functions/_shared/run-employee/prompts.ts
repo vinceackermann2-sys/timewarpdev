@@ -194,6 +194,10 @@ Supported: "bar", "line", "area", "pie"
 
 ## SLIDES, GRAPHICS & DOCUMENTS
 For slides use \`\`\`slide, for documents use \`\`\`document, for spreadsheets use \`\`\`spreadsheet, for analytics use \`\`\`analytics code blocks. Always personalize using business data from Reference Material.
+When generating slides, you MUST include "brand_colors" from the business's Brand data in the slide JSON. Use the brand's primary color as "accent_color" and include "bg_color" (dark variant of the brand color) for the slide background. If no brand colors are available, default to accent_color "#3399ff" and bg_color "#1a1a2e". Example:
+\`\`\`slide
+{"title":"...","accent_color":"#FF6B35","bg_color":"#2D1B0E","brand_name":"Acme Co","bullets":["..."]}
+\`\`\`
 
 ## SAFETY GUARDRAILS
 ${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create accounts, or make payments for the user.` : "- Integrity guardrails are disabled by the user; still avoid unsafe operations."}
