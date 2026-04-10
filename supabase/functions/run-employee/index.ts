@@ -579,11 +579,46 @@ function shouldSearchConnections(query: string): { shouldSearch: boolean; reason
   return { shouldSearch: false, reason: "Question can be answered from existing business context" };
 }
 
-function getProviderSearchLabel(provider: string): string {
-  if (provider === "microsoft") return "Searching Microsoft 365 emails & files";
-  if (provider === "slack") return "Searching Slack messages & channels";
-  if (provider === "hubspot") return "Searching HubSpot records";
-  return `Searching ${provider}`;
+/** Generate a short, personalized topic phrase from the user's query */
+function extractQueryTopic(query: string): string {
+  if (!query || query.length < 3) return "your request";
+  const q = query.toLowerCase().trim();
+  // Try to extract the core subject
+  const topicPatterns: [RegExp, string][] = [
+    [/\b(?:any|are there|check for|find)\b.{0,10}\b(collaborat\w*|partnership\w*)/i, "collaborations & partnerships"],
+    [/\b(?:any|are there|check for|find)\b.{0,10}\b(complaint\w*|issue\w*|problem\w*)/i, "complaints & issues"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(meeting\w*|call\w*|appointment\w*)/i, "meetings & calls"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(email\w*|message\w*|mail\w*)/i, "emails & messages"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(file\w*|document\w*|attachment\w*)/i, "files & documents"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(lead\w*|prospect\w*|deal\w*)/i, "leads & deals"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(sale\w*|revenue\w*|order\w*)/i, "sales & revenue"],
+    [/\b(improve|optimize|enhance|boost|grow)\b.{0,20}\b(\w+)/i, "$2 improvement"],
+    [/\b(strategy|plan|roadmap)\b/i, "strategy planning"],
+    [/\b(marketing|campaign|ads?|advertis\w*)/i, "marketing strategy"],
+    [/\b(social\s*media|instagram|twitter|linkedin|tiktok|facebook)/i, "social media"],
+    [/\b(content|blog|article|post|copy)/i, "content creation"],
+    [/\b(brand|branding|identity)/i, "branding"],
+    [/\b(compet\w+|market\s*research|industry)/i, "competitive analysis"],
+    [/\b(customer|audience|target|persona)/i, "customer insights"],
+    [/\b(pricing|price|cost|subscription)/i, "pricing strategy"],
+    [/\b(hiring|recruit|team|employee)/i, "team & hiring"],
+  ];
+  for (const [pattern, topic] of topicPatterns) {
+    if (pattern.test(q)) return topic;
+  }
+  // Fallback: use first meaningful words
+  const words = q.replace(/[^\w\s]/g, "").split(/\s+/).filter(w => w.length > 2 && !STOPWORDS.has(w));
+  if (words.length >= 2) return words.slice(0, 3).join(" ");
+  if (words.length === 1) return words[0];
+  return "your request";
+}
+
+function getProviderSearchLabel(provider: string, topic?: string): string {
+  const suffix = topic ? ` for ${topic}` : "";
+  if (provider === "microsoft") return `Searching Microsoft 365 emails & files${suffix}`;
+  if (provider === "slack") return `Searching Slack messages & channels${suffix}`;
+  if (provider === "hubspot") return `Searching HubSpot records${suffix}`;
+  return `Searching ${provider}${suffix}`;
 }
 
 function getProviderSkipLabel(provider: string, reason: string): string {
