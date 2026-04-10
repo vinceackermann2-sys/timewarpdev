@@ -13,6 +13,14 @@ const COLORS = [
   "#3399ff", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6",
 ];
 
+function adjustColorBrightness(hex: string, percent: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + Math.round(2.55 * percent)));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + Math.round(2.55 * percent)));
+  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + Math.round(2.55 * percent)));
+  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, "0")}`;
+}
+
 function GraphicActions({ onSave, onDownload, editor }: { onSave: () => void; onDownload: () => void; editor?: ReactNode }) {
   const [saved, setSaved] = useState(false);
 
