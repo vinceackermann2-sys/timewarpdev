@@ -1216,31 +1216,17 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         if (!shouldBreak && !shouldContinue && actions.length > 0) continue;
       }
 
-      // If no explicit done message, collect results from conversation
+      // If no explicit done message, use respond messages or last AI summary
       if (!finalMessage) {
         const respondMessages = stepLogs.filter(s => s.result === "respond").map(s => s.reasoning);
-        const extractResults = conversationHistory
-          .filter(m => m.role === "user" && m.content.startsWith("Action result:"))
-          .map(m => {
-            try {
-              const parsed = JSON.parse(m.content.replace("Action result: ", ""));
-              if (parsed.success && parsed.action === "extract" && parsed.data?.content) {
-                return parsed.data.content;
-              }
-            } catch {}
-            return null;
-          })
-          .filter(Boolean);
 
-        if (respondMessages.length > 0 || extractResults.length > 0) {
-          const parts: string[] = [];
-          if (respondMessages.length > 0) parts.push(respondMessages.join("\n\n"));
-          if (extractResults.length > 0) parts.push("## Extracted Data\n\n" + extractResults.join("\n\n---\n\n"));
-          finalMessage = parts.join("\n\n");
+        if (respondMessages.length > 0) {
+          finalMessage = respondMessages.join("\n\n");
         } else {
+          // Last resort: use the last AI response content (strip JSON blocks)
           const lastAiMsg = [...conversationHistory].reverse().find(m => m.role === "assistant");
           if (lastAiMsg) {
-            finalMessage = lastAiMsg.content.replace(/```json[\s\S]*?```/g, "").trim() || "Task ran but no structured results were returned.";
+            finalMessage = lastAiMsg.content.replace(/```json[\s\S]*?```/g, "").trim() || "Task completed but no structured results were returned.";
           }
         }
       }
@@ -1608,34 +1594,17 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         if (!shouldBreak && !shouldContinue && actions.length > 0) continue;
       }
 
-      // If no explicit done message, collect results from conversation
+      // If no explicit done message, use respond messages or last AI summary
       if (!finalMessage) {
-        // Gather all respond messages and extract data from AI responses
         const respondMessages = stepLogs.filter(s => s.result === "respond").map(s => s.reasoning);
-        const extractResults = conversationHistory
-          .filter(m => m.role === "user" && m.content.startsWith("Action result:"))
-          .map(m => {
-            try {
-              const parsed = JSON.parse(m.content.replace("Action result: ", ""));
-              if (parsed.success && parsed.action === "extract" && parsed.data?.content) {
-                return parsed.data.content;
-              }
-            } catch {}
-            return null;
-          })
-          .filter(Boolean);
 
-        if (respondMessages.length > 0 || extractResults.length > 0) {
-          const parts: string[] = [];
-          if (respondMessages.length > 0) parts.push(respondMessages.join("\n\n"));
-          if (extractResults.length > 0) parts.push("## Extracted Data\n\n" + extractResults.join("\n\n---\n\n"));
-          finalMessage = parts.join("\n\n");
+        if (respondMessages.length > 0) {
+          finalMessage = respondMessages.join("\n\n");
         } else {
-          // Last resort: use the last AI response content
+          // Last resort: use the last AI response content (strip JSON blocks)
           const lastAiMsg = [...conversationHistory].reverse().find(m => m.role === "assistant");
           if (lastAiMsg) {
-            // Strip JSON code blocks, keep text
-            finalMessage = lastAiMsg.content.replace(/```json[\s\S]*?```/g, "").trim() || "Task ran but no structured results were returned.";
+            finalMessage = lastAiMsg.content.replace(/```json[\s\S]*?```/g, "").trim() || "Task completed but no structured results were returned.";
           }
         }
       }

@@ -313,11 +313,6 @@ export async function searchConnectedProviders(
   console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
 
   if (!decision.shouldSearch) {
-    emitProgress?.({
-      label: `Skipping connected sources for ${t} — ${decision.reason}`,
-      status: "done",
-      action: "connections",
-    });
     return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
@@ -344,8 +339,7 @@ export async function searchConnectedProviders(
       skippedProviderDetails,
       "No connected sources are currently available",
     );
-    emitProgress?.({ label: `No connected sources available for ${t}`, status: "done", action: "connections", detail: "No integrations are currently connected" });
-    emitProgress?.({ label: connectionCheckLabel, status: "done", action: "connections", detail: decision.reason });
+    emitProgress?.({ label: `Checking connected sources for ${t}`, status: "done", action: "connections", detail: "No integrations are currently connected" });
     return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
@@ -357,9 +351,6 @@ export async function searchConnectedProviders(
     if (!connectedProviders.includes(provider)) {
       skippedProviders.push(provider);
       skippedProviderDetails.push({ provider, reason: "not connected" });
-      if (provider === "microsoft" || provider === "slack") {
-        emitProgress?.({ label: getProviderSkipLabel(provider, "not connected"), status: "done", action: "connections" });
-      }
     }
   }
 
@@ -370,7 +361,6 @@ export async function searchConnectedProviders(
         if (!token) {
           skippedProviders.push("microsoft");
           skippedProviderDetails.push({ provider: "microsoft", reason: "token expired or missing" });
-          emitProgress?.({ label: getProviderSkipLabel("microsoft", "token expired"), status: "done", action: "connections" });
           return;
         }
         emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "running", action: "connections" });
@@ -399,7 +389,6 @@ export async function searchConnectedProviders(
         if (!token) {
           skippedProviders.push("slack");
           skippedProviderDetails.push({ provider: "slack", reason: "token expired or missing" });
-          emitProgress?.({ label: getProviderSkipLabel("slack", "token expired"), status: "done", action: "connections" });
           return;
         }
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "running", action: "connections" });
