@@ -411,11 +411,21 @@ serve(async (req) => {
               topic,
             );
 
-            sendStep(`Crafting your answer on ${topic}`, "running", "response");
-            const result = await buildAiResponse(relevantContext, connectionContext, (delta) => {
-              send({ type: "content", delta });
-            });
-            sendStep(`Crafting your answer on ${topic}`, "done", "response");
+            let result: { content: string; continuation?: boolean };
+
+            if (preVerifiedContent) {
+              // Use pre-verified business answer (pricing/revenue) — skip AI call
+              sendStep(`Verified business data for ${topic}`, "running", "response");
+              send({ type: "content", delta: preVerifiedContent });
+              result = { content: preVerifiedContent, continuation: false };
+              sendStep(`Verified business data for ${topic}`, "done", "response");
+            } else {
+              sendStep(`Crafting your answer on ${topic}`, "running", "response");
+              result = await buildAiResponse(relevantContext, connectionContext, (delta) => {
+                send({ type: "content", delta });
+              });
+              sendStep(`Crafting your answer on ${topic}`, "done", "response");
+            }
             if (!result.continuation) sendStep("Finished", "done", "complete");
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic });
