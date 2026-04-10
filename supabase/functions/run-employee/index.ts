@@ -636,10 +636,12 @@ async function searchConnectedProviders(
   userId: string,
   userQuery: string,
   emitProgress?: (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => void,
+  topic?: string,
 ): Promise<{ connectionContext: string; searchedProviders: string[]; skippedProviders: string[]; connectionDecision: { shouldSearch: boolean; reason: string } }> {
   const searchedProviders: string[] = [];
   const skippedProviders: string[] = [];
   let connectionContext = "";
+  const t = topic || extractQueryTopic(userQuery);
 
   const decision = shouldSearchConnections(userQuery);
   console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
@@ -653,7 +655,7 @@ async function searchConnectedProviders(
     return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
   }
 
-  emitProgress?.({ label: "Request needs connected sources", status: "done", action: "connections" });
+  emitProgress?.({ label: `Checking connected sources for ${t}`, status: "done", action: "connections" });
 
   // Check which providers are connected
   const { data: connections, error: connErr } = await supabase
@@ -696,7 +698,7 @@ async function searchConnectedProviders(
           emitProgress?.({ label: getProviderSkipLabel("microsoft", "connection expired"), status: "done", action: "connections" });
           return;
         }
-        emitProgress?.({ label: getProviderSearchLabel("microsoft"), status: "running", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "running", action: "connections" });
         searchedProviders.push("microsoft");
         console.log("[connections] Searching Microsoft with query:", userQuery.slice(0, 60));
         const results = await searchMicrosoftData(token, userQuery);
@@ -710,10 +712,10 @@ async function searchConnectedProviders(
             connectionContext += `\n### Relevant Files\n${results.files.join("\n")}\n`;
           }
         }
-        emitProgress?.({ label: getProviderSearchLabel("microsoft"), status: "done", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "done", action: "connections" });
       } catch (e) {
         console.error("[connections] Microsoft search failed:", e);
-        emitProgress?.({ label: getProviderSearchLabel("microsoft"), status: "error", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "error", action: "connections" });
       }
     })());
   }
