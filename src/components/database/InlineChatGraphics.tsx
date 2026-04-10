@@ -256,7 +256,7 @@ interface SlideStat { value: string; label: string }
 interface SlideConfig {
   title: string; subtitle?: string; bullets?: string[]; takeaway?: string; image?: string;
   layout?: "bullets" | "stat-callout" | "two-column" | "title-only";
-  stats?: SlideStat[]; icon?: string; accent_color?: string;
+  stats?: SlideStat[]; icon?: string; accent_color?: string; bg_color?: string; brand_name?: string;
   left_column?: string[]; right_column?: string[];
 }
 
