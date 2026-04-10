@@ -159,7 +159,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     className={currentView === "connections" ? "bg-primary/10 text-primary" : ""}
                   >
                     <Cable className="h-4 w-4 shrink-0" />
-                    {!isCollapsed && <span>Connections</span>}
+                    {!isCollapsed && <span>Connectors</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
