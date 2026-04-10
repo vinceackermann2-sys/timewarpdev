@@ -364,9 +364,9 @@ serve(async (req) => {
         workspace_id: effectiveWsId,
         linked_business_id: effectiveBrandId,
       }, lastUserMsg);
-      const { connectionContext, searchedProviders, skippedProviders, connectionDecision } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
+      const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
       const result = await buildAiResponse(relevantContext, connectionContext);
-      return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, connectionDecision }), {
+      return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -400,7 +400,7 @@ serve(async (req) => {
             }, lastUserMsg);
             sendStep(`Gathered business data on ${topic}`, "done", "context");
 
-            const { connectionContext, searchedProviders, skippedProviders, connectionDecision } = await searchConnectedProviders(
+            const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
               supabase,
               user.id,
               lastUserMsg,
@@ -415,7 +415,7 @@ serve(async (req) => {
             sendStep(`Crafting your answer on ${topic}`, "done", "response");
             if (!result.continuation) sendStep("Finished", "done", "complete");
 
-            send({ type: "result", ...result, searchedProviders, skippedProviders, connectionDecision });
+            send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic });
             close();
           } catch (error: any) {
             console.error("run-employee stream error:", error?.message || error);
