@@ -9,6 +9,16 @@ import {
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
 import { ShiningText } from "@/components/ui/shining-text";
+import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoSlack from "@/assets/logo-slack.png";
+import logoHubspot from "@/assets/logo-hubspot.png";
+
+/* Provider logo map */
+const PROVIDER_LOGOS: Record<string, string> = {
+  microsoft: logoMicrosoft,
+  slack: logoSlack,
+  hubspot: logoHubspot,
+};
 
 interface TaskStep {
   action: string;
@@ -26,6 +36,10 @@ interface Props {
 /* ── Lucide icon map for step labels ── */
 function getStepIcon(label: string) {
   const l = label.toLowerCase();
+  // Connection provider icons — return string identifiers for special rendering
+  if (l.includes("microsoft") || l.includes("outlook") || l.includes("onedrive")) return "microsoft" as any;
+  if (l.includes("slack")) return "slack" as any;
+  if (l.includes("hubspot")) return "hubspot" as any;
   if (l.includes("context") || l.includes("memory") || l.includes("understanding")) return Brain;
   if (l.includes("analyz") || l.includes("reviewing")) return Search;
   if (l.includes("writing") || l.includes("generating") || l.includes("composing") || l.includes("drafting")) return PenLine;
@@ -143,11 +157,15 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
                 <span className="w-5 text-center shrink-0">
                   {isError ? (
                     <XCircle className="w-3.5 h-3.5 text-destructive mx-auto" />
-                  ) : (
+                  ) : typeof StepIcon === "string" && PROVIDER_LOGOS[StepIcon] ? (
+                    <img src={PROVIDER_LOGOS[StepIcon]} alt={StepIcon} className="w-3.5 h-3.5 mx-auto object-contain" />
+                  ) : typeof StepIcon !== "string" ? (
                     <StepIcon className={cn(
                       "w-3.5 h-3.5 mx-auto",
                       isActive ? "text-muted-foreground/60" : "text-muted-foreground/50"
                     )} />
+                  ) : (
+                    <Zap className={cn("w-3.5 h-3.5 mx-auto", isActive ? "text-muted-foreground/60" : "text-muted-foreground/50")} />
                   )}
                 </span>
 

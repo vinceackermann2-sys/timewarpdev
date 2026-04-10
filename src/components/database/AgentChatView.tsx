@@ -1272,6 +1272,18 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     // Stagger the initial steps with small delays so user sees them appear
     await new Promise(r => setTimeout(r, 600));
     completeStep();
+
+    // Show connection search steps for connected providers
+    const providerNames = Object.keys(connectedProviders).filter(p => connectedProviders[p]);
+    for (const provider of providerNames) {
+      const label = provider === "microsoft" ? "Searching Microsoft 365" : provider === "slack" ? "Searching Slack messages" : `Searching ${provider}`;
+      addStep(label);
+      await new Promise(r => setTimeout(r, 400));
+      // Don't complete yet — will be completed when we get response
+    }
+    // Complete all connection steps
+    for (let i = 0; i < providerNames.length; i++) completeStep();
+
     addStep(getAnalyzeLabel());
     await new Promise(r => setTimeout(r, 500));
     completeStep();
