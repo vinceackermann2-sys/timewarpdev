@@ -1179,22 +1179,33 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     if (!emp) return;
 
     const startTime = new Date();
-
     const taskSteps: ChatMessage["taskSteps"] = [];
-    const addStep = (label: string, status: "running" | "done" | "error" = "running") => {
-      taskSteps.push({ action: "process", label, status });
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true, streamStartTime: m.streamStartTime || Date.now() } : m));
+
+    const syncUI = (content?: string) => {
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        ...(content !== undefined ? { content } : {}),
+        taskSteps: [...taskSteps],
+        currentStepIndex: taskSteps.length - 1,
+        isStreaming: true,
+        streamStartTime: m.streamStartTime || Date.now(),
+      } : m));
     };
-    const completeStep = () => {
-      if (taskSteps.length > 0) taskSteps[taskSteps.length - 1].status = "done";
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
+
+    const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
+      // If this label already exists as "running", update its status instead of adding a duplicate
+      const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
+      if (existingIdx !== -1 && step.status !== "running") {
+        taskSteps[existingIdx].status = step.status;
+        if (step.detail) taskSteps[existingIdx].detail = step.detail;
+      } else if (existingIdx === -1) {
+        taskSteps.push({ action: step.action || "process", label: step.label, status: step.status, detail: step.detail });
+      }
+      syncUI();
     };
 
     // Show processing state
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
-
-    // Single initial step — "Analyzing your request"
-    addStep("Analyzing your request");
 
     // Log to DB
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
@@ -1205,15 +1216,13 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
     const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
 
-    // Continuation loop
     let accumulatedContent = "";
     let continuationCount = 0;
     const MAX_CONTINUATIONS = 5;
+    let needsContinuation = false;
 
-    while (continuationCount <= MAX_CONTINUATIONS) {
-      if (continuationCount > 0) {
-        addStep(`Extending response (part ${continuationCount + 1})...`);
-      }
+    do {
+      needsContinuation = false;
 
       const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
@@ -1236,61 +1245,78 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       );
 
       if (!response.ok) {
-        completeStep();
         const err = await response.json().catch(() => ({}));
-        addStep("Error");
-        taskSteps[taskSteps.length - 1].status = "error";
+        handleProgressStep({ label: "Error", status: "error" });
         supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.error || "Failed" }).then(() => {});
         throw new Error(err.error || "Employee failed");
       }
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") || "";
 
-      // --- Backend-driven progress steps ---
-      // Complete the initial "Analyzing" step
-      completeStep();
+      if (contentType.includes("text/event-stream")) {
+        // SSE stream — consume progress + content events
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No response body");
 
-      // Connection decision from backend
-      if (continuationCount === 0 && data.connectionDecision) {
-        if (data.connectionDecision.shouldSearch) {
-          addStep("Searching connected sources");
-          await new Promise(r => setTimeout(r, 200));
-          completeStep();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-          // Show which providers were actually searched
-          const searched: string[] = Array.isArray(data.searchedProviders) ? data.searchedProviders : [];
-          for (const provider of searched) {
-            const label = provider === "microsoft" ? "Searched Microsoft 365 emails & files"
-              : provider === "slack" ? "Searched Slack messages & channels"
-              : provider === "hubspot" ? "Searched HubSpot contacts"
-              : `Searched ${provider}`;
-            addStep(label);
-            await new Promise(r => setTimeout(r, 150));
-            completeStep();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const raw = line.slice(6).trim();
+            if (raw === "[DONE]") break;
+            try {
+              const evt = JSON.parse(raw);
+              if (evt.type === "progress" && evt.step) {
+                handleProgressStep(evt.step);
+              } else if (evt.type === "content" && evt.delta) {
+                accumulatedContent += evt.delta;
+                syncUI(accumulatedContent);
+              } else if (evt.type === "result") {
+                if (evt.content) accumulatedContent = evt.content;
+                if (evt.continuation) needsContinuation = true;
+              } else if (evt.type === "error") {
+                handleProgressStep({ label: evt.error || "Error", status: "error" });
+                throw new Error(evt.error || "Employee failed");
+              }
+            } catch (e: any) {
+              if (e.message === "Employee failed" || e.message?.includes("Error")) throw e;
+            }
           }
-        } else {
-          addStep("Skipping connected sources — answering from business context");
-          await new Promise(r => setTimeout(r, 200));
-          completeStep();
         }
+      } else {
+        // Fallback: JSON response (browser mode returns this)
+        const data = await response.json();
+        if (data.connectionDecision) {
+          if (data.connectionDecision.shouldSearch) {
+            handleProgressStep({ label: "Searching connected sources", status: "done" });
+            for (const provider of (data.searchedProviders || [])) {
+              const label = provider === "microsoft" ? "Searched Microsoft 365 emails & files"
+                : provider === "slack" ? "Searched Slack messages & channels"
+                : `Searched ${provider}`;
+              handleProgressStep({ label, status: "done" });
+            }
+          } else {
+            handleProgressStep({ label: "Skipping connected sources — answering from business context", status: "done" });
+          }
+        }
+        accumulatedContent = data.content || accumulatedContent;
+        syncUI(accumulatedContent);
+        if (data.continuation) needsContinuation = true;
       }
 
-      // Show "Generating response" while content arrives
-      addStep("Generating response");
-
-      accumulatedContent = data.content || accumulatedContent;
-
-      completeStep();
-
-      // Update message with accumulated content
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent, taskSteps: [...taskSteps], isStreaming: true } : m));
-
-      if (!data.continuation) break;
       continuationCount++;
-    }
+    } while (needsContinuation && continuationCount <= MAX_CONTINUATIONS);
 
-    addStep("Finished");
-    completeStep();
+    handleProgressStep({ label: "Finished", status: "done", action: "complete" });
 
     const endTime = new Date();
     const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
