@@ -26,6 +26,10 @@ interface Props {
 /* ── Lucide icon map for step labels ── */
 function getStepIcon(label: string) {
   const l = label.toLowerCase();
+  // Connection provider icons — return string identifiers for special rendering
+  if (l.includes("microsoft") || l.includes("outlook") || l.includes("onedrive")) return "microsoft" as any;
+  if (l.includes("slack")) return "slack" as any;
+  if (l.includes("hubspot")) return "hubspot" as any;
   if (l.includes("context") || l.includes("memory") || l.includes("understanding")) return Brain;
   if (l.includes("analyz") || l.includes("reviewing")) return Search;
   if (l.includes("writing") || l.includes("generating") || l.includes("composing") || l.includes("drafting")) return PenLine;
