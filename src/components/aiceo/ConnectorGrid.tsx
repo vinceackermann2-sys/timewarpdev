@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoSlack from "@/assets/logo-slack.png";
-import { SyncPreferencesDialog } from "@/components/database/SyncPreferencesDialog";
 
 interface ConnectorDef {
   id: string;
@@ -28,8 +27,6 @@ interface ConnectorGridProps {
 export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGridProps) {
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
-  const [showSyncPrefs, setShowSyncPrefs] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Check for OAuth return
   useEffect(() => {
@@ -40,9 +37,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
     if (oauthSuccess) {
       toast.success(`${oauthSuccess.charAt(0).toUpperCase() + oauthSuccess.slice(1)} connected!`);
       window.history.replaceState({}, "", window.location.pathname);
-      // Show sync preferences dialog instead of redirecting
       setConnectedProviders(prev => prev.includes(oauthSuccess) ? prev : [...prev, oauthSuccess]);
-      setShowSyncPrefs(true);
       return;
     }
     if (oauthError) {
@@ -124,41 +119,6 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
       toast.error("Failed to start connection");
     }
     setConnectingProvider(null);
-  };
-
-  const handleSyncConfirm = async (
-    categories: { emails: boolean; events: boolean; files: boolean },
-    limits: { emails: number; events: number; files: number }
-  ) => {
-    setIsSyncing(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-provider-data`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ provider: "microsoft", categories, limits }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Data synced successfully!");
-        setShowSyncPrefs(false);
-      } else {
-        const err = await response.json().catch(() => ({}));
-        toast.error(err.error || "Sync failed");
-      }
-    } catch (err) {
-      toast.error("Sync failed");
-    }
-    setIsSyncing(false);
   };
 
   const isMobile = window.innerWidth < 640;
@@ -277,7 +237,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
                       color: isConnected ? "rgba(74, 222, 128, 0.9)" : "#fff",
                     }}
                   >
-                    {isConnected ? "Connected — Configure Sync" : connector.name}
+                    {isConnected ? "Connected" : connector.name}
                   </span>
                   <span
                     style={{
@@ -295,16 +255,6 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
           })}
         </div>
       </div>
-
-      <SyncPreferencesDialog
-        open={showSyncPrefs}
-        onOpenChange={setShowSyncPrefs}
-        onConfirm={handleSyncConfirm}
-        isSyncing={isSyncing}
-        currentUsageBytes={0}
-        dataLimitBytes={1073741824}
-        planLabel="Free"
-      />
 
       <style>{`
         @keyframes fadeSlideUp {
