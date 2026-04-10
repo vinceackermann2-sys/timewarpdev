@@ -286,13 +286,22 @@ export function AgentChatView() {
 
   const handleSelectChat = (session: ChatSession) => {
     setActiveChatId(session.id);
-    setMessages(session.messages as ChatMessage[]);
+    const msgs = session.messages as ChatMessage[];
+    setMessages(msgs);
     if (session.agent_name) setSelectedAgent(session.agent_name);
+    // Restore employee context from saved messages
+    const lastEmployeeMsg = [...msgs].reverse().find(m => m.employees && m.employees.length > 0);
+    if (lastEmployeeMsg?.employees) {
+      setSelectedChatEmployees(lastEmployeeMsg.employees);
+    } else {
+      setSelectedChatEmployees([]);
+    }
   };
 
   const handleNewChat = () => {
     setActiveChatId(null);
     setMessages([]);
+    setSelectedChatEmployees([]);
   };
 
   /* ── Integration connection state ── */
@@ -665,9 +674,16 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
     }
 
-    const selectedEmployeesForMessage = selectedChatEmployees.length > 0
-      ? [...selectedChatEmployees]
-      : undefined;
+    // Resolve employee context: from current chip OR from thread history
+    const resolveEmployeeContext = (): { id: string; name: string; role: string }[] | undefined => {
+      if (selectedChatEmployees.length > 0) return [...selectedChatEmployees];
+      // Infer from the most recent employee-tagged message in this thread
+      const lastEmpMsg = [...messages].reverse().find(m => m.employees && m.employees.length > 0);
+      if (lastEmpMsg?.employees && lastEmpMsg.employees.length > 0) return [...lastEmpMsg.employees];
+      return undefined;
+    };
+
+    const selectedEmployeesForMessage = resolveEmployeeContext();
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -678,6 +694,11 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     };
 
     const hasSelectedEmployeeForMessage = (selectedEmployeesForMessage?.length ?? 0) > 0;
+
+    // If we inferred employee context from history, persist it in state for future messages
+    if (hasSelectedEmployeeForMessage && selectedChatEmployees.length === 0 && selectedEmployeesForMessage) {
+      setSelectedChatEmployees(selectedEmployeesForMessage);
+    }
 
     setMessages(prev => [...prev, userMsg]);
 
