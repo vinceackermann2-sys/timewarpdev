@@ -1,10 +1,9 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { Maximize2, Send, Loader2, Pencil, Sparkles, X } from "lucide-react";
+import { Maximize2, Send, Loader2, ArrowUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -28,10 +27,10 @@ export function GraphicEditorDialog({
 }: GraphicEditorDialogProps) {
   const [open, setOpen] = useState(false);
   const [draftValue, setDraftValue] = useState(value);
-  const [chatInput, setChatInput] = useState("");
   const [isRefining, setIsRefining] = useState(false);
   const [chatHistory, setChatHistory] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -44,37 +43,11 @@ export function GraphicEditorDialog({
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
-  const parsedConfig = useMemo(() => {
-    try { return JSON.parse(draftValue); } catch { return null; }
-  }, [draftValue]);
-
-  // Direct text field editing
-  const updateField = useCallback((path: string, newValue: string) => {
-    try {
-      const obj = JSON.parse(draftValue);
-      const keys = path.split(".");
-      let target = obj;
-      for (let i = 0; i < keys.length - 1; i++) {
-        const key = keys[i];
-        const idx = parseInt(key);
-        target = isNaN(idx) ? target[key] : target[idx];
-      }
-      const lastKey = keys[keys.length - 1];
-      const lastIdx = parseInt(lastKey);
-      if (isNaN(lastIdx)) {
-        target[lastKey] = newValue;
-      } else {
-        target[lastIdx] = newValue;
-      }
-      setDraftValue(JSON.stringify(obj, null, 2));
-    } catch {}
-  }, [draftValue]);
-
-  // AI refinement via chat
+  // AI refinement
   const handleAiRefine = async () => {
-    if (!chatInput.trim() || isRefining) return;
-    const userMsg = chatInput.trim();
-    setChatInput("");
+    const userMsg = chatInputRef.current?.innerText?.trim() || "";
+    if (!userMsg || isRefining) return;
+    if (chatInputRef.current) chatInputRef.current.innerHTML = "";
     setChatHistory(prev => [...prev, { role: "user", content: userMsg }]);
     setIsRefining(true);
 
@@ -92,7 +65,7 @@ export function GraphicEditorDialog({
           messages: [
             {
               role: "system",
-              content: `You are a graphic editor assistant. The user has a graphic defined as JSON. When they ask for changes, return ONLY the updated JSON — no explanation, no markdown fences, just valid JSON. Here is the current JSON:\n\n${draftValue}`
+              content: `You are a graphic editor assistant. The user has a graphic defined as JSON. When they ask for changes, return ONLY the updated JSON — no explanation, no markdown fences, just valid JSON.\n\nCurrent JSON:\n${draftValue}`
             },
             ...chatHistory.map(m => ({ role: m.role, content: m.content })),
             { role: "user", content: userMsg }
@@ -103,13 +76,12 @@ export function GraphicEditorDialog({
       if (res.ok) {
         const data = await res.json();
         const reply = data.content || data.choices?.[0]?.message?.content || "";
-        // Try to extract JSON from reply
         const jsonMatch = reply.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           try {
             JSON.parse(jsonMatch[0]);
             setDraftValue(jsonMatch[0]);
-            setChatHistory(prev => [...prev, { role: "assistant", content: "✅ Updated the graphic with your changes." }]);
+            setChatHistory(prev => [...prev, { role: "assistant", content: "✅ Done — preview updated." }]);
           } catch {
             setChatHistory(prev => [...prev, { role: "assistant", content: reply }]);
           }
@@ -131,90 +103,6 @@ export function GraphicEditorDialog({
     setOpen(false);
   };
 
-  // Build editable fields from parsed config
-  const renderEditableFields = () => {
-    if (!parsedConfig) return <p className="text-sm text-muted-foreground">Unable to parse graphic data.</p>;
-
-    const fields: { label: string; path: string; value: string; multiline?: boolean }[] = [];
-
-    // Title
-    if (parsedConfig.title) fields.push({ label: "Title", path: "title", value: parsedConfig.title });
-    if (parsedConfig.subtitle) fields.push({ label: "Subtitle", path: "subtitle", value: parsedConfig.subtitle });
-    if (parsedConfig.author) fields.push({ label: "Author", path: "author", value: parsedConfig.author });
-    if (parsedConfig.date) fields.push({ label: "Date", path: "date", value: parsedConfig.date });
-    if (parsedConfig.takeaway) fields.push({ label: "Key Takeaway", path: "takeaway", value: parsedConfig.takeaway, multiline: true });
-
-    // Sections (documents)
-    if (Array.isArray(parsedConfig.sections)) {
-      parsedConfig.sections.forEach((sec: any, i: number) => {
-        if (sec.heading) fields.push({ label: `Section ${i + 1} Heading`, path: `sections.${i}.heading`, value: sec.heading });
-        if (sec.content) fields.push({ label: `Section ${i + 1} Content`, path: `sections.${i}.content`, value: sec.content, multiline: true });
-      });
-    }
-
-    // Bullets
-    if (Array.isArray(parsedConfig.bullets)) {
-      parsedConfig.bullets.forEach((b: string, i: number) => {
-        fields.push({ label: `Bullet ${i + 1}`, path: `bullets.${i}`, value: b });
-      });
-    }
-
-    // Stats
-    if (Array.isArray(parsedConfig.stats)) {
-      parsedConfig.stats.forEach((s: any, i: number) => {
-        fields.push({ label: `Stat ${i + 1} Value`, path: `stats.${i}.value`, value: s.value });
-        fields.push({ label: `Stat ${i + 1} Label`, path: `stats.${i}.label`, value: s.label });
-      });
-    }
-
-    // Metrics (analytics)
-    if (Array.isArray(parsedConfig.metrics)) {
-      parsedConfig.metrics.forEach((m: any, i: number) => {
-        fields.push({ label: `Metric ${i + 1} Label`, path: `metrics.${i}.label`, value: m.label });
-        fields.push({ label: `Metric ${i + 1} Value`, path: `metrics.${i}.value`, value: m.value });
-      });
-    }
-
-    // Insights
-    if (Array.isArray(parsedConfig.insights)) {
-      parsedConfig.insights.forEach((ins: string, i: number) => {
-        fields.push({ label: `Insight ${i + 1}`, path: `insights.${i}`, value: ins, multiline: true });
-      });
-    }
-
-    // Headers (spreadsheet)
-    if (Array.isArray(parsedConfig.headers)) {
-      parsedConfig.headers.forEach((h: string, i: number) => {
-        fields.push({ label: `Header ${i + 1}`, path: `headers.${i}`, value: h });
-      });
-    }
-
-    return (
-      <div className="space-y-3">
-        {fields.map((f) => (
-          <div key={f.path}>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">{f.label}</label>
-            {f.multiline ? (
-              <textarea
-                value={f.value}
-                onChange={(e) => updateField(f.path, e.target.value)}
-                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground outline-none focus:border-ring resize-none min-h-[60px]"
-                rows={3}
-              />
-            ) : (
-              <input
-                type="text"
-                value={f.value}
-                onChange={(e) => updateField(f.path, e.target.value)}
-                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
-              />
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <>
       <Button
@@ -229,60 +117,60 @@ export function GraphicEditorDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-6xl border-border bg-background p-0 sm:rounded-2xl">
+        <DialogContent className="max-w-5xl border-border bg-background p-0 sm:rounded-2xl">
           <div className="flex max-h-[85vh] flex-col overflow-hidden">
             <DialogHeader className="border-b border-border px-6 py-4">
               <DialogTitle>{title}</DialogTitle>
-              <DialogDescription>
-                {description || "Edit the graphic fields directly or use the AI chat to refine it."}
-              </DialogDescription>
             </DialogHeader>
 
-            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[360px_minmax(0,1fr)]">
-              {/* Left panel: Editable fields + AI chat */}
+            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[320px_minmax(0,1fr)]">
+              {/* Left: AI Chat */}
               <div className="flex flex-col border-b border-border lg:border-b-0 lg:border-r overflow-hidden">
-                {/* Editable fields */}
-                <div className="flex-1 overflow-y-auto p-4 min-h-0">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Pencil className="w-3.5 h-3.5 text-primary" />
-                    <h4 className="text-sm font-medium text-foreground">Edit Fields</h4>
-                  </div>
-                  {renderEditableFields()}
-                </div>
-
-                {/* AI chat section */}
-                <div className="border-t border-border bg-muted/20">
-                  {chatHistory.length > 0 && (
-                    <div className="max-h-[120px] overflow-y-auto px-4 py-2 space-y-2">
-                      {chatHistory.map((msg, i) => (
-                        <div key={i} className={cn("text-xs px-2.5 py-1.5 rounded-lg max-w-[90%]",
-                          msg.role === "user"
-                            ? "bg-primary/10 text-foreground ml-auto"
-                            : "bg-muted text-foreground"
-                        )}>
-                          {msg.content}
-                        </div>
-                      ))}
-                      <div ref={chatEndRef} />
+                {/* Chat messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px]">
+                  {chatHistory.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                      <Sparkles className="w-8 h-8 text-primary/30 mb-3" />
+                      <p className="text-sm text-muted-foreground">Ask AI to refine the graphic</p>
+                      <p className="text-xs text-muted-foreground/60 mt-1">"Make the title shorter" · "Add a new bullet" · "Change the color to red"</p>
                     </div>
                   )}
-                  <div className="p-3 flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAiRefine()}
-                      placeholder="Ask AI to refine this graphic…"
-                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-                      disabled={isRefining}
-                    />
+                  {chatHistory.map((msg, i) => (
+                    <div key={i} className={cn("text-sm px-3 py-2 rounded-xl max-w-[95%] leading-relaxed",
+                      msg.role === "user"
+                        ? "bg-[#e5e7eb] text-foreground ml-auto"
+                        : "bg-muted text-foreground"
+                    )}>
+                      {msg.content}
+                    </div>
+                  ))}
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Chat input bar — matching employee chat style */}
+                <div className="border-t border-border">
+                  <div className="flex items-center gap-0 px-2 py-2">
+                    <div className="flex-1 flex items-center px-3 py-1">
+                      <div
+                        ref={chatInputRef}
+                        contentEditable
+                        suppressContentEditableWarning
+                        className="flex-1 bg-transparent border-none outline-none text-foreground text-sm min-w-[80px] max-h-[80px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text cursor-text"
+                        data-placeholder="Refine with AI…"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAiRefine();
+                          }
+                        }}
+                      />
+                    </div>
                     <button
                       onClick={handleAiRefine}
-                      disabled={isRefining || !chatInput.trim()}
-                      className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-40"
+                      disabled={isRefining}
+                      className="p-2 rounded-full bg-foreground text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm hover:bg-foreground/90 disabled:opacity-40"
                     >
-                      {isRefining ? <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" /> : <Send className="w-3.5 h-3.5 text-primary" />}
+                      {isRefining ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -294,10 +182,9 @@ export function GraphicEditorDialog({
                 </div>
               </div>
 
-              {/* Right panel: Preview */}
-              <div className="min-h-0 overflow-auto bg-muted/20 p-4">
-                <div className="mb-3 text-sm font-medium text-foreground">Preview</div>
-                {renderPreview ? renderPreview(draftValue) : null}
+              {/* Right: Live editable preview */}
+              <div className="min-h-0 overflow-auto bg-muted/10 p-6">
+                <EditablePreview value={draftValue} onChange={setDraftValue} renderPreview={renderPreview} />
               </div>
             </div>
           </div>
@@ -305,4 +192,145 @@ export function GraphicEditorDialog({
       </Dialog>
     </>
   );
+}
+
+/* ── Editable preview wrapper ── */
+function EditablePreview({ value, onChange, renderPreview }: {
+  value: string;
+  onChange: (v: string) => void;
+  renderPreview?: (v: string) => ReactNode;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Make text elements editable on click, sync back to JSON on blur
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const makeEditable = (el: HTMLElement) => {
+      // Skip buttons, icons, svgs
+      if (el.closest("button") || el.closest("svg") || el.tagName === "BUTTON") return;
+      
+      const isTextEl = ["H1","H2","H3","H4","H5","H6","P","SPAN","LI","TD","TH"].includes(el.tagName);
+      if (!isTextEl) return;
+      if (el.children.length > 0 && el.querySelector("svg, button, img")) return;
+      
+      el.style.cursor = "text";
+      el.setAttribute("contenteditable", "true");
+      el.style.outline = "none";
+      el.classList.add("hover:ring-1", "hover:ring-primary/30", "focus:ring-1", "focus:ring-primary/50", "rounded", "transition-shadow");
+    };
+
+    // Walk all text elements
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_ELEMENT);
+    let node: Node | null = walker.currentNode;
+    while (node) {
+      if (node instanceof HTMLElement) makeEditable(node);
+      node = walker.nextNode();
+    }
+
+    // On blur, reconstruct JSON from the DOM
+    const handleBlur = () => {
+      // Re-read all text from the preview and attempt to sync back to JSON
+      try {
+        const parsed = JSON.parse(value);
+        syncDomToJson(container, parsed);
+        onChange(JSON.stringify(parsed, null, 2));
+      } catch {}
+    };
+
+    container.addEventListener("blur", handleBlur, true);
+    return () => container.removeEventListener("blur", handleBlur, true);
+  }, [value, onChange]);
+
+  return (
+    <div ref={containerRef}>
+      {renderPreview ? renderPreview(value) : null}
+    </div>
+  );
+}
+
+/* Sync edited DOM text back into the JSON config */
+function syncDomToJson(container: HTMLElement, config: any) {
+  // Title
+  const titleEl = container.querySelector("h3, h2, [class*='font-bold']:first-child");
+  if (titleEl && titleEl.textContent && config.title !== undefined) {
+    config.title = titleEl.textContent.trim();
+  }
+
+  // Subtitle
+  if (config.subtitle !== undefined) {
+    const subtitleEl = container.querySelector("[class*='text-white/60'], [class*='text-muted']");
+    if (subtitleEl && subtitleEl.textContent) {
+      config.subtitle = subtitleEl.textContent.trim();
+    }
+  }
+
+  // Bullets
+  if (Array.isArray(config.bullets)) {
+    const listItems = container.querySelectorAll("li");
+    listItems.forEach((li, i) => {
+      if (i < config.bullets.length && li.textContent) {
+        config.bullets[i] = li.textContent.trim();
+      }
+    });
+  }
+
+  // Sections (documents)
+  if (Array.isArray(config.sections)) {
+    const headings = container.querySelectorAll("h4");
+    const paragraphs = container.querySelectorAll("p[class*='leading-relaxed'], p[class*='whitespace-pre']");
+    headings.forEach((h, i) => {
+      if (i < config.sections.length && h.textContent) {
+        config.sections[i].heading = h.textContent.trim();
+      }
+    });
+    paragraphs.forEach((p, i) => {
+      if (i < config.sections.length && p.textContent) {
+        config.sections[i].content = p.textContent.trim();
+      }
+    });
+  }
+
+  // Stats
+  if (Array.isArray(config.stats)) {
+    const statEls = container.querySelectorAll("[class*='text-2xl'], [class*='text-center'] p");
+    let statIdx = 0;
+    statEls.forEach((el) => {
+      if (el.classList.contains("text-2xl") || (el as HTMLElement).style.color) {
+        if (statIdx < config.stats.length && el.textContent) {
+          config.stats[statIdx].value = el.textContent.trim();
+        }
+      } else if (el.classList.contains("text-xs")) {
+        if (statIdx < config.stats.length && el.textContent) {
+          config.stats[statIdx].label = el.textContent.trim();
+          statIdx++;
+        }
+      }
+    });
+  }
+
+  // Metrics (analytics)
+  if (Array.isArray(config.metrics)) {
+    const metricLabels = container.querySelectorAll("[class*='uppercase']");
+    const metricValues = container.querySelectorAll("[class*='text-lg']");
+    metricLabels.forEach((el, i) => {
+      if (i < config.metrics.length && el.textContent) {
+        config.metrics[i].label = el.textContent.trim();
+      }
+    });
+    metricValues.forEach((el, i) => {
+      if (i < config.metrics.length && el.textContent) {
+        config.metrics[i].value = el.textContent.trim();
+      }
+    });
+  }
+
+  // Takeaway
+  if (config.takeaway !== undefined) {
+    const takeawayEl = container.querySelector("[class*='border-t'] p[class*='font-medium'], [class*='border-t'] p:last-child");
+    if (takeawayEl && takeawayEl.textContent) {
+      config.takeaway = takeawayEl.textContent.trim();
+    }
+  }
 }
