@@ -2238,13 +2238,13 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                             code: ({children, className}) => {
                               const text = String(children).replace(/\n$/, "");
                               if (className?.includes("language-chart") || className?.includes("language-graph")) {
-                                return <InlineChatChart jsonString={text} />;
+                                return <InlineChatAnalytics jsonString={text} />;
                               }
                               if (className?.includes("language-document")) {
                                 return <InlineDocument jsonString={text} />;
                               }
                               if (className?.includes("language-analytics")) {
-                                return <InlineAnalytics jsonString={text} />;
+                                return <InlineChatAnalytics jsonString={text} />;
                               }
                               if (className?.includes("language-spreadsheet")) {
                                 return <InlineSpreadsheet jsonString={text} />;
