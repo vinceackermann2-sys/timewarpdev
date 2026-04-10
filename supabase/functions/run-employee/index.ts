@@ -262,132 +262,169 @@ serve(async (req) => {
       }
     }
 
-    // RAG: retrieve relevant context scoped to selected agent's brand/workspace
     const effectiveWsId = workspaceId || employee.workspace_id;
-    const relevantContext = await retrieveRelevantContext(supabase, {
-      ...employee,
-      workspace_id: effectiveWsId,
-      linked_business_id: effectiveBrandId,
-    }, lastUserMsg);
-
-    // Live connection search: query connected providers for relevant data
-    const { connectionContext, searchedProviders, skippedProviders, connectionDecision } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
-
-    // Build system prompt
-    // If this is a continuation, prepend the partial content as an assistant message
     let effectiveMessages = [...(messages || [])];
     if (continuationContent) {
       effectiveMessages.push({ role: "assistant", content: continuationContent });
       effectiveMessages.push({ role: "user", content: "Continue exactly where you left off. Do not repeat what you already wrote." });
     }
 
-    const fullContext = relevantContext + connectionContext;
-
-    const systemPrompt = isBrowserMode
-      ? buildBrowserSystemPrompt(employee, identity, fullContext, pageContext, safetySettings)
-      : buildEmployeeChatPrompt(employee, identity, fullContext, safetySettings);
-
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Use streaming internally so we can collect partial output before timeout
-    const TIMEOUT_MS = 45_000; // 45s safety margin before 60s platform limit
-    const startTime = Date.now();
+    const buildAiResponse = async (
+      relevantContext: string,
+      connectionContext: string,
+      emitContent?: (delta: string) => void,
+    ) => {
+      const fullContext = relevantContext + connectionContext;
+      const systemPrompt = isBrowserMode
+        ? buildBrowserSystemPrompt(employee, identity, fullContext, pageContext, safetySettings)
+        : buildEmployeeChatPrompt(employee, identity, fullContext, safetySettings);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...effectiveMessages,
-        ],
-        stream: true,
-      }),
-    });
+      const TIMEOUT_MS = 45_000;
+      const startTime = Date.now();
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...effectiveMessages,
+          ],
+          stream: true,
+        }),
+      });
 
-    if (!response.ok) {
-      const status = response.status;
-      const errorBody = await response.text().catch(() => "");
-      console.error("AI gateway error:", status, errorBody.slice(0, 200));
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (!response.ok) {
+        const status = response.status;
+        const errorBody = await response.text().catch(() => "");
+        console.error("AI gateway error:", status, errorBody.slice(0, 200));
+        if (status === 429) throw new Error("Rate limit exceeded.");
+        if (status === 402) throw new Error("AI credits exhausted.");
+        throw new Error("AI service unavailable");
       }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error("AI service unavailable");
-    }
 
-    // Read the stream, collecting content until done or timeout
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error("No response body");
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
 
-    const decoder = new TextDecoder();
-    let fullContent = "";
-    let timedOut = false;
-    let streamDone = false;
+      const decoder = new TextDecoder();
+      let fullContent = "";
+      let timedOut = false;
+      let streamDone = false;
 
-    try {
-      while (true) {
-        // Check timeout
-        if (Date.now() - startTime > TIMEOUT_MS) {
-          timedOut = true;
-          break;
+      try {
+        while (true) {
+          if (Date.now() - startTime > TIMEOUT_MS) {
+            timedOut = true;
+            break;
+          }
+
+          const { done, value } = await reader.read();
+          if (done) { streamDone = true; break; }
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") { streamDone = true; break; }
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content || "";
+              if (delta) {
+                fullContent += delta;
+                emitContent?.(delta);
+              }
+            } catch {}
+          }
+          if (streamDone) break;
         }
-
-        const { done, value } = await reader.read();
-        if (done) { streamDone = true; break; }
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6).trim();
-          if (data === "[DONE]") { streamDone = true; break; }
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content || "";
-            if (delta) fullContent += delta;
-          } catch {}
-        }
-        if (streamDone) break;
+      } finally {
+        try { reader.cancel(); } catch {}
       }
-    } finally {
-      try { reader.cancel(); } catch {}
-    }
 
-    // Combine with any previous continuation content
-    const totalContent = (continuationContent || "") + fullContent;
+      let content = (continuationContent || "") + fullContent;
+      content = runPostflightGuardrails(content, safetySettings);
+      if (isBrowserMode) {
+        const actionBlock = validateBrowserActions(content, safetySettings);
+        if (actionBlock) content = actionBlock;
+      }
 
-    // If timed out and we have partial content, return continuation token
-    if (timedOut && totalContent.length > 0) {
-      return new Response(JSON.stringify({ content: totalContent, continuation: true, searchedProviders, skippedProviders, connectionDecision }), {
+      return { content, continuation: timedOut && content.length > 0 };
+    };
+
+    if (isBrowserMode) {
+      const relevantContext = await retrieveRelevantContext(supabase, {
+        ...employee,
+        workspace_id: effectiveWsId,
+        linked_business_id: effectiveBrandId,
+      }, lastUserMsg);
+      const { connectionContext, searchedProviders, skippedProviders, connectionDecision } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
+      const result = await buildAiResponse(relevantContext, connectionContext);
+      return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, connectionDecision }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    let content = totalContent || "";
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        const send = (payload: unknown) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        };
+        const sendStep = (label: string, status: "running" | "done" | "error", action = "process", detail?: string) => {
+          send({ type: "progress", step: { label, status, action, detail } });
+        };
+        const close = () => {
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        };
 
-    // --- MIDDLEWARE LAYER 2: Post-flight output validation (only if guardrails enabled) ---
-    content = runPostflightGuardrails(content, safetySettings);
+        (async () => {
+          try {
+            sendStep("Analyzing your request", "running", "analysis");
+            sendStep("Analyzing your request", "done", "analysis", shouldSearchConnections(lastUserMsg).reason);
 
-    // --- MIDDLEWARE LAYER 4: Action validation for browser mode (only if integrity enabled) ---
-    if (isBrowserMode) {
-      const actionBlock = validateBrowserActions(content, safetySettings);
-      if (actionBlock) content = actionBlock;
-    }
+            sendStep("Retrieving business context", "running", "context");
+            const relevantContext = await retrieveRelevantContext(supabase, {
+              ...employee,
+              workspace_id: effectiveWsId,
+              linked_business_id: effectiveBrandId,
+            }, lastUserMsg);
+            sendStep("Retrieving business context", "done", "context");
 
-    return new Response(JSON.stringify({ content, searchedProviders, skippedProviders, connectionDecision }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+            const { connectionContext, searchedProviders, skippedProviders, connectionDecision } = await searchConnectedProviders(
+              supabase,
+              user.id,
+              lastUserMsg,
+              (step) => send({ type: "progress", step })
+            );
+
+            sendStep("Generating response", "running", "response");
+            const result = await buildAiResponse(relevantContext, connectionContext, (delta) => {
+              send({ type: "content", delta });
+            });
+            sendStep("Generating response", "done", "response");
+            if (!result.continuation) sendStep("Finished", "done", "complete");
+
+            send({ type: "result", ...result, searchedProviders, skippedProviders, connectionDecision });
+            close();
+          } catch (error: any) {
+            console.error("run-employee stream error:", error?.message || error);
+            send({ type: "error", error: error?.message || "An internal error occurred" });
+            close();
+          }
+        })();
+      },
+    });
+
+    return new Response(stream, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
     });
   } catch (e: any) {
     console.error("run-employee error:", e?.message);
@@ -520,7 +557,7 @@ async function searchSlackData(token: string, query: string): Promise<string[]> 
 
 // --- Intent Analysis: should we search connections? ---
 const CONNECTION_TRIGGER_PATTERNS = [
-  /\b(collaborat|partnership|partner|meeting|follow.?up|agenda)\b/i,
+  /\b(collaboration|collaborations|collaborat|partnership|partner|meeting|follow.?up|agenda)\b/i,
   /\b(complaint|issue|ticket|support|bug|problem|incident)\b/i,
   /\b(email|mail|inbox|message|slack|teams|chat|dm|thread)\b/i,
   /\b(file|document|doc|sheet|drive|onedrive|sharepoint)\b/i,
@@ -542,10 +579,25 @@ function shouldSearchConnections(query: string): { shouldSearch: boolean; reason
   return { shouldSearch: false, reason: "Question can be answered from existing business context" };
 }
 
+function getProviderSearchLabel(provider: string): string {
+  if (provider === "microsoft") return "Searching Microsoft 365 emails & files";
+  if (provider === "slack") return "Searching Slack messages & channels";
+  if (provider === "hubspot") return "Searching HubSpot records";
+  return `Searching ${provider}`;
+}
+
+function getProviderSkipLabel(provider: string, reason: string): string {
+  if (provider === "microsoft") return `Skipped Microsoft — ${reason}`;
+  if (provider === "slack") return `Skipped Slack — ${reason}`;
+  if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
+  return `Skipped ${provider} — ${reason}`;
+}
+
 async function searchConnectedProviders(
   supabase: any,
   userId: string,
-  userQuery: string
+  userQuery: string,
+  emitProgress?: (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => void,
 ): Promise<{ connectionContext: string; searchedProviders: string[]; skippedProviders: string[]; connectionDecision: { shouldSearch: boolean; reason: string } }> {
   const searchedProviders: string[] = [];
   const skippedProviders: string[] = [];
@@ -555,8 +607,15 @@ async function searchConnectedProviders(
   console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
 
   if (!decision.shouldSearch) {
+    emitProgress?.({
+      label: `Skipping connected sources — ${decision.reason}`,
+      status: "done",
+      action: "connections",
+    });
     return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
   }
+
+  emitProgress?.({ label: "Request needs connected sources", status: "done", action: "connections" });
 
   // Check which providers are connected
   const { data: connections, error: connErr } = await supabase
@@ -570,6 +629,7 @@ async function searchConnectedProviders(
 
   if (!connections || connections.length === 0) {
     console.log("[connections] No connected providers found");
+    emitProgress?.({ label: "No connected sources available", status: "done", action: "connections" });
     return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
   }
 
@@ -581,6 +641,9 @@ async function searchConnectedProviders(
   for (const p of allKnownProviders) {
     if (!connectedProviders.includes(p)) {
       skippedProviders.push(p);
+      if (p === "microsoft" || p === "slack") {
+        emitProgress?.({ label: getProviderSkipLabel(p, "not connected"), status: "done", action: "connections" });
+      }
     }
   }
 
@@ -589,7 +652,13 @@ async function searchConnectedProviders(
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "microsoft");
-        if (!token) { console.log("[connections] No valid Microsoft token"); skippedProviders.push("microsoft"); return; }
+        if (!token) {
+          console.log("[connections] No valid Microsoft token");
+          skippedProviders.push("microsoft");
+          emitProgress?.({ label: getProviderSkipLabel("microsoft", "connection expired"), status: "done", action: "connections" });
+          return;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("microsoft"), status: "running", action: "connections" });
         searchedProviders.push("microsoft");
         console.log("[connections] Searching Microsoft with query:", userQuery.slice(0, 60));
         const results = await searchMicrosoftData(token, userQuery);
@@ -603,7 +672,11 @@ async function searchConnectedProviders(
             connectionContext += `\n### Relevant Files\n${results.files.join("\n")}\n`;
           }
         }
-      } catch (e) { console.error("[connections] Microsoft search failed:", e); }
+        emitProgress?.({ label: getProviderSearchLabel("microsoft"), status: "done", action: "connections" });
+      } catch (e) {
+        console.error("[connections] Microsoft search failed:", e);
+        emitProgress?.({ label: getProviderSearchLabel("microsoft"), status: "error", action: "connections" });
+      }
     })());
   }
 
@@ -612,7 +685,13 @@ async function searchConnectedProviders(
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "slack");
-        if (!token) { console.log("[connections] No valid Slack token"); skippedProviders.push("slack"); return; }
+        if (!token) {
+          console.log("[connections] No valid Slack token");
+          skippedProviders.push("slack");
+          emitProgress?.({ label: getProviderSkipLabel("slack", "connection expired"), status: "done", action: "connections" });
+          return;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("slack"), status: "running", action: "connections" });
         searchedProviders.push("slack");
         console.log("[connections] Searching Slack with query:", userQuery.slice(0, 60));
         const results = await searchSlackData(token, userQuery);
@@ -620,7 +699,11 @@ async function searchConnectedProviders(
         if (results.length > 0) {
           connectionContext += `\n\n## Live Data from Slack\n${results.join("\n\n")}\n`;
         }
-      } catch (e) { console.error("[connections] Slack search failed:", e); }
+        emitProgress?.({ label: getProviderSearchLabel("slack"), status: "done", action: "connections" });
+      } catch (e) {
+        console.error("[connections] Slack search failed:", e);
+        emitProgress?.({ label: getProviderSearchLabel("slack"), status: "error", action: "connections" });
+      }
     })());
   }
 
