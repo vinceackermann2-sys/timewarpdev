@@ -370,7 +370,7 @@ serve(async (req) => {
 
     // If timed out and we have partial content, return continuation token
     if (timedOut && totalContent.length > 0) {
-      return new Response(JSON.stringify({ content: totalContent, continuation: true }), {
+      return new Response(JSON.stringify({ content: totalContent, continuation: true, searchedProviders }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
