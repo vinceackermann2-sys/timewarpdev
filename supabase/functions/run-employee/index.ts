@@ -270,6 +270,9 @@ serve(async (req) => {
       linked_business_id: effectiveBrandId,
     }, lastUserMsg);
 
+    // Live connection search: query connected providers for relevant data
+    const { connectionContext, searchedProviders } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
+
     // Build system prompt
     // If this is a continuation, prepend the partial content as an assistant message
     let effectiveMessages = [...(messages || [])];
