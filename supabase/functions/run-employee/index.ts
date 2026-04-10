@@ -250,6 +250,9 @@ serve(async (req) => {
 
     const isBrowserMode = !!pageContext;
 
+    // Check for verified business answers (pricing, revenue) but DON'T early-return with bare JSON.
+    // Instead, store the result and serve it through the SSE pipeline so sub-logging still shows.
+    let preVerifiedContent: string | null = null;
     if (!isBrowserMode) {
       const verifiedContent = await buildVerifiedBusinessAnswer(supabase, {
         ...employee,
@@ -258,10 +261,7 @@ serve(async (req) => {
       }, lastUserMsg);
 
       if (verifiedContent) {
-        const content = runPostflightGuardrails(verifiedContent, safetySettings);
-        return new Response(JSON.stringify({ content }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        preVerifiedContent = runPostflightGuardrails(verifiedContent, safetySettings);
       }
     }
 
