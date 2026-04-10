@@ -526,16 +526,27 @@ async function searchConnectedProviders(
   const searchedProviders: string[] = [];
   let connectionContext = "";
 
-  if (!userQuery || userQuery.length < 3) return { connectionContext, searchedProviders };
+  console.log("[connections] Starting provider search for user:", userId, "query:", userQuery?.slice(0, 80));
+
+  if (!userQuery || userQuery.length < 3) {
+    console.log("[connections] Query too short, skipping");
+    return { connectionContext, searchedProviders };
+  }
 
   // Check which providers are connected
-  const { data: connections } = await supabase
+  const { data: connections, error: connErr } = await supabase
     .from("user_connections")
     .select("provider, status")
     .eq("user_id", userId)
     .eq("status", "connected");
 
-  if (!connections || connections.length === 0) return { connectionContext, searchedProviders };
+  if (connErr) console.error("[connections] DB error:", connErr.message);
+  console.log("[connections] Connected providers:", JSON.stringify(connections));
+
+  if (!connections || connections.length === 0) {
+    console.log("[connections] No connected providers found");
+    return { connectionContext, searchedProviders };
+  }
 
   const connectedProviders = connections.map((c: any) => c.provider);
   const searchPromises: Promise<void>[] = [];
@@ -545,9 +556,11 @@ async function searchConnectedProviders(
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "microsoft");
-        if (!token) return;
+        if (!token) { console.log("[connections] No valid Microsoft token"); return; }
         searchedProviders.push("microsoft");
+        console.log("[connections] Searching Microsoft with query:", userQuery.slice(0, 60));
         const results = await searchMicrosoftData(token, userQuery);
+        console.log("[connections] Microsoft results - emails:", results.emails.length, "files:", results.files.length);
         if (results.emails.length > 0 || results.files.length > 0) {
           connectionContext += "\n\n## Live Data from Microsoft 365\n";
           if (results.emails.length > 0) {
@@ -557,7 +570,7 @@ async function searchConnectedProviders(
             connectionContext += `\n### Relevant Files\n${results.files.join("\n")}\n`;
           }
         }
-      } catch (e) { console.error("Microsoft search failed:", e); }
+      } catch (e) { console.error("[connections] Microsoft search failed:", e); }
     })());
   }
 
@@ -566,13 +579,15 @@ async function searchConnectedProviders(
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "slack");
-        if (!token) return;
+        if (!token) { console.log("[connections] No valid Slack token"); return; }
         searchedProviders.push("slack");
+        console.log("[connections] Searching Slack with query:", userQuery.slice(0, 60));
         const results = await searchSlackData(token, userQuery);
+        console.log("[connections] Slack results:", results.length);
         if (results.length > 0) {
           connectionContext += `\n\n## Live Data from Slack\n${results.join("\n\n")}\n`;
         }
-      } catch (e) { console.error("Slack search failed:", e); }
+      } catch (e) { console.error("[connections] Slack search failed:", e); }
     })());
   }
 
@@ -582,6 +597,7 @@ async function searchConnectedProviders(
     connectionContext = `\n\n## Connected Sources (Live Search Results)\nThe following data was retrieved in real-time from the user's connected integrations. Use it to provide more informed answers when relevant.\n${connectionContext}`;
   }
 
+  console.log("[connections] Final searchedProviders:", searchedProviders, "hasContext:", connectionContext.length > 0);
   return { connectionContext, searchedProviders };
 }
 
