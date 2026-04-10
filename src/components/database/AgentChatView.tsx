@@ -1276,13 +1276,12 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     // Show connection search steps for connected providers
     const providerNames = Object.keys(connectedProviders).filter(p => connectedProviders[p]);
     for (const provider of providerNames) {
-      const label = provider === "microsoft" ? "Searching Microsoft 365" : provider === "slack" ? "Searching Slack messages" : `Searching ${provider}`;
+      const label = provider === "microsoft" ? "Searching Microsoft 365 emails & files" : provider === "slack" ? "Searching Slack messages & channels" : provider === "hubspot" ? "Searching HubSpot contacts & deals" : `Searching ${provider}`;
       addStep(label);
-      await new Promise(r => setTimeout(r, 400));
-      // Don't complete yet — will be completed when we get response
+      await new Promise(r => setTimeout(r, 800));
+      completeStep();
+      await new Promise(r => setTimeout(r, 300));
     }
-    // Complete all connection steps
-    for (let i = 0; i < providerNames.length; i++) completeStep();
 
     addStep(getAnalyzeLabel());
     await new Promise(r => setTimeout(r, 500));
