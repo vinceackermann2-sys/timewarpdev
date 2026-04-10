@@ -13,6 +13,14 @@ const COLORS = [
   "#3399ff", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6",
 ];
 
+function adjustColorBrightness(hex: string, percent: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + Math.round(2.55 * percent)));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + Math.round(2.55 * percent)));
+  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + Math.round(2.55 * percent)));
+  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, "0")}`;
+}
+
 function GraphicActions({ onSave, onDownload, editor }: { onSave: () => void; onDownload: () => void; editor?: ReactNode }) {
   const [saved, setSaved] = useState(false);
 
@@ -256,7 +264,7 @@ interface SlideStat { value: string; label: string }
 interface SlideConfig {
   title: string; subtitle?: string; bullets?: string[]; takeaway?: string; image?: string;
   layout?: "bullets" | "stat-callout" | "two-column" | "title-only";
-  stats?: SlideStat[]; icon?: string; accent_color?: string;
+  stats?: SlideStat[]; icon?: string; accent_color?: string; bg_color?: string; brand_name?: string;
   left_column?: string[]; right_column?: string[];
 }
 
@@ -270,13 +278,15 @@ export function InlineSlide({ jsonString, editorEnabled = true }: { jsonString: 
 
   const layout = config.layout || (config.stats && config.stats.length > 0 ? "stat-callout" : "bullets");
   const accent = config.accent_color || "#3399ff";
+  const bgColor = config.bg_color || "#1a1a2e";
+  const bgGradientEnd = adjustColorBrightness(bgColor, 15);
 
   const handleSave = () => saveToDatabase(config.title, "slide", draftJson);
   const handleDownload = async () => {
     const pptxgenjs = await import("pptxgenjs");
     const pptx = new pptxgenjs.default();
     const slide = pptx.addSlide();
-    slide.background = { fill: "1a1a2e" };
+    slide.background = { fill: bgColor.replace("#", "") };
 
     if (config.icon) slide.addText(config.icon, { x: 0.5, y: 0.3, w: 1, fontSize: 36 });
     const titleY = config.icon ? 0.9 : 0.5;
@@ -307,7 +317,7 @@ export function InlineSlide({ jsonString, editorEnabled = true }: { jsonString: 
 
   return (
     <div className="my-4 rounded-xl border border-border/50 overflow-hidden shadow-sm">
-      <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] text-white p-6 min-h-[220px] flex flex-col">
+      <div style={{ background: `linear-gradient(135deg, ${bgColor}, ${bgGradientEnd})` }} className="text-white p-6 min-h-[220px] flex flex-col">
         <div className="flex-1">
           {config.icon && <span className="text-3xl mb-2 block">{config.icon}</span>}
           <h3 className="text-xl font-bold mb-1 tracking-tight">{config.title}</h3>
@@ -365,9 +375,9 @@ export function InlineSlide({ jsonString, editorEnabled = true }: { jsonString: 
           </div>
         )}
       </div>
-      <div className="bg-[#3399ff]/10 px-5 py-2 flex items-center gap-2">
-        <Presentation className="w-3.5 h-3.5 text-[#3399ff]" />
-        <span className="text-xs text-muted-foreground">Slide</span>
+      <div className="px-5 py-2 flex items-center gap-2" style={{ backgroundColor: `${accent}15` }}>
+        <Presentation className="w-3.5 h-3.5" style={{ color: accent }} />
+        <span className="text-xs text-muted-foreground">{config.brand_name ? `${config.brand_name} · Slide` : "Slide"}</span>
         <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
     </div>
