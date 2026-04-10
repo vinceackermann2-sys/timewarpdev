@@ -389,7 +389,6 @@ export async function searchConnectedProviders(
         if (!token) {
           skippedProviders.push("slack");
           skippedProviderDetails.push({ provider: "slack", reason: "token expired or missing" });
-          emitProgress?.({ label: getProviderSkipLabel("slack", "token expired"), status: "done", action: "connections" });
           return;
         }
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "running", action: "connections" });
