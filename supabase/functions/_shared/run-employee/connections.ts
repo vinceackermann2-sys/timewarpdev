@@ -4,6 +4,73 @@ const STOPWORDS = new Set(["this","that","with","from","have","been","were","the
 
 export { STOPWORDS };
 
+export interface SkippedProviderDetail {
+  provider: string;
+  reason: string;
+}
+
+const SEARCH_TERM_ALIASES: Record<string, string[]> = {
+  "collaborations & partnerships": ["collaboration", "partnership", "partner", "collab", "sponsorship"],
+  "complaints & issues": ["complaint", "issue", "problem", "support ticket", "bug"],
+  "meetings & calls": ["meeting", "call", "appointment", "invite", "calendar"],
+  "emails & messages": ["email", "message", "mail", "thread", "reply"],
+  "files & documents": ["file", "document", "attachment", "proposal", "brief"],
+  "leads & deals": ["lead", "prospect", "deal", "opportunity"],
+  "sales & revenue": ["sale", "order", "revenue", "invoice", "purchase order"],
+};
+
+function normalizeSearchTerm(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildSearchTerms(query: string, topic?: string): string[] {
+  const normalizedQuery = normalizeSearchTerm(query);
+  const conciseQuery = normalizedQuery
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && !STOPWORDS.has(word))
+    .slice(0, 5)
+    .join(" ");
+
+  const aliasTerms = topic
+    ? SEARCH_TERM_ALIASES[topic.toLowerCase()] || [normalizeSearchTerm(topic)]
+    : [];
+
+  return Array.from(
+    new Set(
+      [normalizedQuery, conciseQuery, ...aliasTerms]
+        .map((term) => normalizeSearchTerm(term))
+        .filter((term) => term.length > 2),
+    ),
+  ).slice(0, 4);
+}
+
+function formatProviderName(provider: string): string {
+  if (provider === "microsoft") return "Microsoft 365";
+  if (provider === "slack") return "Slack";
+  if (provider === "hubspot") return "HubSpot";
+  return provider;
+}
+
+function buildNoMatchConnectionContext(
+  topic: string,
+  searchedProviders: string[],
+  skippedProviderDetails: SkippedProviderDetail[],
+  reason: string,
+): string {
+  const searchedSummary = searchedProviders.length > 0
+    ? searchedProviders.map(formatProviderName).join(", ")
+    : "none";
+  const skippedSummary = skippedProviderDetails.length > 0
+    ? skippedProviderDetails.map(({ provider, reason }) => `${formatProviderName(provider)} (${reason})`).join(", ")
+    : "none";
+
+  return `\n\n## Connected Sources (Live Search Results)\nUse this section as the primary source of truth for requests about live emails, messages, files, meetings, or collaboration activity. Answer the lookup request directly before offering any ideas.\n\n### Lookup Outcome\n${reason} for **${topic}**.\n\n- **Searched sources:** ${searchedSummary}\n- **Skipped sources:** ${skippedSummary}\n\n**Important:** Treat this as a real lookup outcome. Do **not** invent collaboration requests, emails, files, meetings, or partnership opportunities when no live matches were found.`;
+}
+
 export async function refreshMicrosoftToken(refreshToken: string): Promise<any> {
   const res = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
     method: "POST",
@@ -51,70 +118,107 @@ export async function getValidProviderToken(supabaseAdmin: any, userId: string, 
   return null;
 }
 
-export async function searchMicrosoftData(token: string, query: string): Promise<{ emails: string[]; files: string[] }> {
+export async function searchMicrosoftData(token: string, query: string, topic?: string): Promise<{ emails: string[]; files: string[] }> {
   const results = { emails: [] as string[], files: [] as string[] };
-  const keywords = query.split(/\s+/).filter(w => w.length > 2).slice(0, 5).join(" ");
-  if (!keywords) return results;
+  const seenEmails = new Set<string>();
+  const seenFiles = new Set<string>();
+  const searchTerms = buildSearchTerms(query, topic);
+  if (searchTerms.length === 0) return results;
 
-  try {
-    const emailRes = await fetch(
-      `https://graph.microsoft.com/v1.0/me/messages?$search="${encodeURIComponent(keywords)}"&$top=5&$select=subject,bodyPreview,from,receivedDateTime`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (emailRes.ok) {
-      const data = await emailRes.json();
-      for (const msg of (data.value || [])) {
-        if (msg.subject || msg.bodyPreview) {
-          results.emails.push(`📧 **${msg.subject || "No subject"}** (from: ${msg.from?.emailAddress?.address || "unknown"}, ${msg.receivedDateTime?.slice(0, 10) || ""})\n${(msg.bodyPreview || "").slice(0, 300)}`);
+  for (const term of searchTerms) {
+    const encodedTerm = encodeURIComponent(term.replace(/"/g, " ").trim());
+    if (!encodedTerm) continue;
+
+    try {
+      if (results.emails.length < 5) {
+        const emailRes = await fetch(
+          `https://graph.microsoft.com/v1.0/me/messages?$search="${encodedTerm}"&$top=5&$select=subject,bodyPreview,from,receivedDateTime`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              ConsistencyLevel: "eventual",
+            },
+          },
+        );
+        if (emailRes.ok) {
+          const data = await emailRes.json();
+          for (const msg of (data.value || [])) {
+            const subject = msg.subject || "No subject";
+            const from = msg.from?.emailAddress?.address || "unknown";
+            const receivedAt = msg.receivedDateTime?.slice(0, 10) || "";
+            const preview = (msg.bodyPreview || "").slice(0, 300);
+            const key = `${subject}|${from}|${receivedAt}`;
+            if (seenEmails.has(key)) continue;
+            seenEmails.add(key);
+            results.emails.push(`📧 **${subject}** (from: ${from}, ${receivedAt})\n${preview}`);
+            if (results.emails.length >= 5) break;
+          }
         }
       }
+    } catch (e) {
+      console.error("Microsoft email search error:", e);
     }
-  } catch (e) {
-    console.error("Microsoft email search error:", e);
-  }
 
-  try {
-    const fileRes = await fetch(
-      `https://graph.microsoft.com/v1.0/me/drive/root/search(q='${encodeURIComponent(keywords)}')?$top=5&$select=name,webUrl,lastModifiedDateTime,size`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (fileRes.ok) {
-      const data = await fileRes.json();
-      for (const file of (data.value || [])) {
-        results.files.push(`📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""}) — [link](${file.webUrl || ""})`);
+    try {
+      if (results.files.length < 5) {
+        const fileRes = await fetch(
+          `https://graph.microsoft.com/v1.0/me/drive/root/search(q='${encodedTerm}')?$top=5&$select=name,webUrl,lastModifiedDateTime,size`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (fileRes.ok) {
+          const data = await fileRes.json();
+          for (const file of (data.value || [])) {
+            const fileKey = file.webUrl || `${file.name}|${file.lastModifiedDateTime || ""}`;
+            if (seenFiles.has(fileKey)) continue;
+            seenFiles.add(fileKey);
+            results.files.push(`📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""}) — [link](${file.webUrl || ""})`);
+            if (results.files.length >= 5) break;
+          }
+        }
       }
+    } catch (e) {
+      console.error("Microsoft file search error:", e);
     }
-  } catch (e) {
-    console.error("Microsoft file search error:", e);
+
+    if (results.emails.length >= 5 && results.files.length >= 5) break;
   }
 
   return results;
 }
 
-export async function searchSlackData(token: string, query: string): Promise<string[]> {
+export async function searchSlackData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
-  const keywords = query.split(/\s+/).filter(w => w.length > 2).slice(0, 5).join(" ");
-  if (!keywords) return results;
+  const seenResults = new Set<string>();
+  const searchTerms = buildSearchTerms(query, topic);
+  if (searchTerms.length === 0) return results;
 
-  try {
-    const res = await fetch(
-      `https://slack.com/api/search.messages?query=${encodeURIComponent(keywords)}&count=5`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok && data.messages?.matches) {
-        for (const match of data.messages.matches.slice(0, 5)) {
-          const channel = match.channel?.name || "unknown";
-          const user = match.username || "unknown";
-          const text = (match.text || "").slice(0, 300);
-          const ts = match.ts ? new Date(parseFloat(match.ts) * 1000).toISOString().slice(0, 10) : "";
-          results.push(`💬 **#${channel}** (${user}, ${ts}): ${text}`);
+  for (const term of searchTerms) {
+    try {
+      const res = await fetch(
+        `https://slack.com/api/search.messages?query=${encodeURIComponent(term)}&count=5`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.messages?.matches) {
+          for (const match of data.messages.matches.slice(0, 5)) {
+            const channel = match.channel?.name || "unknown";
+            const user = match.username || "unknown";
+            const text = (match.text || "").slice(0, 300);
+            const ts = match.ts ? new Date(parseFloat(match.ts) * 1000).toISOString().slice(0, 10) : "";
+            const key = `${channel}|${user}|${ts}|${text}`;
+            if (seenResults.has(key)) continue;
+            seenResults.add(key);
+            results.push(`💬 **#${channel}** (${user}, ${ts}): ${text}`);
+            if (results.length >= 5) break;
+          }
         }
       }
+    } catch (e) {
+      console.error("Slack search error:", e);
     }
-  } catch (e) {
-    console.error("Slack search error:", e);
+
+    if (results.length >= 5) break;
   }
 
   return results;
@@ -191,11 +295,6 @@ export function getProviderSkipLabel(provider: string, reason: string): string {
   return `Skipped ${provider} — ${reason}`;
 }
 
-export interface SkippedProviderDetail {
-  provider: string;
-  reason: string;
-}
-
 export async function searchConnectedProviders(
   supabase: any,
   userId: string,
@@ -208,6 +307,7 @@ export async function searchConnectedProviders(
   const skippedProviderDetails: SkippedProviderDetail[] = [];
   let connectionContext = "";
   const t = topic || extractQueryTopic(userQuery);
+  const connectionCheckLabel = `Checking connected sources for ${t}`;
 
   const decision = shouldSearchConnections(userQuery);
   console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
@@ -221,7 +321,7 @@ export async function searchConnectedProviders(
     return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
-  emitProgress?.({ label: `Checking connected sources for ${t}`, status: "done", action: "connections" });
+  emitProgress?.({ label: connectionCheckLabel, status: "running", action: "connections", detail: decision.reason });
 
   const { data: connections, error: connErr } = await supabase
     .from("user_connections")
@@ -238,7 +338,14 @@ export async function searchConnectedProviders(
       skippedProviders.push(provider);
       skippedProviderDetails.push({ provider, reason: "not connected" });
     }
+    connectionContext = buildNoMatchConnectionContext(
+      t,
+      searchedProviders,
+      skippedProviderDetails,
+      "No connected sources are currently available",
+    );
     emitProgress?.({ label: `No connected sources available for ${t}`, status: "done", action: "connections", detail: "No integrations are currently connected" });
+    emitProgress?.({ label: connectionCheckLabel, status: "done", action: "connections", detail: decision.reason });
     return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
@@ -246,12 +353,12 @@ export async function searchConnectedProviders(
   const searchPromises: Promise<void>[] = [];
 
   const allKnownProviders = ["microsoft", "slack", "hubspot"];
-  for (const p of allKnownProviders) {
-    if (!connectedProviders.includes(p)) {
-      skippedProviders.push(p);
-      skippedProviderDetails.push({ provider: p, reason: "not connected" });
-      if (p === "microsoft" || p === "slack") {
-        emitProgress?.({ label: getProviderSkipLabel(p, "not connected"), status: "done", action: "connections" });
+  for (const provider of allKnownProviders) {
+    if (!connectedProviders.includes(provider)) {
+      skippedProviders.push(provider);
+      skippedProviderDetails.push({ provider, reason: "not connected" });
+      if (provider === "microsoft" || provider === "slack") {
+        emitProgress?.({ label: getProviderSkipLabel(provider, "not connected"), status: "done", action: "connections" });
       }
     }
   }
@@ -268,17 +375,18 @@ export async function searchConnectedProviders(
         }
         emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "running", action: "connections" });
         searchedProviders.push("microsoft");
-        console.log("[connections] Searching Microsoft with query:", userQuery.slice(0, 60));
-        const results = await searchMicrosoftData(token, userQuery);
+        console.log("[connections] Searching Microsoft with query:", userQuery.slice(0, 60), "topic:", t);
+        const results = await searchMicrosoftData(token, userQuery, t);
         console.log("[connections] Microsoft results: emails=", results.emails.length, "files=", results.files.length);
         if (results.emails.length > 0 || results.files.length > 0) {
-          connectionContext += `\n\n## Live Data from Microsoft 365\n`;
-          if (results.emails.length > 0) connectionContext += `### Recent Emails\n${results.emails.join("\n\n")}\n`;
-          if (results.files.length > 0) connectionContext += `### Recent Files\n${results.files.join("\n\n")}\n`;
+          connectionContext += `\n\n### Live Data from Microsoft 365\n`;
+          if (results.emails.length > 0) connectionContext += `#### Recent Emails\n${results.emails.join("\n\n")}\n`;
+          if (results.files.length > 0) connectionContext += `#### Recent Files\n${results.files.join("\n\n")}\n`;
         }
         emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "done", action: "connections" });
       } catch (e) {
         console.error("[connections] Microsoft search failed:", e);
+        skippedProviderDetails.push({ provider: "microsoft", reason: "search failed" });
         emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "error", action: "connections" });
       }
     })());
@@ -296,24 +404,40 @@ export async function searchConnectedProviders(
         }
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "running", action: "connections" });
         searchedProviders.push("slack");
-        console.log("[connections] Searching Slack with query:", userQuery.slice(0, 60));
-        const results = await searchSlackData(token, userQuery);
+        console.log("[connections] Searching Slack with query:", userQuery.slice(0, 60), "topic:", t);
+        const results = await searchSlackData(token, userQuery, t);
         console.log("[connections] Slack results:", results.length);
         if (results.length > 0) {
-          connectionContext += `\n\n## Live Data from Slack\n${results.join("\n\n")}\n`;
+          connectionContext += `\n\n### Live Data from Slack\n${results.join("\n\n")}\n`;
         }
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "done", action: "connections" });
       } catch (e) {
         console.error("[connections] Slack search failed:", e);
+        skippedProviderDetails.push({ provider: "slack", reason: "search failed" });
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "error", action: "connections" });
       }
     })());
   }
 
   await Promise.all(searchPromises);
+  emitProgress?.({ label: connectionCheckLabel, status: "done", action: "connections", detail: decision.reason });
 
   if (connectionContext) {
-    connectionContext = `\n\n## Connected Sources (Live Search Results)\nThe following data was retrieved in real-time from the user's connected integrations. Use it to provide more informed answers when relevant.\n${connectionContext}`;
+    const searchedSummary = searchedProviders.length > 0
+      ? searchedProviders.map(formatProviderName).join(", ")
+      : "none";
+    const skippedSummary = skippedProviderDetails.length > 0
+      ? skippedProviderDetails.map(({ provider, reason }) => `${formatProviderName(provider)} (${reason})`).join(", ")
+      : "none";
+
+    connectionContext = `\n\n## Connected Sources (Live Search Results)\nUse this section as the primary source of truth for requests about live emails, messages, files, meetings, or collaboration activity. Answer the lookup request directly before offering any ideas.\n\n- **Searched sources:** ${searchedSummary}\n- **Skipped sources:** ${skippedSummary}\n${connectionContext}`;
+  } else {
+    connectionContext = buildNoMatchConnectionContext(
+      t,
+      searchedProviders,
+      skippedProviderDetails,
+      "No matching live results were found across the searched connected sources",
+    );
   }
 
   console.log("[connections] Final searchedProviders:", searchedProviders, "skipped:", skippedProviders, "hasContext:", connectionContext.length > 0);

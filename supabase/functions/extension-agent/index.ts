@@ -176,16 +176,10 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Load safety settings from brand (null if no brand or no settings)
     const safetySettings = await loadSafetySettings(supabase, brandId);
-
-    // Load lightweight identity
     const identity = await loadBusinessIdentity(supabase, user.id, brandId);
-
-    // RAG: retrieve relevant context based on user's latest message
     const lastUserMsg = extractLastUserMessage(messages);
 
-    // --- MIDDLEWARE LAYER 2: Pre-flight input validation (only if guardrails enabled) ---
     const preflightBlock = runPreflightGuardrails(lastUserMsg, safetySettings);
     if (preflightBlock) {
       return new Response(JSON.stringify({ content: preflightBlock }), {
@@ -193,19 +187,13 @@ serve(async (req) => {
       });
     }
 
-    const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
+    const topic = extractQueryTopic(lastUserMsg);
+    const initialConnectionDecision = shouldSearchConnections(lastUserMsg);
+    const userMsg = messages?.[messages.length - 1]?.content || "";
 
-    // --- Connection search (live data from Microsoft/Slack/etc.) ---
-    const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
-      supabase,
-      user.id,
-      lastUserMsg,
-    );
-
-    // Build page context section
-    let pageSection = "";
-    if (pageContext) {
-      pageSection = `
+    const buildPageSection = () => {
+      if (!pageContext) return "";
+      return `
 ## Current Browser Page Context
 - **URL:** ${pageContext.url || "unknown"}
 - **Title:** ${pageContext.title || "unknown"}
@@ -215,60 +203,61 @@ ${pageContext.formFields ? `\n### Visible Form Fields\n${JSON.stringify(pageCont
 ${pageContext.links ? `\n### Key Links\n${JSON.stringify(pageContext.links.slice(0, 30), null, 2)}` : ""}
 ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.metadata, null, 2)}` : ""}
 `;
-    }
+    };
 
-    const hasBrowserContext = !!pageContext || browserMode;
-    const fullContext = relevantContext + connectionContext;
-
-    const systemPrompt = browserMode
-      ? buildBrowserActionPrompt(pageSection, identity, fullContext, safetySettings)
-      : hasBrowserContext
-        ? buildBrowserPrompt(pageSection, identity, fullContext, safetySettings)
-        : buildChatPrompt(identity, fullContext);
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        stream: !browserMode,
-      }),
-    });
-
-    if (!response.ok) {
-      const status = response.status;
-      const errorBody = await response.text().catch(() => "");
-      console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error("AI service unavailable");
-    }
-
-    // Save chat to timewarp_chats
-    const userMsg = messages?.[messages.length - 1]?.content || "";
-    supabase.from("timewarp_chats").insert({
-      user_id: user.id,
-      user_message: typeof userMsg === "string" ? userMsg : JSON.stringify(userMsg),
-      page_url: pageContext?.url || null,
-    }).then(() => {});
-
-    // In browserMode, return non-streaming JSON with post-flight + action validation
     if (browserMode) {
+      const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
+      const { connectionContext, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
+        supabase,
+        user.id,
+        lastUserMsg,
+        undefined,
+        topic,
+      );
+
+      const pageSection = buildPageSection();
+      const fullContext = relevantContext + connectionContext;
+      const systemPrompt = buildBrowserActionPrompt(pageSection, identity, fullContext, safetySettings);
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        const status = response.status;
+        const errorBody = await response.text().catch(() => "");
+        console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+        if (status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw new Error("AI service unavailable");
+      }
+
+      supabase.from("timewarp_chats").insert({
+        user_id: user.id,
+        user_message: typeof userMsg === "string" ? userMsg : JSON.stringify(userMsg),
+        page_url: pageContext?.url || null,
+      }).then(() => {});
+
       const aiResult = await response.json();
       let content = aiResult.choices?.[0]?.message?.content || "";
       content = runPostflightGuardrails(content, safetySettings);
@@ -279,10 +268,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       });
     }
 
-    // Wrap the AI gateway SSE stream in custom events with progress steps
     const encoder = new TextEncoder();
-    const topic = queryTopic || "your request";
-
     const stream = new ReadableStream({
       start(controller) {
         const send = (payload: unknown) => {
@@ -295,64 +281,110 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         };
+        const parseGatewayEvent = (eventBlock: string, onDelta: (delta: string) => void) => {
+          for (const line of eventBlock.split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (!data || data === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content || "";
+              if (delta) onDelta(delta);
+            } catch {
+              // Ignore malformed partial events
+            }
+          }
+        };
 
         (async () => {
           try {
-            // Emit context gathering step
+            sendStep(`Understanding your question about ${topic}`, "running", "analysis");
+            sendStep(`Understanding your question about ${topic}`, "done", "analysis", initialConnectionDecision.reason);
+
+            sendStep(`Gathering business data on ${topic}`, "running", "context");
+            const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
             sendStep(`Gathering business data on ${topic}`, "done", "context");
 
-            // Emit connection steps
-            if (connectionDecision.shouldSearch) {
-              sendStep(`Checking connected sources for ${topic}`, "done", "connections", connectionDecision.reason);
-              for (const provider of searchedProviders) {
-                const label = provider === "microsoft" ? `Searching Microsoft 365 emails & files for ${topic}` :
-                              provider === "slack" ? `Searching Slack messages & channels for ${topic}` :
-                              `Searching ${provider} for ${topic}`;
-                sendStep(label, "done", "connections");
-              }
-              for (const skipped of skippedProviderDetails) {
-                const label = skipped.provider === "microsoft" ? `Skipped Microsoft — ${skipped.reason}` :
-                              skipped.provider === "slack" ? `Skipped Slack — ${skipped.reason}` :
-                              `Skipped ${skipped.provider} — ${skipped.reason}`;
-                sendStep(label, "done", "connections");
-              }
+            const { connectionContext, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
+              supabase,
+              user.id,
+              lastUserMsg,
+              (step) => send({ type: "progress", step }),
+              topic,
+            );
+
+            const answerTopic = queryTopic || topic;
+            const pageSection = buildPageSection();
+            const hasBrowserContext = !!pageContext;
+            const fullContext = relevantContext + connectionContext;
+            const systemPrompt = hasBrowserContext
+              ? buildBrowserPrompt(pageSection, identity, fullContext, safetySettings)
+              : buildChatPrompt(identity, fullContext);
+
+            supabase.from("timewarp_chats").insert({
+              user_id: user.id,
+              user_message: typeof userMsg === "string" ? userMsg : JSON.stringify(userMsg),
+              page_url: pageContext?.url || null,
+            }).then(() => {});
+
+            sendStep(`Crafting your answer on ${answerTopic}`, "running", "response");
+            const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-3-flash-preview",
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  ...messages,
+                ],
+                stream: true,
+              }),
+            });
+
+            if (!response.ok) {
+              const status = response.status;
+              const errorBody = await response.text().catch(() => "");
+              console.error("AI gateway error: status", status, "body:", errorBody.slice(0, 200));
+              if (status === 429) throw new Error("Rate limit exceeded.");
+              if (status === 402) throw new Error("AI credits exhausted.");
+              throw new Error("AI service unavailable");
             }
 
-            sendStep(`Crafting your answer on ${topic}`, "running", "response");
-
-            // Consume AI gateway stream and re-emit as content events
             const reader = response.body?.getReader();
             if (!reader) throw new Error("No response body");
 
             const decoder = new TextDecoder();
+            let buffer = "";
             let fullContent = "";
 
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
-              const chunk = decoder.decode(value, { stream: true });
-              const lines = chunk.split("\n");
-              for (const line of lines) {
-                if (!line.startsWith("data: ")) continue;
-                const data = line.slice(6).trim();
-                if (data === "[DONE]") break;
-                try {
-                  const parsed = JSON.parse(data);
-                  const delta = parsed.choices?.[0]?.delta?.content || "";
-                  if (delta) {
-                    fullContent += delta;
-                    send({ type: "content", delta });
-                  }
-                } catch {}
+              buffer += decoder.decode(value, { stream: true });
+              const eventBlocks = buffer.split("\n\n");
+              buffer = eventBlocks.pop() || "";
+              for (const eventBlock of eventBlocks) {
+                parseGatewayEvent(eventBlock, (delta) => {
+                  fullContent += delta;
+                  send({ type: "content", delta });
+                });
               }
             }
 
-            sendStep(`Crafting your answer on ${topic}`, "done", "response");
-            sendStep("Finished", "done", "complete");
+            if (buffer.trim()) {
+              parseGatewayEvent(buffer, (delta) => {
+                fullContent += delta;
+                send({ type: "content", delta });
+              });
+            }
 
-            // Apply post-flight guardrails
             const finalContent = runPostflightGuardrails(fullContent, safetySettings);
-            send({ type: "result", content: finalContent, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic });
+            sendStep(`Crafting your answer on ${answerTopic}`, "done", "response");
+            sendStep("Finished", "done", "complete");
+            send({ type: "result", content: finalContent, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic: answerTopic });
             close();
           } catch (error: any) {
             console.error("extension-agent stream error:", error?.message || error);
