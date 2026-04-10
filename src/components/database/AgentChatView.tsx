@@ -286,13 +286,22 @@ export function AgentChatView() {
 
   const handleSelectChat = (session: ChatSession) => {
     setActiveChatId(session.id);
-    setMessages(session.messages as ChatMessage[]);
+    const msgs = session.messages as ChatMessage[];
+    setMessages(msgs);
     if (session.agent_name) setSelectedAgent(session.agent_name);
+    // Restore employee context from saved messages
+    const lastEmployeeMsg = [...msgs].reverse().find(m => m.employees && m.employees.length > 0);
+    if (lastEmployeeMsg?.employees) {
+      setSelectedChatEmployees(lastEmployeeMsg.employees);
+    } else {
+      setSelectedChatEmployees([]);
+    }
   };
 
   const handleNewChat = () => {
     setActiveChatId(null);
     setMessages([]);
+    setSelectedChatEmployees([]);
   };
 
   /* ── Integration connection state ── */
