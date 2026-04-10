@@ -281,9 +281,11 @@ serve(async (req) => {
       effectiveMessages.push({ role: "user", content: "Continue exactly where you left off. Do not repeat what you already wrote." });
     }
 
+    const fullContext = relevantContext + connectionContext;
+
     const systemPrompt = isBrowserMode
-      ? buildBrowserSystemPrompt(employee, identity, relevantContext, pageContext, safetySettings)
-      : buildEmployeeChatPrompt(employee, identity, relevantContext, safetySettings);
+      ? buildBrowserSystemPrompt(employee, identity, fullContext, pageContext, safetySettings)
+      : buildEmployeeChatPrompt(employee, identity, fullContext, safetySettings);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
