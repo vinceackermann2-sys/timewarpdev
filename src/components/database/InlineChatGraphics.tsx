@@ -375,9 +375,9 @@ export function InlineSlide({ jsonString, editorEnabled = true }: { jsonString: 
           </div>
         )}
       </div>
-      <div className="bg-[#3399ff]/10 px-5 py-2 flex items-center gap-2">
-        <Presentation className="w-3.5 h-3.5 text-[#3399ff]" />
-        <span className="text-xs text-muted-foreground">Slide</span>
+      <div className="px-5 py-2 flex items-center gap-2" style={{ backgroundColor: `${accent}15` }}>
+        <Presentation className="w-3.5 h-3.5" style={{ color: accent }} />
+        <span className="text-xs text-muted-foreground">{config.brand_name ? `${config.brand_name} · Slide` : "Slide"}</span>
         <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
     </div>
