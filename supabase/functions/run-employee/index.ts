@@ -188,7 +188,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId, continuationContent } = await req.json();
+    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId, continuationContent, connectionQuery } = await req.json();
     if (!employee_id) throw new Error("employee_id required");
 
     // Load employee
@@ -236,6 +236,9 @@ serve(async (req) => {
 
     // Extract user's latest message for RAG + guardrails
     const lastUserMsg = extractLastUserMessage(messages);
+    const connectionLookupQuery = typeof connectionQuery === "string" && connectionQuery.trim().length > 0
+      ? connectionQuery.trim()
+      : lastUserMsg;
 
     // --- MIDDLEWARE LAYER 2: Pre-flight input validation (only if guardrails enabled) ---
     const preflightBlock = runPreflightGuardrails(lastUserMsg, safetySettings);
@@ -364,7 +367,7 @@ serve(async (req) => {
         workspace_id: effectiveWsId,
         linked_business_id: effectiveBrandId,
       }, lastUserMsg);
-      const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
+      const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(supabase, user.id, connectionLookupQuery);
       const result = await buildAiResponse(relevantContext, connectionContext);
       return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -387,9 +390,9 @@ serve(async (req) => {
 
         (async () => {
           try {
-            const topic = extractQueryTopic(lastUserMsg);
+            const topic = extractQueryTopic(connectionLookupQuery);
             sendStep(`Understanding your question about ${topic}`, "running", "analysis");
-            const decision = shouldSearchConnections(lastUserMsg);
+            const decision = shouldSearchConnections(connectionLookupQuery);
             sendStep(`Understanding your question about ${topic}`, "done", "analysis", decision.reason);
 
             sendStep(`Gathering business data on ${topic}`, "running", "context");
@@ -403,7 +406,7 @@ serve(async (req) => {
             const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
               supabase,
               user.id,
-              lastUserMsg,
+              connectionLookupQuery,
               (step) => send({ type: "progress", step }),
               topic,
             );

@@ -1490,6 +1490,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
             body: JSON.stringify({
               employee_id: emp.id,
               messages: conversationHistory.slice(-6),
+              connectionQuery: userMsg.content,
               pageContext,
               skip_action: stepCount > 0,
               brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })(),
@@ -1507,10 +1508,11 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         const content = data.content || "";
         conversationHistory.push({ role: "assistant" as const, content });
 
-        for (const step of buildConnectionTaskSteps(data)) {
+        const connectionSteps = buildConnectionTaskSteps(data);
+        for (const step of connectionSteps) {
           upsertChatTaskStep(taskSteps, step);
         }
-        if (buildConnectionTaskSteps(data).length > 0) {
+        if (connectionSteps.length > 0) {
           setMessages(prev => prev.map(m => m.id === assistantId ? {
             ...m,
             taskSteps: [...taskSteps],
