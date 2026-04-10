@@ -16,8 +16,8 @@ export default function NewValueComparison() {
   return (
     <section className="py-12 sm:py-20 bg-white border-t border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Logo Carousel */}
-        <div className="mb-16 sm:mb-24 overflow-hidden">
+        {/* Logo Carousel — hidden for now */}
+        {false && <div className="mb-16 sm:mb-24 overflow-hidden">
           <div className="flex animate-marquee whitespace-nowrap gap-16 sm:gap-24 opacity-60 grayscale">
             {[...logos, ...logos].map((logo, i) => (
               <div key={i} className="flex items-center gap-2 shrink-0">
@@ -26,7 +26,7 @@ export default function NewValueComparison() {
               </div>
             ))}
           </div>
-        </div>
+        </div>}
 
         {/* Two Modes Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 max-w-6xl mx-auto">
