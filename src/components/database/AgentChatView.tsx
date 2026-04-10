@@ -943,67 +943,19 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         streamStartTime: m.streamStartTime || Date.now(),
       } : m));
     };
-    const addStep = (label: string, status: "running" | "done" | "error" = "running") => {
-      taskSteps.push({ action: "process", label, status });
-      syncTaskSteps();
-    };
-    const completeStep = (status: "done" | "error" = "done") => {
-      for (let i = taskSteps.length - 1; i >= 0; i--) {
-        if (taskSteps[i].status === "running") {
-          taskSteps[i].status = status;
-          break;
-        }
+    const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
+      const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
+      if (existingIdx !== -1 && step.status !== "running") {
+        taskSteps[existingIdx].status = step.status;
+        if (step.detail) taskSteps[existingIdx].detail = step.detail;
+      } else if (existingIdx === -1) {
+        taskSteps.push({ action: step.action || "process", label: step.label, status: step.status, detail: step.detail });
       }
       syncTaskSteps();
     };
 
-    // Derive contextual step labels from the user's message
-    const rawText = typeof userContent === "string" ? userContent : userMsg.content;
-    const msg = rawText.toLowerCase();
-    const getContextLabel = () => {
-      if (msg.includes("email") || msg.includes("mail")) return "Gathering your email context";
-      if (msg.includes("report") || msg.includes("analytics")) return "Pulling relevant data & metrics";
-      if (msg.includes("marketing") || msg.includes("campaign")) return "Reviewing your marketing assets";
-      if (msg.includes("social") || msg.includes("post") || msg.includes("content")) return "Reviewing your content strategy";
-      if (msg.includes("brand") || msg.includes("logo") || msg.includes("identity")) return "Loading your brand profile";
-      if (msg.includes("competitor") || msg.includes("research")) return "Researching the market";
-      if (msg.includes("sales") || msg.includes("lead") || msg.includes("pipeline")) return "Analyzing your sales data";
-      if (msg.includes("plan") || msg.includes("strategy")) return "Evaluating your current strategy";
-      if (msg.includes("write") || msg.includes("draft") || msg.includes("create")) return "Preparing to draft your content";
-      if (msg.includes("fix") || msg.includes("issue") || msg.includes("problem")) return "Diagnosing the issue";
-      if (msg.includes("idea") || msg.includes("suggest") || msg.includes("recommend")) return "Brainstorming ideas for you";
-      if (msg.includes("summarize") || msg.includes("summary")) return "Reading through your materials";
-      if (msg.includes("schedule") || msg.includes("calendar")) return "Checking your schedule";
-      if (msg.includes("product") || msg.includes("pricing")) return "Reviewing your product details";
-      if (msg.includes("customer") || msg.includes("audience")) return "Analyzing your audience data";
-      return "Gathering your business context";
-    };
-    const getAnalyzeLabel = () => {
-      if (msg.includes("email") || msg.includes("mail")) return "Crafting the right tone & message";
-      if (msg.includes("report") || msg.includes("analytics")) return "Crunching the numbers";
-      if (msg.includes("marketing") || msg.includes("campaign")) return "Building your campaign approach";
-      if (msg.includes("social") || msg.includes("post") || msg.includes("content")) return "Planning your content angle";
-      if (msg.includes("competitor") || msg.includes("research")) return "Comparing market insights";
-      if (msg.includes("sales") || msg.includes("lead")) return "Identifying key opportunities";
-      if (msg.includes("plan") || msg.includes("strategy")) return "Mapping out the best approach";
-      if (msg.includes("fix") || msg.includes("issue")) return "Finding the root cause";
-      if (msg.includes("idea") || msg.includes("suggest")) return "Evaluating the best options";
-      if (msg.includes("summarize") || msg.includes("summary")) return "Extracting key takeaways";
-      return "Analyzing the best approach";
-    };
-    const getWriteLabel = () => {
-      if (msg.includes("email") || msg.includes("mail")) return "Writing your email";
-      if (msg.includes("report") || msg.includes("analytics")) return "Compiling your report";
-      if (msg.includes("marketing") || msg.includes("campaign")) return "Drafting your campaign";
-      if (msg.includes("social") || msg.includes("post") || msg.includes("content")) return "Creating your content";
-      if (msg.includes("plan") || msg.includes("strategy")) return "Building your plan";
-      if (msg.includes("fix") || msg.includes("issue")) return "Putting together the solution";
-      if (msg.includes("idea") || msg.includes("suggest")) return "Writing up recommendations";
-      if (msg.includes("summarize") || msg.includes("summary")) return "Writing your summary";
-      return "Composing your response";
-    };
-
-    addStep(getContextLabel());
+    // Show processing state
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
 
     const response = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
@@ -1024,52 +976,73 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     );
 
     if (!response.ok) {
-      completeStep();
-      addStep("Error");
-      taskSteps[taskSteps.length - 1].status = "error";
+      handleProgressStep({ label: "Error", status: "error" });
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || "Failed to get response");
     }
 
-    completeStep();
-    addStep(getAnalyzeLabel());
-
-    // Stream SSE response
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error("No response body");
-
-    const decoder = new TextDecoder();
+    const contentType = response.headers.get("content-type") || "";
     let fullContent = "";
-    let transitionedToWrite = false;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6);
-        if (data === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(data);
-          const delta = parsed.choices?.[0]?.delta?.content || "";
-          if (delta) {
-            if (!transitionedToWrite) {
-              transitionedToWrite = true;
-              completeStep();
-              addStep(getWriteLabel());
+    if (contentType.includes("text/event-stream")) {
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (raw === "[DONE]") break;
+          try {
+            const evt = JSON.parse(raw);
+            if (evt.type === "progress" && evt.step) {
+              handleProgressStep(evt.step);
+            } else if (evt.type === "content" && evt.delta) {
+              fullContent += evt.delta;
+              syncTaskSteps(fullContent);
+            } else if (evt.type === "result") {
+              if (evt.content) fullContent = evt.content;
+            } else if (evt.type === "error") {
+              handleProgressStep({ label: evt.error || "Error", status: "error" });
+              throw new Error(evt.error || "Failed");
             }
-            fullContent += delta;
-            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, taskSteps: [...taskSteps], isStreaming: true } : m));
+          } catch (e: any) {
+            if (e.message === "Failed" || e.message?.includes("Error")) throw e;
           }
-        } catch {}
+        }
       }
+    } else {
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6);
+          if (data === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content || "";
+            if (delta) {
+              fullContent += delta;
+              setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, taskSteps: [...taskSteps], isStreaming: true } : m));
+            }
+          } catch {}
+        }
+      }
+      handleProgressStep({ label: "Finished", status: "done", action: "complete" });
     }
-
-    completeStep();
-    addStep("Finished");
-    completeStep();
 
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", taskSteps: [...taskSteps], isStreaming: false } : m));
   };
