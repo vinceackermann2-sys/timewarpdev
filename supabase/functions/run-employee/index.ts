@@ -250,6 +250,9 @@ serve(async (req) => {
 
     const isBrowserMode = !!pageContext;
 
+    // Check for verified business answers (pricing, revenue) but DON'T early-return with bare JSON.
+    // Instead, store the result and serve it through the SSE pipeline so sub-logging still shows.
+    let preVerifiedContent: string | null = null;
     if (!isBrowserMode) {
       const verifiedContent = await buildVerifiedBusinessAnswer(supabase, {
         ...employee,
@@ -258,10 +261,7 @@ serve(async (req) => {
       }, lastUserMsg);
 
       if (verifiedContent) {
-        const content = runPostflightGuardrails(verifiedContent, safetySettings);
-        return new Response(JSON.stringify({ content }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        preVerifiedContent = runPostflightGuardrails(verifiedContent, safetySettings);
       }
     }
 
@@ -411,11 +411,21 @@ serve(async (req) => {
               topic,
             );
 
-            sendStep(`Crafting your answer on ${topic}`, "running", "response");
-            const result = await buildAiResponse(relevantContext, connectionContext, (delta) => {
-              send({ type: "content", delta });
-            });
-            sendStep(`Crafting your answer on ${topic}`, "done", "response");
+            let result: { content: string; continuation?: boolean };
+
+            if (preVerifiedContent) {
+              // Use pre-verified business answer (pricing/revenue) — skip AI call
+              sendStep(`Verified business data for ${topic}`, "running", "response");
+              send({ type: "content", delta: preVerifiedContent });
+              result = { content: preVerifiedContent, continuation: false };
+              sendStep(`Verified business data for ${topic}`, "done", "response");
+            } else {
+              sendStep(`Crafting your answer on ${topic}`, "running", "response");
+              result = await buildAiResponse(relevantContext, connectionContext, (delta) => {
+                send({ type: "content", delta });
+              });
+              sendStep(`Crafting your answer on ${topic}`, "done", "response");
+            }
             if (!result.continuation) sendStep("Finished", "done", "complete");
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic });
