@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient } from "npm:@supabase/supabase-js@2.49.4";
+
+import {
+  shouldSearchConnections,
+  extractQueryTopic,
+  searchConnectedProviders,
+} from "../_shared/run-employee/connections.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -189,6 +195,13 @@ serve(async (req) => {
 
     const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
 
+    // --- Connection search (live data from Microsoft/Slack/etc.) ---
+    const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
+      supabase,
+      user.id,
+      lastUserMsg,
+    );
+
     // Build page context section
     let pageSection = "";
     if (pageContext) {
@@ -205,12 +218,13 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
     }
 
     const hasBrowserContext = !!pageContext || browserMode;
+    const fullContext = relevantContext + connectionContext;
 
     const systemPrompt = browserMode
-      ? buildBrowserActionPrompt(pageSection, identity, relevantContext, safetySettings)
+      ? buildBrowserActionPrompt(pageSection, identity, fullContext, safetySettings)
       : hasBrowserContext
-        ? buildBrowserPrompt(pageSection, identity, relevantContext, safetySettings)
-        : buildChatPrompt(identity, relevantContext);
+        ? buildBrowserPrompt(pageSection, identity, fullContext, safetySettings)
+        : buildChatPrompt(identity, fullContext);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -257,21 +271,100 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
     if (browserMode) {
       const aiResult = await response.json();
       let content = aiResult.choices?.[0]?.message?.content || "";
-
-      // --- MIDDLEWARE LAYER 2: Post-flight output validation ---
       content = runPostflightGuardrails(content, safetySettings);
-
-      // --- MIDDLEWARE LAYER 4: Action validation ---
       const actionBlock = validateBrowserActions(content, safetySettings);
       if (actionBlock) content = actionBlock;
-
-      return new Response(JSON.stringify({ content }), {
+      return new Response(JSON.stringify({ content, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    // Wrap the AI gateway SSE stream in custom events with progress steps
+    const encoder = new TextEncoder();
+    const topic = queryTopic || "your request";
+
+    const stream = new ReadableStream({
+      start(controller) {
+        const send = (payload: unknown) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        };
+        const sendStep = (label: string, status: "running" | "done" | "error", action = "process", detail?: string) => {
+          send({ type: "progress", step: { label, status, action, detail } });
+        };
+        const close = () => {
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        };
+
+        (async () => {
+          try {
+            // Emit context gathering step
+            sendStep(`Gathering business data on ${topic}`, "done", "context");
+
+            // Emit connection steps
+            if (connectionDecision.shouldSearch) {
+              sendStep(`Checking connected sources for ${topic}`, "done", "connections", connectionDecision.reason);
+              for (const provider of searchedProviders) {
+                const label = provider === "microsoft" ? `Searching Microsoft 365 emails & files for ${topic}` :
+                              provider === "slack" ? `Searching Slack messages & channels for ${topic}` :
+                              `Searching ${provider} for ${topic}`;
+                sendStep(label, "done", "connections");
+              }
+              for (const skipped of skippedProviderDetails) {
+                const label = skipped.provider === "microsoft" ? `Skipped Microsoft — ${skipped.reason}` :
+                              skipped.provider === "slack" ? `Skipped Slack — ${skipped.reason}` :
+                              `Skipped ${skipped.provider} — ${skipped.reason}`;
+                sendStep(label, "done", "connections");
+              }
+            }
+
+            sendStep(`Crafting your answer on ${topic}`, "running", "response");
+
+            // Consume AI gateway stream and re-emit as content events
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error("No response body");
+
+            const decoder = new TextDecoder();
+            let fullContent = "";
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split("\n");
+              for (const line of lines) {
+                if (!line.startsWith("data: ")) continue;
+                const data = line.slice(6).trim();
+                if (data === "[DONE]") break;
+                try {
+                  const parsed = JSON.parse(data);
+                  const delta = parsed.choices?.[0]?.delta?.content || "";
+                  if (delta) {
+                    fullContent += delta;
+                    send({ type: "content", delta });
+                  }
+                } catch {}
+              }
+            }
+
+            sendStep(`Crafting your answer on ${topic}`, "done", "response");
+            sendStep("Finished", "done", "complete");
+
+            // Apply post-flight guardrails
+            const finalContent = runPostflightGuardrails(fullContent, safetySettings);
+            send({ type: "result", content: finalContent, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic });
+            close();
+          } catch (error: any) {
+            console.error("extension-agent stream error:", error?.message || error);
+            send({ type: "error", error: error?.message || "An internal error occurred" });
+            close();
+          }
+        })();
+      },
+    });
+
+    return new Response(stream, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
     });
   } catch (e) {
     console.error("extension-agent error occurred");
