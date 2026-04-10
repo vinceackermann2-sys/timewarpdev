@@ -176,9 +176,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
               <button
                 key={connector.id}
                 onClick={() => {
-                  if (isConnected) {
-                    setShowSyncPrefs(true);
-                  } else if (!isConnecting) {
+                  if (!isConnected && !isConnecting) {
                     handleConnect(connector);
                   }
                 }}
