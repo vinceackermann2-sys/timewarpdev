@@ -1190,86 +1190,11 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
     };
 
-    // Derive contextual step labels from the user's message
-    const rawText = typeof userMsg.content === "string" ? userMsg.content : "";
-    const msgLower = rawText.toLowerCase();
-    const getContextLabel = () => {
-      if (msgLower.includes("email") || msgLower.includes("mail")) return "Gathering your email context";
-      if (msgLower.includes("report") || msgLower.includes("analytics")) return "Pulling relevant data & metrics";
-      if (msgLower.includes("pitch") || msgLower.includes("investor")) return "Loading your business profile";
-      if (msgLower.includes("slide") || msgLower.includes("presentation")) return "Preparing presentation data";
-      if (msgLower.includes("marketing") || msgLower.includes("campaign")) return "Reviewing your marketing assets";
-      if (msgLower.includes("social") || msgLower.includes("post") || msgLower.includes("content")) return "Reviewing your content strategy";
-      if (msgLower.includes("brand") || msgLower.includes("logo")) return "Loading your brand profile";
-      if (msgLower.includes("competitor") || msgLower.includes("research")) return "Researching the market";
-      if (msgLower.includes("sales") || msgLower.includes("lead")) return "Analyzing your sales data";
-      if (msgLower.includes("product") || msgLower.includes("pricing")) return "Reviewing your product details";
-      if (msgLower.includes("customer") || msgLower.includes("audience")) return "Analyzing your audience data";
-      return "Gathering your business context";
-    };
-    const getAnalyzeLabel = () => {
-      if (msgLower.includes("email") || msgLower.includes("mail")) return "Crafting the right tone & message";
-      if (msgLower.includes("report") || msgLower.includes("analytics")) return "Crunching the numbers";
-      if (msgLower.includes("pitch") || msgLower.includes("investor")) return "Building your pitch strategy";
-      if (msgLower.includes("slide") || msgLower.includes("presentation")) return "Designing slide layout";
-      if (msgLower.includes("marketing") || msgLower.includes("campaign")) return "Building your campaign approach";
-      if (msgLower.includes("social") || msgLower.includes("post")) return "Planning your content angle";
-      if (msgLower.includes("competitor") || msgLower.includes("research")) return "Comparing market insights";
-      return "Analyzing the best approach";
-    };
-    const getProcessLabel = () => {
-      if (msgLower.includes("email") || msgLower.includes("mail")) return "Writing your email";
-      if (msgLower.includes("report") || msgLower.includes("analytics")) return "Compiling your report";
-      if (msgLower.includes("pitch") || msgLower.includes("investor")) return "Crafting your investor pitch";
-      if (msgLower.includes("slide") || msgLower.includes("presentation")) return "Creating your slides";
-      if (msgLower.includes("marketing") || msgLower.includes("campaign")) return "Drafting your campaign";
-      if (msgLower.includes("social") || msgLower.includes("post")) return "Creating your content";
-      if (msgLower.includes("plan") || msgLower.includes("strategy")) return "Building your plan";
-      return "Composing your response";
-    };
-    const getVerifyLabel = () => {
-      if (msgLower.includes("pitch") || msgLower.includes("investor") || msgLower.includes("slide")) return "Cross-checking with business DNA";
-      if (msgLower.includes("report") || msgLower.includes("analytics")) return "Verifying data accuracy";
-      return "Fact-checking against your data";
-    };
-    const getProviderSourceLabel = (provider: string) => {
-      if (provider === "microsoft") return "Checked Microsoft 365 sources";
-      if (provider === "slack") return "Checked Slack sources";
-      if (provider === "hubspot") return "Checked HubSpot sources";
-      return `Checked ${provider} sources`;
-    };
-    const getProgressPulseLabels = () => {
-      if (msgLower.includes("pitch") || msgLower.includes("investor") || msgLower.includes("slide") || msgLower.includes("presentation")) {
-        return ["Checking brand positioning", "Pulling product proof points", "Matching audience insights", "Structuring the visual narrative"];
-      }
-      if (msgLower.includes("report") || msgLower.includes("analytics") || msgLower.includes("graph") || msgLower.includes("spreadsheet")) {
-        return ["Checking brand context", "Reviewing product data", "Matching audience signals", "Organizing the final output"];
-      }
-      return ["Checking brand context", "Reviewing product details", "Matching audience data", "Preparing the final answer"];
-    };
-    const startProgressPulse = () => {
-      const labels = getProgressPulseLabels();
-      let index = 0;
-      const timer = window.setInterval(() => {
-        if (index >= labels.length) {
-          window.clearInterval(timer);
-          return;
-        }
-        completeStep();
-        addStep(labels[index]);
-        index += 1;
-      }, 1200);
-
-      return () => {
-        window.clearInterval(timer);
-        completeStep();
-      };
-    };
-
     // Show processing state
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
 
-    addStep(getContextLabel());
+    // Single initial step — "Analyzing your request"
+    addStep("Analyzing your request");
 
     // Log to DB
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
@@ -1280,20 +1205,6 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
     const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
 
-    // Stagger the initial steps with small delays so user sees them appear
-    await new Promise(r => setTimeout(r, 600));
-    completeStep();
-
-    // Always show "Checking connected sources" — the backend searches regardless of frontend state
-    addStep("Checking connected sources");
-    await new Promise(r => setTimeout(r, 350));
-    completeStep();
-
-    addStep(getAnalyzeLabel());
-    await new Promise(r => setTimeout(r, 500));
-    completeStep();
-    addStep(getProcessLabel());
-
     // Continuation loop
     let accumulatedContent = "";
     let continuationCount = 0;
@@ -1303,8 +1214,6 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       if (continuationCount > 0) {
         addStep(`Extending response (part ${continuationCount + 1})...`);
       }
-
-      const stopProgressPulse = startProgressPulse();
 
       const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
@@ -1327,7 +1236,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       );
 
       if (!response.ok) {
-        stopProgressPulse();
+        completeStep();
         const err = await response.json().catch(() => ({}));
         addStep("Error");
         taskSteps[taskSteps.length - 1].status = "error";
@@ -1336,32 +1245,42 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       }
 
       const data = await response.json();
-      const rawSearchedProviders: unknown[] = continuationCount === 0 && Array.isArray(data?.searchedProviders)
-        ? data.searchedProviders
-        : [];
-      const searchedProviders: string[] = Array.from(
-        new Set(
-          rawSearchedProviders.filter((provider): provider is string => typeof provider === "string" && provider.length > 0)
-        )
-      );
-      accumulatedContent = data.content || accumulatedContent;
 
-      stopProgressPulse();
+      // --- Backend-driven progress steps ---
+      // Complete the initial "Analyzing" step
+      completeStep();
 
-      if (searchedProviders.length > 0) {
-        for (const provider of searchedProviders) {
-          addStep(getProviderSourceLabel(provider));
-          await new Promise(r => setTimeout(r, 450));
+      // Connection decision from backend
+      if (continuationCount === 0 && data.connectionDecision) {
+        if (data.connectionDecision.shouldSearch) {
+          addStep("Searching connected sources");
+          await new Promise(r => setTimeout(r, 200));
+          completeStep();
+
+          // Show which providers were actually searched
+          const searched: string[] = Array.isArray(data.searchedProviders) ? data.searchedProviders : [];
+          for (const provider of searched) {
+            const label = provider === "microsoft" ? "Searched Microsoft 365 emails & files"
+              : provider === "slack" ? "Searched Slack messages & channels"
+              : provider === "hubspot" ? "Searched HubSpot contacts"
+              : `Searched ${provider}`;
+            addStep(label);
+            await new Promise(r => setTimeout(r, 150));
+            completeStep();
+          }
+        } else {
+          addStep("Skipping connected sources — answering from business context");
+          await new Promise(r => setTimeout(r, 200));
           completeStep();
         }
       }
 
-      // Add verify step after getting content
-      if (continuationCount === 0 && accumulatedContent) {
-        addStep(getVerifyLabel());
-        await new Promise(r => setTimeout(r, 400));
-        completeStep();
-      }
+      // Show "Generating response" while content arrives
+      addStep("Generating response");
+
+      accumulatedContent = data.content || accumulatedContent;
+
+      completeStep();
 
       // Update message with accumulated content
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent, taskSteps: [...taskSteps], isStreaming: true } : m));
