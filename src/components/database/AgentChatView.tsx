@@ -550,7 +550,7 @@ export function AgentChatView() {
       employees: [emp],
     };
     setMessages(prev => [...prev, userMsg]);
-    setSelectedChatEmployees([]);
+    setSelectedChatEmployees([emp]);
 
     const assistantId = crypto.randomUUID();
     setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
@@ -665,13 +665,19 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
     }
 
+    const selectedEmployeesForMessage = selectedChatEmployees.length > 0
+      ? [...selectedChatEmployees]
+      : undefined;
+
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content: userContent,
       files: uploadedFiles.map(f => ({ name: f.name })),
-      employees: selectedChatEmployees.length > 0 ? [...selectedChatEmployees] : undefined,
+      employees: selectedEmployeesForMessage,
     };
+
+    const hasSelectedEmployeeForMessage = (selectedEmployeesForMessage?.length ?? 0) > 0;
 
     setMessages(prev => [...prev, userMsg]);
 
@@ -679,7 +685,6 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     if (chatInputRef.current) chatInputRef.current.innerHTML = "";
     setUploadedFiles([]);
     setReferencedUrls([]);
-    setSelectedChatEmployees([]);
     setSelectedGraphic(null);
     setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
 
@@ -691,19 +696,19 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       // If files are attached, always use chat mode (not browser automation) so the AI analyzes them
       const hasFiles = userMsg.files && userMsg.files.length > 0;
 
-      if (hasFiles && selectedChatEmployees.length > 0) {
+      if (hasFiles && hasSelectedEmployeeForMessage) {
         // Files attached with employee: use employee chat to analyze files
         await runEmployeeChat(session, userMsg, assistantId);
       } else if (hasFiles) {
         // Files attached without employee: use agent chat to analyze files
         await runAgentChat(session, userMsg, assistantId);
-      } else if (isActionMode && extensionConnected && selectedChatEmployees.length > 0) {
+      } else if (isActionMode && extensionConnected && hasSelectedEmployeeForMessage) {
         // Computer mode with employee: run employee via extension
         await runComputerMode(session, userMsg, assistantId);
       } else if (isActionMode && extensionConnected) {
         // Computer mode without employee: agent chat with browser context
         await runAgentChatWithBrowser(session, userMsg, assistantId);
-      } else if (selectedChatEmployees.length > 0) {
+      } else if (hasSelectedEmployeeForMessage) {
         // Employee chat (non-computer mode)
         await runEmployeeChat(session, userMsg, assistantId);
       } else {
