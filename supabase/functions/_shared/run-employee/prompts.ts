@@ -194,9 +194,22 @@ Supported: "bar", "line", "area", "pie"
 
 ## SLIDES, GRAPHICS & DOCUMENTS
 For slides use \`\`\`slide, for documents use \`\`\`document, for spreadsheets use \`\`\`spreadsheet, for analytics use \`\`\`analytics code blocks. Always personalize using business data from Reference Material.
-When generating slides, you MUST include "brand_colors" from the business's Brand data in the slide JSON. Use the brand's primary color as "accent_color" and include "bg_color" (dark variant of the brand color) for the slide background. If no brand colors are available, default to accent_color "#3399ff" and bg_color "#1a1a2e". Example:
+When generating slides, you MUST include "brand_colors" from the business's Brand data in the slide JSON. Use the brand's primary color as "accent_color" and include "bg_color" (dark variant of the brand color) for the slide background. If no brand colors are available, default to accent_color "#3399ff" and bg_color "#1a1a2e".
+
+**SLIDE DESIGN RULES — CRITICAL:**
+- Slides MUST be visually rich and use MINIMAL text. Think pitch-deck quality, NOT a wall of text.
+- Use large stat callouts (big numbers with small labels) instead of long sentences.
+- Use short punchy bullets (3-6 words each), max 4 bullets per slide.
+- Prefer "stats" arrays with big numbers/metrics over bullet lists when showing data.
+- Titles should be 3-6 words max — concise and impactful.
+- Include a short "subtitle" for context instead of long descriptions.
+- Include "brand_name" to personalize the header.
+- Use emoji icons in bullets for visual flair.
+- Prefer multiple focused slides over one dense slide.
+
+Example:
 \`\`\`slide
-{"title":"...","accent_color":"#FF6B35","bg_color":"#2D1B0E","brand_name":"Acme Co","bullets":["..."]}
+{"title":"Revenue Growth","subtitle":"Q1 2026 Performance","accent_color":"#FF6B35","bg_color":"#2D1B0E","brand_name":"Acme Co","stats":[{"value":"$2.4M","label":"Revenue"},{"value":"+34%","label":"Growth"},{"value":"1,200","label":"New Customers"}],"takeaway":"Record quarter driven by enterprise expansion"}
 \`\`\`
 
 ## SAFETY GUARDRAILS
