@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Briefcase, Loader2, Plug, CheckCircle2, RefreshCw, Globe, Mail } from "lucide-react";
+import { ArrowRight, Briefcase, Loader2, Plug, CheckCircle2, Globe, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BgGradient } from "@/components/ui/bg-gradient";
@@ -40,7 +40,6 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
   const [connectedProviders, setConnectedProviders] = useState<ConnectedProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
-  const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
 
   const checkConnections = useCallback(async () => {
     try {
@@ -155,43 +154,6 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
     }
   };
 
-  const syncProviderData = async (provider: string) => {
-    setSyncingProvider(provider);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-provider-data`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ provider, brandId, workspaceId: localStorage.getItem("preferred_workspace_id") || undefined }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        const s = data.summary;
-        if (provider === "wordpress") {
-          toast.success(`Synced ${s.posts || 0} posts, ${s.pages || 0} pages, ${s.media || 0} media`);
-        } else {
-          toast.success(`Synced ${s.emails || 0} emails, ${s.events || 0} events, ${s.files || 0} files`);
-        }
-      } else {
-        toast.error(data.error || "Sync failed");
-      }
-    } catch (err) {
-      console.error("Sync error:", err);
-      toast.error("Failed to sync data");
-    }
-    setSyncingProvider(null);
-  };
-
   const isProviderConnected = (id: string) => connectedProviders.some((p) => p.provider === id);
   const getProviderEmail = (id: string) => connectedProviders.find((p) => p.provider === id)?.email;
   const hasAnyConnection = connectedProviders.length > 0;
@@ -241,7 +203,6 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
               const connected = isProviderConnected(integration.id);
               const email = getProviderEmail(integration.id);
               const isConnecting = connectingProvider === integration.id;
-              const isSyncing = syncingProvider === integration.id;
 
               return (
                 <motion.div
@@ -270,14 +231,9 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
                     {integration.comingSoon ? (
                       <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground whitespace-nowrap">Coming Soon</span>
                     ) : connected ? (
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => syncProviderData(integration.id)} disabled={isSyncing}>
-                          {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleDisconnect(integration.id)}>
-                          Disconnect
-                        </Button>
-                      </div>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleDisconnect(integration.id)}>
+                        Disconnect
+                      </Button>
                     ) : (
                       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleConnect(integration.id)} disabled={isConnecting}>
                         {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plug className="h-4 w-4" />}
