@@ -48,7 +48,7 @@ import {
   Check,
   Search,
   Plus,
-  Plug,
+  Cable,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { WhatsNewDropdown } from "./WhatsNewDropdown";
@@ -155,11 +155,11 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   <SidebarMenuButton 
                     isActive={currentView === "connections"}
                     onClick={() => onViewChange("connections")}
-                    tooltip="Connections"
+                    tooltip="Connectors"
                     className={currentView === "connections" ? "bg-primary/10 text-primary" : ""}
                   >
-                    <Plug className="h-4 w-4 shrink-0" />
-                    {!isCollapsed && <span>Connections</span>}
+                    <Cable className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>Connectors</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
