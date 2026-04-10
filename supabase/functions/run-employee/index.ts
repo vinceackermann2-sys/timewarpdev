@@ -518,19 +518,44 @@ async function searchSlackData(token: string, query: string): Promise<string[]> 
   return results;
 }
 
+// --- Intent Analysis: should we search connections? ---
+const CONNECTION_TRIGGER_PATTERNS = [
+  /\b(collaborat|partnership|partner|meeting|follow.?up|agenda)\b/i,
+  /\b(complaint|issue|ticket|support|bug|problem|incident)\b/i,
+  /\b(email|mail|inbox|message|slack|teams|chat|dm|thread)\b/i,
+  /\b(file|document|doc|sheet|drive|onedrive|sharepoint)\b/i,
+  /\b(calendar|schedule|event|appointment|invite)\b/i,
+  /\b(customer|client)\s+(said|wrote|asked|mentioned|replied|responded)\b/i,
+  /\b(recent|latest|new|incoming|pending|unread)\b/i,
+  /\b(check|search|find|look\s+up|pull)\s+(my|our|the)\s+(email|slack|message|file|drive)\b/i,
+  /\b(what|any)\b.{0,30}\b(coming\s+up|scheduled|planned|pending)\b/i,
+];
+
+function shouldSearchConnections(query: string): { shouldSearch: boolean; reason: string } {
+  if (!query || query.length < 3) return { shouldSearch: false, reason: "Query too short" };
+  const q = query.toLowerCase();
+  for (const pattern of CONNECTION_TRIGGER_PATTERNS) {
+    if (pattern.test(q)) {
+      return { shouldSearch: true, reason: "Query references external communications or files" };
+    }
+  }
+  return { shouldSearch: false, reason: "Question can be answered from existing business context" };
+}
+
 async function searchConnectedProviders(
   supabase: any,
   userId: string,
   userQuery: string
-): Promise<{ connectionContext: string; searchedProviders: string[] }> {
+): Promise<{ connectionContext: string; searchedProviders: string[]; skippedProviders: string[]; connectionDecision: { shouldSearch: boolean; reason: string } }> {
   const searchedProviders: string[] = [];
+  const skippedProviders: string[] = [];
   let connectionContext = "";
 
-  console.log("[connections] Starting provider search for user:", userId, "query:", userQuery?.slice(0, 80));
+  const decision = shouldSearchConnections(userQuery);
+  console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
 
-  if (!userQuery || userQuery.length < 3) {
-    console.log("[connections] Query too short, skipping");
-    return { connectionContext, searchedProviders };
+  if (!decision.shouldSearch) {
+    return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
   }
 
   // Check which providers are connected
@@ -545,7 +570,7 @@ async function searchConnectedProviders(
 
   if (!connections || connections.length === 0) {
     console.log("[connections] No connected providers found");
-    return { connectionContext, searchedProviders };
+    return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
   }
 
   const connectedProviders = connections.map((c: any) => c.provider);
