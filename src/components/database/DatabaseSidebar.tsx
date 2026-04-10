@@ -48,6 +48,7 @@ import {
   Check,
   Search,
   Plus,
+  Plug,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { WhatsNewDropdown } from "./WhatsNewDropdown";
@@ -57,7 +58,7 @@ import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces";
+type View = "aiceo" | "businessdna" | "employees" | "connections" | "workspaces";
 
 interface DatabaseSidebarProps {
   currentView: View;
@@ -148,6 +149,17 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   >
                     <Bot className="h-4 w-4 shrink-0" />
                     {!isCollapsed && <span>Employees</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    isActive={currentView === "connections"}
+                    onClick={() => onViewChange("connections")}
+                    tooltip="Connections"
+                    className={currentView === "connections" ? "bg-primary/10 text-primary" : ""}
+                  >
+                    <Plug className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>Connections</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
