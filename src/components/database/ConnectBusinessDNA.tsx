@@ -79,7 +79,6 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
       toast.success(`${oauthSuccess.charAt(0).toUpperCase() + oauthSuccess.slice(1)} connected successfully!`);
       window.history.replaceState({}, "", window.location.pathname);
       checkConnections();
-      syncProviderData(oauthSuccess);
     } else if (oauthError) {
       toast.error(`Connection failed: ${oauthError}`);
       window.history.replaceState({}, "", window.location.pathname);
