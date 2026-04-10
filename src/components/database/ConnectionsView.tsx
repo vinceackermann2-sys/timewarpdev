@@ -18,8 +18,8 @@ interface Integration {
 
 const integrations: Integration[] = [
   { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft },
-  { id: "slack", name: "Slack", description: "Channels, Messages, Team Info", logo: logoSlack },
-  { id: "hubspot", name: "HubSpot", description: "CRM, Contacts, Deals, Marketing", logo: logoHubspot, comingSoon: true },
+  { id: "slack", name: "Slack", description: "Send messages and interact with Slack workspaces", logo: logoSlack },
+  { id: "hubspot", name: "HubSpot", description: "CRM platform for sales, marketing, and customer service", logo: logoHubspot, comingSoon: true },
 ];
 
 interface ConnectedProvider {
@@ -168,15 +168,15 @@ export function ConnectionsView() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="max-w-2xl mx-auto px-6 py-10">
+      <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold mb-1">Connections</h1>
+          <h1 className="text-2xl font-semibold mb-1">Connectors</h1>
           <p className="text-sm text-muted-foreground">
             Link your accounts to sync business data and provide personalized insights.
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {integrations.map(integration => {
             const connected = isProviderConnected(integration.id);
             const email = getProviderEmail(integration.id);
@@ -186,49 +186,82 @@ export function ConnectionsView() {
             return (
               <div
                 key={integration.id}
-                className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
+                className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all cursor-pointer group ${
                   integration.comingSoon
-                    ? "border-border/50 opacity-60"
+                    ? "border-border/50 opacity-60 cursor-default"
                     : connected
-                      ? "border-green-500/50 bg-green-500/5"
-                      : "border-border hover:border-primary/40"
+                      ? "border-green-500/40 bg-green-500/5 hover:border-green-500/60"
+                      : "border-border hover:border-primary/40 hover:shadow-sm"
                 }`}
+                onClick={() => {
+                  if (integration.comingSoon || isConnecting) return;
+                  if (connected) return;
+                  handleConnect(integration.id);
+                }}
               >
-                <div className="h-11 w-11 rounded-xl bg-muted flex items-center justify-center p-2 shrink-0">
-                  <img src={integration.logo} alt={integration.name} className="h-7 w-7 object-contain" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{integration.name}</p>
-                  <p className="text-xs text-muted-foreground">{integration.description}</p>
-                  {connected && email && (
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-0.5 truncate">{email}</p>
-                  )}
-                </div>
-                <div className="shrink-0">
-                  {integration.comingSoon ? (
-                    <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">Coming Soon</span>
-                  ) : connected ? (
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => syncProviderData(integration.id)} disabled={isSyncing}>
-                        {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleDisconnect(integration.id)}>
-                        Disconnect
-                      </Button>
-                    </div>
+                {/* Soon badge */}
+                {integration.comingSoon && (
+                  <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">
+                    Soon
+                  </span>
+                )}
+
+                {/* Connected badge */}
+                {connected && !integration.comingSoon && (
+                  <span className="absolute top-4 right-4">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  </span>
+                )}
+
+                {/* Logo */}
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-1.5">
+                  {isConnecting ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   ) : (
-                    <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => handleConnect(integration.id)} disabled={isConnecting}>
-                      {isConnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                      Connect
-                    </Button>
+                    <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" />
                   )}
                 </div>
+
+                {/* Text */}
+                <div>
+                  <p className="font-semibold text-sm">{integration.name}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
+                    {integration.description}
+                  </p>
+                  {connected && email && (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
+                  )}
+                </div>
+
+                {/* Connected actions */}
+                {connected && !integration.comingSoon && (
+                  <div className="flex items-center gap-1 mt-auto pt-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs gap-1"
+                      onClick={(e) => { e.stopPropagation(); syncProviderData(integration.id); }}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                      Sync
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); handleDisconnect(integration.id); }}
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center">
           <IntegrationRequestDialog />
         </div>
       </div>
