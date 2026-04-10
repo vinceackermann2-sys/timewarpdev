@@ -1274,17 +1274,15 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     chatHistory.push({ role: "user", content: userContent });
 
     const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
-    const connectedProviderNames = Object.keys(connectedProviders).filter(provider => connectedProviders[provider]);
 
     // Stagger the initial steps with small delays so user sees them appear
     await new Promise(r => setTimeout(r, 600));
     completeStep();
 
-    if (connectedProviderNames.length > 0) {
-      addStep("Checking connected sources");
-      await new Promise(r => setTimeout(r, 350));
-      completeStep();
-    }
+    // Always show "Checking connected sources" — the backend searches regardless of frontend state
+    addStep("Checking connected sources");
+    await new Promise(r => setTimeout(r, 350));
+    completeStep();
 
     addStep(getAnalyzeLabel());
     await new Promise(r => setTimeout(r, 500));
