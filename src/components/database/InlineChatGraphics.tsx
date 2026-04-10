@@ -286,7 +286,7 @@ export function InlineSlide({ jsonString, editorEnabled = true }: { jsonString: 
     const pptxgenjs = await import("pptxgenjs");
     const pptx = new pptxgenjs.default();
     const slide = pptx.addSlide();
-    slide.background = { fill: "1a1a2e" };
+    slide.background = { fill: bgColor.replace("#", "") };
 
     if (config.icon) slide.addText(config.icon, { x: 0.5, y: 0.3, w: 1, fontSize: 36 });
     const titleY = config.icon ? 0.9 : 0.5;
@@ -317,7 +317,7 @@ export function InlineSlide({ jsonString, editorEnabled = true }: { jsonString: 
 
   return (
     <div className="my-4 rounded-xl border border-border/50 overflow-hidden shadow-sm">
-      <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] text-white p-6 min-h-[220px] flex flex-col">
+      <div style={{ background: `linear-gradient(135deg, ${bgColor}, ${bgGradientEnd})` }} className="text-white p-6 min-h-[220px] flex flex-col">
         <div className="flex-1">
           {config.icon && <span className="text-3xl mb-2 block">{config.icon}</span>}
           <h3 className="text-xl font-bold mb-1 tracking-tight">{config.title}</h3>
