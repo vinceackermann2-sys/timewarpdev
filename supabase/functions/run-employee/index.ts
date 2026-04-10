@@ -370,7 +370,7 @@ serve(async (req) => {
 
     // If timed out and we have partial content, return continuation token
     if (timedOut && totalContent.length > 0) {
-      return new Response(JSON.stringify({ content: totalContent, continuation: true, searchedProviders }), {
+      return new Response(JSON.stringify({ content: totalContent, continuation: true, searchedProviders, skippedProviders, connectionDecision }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -386,7 +386,7 @@ serve(async (req) => {
       if (actionBlock) content = actionBlock;
     }
 
-    return new Response(JSON.stringify({ content, searchedProviders }), {
+    return new Response(JSON.stringify({ content, searchedProviders, skippedProviders, connectionDecision }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
