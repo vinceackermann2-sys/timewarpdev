@@ -9,6 +9,16 @@ import {
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
 import { ShiningText } from "@/components/ui/shining-text";
+import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoSlack from "@/assets/logo-slack.png";
+import logoHubspot from "@/assets/logo-hubspot.png";
+
+/* Provider logo map */
+const PROVIDER_LOGOS: Record<string, string> = {
+  microsoft: logoMicrosoft,
+  slack: logoSlack,
+  hubspot: logoHubspot,
+};
 
 interface TaskStep {
   action: string;
