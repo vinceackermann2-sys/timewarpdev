@@ -387,29 +387,32 @@ serve(async (req) => {
 
         (async () => {
           try {
-            sendStep("Analyzing your request", "running", "analysis");
-            sendStep("Analyzing your request", "done", "analysis", shouldSearchConnections(lastUserMsg).reason);
+            const topic = extractQueryTopic(lastUserMsg);
+            sendStep(`Understanding your question about ${topic}`, "running", "analysis");
+            const decision = shouldSearchConnections(lastUserMsg);
+            sendStep(`Understanding your question about ${topic}`, "done", "analysis", decision.reason);
 
-            sendStep("Retrieving business context", "running", "context");
+            sendStep(`Gathering business data on ${topic}`, "running", "context");
             const relevantContext = await retrieveRelevantContext(supabase, {
               ...employee,
               workspace_id: effectiveWsId,
               linked_business_id: effectiveBrandId,
             }, lastUserMsg);
-            sendStep("Retrieving business context", "done", "context");
+            sendStep(`Gathered business data on ${topic}`, "done", "context");
 
             const { connectionContext, searchedProviders, skippedProviders, connectionDecision } = await searchConnectedProviders(
               supabase,
               user.id,
               lastUserMsg,
-              (step) => send({ type: "progress", step })
+              (step) => send({ type: "progress", step }),
+              topic,
             );
 
-            sendStep("Generating response", "running", "response");
+            sendStep(`Crafting your answer on ${topic}`, "running", "response");
             const result = await buildAiResponse(relevantContext, connectionContext, (delta) => {
               send({ type: "content", delta });
             });
-            sendStep("Generating response", "done", "response");
+            sendStep(`Crafting your answer on ${topic}`, "done", "response");
             if (!result.continuation) sendStep("Finished", "done", "complete");
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, connectionDecision });
@@ -579,11 +582,46 @@ function shouldSearchConnections(query: string): { shouldSearch: boolean; reason
   return { shouldSearch: false, reason: "Question can be answered from existing business context" };
 }
 
-function getProviderSearchLabel(provider: string): string {
-  if (provider === "microsoft") return "Searching Microsoft 365 emails & files";
-  if (provider === "slack") return "Searching Slack messages & channels";
-  if (provider === "hubspot") return "Searching HubSpot records";
-  return `Searching ${provider}`;
+/** Generate a short, personalized topic phrase from the user's query */
+function extractQueryTopic(query: string): string {
+  if (!query || query.length < 3) return "your request";
+  const q = query.toLowerCase().trim();
+  // Try to extract the core subject
+  const topicPatterns: [RegExp, string][] = [
+    [/\b(?:any|are there|check for|find)\b.{0,10}\b(collaborat\w*|partnership\w*)/i, "collaborations & partnerships"],
+    [/\b(?:any|are there|check for|find)\b.{0,10}\b(complaint\w*|issue\w*|problem\w*)/i, "complaints & issues"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(meeting\w*|call\w*|appointment\w*)/i, "meetings & calls"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(email\w*|message\w*|mail\w*)/i, "emails & messages"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(file\w*|document\w*|attachment\w*)/i, "files & documents"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(lead\w*|prospect\w*|deal\w*)/i, "leads & deals"],
+    [/\b(?:any|are there|check for)\b.{0,10}\b(sale\w*|revenue\w*|order\w*)/i, "sales & revenue"],
+    [/\b(improve|optimize|enhance|boost|grow)\b.{0,20}\b(\w+)/i, "$2 improvement"],
+    [/\b(strategy|plan|roadmap)\b/i, "strategy planning"],
+    [/\b(marketing|campaign|ads?|advertis\w*)/i, "marketing strategy"],
+    [/\b(social\s*media|instagram|twitter|linkedin|tiktok|facebook)/i, "social media"],
+    [/\b(content|blog|article|post|copy)/i, "content creation"],
+    [/\b(brand|branding|identity)/i, "branding"],
+    [/\b(compet\w+|market\s*research|industry)/i, "competitive analysis"],
+    [/\b(customer|audience|target|persona)/i, "customer insights"],
+    [/\b(pricing|price|cost|subscription)/i, "pricing strategy"],
+    [/\b(hiring|recruit|team|employee)/i, "team & hiring"],
+  ];
+  for (const [pattern, topic] of topicPatterns) {
+    if (pattern.test(q)) return topic;
+  }
+  // Fallback: use first meaningful words
+  const words = q.replace(/[^\w\s]/g, "").split(/\s+/).filter(w => w.length > 2 && !STOPWORDS.has(w));
+  if (words.length >= 2) return words.slice(0, 3).join(" ");
+  if (words.length === 1) return words[0];
+  return "your request";
+}
+
+function getProviderSearchLabel(provider: string, topic?: string): string {
+  const suffix = topic ? ` for ${topic}` : "";
+  if (provider === "microsoft") return `Searching Microsoft 365 emails & files${suffix}`;
+  if (provider === "slack") return `Searching Slack messages & channels${suffix}`;
+  if (provider === "hubspot") return `Searching HubSpot records${suffix}`;
+  return `Searching ${provider}${suffix}`;
 }
 
 function getProviderSkipLabel(provider: string, reason: string): string {
@@ -598,10 +636,12 @@ async function searchConnectedProviders(
   userId: string,
   userQuery: string,
   emitProgress?: (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => void,
+  topic?: string,
 ): Promise<{ connectionContext: string; searchedProviders: string[]; skippedProviders: string[]; connectionDecision: { shouldSearch: boolean; reason: string } }> {
   const searchedProviders: string[] = [];
   const skippedProviders: string[] = [];
   let connectionContext = "";
+  const t = topic || extractQueryTopic(userQuery);
 
   const decision = shouldSearchConnections(userQuery);
   console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
@@ -615,7 +655,7 @@ async function searchConnectedProviders(
     return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
   }
 
-  emitProgress?.({ label: "Request needs connected sources", status: "done", action: "connections" });
+  emitProgress?.({ label: `Checking connected sources for ${t}`, status: "done", action: "connections" });
 
   // Check which providers are connected
   const { data: connections, error: connErr } = await supabase
@@ -658,7 +698,7 @@ async function searchConnectedProviders(
           emitProgress?.({ label: getProviderSkipLabel("microsoft", "connection expired"), status: "done", action: "connections" });
           return;
         }
-        emitProgress?.({ label: getProviderSearchLabel("microsoft"), status: "running", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "running", action: "connections" });
         searchedProviders.push("microsoft");
         console.log("[connections] Searching Microsoft with query:", userQuery.slice(0, 60));
         const results = await searchMicrosoftData(token, userQuery);
@@ -672,10 +712,10 @@ async function searchConnectedProviders(
             connectionContext += `\n### Relevant Files\n${results.files.join("\n")}\n`;
           }
         }
-        emitProgress?.({ label: getProviderSearchLabel("microsoft"), status: "done", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "done", action: "connections" });
       } catch (e) {
         console.error("[connections] Microsoft search failed:", e);
-        emitProgress?.({ label: getProviderSearchLabel("microsoft"), status: "error", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "error", action: "connections" });
       }
     })());
   }
@@ -691,7 +731,7 @@ async function searchConnectedProviders(
           emitProgress?.({ label: getProviderSkipLabel("slack", "connection expired"), status: "done", action: "connections" });
           return;
         }
-        emitProgress?.({ label: getProviderSearchLabel("slack"), status: "running", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "running", action: "connections" });
         searchedProviders.push("slack");
         console.log("[connections] Searching Slack with query:", userQuery.slice(0, 60));
         const results = await searchSlackData(token, userQuery);
@@ -699,10 +739,10 @@ async function searchConnectedProviders(
         if (results.length > 0) {
           connectionContext += `\n\n## Live Data from Slack\n${results.join("\n\n")}\n`;
         }
-        emitProgress?.({ label: getProviderSearchLabel("slack"), status: "done", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "done", action: "connections" });
       } catch (e) {
         console.error("[connections] Slack search failed:", e);
-        emitProgress?.({ label: getProviderSearchLabel("slack"), status: "error", action: "connections" });
+        emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "error", action: "connections" });
       }
     })());
   }
