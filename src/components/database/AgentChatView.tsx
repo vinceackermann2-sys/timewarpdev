@@ -1333,9 +1333,14 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       }
 
       const data = await response.json();
-      const searchedProviders = continuationCount === 0 && Array.isArray(data?.searchedProviders)
-        ? Array.from(new Set(data.searchedProviders.filter((provider: unknown): provider is string => typeof provider === "string" && provider.length > 0)))
+      const rawSearchedProviders: unknown[] = continuationCount === 0 && Array.isArray(data?.searchedProviders)
+        ? data.searchedProviders
         : [];
+      const searchedProviders: string[] = Array.from(
+        new Set(
+          rawSearchedProviders.filter((provider): provider is string => typeof provider === "string" && provider.length > 0)
+        )
+      );
       accumulatedContent = data.content || accumulatedContent;
 
       stopProgressPulse();
