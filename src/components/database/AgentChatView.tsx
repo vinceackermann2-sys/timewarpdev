@@ -7,8 +7,8 @@ import {
 } from "lucide-react";
 import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
-import { InlineChatChart } from "./InlineChatChart";
-import { InlineDocument, InlineAnalytics, InlineSpreadsheet, InlineSlide } from "./InlineChatGraphics";
+import { InlineChatAnalytics } from "./InlineChatAnalytics";
+import { InlineDocument, InlineSpreadsheet, InlineSlide } from "./InlineChatGraphics";
 import { TaskStepsDisplay } from "./TaskStepsDisplay";
 import { ThinkingTimer } from "./ThinkingTimer";
 import { SettingsView } from "@/components/database/SettingsView";
@@ -2238,13 +2238,13 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                             code: ({children, className}) => {
                               const text = String(children).replace(/\n$/, "");
                               if (className?.includes("language-chart") || className?.includes("language-graph")) {
-                                return <InlineChatChart jsonString={text} />;
+                                return <InlineChatAnalytics jsonString={text} />;
                               }
                               if (className?.includes("language-document")) {
                                 return <InlineDocument jsonString={text} />;
                               }
                               if (className?.includes("language-analytics")) {
-                                return <InlineAnalytics jsonString={text} />;
+                                return <InlineChatAnalytics jsonString={text} />;
                               }
                               if (className?.includes("language-spreadsheet")) {
                                 return <InlineSpreadsheet jsonString={text} />;
