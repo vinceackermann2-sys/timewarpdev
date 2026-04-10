@@ -1,67 +1,75 @@
 
-Goal: fix Employee Chat so the sub-logging reflects what the AI is actually doing, remove the suggestion chips from that chat, and stop unnecessary connection checks before they happen.
+Goal: make Employee Chat always use the correct employee-specific pipeline for normal questions, so the sub-logging shows live, personal connection checks only when relevant.
 
-1. Make Employee Chat logging real-time and accurate
-- Replace the current “optimistic” frontend-only step sequence in `src/components/database/AgentChatView.tsx`.
-- Update `supabase/functions/run-employee/index.ts` to emit progress metadata for the actual phases:
-  - request analysis
-  - business-context retrieval
-  - connection search skipped / started
-  - Microsoft search started / finished
-  - Slack search started / finished
-  - response generation
-  - completion
-- Have the frontend consume those progress events and append steps as they arrive, instead of guessing steps before the backend finishes.
-- Preserve all completed sub-steps in the timeline so the user sees more than one sub-log per message.
-- Show explicit “skipped” steps when connections are intentionally not searched, so the timeline still explains the decision.
+What’s actually going wrong
+- The screenshot matches the generic `runAgentChat` labels (`Gathering your business context`, `Analyzing the best approach`, `Composing your response`), not the employee SSE logging.
+- That means some “employee chat” messages are still being routed through the generic chat path instead of `runEmployeeChat`.
+- I also found two concrete gaps:
+  1. `AgentChatView.tsx` relies on `selectedChatEmployees` at send time, but chat history reload only restores `messages`, not the selected employee context.
+  2. Computer-mode employee runs use `runComputerMode`, which does not surface the same live connection-search sub-logging as the normal employee SSE flow.
 
-2. Stop wasting time on unnecessary connection checks
-- Add a lightweight intent-analysis layer in `run-employee` before any live connection lookup.
-- Use deterministic rules first, not another expensive model call.
-- Only search connections for queries that clearly need external comms/work data, for example:
-  - collaborations / partnerships
-  - complaints / customer issues
-  - recent messages / email / Slack / files / meeting follow-ups
-- Skip connection lookups for generic advice/questions like strategy, tips, brainstorming, summaries from existing business data.
-- Return the analysis decision to the frontend so the log can say things like:
-  - “Request needs connected sources”
-  - “Skipping connected sources — this question can be answered from existing business context”
+Implementation plan
 
-3. Make provider logging match real provider activity
-- Log provider-specific steps only when that provider was actually attempted by the backend.
-- Include clear labels such as:
-  - “Searching Microsoft 365 emails & files”
-  - “Searching Slack messages & channels”
-  - “Skipped Microsoft — not relevant to this question”
-  - “Skipped Slack — not connected”
-- Make sure provider steps appear during generation, not only after the final answer returns.
+1. Fix message routing so employee conversations stay in employee mode
+- Update `src/components/database/AgentChatView.tsx` so follow-up messages can infer employee mode from the active conversation, not only from the current chip state.
+- Restore employee context when selecting a saved chat by inspecting recent user messages with `employees` metadata and repopulating `selectedChatEmployees`.
+- Add a small helper like `getActiveEmployeeContext()` that resolves employee context from:
+  - current selected employee chip
+  - latest saved employee-tagged user message in the thread
+- Use that helper in `handleSendMessage` so normal employee follow-ups always call `runEmployeeChat`.
 
-4. Remove suggested questions from Employee Chat
-- Remove the suggestion chips / suggested prompts from the AI Employee Chat surface so only the message input remains.
-- Keep this scoped to Employee Chat, not unrelated chat screens.
+2. Separate “Employee Chat” from “Computer Mode” more safely
+- Ensure a normal typed employee question does not accidentally fall into the generic path.
+- Keep browser automation under `runComputerMode`, but make plain employee Q&A use `runEmployeeChat` unless the user is explicitly running browser/computer execution.
+- Review the current auto-selection flow around `autoRunEmployee` so it doesn’t leave the UI in a confusing state for later follow-up questions.
 
-5. UI cleanup for the sub-logging display
-- Adjust `TaskStepsDisplay` only if needed so completed steps remain visible and the active step does not hide the earlier ones.
-- Keep the timeline expanded and readable while streaming.
+3. Remove the old generic task labels from employee follow-ups
+- Since the screenshot proves generic labels are still rendering, audit the branching so only:
+  - `runAgentChat` emits generic labels
+  - `runEmployeeChat` emits personalized SSE labels
+- Make sure employee-tagged conversations never fall back to the generic optimistic step builder unless there is truly no employee context.
 
-Files likely affected
+4. Make employee sub-logging truly congruent with the live connection lookup model
+- Refine `supabase/functions/run-employee/index.ts` so progress events always reflect:
+  - request understanding
+  - business context retrieval
+  - connected-source decision
+  - provider-specific searches/skips
+  - answer generation
+- Personalize labels using the actual user query topic, but keep them tied to real backend work only.
+
+5. Improve connection intent handling for short natural questions like “any collabs?”
+- Expand the intent/topic parsing so shorthand questions still trigger connected-source checks when appropriate.
+- Ensure logs say things like:
+  - `Checking connected sources for collaborations`
+  - `Searching Microsoft 365 emails & files for collaborations`
+  - `Searching Slack messages & channels for collaborations`
+- If skipped, show a personalized skip reason instead of a generic fallback.
+
+6. Bring parity to employee computer-mode logs where feasible
+- Review `runComputerMode` and decide whether it should:
+  - consume the same metadata from `run-employee`, or
+  - clearly remain separate and not be used for normal employee Q&A
+- Primary fix is routing normal employee chat correctly first, because that appears to be the main cause of the screenshot.
+
+Files to update
 - `src/components/database/AgentChatView.tsx`
-- `src/components/database/TaskStepsDisplay.tsx`
 - `supabase/functions/run-employee/index.ts`
+- Possibly small follow-up adjustments in `src/components/database/TaskStepsDisplay.tsx` if step rendering needs clearer provider/skipped states
 
-Technical details
-- Root issue: the frontend currently adds several guessed steps up front, but the backend only returns `searchedProviders` after the request finishes. That means the UI cannot truthfully show live connection work while the answer is being generated.
-- Best fix: move to backend-driven progress events/metadata for Employee Chat, similar in spirit to the existing streaming chat flows already used elsewhere in the app.
-- No database schema changes should be required for this fix.
+Validation
+- Open Employee Chat, select an employee, ask: `any collabs?`
+  - should not show the old generic 4-task sequence
+  - should show employee-specific personalized steps
+  - should show Microsoft/Slack connection steps if relevant
+- Ask a generic question in the same employee thread
+  - should stay in employee mode
+  - should show a personalized “skip connected sources” step when appropriate
+- Reload or reopen chat history
+  - employee follow-up messages should still route to `runEmployeeChat`
+- Test explicit computer-mode runs separately so they do not break normal employee chat behavior
 
-Validation plan
-- Test a connection-heavy question like: “any collaborations coming up”
-  - should show request analysis
-  - should show Microsoft/Slack checks while thinking
-  - should not wait until the end to reveal those steps
-- Test a complaint question like: “any customer complaints?”
-  - should show connected-source checks if relevant
-- Test a generic advice question like: “how should we improve our homepage?”
-  - should skip connection checks and log that skip clearly
-- Confirm multiple sub-logs remain visible for one message
-- Confirm suggested question chips are gone from Employee Chat
+Expected outcome
+- The old generic logging disappears from Employee Chat follow-ups.
+- Employee conversations keep their employee context across turns/history.
+- Connection sub-logging becomes personal to the user’s message and only appears when the backend actually checks those sources.
