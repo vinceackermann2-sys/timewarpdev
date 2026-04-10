@@ -270,6 +270,8 @@ export function InlineSlide({ jsonString, editorEnabled = true }: { jsonString: 
 
   const layout = config.layout || (config.stats && config.stats.length > 0 ? "stat-callout" : "bullets");
   const accent = config.accent_color || "#3399ff";
+  const bgColor = config.bg_color || "#1a1a2e";
+  const bgGradientEnd = adjustColorBrightness(bgColor, 15);
 
   const handleSave = () => saveToDatabase(config.title, "slide", draftJson);
   const handleDownload = async () => {
