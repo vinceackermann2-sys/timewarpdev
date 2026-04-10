@@ -188,7 +188,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId, continuationContent } = await req.json();
+    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId, continuationContent, connectionQuery } = await req.json();
     if (!employee_id) throw new Error("employee_id required");
 
     // Load employee
@@ -236,6 +236,9 @@ serve(async (req) => {
 
     // Extract user's latest message for RAG + guardrails
     const lastUserMsg = extractLastUserMessage(messages);
+    const connectionLookupQuery = typeof connectionQuery === "string" && connectionQuery.trim().length > 0
+      ? connectionQuery.trim()
+      : lastUserMsg;
 
     // --- MIDDLEWARE LAYER 2: Pre-flight input validation (only if guardrails enabled) ---
     const preflightBlock = runPreflightGuardrails(lastUserMsg, safetySettings);
@@ -364,9 +367,9 @@ serve(async (req) => {
         workspace_id: effectiveWsId,
         linked_business_id: effectiveBrandId,
       }, lastUserMsg);
-      const { connectionContext, searchedProviders, skippedProviders, connectionDecision } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
+      const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(supabase, user.id, connectionLookupQuery);
       const result = await buildAiResponse(relevantContext, connectionContext);
-      return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, connectionDecision }), {
+      return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -387,9 +390,9 @@ serve(async (req) => {
 
         (async () => {
           try {
-            const topic = extractQueryTopic(lastUserMsg);
+            const topic = extractQueryTopic(connectionLookupQuery);
             sendStep(`Understanding your question about ${topic}`, "running", "analysis");
-            const decision = shouldSearchConnections(lastUserMsg);
+            const decision = shouldSearchConnections(connectionLookupQuery);
             sendStep(`Understanding your question about ${topic}`, "done", "analysis", decision.reason);
 
             sendStep(`Gathering business data on ${topic}`, "running", "context");
@@ -400,10 +403,10 @@ serve(async (req) => {
             }, lastUserMsg);
             sendStep(`Gathered business data on ${topic}`, "done", "context");
 
-            const { connectionContext, searchedProviders, skippedProviders, connectionDecision } = await searchConnectedProviders(
+            const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
               supabase,
               user.id,
-              lastUserMsg,
+              connectionLookupQuery,
               (step) => send({ type: "progress", step }),
               topic,
             );
@@ -415,7 +418,7 @@ serve(async (req) => {
             sendStep(`Crafting your answer on ${topic}`, "done", "response");
             if (!result.continuation) sendStep("Finished", "done", "complete");
 
-            send({ type: "result", ...result, searchedProviders, skippedProviders, connectionDecision });
+            send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic });
             close();
           } catch (error: any) {
             console.error("run-employee stream error:", error?.message || error);
@@ -560,7 +563,7 @@ async function searchSlackData(token: string, query: string): Promise<string[]> 
 
 // --- Intent Analysis: should we search connections? ---
 const CONNECTION_TRIGGER_PATTERNS = [
-  /\b(collaboration|collaborations|collaborat|partnership|partner|meeting|follow.?up|agenda)\b/i,
+  /\b(collab\w*|collaboration\w*|partnership\w*|partner\w*|meeting\w*|follow.?up|agenda)\b/i,
   /\b(complaint|issue|ticket|support|bug|problem|incident)\b/i,
   /\b(email|mail|inbox|message|slack|teams|chat|dm|thread)\b/i,
   /\b(file|document|doc|sheet|drive|onedrive|sharepoint)\b/i,
@@ -576,10 +579,10 @@ function shouldSearchConnections(query: string): { shouldSearch: boolean; reason
   const q = query.toLowerCase();
   for (const pattern of CONNECTION_TRIGGER_PATTERNS) {
     if (pattern.test(q)) {
-      return { shouldSearch: true, reason: "Query references external communications or files" };
+      return { shouldSearch: true, reason: "Your request points to live communications, files, or connected work activity" };
     }
   }
-  return { shouldSearch: false, reason: "Question can be answered from existing business context" };
+  return { shouldSearch: false, reason: "This looks like a strategy or knowledge question that can be answered from existing business context" };
 }
 
 /** Generate a short, personalized topic phrase from the user's query */
@@ -588,6 +591,7 @@ function extractQueryTopic(query: string): string {
   const q = query.toLowerCase().trim();
   // Try to extract the core subject
   const topicPatterns: [RegExp, string][] = [
+    [/\bcollabs?\b/i, "collaborations & partnerships"],
     [/\b(?:any|are there|check for|find)\b.{0,10}\b(collaborat\w*|partnership\w*)/i, "collaborations & partnerships"],
     [/\b(?:any|are there|check for|find)\b.{0,10}\b(complaint\w*|issue\w*|problem\w*)/i, "complaints & issues"],
     [/\b(?:any|are there|check for)\b.{0,10}\b(meeting\w*|call\w*|appointment\w*)/i, "meetings & calls"],
@@ -631,15 +635,21 @@ function getProviderSkipLabel(provider: string, reason: string): string {
   return `Skipped ${provider} — ${reason}`;
 }
 
+interface SkippedProviderDetail {
+  provider: string;
+  reason: string;
+}
+
 async function searchConnectedProviders(
   supabase: any,
   userId: string,
   userQuery: string,
   emitProgress?: (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => void,
   topic?: string,
-): Promise<{ connectionContext: string; searchedProviders: string[]; skippedProviders: string[]; connectionDecision: { shouldSearch: boolean; reason: string } }> {
+): Promise<{ connectionContext: string; searchedProviders: string[]; skippedProviders: string[]; skippedProviderDetails: SkippedProviderDetail[]; connectionDecision: { shouldSearch: boolean; reason: string }; queryTopic: string }> {
   const searchedProviders: string[] = [];
   const skippedProviders: string[] = [];
+  const skippedProviderDetails: SkippedProviderDetail[] = [];
   let connectionContext = "";
   const t = topic || extractQueryTopic(userQuery);
 
@@ -648,11 +658,11 @@ async function searchConnectedProviders(
 
   if (!decision.shouldSearch) {
     emitProgress?.({
-      label: `Skipping connected sources — ${decision.reason}`,
+      label: `Skipping connected sources for ${t} — ${decision.reason}`,
       status: "done",
       action: "connections",
     });
-    return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
+    return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
   emitProgress?.({ label: `Checking connected sources for ${t}`, status: "done", action: "connections" });
@@ -669,8 +679,12 @@ async function searchConnectedProviders(
 
   if (!connections || connections.length === 0) {
     console.log("[connections] No connected providers found");
-    emitProgress?.({ label: "No connected sources available", status: "done", action: "connections" });
-    return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
+    for (const provider of ["microsoft", "slack", "hubspot"]) {
+      skippedProviders.push(provider);
+      skippedProviderDetails.push({ provider, reason: "not connected" });
+    }
+    emitProgress?.({ label: `No connected sources available for ${t}`, status: "done", action: "connections", detail: "No integrations are currently connected" });
+    return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
   const connectedProviders = connections.map((c: any) => c.provider);
@@ -681,6 +695,7 @@ async function searchConnectedProviders(
   for (const p of allKnownProviders) {
     if (!connectedProviders.includes(p)) {
       skippedProviders.push(p);
+      skippedProviderDetails.push({ provider: p, reason: "not connected" });
       if (p === "microsoft" || p === "slack") {
         emitProgress?.({ label: getProviderSkipLabel(p, "not connected"), status: "done", action: "connections" });
       }
@@ -695,6 +710,7 @@ async function searchConnectedProviders(
         if (!token) {
           console.log("[connections] No valid Microsoft token");
           skippedProviders.push("microsoft");
+          skippedProviderDetails.push({ provider: "microsoft", reason: "connection expired" });
           emitProgress?.({ label: getProviderSkipLabel("microsoft", "connection expired"), status: "done", action: "connections" });
           return;
         }
@@ -728,6 +744,7 @@ async function searchConnectedProviders(
         if (!token) {
           console.log("[connections] No valid Slack token");
           skippedProviders.push("slack");
+          skippedProviderDetails.push({ provider: "slack", reason: "connection expired" });
           emitProgress?.({ label: getProviderSkipLabel("slack", "connection expired"), status: "done", action: "connections" });
           return;
         }
@@ -754,7 +771,7 @@ async function searchConnectedProviders(
   }
 
   console.log("[connections] Final searchedProviders:", searchedProviders, "skipped:", skippedProviders, "hasContext:", connectionContext.length > 0);
-  return { connectionContext, searchedProviders, skippedProviders, connectionDecision: decision };
+  return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
 }
 
 // --- RAG Helpers ---
