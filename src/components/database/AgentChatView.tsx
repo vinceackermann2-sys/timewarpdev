@@ -982,6 +982,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     }
 
     const contentType = response.headers.get("content-type") || "";
+    console.log("[agent-chat] extension-agent response content-type:", contentType);
     let fullContent = "";
 
     if (contentType.includes("text/event-stream")) {
