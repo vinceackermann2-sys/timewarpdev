@@ -147,16 +147,22 @@ export function GraphicEditorDialog({
                   <div ref={chatEndRef} />
                 </div>
 
-                {/* Chat input bar — matching employee chat style */}
-                <div className="border-t border-border">
-                  <div className="flex items-center gap-0 px-2 py-2">
+              {/* Apply button */}
+                <div className="p-3 border-t border-border flex justify-end gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button type="button" size="sm" onClick={handleApply}>Apply changes</Button>
+                </div>
+
+                {/* Chat input bar — matching employee chat bar */}
+                <div className="p-3 border-t border-border">
+                  <div className="flex items-center bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
                     <div className="flex-1 flex items-center px-3 py-1">
                       <div
                         ref={chatInputRef}
                         contentEditable
                         suppressContentEditableWarning
-                        className="flex-1 bg-transparent border-none outline-none text-foreground text-sm min-w-[80px] max-h-[80px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text cursor-text"
-                        data-placeholder="Refine with AI…"
+                        className="flex-1 bg-transparent border-none outline-none text-foreground text-base min-w-[80px] max-h-[120px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text cursor-text"
+                        data-placeholder="Ask me anything..."
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
@@ -168,17 +174,11 @@ export function GraphicEditorDialog({
                     <button
                       onClick={handleAiRefine}
                       disabled={isRefining}
-                      className="p-2 rounded-full bg-foreground text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm hover:bg-foreground/90 disabled:opacity-40"
+                      className="p-2.5 rounded-full bg-foreground text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm hover:bg-foreground/90 disabled:opacity-40"
                     >
-                      {isRefining ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-4 h-4" />}
+                      {isRefining ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-5 h-5" />}
                     </button>
                   </div>
-                </div>
-
-                {/* Apply button */}
-                <div className="p-3 border-t border-border flex justify-end gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button type="button" size="sm" onClick={handleApply}>Apply changes</Button>
                 </div>
               </div>
 
