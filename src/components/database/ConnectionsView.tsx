@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, CheckCircle2, Mail, CalendarDays, Cloud, BookOpen, MessageSquare, Users, type LucideIcon } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import logoMsOutlook from "@/assets/logo-ms-outlook.png";
+import logoMsCalendar from "@/assets/logo-ms-calendar.png";
+import logoMsOnedrive from "@/assets/logo-ms-onedrive.png";
+import logoMsOnenote from "@/assets/logo-ms-onenote.png";
 import logoSlack from "@/assets/logo-slack.png";
 import logoHubspot from "@/assets/logo-hubspot.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
@@ -12,18 +16,16 @@ interface Integration {
   id: string;
   name: string;
   description: string;
-  icon?: LucideIcon;
-  iconColor?: string;
-  logo?: string;
+  logo: string;
   comingSoon?: boolean;
   section: "microsoft" | "other";
 }
 
 const integrations: Integration[] = [
-  { id: "microsoft_outlook", name: "Outlook", description: "Emails and contacts", icon: Mail, iconColor: "text-blue-500", section: "microsoft" },
-  { id: "microsoft_calendar", name: "Calendar", description: "Events and scheduling", icon: CalendarDays, iconColor: "text-sky-500", section: "microsoft" },
-  { id: "microsoft_onedrive", name: "OneDrive", description: "Files and documents", icon: Cloud, iconColor: "text-blue-400", section: "microsoft" },
-  { id: "microsoft_onenote", name: "OneNote", description: "Notes and notebooks", icon: BookOpen, iconColor: "text-purple-500", section: "microsoft" },
+  { id: "microsoft_outlook", name: "Microsoft Outlook", description: "Read, send, and manage emails", logo: logoMsOutlook, section: "microsoft" },
+  { id: "microsoft_calendar", name: "Microsoft Calendar", description: "Events and scheduling", logo: logoMsCalendar, section: "microsoft" },
+  { id: "microsoft_onedrive", name: "Microsoft OneDrive", description: "Upload and read files", logo: logoMsOnedrive, section: "microsoft" },
+  { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft" },
   { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
   { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, comingSoon: true, section: "other" },
 ];
@@ -55,14 +57,7 @@ function IntegrationIcon({ integration, isConnecting }: { integration: Integrati
   if (isConnecting) {
     return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
   }
-  if (integration.icon) {
-    const IconComp = integration.icon;
-    return <IconComp className={`h-5 w-5 ${integration.iconColor || "text-foreground"}`} />;
-  }
-  if (integration.logo) {
-    return <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" loading="lazy" />;
-  }
-  return null;
+  return <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" loading="lazy" />;
 }
 
 function ConnectionCard({
