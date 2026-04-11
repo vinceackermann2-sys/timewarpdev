@@ -369,13 +369,7 @@ export async function searchConnectedProviders(
   const connectedProviders = connections.map((c: any) => c.provider);
   const searchPromises: Promise<void>[] = [];
 
-  const allKnownProviders = ["microsoft", "slack", "hubspot"];
-  for (const provider of allKnownProviders) {
-    if (!connectedProviders.includes(provider)) {
-      skippedProviders.push(provider);
-      skippedProviderDetails.push({ provider, reason: "not connected" });
-    }
-  }
+  // Skip check is now handled per-service below
 
   // Check for any Microsoft sub-service connection
   const hasMicrosoft = connectedProviders.some((p: string) => isMicrosoftProvider(p));
