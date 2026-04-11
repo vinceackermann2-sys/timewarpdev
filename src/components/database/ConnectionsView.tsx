@@ -18,14 +18,15 @@ interface Integration {
   logo: string;
   comingSoon?: boolean;
   section: "microsoft" | "other";
+  iconBg?: string;
 }
 
 const integrations: Integration[] = [
-  { id: "microsoft_outlook", name: "Microsoft Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook, section: "microsoft" },
-  { id: "microsoft_onedrive", name: "Microsoft OneDrive", description: "Upload and read files", logo: logoMsOnedrive, section: "microsoft" },
-  { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft" },
+  { id: "microsoft_outlook", name: "Microsoft Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook, section: "microsoft", iconBg: "bg-white" },
+  { id: "microsoft_onedrive", name: "Microsoft OneDrive", description: "Upload and read files", logo: logoMsOnedrive, section: "microsoft", iconBg: "bg-white" },
+  { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft", iconBg: "bg-white" },
   { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
-  { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, comingSoon: true, section: "other" },
+  { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, comingSoon: true, section: "other", iconBg: "bg-orange-100" },
 ];
 
 interface ConnectedProvider {
@@ -95,7 +96,7 @@ function ConnectionCard({
           <CheckCircle2 className="h-4 w-4 text-green-500" />
         </span>
       )}
-      <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center p-2">
+      <div className={`h-12 w-12 rounded-xl flex items-center justify-center p-2 ${integration.iconBg || "bg-muted"}`}>
         <IntegrationIcon integration={integration} isConnecting={isConnecting} />
       </div>
       <div>
