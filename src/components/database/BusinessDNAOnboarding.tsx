@@ -247,31 +247,6 @@ export function BusinessDNAOnboarding({
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
-  // ── Manual background removal handler for image picker ──
-  const [bgRemovalLoading, setBgRemovalLoading] = useState<Record<string, boolean>>({});
-  const handleRemoveBg = useCallback(async (imgUrl: string) => {
-    if (bgRemovedImages[imgUrl] || bgRemovalLoading[imgUrl]) return;
-    setBgRemovalLoading(prev => ({ ...prev, [imgUrl]: true }));
-    try {
-      const { data, error } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
-      if (error || !data?.resultUrl) {
-        // Retry once after a short delay (rate limit)
-        await new Promise(r => setTimeout(r, 2000));
-        const { data: d2 } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
-        if (d2?.resultUrl) {
-          setBgRemovedImages(prev => ({ ...prev, [imgUrl]: d2.resultUrl }));
-        } else {
-          console.warn("BG removal failed after retry for", imgUrl);
-        }
-      } else {
-        setBgRemovedImages(prev => ({ ...prev, [imgUrl]: data.resultUrl }));
-      }
-    } catch (e) {
-      console.warn("BG removal failed for", imgUrl, e);
-    } finally {
-      setBgRemovalLoading(prev => ({ ...prev, [imgUrl]: false }));
-    }
-  }, [bgRemovedImages, bgRemovalLoading]);
 
   // Progress animation for step 1 — cap at 90% until scrape is done
   useEffect(() => {
