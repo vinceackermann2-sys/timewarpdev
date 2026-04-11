@@ -4,10 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import logoMsOutlook from "@/assets/logo-ms-outlook.png";
-import logoMsCalendar from "@/assets/logo-ms-calendar.png";
-import logoMsOnedrive from "@/assets/logo-ms-onedrive.png";
-import logoMsOnenote from "@/assets/logo-ms-onenote.png";
+import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
+import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
+import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
 import logoSlack from "@/assets/logo-slack.png";
 import logoHubspot from "@/assets/logo-hubspot.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
@@ -22,8 +21,7 @@ interface Integration {
 }
 
 const integrations: Integration[] = [
-  { id: "microsoft_outlook", name: "Microsoft Outlook", description: "Read, send, and manage emails", logo: logoMsOutlook, section: "microsoft" },
-  { id: "microsoft_calendar", name: "Microsoft Calendar", description: "Events and scheduling", logo: logoMsCalendar, section: "microsoft" },
+  { id: "microsoft_outlook", name: "Microsoft Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook, section: "microsoft" },
   { id: "microsoft_onedrive", name: "Microsoft OneDrive", description: "Upload and read files", logo: logoMsOnedrive, section: "microsoft" },
   { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft" },
   { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
