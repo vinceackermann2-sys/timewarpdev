@@ -247,31 +247,6 @@ export function BusinessDNAOnboarding({
     return () => { cancelled = true; };
   }, [activeUrl, step]);
 
-  // ── Manual background removal handler for image picker ──
-  const [bgRemovalLoading, setBgRemovalLoading] = useState<Record<string, boolean>>({});
-  const handleRemoveBg = useCallback(async (imgUrl: string) => {
-    if (bgRemovedImages[imgUrl] || bgRemovalLoading[imgUrl]) return;
-    setBgRemovalLoading(prev => ({ ...prev, [imgUrl]: true }));
-    try {
-      const { data, error } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
-      if (error || !data?.resultUrl) {
-        // Retry once after a short delay (rate limit)
-        await new Promise(r => setTimeout(r, 2000));
-        const { data: d2 } = await invokeEdgeFunction("remove-bg", { imageUrl: imgUrl });
-        if (d2?.resultUrl) {
-          setBgRemovedImages(prev => ({ ...prev, [imgUrl]: d2.resultUrl }));
-        } else {
-          console.warn("BG removal failed after retry for", imgUrl);
-        }
-      } else {
-        setBgRemovedImages(prev => ({ ...prev, [imgUrl]: data.resultUrl }));
-      }
-    } catch (e) {
-      console.warn("BG removal failed for", imgUrl, e);
-    } finally {
-      setBgRemovalLoading(prev => ({ ...prev, [imgUrl]: false }));
-    }
-  }, [bgRemovedImages, bgRemovalLoading]);
 
   // Progress animation for step 1 — cap at 90% until scrape is done
   useEffect(() => {
@@ -1078,26 +1053,6 @@ export function BusinessDNAOnboarding({
                           >
                             <Maximize2 className="w-4 h-4 text-white" />
                           </button>
-                          {/* Remove Background button */}
-                          {!bgRemovedImages[imgSrc] && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleRemoveBg(imgSrc); }}
-                              disabled={bgRemovalLoading[imgSrc]}
-                              className="absolute bottom-3 left-3 px-2.5 py-1.5 rounded-lg bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white text-[11px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-60"
-                            >
-                              {bgRemovalLoading[imgSrc] ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <WandSparkles className="w-3 h-3" />
-                              )}
-                              Remove BG
-                            </button>
-                          )}
-                          {bgRemovedImages[imgSrc] && (
-                            <div className="absolute bottom-3 left-3 px-2.5 py-1.5 rounded-lg bg-[#22c55e]/80 backdrop-blur-sm text-white text-[11px] font-medium flex items-center gap-1.5">
-                              <Check className="w-3 h-3" /> BG Removed
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>

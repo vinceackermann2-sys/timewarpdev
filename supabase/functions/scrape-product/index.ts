@@ -734,8 +734,31 @@ serve(async (req) => {
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: "google/gemini-2.5-flash-lite",
-                messages: [{ role: "user", content: `From these URLs, select ONLY the ones that are clearly DISTINCT individual PRODUCT or SERVICE pages sold by THIS company. Each URL should represent a genuinely different product — do NOT include:\n- Variant pages, color options, size variations, or locale versions of the same product\n- Inventory/shop/store listing pages\n- Category/collection pages\n- Blog posts, about/legal pages\n- Partner integrations, third-party tools\n- URLs with locale prefixes like /en_xx/, /fr_FR/, /de_DE/ that are just translations of the same page\n\nPrefer short, clean product URLs (e.g., /model-y, /cybertruck, /product-name) over long parameterized URLs.\n\nReturn ONLY a JSON array of URL strings. If none are product pages, return []. Maximum 10 URLs.\n\nURLs:\n${allUrls.slice(0, 300).join('\n')}` }],
+                model: "google/gemini-2.5-flash",
+                messages: [{ role: "user", content: `You are a product page identifier. From these URLs, select ONLY URLs that lead to a SPECIFIC, INDIVIDUAL product or service page that this company sells directly.
+
+INCLUDE:
+- Individual product detail pages (e.g., /products/widget-pro, /model-y, /air-max-90)
+- Individual service pages (e.g., /services/consulting, /plans/enterprise)
+
+DO NOT INCLUDE:
+- Category, collection, or listing pages (e.g., /shop, /products, /collections/shoes, /all-products)
+- Variant pages (color, size, locale versions of the SAME product — e.g., /model-y/design vs /model-y, /en_gb/model-y vs /model-y)
+- Blog posts, about, legal, privacy, terms, careers, help, support, FAQ, contact pages
+- Partner/integration/third-party tool pages
+- Cart, checkout, account, login pages
+- Pages with query parameters for filters or sorting (e.g., ?color=red, ?sort=price)
+- Inventory/new/used vehicle listing pages
+- The homepage itself
+
+DEDUPLICATION RULES:
+- If multiple URLs clearly point to the SAME product (just different locales, anchors, or minor path variations), pick only ONE — the shortest/cleanest URL.
+- Prefer canonical-looking URLs: shorter paths, no locale prefixes (/en_xx/), no query strings.
+
+Return ONLY a JSON array of URL strings, max 10 items. If none qualify, return [].
+
+URLs:
+${allUrls.slice(0, 400).join('\n')}` }],
               }),
             })).text();
             try {
@@ -881,11 +904,21 @@ serve(async (req) => {
         })
       );
 
-      const discoveredProducts = discoverResults
+      const rawDiscovered = discoverResults
         .filter((r): r is PromiseFulfilledResult<{ url: string; name: string; description: string; images: string[] }> =>
           r.status === 'fulfilled' && !!r.value)
         .map(r => r.value)
         .filter(p => p.name || p.description || p.images.length > 0);
+
+      // Deduplicate by normalized product name
+      const seenNames = new Set<string>();
+      const discoveredProducts = rawDiscovered.filter(p => {
+        const key = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+        if (!key) return true; // keep unnamed products (they'll show URL as label)
+        if (seenNames.has(key)) return false;
+        seenNames.add(key);
+        return true;
+      });
 
       // Extract basic brand info from firecrawl (no AI call needed)
       const quickBrand = {
