@@ -777,33 +777,61 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                   })
                   .slice(0, maxPages);
                 console.log("AI selected", selected.length, "product pages:", selected);
-                const scrapeResults = await Promise.allSettled(
+                // Scrape all pages and extract names/images in parallel (combined per-page)
+                const combinedResults = await Promise.allSettled(
                   selected.map(async (pUrl: string) => {
                     try {
+                      // Scrape page
                       const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "rawHtml"], onlyMainContent: false }),
+                        body: JSON.stringify({ url: pUrl, formats: ["markdown"], onlyMainContent: false }),
                       });
+                      let md = "";
                       if (res.ok) {
                         const d = await res.json();
-                        const md = d.data?.markdown || d.markdown || "";
-                        const rawHtml = d.data?.rawHtml || d.rawHtml || "";
-                        const mdImages = extractImagesFromMarkdown(md, pUrl);
-                        const htmlImages = extractImagesFromMarkdown(rawHtml, pUrl);
-                        const allImages = [...new Set([...mdImages, ...htmlImages])];
-                        console.log(`Product page ${pUrl}: ${allImages.length} images found`);
-                        return { url: pUrl, markdown: md, extractedImages: allImages };
+                        md = d.data?.markdown || d.markdown || "";
+                      } else {
+                        const fb = await fetchPageFallback(pUrl);
+                        md = fb.markdown;
                       }
-                      const fb = await fetchPageFallback(pUrl);
-                      return { url: pUrl, markdown: fb.markdown, extractedImages: extractImagesFromMarkdown(fb.markdown, pUrl) };
+                      const pageImages = extractImagesFromMarkdown(md, pUrl);
+                      const candidateImages = [...new Set(pageImages)].slice(0, 20);
+                      
+                      // AI extraction inline
+                      const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          model: "google/gemini-2.5-flash-lite",
+                          max_tokens: 800,
+                          messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo. Do NOT pick logos, icons, banners, tracking pixels, or tiny images. Pick actual product photography.\n\nReturn JSON: {"name": "", "description": "", "bestImages": []}\n\nContent (first 4000 chars):\n${md.slice(0, 4000)}` }],
+                        }),
+                      });
+                      if (!aiRes.ok) return { url: pUrl, name: "", description: "", images: candidateImages, markdown: md, extractedImages: pageImages };
+                      const aiData = await aiRes.json();
+                      const rawAi = aiData.choices?.[0]?.message?.content || "";
+                      try {
+                        const parsed = robustJsonParse(rawAi);
+                        const bestImages = ensureArr(parsed.bestImages || parsed.imageUrls).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
+                        const finalImages = bestImages.length > 0 ? [...bestImages, ...candidateImages.filter(c => !bestImages.includes(c))].slice(0, 8) : candidateImages.slice(0, 8);
+                        return { url: pUrl, name: parsed.name || "", description: parsed.description || "", images: finalImages, markdown: md, extractedImages: pageImages };
+                      } catch {
+                        return { url: pUrl, name: "", description: "", images: candidateImages, markdown: md, extractedImages: pageImages };
+                      }
                     } catch { return null; }
                   })
                 );
-                productPageContents = scrapeResults
-                  .filter((r): r is PromiseFulfilledResult<{ url: string; markdown: string; extractedImages: string[] }> => r.status === 'fulfilled' && !!r.value)
+                
+                // Split results for both discover and non-discover paths
+                const combinedSettled = combinedResults
+                  .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && !!r.value)
                   .map(r => r.value);
-                console.log("Scraped", productPageContents.length, "product pages");
+                
+                productPageContents = combinedSettled.map(r => ({ url: r.url, markdown: r.markdown || "", extractedImages: r.extractedImages || [] }));
+                // Store discover data for later use
+                (globalThis as any).__discoverCache = combinedSettled;
+                console.log("Scraped + extracted", productPageContents.length, "product pages in parallel");
               }
             } catch (e) { console.warn("Product selection parse error:", e); }
           }
