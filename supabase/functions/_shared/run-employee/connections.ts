@@ -150,7 +150,7 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
     if (!encodedTerm) continue;
 
     try {
-      if (results.emails.length < 5) {
+      if (searchEmails && results.emails.length < 5) {
         const emailRes = await fetch(
           `https://graph.microsoft.com/v1.0/me/messages?$search="${encodedTerm}"&$top=5&$select=subject,bodyPreview,from,receivedDateTime`,
           {
@@ -180,7 +180,7 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
     }
 
     try {
-      if (results.files.length < 5) {
+      if (searchFiles && results.files.length < 5) {
         const fileRes = await fetch(
           `https://graph.microsoft.com/v1.0/me/drive/root/search(q='${encodedTerm}')?$top=5&$select=name,webUrl,lastModifiedDateTime,size`,
           { headers: { Authorization: `Bearer ${token}` } },
