@@ -26,11 +26,14 @@ serve(async (req) => {
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
     const logicalBrandId = state.logicalBrandId || state.brandId || null;
+    // subProvider determines which granular service this is (e.g. microsoft_outlook)
+    // Falls back to "microsoft" for legacy connections
+    const subProvider = state.subProvider || "microsoft";
     frontendUrl = state.origin || frontendUrl;
 
     if (!userId) throw new Error("No userId in state");
 
-    // Verify HMAC nonce to prevent state forgery
+    // Verify HMAC nonce
     if (!state.nonce || !state.hmac) throw new Error("Missing CSRF nonce");
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -71,12 +74,12 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    // Store tokens
+    // Store tokens under the specific sub-provider name
     await supabaseAdmin
       .from("user_oauth_tokens")
       .upsert({
         user_id: userId,
-        provider: "microsoft",
+        provider: subProvider,
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token || null,
         token_expires_at: tokenData.expires_in
@@ -87,20 +90,19 @@ serve(async (req) => {
         provider_email: profile.mail || profile.userPrincipalName || null,
       }, { onConflict: "user_id,provider" });
 
-    // Update user_connections scoped to brand
+    // Update user_connections scoped to sub-provider
     await supabaseAdmin
       .from("user_connections")
       .upsert({
         user_id: userId,
-        provider: "microsoft",
+        provider: subProvider,
         status: "connected",
         brand_id: brandId,
         metadata: { email: profile.mail || profile.userPrincipalName },
       }, { onConflict: "user_id,provider" });
 
-    // Pass brandId in redirect so auto-sync can use it
     const brandParam = logicalBrandId ? `&brandId=${encodeURIComponent(logicalBrandId)}` : "";
-    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=microsoft${brandParam}`, 302);
+    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=${subProvider}${brandParam}`, 302);
   } catch (e) {
     console.error("Microsoft OAuth callback error occurred");
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);

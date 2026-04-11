@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoMsOutlook from "@/assets/logo-ms-outlook.png";
+import logoMsCalendar from "@/assets/logo-ms-calendar.png";
+import logoMsOnedrive from "@/assets/logo-ms-onedrive.png";
 import logoSlack from "@/assets/logo-slack.png";
 
 interface ConnectorDef {
@@ -10,12 +12,13 @@ interface ConnectorDef {
   name: string;
   description: string;
   logo: string;
-  authType: "oauth" | "credentials";
 }
 
 const connectors: ConnectorDef[] = [
-  { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar", logo: logoMicrosoft, authType: "oauth" },
-  { id: "slack", name: "Slack", description: "Channels, Messages, Team", logo: logoSlack, authType: "oauth" },
+  { id: "microsoft_outlook", name: "Outlook", description: "Emails & contacts", logo: logoMsOutlook },
+  { id: "microsoft_calendar", name: "Calendar", description: "Events & scheduling", logo: logoMsCalendar },
+  { id: "microsoft_onedrive", name: "OneDrive", description: "Files & documents", logo: logoMsOnedrive },
+  { id: "slack", name: "Slack", description: "Messages & channels", logo: logoSlack },
 ];
 
 interface ConnectorGridProps {
@@ -28,14 +31,14 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
 
-  // Check for OAuth return
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthSuccess = params.get("oauth_success");
     const oauthError = params.get("oauth_error");
 
     if (oauthSuccess) {
-      toast.success(`${oauthSuccess.charAt(0).toUpperCase() + oauthSuccess.slice(1)} connected!`);
+      const label = connectors.find(c => c.id === oauthSuccess)?.name || oauthSuccess;
+      toast.success(`${label} connected!`);
       window.history.replaceState({}, "", window.location.pathname);
       setConnectedProviders(prev => prev.includes(oauthSuccess) ? prev : [...prev, oauthSuccess]);
       return;
@@ -46,10 +49,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
     }
   }, []);
 
-  // Check existing connections
-  useEffect(() => {
-    checkConnections();
-  }, []);
+  useEffect(() => { checkConnections(); }, []);
 
   const checkConnections = useCallback(async () => {
     try {
@@ -155,15 +155,15 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
             lineHeight: 1.6,
           }}
         >
-          Connect one of your business tools to get started with your AI CEO
+          Connect only the services you need — each with minimal permissions
         </p>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: 20,
-            maxWidth: 280,
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+            gap: 16,
+            maxWidth: 400,
             width: "100%",
             padding: "0 16px",
           }}
@@ -186,16 +186,16 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 12,
-                  padding: isMobile ? "20px 12px" : "28px 20px",
-                  borderRadius: 20,
+                  gap: 10,
+                  padding: isMobile ? "18px 12px" : "24px 16px",
+                  borderRadius: 16,
                   background: isConnected
                     ? "rgba(74, 222, 128, 0.08)"
                     : "rgba(255,255,255,0.04)",
                   border: `1.5px solid ${isConnected ? "rgba(74, 222, 128, 0.3)" : "rgba(255,255,255,0.1)"}`,
                   cursor: isConnecting ? "wait" : "pointer",
                   transition: "all 0.3s ease",
-                  animation: `fadeSlideUp 0.4s ease-out ${i * 0.1}s both`,
+                  animation: `fadeSlideUp 0.4s ease-out ${i * 0.08}s both`,
                 }}
                 className={!isConnecting ? "hover:scale-[1.05] active:scale-[0.97]" : ""}
                 onMouseEnter={(e) => {
@@ -212,25 +212,22 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
                 }}
               >
                 {isConnecting ? (
-                  <Loader2 size={32} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.8)" }} />
+                  <Loader2 size={28} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.8)" }} />
                 ) : isConnected ? (
-                  <CheckCircle size={32} style={{ color: "rgba(74, 222, 128, 0.9)" }} />
+                  <CheckCircle size={28} style={{ color: "rgba(74, 222, 128, 0.9)" }} />
                 ) : (
                   <img
                     src={connector.logo}
                     alt={connector.name}
-                    style={{
-                      width: 36,
-                      height: 36,
-                      objectFit: "contain",
-                    }}
+                    style={{ width: 32, height: 32, objectFit: "contain" }}
+                    loading="lazy"
                   />
                 )}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: 700,
                       color: isConnected ? "rgba(74, 222, 128, 0.9)" : "#fff",
                     }}
@@ -240,7 +237,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
                   <span
                     style={{
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      fontSize: 11,
+                      fontSize: 10,
                       color: "rgba(255,255,255,0.35)",
                       textAlign: "center",
                     }}
