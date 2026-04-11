@@ -206,6 +206,44 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
   return results;
 }
 
+export async function searchOneNoteData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const seenPages = new Set<string>();
+  const searchTerms = buildSearchTerms(query, topic);
+  if (searchTerms.length === 0) return results;
+
+  for (const term of searchTerms) {
+    const encodedTerm = encodeURIComponent(term.replace(/"/g, " ").trim());
+    if (!encodedTerm) continue;
+
+    try {
+      const res = await fetch(
+        `https://graph.microsoft.com/v1.0/me/onenote/pages?$search=${encodedTerm}&$top=5&$select=title,createdDateTime,lastModifiedDateTime,links&$orderby=lastModifiedDateTime desc`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        for (const page of (data.value || [])) {
+          const title = page.title || "Untitled";
+          const modified = page.lastModifiedDateTime?.slice(0, 10) || page.createdDateTime?.slice(0, 10) || "";
+          const link = page.links?.oneNoteWebUrl?.href || "";
+          const key = `${title}|${modified}`;
+          if (seenPages.has(key)) continue;
+          seenPages.add(key);
+          results.push(`📝 **${title}** (modified: ${modified})${link ? ` — [link](${link})` : ""}`);
+          if (results.length >= 5) break;
+        }
+      }
+    } catch (e) {
+      console.error("OneNote search error:", e);
+    }
+
+    if (results.length >= 5) break;
+  }
+
+  return results;
+}
+
 export async function searchSlackData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const seenResults = new Set<string>();
@@ -303,19 +341,20 @@ export function extractQueryTopic(query: string): string {
 export function getProviderSearchLabel(provider: string, topic?: string): string {
   const suffix = topic ? ` for ${topic}` : "";
   if (provider === "microsoft") return `Searching Microsoft 365 emails & files${suffix}`;
+  if (provider === "microsoft_outlook") return `Searching Outlook emails${suffix}`;
+  if (provider === "microsoft_onedrive") return `Searching OneDrive files${suffix}`;
+  if (provider === "microsoft_onenote") return `Searching OneNote pages${suffix}`;
   if (provider === "slack") return `Searching Slack messages & channels${suffix}`;
   if (provider === "hubspot") return `Searching HubSpot records${suffix}`;
-  return `Searching ${provider}${suffix}`;
+  return `Searching ${formatProviderName(provider)}${suffix}`;
 }
 
 export function getProviderSkipLabel(provider: string, reason: string): string {
-  if (provider === "microsoft") return `Skipped Microsoft — ${reason}`;
   if (provider === "microsoft") return `Skipped Microsoft 365 — ${reason}`;
   if (provider.startsWith("microsoft_")) return `Skipped ${formatProviderName(provider)} — ${reason}`;
   if (provider === "slack") return `Skipped Slack — ${reason}`;
   if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
-  return `Skipped ${provider} — ${reason}`;
-  return `Skipped ${provider} — ${reason}`;
+  return `Skipped ${formatProviderName(provider)} — ${reason}`;
 }
 
 export async function searchConnectedProviders(
@@ -388,38 +427,70 @@ export async function searchConnectedProviders(
   }
 
   if (hasMicrosoft) {
-    searchPromises.push((async () => {
-      try {
-        // Use any available Microsoft token — they share the same MS account
-        const token = await getAnyMicrosoftToken(supabase, userId);
-        if (!token) {
-          skippedProviders.push("microsoft");
-          skippedProviderDetails.push({ provider: "microsoft", reason: "token expired or missing" });
-          return;
-        }
-        const msLabel = "Microsoft 365";
-        emitProgress?.({ label: `Searching ${msLabel} emails & files for ${t}`, status: "running", action: "connections" });
-        searchedProviders.push("microsoft");
-        console.log("[connections] Searching Microsoft with query:", userQuery.slice(0, 60), "topic:", t);
+    const hasOutlook = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
+    const hasOnedrive = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
+    const hasOnenote = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onenote");
 
-        // Only search emails if outlook is connected, files if onedrive is connected
-        const hasOutlook = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
-        const hasOnedrive = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
-        
-        const results = await searchMicrosoftData(token, userQuery, t, { searchEmails: hasOutlook, searchFiles: hasOnedrive });
-        console.log("[connections] Microsoft results: emails=", results.emails.length, "files=", results.files.length);
-        if (results.emails.length > 0 || results.files.length > 0) {
-          connectionContext += `\n\n### Live Data from Microsoft 365\n`;
-          if (results.emails.length > 0) connectionContext += `#### Recent Emails\n${results.emails.join("\n\n")}\n`;
-          if (results.files.length > 0) connectionContext += `#### Recent Files\n${results.files.join("\n\n")}\n`;
+    // Search Outlook emails + OneDrive files together (they use shared token)
+    if (hasOutlook || hasOnedrive) {
+      searchPromises.push((async () => {
+        try {
+          const token = await getAnyMicrosoftToken(supabase, userId);
+          if (!token) {
+            if (hasOutlook) skippedProviderDetails.push({ provider: "microsoft_outlook", reason: "token expired or missing" });
+            if (hasOnedrive) skippedProviderDetails.push({ provider: "microsoft_onedrive", reason: "token expired or missing" });
+            return;
+          }
+          if (hasOutlook) {
+            emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "running", action: "connections" });
+            searchedProviders.push("microsoft_outlook");
+          }
+          if (hasOnedrive) {
+            emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "running", action: "connections" });
+            searchedProviders.push("microsoft_onedrive");
+          }
+          console.log("[connections] Searching Microsoft (outlook:", hasOutlook, "onedrive:", hasOnedrive, ") query:", userQuery.slice(0, 60), "topic:", t);
+
+          const results = await searchMicrosoftData(token, userQuery, t, { searchEmails: hasOutlook, searchFiles: hasOnedrive });
+          console.log("[connections] Microsoft results: emails=", results.emails.length, "files=", results.files.length);
+          if (results.emails.length > 0) connectionContext += `\n\n### Live Data from Outlook\n#### Recent Emails\n${results.emails.join("\n\n")}\n`;
+          if (results.files.length > 0) connectionContext += `\n\n### Live Data from OneDrive\n#### Recent Files\n${results.files.join("\n\n")}\n`;
+          if (hasOutlook) emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "done", action: "connections" });
+          if (hasOnedrive) emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "done", action: "connections" });
+        } catch (e) {
+          console.error("[connections] Microsoft search failed:", e);
+          if (hasOutlook) { skippedProviderDetails.push({ provider: "microsoft_outlook", reason: "search failed" }); emitProgress?.({ label: `Searching Outlook for ${t}`, status: "error", action: "connections" }); }
+          if (hasOnedrive) { skippedProviderDetails.push({ provider: "microsoft_onedrive", reason: "search failed" }); emitProgress?.({ label: `Searching OneDrive for ${t}`, status: "error", action: "connections" }); }
         }
-        emitProgress?.({ label: `Searching ${msLabel} for ${t}`, status: "done", action: "connections" });
-      } catch (e) {
-        console.error("[connections] Microsoft search failed:", e);
-        skippedProviderDetails.push({ provider: "microsoft", reason: "search failed" });
-        emitProgress?.({ label: `Searching Microsoft 365 for ${t}`, status: "error", action: "connections" });
-      }
-    })());
+      })());
+    }
+
+    // Search OneNote separately
+    if (hasOnenote) {
+      searchPromises.push((async () => {
+        try {
+          const token = await getAnyMicrosoftToken(supabase, userId);
+          if (!token) {
+            skippedProviderDetails.push({ provider: "microsoft_onenote", reason: "token expired or missing" });
+            return;
+          }
+          emitProgress?.({ label: `Searching OneNote pages for ${t}`, status: "running", action: "connections" });
+          searchedProviders.push("microsoft_onenote");
+          console.log("[connections] Searching OneNote with query:", userQuery.slice(0, 60), "topic:", t);
+
+          const results = await searchOneNoteData(token, userQuery, t);
+          console.log("[connections] OneNote results:", results.length);
+          if (results.length > 0) {
+            connectionContext += `\n\n### Live Data from OneNote\n#### Recent Notes\n${results.join("\n\n")}\n`;
+          }
+          emitProgress?.({ label: `Searching OneNote pages for ${t}`, status: "done", action: "connections" });
+        } catch (e) {
+          console.error("[connections] OneNote search failed:", e);
+          skippedProviderDetails.push({ provider: "microsoft_onenote", reason: "search failed" });
+          emitProgress?.({ label: `Searching OneNote for ${t}`, status: "error", action: "connections" });
+        }
+      })());
+    }
   }
 
   if (connectedProviders.includes("slack")) {
