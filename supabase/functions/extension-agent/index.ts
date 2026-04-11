@@ -298,7 +298,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
         (async () => {
           try {
+            // Emit immediately so UI shows sub-logging without delay
             sendStep(`Understanding your question about ${topic}`, "running", "analysis");
+
             sendStep(`Understanding your question about ${topic}`, "done", "analysis", initialConnectionDecision.reason);
 
             sendStep(`Gathering business data on ${topic}`, "running", "context");

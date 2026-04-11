@@ -250,36 +250,59 @@ export async function searchSlackData(token: string, query: string, topic?: stri
   const searchTerms = buildSearchTerms(query, topic);
   if (searchTerms.length === 0) return results;
 
-  for (const term of searchTerms) {
-    try {
-      const res = await fetch(
-        `https://slack.com/api/search.messages?query=${encodeURIComponent(term)}&count=5`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ok && data.messages?.matches) {
-          for (const match of data.messages.matches.slice(0, 5)) {
-            const channel = match.channel?.name || "unknown";
-            const user = match.username || "unknown";
-            const text = (match.text || "").slice(0, 300);
-            const ts = match.ts ? new Date(parseFloat(match.ts) * 1000).toISOString().slice(0, 10) : "";
-            const key = `${channel}|${user}|${ts}|${text}`;
-            if (seenResults.has(key)) continue;
-            seenResults.add(key);
-            results.push(`💬 **#${channel}** (${user}, ${ts}): ${text}`);
-            if (results.length >= 5) break;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Slack search error:", e);
-    }
+  const lowerTerms = searchTerms.map(t => t.toLowerCase());
 
-    if (results.length >= 5) break;
+  try {
+    // Step 1: List channels the bot has access to
+    const channelsRes = await fetch(
+      `https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=50&exclude_archived=true`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!channelsRes.ok) return results;
+    const channelsData = await channelsRes.json();
+    if (!channelsData.ok || !channelsData.channels) return results;
+
+    const channels = channelsData.channels.slice(0, 20); // Check top 20 channels
+
+    // Step 2: Fetch recent history from each channel and filter by search terms
+    const channelChecks = channels.map(async (channel: any) => {
+      try {
+        const histRes = await fetch(
+          `https://slack.com/api/conversations.history?channel=${channel.id}&limit=30`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (!histRes.ok) return;
+        const histData = await histRes.json();
+        if (!histData.ok || !histData.messages) return;
+
+        for (const msg of histData.messages) {
+          if (results.length >= 5) return;
+          const text = (msg.text || "").toLowerCase();
+          // Check if any search term appears in the message
+          const matches = lowerTerms.some(term => 
+            term.split(/\s+/).some(word => word.length > 2 && text.includes(word))
+          );
+          if (!matches && lowerTerms.length > 0) continue;
+
+          const user = msg.user || "unknown";
+          const ts = msg.ts ? new Date(parseFloat(msg.ts) * 1000).toISOString().slice(0, 10) : "";
+          const preview = (msg.text || "").slice(0, 300);
+          const key = `${channel.name}|${user}|${ts}|${preview.slice(0, 50)}`;
+          if (seenResults.has(key)) continue;
+          seenResults.add(key);
+          results.push(`💬 **#${channel.name}** (${user}, ${ts}): ${preview}`);
+        }
+      } catch (e) {
+        console.error(`Slack channel ${channel.name} history error:`, e);
+      }
+    });
+
+    await Promise.all(channelChecks);
+  } catch (e) {
+    console.error("Slack search error:", e);
   }
 
-  return results;
+  return results.slice(0, 5);
 }
 
 // --- Intent Analysis ---
