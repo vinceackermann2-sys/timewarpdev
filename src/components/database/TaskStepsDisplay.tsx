@@ -4,7 +4,7 @@ import {
   Brain, Search, PenLine, Cog, RefreshCw, CircleCheck,
   CircleX, StopCircle, Globe, MousePointerClick,
   Keyboard, ClipboardList, ScrollText, Clock,
-  SearchCode, Download, Zap, AlertTriangle, Dna
+  SearchCode, Download, Zap, AlertTriangle, Dna, Database
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
@@ -51,7 +51,7 @@ function getStepIcon(label: string) {
   if (l.includes("zoom") || l.includes("meeting")) return "zoom" as any;
   if (l.includes("hubspot")) return "hubspot" as any;
   if (l.includes("dna") || l.includes("brand") || l.includes("audience") || l.includes("product")) return Dna;
-  if (l.includes("database") || l.includes("business data")) return Search;
+  if (l.includes("database") || l.includes("business data") || l.includes("gathering")) return Database;
   if (l.includes("internet") || l.includes("web search") || l.includes("searching the web") || l.includes("browsing")) return Globe;
   if (l.includes("context") || l.includes("memory") || l.includes("understanding")) return Brain;
   if (l.includes("analyz") || l.includes("reviewing")) return Search;
