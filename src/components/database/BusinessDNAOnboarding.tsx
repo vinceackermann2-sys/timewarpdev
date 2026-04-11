@@ -583,11 +583,17 @@ export function BusinessDNAOnboarding({
 
       const finalBrandId = isAddBusiness && activeBrandId ? activeBrandId : brandId;
       setCreatedBrandId(finalBrandId);
-      // Don't mark persistence complete yet — wait for enrichment to finish
       setForgingTab("confirmed");
 
-      // Enrichment — must complete before user can finalize
-      let enrichmentDone = false;
+      // Mark persistence complete immediately — enrichment runs in background
+      if (!cancelled) {
+        markTodo("Save to database");
+        setPersistenceComplete(true);
+        // Move to agent naming after a short delay
+        setTimeout(() => setStep(6), 800);
+      }
+
+      // Enrichment — fire and forget in background (non-blocking)
       if (contextAvailable) {
         let rowId: string | undefined = savedBrandRowId;
         if (!rowId) {
@@ -603,45 +609,35 @@ export function BusinessDNAOnboarding({
         if (rowId) {
           const firstProduct = filteredProducts[0] || {};
           const firstAudience = audiencesRaw[0] || {};
-          try {
-            const res = await invokeEdgeFunction("enrich-brand", {
-              brandRowId: rowId,
-              brandName,
-              brandCategory: b.category || "lifestyle",
-              brandColors: b.colors || {},
-              audienceDesc: firstAudience.description || "",
-              audiencePowerWords: (firstAudience.powerWords || []).slice(0, 5).join(", "),
-              productBenefits: (firstProduct.benefits || []).slice(0, 6).join("; "),
-              buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
-              websiteUrl: activeUrl || "",
-              productImageUrls: filteredProducts
-                .map((p: any) => p.images?.[0]?.url || p.images?.[0])
-                .filter((u: any) => typeof u === "string" && u.length > 0)
-                .slice(0, 3),
-            });
+          // Fire enrichment without awaiting — it completes in background
+          invokeEdgeFunction("enrich-brand", {
+            brandRowId: rowId,
+            brandName,
+            brandCategory: b.category || "lifestyle",
+            brandColors: b.colors || {},
+            audienceDesc: firstAudience.description || "",
+            audiencePowerWords: (firstAudience.powerWords || []).slice(0, 5).join(", "),
+            productBenefits: (firstProduct.benefits || []).slice(0, 6).join("; "),
+            buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
+            websiteUrl: activeUrl || "",
+            productImageUrls: filteredProducts
+              .map((p: any) => p.images?.[0]?.url || p.images?.[0])
+              .filter((u: any) => typeof u === "string" && u.length > 0)
+              .slice(0, 3),
+          }).then(res => {
             if (res.data?.success && refreshBrand) {
-              await refreshBrand(finalBrandId);
+              refreshBrand(finalBrandId);
             }
-            enrichmentDone = true;
-            if (!cancelled) markTodo("Enrich brand");
-          } catch (e) {
+            markTodo("Enrich brand");
+          }).catch(e => {
             console.warn("Brand enrichment failed (non-blocking):", e);
-            enrichmentDone = true; // still allow proceeding on failure
-            if (!cancelled) markTodo("Enrich brand");
-          }
+            markTodo("Enrich brand");
+          });
         } else {
-          enrichmentDone = true;
-          if (!cancelled) markTodo("Enrich brand");
+          markTodo("Enrich brand");
         }
       } else {
-        enrichmentDone = true;
-        if (!cancelled) markTodo("Enrich brand");
-      }
-
-      // NOW mark persistence complete — enrichment is done, branding is fully loaded
-      if (!cancelled) {
-        setPersistenceComplete(true);
-        setTimeout(() => setStep(6), 800);
+        markTodo("Enrich brand");
       }
     })();
 
