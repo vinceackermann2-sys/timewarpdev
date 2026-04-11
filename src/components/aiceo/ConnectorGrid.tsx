@@ -2,9 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import logoMsOutlook from "@/assets/logo-ms-outlook.png";
-import logoMsCalendar from "@/assets/logo-ms-calendar.png";
-import logoMsOnedrive from "@/assets/logo-ms-onedrive.png";
+import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
+import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoSlack from "@/assets/logo-slack.png";
 
 interface ConnectorDef {
@@ -15,8 +14,7 @@ interface ConnectorDef {
 }
 
 const connectors: ConnectorDef[] = [
-  { id: "microsoft_outlook", name: "Outlook", description: "Emails & contacts", logo: logoMsOutlook },
-  { id: "microsoft_calendar", name: "Calendar", description: "Events & scheduling", logo: logoMsCalendar },
+  { id: "microsoft_outlook", name: "Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook },
   { id: "microsoft_onedrive", name: "OneDrive", description: "Files & documents", logo: logoMsOnedrive },
   { id: "slack", name: "Slack", description: "Messages & channels", logo: logoSlack },
 ];

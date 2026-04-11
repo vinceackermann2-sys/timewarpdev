@@ -11,8 +11,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 
 // Microsoft sub-service scopes — each gets only what it needs
 const MICROSOFT_SERVICES: Record<string, { scopes: string; label: string }> = {
-  microsoft_outlook:  { scopes: "openid profile email offline_access User.Read Mail.Read", label: "Outlook" },
-  microsoft_calendar: { scopes: "openid profile email offline_access User.Read Calendars.Read", label: "Calendar" },
+  microsoft_outlook:  { scopes: "openid profile email offline_access User.Read Mail.Read Calendars.Read", label: "Outlook" },
   microsoft_onedrive: { scopes: "openid profile email offline_access User.Read Files.Read.All", label: "OneDrive" },
   microsoft_onenote:  { scopes: "openid profile email offline_access User.Read Notes.Read", label: "OneNote" },
 };
