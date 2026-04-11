@@ -55,7 +55,8 @@ function getStepIcon(label: string) {
   if (l.includes("internet") || l.includes("web search") || l.includes("searching the web") || l.includes("browsing")) return Globe;
   if (l.includes("context") || l.includes("memory") || l.includes("understanding")) return Brain;
   if (l.includes("analyz") || l.includes("reviewing")) return Search;
-  if (l.includes("writing") || l.includes("generating") || l.includes("composing") || l.includes("drafting")) return PenLine;
+  if (l.includes("writing") || l.includes("generating") || l.includes("composing") || l.includes("drafting") || l.includes("crafting")) return PenLine;
+  if (l.includes("checking connected") || l.includes("connected sources")) return Search;
   if (l.includes("processing") || l.includes("employee") || l.includes("preparing")) return Cog;
   if (l.includes("extending") || l.includes("continu") || l.includes("part") || l.includes("refining")) return RefreshCw;
   if (l.includes("complete") || l.includes("done") || l.includes("finished")) return CircleCheck;
