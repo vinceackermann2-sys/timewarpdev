@@ -24,7 +24,7 @@ export default function NewCTA({ onGetDNA }: NewCTAProps) {
             <TypewriterInput value={url} onChange={setUrl} className="w-full bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400 text-sm sm:text-base" />
           </div>
           <button onClick={handleGetDNA} className="bg-[#3399ff] hover:bg-[#287acc] shrink-0 px-6 py-3 rounded-xl text-white font-bold text-sm border-none cursor-pointer transition-colors whitespace-nowrap flex items-center justify-center gap-2">
-            Get DNA <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
+            Start Free <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
           </button>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-1 sm:mt-2">
