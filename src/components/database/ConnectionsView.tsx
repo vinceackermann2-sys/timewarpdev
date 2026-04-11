@@ -28,7 +28,7 @@ const integrations: Integration[] = [
   { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft", iconBg: "bg-white" },
   { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
   { id: "zoom", name: "Zoom", description: "Meetings and recordings", logo: logoZoom, section: "other", iconBg: "bg-blue-500" },
-  { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, comingSoon: true, section: "other", iconBg: "bg-orange-100" },
+  { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, section: "other", iconBg: "bg-orange-100" },
 ];
 
 interface ConnectedProvider {
@@ -119,9 +119,9 @@ function ConnectionCard({
         )}
         {connected && !integration.comingSoon && (
           <Button
-            variant="ghost"
+            variant="destructive"
             size="sm"
-            className="h-8 px-3 text-xs gap-1.5 w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="h-8 px-3 text-xs gap-1.5 w-full"
             onClick={() => onDisconnect()}
           >
             <Unplug className="h-3.5 w-3.5" />
