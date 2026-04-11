@@ -50,9 +50,28 @@ function buildSearchTerms(query: string, topic?: string): string[] {
 
 function formatProviderName(provider: string): string {
   if (provider === "microsoft") return "Microsoft 365";
+  if (provider === "microsoft_outlook") return "Outlook";
+  if (provider === "microsoft_calendar") return "Calendar";
+  if (provider === "microsoft_onedrive") return "OneDrive";
+  if (provider === "microsoft_onenote") return "OneNote";
   if (provider === "slack") return "Slack";
   if (provider === "hubspot") return "HubSpot";
   return provider;
+}
+
+// Check if any Microsoft sub-service is connected
+function isMicrosoftProvider(provider: string): boolean {
+  return provider === "microsoft" || provider.startsWith("microsoft_");
+}
+
+// Get token for any available Microsoft sub-service (they all share the same Microsoft account)
+async function getAnyMicrosoftToken(supabaseAdmin: any, userId: string): Promise<string | null> {
+  const msProviders = ["microsoft", "microsoft_outlook", "microsoft_calendar", "microsoft_onedrive", "microsoft_onenote"];
+  for (const p of msProviders) {
+    const token = await getValidProviderToken(supabaseAdmin, userId, p);
+    if (token) return token;
+  }
+  return null;
 }
 
 function buildNoMatchConnectionContext(
