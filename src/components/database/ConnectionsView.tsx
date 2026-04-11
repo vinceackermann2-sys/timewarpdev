@@ -1,13 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Mail, CalendarDays, Cloud, BookOpen, MessageSquare, Users, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import logoMsOutlook from "@/assets/logo-ms-outlook.png";
-import logoMsCalendar from "@/assets/logo-ms-calendar.png";
-import logoMsOnedrive from "@/assets/logo-ms-onedrive.png";
-import logoMsOnenote from "@/assets/logo-ms-onenote.png";
 import logoSlack from "@/assets/logo-slack.png";
 import logoHubspot from "@/assets/logo-hubspot.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
@@ -16,17 +12,20 @@ interface Integration {
   id: string;
   name: string;
   description: string;
-  logo: string;
+  icon?: LucideIcon;
+  iconColor?: string;
+  logo?: string;
   comingSoon?: boolean;
+  section: "microsoft" | "other";
 }
 
 const integrations: Integration[] = [
-  { id: "microsoft_outlook", name: "Outlook", description: "Emails and contacts", logo: logoMsOutlook },
-  { id: "microsoft_calendar", name: "Calendar", description: "Events and scheduling", logo: logoMsCalendar },
-  { id: "microsoft_onedrive", name: "OneDrive", description: "Files and documents", logo: logoMsOnedrive },
-  { id: "microsoft_onenote", name: "OneNote", description: "Notes and notebooks", logo: logoMsOnenote },
-  { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack },
-  { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, comingSoon: true },
+  { id: "microsoft_outlook", name: "Outlook", description: "Emails and contacts", icon: Mail, iconColor: "text-blue-500", section: "microsoft" },
+  { id: "microsoft_calendar", name: "Calendar", description: "Events and scheduling", icon: CalendarDays, iconColor: "text-sky-500", section: "microsoft" },
+  { id: "microsoft_onedrive", name: "OneDrive", description: "Files and documents", icon: Cloud, iconColor: "text-blue-400", section: "microsoft" },
+  { id: "microsoft_onenote", name: "OneNote", description: "Notes and notebooks", icon: BookOpen, iconColor: "text-purple-500", section: "microsoft" },
+  { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
+  { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, comingSoon: true, section: "other" },
 ];
 
 interface ConnectedProvider {
@@ -48,6 +47,83 @@ function ConnectionCardSkeleton() {
       <div className="mt-5 flex gap-2">
         <Skeleton className="h-7 w-24 rounded-md" />
       </div>
+    </div>
+  );
+}
+
+function IntegrationIcon({ integration, isConnecting }: { integration: Integration; isConnecting: boolean }) {
+  if (isConnecting) {
+    return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
+  }
+  if (integration.icon) {
+    const IconComp = integration.icon;
+    return <IconComp className={`h-5 w-5 ${integration.iconColor || "text-foreground"}`} />;
+  }
+  if (integration.logo) {
+    return <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" loading="lazy" />;
+  }
+  return null;
+}
+
+function ConnectionCard({
+  integration,
+  connected,
+  email,
+  isConnecting,
+  onConnect,
+  onDisconnect,
+}: {
+  integration: Integration;
+  connected: boolean;
+  email?: string;
+  isConnecting: boolean;
+  onConnect: () => void;
+  onDisconnect: () => void;
+}) {
+  return (
+    <div
+      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all cursor-pointer group ${
+        integration.comingSoon
+          ? "border-border/50 opacity-60 cursor-default"
+          : connected
+            ? "border-green-500/40 bg-green-500/5 hover:border-green-500/60"
+            : "border-border hover:border-primary/40 hover:shadow-sm"
+      }`}
+      onClick={() => {
+        if (integration.comingSoon || isConnecting || connected) return;
+        onConnect();
+      }}
+    >
+      {integration.comingSoon && (
+        <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
+      )}
+      {connected && !integration.comingSoon && (
+        <span className="absolute top-4 right-4">
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+        </span>
+      )}
+      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-1.5">
+        <IntegrationIcon integration={integration} isConnecting={isConnecting} />
+      </div>
+      <div>
+        <p className="font-semibold text-sm">{integration.name}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{integration.description}</p>
+        {connected && email && (
+          <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
+        )}
+      </div>
+      {connected && !integration.comingSoon && (
+        <div className="flex items-center gap-1 mt-auto pt-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+            onClick={(e) => { e.stopPropagation(); onDisconnect(); }}
+          >
+            Disconnect
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -165,6 +241,9 @@ export function ConnectionsView() {
   const isProviderConnected = (id: string) => connectedProviders.some(p => p.provider === id);
   const getProviderEmail = (id: string) => connectedProviders.find(p => p.provider === id)?.email;
 
+  const microsoftIntegrations = integrations.filter(i => i.section === "microsoft");
+  const otherIntegrations = integrations.filter(i => i.section === "other");
+
   if (isLoading) {
     return (
       <div className="h-full overflow-auto">
@@ -193,128 +272,37 @@ export function ConnectionsView() {
           </p>
         </div>
 
-        {/* Microsoft services section */}
         <div className="mb-6">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Microsoft 365</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {integrations.filter(i => i.id.startsWith("microsoft_")).map(integration => {
-              const connected = isProviderConnected(integration.id);
-              const email = getProviderEmail(integration.id);
-              const isConnecting = connectingProvider === integration.id;
-
-              return (
-                <div
-                  key={integration.id}
-                  className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all cursor-pointer group ${
-                    connected
-                      ? "border-green-500/40 bg-green-500/5 hover:border-green-500/60"
-                      : "border-border hover:border-primary/40 hover:shadow-sm"
-                  }`}
-                  onClick={() => {
-                    if (isConnecting) return;
-                    if (connected) return;
-                    handleConnect(integration.id);
-                  }}
-                >
-                  {connected && (
-                    <span className="absolute top-4 right-4">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    </span>
-                  )}
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-1.5">
-                    {isConnecting ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    ) : (
-                      <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" loading="lazy" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">{integration.name}</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{integration.description}</p>
-                    {connected && email && (
-                      <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
-                    )}
-                  </div>
-                  {connected && (
-                    <div className="flex items-center gap-1 mt-auto pt-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                        onClick={(e) => { e.stopPropagation(); handleDisconnect(integration.id); }}
-                      >
-                        Disconnect
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {microsoftIntegrations.map(integration => (
+              <ConnectionCard
+                key={integration.id}
+                integration={integration}
+                connected={isProviderConnected(integration.id)}
+                email={getProviderEmail(integration.id)}
+                isConnecting={connectingProvider === integration.id}
+                onConnect={() => handleConnect(integration.id)}
+                onDisconnect={() => handleDisconnect(integration.id)}
+              />
+            ))}
           </div>
         </div>
 
-        {/* Other services */}
         <div className="mb-6">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Other</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {integrations.filter(i => !i.id.startsWith("microsoft_")).map(integration => {
-              const connected = isProviderConnected(integration.id);
-              const email = getProviderEmail(integration.id);
-              const isConnecting = connectingProvider === integration.id;
-
-              return (
-                <div
-                  key={integration.id}
-                  className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all cursor-pointer group ${
-                    integration.comingSoon
-                      ? "border-border/50 opacity-60 cursor-default"
-                      : connected
-                        ? "border-green-500/40 bg-green-500/5 hover:border-green-500/60"
-                        : "border-border hover:border-primary/40 hover:shadow-sm"
-                  }`}
-                  onClick={() => {
-                    if (integration.comingSoon || isConnecting) return;
-                    if (connected) return;
-                    handleConnect(integration.id);
-                  }}
-                >
-                  {integration.comingSoon && (
-                    <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
-                  )}
-                  {connected && !integration.comingSoon && (
-                    <span className="absolute top-4 right-4">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    </span>
-                  )}
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-1.5">
-                    {isConnecting ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    ) : (
-                      <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" loading="lazy" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">{integration.name}</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{integration.description}</p>
-                    {connected && email && (
-                      <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
-                    )}
-                  </div>
-                  {connected && !integration.comingSoon && (
-                    <div className="flex items-center gap-1 mt-auto pt-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                        onClick={(e) => { e.stopPropagation(); handleDisconnect(integration.id); }}
-                      >
-                        Disconnect
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {otherIntegrations.map(integration => (
+              <ConnectionCard
+                key={integration.id}
+                integration={integration}
+                connected={isProviderConnected(integration.id)}
+                email={getProviderEmail(integration.id)}
+                isConnecting={connectingProvider === integration.id}
+                onConnect={() => handleConnect(integration.id)}
+                onDisconnect={() => handleDisconnect(integration.id)}
+              />
+            ))}
           </div>
         </div>
 
