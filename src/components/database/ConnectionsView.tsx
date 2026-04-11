@@ -8,6 +8,7 @@ import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
 import logoSlack from "@/assets/logo-slack.png";
+import logoZoom from "@/assets/logo-zoom.png";
 import logoHubspot from "@/assets/logo-hubspot.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 
