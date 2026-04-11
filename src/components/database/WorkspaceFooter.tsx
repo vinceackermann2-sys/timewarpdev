@@ -34,6 +34,7 @@ export function WorkspaceFooter({ compact = false }: WorkspaceFooterProps) {
                   <ul className="space-y-1.5">
                     <li><Link to="/terms" className="text-slate-500 hover:text-slate-900 transition-colors" style={{ fontSize: 14 }}>Terms of Service</Link></li>
                     <li><Link to="/privacy" className="text-slate-500 hover:text-slate-900 transition-colors" style={{ fontSize: 14 }}>Privacy Policy</Link></li>
+                    <li><Link to="/data-deletion" className="text-slate-500 hover:text-slate-900 transition-colors" style={{ fontSize: 14 }}>Data Deletion</Link></li>
                   </ul>
                 </div>
                 <div className="space-y-2">
