@@ -140,25 +140,40 @@ const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] 
         lower.includes('data:image') || lower.includes('placehold') ||
         lower.includes('placeholder') || lower.includes('blank') ||
         lower.includes('transparent')) return false;
-    // Block tiny dimension in URL query params (w=30, height=10, etc.)
-    if (/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(url)) return false;
-    // Filter tiny dimension indicators in URL
-    if (/\/\d{1,2}x\d{1,2}[/.?]/.test(lower)) return false;
+    // Filter thumbnail/downscaled URL patterns
+    if (/_thumb/i.test(lower) || /-thumb/i.test(lower) || /[-_]small/i.test(lower) ||
+        /[-_]tiny/i.test(lower) || /[-_]xs\b/i.test(lower) || /[-_]micro/i.test(lower) ||
+        /\/thumb\//i.test(lower) || /\/thumbs\//i.test(lower) || /\/thumbnail/i.test(lower) ||
+        /\/mini\//i.test(lower) || /\/icon\//i.test(lower) || /\/icons\//i.test(lower)) return false;
+    // Block low-resolution dimension in URL query params (w<200 or h<200)
+    const dimMatch = url.match(/[?&](w|width|h|height)=(\d+)/i);
+    if (dimMatch && parseInt(dimMatch[2], 10) < 200) return false;
+    // Block Shopify/CDN dimension suffixes like _200x, _100x100, _small, etc.
+    if (/[_-]\d{1,3}x\d{0,3}(?:\.|$)/i.test(lower)) return false;
+    // Filter dimension indicators in path like /50x50/ or /120x/
+    if (/\/\d{1,3}x\d{0,3}[/.?]/.test(lower)) return false;
     // Filter SVGs (usually icons/logos, not product photos)
     if (lower.endsWith('.svg')) return false;
     // Filter broken Cloudinary/CDN transform-only URLs (no actual file path after transform params)
     if (/\/image\/upload\/(?:[a-z]_[a-z0-9,]+\/?)*$/i.test(url)) return false;
-    if (/\/(?:c_scale|f_auto|q_auto|w_\d+|h_\d+|c_fill|c_fit|c_crop|c_thumb|c_pad)$/i.test(url)) return false;
+    if (/\/(?:c_scale|f_auto|q_auto|c_fill|c_fit|c_crop|c_thumb|c_pad)$/i.test(url)) return false;
+    // Block Cloudinary/CDN width/height transforms below 200px (e.g. w_150, h_100)
+    if (/[/,]w_(\d+)/i.test(url)) {
+      const w = parseInt(url.match(/[/,]w_(\d+)/i)![1], 10);
+      if (w < 200) return false;
+    }
+    if (/[/,]h_(\d+)/i.test(url)) {
+      const h = parseInt(url.match(/[/,]h_(\d+)/i)![1], 10);
+      if (h < 200) return false;
+    }
     // Filter URLs with wildcard/glob patterns (not real URLs)
     if (url.includes('/**') || url.includes('/*')) return false;
     // Must have a file path after the domain (not just domain + transform)
     try {
       const u = new URL(url);
       const pathParts = u.pathname.split('/').filter(Boolean);
-      // At least one path segment should look like a filename or meaningful path
       if (pathParts.length === 0) return false;
       const lastPart = pathParts[pathParts.length - 1];
-      // Reject if last path segment is just a transform parameter
       if (/^[a-z]_[a-z0-9]+$/i.test(lastPart)) return false;
     } catch { return false; }
     return true;
@@ -805,7 +820,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                         body: JSON.stringify({
                           model: "google/gemini-2.5-flash-lite",
                           max_tokens: 800,
-                          messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo. Do NOT pick logos, icons, banners, tracking pixels, or tiny images. Pick actual product photography.\n\nReturn JSON: {"name": "", "description": "", "bestImages": []}\n\nContent (first 4000 chars):\n${md.slice(0, 4000)}` }],
+                          messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo.\n\nRULES for image selection:\n- Pick actual high-resolution product photography only.\n- PREFER URLs with large dimensions (e.g. w_800, 1200x, _large, _1024) or no dimension suffix (usually full-size).\n- REJECT URLs containing thumbnail indicators: _thumb, _small, _xs, _mini, /thumbs/, _150x, _200x, _300x, w_100-300, h_100-300.\n- REJECT logos, icons, banners, tracking pixels, badges, or decorative images.\n- When multiple sizes of the same image exist, pick the LARGEST version.\n\nReturn JSON: {"name": "", "description": "", "bestImages": []}\n\nContent (first 4000 chars):\n${md.slice(0, 4000)}` }],
                         }),
                       });
                       if (!aiRes.ok) return { url: pUrl, name: "", description: "", images: candidateImages, markdown: md, extractedImages: pageImages };
