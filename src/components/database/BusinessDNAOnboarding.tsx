@@ -1026,14 +1026,14 @@ export function BusinessDNAOnboarding({
 
                   {/* Image Grid */}
                   {productImages.length > 0 ? (
-                    <div className="w-full grid grid-cols-2 gap-4 mb-8">
+                    <div className="w-full grid grid-cols-3 gap-3 mb-8">
                       {productImages.slice(0, 6).map((imgSrc: string, idx: number) => (
                         <div
                           key={idx}
                           onClick={() =>
                             setSelectedImages(prev => ({ ...prev, [currentProductIndex]: idx }))
                           }
-                          className={`relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${
+                          className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${
                             selectedImg === idx ? "border-[#3399ff]" : "border-transparent"
                           }`}
                         >
