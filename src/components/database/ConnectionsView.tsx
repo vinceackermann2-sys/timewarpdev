@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Plug, Unplug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,17 +76,13 @@ function ConnectionCard({
 }) {
   return (
     <div
-      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all cursor-pointer group ${
+      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group ${
         integration.comingSoon
           ? "border-border/50 opacity-60 cursor-default"
           : connected
-            ? "border-green-500/40 bg-green-500/5 hover:border-green-500/60"
+            ? "border-green-500/40 bg-green-500/5"
             : "border-border hover:border-primary/40 hover:shadow-sm"
       }`}
-      onClick={() => {
-        if (integration.comingSoon || isConnecting || connected) return;
-        onConnect();
-      }}
     >
       {integration.comingSoon && (
         <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
@@ -106,18 +102,31 @@ function ConnectionCard({
           <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
         )}
       </div>
-      {connected && !integration.comingSoon && (
-        <div className="flex items-center gap-1 mt-auto pt-1">
+      <div className="flex items-center gap-2 mt-auto pt-1">
+        {!connected && !integration.comingSoon && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 text-xs gap-1.5"
+            disabled={isConnecting}
+            onClick={() => onConnect()}
+          >
+            <Plug className="h-3.5 w-3.5" />
+            Connect
+          </Button>
+        )}
+        {connected && !integration.comingSoon && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-            onClick={(e) => { e.stopPropagation(); onDisconnect(); }}
+            className="h-8 px-3 text-xs gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => onDisconnect()}
           >
+            <Unplug className="h-3.5 w-3.5" />
             Disconnect
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
