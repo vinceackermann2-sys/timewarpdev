@@ -9,13 +9,17 @@ import {
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
 import { ShiningText } from "@/components/ui/shining-text";
-import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
+import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
+import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
 import logoSlack from "@/assets/logo-slack.png";
 import logoHubspot from "@/assets/logo-hubspot.png";
 
 /* Provider logo map */
 const PROVIDER_LOGOS: Record<string, string> = {
-  microsoft: logoMicrosoft,
+  microsoft_outlook: logoMsOutlook,
+  microsoft_onedrive: logoMsOnedrive,
+  microsoft_onenote: logoMsOnenote,
   slack: logoSlack,
   hubspot: logoHubspot,
 };
@@ -37,7 +41,10 @@ interface Props {
 function getStepIcon(label: string) {
   const l = label.toLowerCase();
   // Connection provider icons — return string identifiers for special rendering
-  if (l.includes("microsoft") || l.includes("outlook") || l.includes("onedrive")) return "microsoft" as any;
+  if (l.includes("outlook") || l.includes("email") || l.includes("calendar")) return "microsoft_outlook" as any;
+  if (l.includes("onedrive") || l.includes("files")) return "microsoft_onedrive" as any;
+  if (l.includes("onenote") || l.includes("notes")) return "microsoft_onenote" as any;
+  if (l.includes("microsoft")) return "microsoft_outlook" as any;
   if (l.includes("slack")) return "slack" as any;
   if (l.includes("hubspot")) return "hubspot" as any;
   if (l.includes("context") || l.includes("memory") || l.includes("understanding")) return Brain;
