@@ -37,7 +37,7 @@ function MobileHeader() {
   );
 }
 
-type View = "aiceo" | "businessdna" | "employees" | "connections" | "workspaces";
+type View = "aiceo" | "businessdna" | "employees" | "workspaces";
 
 interface PendingTask {
   role: string;
@@ -52,7 +52,7 @@ const Database = () => {
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem("tw_current_view");
-    if (saved && ["aiceo", "businessdna", "employees", "connections", "workspaces"].includes(saved)) {
+    if (saved && ["aiceo", "businessdna", "employees", "workspaces"].includes(saved)) {
       return saved as View;
     }
     return "businessdna";
