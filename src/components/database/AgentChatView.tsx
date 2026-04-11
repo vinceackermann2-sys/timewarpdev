@@ -199,13 +199,19 @@ function isExplicitEmployeeComputerRequest(message: string) {
 }
 
 function getConnectionSearchLabel(provider: string, topic: string) {
-  if (provider === "microsoft") return `Searching Microsoft 365 emails & files for ${topic}`;
+  if (provider === "microsoft_outlook") return `Searching Outlook emails & calendar for ${topic}`;
+  if (provider === "microsoft_onedrive") return `Searching OneDrive files for ${topic}`;
+  if (provider === "microsoft_onenote") return `Searching OneNote notes for ${topic}`;
+  if (provider === "microsoft") return `Searching Outlook emails for ${topic}`;
   if (provider === "slack") return `Searching Slack messages & channels for ${topic}`;
   if (provider === "hubspot") return `Searching HubSpot records for ${topic}`;
   return `Searching ${provider} for ${topic}`;
 }
 
 function getConnectionSkipLabel(provider: string, reason: string) {
+  if (provider === "microsoft_outlook") return `Skipped Outlook — ${reason}`;
+  if (provider === "microsoft_onedrive") return `Skipped OneDrive — ${reason}`;
+  if (provider === "microsoft_onenote") return `Skipped OneNote — ${reason}`;
   if (provider === "microsoft") return `Skipped Microsoft — ${reason}`;
   if (provider === "slack") return `Skipped Slack — ${reason}`;
   if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
