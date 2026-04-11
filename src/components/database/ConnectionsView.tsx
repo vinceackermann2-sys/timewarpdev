@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import logoMicrosoft from "@/assets/logo-microsoft.png";
+import logoMsOutlook from "@/assets/logo-ms-outlook.png";
+import logoMsCalendar from "@/assets/logo-ms-calendar.png";
+import logoMsOnedrive from "@/assets/logo-ms-onedrive.png";
+import logoMsOnenote from "@/assets/logo-ms-onenote.png";
 import logoSlack from "@/assets/logo-slack.png";
 import logoHubspot from "@/assets/logo-hubspot.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
@@ -18,9 +21,12 @@ interface Integration {
 }
 
 const integrations: Integration[] = [
-  { id: "microsoft", name: "Microsoft", description: "Outlook, OneDrive, Calendar, Teams", logo: logoMicrosoft },
-  { id: "slack", name: "Slack", description: "Send messages and interact with Slack workspaces", logo: logoSlack },
-  { id: "hubspot", name: "HubSpot", description: "CRM platform for sales, marketing, and customer service", logo: logoHubspot, comingSoon: true },
+  { id: "microsoft_outlook", name: "Outlook", description: "Emails and contacts", logo: logoMsOutlook },
+  { id: "microsoft_calendar", name: "Calendar", description: "Events and scheduling", logo: logoMsCalendar },
+  { id: "microsoft_onedrive", name: "OneDrive", description: "Files and documents", logo: logoMsOnedrive },
+  { id: "microsoft_onenote", name: "OneNote", description: "Notes and notebooks", logo: logoMsOnenote },
+  { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack },
+  { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, comingSoon: true },
 ];
 
 interface ConnectedProvider {
@@ -35,13 +41,10 @@ function ConnectionCardSkeleton() {
         <Skeleton className="h-10 w-10 rounded-lg" />
         <Skeleton className="h-4 w-10" />
       </div>
-
       <div className="mt-4 space-y-2">
         <Skeleton className="h-4 w-28" />
         <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-4/5" />
       </div>
-
       <div className="mt-5 flex gap-2">
         <Skeleton className="h-7 w-24 rounded-md" />
       </div>
@@ -89,7 +92,8 @@ export function ConnectionsView() {
     const oauthSuccess = params.get("oauth_success");
     const oauthError = params.get("oauth_error");
     if (oauthSuccess) {
-      toast.success(`${oauthSuccess.charAt(0).toUpperCase() + oauthSuccess.slice(1)} connected successfully!`);
+      const label = integrations.find(i => i.id === oauthSuccess)?.name || oauthSuccess;
+      toast.success(`${label} connected successfully!`);
       window.history.replaceState({}, "", window.location.pathname);
       checkConnections();
     } else if (oauthError) {
@@ -134,9 +138,25 @@ export function ConnectionsView() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      await (supabase as any).from("user_connections").delete().eq("user_id", session.user.id).eq("provider", providerId);
-      setConnectedProviders(prev => prev.filter(p => p.provider !== providerId));
-      toast.success(`${providerId.charAt(0).toUpperCase() + providerId.slice(1)} disconnected`);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ provider: providerId, action: "disconnect" }),
+        }
+      );
+
+      if (response.ok) {
+        setConnectedProviders(prev => prev.filter(p => p.provider !== providerId));
+        const label = integrations.find(i => i.id === providerId)?.name || providerId;
+        toast.success(`${label} disconnected`);
+      }
     } catch {
       toast.error("Failed to disconnect");
     }
@@ -153,9 +173,8 @@ export function ConnectionsView() {
             <Skeleton className="h-8 w-36" />
             <Skeleton className="h-4 w-80 max-w-full" />
           </div>
-
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, index) => (
+            {Array.from({ length: 6 }).map((_, index) => (
               <ConnectionCardSkeleton key={index} />
             ))}
           </div>
@@ -170,82 +189,133 @@ export function ConnectionsView() {
         <div className="mb-8">
           <h1 className="text-2xl font-semibold mb-1">Connectors</h1>
           <p className="text-sm text-muted-foreground">
-            Link your accounts to sync business data and provide personalized insights.
+            Connect individual services with only the permissions they need.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {integrations.map(integration => {
-            const connected = isProviderConnected(integration.id);
-            const email = getProviderEmail(integration.id);
-            const isConnecting = connectingProvider === integration.id;
+        {/* Microsoft services section */}
+        <div className="mb-6">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Microsoft 365</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {integrations.filter(i => i.id.startsWith("microsoft_")).map(integration => {
+              const connected = isProviderConnected(integration.id);
+              const email = getProviderEmail(integration.id);
+              const isConnecting = connectingProvider === integration.id;
 
-            return (
-              <div
-                key={integration.id}
-                className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all cursor-pointer group ${
-                  integration.comingSoon
-                    ? "border-border/50 opacity-60 cursor-default"
-                    : connected
+              return (
+                <div
+                  key={integration.id}
+                  className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all cursor-pointer group ${
+                    connected
                       ? "border-green-500/40 bg-green-500/5 hover:border-green-500/60"
                       : "border-border hover:border-primary/40 hover:shadow-sm"
-                }`}
-                onClick={() => {
-                  if (integration.comingSoon || isConnecting) return;
-                  if (connected) return;
-                  handleConnect(integration.id);
-                }}
-              >
-                {/* Soon badge */}
-                {integration.comingSoon && (
-                  <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">
-                    Soon
-                  </span>
-                )}
-
-                {/* Connected badge */}
-                {connected && !integration.comingSoon && (
-                  <span className="absolute top-4 right-4">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  </span>
-                )}
-
-                {/* Logo */}
-                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-1.5">
-                  {isConnecting ? (
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  ) : (
-                    <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" />
+                  }`}
+                  onClick={() => {
+                    if (isConnecting) return;
+                    if (connected) return;
+                    handleConnect(integration.id);
+                  }}
+                >
+                  {connected && (
+                    <span className="absolute top-4 right-4">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    </span>
                   )}
-                </div>
-
-                {/* Text */}
-                <div>
-                  <p className="font-semibold text-sm">{integration.name}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
-                    {integration.description}
-                  </p>
-                  {connected && email && (
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
-                  )}
-                </div>
-
-                {/* Connected actions */}
-                {connected && !integration.comingSoon && (
-                  <div className="flex items-center gap-1 mt-auto pt-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                      onClick={(e) => { e.stopPropagation(); handleDisconnect(integration.id); }}
-                    >
-                      Disconnect
-                    </Button>
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-1.5">
+                    {isConnecting ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    ) : (
+                      <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" loading="lazy" />
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                  <div>
+                    <p className="font-semibold text-sm">{integration.name}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{integration.description}</p>
+                    {connected && email && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
+                    )}
+                  </div>
+                  {connected && (
+                    <div className="flex items-center gap-1 mt-auto pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleDisconnect(integration.id); }}
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Other services */}
+        <div className="mb-6">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Other</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {integrations.filter(i => !i.id.startsWith("microsoft_")).map(integration => {
+              const connected = isProviderConnected(integration.id);
+              const email = getProviderEmail(integration.id);
+              const isConnecting = connectingProvider === integration.id;
+
+              return (
+                <div
+                  key={integration.id}
+                  className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all cursor-pointer group ${
+                    integration.comingSoon
+                      ? "border-border/50 opacity-60 cursor-default"
+                      : connected
+                        ? "border-green-500/40 bg-green-500/5 hover:border-green-500/60"
+                        : "border-border hover:border-primary/40 hover:shadow-sm"
+                  }`}
+                  onClick={() => {
+                    if (integration.comingSoon || isConnecting) return;
+                    if (connected) return;
+                    handleConnect(integration.id);
+                  }}
+                >
+                  {integration.comingSoon && (
+                    <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
+                  )}
+                  {connected && !integration.comingSoon && (
+                    <span className="absolute top-4 right-4">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    </span>
+                  )}
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-1.5">
+                    {isConnecting ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    ) : (
+                      <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" loading="lazy" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{integration.name}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{integration.description}</p>
+                    {connected && email && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
+                    )}
+                  </div>
+                  {connected && !integration.comingSoon && (
+                    <div className="flex items-center gap-1 mt-auto pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleDisconnect(integration.id); }}
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="mt-8 text-center">

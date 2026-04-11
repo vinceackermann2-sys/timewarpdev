@@ -9,6 +9,18 @@ const corsHeaders = {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// Microsoft sub-service scopes — each gets only what it needs
+const MICROSOFT_SERVICES: Record<string, { scopes: string; label: string }> = {
+  microsoft_outlook:  { scopes: "openid profile email offline_access User.Read Mail.Read", label: "Outlook" },
+  microsoft_calendar: { scopes: "openid profile email offline_access User.Read Calendars.Read", label: "Calendar" },
+  microsoft_onedrive: { scopes: "openid profile email offline_access User.Read Files.Read.All", label: "OneDrive" },
+  microsoft_onenote:  { scopes: "openid profile email offline_access User.Read Notes.Read", label: "OneNote" },
+};
+
+function isMicrosoftSubService(provider: string): boolean {
+  return provider in MICROSOFT_SERVICES;
+}
+
 async function resolveBrandRowId(supabaseAdmin: any, userId: string, brandId?: string | null) {
   if (!brandId) return null;
   if (UUID_REGEX.test(brandId)) return brandId;
@@ -37,7 +49,6 @@ async function resolveBrandRowId(supabaseAdmin: any, userId: string, brandId?: s
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -47,7 +58,6 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify the user's auth token
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
@@ -74,9 +84,8 @@ serve(async (req) => {
       ? await resolveBrandRowId(supabaseAdmin, user.id, requestedBrandId)
       : null;
 
-    // Action: check-status - return which providers are connected (optionally filtered by brandId)
+    // Action: check-status
     if (action === "check-status") {
-      // User-level: return all connected providers for this user (no brand filtering)
       const { data: connections } = await supabaseAdmin
         .from("user_connections")
         .select("provider, status, brand_id")
@@ -96,7 +105,6 @@ serve(async (req) => {
           email: tokens?.find((t: any) => t.provider === c.provider)?.provider_email,
         }));
 
-      // Deduplicate by provider
       const deduped = new Map<string, any>();
       for (const c of connected) {
         if (!deduped.has(c.provider)) {
@@ -109,7 +117,7 @@ serve(async (req) => {
       });
     }
 
-    // Action: get-auth-url - generate OAuth URL for a provider
+    // Action: get-auth-url
     if (action === "get-auth-url") {
       if (requestedBrandId && !resolvedBrandId) {
         return new Response(JSON.stringify({ error: "Business not found" }), {
@@ -123,7 +131,7 @@ serve(async (req) => {
       const origin = body.origin || "";
       let authUrl = "";
 
-      // Generate HMAC nonce to prevent CSRF / state forgery
+      // Generate HMAC nonce
       const nonce = crypto.randomUUID();
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
@@ -142,7 +150,6 @@ serve(async (req) => {
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
 
-      // Include brandId in state so callbacks can scope connections
       const stateBase = {
         userId: user.id,
         returnPath,
@@ -152,49 +159,60 @@ serve(async (req) => {
         logicalBrandId: requestedBrandId,
       };
 
-      switch (provider) {
-        case "microsoft": {
-          const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
-          if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
-          const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
-          const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read Contacts.Read Notes.Read Tasks.Read";
-          const state = btoa(JSON.stringify({ ...stateBase, origin }));
-          authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&response_mode=query`;
-          break;
+      // Handle Microsoft sub-services
+      if (isMicrosoftSubService(provider)) {
+        const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
+        if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
+        const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
+        const service = MICROSOFT_SERVICES[provider];
+        const state = btoa(JSON.stringify({ ...stateBase, origin, subProvider: provider }));
+        authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(service.scopes)}&state=${state}&response_mode=query`;
+      } else {
+        switch (provider) {
+          // Legacy "microsoft" still supported for backwards compat
+          case "microsoft": {
+            const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
+            if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
+            const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
+            const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read Contacts.Read Notes.Read Tasks.Read";
+            const state = btoa(JSON.stringify({ ...stateBase, origin }));
+            authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&response_mode=query`;
+            break;
+          }
+          case "google": {
+            const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+            if (!clientId) throw new Error("GOOGLE_CLIENT_ID not configured");
+            const redirectUri = `${redirectBase}/google-oauth-callback`;
+            const scopes = "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly";
+            const state = btoa(JSON.stringify(stateBase));
+            authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&access_type=offline&prompt=consent`;
+            break;
+          }
+          case "slack": {
+            const clientId = Deno.env.get("SLACK_CLIENT_ID");
+            if (!clientId) throw new Error("SLACK_CLIENT_ID not configured");
+            const redirectUri = `${redirectBase}/slack-oauth-callback`;
+            const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read";
+            const state = btoa(JSON.stringify({ ...stateBase, origin }));
+            authUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
+            break;
+          }
+          case "hubspot": {
+            const clientId = Deno.env.get("HUBSPOT_CLIENT_ID");
+            if (!clientId) throw new Error("HUBSPOT_CLIENT_ID not configured");
+            const redirectUri = `${redirectBase}/hubspot-oauth-callback`;
+            const requiredScopes = "oauth";
+            const optionalScopes = "crm.objects.contacts.read crm.objects.companies.read crm.objects.deals.read crm.objects.owners.read sales-email-read";
+            const state = btoa(JSON.stringify({ ...stateBase, origin }));
+            authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(requiredScopes)}&optional_scope=${encodeURIComponent(optionalScopes)}&state=${state}`;
+            break;
+          }
+          default:
+            return new Response(JSON.stringify({ error: `Unsupported provider: ${provider}` }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
         }
-        case "google": {
-          const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
-          if (!clientId) throw new Error("GOOGLE_CLIENT_ID not configured");
-          const redirectUri = `${redirectBase}/google-oauth-callback`;
-          const scopes = "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly";
-          const state = btoa(JSON.stringify(stateBase));
-          authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&access_type=offline&prompt=consent`;
-          break;
-        }
-        case "slack": {
-          const clientId = Deno.env.get("SLACK_CLIENT_ID");
-          if (!clientId) throw new Error("SLACK_CLIENT_ID not configured");
-          const redirectUri = `${redirectBase}/slack-oauth-callback`;
-          const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read";
-          const state = btoa(JSON.stringify({ ...stateBase, origin }));
-          authUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
-          break;
-        }
-        case "hubspot": {
-          const clientId = Deno.env.get("HUBSPOT_CLIENT_ID");
-          if (!clientId) throw new Error("HUBSPOT_CLIENT_ID not configured");
-          const redirectUri = `${redirectBase}/hubspot-oauth-callback`;
-          const requiredScopes = "oauth";
-          const optionalScopes = "crm.objects.contacts.read crm.objects.companies.read crm.objects.deals.read crm.objects.owners.read sales-email-read";
-          const state = btoa(JSON.stringify({ ...stateBase, origin }));
-          authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(requiredScopes)}&optional_scope=${encodeURIComponent(optionalScopes)}&state=${state}`;
-          break;
-        }
-        default:
-          return new Response(JSON.stringify({ error: `Unsupported provider: ${provider}` }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
       }
 
       return new Response(JSON.stringify({ authUrl }), {
@@ -202,7 +220,7 @@ serve(async (req) => {
       });
     }
 
-    // Action: save-credentials (for WordPress Application Passwords)
+    // Action: save-credentials (for WordPress)
     if (action === "save-credentials" && provider === "wordpress") {
       if (requestedBrandId && !resolvedBrandId) {
         return new Response(JSON.stringify({ error: "Business not found" }), {
@@ -218,7 +236,6 @@ serve(async (req) => {
         });
       }
 
-      // Validate credentials by testing WP REST API
       const normalizedUrl = body.siteUrl.replace(/\/+$/, "");
       const basicAuth = btoa(`${body.username}:${body.appPassword}`);
       const testRes = await fetch(`${normalizedUrl}/wp-json/wp/v2/users/me`, {
@@ -261,23 +278,20 @@ serve(async (req) => {
       });
     }
 
-    // Action: disconnect — user-level (disconnect all connections for this provider)
+    // Action: disconnect
     if (action === "disconnect") {
-      // Disconnect all connection rows for this provider
       await supabaseAdmin
         .from("user_connections")
         .update({ status: "disconnected" })
         .eq("user_id", user.id)
         .eq("provider", provider);
 
-      // Delete OAuth tokens
       await supabaseAdmin
         .from("user_oauth_tokens")
         .delete()
         .eq("user_id", user.id)
         .eq("provider", provider);
 
-      // Optionally delete synced data if brandId provided
       if (requestedBrandId) {
         await supabaseAdmin
           .from("user_business_data")
