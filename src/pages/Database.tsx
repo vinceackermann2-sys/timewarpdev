@@ -15,7 +15,7 @@ import { Menu } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { AgentChatView } from "@/components/database/AgentChatView";
-import { ConnectionsView } from "@/components/database/ConnectionsView";
+
 
 import { WorkspacesView } from "@/components/database/WorkspacesView";
 import { useSidebar } from "@/components/ui/sidebar";
