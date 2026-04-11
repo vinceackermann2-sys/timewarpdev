@@ -81,6 +81,11 @@ export function Footer() {
                   Security
                 </Link>
               </li>
+              <li>
+                <Link to="/data-deletion" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Data Deletion
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

@@ -16,6 +16,7 @@ import TermsOfPurchase from "./pages/TermsOfPurchase";
 import InviteAccept from "./pages/InviteAccept";
 import PricingPage from "./pages/PricingPage";
 import Support from "./pages/Support";
+import DataDeletion from "./pages/DataDeletion";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => {
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/terms" element={<TermsOfPurchase />} />
                   <Route path="/support" element={<Support />} />
+                  <Route path="/data-deletion" element={<DataDeletion />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
