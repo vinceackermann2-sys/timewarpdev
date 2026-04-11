@@ -120,7 +120,7 @@ export async function getValidProviderToken(supabaseAdmin: any, userId: string, 
   if (!isExpired) return tokenRow.access_token;
   if (!tokenRow.refresh_token) return null;
 
-  if (provider === "microsoft") {
+  if (provider === "microsoft" || provider.startsWith("microsoft_")) {
     const refreshed = await refreshMicrosoftToken(tokenRow.refresh_token);
     if (refreshed.access_token) {
       await supabaseAdmin.from("user_oauth_tokens").update({
@@ -309,8 +309,11 @@ export function getProviderSearchLabel(provider: string, topic?: string): string
 
 export function getProviderSkipLabel(provider: string, reason: string): string {
   if (provider === "microsoft") return `Skipped Microsoft — ${reason}`;
+  if (provider === "microsoft") return `Skipped Microsoft 365 — ${reason}`;
+  if (provider.startsWith("microsoft_")) return `Skipped ${formatProviderName(provider)} — ${reason}`;
   if (provider === "slack") return `Skipped Slack — ${reason}`;
   if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
+  return `Skipped ${provider} — ${reason}`;
   return `Skipped ${provider} — ${reason}`;
 }
 
