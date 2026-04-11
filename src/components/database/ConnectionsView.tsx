@@ -57,7 +57,7 @@ function IntegrationIcon({ integration, isConnecting }: { integration: Integrati
   if (isConnecting) {
     return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
   }
-  return <img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" loading="lazy" />;
+  return <img src={integration.logo} alt={integration.name} className="h-8 w-8 object-contain" loading="lazy" />;
 }
 
 function ConnectionCard({
@@ -97,7 +97,7 @@ function ConnectionCard({
           <CheckCircle2 className="h-4 w-4 text-green-500" />
         </span>
       )}
-      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-1.5">
+      <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center p-2">
         <IntegrationIcon integration={integration} isConnecting={isConnecting} />
       </div>
       <div>
