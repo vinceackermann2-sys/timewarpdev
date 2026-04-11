@@ -1068,7 +1068,35 @@ export function BusinessDNAOnboarding({
                       <h3 className="text-[15px] sm:text-[16px] font-semibold text-[#1a1f36] mb-1">Upload your own photo</h3>
                       <p className="text-[13px] sm:text-[14px] text-[#697386]">Uploading will set the image as the new main photo.</p>
                     </div>
-                    <button className="bg-white border border-[#e5e4df] hover:bg-gray-50 transition-colors text-[#1a1f36] px-4 py-2 rounded-xl font-medium flex items-center gap-2 text-[14px] w-full sm:w-auto justify-center shrink-0">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      className="hidden"
+                      id={`upload-product-image-${currentProductIndex}`}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const url = URL.createObjectURL(file);
+                        // Add uploaded image to the product's image list and select it
+                        setDiscoveredProducts((prev: any[]) => {
+                          const updated = [...prev];
+                          const prod = updated[currentProductIndex];
+                          if (prod) {
+                            const imgs = [...(prod.images || [])];
+                            imgs.unshift(url);
+                            updated[currentProductIndex] = { ...prod, images: imgs };
+                          }
+                          return updated;
+                        });
+                        // Select the newly uploaded image (index 0)
+                        setSelectedImages((prev: Record<number, number>) => ({ ...prev, [currentProductIndex]: 0 }));
+                        e.target.value = "";
+                      }}
+                    />
+                    <button
+                      onClick={() => document.getElementById(`upload-product-image-${currentProductIndex}`)?.click()}
+                      className="bg-white border border-[#e5e4df] hover:bg-gray-50 transition-colors text-[#1a1f36] px-4 py-2 rounded-xl font-medium flex items-center gap-2 text-[14px] w-full sm:w-auto justify-center shrink-0"
+                    >
                       <UploadCloud className="w-4 h-4" /> Upload image
                     </button>
                   </div>
