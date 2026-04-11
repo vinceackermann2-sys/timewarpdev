@@ -947,10 +947,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
           .filter(p => p.name || p.description || p.images.length > 0);
       }
 
-      const rawDiscovered = discoverResults
-        .filter((r): r is PromiseFulfilledResult<{ url: string; name: string; description: string; images: string[] }> =>
-          r.status === 'fulfilled' && !!r.value)
-        .map(r => r.value)
+      const rawDiscovered = discoverSettled
         .filter(p => p.name || p.description || p.images.length > 0);
 
       // Deduplicate by normalized product name
