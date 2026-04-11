@@ -206,6 +206,44 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
   return results;
 }
 
+export async function searchOneNoteData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const seenPages = new Set<string>();
+  const searchTerms = buildSearchTerms(query, topic);
+  if (searchTerms.length === 0) return results;
+
+  for (const term of searchTerms) {
+    const encodedTerm = encodeURIComponent(term.replace(/"/g, " ").trim());
+    if (!encodedTerm) continue;
+
+    try {
+      const res = await fetch(
+        `https://graph.microsoft.com/v1.0/me/onenote/pages?$search=${encodedTerm}&$top=5&$select=title,createdDateTime,lastModifiedDateTime,links&$orderby=lastModifiedDateTime desc`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        for (const page of (data.value || [])) {
+          const title = page.title || "Untitled";
+          const modified = page.lastModifiedDateTime?.slice(0, 10) || page.createdDateTime?.slice(0, 10) || "";
+          const link = page.links?.oneNoteWebUrl?.href || "";
+          const key = `${title}|${modified}`;
+          if (seenPages.has(key)) continue;
+          seenPages.add(key);
+          results.push(`📝 **${title}** (modified: ${modified})${link ? ` — [link](${link})` : ""}`);
+          if (results.length >= 5) break;
+        }
+      }
+    } catch (e) {
+      console.error("OneNote search error:", e);
+    }
+
+    if (results.length >= 5) break;
+  }
+
+  return results;
+}
+
 export async function searchSlackData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const seenResults = new Set<string>();
