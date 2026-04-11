@@ -355,9 +355,6 @@ const Database = () => {
               {currentView === "employees" && user && (
                 <AgentChatView />
               )}
-              {currentView === "connections" && user && (
-                <ConnectionsView />
-              )}
               {currentView === "workspaces" && user && (
                 <WorkspacesView onBack={() => handleViewChange("businessdna")} />
               )}
