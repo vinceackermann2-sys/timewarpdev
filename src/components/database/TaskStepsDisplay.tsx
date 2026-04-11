@@ -4,7 +4,7 @@ import {
   Brain, Search, PenLine, Cog, RefreshCw, CircleCheck,
   CircleX, StopCircle, Globe, MousePointerClick,
   Keyboard, ClipboardList, ScrollText, Clock,
-  SearchCode, Download, Zap, AlertTriangle
+  SearchCode, Download, Zap, AlertTriangle, Dna
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
