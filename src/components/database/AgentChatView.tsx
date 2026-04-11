@@ -2282,10 +2282,11 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                         >{msg.content}</ReactMarkdown>
                       )}
                       {msg.isStreaming && !msg.content && (!msg.taskSteps || msg.taskSteps.length === 0) && (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                          <span className="text-muted-foreground">Thinking...</span>
-                          {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} className="text-[11px]" />}
+                        <div className="flex items-center gap-3 py-2">
+                          <span className="text-lg font-semibold text-foreground/70">
+                            Thinking<span className="inline-flex w-[1.5em] text-left"><span className="animate-pulse">...</span></span>
+                          </span>
+                          {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} className="text-xs" />}
                         </div>
                       )}
                       {msg.isStreaming && msg.content && (!msg.taskSteps || msg.taskSteps.length === 0) && (
