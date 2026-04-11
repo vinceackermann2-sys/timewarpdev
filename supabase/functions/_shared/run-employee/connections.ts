@@ -376,30 +376,53 @@ export async function searchConnectedProviders(
     }
   }
 
-  if (connectedProviders.includes("microsoft")) {
+  // Check for any Microsoft sub-service connection
+  const hasMicrosoft = connectedProviders.some((p: string) => isMicrosoftProvider(p));
+  
+  const allKnownProviders = ["microsoft_outlook", "microsoft_calendar", "microsoft_onedrive", "microsoft_onenote", "slack", "hubspot"];
+  for (const provider of allKnownProviders) {
+    if (isMicrosoftProvider(provider)) {
+      if (!hasMicrosoft) {
+        skippedProviders.push(provider);
+        skippedProviderDetails.push({ provider, reason: "not connected" });
+      }
+    } else if (!connectedProviders.includes(provider)) {
+      skippedProviders.push(provider);
+      skippedProviderDetails.push({ provider, reason: "not connected" });
+    }
+  }
+
+  if (hasMicrosoft) {
     searchPromises.push((async () => {
       try {
-        const token = await getValidProviderToken(supabase, userId, "microsoft");
+        // Use any available Microsoft token — they share the same MS account
+        const token = await getAnyMicrosoftToken(supabase, userId);
         if (!token) {
           skippedProviders.push("microsoft");
           skippedProviderDetails.push({ provider: "microsoft", reason: "token expired or missing" });
           return;
         }
-        emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "running", action: "connections" });
+        const msLabel = "Microsoft 365";
+        emitProgress?.({ label: `Searching ${msLabel} emails & files for ${t}`, status: "running", action: "connections" });
         searchedProviders.push("microsoft");
         console.log("[connections] Searching Microsoft with query:", userQuery.slice(0, 60), "topic:", t);
-        const results = await searchMicrosoftData(token, userQuery, t);
+
+        // Only search emails if outlook is connected, files if onedrive is connected
+        const hasOutlook = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
+        const hasOnedrive = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
+        
+        const results = await searchMicrosoftData(token, userQuery, t, { searchEmails: hasOutlook, searchFiles: hasOnedrive });
         console.log("[connections] Microsoft results: emails=", results.emails.length, "files=", results.files.length);
         if (results.emails.length > 0 || results.files.length > 0) {
           connectionContext += `\n\n### Live Data from Microsoft 365\n`;
           if (results.emails.length > 0) connectionContext += `#### Recent Emails\n${results.emails.join("\n\n")}\n`;
           if (results.files.length > 0) connectionContext += `#### Recent Files\n${results.files.join("\n\n")}\n`;
         }
-        emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "done", action: "connections" });
+        emitProgress?.({ label: `Searching ${msLabel} for ${t}`, status: "done", action: "connections" });
       } catch (e) {
         console.error("[connections] Microsoft search failed:", e);
         skippedProviderDetails.push({ provider: "microsoft", reason: "search failed" });
-        emitProgress?.({ label: getProviderSearchLabel("microsoft", t), status: "error", action: "connections" });
+        emitProgress?.({ label: `Searching Microsoft 365 for ${t}`, status: "error", action: "connections" });
       }
     })());
   }
