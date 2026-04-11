@@ -341,19 +341,20 @@ export function extractQueryTopic(query: string): string {
 export function getProviderSearchLabel(provider: string, topic?: string): string {
   const suffix = topic ? ` for ${topic}` : "";
   if (provider === "microsoft") return `Searching Microsoft 365 emails & files${suffix}`;
+  if (provider === "microsoft_outlook") return `Searching Outlook emails${suffix}`;
+  if (provider === "microsoft_onedrive") return `Searching OneDrive files${suffix}`;
+  if (provider === "microsoft_onenote") return `Searching OneNote pages${suffix}`;
   if (provider === "slack") return `Searching Slack messages & channels${suffix}`;
   if (provider === "hubspot") return `Searching HubSpot records${suffix}`;
-  return `Searching ${provider}${suffix}`;
+  return `Searching ${formatProviderName(provider)}${suffix}`;
 }
 
 export function getProviderSkipLabel(provider: string, reason: string): string {
-  if (provider === "microsoft") return `Skipped Microsoft — ${reason}`;
   if (provider === "microsoft") return `Skipped Microsoft 365 — ${reason}`;
   if (provider.startsWith("microsoft_")) return `Skipped ${formatProviderName(provider)} — ${reason}`;
   if (provider === "slack") return `Skipped Slack — ${reason}`;
   if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
-  return `Skipped ${provider} — ${reason}`;
-  return `Skipped ${provider} — ${reason}`;
+  return `Skipped ${formatProviderName(provider)} — ${reason}`;
 }
 
 export async function searchConnectedProviders(
