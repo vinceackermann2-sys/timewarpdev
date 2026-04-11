@@ -593,7 +593,7 @@ serve(async (req) => {
       const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: baseUrl, formats: ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false, waitFor: 3000 }),
+        body: JSON.stringify({ url: baseUrl, formats: isDiscoverMode ? ["markdown", "html", "links", "branding"] : ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false, waitFor: 3000 }),
       });
 
       if (scrapeResponse.ok) {
@@ -927,39 +927,76 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════
-    // STEP 3: MULTI-PASS AI EXTRACTION
+    // STEP 3: PARALLEL AI EXTRACTION (brand + products simultaneously)
     // ══════════════════════════════════════════════
 
-    // Pass 1: Brand extraction (small, focused call)
-    console.log("Pass 1: Extracting brand...");
-    let brand: any = {};
-    try {
-      const brandingJson = firecrawlBranding ? JSON.stringify(firecrawlBranding, null, 2).slice(0, 3000) : null;
-      const brandResult = await callAI(
-        LOVABLE_API_KEY,
-        BRAND_PROMPT(brandingJson, homepageMarkdown, formattedUrl, metadata.title || ""),
-        "google/gemini-2.5-flash",
-        4000,
-      );
-      brand = brandResult.brand || brandResult || {};
-      console.log("Brand extracted:", brand.name || "(no name)");
-    } catch (e) {
-      console.error("Brand extraction failed:", e);
-      // Construct minimal brand from firecrawl data
-      brand = {
-        name: metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business",
-        category: "Business",
-        colors: firecrawlBranding?.colors ? {
-          primary: firecrawlBranding.colors.primary || "#4A86FF",
-          secondary: firecrawlBranding.colors.secondary || "#6B7280",
-          background: firecrawlBranding.colors.background || "#FFFFFF",
-          text: firecrawlBranding.colors.textPrimary || "#000000",
-        } : { primary: "#4A86FF", secondary: "#6B7280", background: "#FFFFFF", text: "#000000" },
-        typography: { fontFamily: firecrawlBranding?.typography?.fontFamilies?.primary || "Sans-serif", fontStyle: "", fontWeight: "400" },
-        logoUrls: firecrawlBranding?.logo ? [firecrawlBranding.logo] : [],
-        visualIdentity: {},
-      };
-    }
+    console.log("Extracting brand + products in parallel...");
+    const brandingJson = firecrawlBranding ? JSON.stringify(firecrawlBranding, null, 2).slice(0, 3000) : null;
+
+    // Run brand extraction and all product extractions in parallel
+    const [brandSettled, ...productAudienceResults] = await Promise.allSettled([
+      // Brand extraction
+      (async () => {
+        try {
+          const brandResult = await callAI(
+            LOVABLE_API_KEY,
+            BRAND_PROMPT(brandingJson, homepageMarkdown, formattedUrl, metadata.title || ""),
+            "google/gemini-2.5-flash",
+            4000,
+          );
+          return brandResult.brand || brandResult || {};
+        } catch (e) {
+          console.error("Brand extraction failed:", e);
+          return {
+            name: metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business",
+            category: "Business",
+            colors: firecrawlBranding?.colors ? {
+              primary: firecrawlBranding.colors.primary || "#4A86FF",
+              secondary: firecrawlBranding.colors.secondary || "#6B7280",
+              background: firecrawlBranding.colors.background || "#FFFFFF",
+              text: firecrawlBranding.colors.textPrimary || "#000000",
+            } : { primary: "#4A86FF", secondary: "#6B7280", background: "#FFFFFF", text: "#000000" },
+            typography: { fontFamily: firecrawlBranding?.typography?.fontFamilies?.primary || "Sans-serif", fontStyle: "", fontWeight: "400" },
+            logoUrls: firecrawlBranding?.logo ? [firecrawlBranding.logo] : [],
+            visualIdentity: {},
+          };
+        }
+      })(),
+      // Product/audience extractions (parallel)
+      ...productPageContents.map(async (page, idx) => {
+        try {
+          // Use a preliminary brand name for the prompt
+          const prelimBrandName = metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "the brand";
+          console.log(`Extracting product ${idx + 1}/${productPageContents.length}: ${page.url.slice(0, 80)}`);
+          const result = await callAI(
+            LOVABLE_API_KEY,
+            PRODUCT_AUDIENCE_PROMPT(page.markdown, prelimBrandName, page.url),
+            "google/gemini-2.5-flash",
+            8000,
+          );
+
+          const product = normalizeProduct(result.product || result.products?.[0]);
+          const audience = normalizeAudience(result.audience || result.audiences?.[0]);
+
+          if (product) {
+            sanitizeProductOffers(page.markdown, product);
+            const pageImages = (page as any).extractedImages || [];
+            const aiImages = ensureArr(product.images);
+            const allImages = [...new Set([...aiImages, ...pageImages])].slice(0, 8);
+            product.images = allImages;
+          }
+
+          return { product, audience };
+        } catch (e) {
+          console.warn(`Product ${idx + 1} extraction failed (skipping):`, e);
+          return null;
+        }
+      }),
+    ]);
+
+    // Extract brand from settled result
+    let brand: any = brandSettled.status === 'fulfilled' ? brandSettled.value : {};
+    console.log("Brand extracted:", brand.name || "(no name)");
 
     // Ensure brand structure
     if (!brand.visualIdentity) brand.visualIdentity = {};
@@ -994,39 +1031,7 @@ serve(async (req) => {
       brand.name = metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business";
     }
 
-    // Pass 2: Per-product extraction (parallel, each in its own small AI call)
-    console.log("Pass 2: Extracting", productPageContents.length, "products...");
-    const productAudienceResults = await Promise.allSettled(
-      productPageContents.map(async (page, idx) => {
-        try {
-          console.log(`Extracting product ${idx + 1}/${productPageContents.length}: ${page.url.slice(0, 80)}`);
-          const result = await callAI(
-            LOVABLE_API_KEY,
-            PRODUCT_AUDIENCE_PROMPT(page.markdown, brand.name || "the brand", page.url),
-            "google/gemini-2.5-flash",
-            8000,
-          );
-
-          const product = normalizeProduct(result.product || result.products?.[0]);
-          const audience = normalizeAudience(result.audience || result.audiences?.[0]);
-
-          if (product) {
-            sanitizeProductOffers(page.markdown, product);
-            // Merge extracted images from markdown into product images
-            const pageImages = (page as any).extractedImages || [];
-            const aiImages = ensureArr(product.images);
-            const allImages = [...new Set([...aiImages, ...pageImages])].slice(0, 8);
-            product.images = allImages;
-          }
-
-          return { product, audience };
-        } catch (e) {
-          console.warn(`Product ${idx + 1} extraction failed (skipping):`, e);
-          return null;
-        }
-      })
-    );
-
+    // Collect products and audiences from parallel results
     const products: any[] = [];
     const audiences: any[] = [];
     const seenProductNames = new Set<string>();
@@ -1045,7 +1050,7 @@ serve(async (req) => {
         audiences.push(r.value.audience);
       }
     }
-    // Also deduplicate audiences by name
+    // Deduplicate audiences by name
     const uniqueAudiences: any[] = [];
     const seenAudienceNames = new Set<string>();
     for (const a of audiences) {
