@@ -102,12 +102,12 @@ function ConnectionCard({
           <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
         )}
       </div>
-      <div className="flex items-center gap-2 mt-auto pt-1">
+      <div className="flex items-center gap-2 mt-auto pt-1 w-full">
         {!connected && !integration.comingSoon && (
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 text-xs gap-1.5"
+            className="h-8 px-3 text-xs gap-1.5 w-full"
             disabled={isConnecting}
             onClick={() => onConnect()}
           >
@@ -119,7 +119,7 @@ function ConnectionCard({
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-3 text-xs gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="h-8 px-3 text-xs gap-1.5 w-full text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={() => onDisconnect()}
           >
             <Unplug className="h-3.5 w-3.5" />
