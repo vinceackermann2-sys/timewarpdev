@@ -8,6 +8,7 @@ import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
 import logoSlack from "@/assets/logo-slack.png";
+import logoZoom from "@/assets/logo-zoom.png";
 import logoHubspot from "@/assets/logo-hubspot.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 
@@ -26,6 +27,7 @@ const integrations: Integration[] = [
   { id: "microsoft_onedrive", name: "Microsoft OneDrive", description: "Upload and read files", logo: logoMsOnedrive, section: "microsoft", iconBg: "bg-white" },
   { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft", iconBg: "bg-white" },
   { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
+  { id: "zoom", name: "Zoom", description: "Meetings and recordings", logo: logoZoom, section: "other" },
   { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, comingSoon: true, section: "other", iconBg: "bg-orange-100" },
 ];
 

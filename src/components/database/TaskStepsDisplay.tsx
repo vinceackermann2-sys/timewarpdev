@@ -13,6 +13,7 @@ import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
 import logoSlack from "@/assets/logo-slack.png";
+import logoZoom from "@/assets/logo-zoom.png";
 import logoHubspot from "@/assets/logo-hubspot.png";
 
 /* Provider logo map */
@@ -21,6 +22,7 @@ const PROVIDER_LOGOS: Record<string, string> = {
   microsoft_onedrive: logoMsOnedrive,
   microsoft_onenote: logoMsOnenote,
   slack: logoSlack,
+  zoom: logoZoom,
   hubspot: logoHubspot,
 };
 
@@ -46,6 +48,7 @@ function getStepIcon(label: string) {
   if (l.includes("onenote") || l.includes("notes")) return "microsoft_onenote" as any;
   if (l.includes("microsoft")) return "microsoft_outlook" as any;
   if (l.includes("slack")) return "slack" as any;
+  if (l.includes("zoom") || l.includes("meeting")) return "zoom" as any;
   if (l.includes("hubspot")) return "hubspot" as any;
   if (l.includes("context") || l.includes("memory") || l.includes("understanding")) return Brain;
   if (l.includes("analyz") || l.includes("reviewing")) return Search;

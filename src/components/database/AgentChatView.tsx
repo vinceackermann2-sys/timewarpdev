@@ -204,6 +204,7 @@ function getConnectionSearchLabel(provider: string, topic: string) {
   if (provider === "microsoft_onenote") return `Searching OneNote notes for ${topic}`;
   if (provider === "microsoft") return `Searching Outlook emails for ${topic}`;
   if (provider === "slack") return `Searching Slack messages & channels for ${topic}`;
+  if (provider === "zoom") return `Searching Zoom meetings for ${topic}`;
   if (provider === "hubspot") return `Searching HubSpot records for ${topic}`;
   return `Searching ${provider} for ${topic}`;
 }
@@ -214,6 +215,7 @@ function getConnectionSkipLabel(provider: string, reason: string) {
   if (provider === "microsoft_onenote") return `Skipped OneNote — ${reason}`;
   if (provider === "microsoft") return `Skipped Microsoft — ${reason}`;
   if (provider === "slack") return `Skipped Slack — ${reason}`;
+  if (provider === "zoom") return `Skipped Zoom — ${reason}`;
   if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
   return `Skipped ${provider} — ${reason}`;
 }
