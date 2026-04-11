@@ -514,7 +514,7 @@ const DesktopFlow = () => {
                   <div className="h-2 rounded-full bg-slate-100 w-5/6" />
                 </div>
               </div>
-              <p className="text-[10px] font-medium text-slate-600 mt-1 leading-snug">"Based on your data, this strategy is performing well. Want me to implement this?"</p>
+              
               <button className="w-full bg-emerald-500 text-white text-[11px] font-bold py-2 rounded-lg shadow-sm hover:bg-emerald-600 transition-colors mt-1">
                 Do it for me
               </button>
@@ -706,7 +706,7 @@ const MobileTreeFlow = () => {
                   <div className="h-2 rounded-full bg-slate-100 w-3/4" />
                 </div>
               </div>
-              <p className="text-[10px] font-medium text-slate-600 mt-1 leading-snug text-center">"Based on your data, this strategy is performing well. Want me to implement this?"</p>
+              
               <button className="w-full bg-emerald-500 text-white text-[11px] font-bold py-2 rounded-lg shadow-sm hover:bg-emerald-600 transition-colors mt-1">
                 Do it for me
               </button>
