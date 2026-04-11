@@ -137,7 +137,8 @@ export async function getValidProviderToken(supabaseAdmin: any, userId: string, 
   return null;
 }
 
-export async function searchMicrosoftData(token: string, query: string, topic?: string): Promise<{ emails: string[]; files: string[] }> {
+export async function searchMicrosoftData(token: string, query: string, topic?: string, options?: { searchEmails?: boolean; searchFiles?: boolean }): Promise<{ emails: string[]; files: string[] }> {
+  const { searchEmails = true, searchFiles = true } = options || {};
   const results = { emails: [] as string[], files: [] as string[] };
   const seenEmails = new Set<string>();
   const seenFiles = new Set<string>();
