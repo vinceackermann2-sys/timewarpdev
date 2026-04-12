@@ -863,12 +863,16 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                         // Clean title: remove site name suffix (e.g. "Widget Pro | Acme Inc" -> "Widget Pro")
                         const name = rawTitle.split(/[|\-–—]/)[0]?.trim() || "";
                         const description = pageMeta.description || pageMeta["og:description"] || "";
-                        // Prioritize og:image as first image (most reliable product image)
+                        // Prioritize og:image as first image — but skip if it looks like a favicon/logo/icon
                         const ogImg = pageMeta.ogImage || pageMeta["og:image"] || pageMeta.image || null;
                         const ogImgUrl = ogImg ? normalizeImageUrl(ogImg, pUrl) : null;
+                        const isOgUsable = ogImgUrl && !/favicon|logo|icon|badge|avatar/i.test(ogImgUrl) && !/[?&](height|width|h|w)=\d{1,3}(&|$)/i.test(ogImgUrl);
                         const prioritizedImages: string[] = [];
-                        if (ogImgUrl) prioritizedImages.push(ogImgUrl);
-                        for (const img of pageImages) {
+                        if (isOgUsable) prioritizedImages.push(ogImgUrl!);
+                        // For Shopify CDN: prefer /products/ images over generic site images
+                        const productImages = pageImages.filter(u => /\/products\//i.test(u) || /\/product-images?\//i.test(u));
+                        const otherImages = pageImages.filter(u => !productImages.includes(u));
+                        for (const img of [...productImages, ...otherImages]) {
                           if (!prioritizedImages.includes(img)) prioritizedImages.push(img);
                           if (prioritizedImages.length >= 8) break;
                         }
