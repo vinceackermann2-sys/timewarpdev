@@ -541,39 +541,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Parse request body early to check for streaming mode
+  const reqBody = await req.json();
+  const isStreamingRequest = reqBody.mode === "discover" && reqBody.stream === true;
+
   // Race the entire handler against a 50s timeout so we return a proper
   // CORS-enabled error instead of letting the gateway send a bare 504.
   const INTERNAL_TIMEOUT_MS = 120_000;
 
-  const mainLogic = async (): Promise<Response> => {
+  const mainLogic = async (sendProgress: (stage: string, percent: number) => Promise<void> = async () => {}): Promise<Response> => {
   try {
-    const { url, mode, selectedProductUrls, stream: streamMode } = await req.json();
+    const { url, mode, selectedProductUrls } = reqBody;
     const isDiscoverMode = mode === "discover";
     const isCoreMode = mode === "core";
-    const isStreaming = isDiscoverMode && streamMode === true;
 
-    // For streaming discover mode, we use a TransformStream to send progress events
-    let streamController: WritableStreamDefaultWriter<Uint8Array> | null = null;
-    let streamResponse: Response | null = null;
-    const encoder = new TextEncoder();
-
-    const sendProgress = (stage: string, percent: number) => {
-      if (streamController) {
-        try {
-          streamController.write(encoder.encode(JSON.stringify({ type: "progress", stage, percent }) + "\n"));
-        } catch { /* ignore write errors */ }
-      }
-    };
-
-    if (isStreaming) {
-      const { readable, writable } = new TransformStream<Uint8Array>();
-      streamController = writable.getWriter();
-      streamResponse = new Response(readable, {
-        headers: { ...corsHeaders, "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache" },
-      });
-      // Send initial progress
-      sendProgress("Connecting to website", 5);
-    }
     if (!url) {
       return new Response(
         JSON.stringify({ success: false, error: "URL is required" }),
@@ -633,7 +614,7 @@ serve(async (req) => {
     const skipHomepageScrape = isCoreMode && Array.isArray(selectedProductUrls) && selectedProductUrls.length > 0;
 
     if (!skipHomepageScrape) {
-      sendProgress("Scraping homepage", 15);
+      await sendProgress("Scraping homepage", 15);
       const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
@@ -672,7 +653,7 @@ serve(async (req) => {
       websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
 
       console.log("Homepage content length:", homepageMarkdown.length, "html length:", homepageHtml.length, "screenshot:", !!websiteScreenshot);
-      sendProgress("Homepage analyzed", 35);
+      await sendProgress("Homepage analyzed", 35);
       if (firecrawlBranding) console.log("Firecrawl branding data found");
 
       // Pre-extract homepage images from both markdown and HTML
@@ -744,7 +725,7 @@ serve(async (req) => {
     } else if (isCompanyUrl) {
       try {
         console.log("Company URL — mapping site for product pages...");
-        sendProgress("Mapping site for products", 45);
+        await sendProgress("Mapping site for products", 45);
         const [mapRes1, mapRes2, mapRes3] = await Promise.allSettled([
           fetch("https://api.firecrawl.dev/v1/map", {
             method: "POST",
@@ -857,7 +838,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                   })
                   .slice(0, maxPages);
                 console.log("AI selected", selected.length, "product pages:", selected);
-                sendProgress("Scanning product pages", 70);
+                await sendProgress("Scanning product pages", 70);
                 // Scrape all pages in parallel
                 // In discover mode: skip AI extraction, just get images + title from page metadata
                 // In core/extract mode: do full AI extraction per page
@@ -986,7 +967,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
     // ══════════════════════════════════════════════
     if (isDiscoverMode) {
       console.log("Discover mode — extracting product names/images from", productPageContents.length, "pages...");
-      sendProgress("Extracting product data", 85);
+      await sendProgress("Extracting product data", 85);
 
       // Extract og:image from homepage metadata as fallback for products with no images
       const ogImage = metadata?.ogImage || metadata?.["og:image"] || metadata?.image || null;
@@ -1099,14 +1080,6 @@ ${allUrls.slice(0, 400).join('\n')}` }],
         scannedUrls,
         isMultiProduct: isCompanyUrl && productPageContents.length > 1,
       };
-
-      // If streaming, write the final result to the stream and close it
-      if (streamController) {
-        sendProgress("Complete", 100);
-        await streamController.write(encoder.encode(JSON.stringify({ type: "result", data: resultPayload }) + "\n"));
-        await streamController.close();
-        return streamResponse!;
-      }
 
       return new Response(
         JSON.stringify(resultPayload),
@@ -1630,20 +1603,46 @@ Return ONLY valid JSON, no markdown fences.`;
 
   } catch (err) {
     console.error("Scrape-product error:", err);
-    // If we were streaming, send error through the stream
-    if (streamController) {
-      try {
-        await streamController.write(encoder.encode(JSON.stringify({ type: "error", error: (err as Error).message || "Internal error" }) + "\n"));
-        await streamController.close();
-      } catch { /* ignore */ }
-      return streamResponse!;
-    }
     return new Response(
       JSON.stringify({ success: false, error: (err as Error).message || "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
   }; // end mainLogic
+
+  // For streaming mode, return response immediately and run logic in background
+  if (isStreamingRequest) {
+    const encoder = new TextEncoder();
+    const { readable, writable } = new TransformStream<Uint8Array>();
+    const writer = writable.getWriter();
+
+    const streamProgress = async (stage: string, percent: number) => {
+      try {
+        await writer.write(encoder.encode(JSON.stringify({ type: "progress", stage, percent }) + "\n"));
+      } catch { /* ignore */ }
+    };
+
+    (async () => {
+      try {
+        await streamProgress("Connecting to website", 5);
+        const response = await mainLogic(streamProgress);
+        const body = await response.json();
+        await streamProgress("Complete", 100);
+        await writer.write(encoder.encode(JSON.stringify({ type: "result", data: body }) + "\n"));
+      } catch (err) {
+        console.error("Streaming error:", err);
+        try {
+          await writer.write(encoder.encode(JSON.stringify({ type: "error", error: (err as Error).message || "Internal error" }) + "\n"));
+        } catch { /* ignore */ }
+      } finally {
+        try { await writer.close(); } catch { /* ignore */ }
+      }
+    })();
+
+    return new Response(readable, {
+      headers: { ...corsHeaders, "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache" },
+    });
+  }
 
   try {
     return await Promise.race([
