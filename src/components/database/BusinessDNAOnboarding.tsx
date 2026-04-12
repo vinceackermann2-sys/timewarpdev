@@ -474,8 +474,8 @@ export function BusinessDNAOnboarding({
         visualIdentity: b.visualIdentity || undefined,
       };
 
+      // Mark all extraction steps done immediately (progressive timers were cleared)
       if (!cancelled) markTodo("Extract brand identity");
-      await new Promise(r => setTimeout(r, 400));
 
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
       const filteredProducts = productsRaw.slice(0, 5);
@@ -538,7 +538,6 @@ export function BusinessDNAOnboarding({
       });
 
       if (!cancelled) markTodo("Extract products");
-      await new Promise(r => setTimeout(r, 300));
 
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
       const parsedAudiences: AudienceEntry[] = audiencesRaw
@@ -588,7 +587,6 @@ export function BusinessDNAOnboarding({
       const newAudiences = [...parsedAudiences, ...fallbackAudiences];
 
       if (!cancelled) markTodo("Extract audiences");
-      await new Promise(r => setTimeout(r, 300));
 
       if (cancelled) return;
 
