@@ -835,7 +835,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                       const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: pUrl, formats: ["markdown"], onlyMainContent: false }),
+                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: false, waitFor: 2000 }),
                       });
                       let md = "";
                       if (res.ok) {
