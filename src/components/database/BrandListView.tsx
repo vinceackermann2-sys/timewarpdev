@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Palette } from "lucide-react";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
 import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
@@ -38,16 +38,10 @@ function BrandSkeleton() {
           </div>
           {/* Extended sections skeleton */}
           <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden p-6 space-y-4">
-            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-5 w-40" />
             <div className="grid grid-cols-3 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="aspect-square rounded-lg" />
-              ))}
-            </div>
-            <Skeleton className="h-4 w-36 mt-4" />
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 rounded-lg" />
               ))}
             </div>
           </div>
@@ -62,14 +56,103 @@ function BrandSkeleton() {
   );
 }
 
+function ExtendedSectionsSkeleton() {
+  return (
+    <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden p-6 space-y-6">
+      {/* Moodboard skeleton */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-4 rounded" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-square rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+      {/* Illustrations skeleton */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-4 rounded" />
+          <Skeleton className="h-4 w-28" />
+        </div>
+        <div className="grid grid-cols-5 gap-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-square rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+      {/* Screenshots skeleton */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-4 rounded" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="flex gap-3">
+          <Skeleton className="h-32 flex-1 rounded-lg animate-pulse" />
+          <Skeleton className="h-32 w-20 rounded-lg animate-pulse" />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground text-center animate-pulse">
+        Generating visual assets — this may take a moment…
+      </p>
+    </div>
+  );
+}
+
+/** Check if the brand's visual identity has been enriched with images */
+function isBrandEnriched(brand: any): boolean {
+  const vi = brand?.visualIdentity;
+  if (!vi) return false;
+  const hasMoodboard = Array.isArray(vi.moodboardUrls) && vi.moodboardUrls.length > 0;
+  const hasIllustrations = (Array.isArray(vi.illustrationIconNames) && vi.illustrationIconNames.length > 0)
+    || (Array.isArray(vi.illustrationSvgs) && vi.illustrationSvgs.length > 0);
+  return hasMoodboard || hasIllustrations;
+}
+
 export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
-  const { brands, setBrands, isLoading } = useBusinessDNA();
+  const { brands, setBrands, isLoading, refreshBrand } = useBusinessDNA();
   const [isBrandingEditing, setIsBrandingEditing] = useState(false);
   const [isVisualIdentityEditing, setIsVisualIdentityEditing] = useState(false);
   const [activeSidebarSection, setActiveSidebarSection] = useState<string>("branding");
   const { toast } = useToast();
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedBrand = brands.find(b => b.id === activeBrandId);
+  const enriched = selectedBrand ? isBrandEnriched(selectedBrand) : false;
+
+  // Poll for enrichment completion when brand exists but visuals are missing
+  useEffect(() => {
+    if (!selectedBrand || enriched || !refreshBrand) return;
+
+    // Only poll for recently created brands (within last 5 minutes)
+    const createdAt = (selectedBrand as any).lastUpdated;
+    // Always poll if visual identity is missing — enrichment may still be running
+    let attempts = 0;
+    const MAX_ATTEMPTS = 20; // ~60 seconds max
+
+    pollRef.current = setInterval(async () => {
+      attempts++;
+      if (attempts > MAX_ATTEMPTS) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        return;
+      }
+      await refreshBrand(activeBrandId);
+    }, 3000);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [activeBrandId, enriched, !!selectedBrand]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Stop polling once enriched
+  useEffect(() => {
+    if (enriched && pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, [enriched]);
 
   if (isLoading) {
     return <BrandSkeleton />;
@@ -110,22 +193,26 @@ export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
                 }}
               />
             </div>
-            <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden" id="extended-brand">
-              <BrandExtendedSections
-                key={selectedBrand.id}
-                isEditing={isVisualIdentityEditing}
-                onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)}
-                initialData={selectedBrand.visualIdentity}
-                brandColors={selectedBrand.colors}
-                onSave={(viData) => {
-                  setBrands(prev => prev.map(b => b.id === activeBrandId ? {
-                    ...b,
-                    visualIdentity: viData,
-                  } : b));
-                  toast({ title: "Visual identity saved" });
-                }}
-              />
-            </div>
+            {enriched ? (
+              <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden" id="extended-brand">
+                <BrandExtendedSections
+                  key={selectedBrand.id}
+                  isEditing={isVisualIdentityEditing}
+                  onEditToggle={() => setIsVisualIdentityEditing(!isVisualIdentityEditing)}
+                  initialData={selectedBrand.visualIdentity}
+                  brandColors={selectedBrand.colors}
+                  onSave={(viData) => {
+                    setBrands(prev => prev.map(b => b.id === activeBrandId ? {
+                      ...b,
+                      visualIdentity: viData,
+                    } : b));
+                    toast({ title: "Visual identity saved" });
+                  }}
+                />
+              </div>
+            ) : (
+              <ExtendedSectionsSkeleton />
+            )}
           </div>
           <div className="hidden lg:block w-52 shrink-0">
             <BrandPageSidebar brandName={selectedBrand.name} activeSection={activeSidebarSection} onSectionClick={(id) => { setActiveSidebarSection(id); document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
