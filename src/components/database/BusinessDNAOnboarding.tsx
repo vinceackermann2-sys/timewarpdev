@@ -1011,7 +1011,9 @@ export function BusinessDNAOnboarding({
                   if (src.startsWith('data:') || src.startsWith('http')) return src;
                   try { return new URL(src.startsWith('//') ? `https:${src}` : src, product?.url || activeUrl).toString(); } catch { return src; }
                 })
-                .filter((src) => !failedImages.has(src));
+                .filter((src) => !failedImages.has(src))
+                .filter((src) => !isLowQualityImage(src));
+              const productImages = deduplicateImages(rawFiltered);
               console.log('[DEBUG] productImages for product', product?.name, ':', JSON.stringify(productImages));
               const selectedImg = selectedImages[currentProductIndex] ?? 0;
 
