@@ -976,9 +976,9 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                 method: "POST",
                 headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  model: "google/gemini-2.5-flash-lite",
-                  max_tokens: 800,
-                  messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo. Do NOT pick logos, icons, banners, tracking pixels, or tiny images. Pick actual product photography.\n\nReturn JSON: {"name": "", "description": "", "bestImages": []}\n\nContent (first 4000 chars):\n${page.markdown.slice(0, 4000)}` }],
+                  model: "google/gemini-2.5-flash",
+                  max_tokens: 1000,
+                  messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description. If this is NOT a product page, return {"name": "", "description": "", "bestImages": [], "isProduct": false}.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo. Do NOT pick logos, icons, banners, tracking pixels, or tiny images. Pick actual product photography.\n\nReturn JSON: {"name": "", "description": "", "bestImages": [], "isProduct": true}\n\nContent (first 5000 chars):\n${page.markdown.slice(0, 5000)}` }],
                 }),
               });
               if (!res.ok) return { url: page.url, name: "", description: "", images: candidateImages };
