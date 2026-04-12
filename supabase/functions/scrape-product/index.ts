@@ -541,39 +541,56 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Parse request body early to check for streaming mode
+  const reqBody = await req.json();
+  const isStreamingRequest = reqBody.mode === "discover" && reqBody.stream === true;
+
   // Race the entire handler against a 50s timeout so we return a proper
   // CORS-enabled error instead of letting the gateway send a bare 504.
   const INTERNAL_TIMEOUT_MS = 120_000;
 
-  const mainLogic = async (): Promise<Response> => {
-  try {
-    const { url, mode, selectedProductUrls, stream: streamMode } = await req.json();
-    const isDiscoverMode = mode === "discover";
-    const isCoreMode = mode === "core";
-    const isStreaming = isDiscoverMode && streamMode === true;
-
-    // For streaming discover mode, we use a TransformStream to send progress events
-    let streamController: WritableStreamDefaultWriter<Uint8Array> | null = null;
-    let streamResponse: Response | null = null;
+  // For streaming mode, return the response immediately and run logic in background
+  if (isStreamingRequest) {
     const encoder = new TextEncoder();
+    const { readable, writable } = new TransformStream<Uint8Array>();
+    const writer = writable.getWriter();
 
-    const sendProgress = (stage: string, percent: number) => {
-      if (streamController) {
-        try {
-          streamController.write(encoder.encode(JSON.stringify({ type: "progress", stage, percent }) + "\n"));
-        } catch { /* ignore write errors */ }
-      }
+    const sendProgress = async (stage: string, percent: number) => {
+      try {
+        await writer.write(encoder.encode(JSON.stringify({ type: "progress", stage, percent }) + "\n"));
+      } catch { /* ignore */ }
     };
 
-    if (isStreaming) {
-      const { readable, writable } = new TransformStream<Uint8Array>();
-      streamController = writable.getWriter();
-      streamResponse = new Response(readable, {
-        headers: { ...corsHeaders, "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache" },
-      });
-      // Send initial progress
-      sendProgress("Connecting to website", 5);
-    }
+    // Run the actual logic in the background, writing to the stream
+    (async () => {
+      try {
+        await sendProgress("Connecting to website", 5);
+        const result = await runDiscoverLogic(reqBody, sendProgress);
+        await sendProgress("Complete", 100);
+        await writer.write(encoder.encode(JSON.stringify({ type: "result", data: result }) + "\n"));
+      } catch (err) {
+        try {
+          await writer.write(encoder.encode(JSON.stringify({ type: "error", error: (err as Error).message || "Internal error" }) + "\n"));
+        } catch { /* ignore */ }
+      } finally {
+        try { await writer.close(); } catch { /* ignore */ }
+      }
+    })();
+
+    return new Response(readable, {
+      headers: { ...corsHeaders, "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache" },
+    });
+  }
+
+  const mainLogic = async (): Promise<Response> => {
+  try {
+    const { url, mode, selectedProductUrls } = reqBody;
+    const isDiscoverMode = mode === "discover";
+    const isCoreMode = mode === "core";
+
+    // Non-streaming progress helper (no-op)
+    const sendProgress = (_stage: string, _percent: number) => {};
+
     if (!url) {
       return new Response(
         JSON.stringify({ success: false, error: "URL is required" }),
