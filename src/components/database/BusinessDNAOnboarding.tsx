@@ -993,13 +993,12 @@ export function BusinessDNAOnboarding({
               const product = extractedProducts[productIdx];
               const rawProductImages: string[] = product?.images || [];
               // Robust normalization: ensure every image is a valid absolute http(s) or data: URL
-              const productImages = rawProductImages
+              const productImages = deduplicateImages(rawProductImages
                 .map((img: any) => typeof img === 'string' ? img : img?.url ?? img?.src ?? null)
                 .filter((src): src is string => {
                   if (!src || typeof src !== 'string') return false;
                   if (src.startsWith('data:image/')) return true;
                   if (!src.startsWith('http://') && !src.startsWith('https://')) {
-                    // Try resolving relative URL
                     try {
                       const resolved = new URL(src.startsWith('//') ? `https:${src}` : src, product?.url || activeUrl).toString();
                       return resolved.startsWith('http');
@@ -1012,8 +1011,8 @@ export function BusinessDNAOnboarding({
                   try { return new URL(src.startsWith('//') ? `https:${src}` : src, product?.url || activeUrl).toString(); } catch { return src; }
                 })
                 .filter((src) => !failedImages.has(src))
-                .filter((src) => !isLowQualityImage(src));
-              const productImages = deduplicateImages(rawFiltered);
+                .filter((src) => !isLowQualityImage(src))
+              );
               console.log('[DEBUG] productImages for product', product?.name, ':', JSON.stringify(productImages));
               const selectedImg = selectedImages[currentProductIndex] ?? 0;
 
