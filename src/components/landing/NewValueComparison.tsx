@@ -31,7 +31,7 @@ export default function NewValueComparison() {
         {/* Two Modes Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 max-w-6xl mx-auto">
           {/* Card 1: Co Work */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col h-[350px] sm:h-[450px]">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col h-[420px] sm:h-[450px]">
             <div className="p-6 sm:p-8 pb-4">
               <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2 sm:mb-3">Co Work</h3>
               <p className="text-base sm:text-lg text-slate-600">Work alongside your AI assistant directly in your browser.</p>
