@@ -827,7 +827,9 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                   })
                   .slice(0, maxPages);
                 console.log("AI selected", selected.length, "product pages:", selected);
-                // Scrape all pages and extract names/images in parallel (combined per-page)
+                // Scrape all pages in parallel
+                // In discover mode: skip AI extraction, just get images + title from page metadata
+                // In core/extract mode: do full AI extraction per page
                 const combinedResults = await Promise.allSettled(
                   selected.map(async (pUrl: string) => {
                     try {
@@ -839,21 +841,33 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                       });
                       let md = "";
                       let pageHtml = "";
+                      let pageMeta: any = {};
                       if (res.ok) {
                         const d = await res.json();
                         md = d.data?.markdown || d.markdown || "";
                         pageHtml = d.data?.html || d.html || "";
+                        pageMeta = d.data?.metadata || d.metadata || {};
                       } else {
                         const fb = await fetchPageFallback(pUrl);
                         md = fb.markdown;
+                        pageMeta = fb.metadata || {};
                       }
                       // Extract images from both markdown and HTML for better coverage
                       const mdImages = extractImagesFromMarkdown(md, pUrl);
                       const htmlImages = pageHtml ? extractImagesFromMarkdown(pageHtml, pUrl) : [];
                       const pageImages = [...new Set([...mdImages, ...htmlImages])];
+
+                      if (isDiscoverMode) {
+                        // FAST PATH: No AI call — just use page title + scraped images
+                        const rawTitle = pageMeta.title || pageMeta["og:title"] || "";
+                        // Clean title: remove site name suffix (e.g. "Widget Pro | Acme Inc" -> "Widget Pro")
+                        const name = rawTitle.split(/[|\-–—]/)[0]?.trim() || "";
+                        const description = pageMeta.description || pageMeta["og:description"] || "";
+                        return { url: pUrl, name, description: (description || "").slice(0, 200), images: pageImages.slice(0, 8), markdown: md, extractedImages: pageImages };
+                      }
+
+                      // FULL PATH: AI extraction for core/extract mode
                       const candidateImages = pageImages.slice(0, 20);
-                      
-                      // AI extraction inline — use flash (not flash-lite) for better accuracy
                       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -868,7 +882,6 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                       const rawAi = aiData.choices?.[0]?.message?.content || "";
                       try {
                         const parsed = robustJsonParse(rawAi);
-                        // Skip non-product pages identified by AI
                         if (parsed.isProduct === false) return null;
                         const bestImages = ensureArr(parsed.bestImages || parsed.imageUrls).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
                         const finalImages = bestImages.length > 0 ? [...bestImages, ...candidateImages.filter(c => !bestImages.includes(c))].slice(0, 8) : candidateImages.slice(0, 8);
@@ -954,54 +967,32 @@ ${allUrls.slice(0, 400).join('\n')}` }],
           if (p.images.length === 0 && ogImageUrl) p.images = [ogImageUrl];
         }
       } else {
-        // Fallback: run AI extraction (for non-company URLs or when cache is empty)
-        const discoverResults = await Promise.allSettled(
-          productPageContents.slice(0, 10).map(async (page) => {
-            try {
-              let pageImages = (page as any).extractedImages?.length > 0
-                ? (page as any).extractedImages
-                : extractImagesFromMarkdown(page.markdown, page.url);
-              if (pageImages.length === 0) {
-                const ogMatch = page.markdown.match(/og:image[^"]*content=["']([^"']+)["']/i)
-                  || page.markdown.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
-                if (ogMatch?.[1]) {
-                  const ogUrl = normalizeImageUrl(ogMatch[1], page.url);
-                  if (ogUrl) pageImages = [ogUrl];
-                }
-              }
-              if (pageImages.length === 0 && homepageImages.length > 0) pageImages = homepageImages.slice(0, 3);
-              if (pageImages.length === 0 && ogImageUrl) pageImages = [ogImageUrl];
-              const candidateImages = [...new Set([...pageImages, ...extractImagesFromMarkdown(page.markdown, page.url)])].slice(0, 20);
-              const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: "google/gemini-3-flash-preview",
-                  max_tokens: 1000,
-                  messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description. If this is NOT a product page, return {"name": "", "description": "", "bestImages": [], "isProduct": false}.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo. Do NOT pick logos, icons, banners, tracking pixels, or tiny images. Pick actual product photography.\n\nReturn JSON: {"name": "", "description": "", "bestImages": [], "isProduct": true}\n\nContent (first 5000 chars):\n${page.markdown.slice(0, 5000)}` }],
-                }),
-              });
-              if (!res.ok) return { url: page.url, name: "", description: "", images: candidateImages };
-              const d = await res.json();
-              const raw = d.choices?.[0]?.message?.content || "";
-              try {
-                const parsed = robustJsonParse(raw);
-                const bestImages = ensureArr(parsed.bestImages || parsed.imageUrls).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
-                const finalImages = bestImages.length > 0 ? [...bestImages, ...candidateImages.filter(c => !bestImages.includes(c))].slice(0, 8) : candidateImages.slice(0, 8);
-                return { url: page.url, name: parsed.name || "", description: parsed.description || "", images: finalImages };
-              } catch {
-                return { url: page.url, name: "", description: "", images: candidateImages };
-              }
-            } catch {
-              return { url: page.url, name: "", description: "", images: extractImagesFromMarkdown(page.markdown, page.url) };
+        // Fallback: extract product info without AI (for non-company URLs or when cache is empty)
+        discoverSettled = productPageContents.slice(0, 10).map((page) => {
+          let pageImages = (page as any).extractedImages?.length > 0
+            ? (page as any).extractedImages
+            : extractImagesFromMarkdown(page.markdown, page.url);
+          if (pageImages.length === 0) {
+            const ogMatch = page.markdown.match(/og:image[^"]*content=["']([^"']+)["']/i)
+              || page.markdown.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+            if (ogMatch?.[1]) {
+              const ogUrl = normalizeImageUrl(ogMatch[1], page.url);
+              if (ogUrl) pageImages = [ogUrl];
             }
-          })
-        );
-        discoverSettled = discoverResults
-          .filter((r): r is PromiseFulfilledResult<{ url: string; name: string; description: string; images: string[] }> =>
-            r.status === 'fulfilled' && !!r.value)
-          .map(r => r.value)
-          .filter(p => p.name || p.description || p.images.length > 0);
+          }
+          if (pageImages.length === 0 && homepageImages.length > 0) pageImages = homepageImages.slice(0, 3);
+          if (pageImages.length === 0 && ogImageUrl) pageImages = [ogImageUrl];
+          // Use page URL to derive a name (no AI call)
+          let name = "";
+          try {
+            const u = new URL(page.url);
+            const lastSegment = u.pathname.split('/').filter(Boolean).pop() || "";
+            name = lastSegment.replace(/[-_]/g, ' ').replace(/\.[^.]+$/, '').trim();
+            // Capitalize first letter of each word
+            name = name.replace(/\b\w/g, c => c.toUpperCase());
+          } catch { /* ignore */ }
+          return { url: page.url, name, description: "", images: pageImages.slice(0, 8) };
+        }).filter(p => p.name || p.images.length > 0);
       }
 
       const rawDiscovered = discoverSettled
