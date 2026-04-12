@@ -634,6 +634,7 @@ serve(async (req) => {
 
     if (!skipHomepageScrape) {
       sendProgress("Scraping homepage", 15);
+      const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({ url: baseUrl, formats: isDiscoverMode ? ["markdown", "html", "links", "branding"] : ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false, waitFor: 3000 }),
