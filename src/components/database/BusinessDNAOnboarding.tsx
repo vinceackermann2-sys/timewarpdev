@@ -142,9 +142,8 @@ export function BusinessDNAOnboarding({
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
   const [forgingTodos, setForgingTodos] = useState<{ label: string; status: "pending" | "done"; completedAt?: Date }[]>([
     { label: "Analyze business", status: "done" },
-    { label: "Extract brand identity", status: "pending" },
-    { label: "Extract products", status: "pending" },
-    { label: "Extract audiences", status: "pending" },
+    { label: "Scraping product pages", status: "pending" },
+    { label: "Extracting with AI", status: "pending" },
     { label: "Save to database", status: "pending" },
     { label: "Enrich brand", status: "pending" },
   ]);
@@ -368,9 +367,8 @@ export function BusinessDNAOnboarding({
     // Reset todos for fresh run
     setForgingTodos([
       { label: "Analyze business", status: "done", completedAt: new Date() },
-      { label: "Extract brand identity", status: "pending" },
-      { label: "Extract products", status: "pending" },
-      { label: "Extract audiences", status: "pending" },
+      { label: "Scraping product pages", status: "pending" },
+      { label: "Extracting with AI", status: "pending" },
       { label: "Save to database", status: "pending" },
       { label: "Enrich brand", status: "pending" },
     ]);
@@ -381,21 +379,14 @@ export function BusinessDNAOnboarding({
         .map(i => discoveredProducts[i]?.url)
         .filter(Boolean);
 
-      // Progressive todo marking — simulate progress while the API call runs
-      // Brand, products, audiences are extracted in parallel on the backend
-      const progressTimers: ReturnType<typeof setTimeout>[] = [];
-      progressTimers.push(setTimeout(() => { if (!cancelled) markTodo("Extract brand identity"); }, 4000));
-      progressTimers.push(setTimeout(() => { if (!cancelled) markTodo("Extract products"); }, 7000));
-      progressTimers.push(setTimeout(() => { if (!cancelled) markTodo("Extract audiences"); }, 9000));
+      // Mark scraping as active immediately — the backend starts scraping now
+      markTodo("Scraping product pages");
 
       const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
         url: activeUrl!.trim(),
         mode: "core",
         selectedProductUrls: selectedUrls.length > 0 ? selectedUrls : undefined,
       });
-
-      // Clear progressive timers — mark real status below
-      progressTimers.forEach(clearTimeout);
 
       if (cancelled) return;
 
@@ -474,8 +465,8 @@ export function BusinessDNAOnboarding({
         visualIdentity: b.visualIdentity || undefined,
       };
 
-      // Mark all extraction steps done immediately (progressive timers were cleared)
-      if (!cancelled) markTodo("Extract brand identity");
+      // Mark AI extraction done — backend returned all brand/product/audience data
+      if (!cancelled) markTodo("Extracting with AI");
 
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
       const filteredProducts = productsRaw.slice(0, 5);
@@ -537,7 +528,7 @@ export function BusinessDNAOnboarding({
         };
       });
 
-      if (!cancelled) markTodo("Extract products");
+      
 
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
       const parsedAudiences: AudienceEntry[] = audiencesRaw
@@ -586,7 +577,7 @@ export function BusinessDNAOnboarding({
       }));
       const newAudiences = [...parsedAudiences, ...fallbackAudiences];
 
-      if (!cancelled) markTodo("Extract audiences");
+      
 
       if (cancelled) return;
 

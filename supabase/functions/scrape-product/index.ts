@@ -1127,7 +1127,6 @@ ${allUrls.slice(0, 400).join('\n')}` }],
       // Product/audience extractions (parallel)
       ...productPageContents.map(async (page, idx) => {
         try {
-          // Use a preliminary brand name for the prompt
           const prelimBrandName = metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "the brand";
           console.log(`Extracting product ${idx + 1}/${productPageContents.length}: ${page.url.slice(0, 80)}`);
           const result = await callAI(
@@ -1339,6 +1338,7 @@ Return ONLY valid JSON, no markdown fences.`;
               }
 
               redditEnriched = true;
+              
               console.log("Reddit enrichment complete — filled from", redditUrls.length, "Reddit sources");
             } catch (fillErr) {
               console.warn("Reddit AI fill failed (non-blocking):", fillErr);
