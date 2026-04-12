@@ -863,7 +863,17 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                         // Clean title: remove site name suffix (e.g. "Widget Pro | Acme Inc" -> "Widget Pro")
                         const name = rawTitle.split(/[|\-–—]/)[0]?.trim() || "";
                         const description = pageMeta.description || pageMeta["og:description"] || "";
-                        return { url: pUrl, name, description: (description || "").slice(0, 200), images: pageImages.slice(0, 8), markdown: md, extractedImages: pageImages };
+                        // Prioritize og:image as first image (most reliable product image)
+                        const ogImg = pageMeta["og:image"] || pageMeta.image || null;
+                        const ogImgUrl = ogImg ? normalizeImageUrl(ogImg, pUrl) : null;
+                        const prioritizedImages: string[] = [];
+                        if (ogImgUrl) prioritizedImages.push(ogImgUrl);
+                        for (const img of pageImages) {
+                          if (!prioritizedImages.includes(img)) prioritizedImages.push(img);
+                          if (prioritizedImages.length >= 8) break;
+                        }
+                        console.log("Discover fast-path for", name, "— images:", prioritizedImages.length, "og:", ogImgUrl?.slice(0, 80));
+                        return { url: pUrl, name, description: (description || "").slice(0, 200), images: prioritizedImages, markdown: md, extractedImages: pageImages };
                       }
 
                       // FULL PATH: AI extraction for core/extract mode
