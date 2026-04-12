@@ -1095,21 +1095,6 @@ ${allUrls.slice(0, 400).join('\n')}` }],
     console.log("Extracting brand + products in parallel...");
     const brandingJson = firecrawlBranding ? JSON.stringify(firecrawlBranding, null, 2).slice(0, 3000) : null;
 
-    // SSE helper — will be wired up if streaming
-    let sseController: ReadableStreamDefaultController<Uint8Array> | null = null;
-    const emitSSE = (event: string, data?: any) => {
-      if (!sseController) return;
-      try {
-        const payload = JSON.stringify({ event, ...(data || {}) });
-        sseController.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
-      } catch { /* stream may be closed */ }
-    };
-
-    // Track individual extraction completions
-    let brandDone = false;
-    let productsDone = 0;
-    const totalProducts = productPageContents.length;
-
     // Run brand extraction and all product extractions in parallel
     const [brandSettled, ...productAudienceResults] = await Promise.allSettled([
       // Brand extraction
@@ -1121,13 +1106,9 @@ ${allUrls.slice(0, 400).join('\n')}` }],
             "google/gemini-3-flash-preview",
             4000,
           );
-          brandDone = true;
-          emitSSE("step", { step: "Extract brand identity" });
           return brandResult.brand || brandResult || {};
         } catch (e) {
           console.error("Brand extraction failed:", e);
-          brandDone = true;
-          emitSSE("step", { step: "Extract brand identity" });
           return {
             name: metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business",
             category: "Business",
@@ -1166,21 +1147,9 @@ ${allUrls.slice(0, 400).join('\n')}` }],
             product.images = allImages;
           }
 
-          productsDone++;
-          // Emit product + audience progress when all products are done
-          if (productsDone >= totalProducts) {
-            emitSSE("step", { step: "Extract products" });
-            emitSSE("step", { step: "Extract audiences" });
-          }
-
           return { product, audience };
         } catch (e) {
           console.warn(`Product ${idx + 1} extraction failed (skipping):`, e);
-          productsDone++;
-          if (productsDone >= totalProducts) {
-            emitSSE("step", { step: "Extract products" });
-            emitSSE("step", { step: "Extract audiences" });
-          }
           return null;
         }
       }),
