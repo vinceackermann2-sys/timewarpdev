@@ -466,8 +466,8 @@ export function BusinessDNAOnboarding({
         visualIdentity: b.visualIdentity || undefined,
       };
 
-      // Mark all extraction steps done immediately (progressive timers were cleared)
-      if (!cancelled) markTodo("Extract brand identity");
+      // Mark AI extraction done — backend returned all brand/product/audience data
+      if (!cancelled) markTodo("Extracting with AI");
 
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
       const filteredProducts = productsRaw.slice(0, 5);
