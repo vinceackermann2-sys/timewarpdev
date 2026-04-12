@@ -547,9 +547,10 @@ serve(async (req) => {
 
   const mainLogic = async (): Promise<Response> => {
   try {
-    const { url, mode, selectedProductUrls } = await req.json();
+    const { url, mode, selectedProductUrls, stream: wantStream } = await req.json();
     const isDiscoverMode = mode === "discover";
     const isCoreMode = mode === "core";
+    const useSSE = isCoreMode && wantStream === true;
     if (!url) {
       return new Response(
         JSON.stringify({ success: false, error: "URL is required" }),
