@@ -120,6 +120,8 @@ export function BusinessDNAOnboarding({
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("Initializing...");
+  const progressTargetRef = useRef(0);
+  const progressDisplayRef = useRef(0);
 
   // URL placeholder typewriter
   const [placeholderText, setPlaceholderText] = useState("");
@@ -242,7 +244,7 @@ export function BusinessDNAOnboarding({
           { url: activeUrl.trim(), mode: "discover" },
           (stage, percent) => {
             if (!cancelled) {
-              setProgress(percent);
+              progressTargetRef.current = percent;
               setProgressStage(stage);
             }
           }
@@ -252,8 +254,8 @@ export function BusinessDNAOnboarding({
           console.error("Discover failed:", error || data?.error);
           setScrapeError(true);
         } else {
+          progressTargetRef.current = 100;
           setProgress(100);
-          setProgressStage("Complete");
           // Normalize image URLs in discovered products
           const products = Array.isArray(data.discoveredProducts) ? data.discoveredProducts : [];
           const normalizedProducts = products.map((p: any) => {
@@ -290,8 +292,34 @@ export function BusinessDNAOnboarding({
     })();
     return () => { cancelled = true; };
   }, [activeUrl, step]);
-
-
+  // Smooth progress animation — continuously crawls toward target, never stops
+  useEffect(() => {
+    if (step !== 1) return;
+    const interval = setInterval(() => {
+      const target = progressTargetRef.current;
+      const current = progressDisplayRef.current;
+      if (current >= 100) {
+        clearInterval(interval);
+        return;
+      }
+      // If we haven't reached the target, move quickly toward it
+      // If we're AT the target, slowly creep forward (max 2% below target boundary)
+      let next: number;
+      if (current < target) {
+        // Ease toward target
+        next = current + Math.max(0.5, (target - current) * 0.15);
+      } else {
+        // Slowly creep: move at 0.3%/tick, but cap at (target + next_gap * 0.6)
+        // This creates the illusion of continuous progress between backend events
+        const nextTarget = target < 15 ? 15 : target < 35 ? 35 : target < 45 ? 45 : target < 70 ? 70 : target < 85 ? 85 : 100;
+        const ceiling = target + (nextTarget - target) * 0.6;
+        next = Math.min(ceiling, current + 0.3);
+      }
+      progressDisplayRef.current = Math.min(100, next);
+      setProgress(Math.round(next));
+    }, 100);
+    return () => clearInterval(interval);
+  }, [step]);
 
 
   // Transition step 1 → 2 as soon as scrape completes
@@ -862,14 +890,10 @@ export function BusinessDNAOnboarding({
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2.5 px-1">
-                    <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin" strokeWidth={2.5} />
-                    <span className="text-[14px] text-[#697386]">{progressStage}</span>
-                  </div>
                   <div className="w-full h-1.5 bg-[#e5e4df] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#3399ff] rounded-full transition-all duration-700 ease-out"
-                      style={{ width: `${Math.max(5, progress)}%` }}
+                      className="h-full bg-[#3399ff] rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${Math.max(3, progress)}%` }}
                     />
                   </div>
                 </div>
