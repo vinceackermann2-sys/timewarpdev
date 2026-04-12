@@ -120,6 +120,8 @@ export function BusinessDNAOnboarding({
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("Initializing...");
+  const progressTargetRef = useRef(0);
+  const progressDisplayRef = useRef(0);
 
   // URL placeholder typewriter
   const [placeholderText, setPlaceholderText] = useState("");
