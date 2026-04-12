@@ -85,7 +85,7 @@ function ConnectionCard({
             ? "border-green-500/40"
             : "border-transparent hover:border-primary/40 hover:shadow-sm"
       }`}
-      style={{ backgroundColor: integration.comingSoon ? undefined : "#F8F6F2" }}
+      style={{ backgroundColor: integration.comingSoon ? undefined : "#f1f5f9" }}
     >
       {integration.comingSoon && (
         <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
