@@ -572,7 +572,7 @@ Answer these two questions in JSON format:
 
 Return ONLY valid JSON like: {"trust":"iPhone","feeling":"tech+futuristic, optimistic gradients"}
 No explanation.`,
-        "google/gemini-2.5-flash-lite"
+        "google/gemini-3-flash-preview"
       );
 
       const parsedFormula = parseMoodboardFormula(moodboardPromptRaw, fallbackTrustObject, fallbackFeelingAndColor);
@@ -612,7 +612,7 @@ Example for a luxury tech brand:
 ["iPhone flat lay", "minimalist workspace", "dark gradient texture", "black box packaging", "modern office interior", "leather tech accessories"]
 
 Return ONLY a JSON array of 6 strings. No explanation.`,
-        "google/gemini-2.5-flash-lite"
+        "google/gemini-3-flash-preview"
       );
       queries = parseStringArray(queriesRaw).slice(0, 6);
     } catch (e) {
@@ -877,7 +877,7 @@ Rules:
 - All 9 iconNames should be unique
 - Return ONLY a JSON array of objects like [{"concept":"shield","iconName":"Shield"},...]
 - No explanation, no markdown.`,
-          "google/gemini-2.5-flash-lite"
+          "google/gemini-3-flash-preview"
         );
 
         // Parse paired results

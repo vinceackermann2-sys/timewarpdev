@@ -1270,7 +1270,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
+            model: "google/gemini-3-flash-preview",
             messages: [{ role: "user", content: `Generate 6 aesthetic Pinterest search terms for a brand moodboard.\nBrand: "${brandName}" (${brandCategory})\nAudience: ${audienceDesc.slice(0, 200)}\n\nReturn ONLY a JSON array of 6 phrases.` }],
           }),
         });
