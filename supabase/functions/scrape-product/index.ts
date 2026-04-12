@@ -140,6 +140,10 @@ const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] 
         lower.includes('data:image') || lower.includes('placehold') ||
         lower.includes('placeholder') || lower.includes('blank') ||
         lower.includes('transparent')) return false;
+    // Filter broken/encoded base64 markers in URLs
+    if (lower.includes('base64') || lower.includes('%3cbase64') || lower.includes('%3e')) return false;
+    // Filter URLs with markdown artifacts (trailing ) or ] or )[Link etc.)
+    if (/[)\]]\s*(\[|$)/i.test(url) || url.endsWith(')') || url.endsWith(']')) return false;
     // Filter thumbnail/downscaled URL patterns
     if (/_thumb/i.test(lower) || /-thumb/i.test(lower) || /[-_]small/i.test(lower) ||
         /[-_]tiny/i.test(lower) || /[-_]xs\b/i.test(lower) || /[-_]micro/i.test(lower) ||
@@ -863,12 +867,16 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                         // Clean title: remove site name suffix (e.g. "Widget Pro | Acme Inc" -> "Widget Pro")
                         const name = rawTitle.split(/[|\-–—]/)[0]?.trim() || "";
                         const description = pageMeta.description || pageMeta["og:description"] || "";
-                        // Prioritize og:image as first image (most reliable product image)
+                        // Prioritize og:image as first image — but skip if it looks like a favicon/logo/icon
                         const ogImg = pageMeta.ogImage || pageMeta["og:image"] || pageMeta.image || null;
                         const ogImgUrl = ogImg ? normalizeImageUrl(ogImg, pUrl) : null;
+                        const isOgUsable = ogImgUrl && !/favicon|logo|icon|badge|avatar/i.test(ogImgUrl) && !/[?&](height|width|h|w)=\d{1,3}(&|$)/i.test(ogImgUrl);
                         const prioritizedImages: string[] = [];
-                        if (ogImgUrl) prioritizedImages.push(ogImgUrl);
-                        for (const img of pageImages) {
+                        if (isOgUsable) prioritizedImages.push(ogImgUrl!);
+                        // For Shopify CDN: prefer /products/ images over generic site images
+                        const productImages = pageImages.filter(u => /\/products\//i.test(u) || /\/product-images?\//i.test(u));
+                        const otherImages = pageImages.filter(u => !productImages.includes(u));
+                        for (const img of [...productImages, ...otherImages]) {
                           if (!prioritizedImages.includes(img)) prioritizedImages.push(img);
                           if (prioritizedImages.length >= 8) break;
                         }
@@ -1008,11 +1016,34 @@ ${allUrls.slice(0, 400).join('\n')}` }],
       const rawDiscovered = discoverSettled
         .filter(p => p.name || p.description || p.images.length > 0);
 
+      // Remove site-wide images that appear on MOST products (logos, banners, etc.)
+      if (rawDiscovered.length >= 3) {
+        const imgCount = new Map<string, number>();
+        for (const p of rawDiscovered) {
+          for (const img of p.images) {
+            // Normalize: strip query params for comparison
+            const key = img.split('?')[0];
+            imgCount.set(key, (imgCount.get(key) || 0) + 1);
+          }
+        }
+        const threshold = Math.max(2, Math.floor(rawDiscovered.length * 0.5));
+        const siteWideImages = new Set<string>();
+        for (const [key, count] of imgCount) {
+          if (count >= threshold) siteWideImages.add(key);
+        }
+        if (siteWideImages.size > 0) {
+          console.log("Filtering", siteWideImages.size, "site-wide images that appear on", threshold, "+ products");
+          for (const p of rawDiscovered) {
+            p.images = p.images.filter(img => !siteWideImages.has(img.split('?')[0]));
+          }
+        }
+      }
+
       // Deduplicate by normalized product name
       const seenNames = new Set<string>();
       const discoveredProducts = rawDiscovered.filter(p => {
         const key = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
-        if (!key) return true; // keep unnamed products (they'll show URL as label)
+        if (!key) return true;
         if (seenNames.has(key)) return false;
         seenNames.add(key);
         return true;
