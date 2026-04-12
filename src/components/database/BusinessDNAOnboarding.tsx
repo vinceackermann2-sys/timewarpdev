@@ -244,7 +244,15 @@ export function BusinessDNAOnboarding({
           { url: activeUrl.trim(), mode: "discover" },
           (stage, percent) => {
             if (!cancelled) {
-              progressTargetRef.current = percent;
+              // Map backend percent (5-85) to display range (84-98)
+              const mapped = percent <= 5 ? 84
+                : percent <= 15 ? 84
+                : percent <= 45 ? 88
+                : percent <= 50 ? 92
+                : percent <= 70 ? 94
+                : percent <= 85 ? 96
+                : 98;
+              progressTargetRef.current = mapped;
               setProgressStage(stage);
             }
           }
@@ -292,9 +300,13 @@ export function BusinessDNAOnboarding({
     })();
     return () => { cancelled = true; };
   }, [activeUrl, step]);
-  // Smooth progress animation — continuously crawls toward target, never stops
+  // Smooth progress animation — fast 0-80% in 2s, then real backend milestones 80-100%
   useEffect(() => {
     if (step !== 1) return;
+    const startTime = Date.now();
+    const FAST_PHASE_MS = 2000; // 2 seconds to reach 80%
+    const FAST_PHASE_TARGET = 80;
+
     const interval = setInterval(() => {
       const target = progressTargetRef.current;
       const current = progressDisplayRef.current;
@@ -302,22 +314,31 @@ export function BusinessDNAOnboarding({
         clearInterval(interval);
         return;
       }
-      // If we haven't reached the target, move quickly toward it
-      // If we're AT the target, slowly creep forward (max 2% below target boundary)
+
       let next: number;
-      if (current < target) {
-        // Ease toward target
-        next = current + Math.max(0.5, (target - current) * 0.15);
+      const elapsed = Date.now() - startTime;
+
+      if (elapsed < FAST_PHASE_MS && target < FAST_PHASE_TARGET) {
+        // Phase 1: Animate 0→80% over 2 seconds (ease-out)
+        const t = Math.min(elapsed / FAST_PHASE_MS, 1);
+        const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
+        next = eased * FAST_PHASE_TARGET;
+      } else if (current < FAST_PHASE_TARGET && target < FAST_PHASE_TARGET) {
+        // Finish the fast phase
+        next = current + Math.max(1, (FAST_PHASE_TARGET - current) * 0.2);
+      } else if (current < target) {
+        // Phase 2: Move toward real backend target (80-100 range)
+        next = current + Math.max(0.3, (target - current) * 0.15);
       } else {
-        // Slowly creep: move at 0.3%/tick, but cap at (target + next_gap * 0.6)
-        // This creates the illusion of continuous progress between backend events
-        const nextTarget = target < 15 ? 15 : target < 35 ? 35 : target < 45 ? 45 : target < 70 ? 70 : target < 85 ? 85 : 100;
-        const ceiling = target + (nextTarget - target) * 0.6;
-        next = Math.min(ceiling, current + 0.3);
+        // Creep slowly between backend events
+        const nextMilestone = target < 84 ? 84 : target < 88 ? 88 : target < 92 ? 92 : target < 94 ? 94 : target < 96 ? 96 : target < 98 ? 98 : 100;
+        const ceiling = target + (nextMilestone - target) * 0.5;
+        next = Math.min(ceiling, current + 0.15);
       }
+
       progressDisplayRef.current = Math.min(100, next);
       setProgress(Math.round(next));
-    }, 100);
+    }, 50);
     return () => clearInterval(interval);
   }, [step]);
 
