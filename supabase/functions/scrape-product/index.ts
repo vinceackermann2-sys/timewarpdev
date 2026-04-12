@@ -549,49 +549,11 @@ serve(async (req) => {
   // CORS-enabled error instead of letting the gateway send a bare 504.
   const INTERNAL_TIMEOUT_MS = 120_000;
 
-  // For streaming mode, return the response immediately and run logic in background
-  if (isStreamingRequest) {
-    const encoder = new TextEncoder();
-    const { readable, writable } = new TransformStream<Uint8Array>();
-    const writer = writable.getWriter();
-
-    const sendProgress = async (stage: string, percent: number) => {
-      try {
-        await writer.write(encoder.encode(JSON.stringify({ type: "progress", stage, percent }) + "\n"));
-      } catch { /* ignore */ }
-    };
-
-    // Run the discover logic in background, stream results
-    (async () => {
-      try {
-        await sendProgress("Connecting to website", 5);
-        // Inline the discover logic with progress callbacks
-        const result = await runDiscoverWithProgress(reqBody, sendProgress);
-        await sendProgress("Complete", 100);
-        await writer.write(encoder.encode(JSON.stringify({ type: "result", data: result }) + "\n"));
-      } catch (err) {
-        console.error("Streaming discover error:", err);
-        try {
-          await writer.write(encoder.encode(JSON.stringify({ type: "error", error: (err as Error).message || "Internal error" }) + "\n"));
-        } catch { /* ignore */ }
-      } finally {
-        try { await writer.close(); } catch { /* ignore */ }
-      }
-    })();
-
-    return new Response(readable, {
-      headers: { ...corsHeaders, "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache" },
-    });
-  }
-
-  const mainLogic = async (): Promise<Response> => {
+  const mainLogic = async (sendProgress: (stage: string, percent: number) => Promise<void> = async () => {}): Promise<Response> => {
   try {
     const { url, mode, selectedProductUrls } = reqBody;
     const isDiscoverMode = mode === "discover";
     const isCoreMode = mode === "core";
-
-    // Non-streaming progress helper (no-op)
-    const sendProgress = async (_stage: string, _percent: number) => {};
 
     if (!url) {
       return new Response(
