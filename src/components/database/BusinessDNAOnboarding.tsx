@@ -368,9 +368,8 @@ export function BusinessDNAOnboarding({
     // Reset todos for fresh run
     setForgingTodos([
       { label: "Analyze business", status: "done", completedAt: new Date() },
-      { label: "Extract brand identity", status: "pending" },
-      { label: "Extract products", status: "pending" },
-      { label: "Extract audiences", status: "pending" },
+      { label: "Scraping product pages", status: "pending" },
+      { label: "Extracting with AI", status: "pending" },
       { label: "Save to database", status: "pending" },
       { label: "Enrich brand", status: "pending" },
     ]);
@@ -381,21 +380,14 @@ export function BusinessDNAOnboarding({
         .map(i => discoveredProducts[i]?.url)
         .filter(Boolean);
 
-      // Progressive todo marking — simulate progress while the API call runs
-      // Brand, products, audiences are extracted in parallel on the backend
-      const progressTimers: ReturnType<typeof setTimeout>[] = [];
-      progressTimers.push(setTimeout(() => { if (!cancelled) markTodo("Extract brand identity"); }, 4000));
-      progressTimers.push(setTimeout(() => { if (!cancelled) markTodo("Extract products"); }, 7000));
-      progressTimers.push(setTimeout(() => { if (!cancelled) markTodo("Extract audiences"); }, 9000));
+      // Mark scraping as active immediately — the backend starts scraping now
+      markTodo("Scraping product pages");
 
       const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
         url: activeUrl!.trim(),
         mode: "core",
         selectedProductUrls: selectedUrls.length > 0 ? selectedUrls : undefined,
       });
-
-      // Clear progressive timers — mark real status below
-      progressTimers.forEach(clearTimeout);
 
       if (cancelled) return;
 
