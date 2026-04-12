@@ -279,24 +279,25 @@ export function BusinessDNAOnboarding({
   }, [activeUrl, step]);
 
 
-  // Progress animation for step 1 — cap at 90% until scrape is done
+  // Progress animation for step 1 — real-time: fast initial fill, then hold at 85% until backend responds
   useEffect(() => {
     if (step !== 1) return;
+    const startTime = Date.now();
     const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
       setProgress(prev => {
-        if (prev >= 90 && !scrapeCompleteRef.current) {
-          // Hold at 90 until scrape finishes
-          return 90;
-        }
         if (scrapeCompleteRef.current) {
-          // Scrape done — quickly fill to 95 (step transition handles the rest)
-          if (prev >= 95) { clearInterval(interval); return 95; }
-          return Math.min(95, prev + 6);
+          // Backend done — immediately jump to 100 and transition
+          clearInterval(interval);
+          return 100;
         }
-        if (prev < 70) return prev + 2;
-        return prev + 0.4;
+        // Quick initial fill to ~30% in first second, then slow crawl to 85%
+        if (elapsed < 1000) return Math.min(30, prev + 5);
+        if (prev < 60) return prev + 1.5;
+        if (prev < 85) return prev + 0.3;
+        return 85; // Hold here until backend responds
       });
-    }, 200);
+    }, 100);
     return () => clearInterval(interval);
   }, [step]);
 
