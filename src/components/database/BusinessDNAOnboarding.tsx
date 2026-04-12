@@ -292,24 +292,7 @@ export function BusinessDNAOnboarding({
   }, [activeUrl, step]);
 
 
-  // Progress animation for step 1 — tuned to ~25s typical backend timing
-  useEffect(() => {
-    if (step !== 1) return;
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      setProgress(() => {
-        if (scrapeCompleteRef.current) {
-          clearInterval(interval);
-          return 100;
-        }
-        const elapsed = (Date.now() - startTime) / 1000;
-        // Logarithmic curve: reaches ~40% at 5s, ~60% at 10s, ~75% at 18s, ~85% at 25s
-        const target = Math.min(88, 30 * Math.log10(elapsed + 1) * 1.1);
-        return Math.round(target);
-      });
-    }, 250);
-    return () => clearInterval(interval);
-  }, [step]);
+
 
   // Transition step 1 → 2 as soon as scrape completes
   useEffect(() => {
