@@ -10,6 +10,7 @@ import startBusinessBg from "@/assets/start-business-bg.webp";
 import addBusinessBg from "@/assets/add-business-bg.webp";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
+import { invokeStreamingEdgeFunction } from "@/lib/invokeStreamingEdgeFunction";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
@@ -118,6 +119,7 @@ export function BusinessDNAOnboarding({
   const [agentName, setAgentName] = useState("");
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [progressStage, setProgressStage] = useState("Initializing...");
 
   // URL placeholder typewriter
   const [placeholderText, setPlaceholderText] = useState("");
@@ -235,12 +237,23 @@ export function BusinessDNAOnboarding({
           return;
         }
         workspaceIdRef.current = null;
-        const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim(), mode: "discover" });
+        const { data, error } = await invokeStreamingEdgeFunction(
+          "scrape-product",
+          { url: activeUrl.trim(), mode: "discover" },
+          (stage, percent) => {
+            if (!cancelled) {
+              setProgress(percent);
+              setProgressStage(stage);
+            }
+          }
+        );
         if (cancelled) return;
         if (error || !data?.success) {
           console.error("Discover failed:", error || data?.error);
           setScrapeError(true);
         } else {
+          setProgress(100);
+          setProgressStage("Complete");
           // Normalize image URLs in discovered products
           const products = Array.isArray(data.discoveredProducts) ? data.discoveredProducts : [];
           const normalizedProducts = products.map((p: any) => {
@@ -279,24 +292,7 @@ export function BusinessDNAOnboarding({
   }, [activeUrl, step]);
 
 
-  // Progress animation for step 1 — tuned to ~25s typical backend timing
-  useEffect(() => {
-    if (step !== 1) return;
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      setProgress(() => {
-        if (scrapeCompleteRef.current) {
-          clearInterval(interval);
-          return 100;
-        }
-        const elapsed = (Date.now() - startTime) / 1000;
-        // Logarithmic curve: reaches ~40% at 5s, ~60% at 10s, ~75% at 18s, ~85% at 25s
-        const target = Math.min(88, 30 * Math.log10(elapsed + 1) * 1.1);
-        return Math.round(target);
-      });
-    }, 250);
-    return () => clearInterval(interval);
-  }, [step]);
+
 
   // Transition step 1 → 2 as soon as scrape completes
   useEffect(() => {
@@ -868,12 +864,12 @@ export function BusinessDNAOnboarding({
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2.5 px-1">
                     <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin" strokeWidth={2.5} />
-                    <span className="text-[14px] text-[#697386]">Analyzing business...</span>
+                    <span className="text-[14px] text-[#697386]">{progressStage}</span>
                   </div>
                   <div className="w-full h-1.5 bg-[#e5e4df] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#3399ff] rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${Math.max(15, progress)}%` }}
+                      className="h-full bg-[#3399ff] rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${Math.max(5, progress)}%` }}
                     />
                   </div>
                 </div>
