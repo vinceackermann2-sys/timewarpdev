@@ -252,8 +252,10 @@ export function BusinessDNAOnboarding({
                 if (!s || s === '' || s.startsWith("data:")) return null;
                 try { return new URL(s.startsWith("//") ? `https:${s}` : s, p.url || activeUrl).toString(); } catch { return null; }
               })
-              .filter((u): u is string => !!u && u.length > 10);
-            return { ...p, images, image: images[0] ?? "" };
+              .filter((u): u is string => !!u && u.length > 10)
+              .filter(u => !isLowQualityImage(u));
+            const uniqueImages = deduplicateImages(images);
+            return { ...p, images: uniqueImages, image: uniqueImages[0] ?? "" };
           });
           console.log("Discovered products with images:", normalizedProducts.map((p: any) => ({ name: p.name, imageCount: p.images?.length, firstImage: p.images?.[0]?.slice(0, 80) })));
           setDiscoveredProducts(normalizedProducts);
