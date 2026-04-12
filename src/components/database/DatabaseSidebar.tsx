@@ -152,6 +152,17 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                     {!isCollapsed && <span>Employees</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    isActive={currentView === "connections"}
+                    onClick={() => onViewChange("connections")}
+                    tooltip="Connectors"
+                    className={currentView === "connections" ? "bg-primary/10 text-primary" : ""}
+                  >
+                    <Cable className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>Connectors</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
