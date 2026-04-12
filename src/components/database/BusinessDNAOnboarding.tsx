@@ -252,6 +252,8 @@ export function BusinessDNAOnboarding({
           console.error("Discover failed:", error || data?.error);
           setScrapeError(true);
         } else {
+          setProgress(100);
+          setProgressStage("Complete");
           // Normalize image URLs in discovered products
           const products = Array.isArray(data.discoveredProducts) ? data.discoveredProducts : [];
           const normalizedProducts = products.map((p: any) => {
