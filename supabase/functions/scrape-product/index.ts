@@ -142,8 +142,8 @@ const extractImagesFromMarkdown = (markdown: string, pageUrl: string): string[] 
         lower.includes('transparent')) return false;
     // Filter broken/encoded base64 markers in URLs
     if (lower.includes('base64') || lower.includes('%3cbase64') || lower.includes('%3e')) return false;
-    // Filter URLs with markdown artifacts (trailing ) or ] characters)
-    if (url.endsWith(')') || url.endsWith(']')) return false;
+    // Filter URLs with markdown artifacts (trailing ) or ] or )[Link etc.)
+    if (/[)\]]\s*(\[|$)/i.test(url) || url.endsWith(')') || url.endsWith(']')) return false;
     // Filter thumbnail/downscaled URL patterns
     if (/_thumb/i.test(lower) || /-thumb/i.test(lower) || /[-_]small/i.test(lower) ||
         /[-_]tiny/i.test(lower) || /[-_]xs\b/i.test(lower) || /[-_]micro/i.test(lower) ||
