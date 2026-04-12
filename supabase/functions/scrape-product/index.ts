@@ -614,7 +614,7 @@ serve(async (req) => {
     const skipHomepageScrape = isCoreMode && Array.isArray(selectedProductUrls) && selectedProductUrls.length > 0;
 
     if (!skipHomepageScrape) {
-      sendProgress("Scraping homepage", 15);
+      await sendProgress("Scraping homepage", 15);
       const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
@@ -653,7 +653,7 @@ serve(async (req) => {
       websiteScreenshot = scrapeData.data?.screenshot || scrapeData.screenshot || null;
 
       console.log("Homepage content length:", homepageMarkdown.length, "html length:", homepageHtml.length, "screenshot:", !!websiteScreenshot);
-      sendProgress("Homepage analyzed", 35);
+      await sendProgress("Homepage analyzed", 35);
       if (firecrawlBranding) console.log("Firecrawl branding data found");
 
       // Pre-extract homepage images from both markdown and HTML
@@ -725,7 +725,7 @@ serve(async (req) => {
     } else if (isCompanyUrl) {
       try {
         console.log("Company URL — mapping site for product pages...");
-        sendProgress("Mapping site for products", 45);
+        await sendProgress("Mapping site for products", 45);
         const [mapRes1, mapRes2, mapRes3] = await Promise.allSettled([
           fetch("https://api.firecrawl.dev/v1/map", {
             method: "POST",
@@ -838,7 +838,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                   })
                   .slice(0, maxPages);
                 console.log("AI selected", selected.length, "product pages:", selected);
-                sendProgress("Scanning product pages", 70);
+                await sendProgress("Scanning product pages", 70);
                 // Scrape all pages in parallel
                 // In discover mode: skip AI extraction, just get images + title from page metadata
                 // In core/extract mode: do full AI extraction per page
@@ -967,7 +967,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
     // ══════════════════════════════════════════════
     if (isDiscoverMode) {
       console.log("Discover mode — extracting product names/images from", productPageContents.length, "pages...");
-      sendProgress("Extracting product data", 85);
+      await sendProgress("Extracting product data", 85);
 
       // Extract og:image from homepage metadata as fallback for products with no images
       const ogImage = metadata?.ogImage || metadata?.["og:image"] || metadata?.image || null;
