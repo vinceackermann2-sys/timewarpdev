@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square,
-  Palette, BarChart3, PieChart, Table2, Presentation
+  Plug, Unplug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square,
+  Palette, BarChart3, PieChart, Table2, Presentation, CheckCircle2
 } from "lucide-react";
 import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
