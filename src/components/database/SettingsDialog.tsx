@@ -14,7 +14,7 @@ import {
   Settings, Users, CreditCard, Key, Unplug, Plug, Loader2,
   Sun, Moon, Monitor, Mail, MailPlus, User, UserPlus, Crown,
   Pencil, Trash2, Clock, X, Plus, ChevronRight, ArrowLeft, Check,
-  Building2, ArrowRight, Search, MoreHorizontal,
+  Building2, ArrowRight, Search, MoreHorizontal, CheckCircle2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
