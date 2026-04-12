@@ -1,75 +1,55 @@
 
-Goal: make Employee Chat always use the correct employee-specific pipeline for normal questions, so the sub-logging shows live, personal connection checks only when relevant.
 
-What’s actually going wrong
-- The screenshot matches the generic `runAgentChat` labels (`Gathering your business context`, `Analyzing the best approach`, `Composing your response`), not the employee SSE logging.
-- That means some “employee chat” messages are still being routed through the generic chat path instead of `runEmployeeChat`.
-- I also found two concrete gaps:
-  1. `AgentChatView.tsx` relies on `selectedChatEmployees` at send time, but chat history reload only restores `messages`, not the selected employee context.
-  2. Computer-mode employee runs use `runComputerMode`, which does not surface the same live connection-search sub-logging as the normal employee SSE flow.
+## Plan: Reddit-Backed Data Enrichment for Missing Product/Audience Fields
 
-Implementation plan
+### Overview
+After the initial AI extraction of products and audiences from the scraped website, check for empty/missing fields. If gaps exist, search Reddit via Firecrawl for real user discussions about the brand/product, then use AI to fill only the missing fields with Reddit-sourced data. Show Reddit as a verified source in the onboarding UI.
 
-1. Fix message routing so employee conversations stay in employee mode
-- Update `src/components/database/AgentChatView.tsx` so follow-up messages can infer employee mode from the active conversation, not only from the current chip state.
-- Restore employee context when selecting a saved chat by inspecting recent user messages with `employees` metadata and repopulating `selectedChatEmployees`.
-- Add a small helper like `getActiveEmployeeContext()` that resolves employee context from:
-  - current selected employee chip
-  - latest saved employee-tagged user message in the thread
-- Use that helper in `handleSendMessage` so normal employee follow-ups always call `runEmployeeChat`.
+### Technical Details
 
-2. Separate “Employee Chat” from “Computer Mode” more safely
-- Ensure a normal typed employee question does not accidentally fall into the generic path.
-- Keep browser automation under `runComputerMode`, but make plain employee Q&A use `runEmployeeChat` unless the user is explicitly running browser/computer execution.
-- Review the current auto-selection flow around `autoRunEmployee` so it doesn’t leave the UI in a confusing state for later follow-up questions.
+#### 1. Add Reddit enrichment step in `supabase/functions/scrape-product/index.ts`
 
-3. Remove the old generic task labels from employee follow-ups
-- Since the screenshot proves generic labels are still rendering, audit the branching so only:
-  - `runAgentChat` emits generic labels
-  - `runEmployeeChat` emits personalized SSE labels
-- Make sure employee-tagged conversations never fall back to the generic optimistic step builder unless there is truly no employee context.
+After the parallel brand + product/audience extraction (around line 1126), add a new phase:
 
-4. Make employee sub-logging truly congruent with the live connection lookup model
-- Refine `supabase/functions/run-employee/index.ts` so progress events always reflect:
-  - request understanding
-  - business context retrieval
-  - connected-source decision
-  - provider-specific searches/skips
-  - answer generation
-- Personalize labels using the actual user query topic, but keep them tied to real backend work only.
+- **Detect gaps**: For each product, check if key fields are empty (features, benefits, painPoints, useCases, targetScenarios, uniqueSellingPoints, competitiveAdvantages, commonObjections, proofPoints, dosAndDonts, powerPhrases, powerWords). For each audience, check similar fields (buyingTriggers, useCaseRequirements, engagementTriggers, attentionHooks, commonObjections, valuePropositions, etc.)
+- **Skip**: `offers` on products (as requested) and fields that already have data
+- **Search Reddit via Firecrawl**: Use the Firecrawl search API (`https://api.firecrawl.dev/v1/search`) with query like `"site:reddit.com {brandName} {productName} review"` and `scrapeOptions: { formats: ["markdown"] }` to get actual Reddit discussion content
+- **AI fill with Reddit context**: Pass the Reddit markdown content + the list of missing fields to a focused AI prompt that extracts ONLY data backed by the Reddit discussions. The prompt will be strict: "Only fill fields where you find explicit evidence in the Reddit content. Do not fabricate."
+- **Track Reddit usage**: Return a `redditEnriched: true` flag and `redditUrls: string[]` in the response alongside the extracted data
 
-5. Improve connection intent handling for short natural questions like “any collabs?”
-- Expand the intent/topic parsing so shorthand questions still trigger connected-source checks when appropriate.
-- Ensure logs say things like:
-  - `Checking connected sources for collaborations`
-  - `Searching Microsoft 365 emails & files for collaborations`
-  - `Searching Slack messages & channels for collaborations`
-- If skipped, show a personalized skip reason instead of a generic fallback.
+#### 2. New AI prompt: `REDDIT_FILL_PROMPT`
 
-6. Bring parity to employee computer-mode logs where feasible
-- Review `runComputerMode` and decide whether it should:
-  - consume the same metadata from `run-employee`, or
-  - clearly remain separate and not be used for normal employee Q&A
-- Primary fix is routing normal employee chat correctly first, because that appears to be the main cause of the screenshot.
+A focused prompt that receives:
+- The product/audience name and existing data
+- Reddit discussion content (markdown)
+- List of empty field names to fill
 
-Files to update
-- `src/components/database/AgentChatView.tsx`
-- `supabase/functions/run-employee/index.ts`
-- Possibly small follow-up adjustments in `src/components/database/TaskStepsDisplay.tsx` if step rendering needs clearer provider/skipped states
+Returns only the fields that have Reddit-backed evidence, with empty values for anything not found.
 
-Validation
-- Open Employee Chat, select an employee, ask: `any collabs?`
-  - should not show the old generic 4-task sequence
-  - should show employee-specific personalized steps
-  - should show Microsoft/Slack connection steps if relevant
-- Ask a generic question in the same employee thread
-  - should stay in employee mode
-  - should show a personalized “skip connected sources” step when appropriate
-- Reload or reopen chat history
-  - employee follow-up messages should still route to `runEmployeeChat`
-- Test explicit computer-mode runs separately so they do not break normal employee chat behavior
+#### 3. Update response shape
 
-Expected outcome
-- The old generic logging disappears from Employee Chat follow-ups.
-- Employee conversations keep their employee context across turns/history.
-- Connection sub-logging becomes personal to the user’s message and only appears when the backend actually checks those sources.
+Add to the core mode response:
+- `redditEnriched: boolean` — whether Reddit was used
+- `redditUrls: string[]` — actual Reddit URLs used as sources
+
+#### 4. Update frontend: `BusinessDNAOnboarding.tsx`
+
+- Read `redditEnriched` and `redditUrls` from the scrape response
+- Add Reddit URLs to `scannedUrlsRef.current` so they appear in the source verification carousel
+- Show a Reddit icon/badge next to sources that are from Reddit (detect by URL containing `reddit.com`)
+
+### Files to Modify
+- `supabase/functions/scrape-product/index.ts` — add Reddit search + AI fill logic after extraction
+- `src/components/database/BusinessDNAOnboarding.tsx` — display Reddit sources in the verification carousel
+
+### Flow
+```text
+1. Scrape website → extract brand/products/audiences (existing)
+2. Check for empty fields on products (except offers) and audiences
+3. If gaps found → Firecrawl search "site:reddit.com {brand} {product} review"
+4. Pass Reddit content to AI with strict "evidence-only" prompt
+5. Merge Reddit-backed data into empty fields only
+6. Return redditEnriched flag + redditUrls
+7. Frontend shows Reddit URLs in source carousel with Reddit branding
+```
+
