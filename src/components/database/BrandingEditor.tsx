@@ -372,10 +372,34 @@ export function BrandingEditor({
 
               {/* Upload slot (edit mode only) */}
               {isEditing && (
-                <button className="h-32 w-40 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/40 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary">
-                  <Upload className="h-5 w-5" />
-                  <span className="text-xs font-medium">Upload</span>
-                </button>
+                <>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                    className="hidden"
+                    id="brand-logo-upload"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const url = URL.createObjectURL(file);
+                        setBranding((p) => ({
+                          ...p,
+                          logos: [...p.logos, url],
+                          selectedLogo: p.logos.length,
+                        }));
+                        setHasUnsavedExtraction(true);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    onClick={() => document.getElementById("brand-logo-upload")?.click()}
+                    className="h-32 w-40 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/40 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+                  >
+                    <Upload className="h-5 w-5" />
+                    <span className="text-xs font-medium">Upload</span>
+                  </button>
+                </>
               )}
 
               {/* No logo placeholder (both modes, no logos) */}

@@ -313,9 +313,8 @@ export function BusinessDNAOnboarding({
   const [sourceUrlCount, setSourceUrlCount] = useState(0);
   useEffect(() => {
     if (step !== 4 && step !== 5) return;
-    // Keep flipping until persistenceComplete (all data ready)
+    // Mark all as verified when persistence completes
     if (persistenceComplete) {
-      // Mark all as verified when done
       const urls = filteredUrlsRef.current;
       if (urls.length > 0) {
         setVerifiedSources(new Set(urls.map((_, i) => i)));
@@ -334,16 +333,23 @@ export function BusinessDNAOnboarding({
     return () => clearInterval(poll);
   }, [step, persistenceComplete, sourceUrlCount]);
 
-  // Separate flip interval — only rotates active index, does NOT mark as verified
+  // Flip interval — rotates active index AND progressively marks sources as verified
   useEffect(() => {
     if (step !== 4 && step !== 5) return;
     if (persistenceComplete) return;
-    if (sourceUrlCount <= 1) return;
+    if (sourceUrlCount <= 0) return;
     const interval = setInterval(() => {
       setActiveSourceIndex(prev => {
         const count = sourceUrlCount;
         if (count === 0) return 0;
-        return (prev + 1) % count;
+        const next = (prev + 1) % count;
+        // Mark the source we just left as verified
+        setVerifiedSources(old => {
+          const updated = new Set(old);
+          updated.add(prev);
+          return updated;
+        });
+        return next;
       });
     }, 2200);
     return () => clearInterval(interval);
