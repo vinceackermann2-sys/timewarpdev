@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "./BusinessDNAContext";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
+import { ConnectionsView } from "@/components/database/ConnectionsView";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
