@@ -10,6 +10,7 @@ import startBusinessBg from "@/assets/start-business-bg.webp";
 import addBusinessBg from "@/assets/add-business-bg.webp";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
+import { invokeStreamingEdgeFunction } from "@/lib/invokeStreamingEdgeFunction";
 import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./BusinessDNAContext";
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
