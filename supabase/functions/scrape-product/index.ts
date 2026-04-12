@@ -838,24 +838,29 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                         body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: false, waitFor: 2000 }),
                       });
                       let md = "";
+                      let pageHtml = "";
                       if (res.ok) {
                         const d = await res.json();
                         md = d.data?.markdown || d.markdown || "";
+                        pageHtml = d.data?.html || d.html || "";
                       } else {
                         const fb = await fetchPageFallback(pUrl);
                         md = fb.markdown;
                       }
-                      const pageImages = extractImagesFromMarkdown(md, pUrl);
-                      const candidateImages = [...new Set(pageImages)].slice(0, 20);
+                      // Extract images from both markdown and HTML for better coverage
+                      const mdImages = extractImagesFromMarkdown(md, pUrl);
+                      const htmlImages = pageHtml ? extractImagesFromMarkdown(pageHtml, pUrl) : [];
+                      const pageImages = [...new Set([...mdImages, ...htmlImages])];
+                      const candidateImages = pageImages.slice(0, 20);
                       
-                      // AI extraction inline
+                      // AI extraction inline — use flash (not flash-lite) for better accuracy
                       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
                         body: JSON.stringify({
-                          model: "google/gemini-2.5-flash-lite",
-                          max_tokens: 800,
-                          messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo.\n\nRULES for image selection:\n- Pick actual high-resolution product photography only.\n- PREFER URLs with large dimensions (e.g. w_800, 1200x, _large, _1024) or no dimension suffix (usually full-size).\n- REJECT URLs containing thumbnail indicators: _thumb, _small, _xs, _mini, /thumbs/, _150x, _200x, _300x, w_100-300, h_100-300.\n- REJECT logos, icons, banners, tracking pixels, badges, or decorative images.\n- When multiple sizes of the same image exist, pick the LARGEST version.\n\nReturn JSON: {"name": "", "description": "", "bestImages": []}\n\nContent (first 4000 chars):\n${md.slice(0, 4000)}` }],
+                          model: "google/gemini-2.5-flash",
+                          max_tokens: 1000,
+                          messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description. If this page is NOT a product page (e.g. it's a category listing, blog, or informational page), return {"name": "", "description": "", "bestImages": [], "isProduct": false}.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo.\n\nRULES for image selection:\n- Pick actual high-resolution product photography only.\n- PREFER URLs with large dimensions (e.g. w_800, 1200x, _large, _1024) or no dimension suffix (usually full-size).\n- REJECT URLs containing thumbnail indicators: _thumb, _small, _xs, _mini, /thumbs/, _150x, _200x, _300x, w_100-300, h_100-300.\n- REJECT logos, icons, banners, tracking pixels, badges, or decorative images.\n- When multiple sizes of the same image exist, pick the LARGEST version.\n\nReturn JSON: {"name": "", "description": "", "bestImages": [], "isProduct": true}\n\nContent (first 5000 chars):\n${md.slice(0, 5000)}` }],
                         }),
                       });
                       if (!aiRes.ok) return { url: pUrl, name: "", description: "", images: candidateImages, markdown: md, extractedImages: pageImages };
@@ -863,6 +868,8 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                       const rawAi = aiData.choices?.[0]?.message?.content || "";
                       try {
                         const parsed = robustJsonParse(rawAi);
+                        // Skip non-product pages identified by AI
+                        if (parsed.isProduct === false) return null;
                         const bestImages = ensureArr(parsed.bestImages || parsed.imageUrls).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
                         const finalImages = bestImages.length > 0 ? [...bestImages, ...candidateImages.filter(c => !bestImages.includes(c))].slice(0, 8) : candidateImages.slice(0, 8);
                         return { url: pUrl, name: parsed.name || "", description: parsed.description || "", images: finalImages, markdown: md, extractedImages: pageImages };
