@@ -141,11 +141,12 @@ export function BusinessDNAOnboarding({
   // Forging DNA tabs (step 4-5)
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
   const [forgingTodos, setForgingTodos] = useState<{ label: string; status: "pending" | "done"; completedAt?: Date }[]>([
-    { label: "Analyze business", status: "done" },
-    { label: "Scraping product pages", status: "pending" },
-    { label: "Extracting with AI", status: "pending" },
-    { label: "Save to database", status: "pending" },
-    { label: "Enrich brand", status: "pending" },
+    { label: "Analyzing business", status: "done" },
+    { label: "Confirming products", status: "pending" },
+    { label: "Forging DNA", status: "pending" },
+    { label: "Confirming data", status: "pending" },
+    { label: "Saving DNA", status: "pending" },
+    { label: "Enriching brand", status: "pending" },
   ]);
   const scannedUrlsRef = useRef<string[]>([]);
   const filteredUrlsRef = useRef<string[]>([]);
@@ -366,11 +367,12 @@ export function BusinessDNAOnboarding({
 
     // Reset todos for fresh run
     setForgingTodos([
-      { label: "Analyze business", status: "done", completedAt: new Date() },
-      { label: "Scraping product pages", status: "pending" },
-      { label: "Extracting with AI", status: "pending" },
-      { label: "Save to database", status: "pending" },
-      { label: "Enrich brand", status: "pending" },
+      { label: "Analyzing business", status: "done", completedAt: new Date() },
+      { label: "Confirming products", status: "pending" },
+      { label: "Forging DNA", status: "pending" },
+      { label: "Confirming data", status: "pending" },
+      { label: "Saving DNA", status: "pending" },
+      { label: "Enriching brand", status: "pending" },
     ]);
 
     (async () => {
@@ -380,7 +382,7 @@ export function BusinessDNAOnboarding({
         .filter(Boolean);
 
       // Mark scraping as active immediately — the backend starts scraping now
-      markTodo("Scraping product pages");
+      markTodo("Confirming products");
 
       const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
         url: activeUrl!.trim(),
@@ -428,16 +430,8 @@ export function BusinessDNAOnboarding({
             scannedUrlsRef.current.push(rUrl);
           }
         }
-        // Add Reddit research step to todos
-        setForgingTodos(prev => {
-          const hasReddit = prev.some(t => t.label === "Reddit research");
-          if (hasReddit) return prev;
-          const saveIdx = prev.findIndex(t => t.label === "Save to database");
-          const newTodo = { label: "Reddit research", status: "done" as const, completedAt: new Date() };
-          const updated = [...prev];
-          updated.splice(saveIdx, 0, newTodo);
-          return updated;
-        });
+        // Mark confirming data step as done (Reddit research completed)
+        markTodo("Confirming data");
       }
 
       // ── Phase 2: Build entities from extracted data ──
@@ -466,7 +460,11 @@ export function BusinessDNAOnboarding({
       };
 
       // Mark AI extraction done — backend returned all brand/product/audience data
-      if (!cancelled) markTodo("Extracting with AI");
+      if (!cancelled) {
+        markTodo("Forging DNA");
+        // If no Reddit enrichment happened, mark confirming data done now
+        if (!redditUsed) markTodo("Confirming data");
+      }
 
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
       const filteredProducts = productsRaw.slice(0, 5);
@@ -598,7 +596,7 @@ export function BusinessDNAOnboarding({
         return;
       }
 
-      if (!cancelled) markTodo("Save to database");
+      if (!cancelled) markTodo("Saving DNA");
 
       if (data.workspaceId) {
         localStorage.setItem("preferred_workspace_id", data.workspaceId);
@@ -618,7 +616,7 @@ export function BusinessDNAOnboarding({
 
       // Mark persistence complete immediately — enrichment runs in background
       if (!cancelled) {
-        markTodo("Save to database");
+        markTodo("Saving DNA");
         setPersistenceComplete(true);
         // Move to agent naming after a short delay
         setTimeout(() => setStep(6), 800);
@@ -659,16 +657,16 @@ export function BusinessDNAOnboarding({
             if (res.data?.success && refreshBrand) {
               refreshBrand(finalBrandId);
             }
-            markTodo("Enrich brand");
+            markTodo("Enriching brand");
           }).catch(e => {
             console.warn("Brand enrichment failed (non-blocking):", e);
-            markTodo("Enrich brand");
+            markTodo("Enriching brand");
           });
         } else {
-          markTodo("Enrich brand");
+          markTodo("Enriching brand");
         }
       } else {
-        markTodo("Enrich brand");
+        markTodo("Enriching brand");
       }
     })();
 
@@ -1410,7 +1408,7 @@ export function BusinessDNAOnboarding({
                       <span className="text-[15px] font-medium text-[#1a1f36]">
                         {brandData.name || "Brand Identity"}
                       </span>
-                      {forgingTodos.find(t => t.label === "Extract brand identity")?.status === "done" ? (
+                      {forgingTodos.find(t => t.label === "Forging DNA")?.status === "done" ? (
                         <CheckCircle2 className="w-4 h-4 text-[#22c55e] ml-auto shrink-0" />
                       ) : (
                         <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin ml-auto shrink-0" />
@@ -1439,7 +1437,7 @@ export function BusinessDNAOnboarding({
                           <span className="text-[12px] text-[#697386] ml-2">{p.images.length} images</span>
                         )}
                       </div>
-                      {forgingTodos.find(t => t.label === "Extract products")?.status === "done" ? (
+                      {forgingTodos.find(t => t.label === "Forging DNA")?.status === "done" ? (
                         <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
                       ) : (
                         <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
@@ -1457,7 +1455,7 @@ export function BusinessDNAOnboarding({
                           <p className="text-[12px] text-[#697386] line-clamp-1">{a.description}</p>
                         )}
                       </div>
-                      {forgingTodos.find(t => t.label === "Extract audiences")?.status === "done" ? (
+                      {forgingTodos.find(t => t.label === "Forging DNA")?.status === "done" ? (
                         <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
                       ) : (
                         <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin shrink-0" />
