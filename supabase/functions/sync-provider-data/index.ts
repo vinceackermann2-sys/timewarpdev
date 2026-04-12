@@ -115,7 +115,7 @@ async function extractPdfText(pdfBytes: Uint8Array, fileName: string): Promise<s
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: "You are a document text extractor. Extract ALL text content from the document. Return ONLY the extracted text, no commentary." },
           {
