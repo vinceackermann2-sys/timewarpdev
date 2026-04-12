@@ -1016,11 +1016,34 @@ ${allUrls.slice(0, 400).join('\n')}` }],
       const rawDiscovered = discoverSettled
         .filter(p => p.name || p.description || p.images.length > 0);
 
+      // Remove site-wide images that appear on MOST products (logos, banners, etc.)
+      if (rawDiscovered.length >= 3) {
+        const imgCount = new Map<string, number>();
+        for (const p of rawDiscovered) {
+          for (const img of p.images) {
+            // Normalize: strip query params for comparison
+            const key = img.split('?')[0];
+            imgCount.set(key, (imgCount.get(key) || 0) + 1);
+          }
+        }
+        const threshold = Math.max(2, Math.floor(rawDiscovered.length * 0.5));
+        const siteWideImages = new Set<string>();
+        for (const [key, count] of imgCount) {
+          if (count >= threshold) siteWideImages.add(key);
+        }
+        if (siteWideImages.size > 0) {
+          console.log("Filtering", siteWideImages.size, "site-wide images that appear on", threshold, "+ products");
+          for (const p of rawDiscovered) {
+            p.images = p.images.filter(img => !siteWideImages.has(img.split('?')[0]));
+          }
+        }
+      }
+
       // Deduplicate by normalized product name
       const seenNames = new Set<string>();
       const discoveredProducts = rawDiscovered.filter(p => {
         const key = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
-        if (!key) return true; // keep unnamed products (they'll show URL as label)
+        if (!key) return true;
         if (seenNames.has(key)) return false;
         seenNames.add(key);
         return true;
