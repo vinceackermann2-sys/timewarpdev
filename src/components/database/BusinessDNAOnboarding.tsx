@@ -142,9 +142,8 @@ export function BusinessDNAOnboarding({
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
   const [forgingTodos, setForgingTodos] = useState<{ label: string; status: "pending" | "done"; completedAt?: Date }[]>([
     { label: "Analyze business", status: "done" },
-    { label: "Extract brand identity", status: "pending" },
-    { label: "Extract products", status: "pending" },
-    { label: "Extract audiences", status: "pending" },
+    { label: "Scraping product pages", status: "pending" },
+    { label: "Extracting with AI", status: "pending" },
     { label: "Save to database", status: "pending" },
     { label: "Enrich brand", status: "pending" },
   ]);
