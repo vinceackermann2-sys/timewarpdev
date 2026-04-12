@@ -59,7 +59,7 @@ import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces";
+type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections";
 
 interface DatabaseSidebarProps {
   currentView: View;
