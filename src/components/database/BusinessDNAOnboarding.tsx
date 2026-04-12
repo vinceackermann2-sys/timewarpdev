@@ -864,12 +864,12 @@ export function BusinessDNAOnboarding({
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2.5 px-1">
                     <Loader2 className="w-4 h-4 text-[#3399ff] animate-spin" strokeWidth={2.5} />
-                    <span className="text-[14px] text-[#697386]">Analyzing business...</span>
+                    <span className="text-[14px] text-[#697386]">{progressStage}</span>
                   </div>
                   <div className="w-full h-1.5 bg-[#e5e4df] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#3399ff] rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${Math.max(15, progress)}%` }}
+                      className="h-full bg-[#3399ff] rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${Math.max(5, progress)}%` }}
                     />
                   </div>
                 </div>
