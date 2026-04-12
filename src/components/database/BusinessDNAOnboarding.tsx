@@ -65,6 +65,35 @@ interface BusinessDNAOnboardingProps {
   onBack?: () => void;
 }
 
+// ─── Image quality helpers ─────────────────────────────────────
+const THUMBNAIL_PATTERNS = /[_\-\/](thumb|thumbnail|small|tiny|icon|micro|avatar|placeholder|preview|badge)\b/i;
+const DOWNSCALED_PARAMS = /[?&](w|width|h|height|size|resize|fit)=\d{1,3}(?:&|$)/i;
+const LOW_RES_DIMENSION = /\/(\d{1,3})x(\d{1,3})\//;
+
+function isLowQualityImage(url: string): boolean {
+  if (THUMBNAIL_PATTERNS.test(url)) return true;
+  if (DOWNSCALED_PARAMS.test(url)) return true;
+  const dimMatch = url.match(LOW_RES_DIMENSION);
+  if (dimMatch && Math.max(Number(dimMatch[1]), Number(dimMatch[2])) < 150) return true;
+  if (/[_\-](\d{1,3})x(\d{0,3})?\./i.test(url)) {
+    const m = url.match(/[_\-](\d{1,3})x(\d{0,3})?\./i);
+    if (m && Number(m[1]) < 200) return true;
+  }
+  return false;
+}
+
+function deduplicateImages(urls: string[]): string[] {
+  const seen = new Set<string>();
+  return urls.filter(url => {
+    const base = url.split('?')[0].split('#')[0]
+      .replace(/[_\-]\d{1,4}x\d{0,4}/g, '')
+      .replace(/\/(large|medium|small|thumb|grande|compact|master)\//gi, '/');
+    if (seen.has(base)) return false;
+    seen.add(base);
+    return true;
+  });
+}
+
 // ─── Step mapping ──────────────────────────────────────────────
 // 0  URL input
 // 1  Analyzing (scrape running)
@@ -223,8 +252,10 @@ export function BusinessDNAOnboarding({
                 if (!s || s === '' || s.startsWith("data:")) return null;
                 try { return new URL(s.startsWith("//") ? `https:${s}` : s, p.url || activeUrl).toString(); } catch { return null; }
               })
-              .filter((u): u is string => !!u && u.length > 10);
-            return { ...p, images, image: images[0] ?? "" };
+              .filter((u): u is string => !!u && u.length > 10)
+              .filter(u => !isLowQualityImage(u));
+            const uniqueImages = deduplicateImages(images);
+            return { ...p, images: uniqueImages, image: uniqueImages[0] ?? "" };
           });
           console.log("Discovered products with images:", normalizedProducts.map((p: any) => ({ name: p.name, imageCount: p.images?.length, firstImage: p.images?.[0]?.slice(0, 80) })));
           setDiscoveredProducts(normalizedProducts);
@@ -962,13 +993,12 @@ export function BusinessDNAOnboarding({
               const product = extractedProducts[productIdx];
               const rawProductImages: string[] = product?.images || [];
               // Robust normalization: ensure every image is a valid absolute http(s) or data: URL
-              const productImages = rawProductImages
+              const productImages = deduplicateImages(rawProductImages
                 .map((img: any) => typeof img === 'string' ? img : img?.url ?? img?.src ?? null)
                 .filter((src): src is string => {
                   if (!src || typeof src !== 'string') return false;
                   if (src.startsWith('data:image/')) return true;
                   if (!src.startsWith('http://') && !src.startsWith('https://')) {
-                    // Try resolving relative URL
                     try {
                       const resolved = new URL(src.startsWith('//') ? `https:${src}` : src, product?.url || activeUrl).toString();
                       return resolved.startsWith('http');
@@ -980,7 +1010,9 @@ export function BusinessDNAOnboarding({
                   if (src.startsWith('data:') || src.startsWith('http')) return src;
                   try { return new URL(src.startsWith('//') ? `https:${src}` : src, product?.url || activeUrl).toString(); } catch { return src; }
                 })
-                .filter((src) => !failedImages.has(src));
+                .filter((src) => !failedImages.has(src))
+                .filter((src) => !isLowQualityImage(src))
+              );
               console.log('[DEBUG] productImages for product', product?.name, ':', JSON.stringify(productImages));
               const selectedImg = selectedImages[currentProductIndex] ?? 0;
 
