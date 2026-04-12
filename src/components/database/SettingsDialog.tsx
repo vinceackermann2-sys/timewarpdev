@@ -14,7 +14,7 @@ import {
   Settings, Users, CreditCard, Key, Unplug, Plug, Loader2,
   Sun, Moon, Monitor, Mail, MailPlus, User, UserPlus, Crown,
   Pencil, Trash2, Clock, X, Plus, ChevronRight, ArrowLeft, Check,
-  Building2, ArrowRight, Search, MoreHorizontal,
+  Building2, ArrowRight, Search, MoreHorizontal, CheckCircle2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
@@ -721,36 +721,60 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
               {activeTab === "connections" && (
                 <div className="space-y-4 max-w-xl">
                   <p className="text-sm text-muted-foreground">
-                    Connect your accounts to sync data into your businesses.
+                    Connect individual services with only the permissions they need.
                   </p>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {integrations.map(integration => {
                       const connected = connectedProviders.includes(integration.id);
                       const isActioning = actionProvider === integration.id;
+                      const comingSoon = (integration as any).comingSoon;
                       return (
-                        <div key={integration.id} className={cn("p-4 rounded-xl border transition-colors", (integration as any).comingSoon ? "border-border/50 opacity-60" : connected ? "border-primary/40 bg-primary/5" : "border-border bg-muted/20")}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-2"><img src={integration.logo} alt={integration.name} className="h-6 w-6 object-contain" /></div>
-                              <div><p className="text-sm font-medium">{integration.name}</p><p className="text-xs text-muted-foreground">{integration.description}</p></div>
-                            </div>
-                            {(integration as any).comingSoon ? (
-                              <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">Coming Soon</span>
-                            ) : connected ? (
-                              <Button variant="destructive" size="sm" onClick={() => handleDisconnect(integration.id)} disabled={isActioning}>
-                                {isActioning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unplug className="h-3 w-3 mr-1" />} Disconnect
+                        <div
+                          key={integration.id}
+                          className={cn(
+                            "relative flex flex-col gap-3 p-5 rounded-xl border transition-all",
+                            comingSoon
+                              ? "border-transparent opacity-60 cursor-default"
+                              : connected
+                                ? "border-green-500/40"
+                                : "border-transparent hover:border-primary/40 hover:shadow-sm"
+                          )}
+                          style={{ backgroundColor: "#f1f5f9" }}
+                        >
+                          {comingSoon && (
+                            <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
+                          )}
+                          {connected && !comingSoon && (
+                            <span className="absolute top-4 right-4">
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            </span>
+                          )}
+                          <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center p-2">
+                            <img src={integration.logo} alt={integration.name} className="h-8 w-8 object-contain" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">{integration.name}</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{integration.description}</p>
+                          </div>
+                          <div className="flex items-center gap-2 mt-auto pt-1 w-full">
+                            {!connected && !comingSoon && (
+                              <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 w-full" disabled={isActioning} onClick={() => handleConnect(integration.id)}>
+                                {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                                Connect
                               </Button>
-                            ) : (
-                              <Button variant="outline" size="sm" onClick={() => handleConnect(integration.id)} disabled={isActioning}>
-                                {isActioning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plug className="h-3 w-3 mr-1" />} Connect
+                            )}
+                            {connected && !comingSoon && (
+                              <Button variant="destructive" size="sm" className="h-8 px-3 text-xs gap-1.5 w-full" onClick={() => handleDisconnect(integration.id)}>
+                                {isActioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unplug className="h-3.5 w-3.5" />}
+                                Disconnect
                               </Button>
                             )}
                           </div>
                         </div>
                       );
                     })}
-                    <IntegrationRequestDialog />
                   </div>
+                  <IntegrationRequestDialog />
                 </div>
               )}
             </div>

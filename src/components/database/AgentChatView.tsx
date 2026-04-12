@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
   Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
-  Plug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square,
-  Palette, BarChart3, PieChart, Table2, Presentation
+  Plug, Unplug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square,
+  Palette, BarChart3, PieChart, Table2, Presentation, CheckCircle2
 } from "lucide-react";
 import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
@@ -2621,112 +2621,103 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 {settingsTab === "connections" && (
                   <div className="space-y-6 flex-1">
                     <h4 className="text-sm font-semibold text-foreground">Integrations</h4>
+                    <p className="text-xs text-muted-foreground">Connect individual services with only the permissions they need.</p>
                     <div className="grid grid-cols-2 gap-3">
                       {/* Microsoft */}
                       {(() => { const connected = !!connectedProviders["microsoft"]; return (
                       <div className={cn(
-                        "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-                        connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
-                      )}>
-                        <div className="flex items-center justify-between">
-                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                            <img src={logoMicrosoft} alt="Microsoft" className="h-7 w-7 object-contain" />
-                          </div>
-                          {connected && (
-                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
-                          )}
+                        "relative flex flex-col gap-3 p-5 rounded-xl border transition-all",
+                        connected ? "border-green-500/40" : "border-transparent hover:border-primary/40 hover:shadow-sm"
+                      )} style={{ backgroundColor: "#f1f5f9" }}>
+                        {connected && (
+                          <span className="absolute top-4 right-4"><CheckCircle2 className="h-4 w-4 text-green-500" /></span>
+                        )}
+                        <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center p-2">
+                          <img src={logoMicrosoft} alt="Microsoft" className="h-8 w-8 object-contain" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">Microsoft</p>
-                          <p className="text-xs text-muted-foreground">Outlook, OneDrive, Calendar</p>
+                          <p className="font-semibold text-sm">Microsoft</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">Outlook, OneDrive, Calendar</p>
                         </div>
-                        {connected ? (
-                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleProviderDisconnect("microsoft")}>
-                            Disconnect
-                          </Button>
-                        ) : (
-                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleProviderConnect("microsoft")} disabled={!!connectingProvider}>
-                            {connectingProvider === "microsoft" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                            Connect
-                          </Button>
-                        )}
+                        <div className="mt-auto pt-1 w-full">
+                          {connected ? (
+                            <Button variant="destructive" size="sm" className="h-8 px-3 text-xs gap-1.5 w-full" onClick={() => handleProviderDisconnect("microsoft")}>
+                              <Unplug className="h-3.5 w-3.5" /> Disconnect
+                            </Button>
+                          ) : (
+                            <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 w-full" onClick={() => handleProviderConnect("microsoft")} disabled={!!connectingProvider}>
+                              {connectingProvider === "microsoft" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                              Connect
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       ); })()}
 
                       {/* Slack */}
                       {(() => { const connected = !!connectedProviders["slack"]; return (
                       <div className={cn(
-                        "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-                        connected ? "border-primary/40 bg-primary/5" : "border-border/50 hover:border-primary/30"
-                      )}>
-                        <div className="flex items-center justify-between">
-                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                            <img src={logoSlack} alt="Slack" className="h-7 w-7 object-contain" />
-                          </div>
-                          {connected && (
-                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Enabled</span>
+                        "relative flex flex-col gap-3 p-5 rounded-xl border transition-all",
+                        connected ? "border-green-500/40" : "border-transparent hover:border-primary/40 hover:shadow-sm"
+                      )} style={{ backgroundColor: "#f1f5f9" }}>
+                        {connected && (
+                          <span className="absolute top-4 right-4"><CheckCircle2 className="h-4 w-4 text-green-500" /></span>
+                        )}
+                        <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center p-2">
+                          <img src={logoSlack} alt="Slack" className="h-8 w-8 object-contain" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">Slack</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">Channels, Messages, Files</p>
+                        </div>
+                        <div className="mt-auto pt-1 w-full">
+                          {connected ? (
+                            <Button variant="destructive" size="sm" className="h-8 px-3 text-xs gap-1.5 w-full" onClick={() => handleProviderDisconnect("slack")}>
+                              <Unplug className="h-3.5 w-3.5" /> Disconnect
+                            </Button>
+                          ) : (
+                            <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 w-full" onClick={() => handleProviderConnect("slack")} disabled={!!connectingProvider}>
+                              {connectingProvider === "slack" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                              Connect
+                            </Button>
                           )}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">Slack</p>
-                          <p className="text-xs text-muted-foreground">Channels, Messages, Files</p>
-                        </div>
-                        {connected ? (
-                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5 text-destructive hover:text-destructive" onClick={() => handleProviderDisconnect("slack")}>
-                            Disconnect
-                          </Button>
-                        ) : (
-                          <Button variant="outline" size="sm" className="h-8 text-xs w-full gap-1.5" onClick={() => handleProviderConnect("slack")} disabled={!!connectingProvider}>
-                            {connectingProvider === "slack" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                            Connect
-                          </Button>
-                        )}
                       </div>
                       ); })()}
 
-                      {/* HubSpot */}
-                      {(() => { const connected = !!connectedProviders["hubspot"]; return (
-                      <div className={cn(
-                        "flex flex-col gap-3 p-5 rounded-xl border transition-all",
-                        "border-border/50 opacity-60 cursor-default"
-                      )}>
-                        <div className="flex items-center justify-between">
-                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                            <img src={logoHubspot} alt="HubSpot" className="h-7 w-7 object-contain" />
-                          </div>
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Coming Soon</span>
+                      {/* HubSpot - Coming Soon */}
+                      <div className="relative flex flex-col gap-3 p-5 rounded-xl border border-transparent opacity-60 cursor-default" style={{ backgroundColor: "#f1f5f9" }}>
+                        <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
+                        <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center p-2">
+                          <img src={logoHubspot} alt="HubSpot" className="h-8 w-8 object-contain" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">HubSpot</p>
-                          <p className="text-xs text-muted-foreground">CRM, Contacts, Deals</p>
+                          <p className="font-semibold text-sm">HubSpot</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">CRM, Contacts, Deals</p>
                         </div>
                       </div>
-                      ); })()}
 
-                      <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
-                        <div className="flex items-center justify-between">
-                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                            <img src={logoGoogle} alt="Google" className="h-7 w-7 object-contain" loading="lazy" />
-                          </div>
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
+                      {/* Google - Coming Soon */}
+                      <div className="relative flex flex-col gap-3 p-5 rounded-xl border border-transparent opacity-60 cursor-default" style={{ backgroundColor: "#f1f5f9" }}>
+                        <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
+                        <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center p-2">
+                          <img src={logoGoogle} alt="Google" className="h-8 w-8 object-contain" loading="lazy" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">Google</p>
-                          <p className="text-xs text-muted-foreground">Gmail, Drive, Calendar</p>
+                          <p className="font-semibold text-sm">Google</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">Gmail, Drive, Calendar</p>
                         </div>
                       </div>
 
                       {/* FortKnox - Coming Soon */}
-                      <div className="flex flex-col gap-3 p-5 rounded-xl border border-border/50 opacity-60">
-                        <div className="flex items-center justify-between">
-                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center p-1.5">
-                            <img src={logoFortknox} alt="FortKnox" className="h-7 w-7 object-contain" loading="lazy" />
-                          </div>
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Soon</span>
+                      <div className="relative flex flex-col gap-3 p-5 rounded-xl border border-transparent opacity-60 cursor-default" style={{ backgroundColor: "#f1f5f9" }}>
+                        <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
+                        <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center p-2">
+                          <img src={logoFortknox} alt="FortKnox" className="h-8 w-8 object-contain" loading="lazy" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">FortKnox</p>
-                          <p className="text-xs text-muted-foreground">Secure data vault integration</p>
+                          <p className="font-semibold text-sm">FortKnox</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">Secure data vault integration</p>
                         </div>
                       </div>
                     </div>
