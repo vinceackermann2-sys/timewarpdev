@@ -15,6 +15,7 @@ import { Menu } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { AgentChatView } from "@/components/database/AgentChatView";
+import { ConnectionsView } from "@/components/database/ConnectionsView";
 
 
 import { WorkspacesView } from "@/components/database/WorkspacesView";
@@ -37,7 +38,7 @@ function MobileHeader() {
   );
 }
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces";
+type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections";
 
 interface PendingTask {
   role: string;
@@ -357,6 +358,9 @@ const Database = () => {
               )}
               {currentView === "workspaces" && user && (
                 <WorkspacesView onBack={() => handleViewChange("businessdna")} />
+              )}
+              {currentView === "connections" && user && (
+                <ConnectionsView />
               )}
             </main>
           </SidebarInset>
