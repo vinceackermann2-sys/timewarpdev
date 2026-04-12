@@ -864,7 +864,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                         const name = rawTitle.split(/[|\-–—]/)[0]?.trim() || "";
                         const description = pageMeta.description || pageMeta["og:description"] || "";
                         // Prioritize og:image as first image (most reliable product image)
-                        const ogImg = pageMeta["og:image"] || pageMeta.image || null;
+                        const ogImg = pageMeta.ogImage || pageMeta["og:image"] || pageMeta.image || null;
                         const ogImgUrl = ogImg ? normalizeImageUrl(ogImg, pUrl) : null;
                         const prioritizedImages: string[] = [];
                         if (ogImgUrl) prioritizedImages.push(ogImgUrl);
