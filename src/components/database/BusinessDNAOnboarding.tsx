@@ -529,7 +529,7 @@ export function BusinessDNAOnboarding({
         };
       });
 
-      if (!cancelled) markTodo("Extract products");
+      
 
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
       const parsedAudiences: AudienceEntry[] = audiencesRaw
@@ -578,7 +578,7 @@ export function BusinessDNAOnboarding({
       }));
       const newAudiences = [...parsedAudiences, ...fallbackAudiences];
 
-      if (!cancelled) markTodo("Extract audiences");
+      
 
       if (cancelled) return;
 
