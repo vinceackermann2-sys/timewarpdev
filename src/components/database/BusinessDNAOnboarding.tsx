@@ -1496,7 +1496,9 @@ export function BusinessDNAOnboarding({
                 </button>
                 {sourcesOpen && (
                   <div className="mt-2 flex flex-col gap-1.5">
-                    {urls.map((url, i) => (
+                    {urls.map((url, i) => {
+                      const isReddit = url.includes("reddit.com");
+                      return (
                       <div key={i} className="flex items-center gap-2 text-[13px] text-[#697386] py-1 px-2 rounded-lg hover:bg-[#f4f3ee]">
                         {verifiedSources.has(i) ? (
                           <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
@@ -1510,8 +1512,15 @@ export function BusinessDNAOnboarding({
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                         />
                         <span className="truncate">{urlToDisplaySource(url)}</span>
+                        {isReddit && (
+                          <span className="ml-auto shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#FF4500]/10 text-[#FF4500]">
+                            Reddit
+                          </span>
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
+
                   </div>
                 )}
               </div>
