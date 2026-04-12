@@ -460,7 +460,11 @@ export function BusinessDNAOnboarding({
       };
 
       // Mark AI extraction done — backend returned all brand/product/audience data
-      if (!cancelled) markTodo("Forging DNA");
+      if (!cancelled) {
+        markTodo("Forging DNA");
+        // If no Reddit enrichment happened, mark confirming data done now
+        if (!redditUsed) markTodo("Confirming data");
+      }
 
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
       const filteredProducts = productsRaw.slice(0, 5);
