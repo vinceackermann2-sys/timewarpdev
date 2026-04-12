@@ -547,7 +547,8 @@ serve(async (req) => {
 
   const mainLogic = async (): Promise<Response> => {
   try {
-    const { url, mode, selectedProductUrls, stream: wantStream } = await req.json();
+    const reqBody = await req.json();
+    const { url, mode, selectedProductUrls, stream: wantStream } = reqBody;
     const isDiscoverMode = mode === "discover";
     const isCoreMode = mode === "core";
     const useSSE = isCoreMode && wantStream === true;
