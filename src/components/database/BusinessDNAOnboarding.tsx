@@ -141,11 +141,12 @@ export function BusinessDNAOnboarding({
   // Forging DNA tabs (step 4-5)
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
   const [forgingTodos, setForgingTodos] = useState<{ label: string; status: "pending" | "done"; completedAt?: Date }[]>([
-    { label: "Analyze business", status: "done" },
-    { label: "Scraping product pages", status: "pending" },
-    { label: "Extracting with AI", status: "pending" },
-    { label: "Save to database", status: "pending" },
-    { label: "Enrich brand", status: "pending" },
+    { label: "Analyzing business", status: "done" },
+    { label: "Confirming products", status: "pending" },
+    { label: "Forging DNA", status: "pending" },
+    { label: "Confirming data", status: "pending" },
+    { label: "Saving DNA", status: "pending" },
+    { label: "Enriching brand", status: "pending" },
   ]);
   const scannedUrlsRef = useRef<string[]>([]);
   const filteredUrlsRef = useRef<string[]>([]);
