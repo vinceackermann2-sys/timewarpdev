@@ -413,6 +413,16 @@ export function BusinessDNAOnboarding({
         scannedUrlsRef.current = extractData.scannedUrls;
       }
 
+      // Add Reddit URLs as sources if Reddit enrichment was used
+      if (extractData.redditEnriched && Array.isArray(extractData.redditUrls)) {
+        const existingUrls = new Set(scannedUrlsRef.current);
+        for (const rUrl of extractData.redditUrls) {
+          if (rUrl && !existingUrls.has(rUrl)) {
+            scannedUrlsRef.current.push(rUrl);
+          }
+        }
+      }
+
       // ── Phase 2: Build entities from extracted data ──
       const extracted = extractData.extracted || {};
       const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
