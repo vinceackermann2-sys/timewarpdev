@@ -237,7 +237,16 @@ export function BusinessDNAOnboarding({
           return;
         }
         workspaceIdRef.current = null;
-        const { data, error } = await invokeEdgeFunction("scrape-product", { url: activeUrl.trim(), mode: "discover" });
+        const { data, error } = await invokeStreamingEdgeFunction(
+          "scrape-product",
+          { url: activeUrl.trim(), mode: "discover" },
+          (stage, percent) => {
+            if (!cancelled) {
+              setProgress(percent);
+              setProgressStage(stage);
+            }
+          }
+        );
         if (cancelled) return;
         if (error || !data?.success) {
           console.error("Discover failed:", error || data?.error);
