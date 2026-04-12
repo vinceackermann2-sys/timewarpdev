@@ -292,8 +292,34 @@ export function BusinessDNAOnboarding({
     })();
     return () => { cancelled = true; };
   }, [activeUrl, step]);
-
-
+  // Smooth progress animation — continuously crawls toward target, never stops
+  useEffect(() => {
+    if (step !== 1) return;
+    const interval = setInterval(() => {
+      const target = progressTargetRef.current;
+      const current = progressDisplayRef.current;
+      if (current >= 100) {
+        clearInterval(interval);
+        return;
+      }
+      // If we haven't reached the target, move quickly toward it
+      // If we're AT the target, slowly creep forward (max 2% below target boundary)
+      let next: number;
+      if (current < target) {
+        // Ease toward target
+        next = current + Math.max(0.5, (target - current) * 0.15);
+      } else {
+        // Slowly creep: move at 0.3%/tick, but cap at (target + next_gap * 0.6)
+        // This creates the illusion of continuous progress between backend events
+        const nextTarget = target < 15 ? 15 : target < 35 ? 35 : target < 45 ? 45 : target < 70 ? 70 : target < 85 ? 85 : 100;
+        const ceiling = target + (nextTarget - target) * 0.6;
+        next = Math.min(ceiling, current + 0.3);
+      }
+      progressDisplayRef.current = Math.min(100, next);
+      setProgress(Math.round(next));
+    }, 100);
+    return () => clearInterval(interval);
+  }, [step]);
 
 
   // Transition step 1 → 2 as soon as scrape completes
