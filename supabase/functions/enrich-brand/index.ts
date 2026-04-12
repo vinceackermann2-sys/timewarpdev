@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 /* ── Helper: call AI gateway ── */
-async function callAI(apiKey: string, prompt: string, model = "google/gemini-2.5-flash"): Promise<string> {
+async function callAI(apiKey: string, prompt: string, model = "google/gemini-3-flash-preview"): Promise<string> {
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },

@@ -156,7 +156,7 @@ async function extractVideoContent(videoBytes: Uint8Array, fileName: string, mim
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: "You are a video content analyst. Transcribe all spoken audio and describe key visual content. Return structured results." },
           {
