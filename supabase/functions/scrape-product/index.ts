@@ -1610,6 +1610,40 @@ Return ONLY valid JSON, no markdown fences.`;
   }
   }; // end mainLogic
 
+  // For streaming mode, return response immediately and run logic in background
+  if (isStreamingRequest) {
+    const encoder = new TextEncoder();
+    const { readable, writable } = new TransformStream<Uint8Array>();
+    const writer = writable.getWriter();
+
+    const streamProgress = async (stage: string, percent: number) => {
+      try {
+        await writer.write(encoder.encode(JSON.stringify({ type: "progress", stage, percent }) + "\n"));
+      } catch { /* ignore */ }
+    };
+
+    (async () => {
+      try {
+        await streamProgress("Connecting to website", 5);
+        const response = await mainLogic(streamProgress);
+        const body = await response.json();
+        await streamProgress("Complete", 100);
+        await writer.write(encoder.encode(JSON.stringify({ type: "result", data: body }) + "\n"));
+      } catch (err) {
+        console.error("Streaming error:", err);
+        try {
+          await writer.write(encoder.encode(JSON.stringify({ type: "error", error: (err as Error).message || "Internal error" }) + "\n"));
+        } catch { /* ignore */ }
+      } finally {
+        try { await writer.close(); } catch { /* ignore */ }
+      }
+    })();
+
+    return new Response(readable, {
+      headers: { ...corsHeaders, "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache" },
+    });
+  }
+
   try {
     return await Promise.race([
       mainLogic(),
