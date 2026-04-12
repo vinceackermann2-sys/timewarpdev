@@ -382,7 +382,7 @@ export function BusinessDNAOnboarding({
         .filter(Boolean);
 
       // Mark scraping as active immediately — the backend starts scraping now
-      markTodo("Scraping product pages");
+      markTodo("Confirming products");
 
       const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
         url: activeUrl!.trim(),
@@ -430,16 +430,8 @@ export function BusinessDNAOnboarding({
             scannedUrlsRef.current.push(rUrl);
           }
         }
-        // Add Reddit research step to todos
-        setForgingTodos(prev => {
-          const hasReddit = prev.some(t => t.label === "Reddit research");
-          if (hasReddit) return prev;
-          const saveIdx = prev.findIndex(t => t.label === "Save to database");
-          const newTodo = { label: "Reddit research", status: "done" as const, completedAt: new Date() };
-          const updated = [...prev];
-          updated.splice(saveIdx, 0, newTodo);
-          return updated;
-        });
+        // Mark confirming data step as done (Reddit research completed)
+        markTodo("Confirming data");
       }
 
       // ── Phase 2: Build entities from extracted data ──
@@ -468,7 +460,7 @@ export function BusinessDNAOnboarding({
       };
 
       // Mark AI extraction done — backend returned all brand/product/audience data
-      if (!cancelled) markTodo("Extracting with AI");
+      if (!cancelled) markTodo("Forging DNA");
 
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
       const filteredProducts = productsRaw.slice(0, 5);
@@ -600,7 +592,7 @@ export function BusinessDNAOnboarding({
         return;
       }
 
-      if (!cancelled) markTodo("Save to database");
+      if (!cancelled) markTodo("Saving DNA");
 
       if (data.workspaceId) {
         localStorage.setItem("preferred_workspace_id", data.workspaceId);
@@ -620,7 +612,7 @@ export function BusinessDNAOnboarding({
 
       // Mark persistence complete immediately — enrichment runs in background
       if (!cancelled) {
-        markTodo("Save to database");
+        markTodo("Saving DNA");
         setPersistenceComplete(true);
         // Move to agent naming after a short delay
         setTimeout(() => setStep(6), 800);
@@ -661,16 +653,16 @@ export function BusinessDNAOnboarding({
             if (res.data?.success && refreshBrand) {
               refreshBrand(finalBrandId);
             }
-            markTodo("Enrich brand");
+            markTodo("Enriching brand");
           }).catch(e => {
             console.warn("Brand enrichment failed (non-blocking):", e);
-            markTodo("Enrich brand");
+            markTodo("Enriching brand");
           });
         } else {
-          markTodo("Enrich brand");
+          markTodo("Enriching brand");
         }
       } else {
-        markTodo("Enrich brand");
+        markTodo("Enriching brand");
       }
     })();
 
