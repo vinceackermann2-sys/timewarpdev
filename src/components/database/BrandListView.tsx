@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Palette } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { BrandingEditor } from "@/components/database/BrandingEditor";
 import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
@@ -117,42 +118,36 @@ export function BrandListView({ activeBrandId }: { activeBrandId: string }) {
   const [isVisualIdentityEditing, setIsVisualIdentityEditing] = useState(false);
   const [activeSidebarSection, setActiveSidebarSection] = useState<string>("branding");
   const { toast } = useToast();
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedBrand = brands.find(b => b.id === activeBrandId);
   const enriched = selectedBrand ? isBrandEnriched(selectedBrand) : false;
+  const rowId = (selectedBrand as any)?._rowId;
 
-  // Poll for enrichment completion when brand exists but visuals are missing
+  // Listen for realtime updates on the brand row when enrichment hasn't completed yet
   useEffect(() => {
-    if (!selectedBrand || enriched || !refreshBrand) return;
+    if (!rowId || enriched || !refreshBrand) return;
 
-    // Only poll for recently created brands (within last 5 minutes)
-    const createdAt = (selectedBrand as any).lastUpdated;
-    // Always poll if visual identity is missing — enrichment may still be running
-    let attempts = 0;
-    const MAX_ATTEMPTS = 20; // ~60 seconds max
-
-    pollRef.current = setInterval(async () => {
-      attempts++;
-      if (attempts > MAX_ATTEMPTS) {
-        if (pollRef.current) clearInterval(pollRef.current);
-        return;
-      }
-      await refreshBrand(activeBrandId);
-    }, 3000);
+    const channel = supabase
+      .channel(`brand-enrich-${rowId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_business_data',
+          filter: `id=eq.${rowId}`,
+        },
+        () => {
+          // Brand row was updated (likely by enrich-brand) — refresh context
+          refreshBrand(activeBrandId);
+        }
+      )
+      .subscribe();
 
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      supabase.removeChannel(channel);
     };
-  }, [activeBrandId, enriched, !!selectedBrand]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Stop polling once enriched
-  useEffect(() => {
-    if (enriched && pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }, [enriched]);
+  }, [rowId, enriched, activeBrandId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) {
     return <BrandSkeleton />;
