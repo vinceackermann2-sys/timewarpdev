@@ -65,6 +65,35 @@ interface BusinessDNAOnboardingProps {
   onBack?: () => void;
 }
 
+// ─── Image quality helpers ─────────────────────────────────────
+const THUMBNAIL_PATTERNS = /[_\-\/](thumb|thumbnail|small|tiny|icon|micro|avatar|placeholder|preview|badge)\b/i;
+const DOWNSCALED_PARAMS = /[?&](w|width|h|height|size|resize|fit)=\d{1,3}(?:&|$)/i;
+const LOW_RES_DIMENSION = /\/(\d{1,3})x(\d{1,3})\//;
+
+function isLowQualityImage(url: string): boolean {
+  if (THUMBNAIL_PATTERNS.test(url)) return true;
+  if (DOWNSCALED_PARAMS.test(url)) return true;
+  const dimMatch = url.match(LOW_RES_DIMENSION);
+  if (dimMatch && Math.max(Number(dimMatch[1]), Number(dimMatch[2])) < 150) return true;
+  if (/[_\-](\d{1,3})x(\d{0,3})?\./i.test(url)) {
+    const m = url.match(/[_\-](\d{1,3})x(\d{0,3})?\./i);
+    if (m && Number(m[1]) < 200) return true;
+  }
+  return false;
+}
+
+function deduplicateImages(urls: string[]): string[] {
+  const seen = new Set<string>();
+  return urls.filter(url => {
+    const base = url.split('?')[0].split('#')[0]
+      .replace(/[_\-]\d{1,4}x\d{0,4}/g, '')
+      .replace(/\/(large|medium|small|thumb|grande|compact|master)\//gi, '/');
+    if (seen.has(base)) return false;
+    seen.add(base);
+    return true;
+  });
+}
+
 // ─── Step mapping ──────────────────────────────────────────────
 // 0  URL input
 // 1  Analyzing (scrape running)
