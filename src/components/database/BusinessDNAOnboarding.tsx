@@ -377,16 +377,25 @@ export function BusinessDNAOnboarding({
 
     (async () => {
       // ── Phase 1: Call scrape-product in CORE mode for deep extraction ──
-      // Pass the selected product URLs so the backend only extracts those
       const selectedUrls = selectedProducts
         .map(i => discoveredProducts[i]?.url)
         .filter(Boolean);
+
+      // Progressive todo marking — simulate progress while the API call runs
+      // Brand, products, audiences are extracted in parallel on the backend
+      const progressTimers: ReturnType<typeof setTimeout>[] = [];
+      progressTimers.push(setTimeout(() => { if (!cancelled) markTodo("Extract brand identity"); }, 4000));
+      progressTimers.push(setTimeout(() => { if (!cancelled) markTodo("Extract products"); }, 7000));
+      progressTimers.push(setTimeout(() => { if (!cancelled) markTodo("Extract audiences"); }, 9000));
 
       const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
         url: activeUrl!.trim(),
         mode: "core",
         selectedProductUrls: selectedUrls.length > 0 ? selectedUrls : undefined,
       });
+
+      // Clear progressive timers — mark real status below
+      progressTimers.forEach(clearTimeout);
 
       if (cancelled) return;
 
@@ -420,13 +429,24 @@ export function BusinessDNAOnboarding({
       }
 
       // Add Reddit URLs as sources if Reddit enrichment was used
-      if (extractData.redditEnriched && Array.isArray(extractData.redditUrls)) {
+      const redditUsed = extractData.redditEnriched && Array.isArray(extractData.redditUrls) && extractData.redditUrls.length > 0;
+      if (redditUsed) {
         const existingUrls = new Set(scannedUrlsRef.current);
         for (const rUrl of extractData.redditUrls) {
           if (rUrl && !existingUrls.has(rUrl)) {
             scannedUrlsRef.current.push(rUrl);
           }
         }
+        // Add Reddit research step to todos
+        setForgingTodos(prev => {
+          const hasReddit = prev.some(t => t.label === "Reddit research");
+          if (hasReddit) return prev;
+          const saveIdx = prev.findIndex(t => t.label === "Save to database");
+          const newTodo = { label: "Reddit research", status: "done" as const, completedAt: new Date() };
+          const updated = [...prev];
+          updated.splice(saveIdx, 0, newTodo);
+          return updated;
+        });
       }
 
       // ── Phase 2: Build entities from extracted data ──
