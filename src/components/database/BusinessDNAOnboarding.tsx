@@ -279,25 +279,22 @@ export function BusinessDNAOnboarding({
   }, [activeUrl, step]);
 
 
-  // Progress animation for step 1 — real-time: fast initial fill, then hold at 85% until backend responds
+  // Progress animation for step 1 — tuned to ~25s typical backend timing
   useEffect(() => {
     if (step !== 1) return;
     const startTime = Date.now();
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      setProgress(prev => {
+      setProgress(() => {
         if (scrapeCompleteRef.current) {
-          // Backend done — immediately jump to 100 and transition
           clearInterval(interval);
           return 100;
         }
-        // Quick initial fill to ~30% in first second, then slow crawl to 85%
-        if (elapsed < 1000) return Math.min(30, prev + 5);
-        if (prev < 60) return prev + 1.5;
-        if (prev < 85) return prev + 0.3;
-        return 85; // Hold here until backend responds
+        const elapsed = (Date.now() - startTime) / 1000;
+        // Logarithmic curve: reaches ~40% at 5s, ~60% at 10s, ~75% at 18s, ~85% at 25s
+        const target = Math.min(88, 30 * Math.log10(elapsed + 1) * 1.1);
+        return Math.round(target);
       });
-    }, 100);
+    }, 250);
     return () => clearInterval(interval);
   }, [step]);
 
