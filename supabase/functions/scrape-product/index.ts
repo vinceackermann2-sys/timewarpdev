@@ -1630,6 +1630,14 @@ Return ONLY valid JSON, no markdown fences.`;
 
   } catch (err) {
     console.error("Scrape-product error:", err);
+    // If we were streaming, send error through the stream
+    if (streamController) {
+      try {
+        await streamController.write(encoder.encode(JSON.stringify({ type: "error", error: (err as Error).message || "Internal error" }) + "\n"));
+        await streamController.close();
+      } catch { /* ignore */ }
+      return streamResponse!;
+    }
     return new Response(
       JSON.stringify({ success: false, error: (err as Error).message || "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
