@@ -1092,14 +1092,24 @@ ${allUrls.slice(0, 400).join('\n')}` }],
 
       console.log("Discover mode — found", discoveredProducts.length, "products, scannedUrls:", scannedUrls.length);
 
+      const resultPayload = {
+        success: true,
+        discoveredProducts,
+        quickBrand,
+        scannedUrls,
+        isMultiProduct: isCompanyUrl && productPageContents.length > 1,
+      };
+
+      // If streaming, write the final result to the stream and close it
+      if (streamController) {
+        sendProgress("Complete", 100);
+        await streamController.write(encoder.encode(JSON.stringify({ type: "result", data: resultPayload }) + "\n"));
+        await streamController.close();
+        return streamResponse!;
+      }
+
       return new Response(
-        JSON.stringify({
-          success: true,
-          discoveredProducts,
-          quickBrand,
-          scannedUrls,
-          isMultiProduct: isCompanyUrl && productPageContents.length > 1,
-        }),
+        JSON.stringify(resultPayload),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
