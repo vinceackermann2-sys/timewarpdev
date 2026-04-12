@@ -714,20 +714,55 @@ serve(async (req) => {
     } else if (isCompanyUrl) {
       try {
         console.log("Company URL — mapping site for product pages...");
-        const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ url: formattedUrl, search: "product", limit: 200 }),
-        });
-        if (mapRes.ok) {
-          const mapData = await mapRes.json();
+        // Run multiple map searches in parallel to catch more product URLs
+        const [mapRes1, mapRes2, mapRes3] = await Promise.allSettled([
+          fetch("https://api.firecrawl.dev/v1/map", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ url: formattedUrl, search: "product", limit: 200 }),
+          }),
+          fetch("https://api.firecrawl.dev/v1/map", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ url: formattedUrl, search: "shop buy store", limit: 200 }),
+          }),
+          fetch("https://api.firecrawl.dev/v1/map", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ url: formattedUrl, limit: 200 }),
+          }),
+        ]);
+        // Merge all map results
+        const allMapLinks: string[] = [];
+        for (const r of [mapRes1, mapRes2, mapRes3]) {
+          if (r.status === 'fulfilled' && r.value.ok) {
+            try {
+              const mapData = await r.value.json();
+              if (Array.isArray(mapData.links)) allMapLinks.push(...mapData.links);
+            } catch { /* ignore */ }
+          }
+        }
+        // Also extract links from homepage HTML/markdown as fallback
+        const homepageLinkRegex = /href=["'](https?:\/\/[^"']+|\/[^"']+)["']/gi;
+        let hlMatch;
+        const homepageLinkSource = homepageHtml || homepageMarkdown;
+        while ((hlMatch = homepageLinkRegex.exec(homepageLinkSource)) !== null) {
+          const href = hlMatch[1];
+          if (href.startsWith('/')) {
+            allMapLinks.push(`${baseUrl}${href}`);
+          } else {
+            allMapLinks.push(href);
+          }
+        }
+        console.log("Total raw URLs from maps + homepage links:", allMapLinks.length);
+        {
           const parsedBase = new URL(formattedUrl);
           const baseDomain = parsedBase.hostname.replace(/^www\./, '');
-          const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com|pages\/|inventory|new\/|used\/)/i;
+          const excludePatterns = /\/(support|help|careers|jobs|legal|privacy|terms|about|blog|press|newsroom|contact|login|signin|signup|auth|docs|developer|status|community|forum|account|checkout|cart|search|faq|sitemap|rss|feed|api|apps\.apple\.com|play\.google\.com|inventory|new\/|used\/)/i;
           // Filter out locale-variant duplicates (e.g., /en_my/modely and /ro_RO/modely)
           const localePrefix = /^\/[a-z]{2}(?:_[a-zA-Z]{2,4})?\//;
           const seenPaths = new Set<string>();
-          const allUrls: string[] = (mapData.links || []).filter((u: string) => {
+          const allUrls: string[] = [...new Set(allMapLinks)].filter((u: string) => {
             if (!u || !u.startsWith("http")) return false;
             try {
               const pu = new URL(u);
@@ -742,7 +777,7 @@ serve(async (req) => {
               return true;
             } catch { return false; }
           });
-          console.log("Map found", allUrls.length, "filtered URLs (from", (mapData.links || []).length, "total)");
+          console.log("Map found", allUrls.length, "filtered URLs");
 
           if (allUrls.length > 0) {
             const pickResText = await (await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
