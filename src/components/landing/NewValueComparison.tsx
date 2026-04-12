@@ -56,7 +56,7 @@ export default function NewValueComparison() {
                 whileInView={{ x: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="absolute right-2 sm:right-6 top-2 sm:top-6 w-40 sm:w-72 h-48 sm:h-auto sm:bottom-6 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
+                className="absolute right-2 sm:right-6 top-2 sm:top-6 w-48 sm:w-72 h-56 sm:h-auto sm:bottom-6 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
               >
                 <div className="h-12 border-b border-slate-100 flex items-center px-4 gap-2 bg-slate-50">
                   <Sparkles className="w-5 h-5 text-[#3399ff]" />
