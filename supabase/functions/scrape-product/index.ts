@@ -561,14 +561,16 @@ serve(async (req) => {
       } catch { /* ignore */ }
     };
 
-    // Run the actual logic in the background, writing to the stream
+    // Run the discover logic in background, stream results
     (async () => {
       try {
         await sendProgress("Connecting to website", 5);
-        const result = await runDiscoverLogic(reqBody, sendProgress);
+        // Inline the discover logic with progress callbacks
+        const result = await runDiscoverWithProgress(reqBody, sendProgress);
         await sendProgress("Complete", 100);
         await writer.write(encoder.encode(JSON.stringify({ type: "result", data: result }) + "\n"));
       } catch (err) {
+        console.error("Streaming discover error:", err);
         try {
           await writer.write(encoder.encode(JSON.stringify({ type: "error", error: (err as Error).message || "Internal error" }) + "\n"));
         } catch { /* ignore */ }
@@ -589,7 +591,7 @@ serve(async (req) => {
     const isCoreMode = mode === "core";
 
     // Non-streaming progress helper (no-op)
-    const sendProgress = (_stage: string, _percent: number) => {};
+    const sendProgress = async (_stage: string, _percent: number) => {};
 
     if (!url) {
       return new Response(
