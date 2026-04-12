@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Palette } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { BrandingEditor } from "@/components/database/BrandingEditor";
 import { BrandExtendedSections } from "@/components/database/BrandExtendedSections";
 import { BrandPageSidebar } from "@/components/database/BrandPageSidebar";
 import { useToast } from "@/hooks/use-toast";
