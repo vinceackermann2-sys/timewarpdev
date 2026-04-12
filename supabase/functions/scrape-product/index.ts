@@ -547,9 +547,33 @@ serve(async (req) => {
 
   const mainLogic = async (): Promise<Response> => {
   try {
-    const { url, mode, selectedProductUrls } = await req.json();
+    const { url, mode, selectedProductUrls, stream: streamMode } = await req.json();
     const isDiscoverMode = mode === "discover";
     const isCoreMode = mode === "core";
+    const isStreaming = isDiscoverMode && streamMode === true;
+
+    // For streaming discover mode, we use a TransformStream to send progress events
+    let streamController: WritableStreamDefaultWriter<Uint8Array> | null = null;
+    let streamResponse: Response | null = null;
+    const encoder = new TextEncoder();
+
+    const sendProgress = (stage: string, percent: number) => {
+      if (streamController) {
+        try {
+          streamController.write(encoder.encode(JSON.stringify({ type: "progress", stage, percent }) + "\n"));
+        } catch { /* ignore write errors */ }
+      }
+    };
+
+    if (isStreaming) {
+      const { readable, writable } = new TransformStream<Uint8Array>();
+      streamController = writable.getWriter();
+      streamResponse = new Response(readable, {
+        headers: { ...corsHeaders, "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache" },
+      });
+      // Send initial progress
+      sendProgress("Connecting to website", 5);
+    }
     if (!url) {
       return new Response(
         JSON.stringify({ success: false, error: "URL is required" }),
