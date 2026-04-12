@@ -545,50 +545,9 @@ serve(async (req) => {
   // CORS-enabled error instead of letting the gateway send a bare 504.
   const INTERNAL_TIMEOUT_MS = 120_000;
 
-  // Parse request body once (need it for both SSE detection and core logic)
-  let reqBody: any;
-  try { reqBody = await req.json(); } catch { reqBody = {}; }
-
-  const { url, mode, selectedProductUrls, stream: wantStream } = reqBody;
-  const useSSE = mode === "core" && wantStream === true;
-
-  // ── SSE streaming path: return stream immediately, run logic async ──
-  if (useSSE && url) {
-    const stream = new ReadableStream({
-      start(controller) {
-        const emit = (event: string, data?: any) => {
-          try {
-            const payload = JSON.stringify({ event, ...(data || {}) });
-            controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
-          } catch { /* stream closed */ }
-        };
-
-        // Run the full core-mode logic and emit events
-        (async () => {
-          try {
-            const result = await runCoreMode(url, selectedProductUrls, emit);
-            emit("done", result);
-          } catch (err: any) {
-            emit("error", { error: err.message || "Internal error" });
-          } finally {
-            try { controller.close(); } catch { /* already closed */ }
-          }
-        })();
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      },
-    });
-  }
-
   const mainLogic = async (): Promise<Response> => {
   try {
+    const { url, mode, selectedProductUrls } = await req.json();
     const isDiscoverMode = mode === "discover";
     const isCoreMode = mode === "core";
     if (!url) {
