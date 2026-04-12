@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const MODELS = [
   "google/gemini-3.1-flash-image-preview",
-  "google/gemini-3-pro-image-preview",
+  "google/gemini-3.1-flash-image-preview",
 ];
 
 async function tryRemoveBg(apiKey: string, imageUrl: string, model: string): Promise<string | null> {

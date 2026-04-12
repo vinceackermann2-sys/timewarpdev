@@ -1381,7 +1381,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-3-pro-image-preview",
+            model: "google/gemini-3.1-flash-image-preview",
             messages: [{ role: "user", content: [
               { type: "text", text: "Reproduce this exact logo from the website header. Match every detail. Output on clean white background. No extras." },
               { type: "image_url", image_url: { url: ssUrl } }
@@ -1406,7 +1406,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
+            model: "google/gemini-3.1-flash-image-preview",
             messages: [{ role: "user", content: `Generate a professional portrait photograph of a person representing: "${aud.description.slice(0, 500)}". Natural lighting, blurred background, relatable appearance. NO text.` }],
             modalities: ["image", "text"],
           }),
