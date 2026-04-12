@@ -1338,7 +1338,7 @@ Return ONLY valid JSON, no markdown fences.`;
               }
 
               redditEnriched = true;
-              emitSSE("step", { step: "Reddit research", redditUrls });
+              
               console.log("Reddit enrichment complete — filled from", redditUrls.length, "Reddit sources");
             } catch (fillErr) {
               console.warn("Reddit AI fill failed (non-blocking):", fillErr);
@@ -1391,20 +1391,10 @@ Return ONLY valid JSON, no markdown fences.`;
       extracted.audiences = ensureArr(extracted.audiences).slice(0, 10);
       extracted.brand.logoUrls = ensureArr(extracted.brand.logoUrls).slice(0, 10);
 
-      const finalPayload = { success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1, scannedUrls, redditEnriched, redditUrls };
-
       console.log("Core mode — returning:", extracted.brand?.name, "products:", extracted.products?.length, "scannedUrls:", scannedUrls.length, "redditEnriched:", redditEnriched);
 
-      if (useSSE && sseController) {
-        // Emit final data as SSE and close the stream
-        emitSSE("done", finalPayload);
-        try { sseController.close(); } catch { /* already closed */ }
-        // Return a dummy response — the stream response was already sent
-        return new Response(null, { status: 200 });
-      }
-
       return new Response(
-        JSON.stringify(finalPayload),
+        JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1, scannedUrls, redditEnriched, redditUrls }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
