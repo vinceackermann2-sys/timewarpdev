@@ -975,17 +975,37 @@ Rules:
           return;
         }
 
+        // Pick a product image to use as the base (cycle through available images)
+        const prodImages: string[] = Array.isArray(productImageUrls) ? productImageUrls.filter(Boolean) : [];
+
         const urls: string[] = [];
         for (let i = 0; i < guidelineRules.length; i++) {
           const rule = guidelineRules[i];
-          const img = await generateImage(LOVABLE_API_KEY,
-            `Create a small product photography example image for this brand guideline rule: "${rule}".
+          const productImg = prodImages.length > 0 ? prodImages[i % prodImages.length] : null;
+
+          let img: string | null = null;
+          if (productImg) {
+            // Use editImageWithProduct to keep the product photo intact
+            img = await editImageWithProduct(LOVABLE_API_KEY,
+              `Place this exact product in a professional photography setting that demonstrates this brand guideline: "${rule}".
+Brand: "${name}", Category: ${cat}.
+Primary color: ${primary}, Secondary color: ${secondary}.
+CRITICAL: Keep the product EXACTLY as it appears in the reference image — do NOT alter, redraw, or replace the product. Only change the background, lighting, and styling around it.
+Style: Premium, clean, minimal e-commerce product photography. No text overlays.`,
+              productImg
+            );
+          }
+          // Fallback to pure generation if no product image or edit failed
+          if (!img) {
+            img = await generateImage(LOVABLE_API_KEY,
+              `Create a small product photography example image for this brand guideline rule: "${rule}".
 Brand: "${name}", Category: ${cat}.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Premium, clean, minimal e-commerce product photography.
 The image should visually demonstrate the guideline rule as an example photo.
 Make it look like a real professional product photograph. No text overlays.`
-          );
+            );
+          }
           urls.push(img || "");
           if (i < guidelineRules.length - 1) {
             await new Promise(r => setTimeout(r, 500));
@@ -1001,24 +1021,51 @@ Make it look like a real professional product photograph. No text overlays.`
       if (!LOVABLE_API_KEY) { console.warn("No LOVABLE_API_KEY, skipping social media images"); return; }
       try {
         console.log("Generating social media mockup images...");
+        const prodImages: string[] = Array.isArray(productImageUrls) ? productImageUrls.filter(Boolean) : [];
+        const heroProductImg = prodImages.length > 0 ? prodImages[0] : null;
 
-        const feedImg = await generateImage(LOVABLE_API_KEY,
-          `Create a premium Instagram feed post mockup (square 1:1 format) for a brand called "${name}" in the ${cat} category.
+        let feedImg: string | null = null;
+        if (heroProductImg) {
+          feedImg = await editImageWithProduct(LOVABLE_API_KEY,
+            `Place this exact product in a premium Instagram feed post layout (square 1:1 format) for a brand called "${name}" in the ${cat} category.
+Primary color: ${primary}, Secondary color: ${secondary}.
+CRITICAL: Keep the product EXACTLY as it appears in the reference image — do NOT alter, redraw, or replace the product. Only style the background and composition around it.
+Style: Clean, premium, minimal e-commerce aesthetic. Professional photography. No text overlays, no UI chrome.`,
+            heroProductImg
+          );
+        }
+        if (!feedImg) {
+          feedImg = await generateImage(LOVABLE_API_KEY,
+            `Create a premium Instagram feed post mockup (square 1:1 format) for a brand called "${name}" in the ${cat} category.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Clean, premium, minimal e-commerce aesthetic.
 Show a product-focused square image that would look great as an Instagram feed post.
 Professional photography style, branded color palette. No text overlays, no UI chrome.`
-        );
+          );
+        }
 
         await new Promise(r => setTimeout(r, 500));
 
-        const storyImg = await generateImage(LOVABLE_API_KEY,
-          `Create a premium Instagram story mockup (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
+        const storyProductImg = prodImages.length > 1 ? prodImages[1] : heroProductImg;
+        let storyImg: string | null = null;
+        if (storyProductImg) {
+          storyImg = await editImageWithProduct(LOVABLE_API_KEY,
+            `Place this exact product in a premium Instagram story layout (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
+Primary color: ${primary}, Secondary color: ${secondary}.
+CRITICAL: Keep the product EXACTLY as it appears in the reference image — do NOT alter, redraw, or replace the product. Only style the background and composition around it.
+Style: Clean, premium, minimal e-commerce aesthetic. Professional photography. No text overlays, no UI chrome.`,
+            storyProductImg
+          );
+        }
+        if (!storyImg) {
+          storyImg = await generateImage(LOVABLE_API_KEY,
+            `Create a premium Instagram story mockup (vertical 9:16 format) for a brand called "${name}" in the ${cat} category.
 Primary color: ${primary}, Secondary color: ${secondary}.
 Style: Clean, premium, minimal e-commerce aesthetic.
 Show a vertical product or lifestyle image that would look great as an Instagram story.
 Professional photography style, branded color palette. No text overlays, no UI chrome.`
-        );
+          );
+        }
 
         enriched.socialMediaUrls = [feedImg || "", storyImg || ""];
         console.log("Social media images generated:", [feedImg, storyImg].filter(Boolean).length);
