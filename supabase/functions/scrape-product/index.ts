@@ -1192,7 +1192,136 @@ ${allUrls.slice(0, 400).join('\n')}` }],
       }
     }
 
-    console.log("Extracted", products.length, "products,", audiences.length, "audiences");
+    console.log("Extracted", products.length, "products,", uniqueAudiences.length, "audiences");
+
+    // ══════════════════════════════════════════════
+    // REDDIT ENRICHMENT — fill missing fields with evidence from Reddit
+    // ══════════════════════════════════════════════
+    let redditEnriched = false;
+    const redditUrls: string[] = [];
+
+    const PRODUCT_GAP_FIELDS = ["features", "benefits", "painPoints", "useCases", "targetScenarios", "uniqueSellingPoints", "competitiveAdvantages", "commonObjections", "proofPoints", "powerPhrases", "powerWords"];
+    const AUDIENCE_GAP_FIELDS = ["buyingTriggers", "useCaseRequirements", "engagementTriggers", "attentionHooks", "commonObjections", "valuePropositions", "keySuccessIndicators", "powerPhrases", "powerWords"];
+
+    const hasGaps = (obj: any, fields: string[]) => {
+      for (const f of fields) {
+        const val = obj[f];
+        if (!val || (Array.isArray(val) && val.length === 0)) return true;
+      }
+      return false;
+    };
+
+    const productGaps = products.some((p: any) => hasGaps(p, PRODUCT_GAP_FIELDS));
+    const audienceGaps = uniqueAudiences.some((a: any) => hasGaps(a, AUDIENCE_GAP_FIELDS));
+
+    if ((productGaps || audienceGaps) && FIRECRAWL_API_KEY) {
+      try {
+        const brandSearchName = brand.name || metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "";
+        const productNames = products.map((p: any) => p.name).filter(Boolean).slice(0, 3).join(" ");
+        const searchQuery = `site:reddit.com ${brandSearchName} ${productNames} review`;
+        console.log("Reddit enrichment — searching:", searchQuery);
+
+        const redditRes = await fetch("https://api.firecrawl.dev/v1/search", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: searchQuery,
+            limit: 5,
+            scrapeOptions: { formats: ["markdown"] },
+          }),
+        });
+
+        if (redditRes.ok) {
+          const redditData = await redditRes.json();
+          const results = Array.isArray(redditData.data) ? redditData.data : [];
+          const redditContent = results
+            .filter((r: any) => r.url && r.url.includes("reddit.com"))
+            .slice(0, 3);
+
+          if (redditContent.length > 0) {
+            for (const r of redditContent) {
+              if (r.url) redditUrls.push(r.url);
+            }
+            const combinedMarkdown = redditContent.map((r: any) => `## Source: ${r.url}\n${(r.markdown || r.description || "").slice(0, 3000)}`).join("\n\n---\n\n");
+
+            // Build gap lists for each product/audience
+            const gapInfo: any = {};
+            products.forEach((p: any, i: number) => {
+              const missing = PRODUCT_GAP_FIELDS.filter(f => !p[f] || (Array.isArray(p[f]) && p[f].length === 0));
+              if (missing.length > 0) gapInfo[`product_${i}_${p.name || i}`] = missing;
+            });
+            uniqueAudiences.forEach((a: any, i: number) => {
+              const missing = AUDIENCE_GAP_FIELDS.filter(f => !a[f] || (Array.isArray(a[f]) && a[f].length === 0));
+              if (missing.length > 0) gapInfo[`audience_${i}_${a.name || i}`] = missing;
+            });
+
+            const REDDIT_FILL_PROMPT = `You are a data analyst. Given real Reddit discussions about "${brandSearchName}", extract ONLY factual, evidence-backed data to fill missing fields.
+
+REDDIT DISCUSSIONS:
+${combinedMarkdown.slice(0, 8000)}
+
+MISSING FIELDS TO FILL:
+${JSON.stringify(gapInfo, null, 2)}
+
+RULES:
+- ONLY fill fields where you find EXPLICIT evidence in the Reddit content above.
+- Do NOT fabricate, infer, or make up data. If no evidence exists for a field, return it as an empty array [].
+- For commonObjections, return array of {objection, response} objects.
+- For proofPoints, return array of {category, items} objects.
+- Do NOT fill "offers" fields.
+- Return JSON with the same keys as the MISSING FIELDS object above. Each key maps to an object with the filled field values.
+
+Return ONLY valid JSON, no markdown fences.`;
+
+            try {
+              const fillResult = await callAI(LOVABLE_API_KEY, REDDIT_FILL_PROMPT, "google/gemini-3-flash-preview", 6000);
+
+              // Merge Reddit data into products/audiences
+              for (const key of Object.keys(fillResult || {})) {
+                const filled = fillResult[key];
+                if (!filled || typeof filled !== "object") continue;
+
+                if (key.startsWith("product_")) {
+                  const idx = parseInt(key.split("_")[1], 10);
+                  if (products[idx]) {
+                    for (const field of PRODUCT_GAP_FIELDS) {
+                      if (field === "offers") continue; // Never fill offers
+                      const existing = products[idx][field];
+                      const newVal = filled[field];
+                      if ((!existing || (Array.isArray(existing) && existing.length === 0)) && newVal && (Array.isArray(newVal) ? newVal.length > 0 : true)) {
+                        products[idx][field] = newVal;
+                      }
+                    }
+                  }
+                } else if (key.startsWith("audience_")) {
+                  const idx = parseInt(key.split("_")[1], 10);
+                  if (uniqueAudiences[idx]) {
+                    for (const field of AUDIENCE_GAP_FIELDS) {
+                      const existing = uniqueAudiences[idx][field];
+                      const newVal = filled[field];
+                      if ((!existing || (Array.isArray(existing) && existing.length === 0)) && newVal && (Array.isArray(newVal) ? newVal.length > 0 : true)) {
+                        uniqueAudiences[idx][field] = newVal;
+                      }
+                    }
+                  }
+                }
+              }
+
+              redditEnriched = true;
+              console.log("Reddit enrichment complete — filled from", redditUrls.length, "Reddit sources");
+            } catch (fillErr) {
+              console.warn("Reddit AI fill failed (non-blocking):", fillErr);
+            }
+          } else {
+            console.log("Reddit enrichment — no Reddit results found");
+          }
+        } else {
+          console.warn("Reddit search failed:", redditRes.status);
+        }
+      } catch (redditErr) {
+        console.warn("Reddit enrichment error (non-blocking):", redditErr);
+      }
+    }
 
     if (products.length === 0) {
       console.error("Zero products extracted — returning error");
@@ -1231,10 +1360,10 @@ ${allUrls.slice(0, 400).join('\n')}` }],
       extracted.audiences = ensureArr(extracted.audiences).slice(0, 10);
       extracted.brand.logoUrls = ensureArr(extracted.brand.logoUrls).slice(0, 10);
 
-      console.log("Core mode — returning:", extracted.brand?.name, "products:", extracted.products?.length, "scannedUrls:", scannedUrls.length);
+      console.log("Core mode — returning:", extracted.brand?.name, "products:", extracted.products?.length, "scannedUrls:", scannedUrls.length, "redditEnriched:", redditEnriched);
 
       return new Response(
-        JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1, scannedUrls }),
+        JSON.stringify({ success: true, extracted, isMultiProduct: isCompanyUrl && productPageContents.length > 1, scannedUrls, redditEnriched, redditUrls }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
