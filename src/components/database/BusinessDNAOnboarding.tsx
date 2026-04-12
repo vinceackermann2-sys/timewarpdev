@@ -304,7 +304,7 @@ export function BusinessDNAOnboarding({
   useEffect(() => {
     if (step !== 1) return;
     const startTime = Date.now();
-    const FAST_PHASE_MS = 2500; // 2.5 seconds to reach 80%
+    const FAST_PHASE_MS = 3500; // 3.5 seconds to reach 80%
     const FAST_PHASE_TARGET = 80;
 
     const interval = setInterval(() => {
