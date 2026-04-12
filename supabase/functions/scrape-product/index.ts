@@ -1370,6 +1370,7 @@ Return ONLY valid JSON, no markdown fences.`;
               }
 
               redditEnriched = true;
+              emitSSE("step", { step: "Reddit research", redditUrls });
               console.log("Reddit enrichment complete — filled from", redditUrls.length, "Reddit sources");
             } catch (fillErr) {
               console.warn("Reddit AI fill failed (non-blocking):", fillErr);
