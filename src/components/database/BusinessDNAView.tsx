@@ -3,6 +3,7 @@ import {
   Brain, Palette, Package, Settings, Loader2, Plus, Trash2, Check, X,
   Pencil, Building2, ArrowLeft, Users, Database
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SettingsView } from "@/components/database/SettingsView";
 import { BrandListView } from "@/components/database/BrandListView";
 import { ProductListView } from "@/components/database/ProductListView";
@@ -337,12 +338,44 @@ export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void
   const totalInsights = Object.values(segmentEntries).reduce((sum, arr) => sum + arr.length, 0);
   const activeSegmentData = BRAIN_SEGMENTS.find(s => s.id === activeSegment);
 
-  // Don't render until brand data has loaded
+  // Don't render until brand data has loaded — show skeleton
   if (dnaLoading || !activeBrand) {
     return (
-      <div className="flex flex-col h-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-        <p className="text-sm text-muted-foreground">Loading business DNA…</p>
+      <div className="flex flex-col h-full items-center">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-0 space-y-4 sm:space-y-6 border-b border-border/50 w-full max-w-5xl">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <Skeleton className="h-16 w-16 sm:h-24 sm:w-24 rounded-xl shrink-0" />
+            <div className="flex flex-col gap-2 pt-1 flex-1 min-w-0">
+              <Skeleton className="h-7 w-48" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+          </div>
+          <div className="flex items-center gap-4 sm:gap-8 pb-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-5 w-20 rounded" />
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 w-full max-w-5xl px-4 sm:px-6 pt-5 space-y-6">
+          <div className="rounded-xl border border-border/50 bg-card shadow-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 rounded-lg" />
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Skeleton className="h-12 rounded-lg" />
+              <Skeleton className="h-12 rounded-lg" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
