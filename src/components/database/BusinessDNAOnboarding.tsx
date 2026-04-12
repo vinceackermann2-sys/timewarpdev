@@ -300,11 +300,11 @@ export function BusinessDNAOnboarding({
     })();
     return () => { cancelled = true; };
   }, [activeUrl, step]);
-  // Smooth progress animation — fast 0-80% in 2s, then real backend milestones 80-100%
+  // Smooth progress animation — ease to 80% in 2.5s, then real backend milestones 80-100%
   useEffect(() => {
     if (step !== 1) return;
     const startTime = Date.now();
-    const FAST_PHASE_MS = 2000; // 2 seconds to reach 80%
+    const FAST_PHASE_MS = 2500; // 2.5 seconds to reach 80%
     const FAST_PHASE_TARGET = 80;
 
     const interval = setInterval(() => {
@@ -318,22 +318,25 @@ export function BusinessDNAOnboarding({
       let next: number;
       const elapsed = Date.now() - startTime;
 
-      if (elapsed < FAST_PHASE_MS && target < FAST_PHASE_TARGET) {
-        // Phase 1: Animate 0→80% over 2 seconds (ease-out)
+      if (elapsed < FAST_PHASE_MS) {
+        // Phase 1: Smoothly animate 0→80% over 2.5 seconds (ease-out)
         const t = Math.min(elapsed / FAST_PHASE_MS, 1);
-        const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
+        const eased = 1 - Math.pow(1 - t, 2.5); // smooth ease-out
         next = eased * FAST_PHASE_TARGET;
-      } else if (current < FAST_PHASE_TARGET && target < FAST_PHASE_TARGET) {
-        // Finish the fast phase
-        next = current + Math.max(1, (FAST_PHASE_TARGET - current) * 0.2);
+      } else if (current < FAST_PHASE_TARGET) {
+        // Finish arriving at 80
+        next = current + Math.max(0.5, (FAST_PHASE_TARGET - current) * 0.2);
       } else if (current < target) {
-        // Phase 2: Move toward real backend target (80-100 range)
-        next = current + Math.max(0.3, (target - current) * 0.15);
+        // Phase 2: Move toward real backend target (mapped 84-100)
+        next = current + Math.max(0.2, (target - current) * 0.12);
+      } else if (target >= 100) {
+        // Backend done, jump to 100
+        next = current + Math.max(0.5, (100 - current) * 0.15);
       } else {
-        // Creep slowly between backend events
+        // Creep very slowly between backend events so bar never freezes
         const nextMilestone = target < 84 ? 84 : target < 88 ? 88 : target < 92 ? 92 : target < 94 ? 94 : target < 96 ? 96 : target < 98 ? 98 : 100;
-        const ceiling = target + (nextMilestone - target) * 0.5;
-        next = Math.min(ceiling, current + 0.15);
+        const ceiling = target + (nextMilestone - target) * 0.4;
+        next = Math.min(ceiling, current + 0.08);
       }
 
       progressDisplayRef.current = Math.min(100, next);
