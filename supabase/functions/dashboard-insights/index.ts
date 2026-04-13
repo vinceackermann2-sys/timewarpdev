@@ -228,9 +228,13 @@ Each card has:
 - "priority": "High" | "Medium" | "Low"
 - "title": short title (max 8 words)
 - "description": 2-3 sentence insight
+- "detail": 3-5 sentence deep-dive with specific data, recommendations, or solutions. Be actionable.
 - "category": contextual label (e.g. "Brand", "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth")
+- "source": the integration or data source this insight comes from. MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "business-dna", "products", "audiences", "employees", "general". Pick the most relevant source.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
 - "timeAgo": (Updates only) approximate time like "today", "this week", "recently"
+
+IMPORTANT: Every card MUST be directly relevant to "${brandName}". Do NOT include generic advice. Sort cards within each category by priority (High first, then Medium, then Low). Each card must reference specific data from the business context or integrations.
 
 **Briefing** (4-6 cards): Executive overview — brand health, integration status, key metrics from connected tools (HubSpot deals/contacts, emails, Slack), product/audience coverage.
 
