@@ -36,10 +36,10 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { tab, brandId, workspaceId } = await req.json();
-    if (!tab || !brandId) throw new Error("tab and brandId required");
+    const { brandId, workspaceId } = await req.json();
+    if (!brandId) throw new Error("brandId required");
 
-    // 1. Load business DNA data scoped to brand
+    // 1. Load business DNA data
     let query = supabase
       .from("user_business_data")
       .select("id, title, content, data_type, metadata, created_at")
@@ -51,25 +51,21 @@ serve(async (req) => {
     const { data: allItems } = await query.limit(500);
     const items = allItems || [];
 
-    // Find the brand row
     const brandRow = items.find((item: any) => item.id === brandId);
     const brandContent = tryParseJson(brandRow?.content);
     const brandName = brandContent?.name || brandRow?.title || "Business";
 
-    // Get brand-scoped items
     const logicalBrandId = brandContent?.id || brandId;
     const brandProducts = items.filter((item: any) => {
       if (item.data_type !== "product") return false;
       const parsed = tryParseJson(item.content);
-      const meta = item.metadata;
-      return parsed?.brandId === logicalBrandId || meta?.brandId === logicalBrandId;
+      return parsed?.brandId === logicalBrandId || item.metadata?.brandId === logicalBrandId;
     });
 
     const brandAudiences = items.filter((item: any) => {
       if (item.data_type !== "audience") return false;
       const parsed = tryParseJson(item.content);
-      const meta = item.metadata;
-      return parsed?.brandId === logicalBrandId || meta?.brandId === logicalBrandId;
+      return parsed?.brandId === logicalBrandId || item.metadata?.brandId === logicalBrandId;
     });
 
     // 2. Load connections
@@ -81,22 +77,18 @@ serve(async (req) => {
 
     const connectedProviders = (connections || []).map((c: any) => c.provider);
 
-    // 3. Load AI employees linked to this brand
+    // 3. Load AI employees
     const { data: employees } = await supabase
       .from("ai_employees")
       .select("id, name, role, status, linked_business_id")
       .eq("user_id", user.id)
       .eq("linked_business_id", brandId);
 
-    // 4. Pull recent data from connected integrations
+    // 4. Pull integration data
     let integrationData = "";
-
-    // Search connected providers for recent activity
-    const searchQuery = brandName;
-
+    const searchQuery2 = brandName;
     const searchPromises: Promise<void>[] = [];
 
-    // Microsoft
     const hasMsOutlook = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
     const hasMsOnedrive = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
     const hasMsOnenote = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onenote");
@@ -115,15 +107,12 @@ serve(async (req) => {
         try {
           const msToken = await getMsToken();
           if (!msToken) return;
-          const results = await searchMicrosoftData(msToken, searchQuery, brandName, {
-            searchEmails: hasMsOutlook,
-            searchFiles: hasMsOnedrive,
+          const results = await searchMicrosoftData(msToken, searchQuery2, brandName, {
+            searchEmails: hasMsOutlook, searchFiles: hasMsOnedrive,
           });
           if (results.emails.length > 0) integrationData += `\n### Recent Emails (Outlook)\n${results.emails.join("\n")}\n`;
           if (results.files.length > 0) integrationData += `\n### Recent Files (OneDrive)\n${results.files.join("\n")}\n`;
-        } catch (e) {
-          console.error("MS search error:", e);
-        }
+        } catch (e) { console.error("MS search error:", e); }
       })());
     }
 
@@ -132,11 +121,9 @@ serve(async (req) => {
         try {
           const msToken = await getMsToken();
           if (!msToken) return;
-          const results = await searchOneNoteData(msToken, searchQuery, brandName);
+          const results = await searchOneNoteData(msToken, searchQuery2, brandName);
           if (results.length > 0) integrationData += `\n### Recent Notes (OneNote)\n${results.join("\n")}\n`;
-        } catch (e) {
-          console.error("OneNote search error:", e);
-        }
+        } catch (e) { console.error("OneNote search error:", e); }
       })());
     }
 
@@ -145,21 +132,17 @@ serve(async (req) => {
         try {
           const slackToken = await getValidProviderToken(supabase, user.id, "slack");
           if (!slackToken) return;
-          const results = await searchSlackData(slackToken, searchQuery, brandName);
+          const results = await searchSlackData(slackToken, searchQuery2, brandName);
           if (results.length > 0) integrationData += `\n### Recent Slack Activity\n${results.join("\n")}\n`;
-        } catch (e) {
-          console.error("Slack search error:", e);
-        }
+        } catch (e) { console.error("Slack search error:", e); }
       })());
     }
 
-    // HubSpot - check if connected and pull summary
     if (connectedProviders.includes("hubspot")) {
       searchPromises.push((async () => {
         try {
           const hsToken = await getValidProviderToken(supabase, user.id, "hubspot");
           if (!hsToken) return;
-          // Get recent contacts
           const contactsRes = await fetch(
             `https://api.hubapi.com/crm/v3/objects/contacts?limit=5&properties=firstname,lastname,email,createdate&sorts=-createdate`,
             { headers: { Authorization: `Bearer ${hsToken}` } }
@@ -171,8 +154,6 @@ serve(async (req) => {
             );
             if (contacts.length > 0) integrationData += `\n### Recent HubSpot Contacts\n${contacts.join("\n")}\n`;
           }
-
-          // Get recent deals
           const dealsRes = await fetch(
             `https://api.hubapi.com/crm/v3/objects/deals?limit=5&properties=dealname,amount,dealstage,closedate&sorts=-createdate`,
             { headers: { Authorization: `Bearer ${hsToken}` } }
@@ -184,23 +165,21 @@ serve(async (req) => {
             );
             if (deals.length > 0) integrationData += `\n### Recent HubSpot Deals\n${deals.join("\n")}\n`;
           }
-        } catch (e) {
-          console.error("HubSpot search error:", e);
-        }
+        } catch (e) { console.error("HubSpot search error:", e); }
       })());
     }
 
     await Promise.all(searchPromises);
 
-    // 5. Build context summary
+    // 5. Build context
     const productsSummary = brandProducts.map((p: any) => {
       const parsed = tryParseJson(p.content);
-      return `- ${parsed?.name || p.title || "Unnamed Product"}`;
+      return `- ${parsed?.name || p.title || "Unnamed Product"} (added ${p.created_at?.slice(0, 10) || "unknown"})`;
     }).join("\n") || "No products registered.";
 
     const audiencesSummary = brandAudiences.map((a: any) => {
       const parsed = tryParseJson(a.content);
-      return `- ${parsed?.name || a.title || "Unnamed Audience"}: ${parsed?.demographics || ""}`;
+      return `- ${parsed?.name || a.title || "Unnamed Audience"}: ${parsed?.demographics || ""} (added ${a.created_at?.slice(0, 10) || "unknown"})`;
     }).join("\n") || "No audiences defined.";
 
     const brandSummary = brandContent ? `
@@ -239,86 +218,30 @@ ${connectedSummary}
 ${integrationData ? `\n## Live Integration Data\n${integrationData}` : ""}
 `;
 
-    // 6. Build tab-specific AI prompt
-    const tabPrompts: Record<string, string> = {
-      Briefing: `You are a business analyst. Based on the business data and live integration data below, create a concise executive briefing for "${brandName}".
+    // 6. Single AI call for ALL 4 tabs
+    const systemPrompt = `You are a business analyst and strategic advisor. Based on the business data and live integration data below, generate insights for "${brandName}" across 4 categories.
 
-Generate 4-6 briefing cards as a JSON array. Each card should have:
+Return a JSON object with exactly these 4 keys: "Briefing", "Updates", "To-Dos", "Objectives". Each key maps to an array of cards.
+
+Each card has:
 - "id": unique string
 - "priority": "High" | "Medium" | "Low"
 - "title": short title (max 8 words)
-- "description": 2-3 sentence insight or status update
-- "category": one of "Brand", "Sales", "Marketing", "Operations", "Integrations", "Team"
-- "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert"
+- "description": 2-3 sentence insight
+- "category": contextual label (e.g. "Brand", "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth")
+- "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
+- "timeAgo": (Updates only) approximate time like "today", "this week", "recently"
 
-Focus on:
-- Overall business health and readiness
-- Integration status and what data is flowing in
-- Key metrics from HubSpot (deals, contacts) if available
-- Recent communications/activity from emails and Slack
-- Brand completeness and gaps
-- Product and audience coverage
+**Briefing** (4-6 cards): Executive overview — brand health, integration status, key metrics from connected tools (HubSpot deals/contacts, emails, Slack), product/audience coverage.
 
-Return ONLY a valid JSON array, no markdown fences.`,
+**Updates** (3-6 cards): Recent changes and activity — new products/audiences added, integration activity (recent emails, deals, Slack messages), brand profile changes. Use integration data to surface real activity. Include "timeAgo" field.
 
-      Updates: `You are a business analyst. Based on the business data and live integration data below, identify recent internal updates and changes for "${brandName}".
+**To-Dos** (5-8 cards): Split into PROBLEMS (High/Medium: missing data, gaps, unresponded emails, stale deals) and SUGGESTIONS (Low/Medium: strategic levers using integrations + business DNA, e.g. "Use HubSpot deal data to refine pricing", "Leverage Slack activity for collaboration").
 
-Generate 3-6 update cards as a JSON array. Each card should have:
-- "id": unique string
-- "priority": "High" | "Medium" | "Low"  
-- "title": short title (max 8 words)
-- "description": 2-3 sentence description of the update
-- "category": one of "Brand", "Product", "Audience", "Team", "Integration", "Sales"
-- "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "refresh-cw"
-- "timeAgo": approximate time reference like "today", "this week", "recently"
+**Objectives** (4-6 cards): Data-driven, integration-aware, measurable goals mixing short-term and medium-term. Leverage connected tools.
 
-Focus on:
-- Recent brand profile changes
-- New products or audiences added
-- Integration activity (new emails, deals, messages)
-- Any changes detected from connected tools
-- Team/employee updates
+Return ONLY a valid JSON object, no markdown fences.`;
 
-Return ONLY a valid JSON array, no markdown fences.`,
-
-      "To-Dos": `You are a strategic business advisor. Based on the business data and live integration data below, identify problems that need solving and strategic levers to pull for "${brandName}".
-
-Generate 5-8 cards as a JSON array. Each card should have:
-- "id": unique string
-- "priority": "High" | "Medium" | "Low"
-- "title": short actionable title (max 8 words)
-- "description": 2-3 sentence explanation of the problem or opportunity
-- "category": one of "Problem", "Opportunity", "Suggestion", "Integration"
-- "icon": one of "alert", "lightbulb", "trending-up", "users", "plug", "shopping-bag", "palette", "target", "bot"
-
-Split into:
-1. PROBLEMS (High/Medium priority): Missing data, incomplete profiles, gaps in brand/product/audience setup, unresponded emails or messages, stale deals
-2. SUGGESTIONS (Low/Medium priority): Strategic levers to pull using existing integrations and business DNA — e.g. "Use HubSpot deal data to refine pricing", "Leverage Slack activity to identify collaboration opportunities", "Use audience data to create targeted email campaigns via Outlook"
-
-Return ONLY a valid JSON array, no markdown fences.`,
-
-      Objectives: `You are a strategic business advisor. Based on the business data and live integration data below, suggest smart business objectives for "${brandName}".
-
-Generate 4-6 objective cards as a JSON array. Each card should have:
-- "id": unique string
-- "priority": "High" | "Medium" | "Low"
-- "title": short objective title (max 8 words)
-- "description": 2-3 sentence description of the objective, including how to achieve it using the available tools and data
-- "category": one of "Growth", "Operations", "Brand", "Sales", "Marketing", "Team"
-- "icon": one of "target", "trending-up", "users", "plug", "shopping-bag", "palette", "bot", "award", "lightbulb"
-
-Objectives should be:
-- Data-driven: based on actual business state (e.g. if 0 products, objective is to catalog products)
-- Integration-aware: leverage connected tools (e.g. "Use HubSpot pipeline to close 3 deals this month")
-- Measurable where possible
-- Mix of short-term (this week) and medium-term (this month)
-
-Return ONLY a valid JSON array, no markdown fences.`,
-    };
-
-    const systemPrompt = tabPrompts[tab] || tabPrompts["Briefing"];
-
-    // 7. Call AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -344,19 +267,26 @@ Return ONLY a valid JSON array, no markdown fences.`,
     }
 
     const aiData = await aiResponse.json();
-    const rawContent = aiData.choices?.[0]?.message?.content || "[]";
+    const rawContent = aiData.choices?.[0]?.message?.content || "{}";
 
-    // Parse JSON from response (handle potential markdown wrapping)
-    let cards: any[];
+    let allTabs: Record<string, any[]>;
     try {
-      const jsonMatch = rawContent.match(/\[[\s\S]*\]/);
-      cards = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+      allTabs = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     } catch (e) {
       console.error("Failed to parse AI response:", rawContent.slice(0, 500));
-      cards = [];
+      allTabs = {};
     }
 
-    return new Response(JSON.stringify({ cards, brandName }), {
+    // Normalize
+    const result = {
+      Briefing: Array.isArray(allTabs.Briefing) ? allTabs.Briefing : [],
+      Updates: Array.isArray(allTabs.Updates) ? allTabs.Updates : [],
+      "To-Dos": Array.isArray(allTabs["To-Dos"]) ? allTabs["To-Dos"] : [],
+      Objectives: Array.isArray(allTabs.Objectives) ? allTabs.Objectives : [],
+    };
+
+    return new Response(JSON.stringify({ tabs: result, brandName }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 

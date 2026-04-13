@@ -234,12 +234,12 @@ export function ManageDashboardView() {
   const { brands } = useBusinessDNA();
   const [selectedBrand, setSelectedBrand] = useState<BrandEntry | null>(null);
   const [activeTab, setActiveTab] = useState(TABS[0].id);
-  const [cards, setCards] = useState<DashboardCard[]>([]);
+  const [allTabCards, setAllTabCards] = useState<Record<string, DashboardCard[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customObjectives, setCustomObjectives] = useState<DashboardCard[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [cache, setCache] = useState<Record<string, DashboardCard[]>>({});
+  const [cachedBrandId, setCachedBrandId] = useState<string | null>(null);
 
   const activeBrand = selectedBrand && brands.find((b) => b.id === selectedBrand.id)
     ? brands.find((b) => b.id === selectedBrand.id)!
@@ -247,39 +247,39 @@ export function ManageDashboardView() {
 
   const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
 
-  const fetchInsights = useCallback(async (tab: string, brandId: string) => {
-    const cacheKey = `${tab}-${brandId}`;
-    if (cache[cacheKey]) {
-      setCards(cache[cacheKey]);
-      return;
-    }
+  const fetchAllInsights = useCallback(async (brandId: string) => {
+    if (cachedBrandId === brandId) return;
 
     setLoading(true);
     setError(null);
     try {
       const { data, error: fnError } = await supabase.functions.invoke("dashboard-insights", {
-        body: { tab, brandId, workspaceId },
+        body: { brandId, workspaceId },
       });
 
       if (fnError) throw fnError;
-      const fetchedCards = data?.cards || [];
-      setCards(fetchedCards);
-      setCache((prev) => ({ ...prev, [cacheKey]: fetchedCards }));
+      const tabs = data?.tabs || {};
+      setAllTabCards({
+        Briefing: tabs.Briefing || [],
+        Updates: tabs.Updates || [],
+        "To-Dos": tabs["To-Dos"] || [],
+        Objectives: tabs.Objectives || [],
+      });
+      setCachedBrandId(brandId);
     } catch (e: any) {
       console.error("Dashboard insights error:", e);
       setError("Failed to load insights. Please try again.");
-      setCards([]);
+      setAllTabCards({});
     } finally {
       setLoading(false);
     }
-  }, [cache, workspaceId]);
+  }, [cachedBrandId, workspaceId]);
 
-  // Fetch when tab or brand changes
+  // Fetch once when brand changes
   useEffect(() => {
     if (!activeBrand) return;
-    // Find the DB row ID for this brand
-    fetchInsights(activeTab, activeBrand.id);
-  }, [activeTab, activeBrand?.id]);
+    fetchAllInsights(activeBrand.id);
+  }, [activeBrand?.id]);
 
   const handleAddObjective = (title: string, description: string) => {
     const newObj: DashboardCard = {
