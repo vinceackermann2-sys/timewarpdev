@@ -31,7 +31,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { 
+import {
   Bot,
   LogOut,
   Dna,
@@ -50,7 +50,13 @@ import {
   Plus,
   Cable,
   LayoutDashboard,
+  ChevronDown,
+  ClipboardCheck,
+  RefreshCw,
+  ListTodo,
+  Award,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTheme } from "next-themes";
 import { WhatsNewDropdown } from "./WhatsNewDropdown";
 import { SettingsDialog } from "./SettingsDialog";
@@ -60,14 +66,18 @@ import { ActionsCard } from "./ActionsCard";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
 type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
+export type DashboardTab = "Briefing" | "Updates" | "To-Dos" | "Objectives";
 
 interface DatabaseSidebarProps {
   currentView: View;
   onViewChange: (view: View) => void;
   userEmail: string;
+  activeDashboardTab?: DashboardTab;
+  onDashboardTabChange?: (tab: DashboardTab) => void;
 }
 
-export function DatabaseSidebar({ currentView, onViewChange, userEmail }: DatabaseSidebarProps) {
+export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDashboardTab, onDashboardTabChange }: DatabaseSidebarProps) {
+  const [dashExpanded, setDashExpanded] = useState(currentView === "manage");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { state, toggleSidebar, setOpen } = useSidebar();
@@ -171,17 +181,58 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
             {!isCollapsed && <SidebarGroupLabel>Manage</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    isActive={currentView === "manage"}
-                    onClick={() => onViewChange("manage")}
-                    tooltip="Dashboard"
-                    className={currentView === "manage" ? "bg-primary/10 text-primary" : ""}
-                  >
-                    <LayoutDashboard className="h-4 w-4 shrink-0" />
-                    {!isCollapsed && <span>Dashboard</span>}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <Collapsible open={dashExpanded} onOpenChange={setDashExpanded}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        isActive={currentView === "manage"}
+                        onClick={() => {
+                          onViewChange("manage");
+                          setDashExpanded(true);
+                        }}
+                        tooltip="Dashboard"
+                        className={currentView === "manage" ? "bg-primary/10 text-primary" : ""}
+                      >
+                        <LayoutDashboard className="h-4 w-4 shrink-0" />
+                        {!isCollapsed && (
+                          <>
+                            <span className="flex-1">Dashboard</span>
+                            <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${dashExpanded ? "rotate-180" : ""}`} />
+                          </>
+                        )}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    {!isCollapsed && (
+                      <CollapsibleContent>
+                        <div className="ml-6 border-l border-border/50 pl-2 mt-1 space-y-0.5">
+                          {([
+                            { id: "Briefing" as const, label: "Briefing", icon: ClipboardCheck },
+                            { id: "Updates" as const, label: "Updates", icon: RefreshCw },
+                            { id: "To-Dos" as const, label: "To-Dos", icon: ListTodo },
+                            { id: "Objectives" as const, label: "Objectives", icon: Award },
+                          ]).map((tab) => {
+                            const isTabActive = currentView === "manage" && activeDashboardTab === tab.id;
+                            return (
+                              <button
+                                key={tab.id}
+                                onClick={() => {
+                                  onViewChange("manage");
+                                  onDashboardTabChange?.(tab.id);
+                                }}
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                                  isTabActive ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                }`}
+                              >
+                                <tab.icon className="h-3.5 w-3.5 shrink-0" />
+                                <span>{tab.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </CollapsibleContent>
+                    )}
+                  </SidebarMenuItem>
+                </Collapsible>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
