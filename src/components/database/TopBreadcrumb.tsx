@@ -43,7 +43,7 @@ export function TopBreadcrumb({ currentView }: TopBreadcrumbProps) {
             <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <input
               type="text"
-              placeholder="Find workspace..."
+              placeholder="Find business..."
               value={wsSearch}
               onChange={(e) => setWsSearch(e.target.value)}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -68,7 +68,7 @@ export function TopBreadcrumb({ currentView }: TopBreadcrumbProps) {
               <div className="px-3 py-1.5">
                 <input
                   type="text"
-                  placeholder="Workspace name"
+                  placeholder="Business name"
                   value={newWsName}
                   onChange={(e) => setNewWsName(e.target.value)}
                   onKeyDown={async (e) => {
@@ -89,8 +89,8 @@ export function TopBreadcrumb({ currentView }: TopBreadcrumbProps) {
                 onClick={() => setShowNewWs(true)}
                 className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted/50 transition-colors flex items-center gap-1.5"
               >
-                <Plus className="h-3.5 w-3.5" />
-                Add workspace
+              <Plus className="h-3.5 w-3.5" />
+                Add business
               </button>
             )}
           </div>
