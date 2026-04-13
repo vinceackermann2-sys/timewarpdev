@@ -39,6 +39,80 @@ function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>)
 /* ------------------------------------------------------------------ */
 /*  Card Component                                                     */
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/*  Briefing Card (priority badge + progress bar + action button)      */
+/* ------------------------------------------------------------------ */
+function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
+  const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
+  const priorityClass = badgeClasses[card.priority] || badgeClasses.Low;
+  const btnLabel = getCardButtonLabel(card);
+
+  return (
+    <button
+      onClick={onOpen}
+      className="bg-card border border-border/60 rounded-2xl p-5 w-full flex flex-col gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md text-left cursor-pointer"
+      style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
+    >
+      {/* Top row: badge + time | source icon */}
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${priorityClass}`}>
+            {card.priority} Priority
+          </span>
+          {card.timeAgo && (
+            <div className="flex items-center text-muted-foreground/70 text-[11px]">
+              <Clock className="w-3 h-3 mr-1" />
+              {card.timeAgo}
+            </div>
+          )}
+        </div>
+        <div className="shrink-0 bg-white border border-border/40 p-1.5 rounded-lg flex items-center justify-center w-9 h-9">
+          {sourceMeta.icon ? (
+            <img
+              src={sourceMeta.icon}
+              alt={sourceMeta.label}
+              className="w-5 h-5 rounded object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+                (e.target as HTMLImageElement).parentElement!.innerHTML =
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+              }}
+            />
+          ) : (
+            <Building2 className="w-5 h-5 text-muted-foreground" />
+          )}
+        </div>
+      </div>
+
+      {/* Title */}
+      <h3 className="text-sm font-semibold text-foreground leading-snug">{card.title}</h3>
+
+      {/* Progress bar */}
+      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{
+            width: card.priority === "High" ? "85%" : card.priority === "Medium" ? "55%" : "30%",
+            background: card.priority === "High"
+              ? "hsl(var(--destructive) / 0.5)"
+              : card.priority === "Medium"
+                ? "hsl(40 80% 60% / 0.6)"
+                : "hsl(142 60% 50% / 0.5)",
+          }}
+        />
+      </div>
+
+      {/* Action button */}
+      <span className={`inline-flex items-center w-fit text-[11px] font-semibold px-3 py-1.5 rounded-lg ${priorityClass}`}>
+        {btnLabel}
+      </span>
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Card Component (Updates / fallback)                                */
+/* ------------------------------------------------------------------ */
 function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
 
