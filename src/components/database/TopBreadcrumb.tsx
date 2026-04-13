@@ -32,19 +32,11 @@ export function TopBreadcrumb({ currentView }: TopBreadcrumbProps) {
   const [newWsName, setNewWsName] = useState("");
 
   return (
-    <div className="hidden md:flex items-center gap-2 px-4 h-10 border-b border-border bg-sidebar text-sm shrink-0">
-      <button
-        onClick={toggleSidebar}
-        className="p-1 rounded-md hover:bg-primary/10 transition-colors"
-        title="Toggle sidebar"
-      >
-        <PanelLeft className="h-4 w-4 text-muted-foreground" />
-      </button>
-
+    <div className="hidden md:flex items-center gap-2 px-4 h-10 bg-sidebar text-sm shrink-0">
       <Popover open={wsOpen} onOpenChange={setWsOpen}>
         <PopoverTrigger asChild>
           <button className="flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-muted/50 transition-colors text-foreground font-medium">
-            {activeWorkspace?.workspaceName || "Workspace"}
+            {activeWorkspace?.workspaceName || "Business"}
             <ChevronsUpDown className="h-3 w-3 text-muted-foreground" />
           </button>
         </PopoverTrigger>
