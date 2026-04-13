@@ -38,7 +38,7 @@ function MobileHeader() {
   );
 }
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections";
+type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
 
 interface PendingTask {
   role: string;
