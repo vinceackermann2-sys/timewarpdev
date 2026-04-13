@@ -293,9 +293,10 @@ export function ManageDashboardView() {
     setCustomObjectives((prev) => [...prev, newObj]);
   };
 
+  const tabCards = allTabCards[activeTab] || [];
   const displayCards = activeTab === "Objectives"
-    ? [...customObjectives, ...cards]
-    : cards;
+    ? [...customObjectives, ...tabCards]
+    : tabCards;
 
   const filteredCards = searchQuery
     ? displayCards.filter((c) =>
@@ -312,7 +313,7 @@ export function ManageDashboardView() {
           <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
           <BusinessSelector brands={brands} selected={activeBrand} onSelect={(b) => {
             setSelectedBrand(b);
-            setCache({}); // Clear cache when switching business
+            setCachedBrandId(null);
           }} />
         </div>
 
@@ -385,8 +386,8 @@ export function ManageDashboardView() {
               <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
               <p>{error}</p>
               <Button variant="outline" size="sm" className="mt-3" onClick={() => {
-                setCache({});
-                fetchInsights(activeTab, activeBrand.id);
+                setCachedBrandId(null);
+                fetchAllInsights(activeBrand.id);
               }}>
                 Retry
               </Button>
