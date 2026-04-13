@@ -337,7 +337,7 @@ export function ManageDashboardView({ activeBrandId, initialTab }: { activeBrand
     <div className="h-full flex flex-col bg-background relative overflow-hidden">
       <div className="px-6 lg:px-8 pt-6 pb-3">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{activeTab}</h1>
           {activeBrand && (
             <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
@@ -354,29 +354,6 @@ export function ManageDashboardView({ activeBrandId, initialTab }: { activeBrand
             className="block w-full pl-7 pr-2 py-1.5 border border-transparent rounded-md bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background focus:border-border text-[11px] transition-colors"
             placeholder="Search cards..."
           />
-        </div>
-      </div>
-
-      <div className="border-t border-b border-border">
-        <div className="px-6 lg:px-8">
-          <nav className="flex gap-8" aria-label="Tabs">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`group relative flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors outline-none ${
-                    isActive ? "border-transparent text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                  }`}>
-                  <Icon className={`h-4 w-4 ${isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
-                  <span>{tab.label}</span>
-                  {isActive && (
-                    <motion.div layoutId="manageDashTabIndicator" className="absolute bottom-[-2px] left-0 right-0 h-[2px] bg-primary" initial={false} transition={{ type: "spring", stiffness: 500, damping: 30 }} />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
         </div>
       </div>
 
