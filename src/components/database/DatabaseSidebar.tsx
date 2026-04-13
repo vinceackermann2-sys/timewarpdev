@@ -187,7 +187,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border p-2 space-y-2">
+        <SidebarFooter className="p-2 space-y-2">
           {/* Workspace Chooser */}
           {!isCollapsed ? (
             <Popover open={wsPopoverOpen} onOpenChange={setWsPopoverOpen}>
