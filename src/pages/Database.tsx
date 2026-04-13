@@ -313,9 +313,16 @@ const Database = () => {
             onViewChange={handleViewChange}
             userEmail={user?.email || ""}
           />
-          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden border border-border/50 rounded-xl m-1">
+          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden border border-border/30 rounded-lg m-1">
             <MobileHeader />
-            <TopBreadcrumb currentView={currentView} />
+            <TopBreadcrumb
+              currentView={currentView}
+              activeBrandId={activeBrandId}
+              onSelectBrand={(brandId) => {
+                setActiveBrandId(brandId);
+                setShowBusinessDNA(true);
+              }}
+            />
             <main className="flex-1 min-h-0 overflow-hidden">
               {currentView === "aiceo" && user && (
                 <TimeWarpAIView
