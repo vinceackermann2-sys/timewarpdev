@@ -43,7 +43,7 @@ export interface DashboardCard {
 export const badgeClasses: Record<string, string> = {
   High: "bg-red-400/80 text-white",
   Medium: "bg-yellow-400/70 text-white",
-  Low: "bg-green-100 text-green-700",
+  Low: "bg-green-400/70 text-white",
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {

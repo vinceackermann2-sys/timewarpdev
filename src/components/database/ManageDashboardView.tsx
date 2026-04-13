@@ -48,7 +48,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
     <div className="bg-card border border-border rounded-xl p-5 w-full flex flex-col gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md" style={{ flex: "1 1 calc(33.333% - 1rem)", maxWidth: "calc(33.333% - 0.67rem)", minWidth: "280px" }}>
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-2">
-          <span className={`px-2.5 py-1 text-[11px] font-semibold rounded ${badgeClasses[card.priority] || badgeClasses.Low}`}>
+          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded ${badgeClasses[card.priority] || badgeClasses.Low}`}>
             {priorityLabel}
           </span>
           {card.category && (

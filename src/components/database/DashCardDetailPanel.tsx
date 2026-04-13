@@ -129,7 +129,7 @@ export function DashCardDetailPanel({ card, open, onClose }: Props) {
       <SheetContent className="w-full sm:max-w-[420px] flex flex-col gap-0 p-0">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center gap-2 mb-2">
-            <span className={`px-2 py-0.5 text-[11px] font-medium rounded ${badgeClasses[card.priority] || badgeClasses.Low}`}>
+            <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${badgeClasses[card.priority] || badgeClasses.Low}`}>
               {card.priority}
             </span>
             {card.category && (
