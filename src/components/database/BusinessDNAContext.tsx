@@ -303,7 +303,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     async function load() {
       // Only show loading skeleton on first load or workspace switch
       const isWorkspaceSwitch = loadedWorkspaceRef.current !== activeWorkspaceId;
-      if (isWorkspaceSwitch) {
+      // Only show loading skeleton if we have no cached brands to display
+      const hasCachedBrands = brands.length > 0;
+      if (isWorkspaceSwitch && !hasCachedBrands) {
         setIsLoading(true);
       }
       // Share a single session across all three parallel loads

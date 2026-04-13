@@ -136,7 +136,8 @@ function ConnectionCard({
 
 export function ConnectionsView() {
   const [connectedProviders, setConnectedProviders] = useState<ConnectedProvider[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [statusLoaded, setStatusLoaded] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
 
   const checkConnections = useCallback(async () => {
@@ -165,6 +166,7 @@ export function ConnectionsView() {
       console.error("Failed to check connections:", err);
     }
     setIsLoading(false);
+    setStatusLoaded(true);
   }, []);
 
   useEffect(() => { checkConnections(); }, [checkConnections]);
@@ -250,23 +252,6 @@ export function ConnectionsView() {
   const microsoftIntegrations = integrations.filter(i => i.section === "microsoft");
   const otherIntegrations = integrations.filter(i => i.section === "other");
 
-  if (isLoading) {
-    return (
-      <div className="h-full overflow-auto">
-        <div className="max-w-4xl mx-auto px-6 py-10">
-          <div className="mb-8 space-y-2">
-            <Skeleton className="h-8 w-36" />
-            <Skeleton className="h-4 w-80 max-w-full" />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <ConnectionCardSkeleton key={index} />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-full overflow-auto">
