@@ -254,9 +254,14 @@ function AddObjectiveInline({ onAdd }: { onAdd: (title: string, desc: string) =>
 /* ------------------------------------------------------------------ */
 /*  Main View                                                          */
 /* ------------------------------------------------------------------ */
-export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string | null }) {
+export function ManageDashboardView({ activeBrandId, initialTab }: { activeBrandId?: string | null; initialTab?: string }) {
   const { brands } = useBusinessDNA();
-  const [activeTab, setActiveTab] = useState(TABS[0].id);
+  const [activeTab, setActiveTab] = useState(initialTab || TABS[0].id);
+
+  // Sync tab when sidebar changes it
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
   const [allTabCards, setAllTabCards] = useState<Record<string, DashboardCard[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
