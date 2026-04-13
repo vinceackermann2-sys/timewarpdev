@@ -41,9 +41,9 @@ export interface DashboardCard {
 }
 
 export const badgeClasses: Record<string, string> = {
-  High: "bg-white/40 text-red-600 dark:bg-white/10 dark:text-red-300 backdrop-blur-xl border border-white/50 dark:border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]",
-  Medium: "bg-white/40 text-yellow-700 dark:bg-white/10 dark:text-yellow-300 backdrop-blur-xl border border-white/50 dark:border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]",
-  Low: "bg-white/40 text-green-600 dark:bg-white/10 dark:text-green-300 backdrop-blur-xl border border-white/50 dark:border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]",
+  High: "bg-[hsl(0_100%_97%_/_0.86)] text-[hsl(0_72%_42%)] border border-[hsl(0_65%_82%_/_0.95)] backdrop-blur-xl shadow-[0_6px_18px_hsl(0_0%_0%_/_0.08),inset_0_1px_0_hsl(0_0%_100%_/_0.72)]",
+  Medium: "bg-[hsl(42_100%_96%_/_0.9)] text-[hsl(36_82%_36%)] border border-[hsl(42_88%_78%_/_0.95)] backdrop-blur-xl shadow-[0_6px_18px_hsl(0_0%_0%_/_0.08),inset_0_1px_0_hsl(0_0%_100%_/_0.72)]",
+  Low: "bg-[hsl(142_55%_96%_/_0.88)] text-[hsl(142_62%_30%)] border border-[hsl(142_42%_78%_/_0.95)] backdrop-blur-xl shadow-[0_6px_18px_hsl(0_0%_0%_/_0.08),inset_0_1px_0_hsl(0_0%_100%_/_0.72)]",
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {
