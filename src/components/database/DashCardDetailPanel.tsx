@@ -1,6 +1,5 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Clock, ExternalLink } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Clock, Mail, Calendar, Users, FileText, Hash, BookOpen, Lightbulb, DollarSign } from "lucide-react";
 import { SOURCE_META, type DashboardCard } from "./dashboardTypes";
 
 interface Props {
@@ -14,6 +13,91 @@ const badgeClasses: Record<string, string> = {
   Medium: "bg-[hsl(45,93%,47%)]/80 text-white",
   Low: "bg-emerald-500/80 text-white",
 };
+
+function MetaRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-2.5 text-sm">
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      <div>
+        <span className="text-muted-foreground text-xs">{label}</span>
+        <p className="text-foreground">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function SourceMetadataSection({ card }: { card: DashboardCard }) {
+  const meta = card.metadata;
+  if (!meta) return null;
+
+  const source = card.source || "";
+
+  return (
+    <div className="space-y-3">
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Source Info</h4>
+
+      {/* Email (Outlook) */}
+      {source === "outlook" && (
+        <>
+          <MetaRow icon={Mail} label="From" value={meta.senderName ? `${meta.senderName}${meta.senderEmail ? ` (${meta.senderEmail})` : ""}` : meta.senderEmail} />
+          <MetaRow icon={FileText} label="Subject" value={meta.subject} />
+        </>
+      )}
+
+      {/* Meeting (Zoom) */}
+      {source === "zoom" && (
+        <>
+          <MetaRow icon={Calendar} label="Scheduled" value={meta.scheduledDate} />
+          <MetaRow icon={Clock} label="Duration" value={meta.duration} />
+          {meta.attendees && meta.attendees.length > 0 && (
+            <div className="flex items-start gap-2.5 text-sm">
+              <Users className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div>
+                <span className="text-muted-foreground text-xs">Attendees</span>
+                <ul className="text-foreground space-y-0.5">
+                  {meta.attendees.map((a, i) => <li key={i}>{a}</li>)}
+                </ul>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Deal/Contact (HubSpot) */}
+      {source === "hubspot" && (
+        <>
+          <MetaRow icon={Users} label="Contact" value={meta.contactName} />
+          <MetaRow icon={DollarSign} label="Deal Value" value={meta.dealValue} />
+          <MetaRow icon={FileText} label="Stage" value={meta.stage} />
+        </>
+      )}
+
+      {/* Slack */}
+      {source === "slack" && (
+        <>
+          <MetaRow icon={Hash} label="Channel" value={meta.channel} />
+          <MetaRow icon={Users} label="Author" value={meta.author} />
+        </>
+      )}
+
+      {/* OneDrive */}
+      {source === "onedrive" && (
+        <>
+          <MetaRow icon={FileText} label="File" value={meta.fileName} />
+          <MetaRow icon={Users} label="Shared by" value={meta.sharedBy} />
+        </>
+      )}
+
+      {/* OneNote */}
+      {source === "onenote" && (
+        <>
+          <MetaRow icon={BookOpen} label="Notebook" value={meta.notebook} />
+        </>
+      )}
+    </div>
+  );
+}
 
 export function DashCardDetailPanel({ card, open, onClose }: Props) {
   if (!card) return null;
@@ -38,9 +122,11 @@ export function DashCardDetailPanel({ card, open, onClose }: Props) {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Source */}
+          {/* Source badge */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            {sourceMeta.icon && (
+              <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            )}
             <span className="font-medium">{sourceMeta.label}</span>
             {card.timeAgo && (
               <>
@@ -50,6 +136,9 @@ export function DashCardDetailPanel({ card, open, onClose }: Props) {
               </>
             )}
           </div>
+
+          {/* Source-specific metadata */}
+          <SourceMetadataSection card={card} />
 
           {/* Description */}
           <div>
@@ -62,6 +151,17 @@ export function DashCardDetailPanel({ card, open, onClose }: Props) {
             <div>
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Details & Recommendations</h4>
               <p className="text-sm text-foreground leading-relaxed">{card.detail}</p>
+            </div>
+          )}
+
+          {/* Action Suggestion */}
+          {card.actionSuggestion && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-2">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Lightbulb className="h-4 w-4 text-primary" />
+                <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">Suggested Action</h4>
+              </div>
+              <p className="text-sm text-foreground leading-relaxed">{card.actionSuggestion}</p>
             </div>
           )}
         </div>
