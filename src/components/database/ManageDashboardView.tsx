@@ -408,7 +408,9 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
           ) : (
             <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="flex flex-wrap gap-4">
               {filteredCards.map((card) =>
-                activeTab === "To-Dos" ? (
+                activeTab === "Briefing" ? (
+                  <BriefingCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
+                ) : activeTab === "To-Dos" ? (
                   <TodoCard
                     key={card.id}
                     card={card}
