@@ -3,6 +3,12 @@ import {
   Palette, Bot, Target, Lightbulb, AlertTriangle, RefreshCw, Award, Image,
 } from "lucide-react";
 
+import logoHubspot from "@/assets/logo-hubspot.svg";
+import logoOutlook from "@/assets/logo-ms-outlook.svg";
+import logoOnedrive from "@/assets/logo-ms-onedrive.svg";
+import logoOnenote from "@/assets/logo-ms-onenote.svg";
+import logoZoom from "@/assets/logo-zoom.svg";
+
 export interface DashboardCard {
   id: string;
   priority: "High" | "Medium" | "Low";
@@ -39,12 +45,12 @@ export const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 export const SOURCE_META: Record<string, { label: string; icon: string }> = {
-  hubspot: { label: "HubSpot", icon: "/src/assets/logo-hubspot.svg" },
+  hubspot: { label: "HubSpot", icon: logoHubspot },
   slack: { label: "Slack", icon: "https://cdn.simpleicons.org/slack" },
-  outlook: { label: "Outlook", icon: "/src/assets/logo-ms-outlook.svg" },
-  onedrive: { label: "OneDrive", icon: "/src/assets/logo-ms-onedrive.svg" },
-  onenote: { label: "OneNote", icon: "/src/assets/logo-ms-onenote.svg" },
-  zoom: { label: "Zoom", icon: "/src/assets/logo-zoom.svg" },
+  outlook: { label: "Outlook", icon: logoOutlook },
+  onedrive: { label: "OneDrive", icon: logoOnedrive },
+  onenote: { label: "OneNote", icon: logoOnenote },
+  zoom: { label: "Zoom", icon: logoZoom },
   "business-dna": { label: "Business DNA", icon: "" },
   products: { label: "Products", icon: "" },
   audiences: { label: "Audiences", icon: "" },

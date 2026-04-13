@@ -2,13 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ClipboardCheck, RefreshCw, ListTodo, Award, Clock,
-  Building2, ChevronDown, Plus, Loader2, AlertTriangle, ChevronRight,
+  Building2, Plus, Loader2, AlertTriangle, ChevronRight,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useBusinessDNA, BrandEntry } from "./BusinessDNAContext";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useBusinessDNA } from "./BusinessDNAContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +19,22 @@ const TABS = [
   { id: "To-Dos", label: "To-Dos", icon: ListTodo },
   { id: "Objectives", label: "Objectives", icon: Award },
 ];
+
+const CACHE_KEY_PREFIX = "dash_cards_";
+
+function loadCachedCards(brandId: string): Record<string, DashboardCard[]> | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_PREFIX + brandId);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>) {
+  try {
+    localStorage.setItem(CACHE_KEY_PREFIX + brandId, JSON.stringify(tabs));
+  } catch { /* quota exceeded – ignore */ }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Card Component                                                     */
@@ -68,14 +81,6 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
       <h3 className="text-base font-bold text-foreground leading-snug">{card.title}</h3>
       <p className="text-sm text-muted-foreground line-clamp-2">{card.description}</p>
       <div className="flex items-center justify-between mt-auto pt-2">
-        {card.timeAgo ? (
-          <div className="flex items-center text-muted-foreground text-[11px] font-medium">
-            <Clock className="w-3 h-3 mr-1" />
-            {card.timeAgo}
-          </div>
-        ) : (
-          <div />
-        )}
         <Button
           variant="outline"
           size="sm"
@@ -88,6 +93,14 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
           {detailLabel}
           <ChevronRight className="w-3 h-3" />
         </Button>
+        {card.timeAgo ? (
+          <div className="flex items-center text-muted-foreground text-[11px] font-medium">
+            <Clock className="w-3 h-3 mr-1" />
+            {card.timeAgo}
+          </div>
+        ) : (
+          <div />
+        )}
       </div>
     </div>
   );
@@ -111,51 +124,6 @@ function CardSkeletons() {
         </div>
       ))}
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Business Selector                                                  */
-/* ------------------------------------------------------------------ */
-function BusinessSelector({ brands, selected, onSelect }: {
-  brands: BrandEntry[]; selected: BrandEntry | null; onSelect: (b: BrandEntry) => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 text-sm">
-          {selected ? (
-            <>
-              {selected.logoUrls?.[selected.selectedLogo ?? 0] ? (
-                <img src={selected.logoUrls[selected.selectedLogo ?? 0]} className="h-4 w-4 rounded object-contain" />
-              ) : (
-                <Building2 className="h-4 w-4 text-primary" />
-              )}
-              {selected.name}
-            </>
-          ) : (
-            <>
-              <Building2 className="h-4 w-4" />
-              Select Business
-            </>
-          )}
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        {brands.length === 0 && <DropdownMenuItem disabled>No businesses yet</DropdownMenuItem>}
-        {brands.map((b) => (
-          <DropdownMenuItem key={b.id} onClick={() => onSelect(b)} className="gap-2">
-            {b.logoUrls?.[b.selectedLogo ?? 0] ? (
-              <img src={b.logoUrls[b.selectedLogo ?? 0]} className="h-4 w-4 rounded object-contain" />
-            ) : (
-              <Building2 className="h-4 w-4 text-primary" />
-            )}
-            {b.name}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
 
@@ -204,15 +172,24 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
   const [error, setError] = useState<string | null>(null);
   const [customObjectives, setCustomObjectives] = useState<DashboardCard[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [cachedBrandId, setCachedBrandId] = useState<string | null>(null);
   const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
 
   const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
-
   const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
 
-  const fetchAllInsights = useCallback(async (brandId: string) => {
-    if (cachedBrandId === brandId) return;
+  // Load cached cards on brand change
+  useEffect(() => {
+    if (!activeBrand) return;
+    const cached = loadCachedCards(activeBrand.id);
+    if (cached) {
+      setAllTabCards(cached);
+    } else {
+      // No cache – fetch automatically
+      fetchInsights(activeBrand.id);
+    }
+  }, [activeBrand?.id]);
+
+  const fetchInsights = useCallback(async (brandId: string) => {
     setLoading(true);
     setError(null);
     try {
@@ -221,31 +198,26 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
       });
       if (fnError) throw fnError;
       const tabs = data?.tabs || {};
-      setAllTabCards({
+      const result: Record<string, DashboardCard[]> = {
         Briefing: tabs.Briefing || [],
         Updates: tabs.Updates || [],
         "To-Dos": tabs["To-Dos"] || [],
         Objectives: tabs.Objectives || [],
-      });
-      setCachedBrandId(brandId);
+      };
+      setAllTabCards(result);
+      saveCachedCards(brandId, result);
     } catch (e: any) {
       console.error("Dashboard insights error:", e);
       setError("Failed to load insights. Please try again.");
-      setAllTabCards({});
     } finally {
       setLoading(false);
     }
-  }, [cachedBrandId, workspaceId]);
+  }, [workspaceId]);
 
-  useEffect(() => {
-    if (!activeBrand) return;
-    setCachedBrandId(null);
-  }, [activeBrandId]);
-
-  useEffect(() => {
-    if (!activeBrand) return;
-    fetchAllInsights(activeBrand.id);
-  }, [activeBrand?.id, cachedBrandId]);
+  const handleRefresh = () => {
+    if (!activeBrand || loading) return;
+    fetchInsights(activeBrand.id);
+  };
 
   const handleAddObjective = (title: string, description: string) => {
     const newObj: DashboardCard = {
@@ -263,11 +235,19 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
         c.description.toLowerCase().includes(searchQuery.toLowerCase()))
     : displayCards;
 
+  const hasCards = Object.values(allTabCards).some(arr => arr.length > 0);
+
   return (
     <div className="h-full flex flex-col bg-background relative overflow-hidden">
       <div className="px-6 lg:px-8 pt-6 pb-3">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+          {activeBrand && (
+            <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={handleRefresh} disabled={loading}>
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Update
+            </Button>
+          )}
         </div>
         <div className="relative max-w-[220px]">
           <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
@@ -311,7 +291,7 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
               <Building2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
               <p>Select a business to see your dashboard.</p>
             </div>
-          ) : loading ? (
+          ) : loading && !hasCards ? (
             <>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -319,11 +299,11 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
               </div>
               <CardSkeletons />
             </>
-          ) : error ? (
+          ) : error && !hasCards ? (
             <div className="text-destructive w-full py-8 text-center text-sm">
               <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
               <p>{error}</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => { setCachedBrandId(null); fetchAllInsights(activeBrand.id); }}>Retry</Button>
+              <Button variant="outline" size="sm" className="mt-3" onClick={handleRefresh}>Retry</Button>
             </div>
           ) : (
             <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="flex flex-wrap gap-4">
