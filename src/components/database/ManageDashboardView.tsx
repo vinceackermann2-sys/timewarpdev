@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ClipboardCheck, RefreshCw, ListTodo, Award, Clock,
-  Building2, Plus, Loader2, AlertTriangle, ChevronRight,
+  Building2, Plus, Loader2, AlertTriangle,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "./BusinessDNAContext";
@@ -41,64 +41,50 @@ function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>)
 /* ------------------------------------------------------------------ */
 function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
-  const buttonLabel = getCardButtonLabel(card);
-  const priorityLabel = card.priority === "High" ? "High Priority" : card.priority === "Medium" ? "Medium Priority" : "Low Priority";
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 w-full flex flex-col gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md" style={{ flex: "1 1 calc(33.333% - 1rem)", maxWidth: "calc(33.333% - 0.67rem)", minWidth: "280px" }}>
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-2">
-          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded ${badgeClasses[card.priority] || badgeClasses.Low}`}>
-            {priorityLabel}
-          </span>
+    <button
+      onClick={onOpen}
+      className="bg-card border border-border/60 rounded-2xl p-4 w-full flex items-start gap-4 transition-all duration-200 hover:border-primary/30 hover:shadow-md text-left cursor-pointer"
+      style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
+    >
+      {/* Source icon */}
+      <div className="shrink-0 bg-white border border-border/40 p-2 rounded-xl flex items-center justify-center w-12 h-12 mt-0.5">
+        {sourceMeta.icon ? (
+          <img
+            src={sourceMeta.icon}
+            alt={sourceMeta.label}
+            className="w-7 h-7 rounded object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+              (e.target as HTMLImageElement).parentElement!.innerHTML =
+                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+            }}
+          />
+        ) : (
+          <Building2 className="w-7 h-7 text-muted-foreground" />
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="font-semibold text-sm text-foreground truncate">{card.title}</span>
           {card.category && (
-            <span className="text-[10px] text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded">
+            <span className="shrink-0 text-[10px] text-muted-foreground font-medium border border-border rounded px-1.5 py-0.5">
               {card.category}
             </span>
           )}
         </div>
-        <div className="bg-white border border-border/40 p-2.5 rounded-lg flex items-center justify-center w-12 h-12">
-          {sourceMeta.icon ? (
-            <img
-              src={sourceMeta.icon}
-              alt={sourceMeta.label}
-              className="w-8 h-8 rounded object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-                (e.target as HTMLImageElement).parentElement!.innerHTML =
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
-              }}
-            />
-          ) : (
-            <Building2 className="w-8 h-8 text-muted-foreground" />
-          )}
-        </div>
-      </div>
-      <h3 className="text-base font-bold text-foreground leading-snug">{card.title}</h3>
-      <p className="text-sm text-muted-foreground line-clamp-2">{card.description}</p>
-      <div className="flex items-center justify-between mt-auto pt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onOpen}
-          className="h-9 px-5 text-sm gap-1.5 font-semibold"
-        >
-          {sourceMeta.icon && (
-            <img src={sourceMeta.icon} alt="" className="w-3.5 h-3.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-          )}
-          {buttonLabel}
-          <ChevronRight className="w-3 h-3" />
-        </Button>
-        {card.timeAgo ? (
-          <div className="flex items-center text-muted-foreground text-[11px] font-medium">
+        <p className="text-[13px] text-muted-foreground line-clamp-1">{card.description}</p>
+        {card.timeAgo && (
+          <div className="flex items-center text-muted-foreground/70 text-[11px] mt-1.5">
             <Clock className="w-3 h-3 mr-1" />
             {card.timeAgo}
           </div>
-        ) : (
-          <div />
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -108,15 +94,14 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
 function CardSkeletons() {
   return (
     <div className="flex flex-wrap gap-4">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3" style={{ flex: "1 1 calc(33.333% - 1rem)", maxWidth: "calc(33.333% - 0.67rem)", minWidth: "280px" }}>
-          <div className="flex justify-between items-start">
-            <Skeleton className="h-5 w-20 rounded" />
-            <Skeleton className="h-7 w-7 rounded" />
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-card border border-border/60 rounded-2xl p-4 flex items-start gap-4" style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}>
+          <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-16" />
           </div>
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-2/3" />
         </div>
       ))}
     </div>
