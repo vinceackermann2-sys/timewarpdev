@@ -61,7 +61,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
             </span>
           )}
         </div>
-        <div className="bg-muted/60 border border-border/40 p-1.5 rounded-lg flex items-center justify-center w-8 h-8">
+        <div className="bg-white border border-border/40 p-1.5 rounded-lg flex items-center justify-center w-8 h-8">
           {sourceMeta.icon ? (
             <img
               src={sourceMeta.icon}
