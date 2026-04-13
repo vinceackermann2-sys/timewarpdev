@@ -477,10 +477,15 @@ export function AgentChatView({ activeBrandId }: { activeBrandId?: string | null
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLDivElement>(null);
 
-  /* set default agent from first brand */
+  /* Sync agent from breadcrumb's selected brand */
   useEffect(() => {
-    if (agents.length > 0 && !selectedAgent) setSelectedAgent(agents[0].name);
-  }, [agents]);
+    if (activeBrandId) {
+      const brand = brands.find(b => b.id === activeBrandId);
+      if (brand) setSelectedAgent(brand.agentName || brand.name || "AI CEO");
+    } else if (agents.length > 0 && !selectedAgent) {
+      setSelectedAgent(agents[0].name);
+    }
+  }, [activeBrandId, brands, agents]);
 
   const IMAGE_ANALYSIS_MAX_DIMENSION = 1600;
   const IMAGE_ANALYSIS_MAX_BYTES = 2_000_000;
