@@ -5,7 +5,6 @@ import {
   getValidProviderToken,
   searchMicrosoftData,
   searchOneNoteData,
-  searchSlackData,
 } from "../_shared/run-employee/connections.ts";
 
 const corsHeaders = {
@@ -132,8 +131,38 @@ serve(async (req) => {
         try {
           const slackToken = await getValidProviderToken(supabase, user.id, "slack");
           if (!slackToken) return;
-          const results = await searchSlackData(slackToken, searchQuery2, brandName);
-          if (results.length > 0) integrationData += `\n### Recent Slack Activity\n${results.join("\n")}\n`;
+          // Fetch recent messages from the whole workspace (no brand filter)
+          const channelsRes = await fetch(
+            `https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=20&exclude_archived=true`,
+            { headers: { Authorization: `Bearer ${slackToken}` } },
+          );
+          if (!channelsRes.ok) return;
+          const channelsData = await channelsRes.json();
+          if (!channelsData.ok || !channelsData.channels) return;
+
+          const slackMessages: string[] = [];
+          const channels = channelsData.channels.slice(0, 15);
+          await Promise.all(channels.map(async (channel: any) => {
+            try {
+              if (slackMessages.length >= 10) return;
+              const histRes = await fetch(
+                `https://slack.com/api/conversations.history?channel=${channel.id}&limit=5`,
+                { headers: { Authorization: `Bearer ${slackToken}` } },
+              );
+              if (!histRes.ok) return;
+              const histData = await histRes.json();
+              if (!histData.ok || !histData.messages) return;
+              for (const msg of histData.messages) {
+                if (slackMessages.length >= 10) break;
+                if (msg.subtype === "channel_join" || msg.subtype === "channel_leave") continue;
+                const ts = msg.ts ? new Date(parseFloat(msg.ts) * 1000).toISOString().slice(0, 16).replace("T", " ") : "";
+                const preview = (msg.text || "").slice(0, 200);
+                if (!preview.trim()) continue;
+                slackMessages.push(`💬 **#${channel.name}** (${ts}): ${preview}`);
+              }
+            } catch (_e) { /* skip channel */ }
+          }));
+          if (slackMessages.length > 0) integrationData += `\n### Recent Slack Activity\n${slackMessages.join("\n")}\n`;
         } catch (e) { console.error("Slack search error:", e); }
       })());
     }
