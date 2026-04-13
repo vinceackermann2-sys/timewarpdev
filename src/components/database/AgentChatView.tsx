@@ -2154,7 +2154,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     <div className="h-full min-h-0 w-full bg-background flex relative overflow-hidden">
       {/* Main chat area */}
       <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden">
-      {/* Sticky top agent selector */}
+      {/* Sticky top agent display */}
       <header className="shrink-0 z-20 flex justify-center items-center py-3 bg-background/80 backdrop-blur-md">
         {/* History toggle button */}
         <button
@@ -2164,31 +2164,9 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         >
           {showHistory ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
         </button>
-        <div className="relative">
-          <button
-            onClick={() => setShowAgents(!showAgents)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
-          >
-            <Bot className="w-4 h-4 text-muted-foreground" />
-            {selectedAgent || "Select Agent"}
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showAgents ? "rotate-180" : ""}`} />
-          </button>
-          {showAgents && (
-            <div className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] w-56 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border py-2 animate-in fade-in zoom-in-95 duration-200 z-50">
-              {agents.map((agent) => (
-                <button
-                  key={agent.id}
-                  onClick={() => { setSelectedAgent(agent.name); setShowAgents(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors ${selectedAgent === agent.name ? "text-primary font-semibold" : "text-muted-foreground"}`}
-                >
-                  {agent.name}
-                </button>
-              ))}
-              {agents.length === 0 && (
-                <p className="px-4 py-2 text-sm text-muted-foreground text-center">No agents yet — add a business in Business DNA</p>
-              )}
-            </div>
-          )}
+        <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground">
+          <Bot className="w-4 h-4 text-muted-foreground" />
+          {selectedAgent || "AI CEO"}
         </div>
       </header>
 
