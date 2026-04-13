@@ -66,6 +66,7 @@ function ConnectionCard({
   connected,
   email,
   isConnecting,
+  statusLoaded,
   onConnect,
   onDisconnect,
 }: {
@@ -73,6 +74,7 @@ function ConnectionCard({
   connected: boolean;
   email?: string;
   isConnecting: boolean;
+  statusLoaded: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
 }) {

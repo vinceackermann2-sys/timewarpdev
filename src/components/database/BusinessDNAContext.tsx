@@ -301,12 +301,15 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     if (loadedWorkspaceRef.current === activeWorkspaceId && !isLoading) return;
 
     async function load() {
-      // Only show loading skeleton on first load or workspace switch
       const isWorkspaceSwitch = loadedWorkspaceRef.current !== activeWorkspaceId;
       // Only show loading skeleton if we have no cached brands to display
-      const hasCachedBrands = brands.length > 0;
-      if (isWorkspaceSwitch && !hasCachedBrands) {
-        setIsLoading(true);
+      try {
+        const hasCached = !!localStorage.getItem("cached_brands");
+        if (isWorkspaceSwitch && !hasCached) {
+          setIsLoading(true);
+        }
+      } catch {
+        if (isWorkspaceSwitch) setIsLoading(true);
       }
       // Share a single session across all three parallel loads
       const { data: { session } } = await supabase.auth.getSession();
