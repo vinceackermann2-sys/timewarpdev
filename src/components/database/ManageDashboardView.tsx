@@ -346,6 +346,8 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
                     })}
                     onOpen={() => setDetailCard(card)}
                   />
+                ) : activeTab === "Objectives" ? (
+                  <ObjectiveCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
                 ) : (
                   <DashCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
                 )
