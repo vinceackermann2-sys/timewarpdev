@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
-import { DashboardCard, badgeClasses, ICON_MAP, SOURCE_META } from "./dashboardTypes";
+import { DashboardCard, badgeClasses, SOURCE_META } from "./dashboardTypes";
 
 const TABS = [
   { id: "Briefing", label: "Briefing", icon: ClipboardCheck },
