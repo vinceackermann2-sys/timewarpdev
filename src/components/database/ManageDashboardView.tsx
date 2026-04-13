@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
-import { DashboardCard, badgeClasses, ICON_MAP, SOURCE_META } from "./dashboardTypes";
+import { DashboardCard, badgeClasses, SOURCE_META } from "./dashboardTypes";
 
 const TABS = [
   { id: "Briefing", label: "Briefing", icon: ClipboardCheck },
@@ -27,8 +27,11 @@ const TABS = [
 /*  Card Component                                                     */
 /* ------------------------------------------------------------------ */
 function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
-  const Icon = ICON_MAP[card.icon || "building"] || Building2;
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
+
+  const detailLabel = card.source && card.source !== "general"
+    ? `View ${sourceMeta.label} Details`
+    : "View Details";
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 w-full max-w-[340px] flex flex-col gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md">
@@ -43,26 +46,26 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
             </span>
           )}
         </div>
-        <div className="bg-muted/60 border border-border/40 p-1 rounded flex items-center justify-center w-7 h-7">
+        <div className="bg-muted/60 border border-border/40 p-1.5 rounded-lg flex items-center justify-center w-8 h-8">
           {sourceMeta.icon ? (
             <img
               src={sourceMeta.icon}
               alt={sourceMeta.label}
-              className="w-4 h-4 rounded object-contain"
+              className="w-5 h-5 rounded object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
                 (e.target as HTMLImageElement).parentElement!.innerHTML =
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
               }}
             />
           ) : (
-            <Icon className="w-4 h-4 text-foreground" />
+            <Building2 className="w-5 h-5 text-muted-foreground" />
           )}
         </div>
       </div>
       <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
       <p className="text-xs text-muted-foreground line-clamp-3">{card.description}</p>
-      <div className="flex items-center justify-between mt-auto">
+      <div className="flex items-center justify-between mt-auto pt-1">
         {card.timeAgo ? (
           <div className="flex items-center text-muted-foreground text-[10px] font-medium">
             <Clock className="w-3 h-3 mr-1" />
@@ -71,13 +74,18 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
         ) : (
           <div />
         )}
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onOpen}
-          className="flex items-center gap-1 text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
+          className="h-7 px-3 text-xs gap-1.5 font-medium"
         >
-          Details
+          {sourceMeta.icon && (
+            <img src={sourceMeta.icon} alt="" className="w-3.5 h-3.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          )}
+          {detailLabel}
           <ChevronRight className="w-3 h-3" />
-        </button>
+        </Button>
       </div>
     </div>
   );
