@@ -1,32 +1,73 @@
 
 
-## Plan: Dashboard Cards Persistence, Update Button, and Icon Fixes
+## Plan: Personalized Dashboard Cards and Rich Detail Panel
 
-### Problems Identified
-1. **No persistence**: Dashboard cards are stored only in React state (`allTabCards`). On every navigation away and back, or brand change, they re-fetch from the API.
-2. **No manual refresh button**: Users must reload the page to get new insights.
-3. **Card button placement**: The "View Details" button is on the right side; user wants it on the left.
-4. **Broken integration icons**: `SOURCE_META` uses `/src/assets/...` paths (e.g., `/src/assets/logo-hubspot.svg`) which don't resolve in production builds. These need to be proper ES module imports.
+### What Changes
 
-### Changes
+**1. Bigger card icons** — Increase the icon container from 32x32 to 40x40 and the icon image from 20x20 to 28x28 in `ManageDashboardView.tsx`.
 
-**1. Fix integration icons (`src/components/database/dashboardTypes.ts`)**
-- Import SVG assets using ES module imports (`import logoHubspot from "@/assets/logo-hubspot.svg"`) instead of raw file paths.
-- Update `SOURCE_META` to use the imported variables.
+**2. Personalized button labels** — Instead of generic "View Details", derive the label from the card's context: "View Email", "View Meeting", "View Deal", "View Message", "View File", "View Note", etc. This will be based on a combination of `source` and `category` fields.
 
-**2. Cache cards in localStorage (`src/components/database/ManageDashboardView.tsx`)**
-- On successful fetch, persist `allTabCards` + `brandId` to `localStorage` (keyed by brand ID).
-- On mount / brand change, load from localStorage first (instant display), then allow manual refresh.
-- Remove the auto-reset of `cachedBrandId` on brand change so cached data stays visible.
+**3. Extend `DashboardCard` type with metadata** — Add a `metadata` field to the card type that holds source-specific context:
+   - Email cards: `senderName`, `senderEmail`, `subject`
+   - Meeting cards: `attendees`, `scheduledDate`, `duration`
+   - Deal/contact cards: `contactName`, `dealValue`, `stage`
+   - Slack cards: `channel`, `author`
+   - File cards: `fileName`, `sharedBy`
+   - General: `actionSuggestion` (always present — recommended next step)
 
-**3. Add "Update" refresh button**
-- Add a `RefreshCw` button in the dashboard header area that clears the cache for the current brand and re-fetches insights.
-- Show a loading spinner on the button while fetching.
+**4. Update AI prompt** — Modify the `dashboard-insights` edge function prompt to instruct the AI to include a `metadata` object and an `actionSuggestion` string on every card, populated with real data from the integration context.
 
-**4. Move card button to the left**
-- In the `DashCard` component, swap the layout of the footer row so the "View Details" button is on the left and the timestamp is on the right.
+**5. Rich detail panel** — Rewrite `DashCardDetailPanel.tsx` to render contextual sections based on source:
+   - **Email (Outlook)**: Shows sender name, email address, subject, and mail icon
+   - **Meeting (Zoom)**: Shows calendar icon, attendees list, date/time, duration
+   - **Deal/Contact (HubSpot)**: Shows contact name, deal value, pipeline stage
+   - **Message (Slack)**: Shows channel name, author
+   - **File (OneDrive)**: Shows file name, shared by
+   - **Note (OneNote)**: Shows notebook/section info
+   - **Action Suggestion** (bottom): A highlighted box with a recommended action to take
 
 ### Files Modified
-- `src/components/database/dashboardTypes.ts` — fix icon imports
-- `src/components/database/ManageDashboardView.tsx` — localStorage caching, update button, button placement
+- `src/components/database/dashboardTypes.ts` — add `metadata` and `actionSuggestion` to `DashboardCard`
+- `src/components/database/ManageDashboardView.tsx` — bigger icons, personalized button text
+- `src/components/database/DashCardDetailPanel.tsx` — contextual source info sections + action suggestion box
+- `supabase/functions/dashboard-insights/index.ts` — update AI prompt to return metadata + actionSuggestion per card
+
+### Technical Details
+
+New `DashboardCard` fields:
+```typescript
+interface DashboardCard {
+  // ...existing fields
+  actionSuggestion?: string;
+  metadata?: {
+    senderName?: string;
+    senderEmail?: string;
+    subject?: string;
+    attendees?: string[];
+    scheduledDate?: string;
+    duration?: string;
+    contactName?: string;
+    dealValue?: string;
+    stage?: string;
+    channel?: string;
+    author?: string;
+    fileName?: string;
+    sharedBy?: string;
+    notebook?: string;
+  };
+}
+```
+
+Button label logic:
+```typescript
+function getButtonLabel(card: DashboardCard): string {
+  const map: Record<string, string> = {
+    outlook: "View Email", zoom: "View Meeting",
+    hubspot: "View Deal", slack: "View Message",
+    onedrive: "View File", onenote: "View Note",
+  };
+  return map[card.source || ""] || "View Details";
+}
+```
 
