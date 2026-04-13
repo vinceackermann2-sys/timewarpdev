@@ -1,73 +1,51 @@
 
 
-## Plan: Personalized Dashboard Cards and Rich Detail Panel
+## Plan: Dashboard Card Visual Polish and Real Timestamps
 
-### What Changes
+### Changes
 
-**1. Bigger card icons** — Increase the icon container from 32x32 to 40x40 and the icon image from 20x20 to 28x28 in `ManageDashboardView.tsx`.
+**1. Pastel priority badges** — Update `badgeClasses` in `dashboardTypes.ts` and `DashCardDetailPanel.tsx`:
+- High → pastel red (`bg-red-100 text-red-700`)
+- Medium → pastel yellow (`bg-yellow-100 text-yellow-700`)  
+- Low → pastel green (`bg-green-100 text-green-700`)
 
-**2. Personalized button labels** — Instead of generic "View Details", derive the label from the card's context: "View Email", "View Meeting", "View Deal", "View Message", "View File", "View Note", etc. This will be based on a combination of `source` and `category` fields.
+**2. Bigger icons and buttons on cards** — In `ManageDashboardView.tsx`:
+- Icon container: `w-10 h-10` → `w-12 h-12`, icon image: `w-7 h-7` → `w-8 h-8`
+- Button: increase padding and text size (`h-9 px-5 text-sm`)
 
-**3. Extend `DashboardCard` type with metadata** — Add a `metadata` field to the card type that holds source-specific context:
-   - Email cards: `senderName`, `senderEmail`, `subject`
-   - Meeting cards: `attendees`, `scheduledDate`, `duration`
-   - Deal/contact cards: `contactName`, `dealValue`, `stage`
-   - Slack cards: `channel`, `author`
-   - File cards: `fileName`, `sharedBy`
-   - General: `actionSuggestion` (always present — recommended next step)
+**3. Real `timeAgo` values** — Currently the AI hallucinates `timeAgo` since it doesn't know the current time:
+- Pass the current ISO timestamp in the prompt so the AI can compute accurate relative times
+- Add instruction: "The current time is {ISO date}. Calculate timeAgo relative to this."
+- Also add a `timestamp` field to the card schema so the frontend can compute its own relative time as a fallback
 
-**4. Update AI prompt** — Modify the `dashboard-insights` edge function prompt to instruct the AI to include a `metadata` object and an `actionSuggestion` string on every card, populated with real data from the integration context.
-
-**5. Rich detail panel** — Rewrite `DashCardDetailPanel.tsx` to render contextual sections based on source:
-   - **Email (Outlook)**: Shows sender name, email address, subject, and mail icon
-   - **Meeting (Zoom)**: Shows calendar icon, attendees list, date/time, duration
-   - **Deal/Contact (HubSpot)**: Shows contact name, deal value, pipeline stage
-   - **Message (Slack)**: Shows channel name, author
-   - **File (OneDrive)**: Shows file name, shared by
-   - **Note (OneNote)**: Shows notebook/section info
-   - **Action Suggestion** (bottom): A highlighted box with a recommended action to take
+**4. Email-style detail panel for Outlook cards** — In `DashCardDetailPanel.tsx`, when `source === "outlook"`, render an email-like layout:
+- Header row with sender avatar placeholder, sender name bold, email address below
+- "Subject:" line styled like an email client
+- Summary rendered as the email body in a card/container with slight background
+- Keep the action suggestion at the bottom
 
 ### Files Modified
-- `src/components/database/dashboardTypes.ts` — add `metadata` and `actionSuggestion` to `DashboardCard`
-- `src/components/database/ManageDashboardView.tsx` — bigger icons, personalized button text
-- `src/components/database/DashCardDetailPanel.tsx` — contextual source info sections + action suggestion box
-- `supabase/functions/dashboard-insights/index.ts` — update AI prompt to return metadata + actionSuggestion per card
+- `src/components/database/dashboardTypes.ts` — pastel badge colors, add `timestamp` field
+- `src/components/database/ManageDashboardView.tsx` — bigger icons, bigger buttons
+- `src/components/database/DashCardDetailPanel.tsx` — pastel badges, email-style outlook section
+- `supabase/functions/dashboard-insights/index.ts` — inject current timestamp, add `timestamp` field to prompt
 
 ### Technical Details
 
-New `DashboardCard` fields:
+Badge classes update:
 ```typescript
-interface DashboardCard {
-  // ...existing fields
-  actionSuggestion?: string;
-  metadata?: {
-    senderName?: string;
-    senderEmail?: string;
-    subject?: string;
-    attendees?: string[];
-    scheduledDate?: string;
-    duration?: string;
-    contactName?: string;
-    dealValue?: string;
-    stage?: string;
-    channel?: string;
-    author?: string;
-    fileName?: string;
-    sharedBy?: string;
-    notebook?: string;
-  };
-}
+export const badgeClasses: Record<string, string> = {
+  High: "bg-red-100 text-red-700",
+  Medium: "bg-yellow-100 text-yellow-700",
+  Low: "bg-green-100 text-green-700",
+};
 ```
 
-Button label logic:
-```typescript
-function getButtonLabel(card: DashboardCard): string {
-  const map: Record<string, string> = {
-    outlook: "View Email", zoom: "View Meeting",
-    hubspot: "View Deal", slack: "View Message",
-    onedrive: "View File", onenote: "View Note",
-  };
-  return map[card.source || ""] || "View Details";
-}
+Prompt addition for real timestamps:
 ```
+The current date/time is: ${new Date().toISOString()}
+Each card MUST include a "timestamp" field (ISO 8601) based on the real date from the source data. The "timeAgo" field should be calculated relative to the current time.
+```
+
+Email-style Outlook section in detail panel: render From/Subject/Body in a bordered card resembling an email thread, with the sender displayed prominently.
 
