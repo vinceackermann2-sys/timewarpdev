@@ -175,7 +175,7 @@ function AddObjectiveInline({ onAdd }: { onAdd: (title: string, desc: string) =>
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 w-full flex flex-col gap-2" style={{ flex: "1 1 calc(33.333% - 1rem)", maxWidth: "calc(33.333% - 0.67rem)", minWidth: "280px" }}>
+    <div className="bg-card border border-border rounded-xl p-5 w-full flex flex-col gap-2" style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}>
       <Input placeholder="Objective title" value={title} onChange={(e) => setTitle(e.target.value)} className="text-sm h-8" autoFocus />
       <Input placeholder="Brief description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} className="text-sm h-8" />
       <div className="flex gap-2 mt-1">
