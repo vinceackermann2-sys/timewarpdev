@@ -49,7 +49,7 @@ import {
   Search,
   Plus,
   Cable,
-  
+  LayoutDashboard,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { WhatsNewDropdown } from "./WhatsNewDropdown";
@@ -132,6 +132,17 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton 
+                    isActive={currentView === "employees"}
+                    onClick={() => onViewChange("employees")}
+                    tooltip="Assistant"
+                    className={currentView === "employees" ? "bg-primary/10 text-primary" : ""}
+                  >
+                    <Bot className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>Assistant</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
                     isActive={currentView === "businessdna"}
                     onClick={() => onViewChange("businessdna")}
                     tooltip="Business DNA"
@@ -143,17 +154,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton 
-                    isActive={currentView === "employees"}
-                    onClick={() => onViewChange("employees")}
-                    tooltip="Employees"
-                    className={currentView === "employees" ? "bg-primary/10 text-primary" : ""}
-                  >
-                    <Bot className="h-4 w-4 shrink-0" />
-                    {!isCollapsed && <span>Employees</span>}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
                     isActive={currentView === "connections"}
                     onClick={() => onViewChange("connections")}
                     tooltip="Connectors"
@@ -161,6 +161,25 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   >
                     <Cable className="h-4 w-4 shrink-0" />
                     {!isCollapsed && <span>Connectors</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarGroup>
+            {!isCollapsed && <SidebarGroupLabel>Manage</SidebarGroupLabel>}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    isActive={currentView === "manage"}
+                    onClick={() => onViewChange("manage")}
+                    tooltip="Dashboard"
+                    className={currentView === "manage" ? "bg-primary/10 text-primary" : ""}
+                  >
+                    <LayoutDashboard className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>Dashboard</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

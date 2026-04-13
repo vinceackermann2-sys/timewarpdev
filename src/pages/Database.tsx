@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { AgentChatView } from "@/components/database/AgentChatView";
 import { ConnectionsView } from "@/components/database/ConnectionsView";
+import { ManageDashboardView } from "@/components/database/ManageDashboardView";
 
 
 import { WorkspacesView } from "@/components/database/WorkspacesView";
@@ -361,6 +362,9 @@ const Database = () => {
               )}
               {currentView === "connections" && user && (
                 <ConnectionsView />
+              )}
+              {currentView === "manage" && user && (
+                <ManageDashboardView />
               )}
             </main>
           </SidebarInset>
