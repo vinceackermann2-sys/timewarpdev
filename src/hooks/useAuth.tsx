@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (_event === "SIGNED_OUT") {
         localStorage.removeItem("preferred_workspace_id");
+        localStorage.removeItem("cached_brands");
       }
       lastUserId = newUserId;
       setState({ session, user: session?.user ?? null, isLoading: false });
