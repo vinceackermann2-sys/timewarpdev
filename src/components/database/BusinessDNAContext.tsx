@@ -314,6 +314,8 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
         loadEntities<AudienceEntry>("audience", activeWorkspaceId, session),
       ]);
       setBrandsState(b);
+      // Persist brand list to localStorage for instant breadcrumb on next load
+      try { localStorage.setItem("cached_brands", JSON.stringify(b)); } catch {}
       setProductsState(p);
       setAudiencesState(a);
       setPrevBrands(b);
