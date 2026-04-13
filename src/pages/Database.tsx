@@ -313,7 +313,7 @@ const Database = () => {
             onViewChange={handleViewChange}
             userEmail={user?.email || ""}
           />
-          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden border-y border-r border-border/50 rounded-r-2xl my-1.5 mr-1.5">
+          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden border border-border/50 rounded-2xl m-1.5">
             <MobileHeader />
             <TopBreadcrumb
               currentView={currentView}
