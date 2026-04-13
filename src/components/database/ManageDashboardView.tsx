@@ -41,68 +41,49 @@ function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>)
 /* ------------------------------------------------------------------ */
 function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
-  const badgeClass = badgeClasses[card.priority] || badgeClasses.Low;
-  const btnLabel = getCardButtonLabel(card);
 
   return (
     <button
       onClick={onOpen}
-      className="bg-card border border-border/60 rounded-2xl p-5 w-full flex flex-col gap-2.5 transition-all duration-200 hover:border-primary/30 hover:shadow-md text-left cursor-pointer relative"
+      className="bg-card border border-border/60 rounded-2xl p-4 w-full flex items-start gap-4 transition-all duration-200 hover:border-primary/30 hover:shadow-md text-left cursor-pointer"
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
-      {/* Source icon – top right */}
-      <div className="absolute top-4 right-4 bg-white border border-border/40 p-1.5 rounded-lg flex items-center justify-center w-9 h-9">
+      {/* Source icon */}
+      <div className="shrink-0 bg-white border border-border/40 p-2 rounded-xl flex items-center justify-center w-12 h-12 mt-0.5">
         {sourceMeta.icon ? (
           <img
             src={sourceMeta.icon}
             alt={sourceMeta.label}
-            className="w-5 h-5 rounded object-contain"
+            className="w-7 h-7 rounded object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
               (e.target as HTMLImageElement).parentElement!.innerHTML =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
             }}
           />
         ) : (
-          <Building2 className="w-5 h-5 text-muted-foreground" />
+          <Building2 className="w-7 h-7 text-muted-foreground" />
         )}
       </div>
 
-      {/* Row 1: Priority badge + timestamp */}
-      <div className="flex items-center gap-2.5 pr-12">
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeClass}`}>
-          {card.priority} Priority
-        </span>
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="font-semibold text-sm text-foreground truncate">{card.title}</span>
+          {card.category && (
+            <span className="shrink-0 text-[10px] text-muted-foreground font-medium border border-border rounded px-1.5 py-0.5">
+              {card.category}
+            </span>
+          )}
+        </div>
+        <p className="text-[13px] text-muted-foreground line-clamp-1">{card.description}</p>
         {card.timeAgo && (
-          <div className="flex items-center text-muted-foreground/60 text-[11px]">
+          <div className="flex items-center text-muted-foreground/70 text-[11px] mt-1.5">
             <Clock className="w-3 h-3 mr-1" />
             {card.timeAgo}
           </div>
         )}
       </div>
-
-      {/* Row 2: Title */}
-      <h3 className="text-sm font-semibold text-foreground pr-12">{card.title}</h3>
-
-      {/* Row 3: Progress bar */}
-      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{
-            width: card.priority === "High" ? "85%" : card.priority === "Medium" ? "55%" : "30%",
-            background: card.priority === "High"
-              ? "hsl(var(--destructive)/ 0.5)"
-              : card.priority === "Medium"
-              ? "hsl(40 80% 60% / 0.6)"
-              : "hsl(140 50% 50% / 0.5)",
-          }}
-        />
-      </div>
-
-      {/* Row 4: Action button */}
-      <span className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary/10 text-primary w-fit mt-0.5">
-        {btnLabel}
-      </span>
     </button>
   );
 }
