@@ -364,7 +364,7 @@ const Database = () => {
                 </>
               )}
               {currentView === "employees" && user && (
-                <AgentChatView />
+                <AgentChatView activeBrandId={activeBrandId} />
               )}
               {currentView === "workspaces" && user && (
                 <WorkspacesView onBack={() => handleViewChange("businessdna")} />
@@ -373,7 +373,7 @@ const Database = () => {
                 <ConnectionsView />
               )}
               {currentView === "manage" && user && (
-                <ManageDashboardView />
+                <ManageDashboardView activeBrandId={activeBrandId} />
               )}
             </main>
           </SidebarInset>
