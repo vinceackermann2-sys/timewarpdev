@@ -412,7 +412,7 @@ export function AgentChatView({ activeBrandId }: { activeBrandId?: string | null
   const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
 
   const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
-  const activeBrandId = activeBrandForConnections?.id ?? null;
+  const resolvedBrandId = activeBrandId || activeBrandForConnections?.id || null;
 
   // Check connections at user level (not brand-scoped)
   const checkConnection = useCallback(async () => {
