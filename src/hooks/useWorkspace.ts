@@ -42,8 +42,8 @@ async function fetchWorkspaces(userId: string): Promise<WorkspaceInfo[]> {
 
   if (error || !wsData || (wsData as any[]).length === 0) {
     // For brand-new users, the create_default_workspace trigger may not have
-    // propagated yet. Wait briefly and re-check before creating a duplicate.
-    await new Promise(r => setTimeout(r, 1500));
+    // propagated yet. Retry quickly before creating a duplicate.
+    await new Promise(r => setTimeout(r, 250));
     const { data: retryData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
     if (retryData && (retryData as any[]).length > 0) {
       return (retryData as any[]).map((w: any) => ({

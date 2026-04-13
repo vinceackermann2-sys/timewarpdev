@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { DEFAULT_PRODUCT, ProductData } from "@/components/database/ProductDetailView";
 import { DEFAULT_AUDIENCE, AudienceData } from "@/components/database/AudienceDetailView";
@@ -244,6 +245,7 @@ async function deleteEntityByLogicalId(logicalId: string, dataType: string, work
 }
 
 export function BusinessDNAProvider({ children }: { children: ReactNode }) {
+  const { user, isLoading: authLoading } = useAuth();
   const [userName, setUserName] = useState("Unknown");
 
   // Hydrate brands from localStorage cache for instant breadcrumb rendering
@@ -297,7 +299,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
   // Load from DB on mount or when workspace changes
   useEffect(() => {
-    // Skip reload only after the first successful load for this workspace
+    if (authLoading || !user) return;
     if (loadedWorkspaceRef.current !== undefined && loadedWorkspaceRef.current === activeWorkspaceId) return;
 
     async function load() {
@@ -312,6 +314,8 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
       const [b, p, a] = await Promise.all([
         loadEntities<BrandEntry>("brand", activeWorkspaceId, session),
         loadEntities<ProductEntry>("product", activeWorkspaceId, session),
@@ -328,7 +332,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
     load();
-  }, [activeWorkspaceId]);
+  }, [activeWorkspaceId, authLoading, user]);
 
   const reloadData = async () => {
     setIsLoading(true);
