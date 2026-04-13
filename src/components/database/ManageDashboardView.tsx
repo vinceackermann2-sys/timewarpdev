@@ -91,7 +91,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       <p className="text-sm text-muted-foreground line-clamp-2">{card.description}</p>
 
       {/* Action button */}
-      <span className="inline-flex items-center justify-center w-fit text-[11px] font-semibold px-4 py-1.5 rounded-lg border border-foreground text-foreground">
+      <span className="inline-flex items-center justify-center text-xs font-semibold px-6 py-2 rounded-lg border border-foreground text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         {btnLabel}
       </span>
     </button>
