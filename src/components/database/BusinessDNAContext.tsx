@@ -298,7 +298,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   // Load from DB on mount or when workspace changes
   useEffect(() => {
     // Skip reload only after the first successful load for this workspace
-    if (loadedWorkspaceRef.current !== undefined && loadedWorkspaceRef.current === activeWorkspaceId && !isLoading) return;
+    if (loadedWorkspaceRef.current !== undefined && loadedWorkspaceRef.current === activeWorkspaceId) return;
 
     async function load() {
       const isWorkspaceSwitch = loadedWorkspaceRef.current !== activeWorkspaceId;
@@ -328,7 +328,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
     load();
-  }, [activeWorkspaceId, isLoading]);
+  }, [activeWorkspaceId]);
 
   const reloadData = async () => {
     setIsLoading(true);
