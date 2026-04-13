@@ -245,10 +245,20 @@ async function deleteEntityByLogicalId(logicalId: string, dataType: string, work
 
 export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const [userName, setUserName] = useState("Unknown");
-  const [brands, setBrandsState] = useState<BrandEntry[]>([]);
+
+  // Hydrate brands from localStorage cache for instant breadcrumb rendering
+  const [brands, setBrandsState] = useState<BrandEntry[]>(() => {
+    try {
+      const cached = localStorage.getItem("cached_brands");
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
   const [products, setProductsState] = useState<ProductEntry[]>([]);
   const [audiences, setAudiencesState] = useState<AudienceEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    // If we have cached brands, skip showing skeleton initially
+    try { return !localStorage.getItem("cached_brands"); } catch { return true; }
+  });
   const [prevBrands, setPrevBrands] = useState<BrandEntry[]>([]);
   const { getBusinessLimit } = useSubscription();
   const businessLimit = getBusinessLimit();
