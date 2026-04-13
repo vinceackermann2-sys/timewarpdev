@@ -112,6 +112,27 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
 }
 
 /* ------------------------------------------------------------------ */
+/*  Objective Card (matches reference style)                           */
+/* ------------------------------------------------------------------ */
+function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
+  return (
+    <div
+      className="bg-card border border-border/60 rounded-2xl p-5 w-full flex flex-col gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md"
+      style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
+    >
+      <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
+      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+        <div className="h-full bg-muted-foreground/30 rounded-full" style={{ width: "70%" }} />
+      </div>
+      <p className="text-[13px] text-muted-foreground line-clamp-2">{card.description}</p>
+      <Button size="sm" onClick={onOpen} className="w-fit h-8 px-4 text-xs font-semibold">
+        Accept
+      </Button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Skeleton Loader                                                    */
 /* ------------------------------------------------------------------ */
 function CardSkeletons() {
@@ -154,7 +175,7 @@ function AddObjectiveInline({ onAdd }: { onAdd: (title: string, desc: string) =>
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 w-full flex flex-col gap-2" style={{ flex: "1 1 calc(33.333% - 1rem)", maxWidth: "calc(33.333% - 0.67rem)", minWidth: "280px" }}>
+    <div className="bg-card border border-border rounded-xl p-5 w-full flex flex-col gap-2" style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}>
       <Input placeholder="Objective title" value={title} onChange={(e) => setTitle(e.target.value)} className="text-sm h-8" autoFocus />
       <Input placeholder="Brief description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} className="text-sm h-8" />
       <div className="flex gap-2 mt-1">
@@ -325,6 +346,8 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
                     })}
                     onOpen={() => setDetailCard(card)}
                   />
+                ) : activeTab === "Objectives" ? (
+                  <ObjectiveCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
                 ) : (
                   <DashCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
                 )
