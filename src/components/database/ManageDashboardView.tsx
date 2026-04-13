@@ -56,12 +56,12 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       {/* Top row: badge + time | source icon */}
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-md ${priorityClass}`}>
+          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${priorityClass}`}>
             {card.priority} Priority
           </span>
           {card.timeAgo && (
-            <div className="flex items-center text-muted-foreground/70 text-[11px]">
-              <Clock className="w-3 h-3 mr-1" />
+            <div className="flex items-center text-muted-foreground/70 text-xs">
+              <Clock className="w-3.5 h-3.5 mr-1" />
               {card.timeAgo}
             </div>
           )}
