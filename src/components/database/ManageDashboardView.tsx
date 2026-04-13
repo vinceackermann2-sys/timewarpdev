@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ClipboardCheck, RefreshCw, ListTodo, Award, Clock,
-  Building2, Plus, Loader2, AlertTriangle,
+  Building2, Plus, Loader2, AlertTriangle, Lightbulb, Check,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "./BusinessDNAContext";
@@ -89,6 +89,29 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
 }
 
 /* ------------------------------------------------------------------ */
+/*  To-Do Card (matches reference style)                               */
+/* ------------------------------------------------------------------ */
+function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done: boolean; onToggle: () => void; onOpen: () => void }) {
+  return (
+    <div
+      className={`bg-card border border-border/60 rounded-2xl p-4 w-full flex items-center gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md ${done ? "opacity-60" : ""}`}
+      style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
+    >
+      <Lightbulb className="w-5 h-5 text-primary/70 shrink-0" />
+      <button onClick={onOpen} className={`flex-1 text-left text-sm truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+        {card.title}
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${done ? "bg-primary border-primary" : "border-border hover:border-primary/50"}`}
+      >
+        {done && <Check className="w-3.5 h-3.5 text-primary-foreground" />}
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Skeleton Loader                                                    */
 /* ------------------------------------------------------------------ */
 function CardSkeletons() {
@@ -154,6 +177,7 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
   const [customObjectives, setCustomObjectives] = useState<DashboardCard[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
+  const [completedTodos, setCompletedTodos] = useState<Set<string>>(new Set());
 
   const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
   const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
@@ -288,9 +312,23 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
             </div>
           ) : (
             <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="flex flex-wrap gap-4">
-              {filteredCards.map((card) => (
-                <DashCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
-              ))}
+              {filteredCards.map((card) =>
+                activeTab === "To-Dos" ? (
+                  <TodoCard
+                    key={card.id}
+                    card={card}
+                    done={completedTodos.has(card.id)}
+                    onToggle={() => setCompletedTodos(prev => {
+                      const next = new Set(prev);
+                      next.has(card.id) ? next.delete(card.id) : next.add(card.id);
+                      return next;
+                    })}
+                    onOpen={() => setDetailCard(card)}
+                  />
+                ) : (
+                  <DashCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
+                )
+              )}
               {activeTab === "Objectives" && <AddObjectiveInline onAdd={handleAddObjective} />}
               {filteredCards.length === 0 && !searchQuery && (
                 <div className="text-muted-foreground w-full py-8 text-center text-sm">No insights generated yet.</div>
