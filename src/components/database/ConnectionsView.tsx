@@ -66,6 +66,7 @@ function ConnectionCard({
   connected,
   email,
   isConnecting,
+  statusLoaded,
   onConnect,
   onDisconnect,
 }: {
@@ -73,6 +74,7 @@ function ConnectionCard({
   connected: boolean;
   email?: string;
   isConnecting: boolean;
+  statusLoaded: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
 }) {
@@ -81,7 +83,7 @@ function ConnectionCard({
       className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group ${
         integration.comingSoon
           ? "border-border/50 opacity-60 cursor-default"
-          : connected
+          : statusLoaded && connected
             ? "border-green-500/40"
             : "border-transparent hover:border-primary/40 hover:shadow-sm"
       }`}
@@ -90,7 +92,7 @@ function ConnectionCard({
       {integration.comingSoon && (
         <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
       )}
-      {connected && !integration.comingSoon && (
+      {statusLoaded && connected && !integration.comingSoon && (
         <span className="absolute top-4 right-4">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
         </span>
@@ -101,12 +103,15 @@ function ConnectionCard({
       <div>
         <p className="font-semibold text-sm">{integration.name}</p>
         <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{integration.description}</p>
-        {connected && email && (
+        {statusLoaded && connected && email && (
           <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
         )}
       </div>
       <div className="flex items-center gap-2 mt-auto pt-1 w-full">
-        {!connected && !integration.comingSoon && (
+        {!statusLoaded && !integration.comingSoon && (
+          <Skeleton className="h-8 w-full rounded-md" />
+        )}
+        {statusLoaded && !connected && !integration.comingSoon && (
           <Button
             variant="outline"
             size="sm"
@@ -118,7 +123,7 @@ function ConnectionCard({
             Connect
           </Button>
         )}
-        {connected && !integration.comingSoon && (
+        {statusLoaded && connected && !integration.comingSoon && (
           <Button
             variant="destructive"
             size="sm"
@@ -273,6 +278,7 @@ export function ConnectionsView() {
                 connected={isProviderConnected(integration.id)}
                 email={getProviderEmail(integration.id)}
                 isConnecting={connectingProvider === integration.id}
+                statusLoaded={statusLoaded}
                 onConnect={() => handleConnect(integration.id)}
                 onDisconnect={() => handleDisconnect(integration.id)}
               />
@@ -290,6 +296,7 @@ export function ConnectionsView() {
                 connected={isProviderConnected(integration.id)}
                 email={getProviderEmail(integration.id)}
                 isConnecting={connectingProvider === integration.id}
+                statusLoaded={statusLoaded}
                 onConnect={() => handleConnect(integration.id)}
                 onDisconnect={() => handleDisconnect(integration.id)}
               />
