@@ -278,6 +278,7 @@ export function ConnectionsView() {
                 connected={isProviderConnected(integration.id)}
                 email={getProviderEmail(integration.id)}
                 isConnecting={connectingProvider === integration.id}
+                statusLoaded={statusLoaded}
                 onConnect={() => handleConnect(integration.id)}
                 onDisconnect={() => handleDisconnect(integration.id)}
               />
@@ -295,6 +296,7 @@ export function ConnectionsView() {
                 connected={isProviderConnected(integration.id)}
                 email={getProviderEmail(integration.id)}
                 isConnecting={connectingProvider === integration.id}
+                statusLoaded={statusLoaded}
                 onConnect={() => handleConnect(integration.id)}
                 onDisconnect={() => handleDisconnect(integration.id)}
               />
