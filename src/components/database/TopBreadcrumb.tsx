@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { ChevronsUpDown, Check, Search, Plus, PanelLeft } from "lucide-react";
+import { ChevronsUpDown, Check, Search, Plus } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useSidebar } from "@/components/ui/sidebar";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
 type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
@@ -25,7 +24,6 @@ interface TopBreadcrumbProps {
 
 export function TopBreadcrumb({ currentView }: TopBreadcrumbProps) {
   const { workspaces, activeWorkspaceId, activeWorkspace, selectWorkspace, createWorkspace } = useWorkspace();
-  const { toggleSidebar } = useSidebar();
   const [wsOpen, setWsOpen] = useState(false);
   const [wsSearch, setWsSearch] = useState("");
   const [showNewWs, setShowNewWs] = useState(false);
