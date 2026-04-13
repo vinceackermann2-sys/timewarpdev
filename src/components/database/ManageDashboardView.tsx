@@ -263,9 +263,6 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
       <div className="px-6 lg:px-8 pt-6 pb-3">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-          <BusinessSelector brands={brands} selected={activeBrand} onSelect={(b) => {
-            setSelectedBrand(b); setCachedBrandId(null);
-          }} />
         </div>
         <div className="relative max-w-[220px]">
           <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
