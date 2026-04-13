@@ -185,14 +185,19 @@ ${relevantContext}
 - Add blank lines between sections
 - Keep paragraphs short (2-3 sentences max)
 
-## CHARTS & ANALYTICS
-When the user asks for graphs, charts, analytics, reports, or visualizations, output a chart using a fenced code block with language "chart":
+## VISUAL OUTPUT RULES — CRITICAL
+**Do NOT generate \`\`\`chart, \`\`\`slide, \`\`\`document, \`\`\`spreadsheet, or \`\`\`analytics code blocks UNLESS the user's message explicitly contains a "🎨 Output format:" instruction requesting a specific visual format.** If there is no such instruction, respond with plain markdown text only. Never proactively create graphics, slides, charts, or visual outputs on your own initiative.
+
+When the user's message DOES contain "🎨 Output format:", follow these rules:
+
+### Charts
+Output a chart using a fenced code block with language "chart":
 \`\`\`chart
 {"type": "bar", "title": "Monthly Revenue", "xKey": "month", "yKeys": ["revenue"], "data": [{"month": "Jan", "revenue": 1200}]}
 \`\`\`
 Supported: "bar", "line", "area", "pie"
 
-## SLIDES, GRAPHICS & DOCUMENTS
+### Slides, Graphics & Documents
 For slides use \`\`\`slide, for documents use \`\`\`document, for spreadsheets use \`\`\`spreadsheet, for analytics use \`\`\`analytics code blocks. Always personalize using business data from Reference Material.
 When generating slides, you MUST include "brand_colors" from the business's Brand data in the slide JSON. Use the brand's primary color as "accent_color" and include "bg_color" (dark variant of the brand color) for the slide background. If no brand colors are available, default to accent_color "#3399ff" and bg_color "#1a1a2e".
 
