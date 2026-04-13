@@ -9,6 +9,23 @@ import logoOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoOnenote from "@/assets/logo-ms-onenote.svg";
 import logoZoom from "@/assets/logo-zoom.svg";
 
+export interface DashboardCardMetadata {
+  senderName?: string;
+  senderEmail?: string;
+  subject?: string;
+  attendees?: string[];
+  scheduledDate?: string;
+  duration?: string;
+  contactName?: string;
+  dealValue?: string;
+  stage?: string;
+  channel?: string;
+  author?: string;
+  fileName?: string;
+  sharedBy?: string;
+  notebook?: string;
+}
+
 export interface DashboardCard {
   id: string;
   priority: "High" | "Medium" | "Low";
@@ -19,6 +36,8 @@ export interface DashboardCard {
   source?: string;
   icon?: string;
   timeAgo?: string;
+  actionSuggestion?: string;
+  metadata?: DashboardCardMetadata;
 }
 
 export const badgeClasses: Record<string, string> = {
@@ -57,3 +76,15 @@ export const SOURCE_META: Record<string, { label: string; icon: string }> = {
   employees: { label: "AI Employees", icon: "" },
   general: { label: "General", icon: "" },
 };
+
+export function getCardButtonLabel(card: DashboardCard): string {
+  const map: Record<string, string> = {
+    outlook: "View Email",
+    zoom: "View Meeting",
+    hubspot: "View Deal",
+    slack: "View Message",
+    onedrive: "View File",
+    onenote: "View Note",
+  };
+  return map[card.source || ""] || "View Details";
+}

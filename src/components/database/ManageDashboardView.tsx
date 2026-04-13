@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
-import { DashboardCard, badgeClasses, SOURCE_META } from "./dashboardTypes";
+import { DashboardCard, badgeClasses, SOURCE_META, getCardButtonLabel } from "./dashboardTypes";
 
 const TABS = [
   { id: "Briefing", label: "Briefing", icon: ClipboardCheck },
@@ -41,11 +41,7 @@ function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>)
 /* ------------------------------------------------------------------ */
 function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
-
-  const detailLabel = card.source && card.source !== "general"
-    ? `View ${sourceMeta.label} Details`
-    : "View Details";
-
+  const buttonLabel = getCardButtonLabel(card);
   const priorityLabel = card.priority === "High" ? "High Priority" : card.priority === "Medium" ? "Medium Priority" : "Low Priority";
 
   return (
@@ -61,20 +57,20 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
             </span>
           )}
         </div>
-        <div className="bg-white border border-border/40 p-1.5 rounded-lg flex items-center justify-center w-8 h-8">
+        <div className="bg-white border border-border/40 p-2 rounded-lg flex items-center justify-center w-10 h-10">
           {sourceMeta.icon ? (
             <img
               src={sourceMeta.icon}
               alt={sourceMeta.label}
-              className="w-5 h-5 rounded object-contain"
+              className="w-7 h-7 rounded object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
                 (e.target as HTMLImageElement).parentElement!.innerHTML =
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
               }}
             />
           ) : (
-            <Building2 className="w-5 h-5 text-muted-foreground" />
+            <Building2 className="w-7 h-7 text-muted-foreground" />
           )}
         </div>
       </div>
@@ -90,7 +86,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
           {sourceMeta.icon && (
             <img src={sourceMeta.icon} alt="" className="w-3.5 h-3.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
           )}
-          {detailLabel}
+          {buttonLabel}
           <ChevronRight className="w-3 h-3" />
         </Button>
         {card.timeAgo ? (

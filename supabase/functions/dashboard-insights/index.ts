@@ -295,6 +295,15 @@ Each card has:
 - "source": the INTEGRATION this insight comes from. MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "zoom". Only use integrations that actually provided data.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
 - "timeAgo": approximate time ago string like "2 hours ago", "3 days ago", "1 week ago", "12 minutes ago". Use specific durations, NOT vague words like "recently" or "this month".
+- "actionSuggestion": A specific, actionable next step the user should take to address this insight. Be concrete (e.g. "Reply to John's email about the Q3 proposal before end of day" or "Schedule a follow-up call with Acme Corp to close the $15k deal").
+- "metadata": An object with source-specific context fields. Populate ONLY the relevant fields based on the source:
+  - For "outlook": { "senderName": "...", "senderEmail": "...", "subject": "..." }
+  - For "zoom": { "scheduledDate": "...", "duration": "...", "attendees": ["name1", "name2"] }
+  - For "hubspot": { "contactName": "...", "dealValue": "$...", "stage": "..." }
+  - For "slack": { "channel": "#channel-name", "author": "username" }
+  - For "onedrive": { "fileName": "...", "sharedBy": "..." }
+  - For "onenote": { "notebook": "..." }
+  Use real data from the integration context to fill these fields. Do NOT leave metadata empty.
 
 IMPORTANT: Every card MUST come from real integration data. Do NOT fabricate data or create generic business advice cards. Sort cards by priority (High first). If an integration has no data, do not make up cards for it.
 
