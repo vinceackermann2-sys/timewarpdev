@@ -239,8 +239,13 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
 
   useEffect(() => {
     if (!activeBrand) return;
+    setCachedBrandId(null);
+  }, [activeBrandId]);
+
+  useEffect(() => {
+    if (!activeBrand) return;
     fetchAllInsights(activeBrand.id);
-  }, [activeBrand?.id]);
+  }, [activeBrand?.id, cachedBrandId]);
 
   const handleAddObjective = (title: string, description: string) => {
     const newObj: DashboardCard = {
