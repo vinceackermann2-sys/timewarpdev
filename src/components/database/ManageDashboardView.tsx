@@ -312,9 +312,23 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
             </div>
           ) : (
             <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="flex flex-wrap gap-4">
-              {filteredCards.map((card) => (
-                <DashCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
-              ))}
+              {filteredCards.map((card) =>
+                activeTab === "To-Dos" ? (
+                  <TodoCard
+                    key={card.id}
+                    card={card}
+                    done={completedTodos.has(card.id)}
+                    onToggle={() => setCompletedTodos(prev => {
+                      const next = new Set(prev);
+                      next.has(card.id) ? next.delete(card.id) : next.add(card.id);
+                      return next;
+                    })}
+                    onOpen={() => setDetailCard(card)}
+                  />
+                ) : (
+                  <DashCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
+                )
+              )}
               {activeTab === "Objectives" && <AddObjectiveInline onAdd={handleAddObjective} />}
               {filteredCards.length === 0 && !searchQuery && (
                 <div className="text-muted-foreground w-full py-8 text-center text-sm">No insights generated yet.</div>
