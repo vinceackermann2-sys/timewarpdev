@@ -9,9 +9,9 @@ interface Props {
 }
 
 const badgeClasses: Record<string, string> = {
-  High: "bg-destructive/80 text-destructive-foreground",
-  Medium: "bg-[hsl(45,93%,47%)]/80 text-white",
-  Low: "bg-emerald-500/80 text-white",
+  High: "bg-red-100 text-red-700",
+  Medium: "bg-yellow-100 text-yellow-700",
+  Low: "bg-green-100 text-green-700",
 };
 
 function MetaRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
@@ -37,12 +37,32 @@ function SourceMetadataSection({ card }: { card: DashboardCard }) {
     <div className="space-y-3">
       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Source Info</h4>
 
-      {/* Email (Outlook) */}
+      {/* Email (Outlook) — email-style layout */}
       {source === "outlook" && (
-        <>
-          <MetaRow icon={Mail} label="From" value={meta.senderName ? `${meta.senderName}${meta.senderEmail ? ` (${meta.senderEmail})` : ""}` : meta.senderEmail} />
-          <MetaRow icon={FileText} label="Subject" value={meta.subject} />
-        </>
+        <div className="border border-border rounded-lg overflow-hidden">
+          {/* Email header */}
+          <div className="bg-muted/50 px-4 py-3 border-b border-border space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                {(meta.senderName || meta.senderEmail || "?")[0].toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{meta.senderName || "Unknown Sender"}</p>
+                {meta.senderEmail && <p className="text-xs text-muted-foreground truncate">{meta.senderEmail}</p>}
+              </div>
+            </div>
+            {meta.subject && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground text-xs font-medium">Subject:</span>
+                <span className="text-foreground font-medium truncate">{meta.subject}</span>
+              </div>
+            )}
+          </div>
+          {/* Email body */}
+          <div className="px-4 py-3">
+            <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
+          </div>
+        </div>
       )}
 
       {/* Meeting (Zoom) */}
@@ -140,11 +160,13 @@ export function DashCardDetailPanel({ card, open, onClose }: Props) {
           {/* Source-specific metadata */}
           <SourceMetadataSection card={card} />
 
-          {/* Description */}
-          <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Summary</h4>
-            <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
-          </div>
+          {/* Description — skip for outlook since it's shown in the email body */}
+          {card.source !== "outlook" && (
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Summary</h4>
+              <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
+            </div>
+          )}
 
           {/* Detail */}
           {card.detail && (
