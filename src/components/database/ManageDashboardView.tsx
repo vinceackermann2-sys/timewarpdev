@@ -94,15 +94,14 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
 function CardSkeletons() {
   return (
     <div className="flex flex-wrap gap-4">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3" style={{ flex: "1 1 calc(33.333% - 1rem)", maxWidth: "calc(33.333% - 0.67rem)", minWidth: "280px" }}>
-          <div className="flex justify-between items-start">
-            <Skeleton className="h-5 w-20 rounded" />
-            <Skeleton className="h-7 w-7 rounded" />
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-card border border-border/60 rounded-2xl p-4 flex items-start gap-4" style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}>
+          <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-16" />
           </div>
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-2/3" />
         </div>
       ))}
     </div>
