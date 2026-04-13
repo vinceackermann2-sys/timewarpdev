@@ -102,8 +102,8 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
 
   return (
     <>
-      <Sidebar collapsible="icon">
-        <SidebarHeader className="border-b border-sidebar-border p-2">
+      <Sidebar collapsible="icon" className="border-none rounded-r-xl">
+        <SidebarHeader className="p-2">
           <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'justify-between'}`}>
             {!isCollapsed && (
               <Link to="/app" className="flex items-center gap-2">
@@ -187,7 +187,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border p-2 space-y-2">
+        <SidebarFooter className="p-2 space-y-2">
           {/* Workspace Chooser */}
           {!isCollapsed ? (
             <Popover open={wsPopoverOpen} onOpenChange={setWsPopoverOpen}>
