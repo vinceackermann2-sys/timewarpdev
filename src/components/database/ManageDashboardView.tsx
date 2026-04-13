@@ -56,12 +56,12 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       {/* Top row: badge + time | source icon */}
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-md ${priorityClass}`}>
+          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${priorityClass}`}>
             {card.priority} Priority
           </span>
           {card.timeAgo && (
-            <div className="flex items-center text-muted-foreground/70 text-[11px]">
-              <Clock className="w-3 h-3 mr-1" />
+            <div className="flex items-center text-muted-foreground/70 text-xs">
+              <Clock className="w-3.5 h-3.5 mr-1" />
               {card.timeAgo}
             </div>
           )}
@@ -85,13 +85,13 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       </div>
 
       {/* Title */}
-      <h3 className="text-sm font-semibold text-foreground leading-snug">{card.title}</h3>
+      <h3 className="text-base font-bold text-foreground leading-snug">{card.title}</h3>
 
       {/* Preview text */}
-      <p className="text-[13px] text-muted-foreground line-clamp-2">{card.description}</p>
+      <p className="text-sm text-muted-foreground line-clamp-2">{card.description}</p>
 
       {/* Action button */}
-      <span className="inline-flex items-center justify-center w-full text-xs font-semibold px-5 py-2.5 rounded-lg border border-foreground text-foreground">
+      <span className="inline-flex items-center justify-center w-fit text-[11px] font-semibold px-4 py-1.5 rounded-lg border border-foreground text-foreground">
         {btnLabel}
       </span>
     </button>
