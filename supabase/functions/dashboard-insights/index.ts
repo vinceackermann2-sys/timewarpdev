@@ -219,7 +219,9 @@ ${integrationData ? `\n## Live Integration Data\n${integrationData}` : ""}
 `;
 
     // 6. Single AI call for ALL 4 tabs
-    const systemPrompt = `You are a business analyst and strategic advisor. Based on the business data and live integration data below, generate insights for "${brandName}" across 4 categories.
+    const systemPrompt = `You are a business analyst and strategic advisor. Based on the INTEGRATION data below, generate insights for "${brandName}" across 4 categories.
+
+CRITICAL RULE: Only generate cards from CONNECTED INTEGRATION data (HubSpot, Slack, Outlook, OneDrive, OneNote, Zoom). Do NOT generate cards from business DNA, products, audiences, or employees data. If no integration data is available, return empty arrays. Every card must trace back to a specific integration.
 
 Return a JSON object with exactly these 4 keys: "Briefing", "Updates", "To-Dos", "Objectives". Each key maps to an array of cards.
 
@@ -229,20 +231,20 @@ Each card has:
 - "title": short title (max 8 words)
 - "description": 2-3 sentence insight
 - "detail": 3-5 sentence deep-dive with specific data, recommendations, or solutions. Be actionable.
-- "category": contextual label (e.g. "Brand", "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth")
-- "source": the integration or data source this insight comes from. MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "business-dna", "products", "audiences", "employees", "general". Pick the most relevant source.
+- "category": contextual label (e.g. "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth", "Communication")
+- "source": the INTEGRATION this insight comes from. MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "zoom". Only use integrations that actually provided data.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
 - "timeAgo": (Updates only) approximate time like "today", "this week", "recently"
 
-IMPORTANT: Every card MUST be directly relevant to "${brandName}". Do NOT include generic advice. Sort cards within each category by priority (High first, then Medium, then Low). Each card must reference specific data from the business context or integrations.
+IMPORTANT: Every card MUST come from real integration data. Do NOT fabricate data or create generic business advice cards. Sort cards by priority (High first). If an integration has no data, do not make up cards for it.
 
-**Briefing** (4-6 cards): Executive overview — brand health, integration status, key metrics from connected tools (HubSpot deals/contacts, emails, Slack), product/audience coverage.
+**Briefing** (3-6 cards): Executive overview of integration health and key metrics from connected tools (HubSpot deals/contacts, emails, Slack messages, OneDrive files).
 
-**Updates** (3-6 cards): Recent changes and activity — new products/audiences added, integration activity (recent emails, deals, Slack messages), brand profile changes. Use integration data to surface real activity. Include "timeAgo" field.
+**Updates** (3-6 cards): Recent activity detected in integrations — new emails, deals, Slack messages, file changes. Include "timeAgo" field.
 
-**To-Dos** (5-8 cards): Split into PROBLEMS (High/Medium: missing data, gaps, unresponded emails, stale deals) and SUGGESTIONS (Low/Medium: strategic levers using integrations + business DNA, e.g. "Use HubSpot deal data to refine pricing", "Leverage Slack activity for collaboration").
+**To-Dos** (4-8 cards): PROBLEMS detected in integrations (unresponded emails, stale deals, gaps) and SUGGESTIONS for leveraging integration data better.
 
-**Objectives** (4-6 cards): Data-driven, integration-aware, measurable goals mixing short-term and medium-term. Leverage connected tools.
+**Objectives** (3-6 cards): Measurable goals based on integration data patterns and trends.
 
 Return ONLY a valid JSON object, no markdown fences.`;
 
