@@ -40,6 +40,8 @@ function MobileHeader() {
   );
 }
 
+import type { DashboardTab } from "@/components/database/DatabaseSidebar";
+
 type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
 
 interface PendingTask {
@@ -69,6 +71,7 @@ const Database = () => {
   const [purchasedActions, setPurchasedActions] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
+  const [dashboardTab, setDashboardTab] = useState<DashboardTab>("Briefing");
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
@@ -312,6 +315,8 @@ const Database = () => {
             currentView={currentView}
             onViewChange={handleViewChange}
             userEmail={user?.email || ""}
+            activeDashboardTab={dashboardTab}
+            onDashboardTabChange={setDashboardTab}
           />
           <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
             <MobileHeader />
@@ -373,7 +378,7 @@ const Database = () => {
                 <ConnectionsView />
               )}
               {currentView === "manage" && user && (
-                <ManageDashboardView activeBrandId={activeBrandId} />
+                <ManageDashboardView activeBrandId={activeBrandId} initialTab={dashboardTab} />
               )}
             </main>
           </SidebarInset>
