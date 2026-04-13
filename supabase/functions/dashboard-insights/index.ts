@@ -280,12 +280,16 @@ ${integrationData ? `\n## Live Integration Data\n${integrationData}` : ""}
 
     // 6. Single AI call for ALL 4 tabs
     const currentTime = new Date().toISOString();
-    const systemPrompt = `You are a business analyst and strategic advisor. Based on the INTEGRATION data below, generate insights for "${brandName}" across 4 categories.
+    const systemPrompt = `You are a business analyst and strategic advisor for "${brandName}". Generate insights across 4 categories by combining INTEGRATION data with the BUSINESS DNA alignment layer.
 
 The current date/time is: ${currentTime}
-Use this to calculate accurate "timeAgo" values. For example, if an email was sent on ${new Date(Date.now() - 3600000).toISOString().slice(0, 16)}, the timeAgo should be "1 hour ago". Be precise — do NOT guess or fabricate timestamps.
+Use this to calculate accurate "timeAgo" values. Be precise — do NOT guess or fabricate timestamps.
 
-CRITICAL RULE: Only generate cards from CONNECTED INTEGRATION data (HubSpot, Slack, Outlook, OneDrive, OneNote, Zoom). Do NOT generate cards from business DNA, products, audiences, or employees data. If no integration data is available, return empty arrays. Every card must trace back to a specific integration.
+## ALIGNMENT LAYER (Business DNA)
+Use the Business Overview, Products, Target Audiences, and AI Employees sections below as the alignment layer. Every insight you generate should be contextualized against this business's identity, goals, products, and audiences. This ensures all cards are strategically relevant — not generic.
+
+## DATA SOURCES
+Generate cards primarily from CONNECTED INTEGRATION data (HubSpot, Slack, Outlook, OneDrive, OneNote, Zoom). When integration data is available, every card must trace back to a specific integration source. When NO integration data is available, generate cards from the Business DNA alignment layer using source "business-dna" — these should be strategic suggestions based on the business's products, audiences, and brand identity.
 
 Return a JSON object with exactly these 4 keys: "Briefing", "Updates", "To-Dos", "Objectives". Each key maps to an array of cards.
 
@@ -295,30 +299,32 @@ Each card has:
 - "title": short title (max 8 words)
 - "description": 2-3 sentence insight
 - "detail": 3-5 sentence deep-dive with specific data, recommendations, or solutions. Be actionable.
-- "category": contextual label (e.g. "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth", "Communication")
-- "source": the INTEGRATION this insight comes from. MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "zoom". Only use integrations that actually provided data.
+- "category": contextual label (e.g. "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth", "Communication", "Strategy")
+- "source": MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "zoom", "business-dna". Use "business-dna" only when no integration data is available for that insight.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
-- "timeAgo": accurate relative time string calculated from the source data timestamps relative to ${currentTime}. Examples: "2 hours ago", "3 days ago", "12 minutes ago". MUST be based on real timestamps from the data, NOT made up.
-- "timestamp": ISO 8601 timestamp of the original event from the source data (e.g. the email send time, meeting time, deal update time). This must come from real data.
-- "actionSuggestion": A specific, actionable next step the user should take to address this insight. Be concrete (e.g. "Reply to John's email about the Q3 proposal before end of day" or "Schedule a follow-up call with Acme Corp to close the $15k deal").
-- "metadata": An object with source-specific context fields. Populate ONLY the relevant fields based on the source:
-  - For "outlook": { "senderName": "...", "senderEmail": "...", "subject": "..." }
-  - For "zoom": { "scheduledDate": "...", "duration": "...", "attendees": ["name1", "name2"] }
-  - For "hubspot": { "contactName": "...", "dealValue": "$...", "stage": "..." }
-  - For "slack": { "channel": "#channel-name", "author": "username" }
-  - For "onedrive": { "fileName": "...", "sharedBy": "..." }
-  - For "onenote": { "notebook": "..." }
-  Use real data from the integration context to fill these fields. Do NOT leave metadata empty.
+- "timeAgo": accurate relative time string. For integration data, calculate from source timestamps. For business-dna cards, omit or use "just now".
+- "timestamp": ISO 8601 timestamp of the original event. For business-dna cards, use "${currentTime}".
+- "actionSuggestion": A specific, actionable next step. Be concrete.
+- "metadata": An object with source-specific context fields:
+  - For "outlook": { "senderName", "senderEmail", "subject" }
+  - For "zoom": { "scheduledDate", "duration", "attendees" }
+  - For "hubspot": { "contactName", "dealValue", "stage" }
+  - For "slack": { "channel", "author" }
+  - For "onedrive": { "fileName", "sharedBy" }
+  - For "onenote": { "notebook" }
+  - For "business-dna": { "category": "brand|product|audience|employee" }
 
-IMPORTANT: Every card MUST come from real integration data. Do NOT fabricate data or create generic business advice cards. Sort cards by priority (High first). If an integration has no data, do not make up cards for it.
+Sort cards by priority (High first). Do NOT fabricate integration data.
 
-**Briefing** (3-6 cards): Executive overview of integration health and key metrics from connected tools (HubSpot deals/contacts, emails, Slack messages, OneDrive files).
+**Briefing** (3-6 cards): The critical signals — what's on track, what's slipping, and what deserves attention. Synthesize integration health and key metrics through the lens of the business's goals and audience.
 
-**Updates** (3-6 cards): Recent activity detected in integrations — new emails, deals, Slack messages, file changes. Include "timeAgo" field.
+**Updates** (3-6 cards): People, decisions, approvals, and blockers. Surface recent activity from integrations (emails, deals, messages, files) instantly so nothing slows the user down. Include "timeAgo".
 
-**To-Dos** (4-8 cards): PROBLEMS detected in integrations (unresponded emails, stale deals, gaps) and SUGGESTIONS for leveraging integration data better.
+**To-Dos** (6-10 cards): The user's highest-leverage actions — clearly defined, prioritized, and ready to execute. Include TWO types:
+  1. PROBLEMS detected in integrations (unresponded emails, stale deals, gaps)
+  2. STRATEGIC SUGGESTIONS: High-leverage tasks based on the business's DNA. Identify the biggest levers to pull — e.g. "Your audience segment X has no targeted product — create one", "Your brand lacks social proof — collect 5 testimonials this week", "No content pipeline for audience Y — draft 3 blog post outlines". These should be the moves that create disproportionate impact.
 
-**Objectives** (3-6 cards): Measurable goals based on integration data patterns and trends.
+**Objectives** (3-6 cards): Preps meetings, reorganizes priorities, and protects time for the work that matters most. Measurable goals aligned to the business's products, audiences, and growth trajectory.
 
 Return ONLY a valid JSON object, no markdown fences.`;
 
@@ -332,7 +338,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: fullContext },
