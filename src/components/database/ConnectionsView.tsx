@@ -80,21 +80,18 @@ function ConnectionCard({
 }) {
   return (
     <div
-      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group ${
+      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group bg-sidebar ${
         integration.comingSoon
           ? "border-border/50 opacity-60 cursor-default"
-          : statusLoaded && connected
-            ? "border-green-500/40"
-            : "border-transparent hover:border-primary/40 hover:shadow-sm"
+          : "border-transparent hover:border-primary/40 hover:shadow-sm"
       }`}
-      style={{ backgroundColor: integration.comingSoon ? undefined : "#f1f5f9" }}
     >
       {integration.comingSoon && (
         <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
       )}
       {statusLoaded && connected && !integration.comingSoon && (
         <span className="absolute top-4 right-4">
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <CheckCircle2 className="h-4 w-4 text-primary" />
         </span>
       )}
       <div className={`h-12 w-12 rounded-xl flex items-center justify-center p-2 ${integration.iconBg || "bg-muted"}`}>
@@ -104,7 +101,7 @@ function ConnectionCard({
         <p className="font-semibold text-sm">{integration.name}</p>
         <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{integration.description}</p>
         {statusLoaded && connected && email && (
-          <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
+          <p className="text-xs text-muted-foreground mt-1 truncate">{email}</p>
         )}
       </div>
       <div className="flex items-center gap-2 mt-auto pt-1 w-full">
