@@ -323,7 +323,7 @@ const Database = () => {
                 setShowBusinessDNA(true);
               }}
             />
-            <main className="flex-1 min-h-0 overflow-hidden">
+            <main className="flex-1 min-h-0 overflow-hidden border border-border/50 rounded-2xl m-1.5">
               {currentView === "aiceo" && user && (
                 <TimeWarpAIView
                   initialTask={pendingTask}
