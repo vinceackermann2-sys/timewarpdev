@@ -108,7 +108,10 @@ function ConnectionCard({
         )}
       </div>
       <div className="flex items-center gap-2 mt-auto pt-1 w-full">
-        {!connected && !integration.comingSoon && (
+        {!statusLoaded && !integration.comingSoon && (
+          <Skeleton className="h-8 w-full rounded-md" />
+        )}
+        {statusLoaded && !connected && !integration.comingSoon && (
           <Button
             variant="outline"
             size="sm"
@@ -120,7 +123,7 @@ function ConnectionCard({
             Connect
           </Button>
         )}
-        {connected && !integration.comingSoon && (
+        {statusLoaded && connected && !integration.comingSoon && (
           <Button
             variant="destructive"
             size="sm"
