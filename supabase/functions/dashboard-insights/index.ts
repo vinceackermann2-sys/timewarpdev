@@ -169,6 +169,37 @@ serve(async (req) => {
       })());
     }
 
+    if (connectedProviders.includes("zoom")) {
+      searchPromises.push((async () => {
+        try {
+          const zoomToken = await getValidProviderToken(supabase, user.id, "zoom");
+          if (!zoomToken) return;
+          const meetingsRes = await fetch(
+            `https://api.zoom.us/v2/users/me/meetings?type=scheduled&page_size=5`,
+            { headers: { Authorization: `Bearer ${zoomToken}` } }
+          );
+          if (meetingsRes.ok) {
+            const data = await meetingsRes.json();
+            const meetings = (data.meetings || []).map((m: any) =>
+              `- ${m.topic || "Untitled"} — ${m.start_time?.slice(0, 16)?.replace("T", " ") || "no date"} (${m.duration || 0} min, ${m.type === 2 ? "scheduled" : "recurring"})`
+            );
+            if (meetings.length > 0) integrationData += `\n### Upcoming Zoom Meetings\n${meetings.join("\n")}\n`;
+          }
+          const pastRes = await fetch(
+            `https://api.zoom.us/v2/users/me/meetings?type=previous_meetings&page_size=5`,
+            { headers: { Authorization: `Bearer ${zoomToken}` } }
+          );
+          if (pastRes.ok) {
+            const data = await pastRes.json();
+            const past = (data.meetings || []).map((m: any) =>
+              `- ${m.topic || "Untitled"} — ${m.start_time?.slice(0, 16)?.replace("T", " ") || "no date"} (${m.duration || 0} min)`
+            );
+            if (past.length > 0) integrationData += `\n### Recent Zoom Meetings\n${past.join("\n")}\n`;
+          }
+        } catch (e) { console.error("Zoom search error:", e); }
+      })());
+    }
+
     await Promise.all(searchPromises);
 
     // 5. Build context
