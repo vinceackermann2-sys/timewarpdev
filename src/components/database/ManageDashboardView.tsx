@@ -177,6 +177,7 @@ export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string 
   const [customObjectives, setCustomObjectives] = useState<DashboardCard[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
+  const [completedTodos, setCompletedTodos] = useState<Set<string>>(new Set());
 
   const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
   const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
