@@ -50,7 +50,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
   return (
     <button
       onClick={onOpen}
-      className="bg-card border border-border/60 rounded-2xl p-6 w-full flex flex-col gap-3.5 transition-all duration-200 hover:border-primary/30 hover:shadow-md text-left cursor-pointer min-h-[180px]"
+      className="group bg-card border border-border/60 rounded-2xl p-6 w-full flex flex-col gap-3.5 transition-all duration-200 hover:shadow-md text-left cursor-pointer min-h-[180px]"
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
       {/* Top row: badge + time | source icon */}
@@ -91,7 +91,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       <p className="text-sm text-muted-foreground line-clamp-2">{card.description}</p>
 
       {/* Action button */}
-      <span className="inline-flex items-center justify-center w-fit text-[11px] font-semibold px-4 py-1.5 rounded-lg border border-foreground text-foreground">
+      <span className="inline-flex items-center justify-center text-xs font-semibold px-6 py-2 rounded-lg border border-foreground text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         {btnLabel}
       </span>
     </button>
