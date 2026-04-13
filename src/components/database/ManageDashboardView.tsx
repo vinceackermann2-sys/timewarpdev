@@ -48,10 +48,10 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
   const btnLabel = getCardButtonLabel(card);
 
   return (
-    <button
-      onClick={onOpen}
+    <div
       className="group bg-card border border-border/60 rounded-2xl p-6 w-full flex flex-col gap-3.5 transition-all duration-200 hover:shadow-md text-left cursor-pointer min-h-[180px]"
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
+      onClick={onOpen}
     >
       {/* Top row: badge + time | source icon */}
       <div className="flex items-center justify-between w-full">
@@ -90,11 +90,14 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       {/* Preview text */}
       <p className="text-sm text-muted-foreground line-clamp-2">{card.description}</p>
 
-      {/* Action button - visible always, expands on hover */}
-      <span className="inline-flex items-center justify-center w-fit text-xs font-semibold px-6 py-2 rounded-lg border border-foreground text-foreground group-hover:bg-foreground group-hover:text-background transition-colors duration-200">
+      {/* Action button - opens detail panel on hover */}
+      <span
+        className="inline-flex items-center justify-center w-fit text-sm font-semibold px-7 py-2.5 rounded-lg border border-foreground text-foreground group-hover:bg-foreground group-hover:text-background transition-colors duration-200"
+        onMouseEnter={onOpen}
+      >
         {btnLabel}
       </span>
-    </button>
+    </div>
   );
 }
 
