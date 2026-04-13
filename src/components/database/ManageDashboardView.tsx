@@ -85,13 +85,13 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       </div>
 
       {/* Title */}
-      <h3 className="text-sm font-semibold text-foreground leading-snug">{card.title}</h3>
+      <h3 className="text-base font-bold text-foreground leading-snug">{card.title}</h3>
 
       {/* Preview text */}
-      <p className="text-[13px] text-muted-foreground line-clamp-2">{card.description}</p>
+      <p className="text-sm text-muted-foreground line-clamp-2">{card.description}</p>
 
       {/* Action button */}
-      <span className="inline-flex items-center justify-center w-full text-xs font-semibold px-5 py-2.5 rounded-lg border border-foreground text-foreground">
+      <span className="inline-flex items-center justify-center w-fit text-[11px] font-semibold px-4 py-1.5 rounded-lg border border-foreground text-foreground">
         {btnLabel}
       </span>
     </button>
