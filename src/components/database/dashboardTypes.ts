@@ -41,9 +41,9 @@ export interface DashboardCard {
 }
 
 export const badgeClasses: Record<string, string> = {
-  High: "bg-red-500/20 text-red-700 dark:text-red-300 backdrop-blur-md border border-red-500/20",
-  Medium: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 backdrop-blur-md border border-yellow-500/20",
-  Low: "bg-green-500/20 text-green-700 dark:text-green-300 backdrop-blur-md border border-green-500/20",
+  High: "bg-red-100/60 text-red-600 dark:bg-red-900/40 dark:text-red-300 backdrop-blur-sm border border-red-200/50 dark:border-red-700/30 shadow-sm",
+  Medium: "bg-yellow-100/60 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 backdrop-blur-sm border border-yellow-200/50 dark:border-yellow-700/30 shadow-sm",
+  Low: "bg-green-100/60 text-green-600 dark:bg-green-900/40 dark:text-green-300 backdrop-blur-sm border border-green-200/50 dark:border-green-700/30 shadow-sm",
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {
