@@ -37,7 +37,7 @@ export function TopBreadcrumb({ currentView, activeBrandId, onSelectBrand }: Top
   );
 
   return (
-    <div className="hidden md:flex items-center gap-2 px-4 h-10 bg-sidebar text-sm shrink-0">
+    <div className="hidden md:flex items-center gap-2 px-4 h-12 bg-sidebar text-sm shrink-0">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button className="flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-muted/50 transition-colors text-foreground font-medium">
