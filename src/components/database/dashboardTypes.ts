@@ -41,9 +41,9 @@ export interface DashboardCard {
 }
 
 export const badgeClasses: Record<string, string> = {
-  High: "bg-[hsl(0_100%_97%_/_0.86)] text-[hsl(0_72%_42%)] border border-[hsl(0_65%_82%_/_0.95)] backdrop-blur-xl shadow-[0_6px_18px_hsl(0_0%_0%_/_0.08),inset_0_1px_0_hsl(0_0%_100%_/_0.72)]",
-  Medium: "bg-[hsl(42_100%_96%_/_0.9)] text-[hsl(36_82%_36%)] border border-[hsl(42_88%_78%_/_0.95)] backdrop-blur-xl shadow-[0_6px_18px_hsl(0_0%_0%_/_0.08),inset_0_1px_0_hsl(0_0%_100%_/_0.72)]",
-  Low: "bg-[hsl(142_55%_96%_/_0.88)] text-[hsl(142_62%_30%)] border border-[hsl(142_42%_78%_/_0.95)] backdrop-blur-xl shadow-[0_6px_18px_hsl(0_0%_0%_/_0.08),inset_0_1px_0_hsl(0_0%_100%_/_0.72)]",
+  High: "bg-[linear-gradient(180deg,hsl(0_100%_100%_/_0.78),hsl(0_100%_98%_/_0.56))] text-[hsl(0_68%_42%)] border border-[hsl(0_75%_74%_/_0.95)] shadow-[0_10px_24px_hsl(0_55%_70%_/_0.16),inset_0_1px_0_hsl(0_0%_100%_/_0.92),inset_0_-1px_0_hsl(0_80%_88%_/_0.55)] supports-[backdrop-filter]:bg-[linear-gradient(180deg,hsl(0_100%_100%_/_0.56),hsl(0_100%_98%_/_0.34))] supports-[backdrop-filter]:backdrop-blur-md",
+  Medium: "bg-[linear-gradient(180deg,hsl(0_100%_100%_/_0.78),hsl(42_100%_95%_/_0.58))] text-[hsl(37_84%_36%)] border border-[hsl(42_88%_74%_/_0.95)] shadow-[0_10px_24px_hsl(42_70%_68%_/_0.18),inset_0_1px_0_hsl(0_0%_100%_/_0.92),inset_0_-1px_0_hsl(42_100%_86%_/_0.52)] supports-[backdrop-filter]:bg-[linear-gradient(180deg,hsl(0_100%_100%_/_0.56),hsl(42_100%_95%_/_0.34))] supports-[backdrop-filter]:backdrop-blur-md",
+  Low: "bg-[linear-gradient(180deg,hsl(0_100%_100%_/_0.78),hsl(142_55%_95%_/_0.58))] text-[hsl(142_62%_30%)] border border-[hsl(142_42%_72%_/_0.95)] shadow-[0_10px_24px_hsl(142_38%_62%_/_0.16),inset_0_1px_0_hsl(0_0%_100%_/_0.92),inset_0_-1px_0_hsl(142_52%_84%_/_0.52)] supports-[backdrop-filter]:bg-[linear-gradient(180deg,hsl(0_100%_100%_/_0.56),hsl(142_55%_95%_/_0.34))] supports-[backdrop-filter]:backdrop-blur-md",
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {

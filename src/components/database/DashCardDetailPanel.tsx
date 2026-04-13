@@ -1,18 +1,12 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Clock, Mail, Calendar, Users, FileText, Hash, BookOpen, Lightbulb, DollarSign } from "lucide-react";
-import { SOURCE_META, type DashboardCard } from "./dashboardTypes";
+import { SOURCE_META, badgeClasses, type DashboardCard } from "./dashboardTypes";
 
 interface Props {
   card: DashboardCard | null;
   open: boolean;
   onClose: () => void;
 }
-
-const badgeClasses: Record<string, string> = {
-  High: "bg-red-400/80 text-white",
-  Medium: "bg-yellow-400/70 text-white",
-  Low: "bg-green-400/70 text-white",
-};
 
 function MetaRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
   if (!value) return null;
@@ -129,8 +123,8 @@ export function DashCardDetailPanel({ card, open, onClose }: Props) {
       <SheetContent className="w-full sm:max-w-[420px] flex flex-col gap-0 p-0">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center gap-2 mb-2">
-            <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${badgeClasses[card.priority] || badgeClasses.Low}`}>
-              {card.priority}
+            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${badgeClasses[card.priority] || badgeClasses.Low}`}>
+              {card.priority} Priority
             </span>
             {card.category && (
               <span className="text-[10px] text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded">
