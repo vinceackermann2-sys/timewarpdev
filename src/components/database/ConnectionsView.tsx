@@ -83,7 +83,7 @@ function ConnectionCard({
       className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group ${
         integration.comingSoon
           ? "border-border/50 opacity-60 cursor-default"
-          : connected
+          : statusLoaded && connected
             ? "border-green-500/40"
             : "border-transparent hover:border-primary/40 hover:shadow-sm"
       }`}
