@@ -268,7 +268,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
     localStorage.getItem("preferred_workspace_id")
   );
-  const loadedWorkspaceRef = useRef<string | null>(null);
+  const loadedWorkspaceRef = useRef<string | null | undefined>(undefined);
 
   // Keep in sync with workspace changes (event-driven, no polling)
   useEffect(() => {
@@ -297,12 +297,11 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
   // Load from DB on mount or when workspace changes
   useEffect(() => {
-    // Skip reload if we already have data for this workspace
-    if (loadedWorkspaceRef.current === activeWorkspaceId && !isLoading) return;
+    // Skip reload only after the first successful load for this workspace
+    if (loadedWorkspaceRef.current !== undefined && loadedWorkspaceRef.current === activeWorkspaceId && !isLoading) return;
 
     async function load() {
       const isWorkspaceSwitch = loadedWorkspaceRef.current !== activeWorkspaceId;
-      // Only show loading skeleton if we have no cached brands to display
       try {
         const hasCached = !!localStorage.getItem("cached_brands");
         if (isWorkspaceSwitch && !hasCached) {
@@ -311,7 +310,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       } catch {
         if (isWorkspaceSwitch) setIsLoading(true);
       }
-      // Share a single session across all three parallel loads
+
       const { data: { session } } = await supabase.auth.getSession();
       const [b, p, a] = await Promise.all([
         loadEntities<BrandEntry>("brand", activeWorkspaceId, session),
@@ -319,7 +318,6 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
         loadEntities<AudienceEntry>("audience", activeWorkspaceId, session),
       ]);
       setBrandsState(b);
-      // Persist brand list to localStorage for instant breadcrumb on next load
       try { localStorage.setItem("cached_brands", JSON.stringify(b)); } catch {}
       setProductsState(p);
       setAudiencesState(a);
@@ -330,7 +328,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
     load();
-  }, [activeWorkspaceId]);
+  }, [activeWorkspaceId, isLoading]);
 
   const reloadData = async () => {
     setIsLoading(true);
