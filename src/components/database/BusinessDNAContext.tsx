@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { DEFAULT_PRODUCT, ProductData } from "@/components/database/ProductDetailView";
 import { DEFAULT_AUDIENCE, AudienceData } from "@/components/database/AudienceDetailView";
@@ -244,6 +245,7 @@ async function deleteEntityByLogicalId(logicalId: string, dataType: string, work
 }
 
 export function BusinessDNAProvider({ children }: { children: ReactNode }) {
+  const { user, isLoading: authLoading } = useAuth();
   const [userName, setUserName] = useState("Unknown");
 
   // Hydrate brands from localStorage cache for instant breadcrumb rendering
