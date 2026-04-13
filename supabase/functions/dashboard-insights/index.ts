@@ -5,7 +5,6 @@ import {
   getValidProviderToken,
   searchMicrosoftData,
   searchOneNoteData,
-  searchSlackData,
 } from "../_shared/run-employee/connections.ts";
 
 const corsHeaders = {
