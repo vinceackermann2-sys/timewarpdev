@@ -56,7 +56,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       {/* Top row: badge + time | source icon */}
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${priorityClass}`}>
+          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-md ${priorityClass}`}>
             {card.priority} Priority
           </span>
           {card.timeAgo && (
@@ -66,20 +66,20 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
             </div>
           )}
         </div>
-        <div className="shrink-0 bg-white border border-border/40 p-2 rounded-xl flex items-center justify-center w-12 h-12">
+        <div className="shrink-0 bg-white border border-border/40 p-3 rounded-xl flex items-center justify-center w-16 h-16">
           {sourceMeta.icon ? (
             <img
               src={sourceMeta.icon}
               alt={sourceMeta.label}
-              className="w-7 h-7 rounded object-contain"
+              className="w-10 h-10 rounded object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
                 (e.target as HTMLImageElement).parentElement!.innerHTML =
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
               }}
             />
           ) : (
-            <Building2 className="w-7 h-7 text-muted-foreground" />
+            <Building2 className="w-10 h-10 text-muted-foreground" />
           )}
         </div>
       </div>
@@ -91,7 +91,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       <p className="text-[13px] text-muted-foreground line-clamp-2">{card.description}</p>
 
       {/* Action button */}
-      <span className="inline-flex items-center w-fit text-[11px] font-semibold px-4 py-2 rounded-lg border border-foreground text-foreground">
+      <span className="inline-flex items-center justify-center w-full text-xs font-semibold px-5 py-2.5 rounded-lg border border-foreground text-foreground">
         {btnLabel}
       </span>
     </button>
