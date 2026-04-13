@@ -1,55 +1,32 @@
 
 
-## Plan: Reddit-Backed Data Enrichment for Missing Product/Audience Fields
+## Plan: Dashboard Cards Persistence, Update Button, and Icon Fixes
 
-### Overview
-After the initial AI extraction of products and audiences from the scraped website, check for empty/missing fields. If gaps exist, search Reddit via Firecrawl for real user discussions about the brand/product, then use AI to fill only the missing fields with Reddit-sourced data. Show Reddit as a verified source in the onboarding UI.
+### Problems Identified
+1. **No persistence**: Dashboard cards are stored only in React state (`allTabCards`). On every navigation away and back, or brand change, they re-fetch from the API.
+2. **No manual refresh button**: Users must reload the page to get new insights.
+3. **Card button placement**: The "View Details" button is on the right side; user wants it on the left.
+4. **Broken integration icons**: `SOURCE_META` uses `/src/assets/...` paths (e.g., `/src/assets/logo-hubspot.svg`) which don't resolve in production builds. These need to be proper ES module imports.
 
-### Technical Details
+### Changes
 
-#### 1. Add Reddit enrichment step in `supabase/functions/scrape-product/index.ts`
+**1. Fix integration icons (`src/components/database/dashboardTypes.ts`)**
+- Import SVG assets using ES module imports (`import logoHubspot from "@/assets/logo-hubspot.svg"`) instead of raw file paths.
+- Update `SOURCE_META` to use the imported variables.
 
-After the parallel brand + product/audience extraction (around line 1126), add a new phase:
+**2. Cache cards in localStorage (`src/components/database/ManageDashboardView.tsx`)**
+- On successful fetch, persist `allTabCards` + `brandId` to `localStorage` (keyed by brand ID).
+- On mount / brand change, load from localStorage first (instant display), then allow manual refresh.
+- Remove the auto-reset of `cachedBrandId` on brand change so cached data stays visible.
 
-- **Detect gaps**: For each product, check if key fields are empty (features, benefits, painPoints, useCases, targetScenarios, uniqueSellingPoints, competitiveAdvantages, commonObjections, proofPoints, dosAndDonts, powerPhrases, powerWords). For each audience, check similar fields (buyingTriggers, useCaseRequirements, engagementTriggers, attentionHooks, commonObjections, valuePropositions, etc.)
-- **Skip**: `offers` on products (as requested) and fields that already have data
-- **Search Reddit via Firecrawl**: Use the Firecrawl search API (`https://api.firecrawl.dev/v1/search`) with query like `"site:reddit.com {brandName} {productName} review"` and `scrapeOptions: { formats: ["markdown"] }` to get actual Reddit discussion content
-- **AI fill with Reddit context**: Pass the Reddit markdown content + the list of missing fields to a focused AI prompt that extracts ONLY data backed by the Reddit discussions. The prompt will be strict: "Only fill fields where you find explicit evidence in the Reddit content. Do not fabricate."
-- **Track Reddit usage**: Return a `redditEnriched: true` flag and `redditUrls: string[]` in the response alongside the extracted data
+**3. Add "Update" refresh button**
+- Add a `RefreshCw` button in the dashboard header area that clears the cache for the current brand and re-fetches insights.
+- Show a loading spinner on the button while fetching.
 
-#### 2. New AI prompt: `REDDIT_FILL_PROMPT`
+**4. Move card button to the left**
+- In the `DashCard` component, swap the layout of the footer row so the "View Details" button is on the left and the timestamp is on the right.
 
-A focused prompt that receives:
-- The product/audience name and existing data
-- Reddit discussion content (markdown)
-- List of empty field names to fill
-
-Returns only the fields that have Reddit-backed evidence, with empty values for anything not found.
-
-#### 3. Update response shape
-
-Add to the core mode response:
-- `redditEnriched: boolean` — whether Reddit was used
-- `redditUrls: string[]` — actual Reddit URLs used as sources
-
-#### 4. Update frontend: `BusinessDNAOnboarding.tsx`
-
-- Read `redditEnriched` and `redditUrls` from the scrape response
-- Add Reddit URLs to `scannedUrlsRef.current` so they appear in the source verification carousel
-- Show a Reddit icon/badge next to sources that are from Reddit (detect by URL containing `reddit.com`)
-
-### Files to Modify
-- `supabase/functions/scrape-product/index.ts` — add Reddit search + AI fill logic after extraction
-- `src/components/database/BusinessDNAOnboarding.tsx` — display Reddit sources in the verification carousel
-
-### Flow
-```text
-1. Scrape website → extract brand/products/audiences (existing)
-2. Check for empty fields on products (except offers) and audiences
-3. If gaps found → Firecrawl search "site:reddit.com {brand} {product} review"
-4. Pass Reddit content to AI with strict "evidence-only" prompt
-5. Merge Reddit-backed data into empty fields only
-6. Return redditEnriched flag + redditUrls
-7. Frontend shows Reddit URLs in source carousel with Reddit branding
-```
+### Files Modified
+- `src/components/database/dashboardTypes.ts` — fix icon imports
+- `src/components/database/ManageDashboardView.tsx` — localStorage caching, update button, button placement
 
