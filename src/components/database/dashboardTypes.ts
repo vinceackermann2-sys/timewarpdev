@@ -41,9 +41,9 @@ export interface DashboardCard {
 }
 
 export const badgeClasses: Record<string, string> = {
-  High: "bg-destructive/80 text-destructive-foreground",
-  Medium: "bg-[hsl(45,93%,47%)]/80 text-white",
-  Low: "bg-emerald-500/80 text-white",
+  High: "bg-red-100 text-red-700",
+  Medium: "bg-yellow-100 text-yellow-700",
+  Low: "bg-green-100 text-green-700",
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {

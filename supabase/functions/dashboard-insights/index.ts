@@ -279,7 +279,11 @@ ${integrationData ? `\n## Live Integration Data\n${integrationData}` : ""}
 `;
 
     // 6. Single AI call for ALL 4 tabs
+    const currentTime = new Date().toISOString();
     const systemPrompt = `You are a business analyst and strategic advisor. Based on the INTEGRATION data below, generate insights for "${brandName}" across 4 categories.
+
+The current date/time is: ${currentTime}
+Use this to calculate accurate "timeAgo" values. For example, if an email was sent on ${new Date(Date.now() - 3600000).toISOString().slice(0, 16)}, the timeAgo should be "1 hour ago". Be precise — do NOT guess or fabricate timestamps.
 
 CRITICAL RULE: Only generate cards from CONNECTED INTEGRATION data (HubSpot, Slack, Outlook, OneDrive, OneNote, Zoom). Do NOT generate cards from business DNA, products, audiences, or employees data. If no integration data is available, return empty arrays. Every card must trace back to a specific integration.
 
@@ -294,7 +298,8 @@ Each card has:
 - "category": contextual label (e.g. "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth", "Communication")
 - "source": the INTEGRATION this insight comes from. MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "zoom". Only use integrations that actually provided data.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
-- "timeAgo": approximate time ago string like "2 hours ago", "3 days ago", "1 week ago", "12 minutes ago". Use specific durations, NOT vague words like "recently" or "this month".
+- "timeAgo": accurate relative time string calculated from the source data timestamps relative to ${currentTime}. Examples: "2 hours ago", "3 days ago", "12 minutes ago". MUST be based on real timestamps from the data, NOT made up.
+- "timestamp": ISO 8601 timestamp of the original event from the source data (e.g. the email send time, meeting time, deal update time). This must come from real data.
 - "actionSuggestion": A specific, actionable next step the user should take to address this insight. Be concrete (e.g. "Reply to John's email about the Q3 proposal before end of day" or "Schedule a follow-up call with Acme Corp to close the $15k deal").
 - "metadata": An object with source-specific context fields. Populate ONLY the relevant fields based on the source:
   - For "outlook": { "senderName": "...", "senderEmail": "...", "subject": "..." }

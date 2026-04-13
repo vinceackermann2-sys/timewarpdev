@@ -57,12 +57,12 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
             </span>
           )}
         </div>
-        <div className="bg-white border border-border/40 p-2 rounded-lg flex items-center justify-center w-10 h-10">
+        <div className="bg-white border border-border/40 p-2.5 rounded-lg flex items-center justify-center w-12 h-12">
           {sourceMeta.icon ? (
             <img
               src={sourceMeta.icon}
               alt={sourceMeta.label}
-              className="w-7 h-7 rounded object-contain"
+              className="w-8 h-8 rounded object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
                 (e.target as HTMLImageElement).parentElement!.innerHTML =
@@ -70,7 +70,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
               }}
             />
           ) : (
-            <Building2 className="w-7 h-7 text-muted-foreground" />
+            <Building2 className="w-8 h-8 text-muted-foreground" />
           )}
         </div>
       </div>
@@ -81,7 +81,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
           variant="outline"
           size="sm"
           onClick={onOpen}
-          className="h-8 px-4 text-xs gap-1.5 font-semibold"
+          className="h-9 px-5 text-sm gap-1.5 font-semibold"
         >
           {sourceMeta.icon && (
             <img src={sourceMeta.icon} alt="" className="w-3.5 h-3.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
