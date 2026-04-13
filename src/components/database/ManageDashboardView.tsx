@@ -112,6 +112,27 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
 }
 
 /* ------------------------------------------------------------------ */
+/*  Objective Card (matches reference style)                           */
+/* ------------------------------------------------------------------ */
+function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
+  return (
+    <div
+      className="bg-card border border-border/60 rounded-2xl p-5 w-full flex flex-col gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md"
+      style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
+    >
+      <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
+      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+        <div className="h-full bg-muted-foreground/30 rounded-full" style={{ width: "70%" }} />
+      </div>
+      <p className="text-[13px] text-muted-foreground line-clamp-2">{card.description}</p>
+      <Button size="sm" onClick={onOpen} className="w-fit h-8 px-4 text-xs font-semibold">
+        Accept
+      </Button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Skeleton Loader                                                    */
 /* ------------------------------------------------------------------ */
 function CardSkeletons() {
