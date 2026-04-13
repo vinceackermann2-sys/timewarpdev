@@ -234,7 +234,7 @@ Each card has:
 - "category": contextual label (e.g. "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth", "Communication")
 - "source": the INTEGRATION this insight comes from. MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "zoom". Only use integrations that actually provided data.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
-- "timeAgo": (Updates only) approximate time like "today", "this week", "recently"
+- "timeAgo": approximate time ago string like "2 hours ago", "3 days ago", "1 week ago", "12 minutes ago". Use specific durations, NOT vague words like "recently" or "this month".
 
 IMPORTANT: Every card MUST come from real integration data. Do NOT fabricate data or create generic business advice cards. Sort cards by priority (High first). If an integration has no data, do not make up cards for it.
 

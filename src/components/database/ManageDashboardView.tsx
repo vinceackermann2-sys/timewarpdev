@@ -33,12 +33,14 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
     ? `View ${sourceMeta.label} Details`
     : "View Details";
 
+  const priorityLabel = card.priority === "High" ? "High Priority" : card.priority === "Medium" ? "Medium Priority" : "Low Priority";
+
   return (
-    <div className="bg-card border border-border rounded-xl p-4 w-full max-w-[340px] flex flex-col gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md">
+    <div className="bg-card border border-border rounded-xl p-5 w-full flex flex-col gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md" style={{ flex: "1 1 calc(33.333% - 1rem)", maxWidth: "calc(33.333% - 0.67rem)", minWidth: "280px" }}>
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-2">
-          <span className={`px-2 py-0.5 text-[11px] font-medium rounded ${badgeClasses[card.priority] || badgeClasses.Low}`}>
-            {card.priority}
+          <span className={`px-2.5 py-1 text-[11px] font-semibold rounded ${badgeClasses[card.priority] || badgeClasses.Low}`}>
+            {priorityLabel}
           </span>
           {card.category && (
             <span className="text-[10px] text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded">
@@ -63,11 +65,11 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
           )}
         </div>
       </div>
-      <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
-      <p className="text-xs text-muted-foreground line-clamp-3">{card.description}</p>
-      <div className="flex items-center justify-between mt-auto pt-1">
+      <h3 className="text-base font-bold text-foreground leading-snug">{card.title}</h3>
+      <p className="text-sm text-muted-foreground line-clamp-2">{card.description}</p>
+      <div className="flex items-center justify-between mt-auto pt-2">
         {card.timeAgo ? (
-          <div className="flex items-center text-muted-foreground text-[10px] font-medium">
+          <div className="flex items-center text-muted-foreground text-[11px] font-medium">
             <Clock className="w-3 h-3 mr-1" />
             {card.timeAgo}
           </div>
@@ -78,7 +80,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
           variant="outline"
           size="sm"
           onClick={onOpen}
-          className="h-7 px-3 text-xs gap-1.5 font-medium"
+          className="h-8 px-4 text-xs gap-1.5 font-semibold"
         >
           {sourceMeta.icon && (
             <img src={sourceMeta.icon} alt="" className="w-3.5 h-3.5 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
@@ -97,8 +99,8 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
 function CardSkeletons() {
   return (
     <div className="flex flex-wrap gap-4">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="bg-card border border-border rounded-xl p-4 w-full max-w-[340px] flex flex-col gap-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3" style={{ flex: "1 1 calc(33.333% - 1rem)", maxWidth: "calc(33.333% - 0.67rem)", minWidth: "280px" }}>
           <div className="flex justify-between items-start">
             <Skeleton className="h-5 w-20 rounded" />
             <Skeleton className="h-7 w-7 rounded" />
