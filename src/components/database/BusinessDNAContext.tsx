@@ -299,7 +299,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
   // Load from DB on mount or when workspace changes
   useEffect(() => {
-    // Skip reload only after the first successful load for this workspace
+    if (authLoading || !user) return;
     if (loadedWorkspaceRef.current !== undefined && loadedWorkspaceRef.current === activeWorkspaceId) return;
 
     async function load() {
@@ -314,6 +314,8 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
       const [b, p, a] = await Promise.all([
         loadEntities<BrandEntry>("brand", activeWorkspaceId, session),
         loadEntities<ProductEntry>("product", activeWorkspaceId, session),
@@ -330,7 +332,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
     load();
-  }, [activeWorkspaceId]);
+  }, [activeWorkspaceId, authLoading, user]);
 
   const reloadData = async () => {
     setIsLoading(true);
