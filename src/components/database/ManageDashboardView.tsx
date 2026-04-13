@@ -196,9 +196,8 @@ function AddObjectiveInline({ onAdd }: { onAdd: (title: string, desc: string) =>
 /* ------------------------------------------------------------------ */
 /*  Main View                                                          */
 /* ------------------------------------------------------------------ */
-export function ManageDashboardView() {
+export function ManageDashboardView({ activeBrandId }: { activeBrandId?: string | null }) {
   const { brands } = useBusinessDNA();
-  const [selectedBrand, setSelectedBrand] = useState<BrandEntry | null>(null);
   const [activeTab, setActiveTab] = useState(TABS[0].id);
   const [allTabCards, setAllTabCards] = useState<Record<string, DashboardCard[]>>({});
   const [loading, setLoading] = useState(false);
@@ -208,9 +207,7 @@ export function ManageDashboardView() {
   const [cachedBrandId, setCachedBrandId] = useState<string | null>(null);
   const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
 
-  const activeBrand = selectedBrand && brands.find((b) => b.id === selectedBrand.id)
-    ? brands.find((b) => b.id === selectedBrand.id)!
-    : brands[0] || null;
+  const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
 
   const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
 
@@ -242,8 +239,13 @@ export function ManageDashboardView() {
 
   useEffect(() => {
     if (!activeBrand) return;
+    setCachedBrandId(null);
+  }, [activeBrandId]);
+
+  useEffect(() => {
+    if (!activeBrand) return;
     fetchAllInsights(activeBrand.id);
-  }, [activeBrand?.id]);
+  }, [activeBrand?.id, cachedBrandId]);
 
   const handleAddObjective = (title: string, description: string) => {
     const newObj: DashboardCard = {
@@ -266,9 +268,6 @@ export function ManageDashboardView() {
       <div className="px-6 lg:px-8 pt-6 pb-3">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-          <BusinessSelector brands={brands} selected={activeBrand} onSelect={(b) => {
-            setSelectedBrand(b); setCachedBrandId(null);
-          }} />
         </div>
         <div className="relative max-w-[220px]">
           <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
