@@ -92,7 +92,7 @@ function ConnectionCard({
       {integration.comingSoon && (
         <span className="absolute top-4 right-4 text-[11px] font-medium text-muted-foreground">Soon</span>
       )}
-      {connected && !integration.comingSoon && (
+      {statusLoaded && connected && !integration.comingSoon && (
         <span className="absolute top-4 right-4">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
         </span>
@@ -103,7 +103,7 @@ function ConnectionCard({
       <div>
         <p className="font-semibold text-sm">{integration.name}</p>
         <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{integration.description}</p>
-        {connected && email && (
+        {statusLoaded && connected && email && (
           <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{email}</p>
         )}
       </div>
