@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { AgentChatView } from "@/components/database/AgentChatView";
 import { ConnectionsView } from "@/components/database/ConnectionsView";
+import { ManageDashboardView } from "@/components/database/ManageDashboardView";
 
 
 import { WorkspacesView } from "@/components/database/WorkspacesView";
@@ -38,7 +39,7 @@ function MobileHeader() {
   );
 }
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections";
+type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
 
 interface PendingTask {
   role: string;
@@ -53,7 +54,7 @@ const Database = () => {
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem("tw_current_view");
-    if (saved && ["aiceo", "businessdna", "employees", "workspaces"].includes(saved)) {
+    if (saved && ["aiceo", "businessdna", "employees", "workspaces", "manage"].includes(saved)) {
       return saved as View;
     }
     return "businessdna";
@@ -361,6 +362,9 @@ const Database = () => {
               )}
               {currentView === "connections" && user && (
                 <ConnectionsView />
+              )}
+              {currentView === "manage" && user && (
+                <ManageDashboardView />
               )}
             </main>
           </SidebarInset>
