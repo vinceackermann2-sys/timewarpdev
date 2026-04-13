@@ -97,7 +97,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       >
         {btnLabel}
       </span>
-    </button>
+    </div>
   );
 }
 
