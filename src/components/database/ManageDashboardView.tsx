@@ -92,7 +92,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
 
       {/* Action button - opens detail panel on hover */}
       <span
-        className="inline-flex items-center justify-center w-fit text-sm font-semibold px-7 py-2.5 rounded-lg border border-foreground text-foreground group-hover:bg-foreground group-hover:text-background transition-colors duration-200"
+        className="inline-flex items-center justify-center w-full text-sm font-semibold px-7 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-900/20 shadow-[0_2px_8px_rgba(0,0,0,0.12)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.18)] transition-shadow duration-200"
         onMouseEnter={onOpen}
       >
         {btnLabel}
