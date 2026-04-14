@@ -677,7 +677,7 @@ For charts use a \`\`\`chart code block:
 \`\`\`chart
 {"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
 \`\`\`
-Supported chart types: bar, line, area, pie.
+Supported chart types: bar, line, area, pie.`;
 }
 
 function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {
