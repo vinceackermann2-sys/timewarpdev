@@ -300,14 +300,9 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .eq("provider", provider);
 
-      if (requestedBrandId) {
-        await supabaseAdmin
-          .from("user_business_data")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("source", provider)
-          .eq("metadata->>brandId", requestedBrandId);
-      }
+      // Note: We intentionally do NOT delete user_business_data here.
+      // Synced business data (brands, products, audiences) should persist
+      // even after disconnecting the integration source.
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
