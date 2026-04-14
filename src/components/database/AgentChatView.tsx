@@ -2504,7 +2504,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
             </button>
           ) : (
             <button
-              onClick={handleSendMessage}
+              data-send-btn
               className={`p-2.5 rounded-full text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm ${
                 isActionMode ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90"
               }`}
