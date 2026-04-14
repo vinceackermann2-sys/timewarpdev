@@ -1347,31 +1347,58 @@ ${allUrls.slice(0, 400).join('\n')}` }],
             }
             const combinedMarkdown = redditContent.map((r: any) => `## Source: ${r.url}\n${(r.markdown || r.description || "").slice(0, 3000)}`).join("\n\n---\n\n");
 
-            // Build thin-field lists for each product/audience (fields with < 3 items)
+            // Build thin-field lists and existing data context for each product/audience
             const gapInfo: any = {};
+            const existingContext: any = {};
             products.forEach((p: any, i: number) => {
               const thinFields = PRODUCT_GAP_FIELDS.filter(f => !p[f] || (Array.isArray(p[f]) && p[f].length < 3));
-              if (thinFields.length > 0) gapInfo[`product_${i}_${p.name || i}`] = thinFields;
+              if (thinFields.length > 0) {
+                const key = `product_${i}_${p.name || i}`;
+                gapInfo[key] = thinFields;
+                // Include existing data so AI can align new entries
+                existingContext[key] = {};
+                for (const f of PRODUCT_GAP_FIELDS) {
+                  if (p[f] && (!Array.isArray(p[f]) || p[f].length > 0)) existingContext[key][f] = p[f];
+                }
+                existingContext[key]._name = p.name;
+                existingContext[key]._category = p.category;
+                existingContext[key]._description = (p.description || "").slice(0, 300);
+              }
             });
             uniqueAudiences.forEach((a: any, i: number) => {
               const thinFields = AUDIENCE_GAP_FIELDS.filter(f => !a[f] || (Array.isArray(a[f]) && a[f].length < 3));
-              if (thinFields.length > 0) gapInfo[`audience_${i}_${a.name || i}`] = thinFields;
+              if (thinFields.length > 0) {
+                const key = `audience_${i}_${a.name || i}`;
+                gapInfo[key] = thinFields;
+                existingContext[key] = {};
+                for (const f of AUDIENCE_GAP_FIELDS) {
+                  if (a[f] && (!Array.isArray(a[f]) || a[f].length > 0)) existingContext[key][f] = a[f];
+                }
+                existingContext[key]._name = a.name;
+                existingContext[key]._description = (a.description || "").slice(0, 300);
+              }
             });
 
-            const REDDIT_FILL_PROMPT = `You are a data analyst. Given real Reddit discussions about "${brandSearchName}", extract factual, evidence-backed data to fill or augment thin fields.
+            const REDDIT_FILL_PROMPT = `You are a data analyst. Given real Reddit discussions about "${brandSearchName}", extract factual, evidence-backed data to supplement and validate existing product/audience data.
 
 REDDIT DISCUSSIONS:
 ${combinedMarkdown.slice(0, 10000)}
+
+EXISTING DATA (already extracted from the product page — your additions MUST be consistent with this):
+${JSON.stringify(existingContext, null, 2).slice(0, 4000)}
 
 FIELDS TO FILL/AUGMENT (these have fewer than 3 items each):
 ${JSON.stringify(gapInfo, null, 2)}
 
 RULES:
-- Extract data where you find evidence in the Reddit content above.
-- Be thorough — aim for 3-5 items per field when evidence exists.
+- Your output must ALIGN with the existing product and audience data above. Do not contradict it.
+- Only add entries that are relevant to THIS specific product/audience — not generic or unrelated data.
+- Use the existing items as style/tone reference — match the same format, specificity, and language.
+- Aim for 3-5 items per field when Reddit evidence exists.
 - For commonObjections, return array of {objection, response} objects based on real complaints/concerns from Reddit.
 - For proofPoints, return array of {category, items} objects.
 - Do NOT extract or fill any pricing, cost, or offer-related data from Reddit. Pricing must come from the actual product page only.
+- If no relevant Reddit evidence exists for a field, return it as an empty array [].
 - Return JSON with the same keys as the FIELDS object above. Each key maps to an object with the filled field values.
 
 Return ONLY valid JSON, no markdown fences.`;
