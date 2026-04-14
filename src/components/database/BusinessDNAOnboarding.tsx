@@ -1236,21 +1236,19 @@ export function BusinessDNAOnboarding({
           // For the Data Found tab, show selected discovered products while extraction runs
           const displayProducts = productsRaw.length > 0 ? productsRaw : selectedProducts.map(i => discoveredProducts[i]).filter(Boolean);
           const brandColors = brandData.colors || {};
-          // Build source URLs directly from backend scannedUrls (already filtered to actual sources)
-          let urls: string[] = [];
-          if (scannedUrlsRef.current.length > 0) {
-            urls = [...scannedUrlsRef.current];
+          // Build source URLs from selected product URLs + main URL + reddit (not all crawled pages)
+          const urlSet = new Set<string>();
+          if (activeUrl) urlSet.add(activeUrl);
+          // Add only selected product page URLs
+          for (const idx of selectedProducts) {
+            const pUrl = discoveredProducts[idx]?.url;
+            if (pUrl) urlSet.add(pUrl);
           }
-          // Fallback: use selected product URLs + main URL
-          if (urls.length === 0) {
-            const selectedProductUrls = selectedProducts.map(i => discoveredProducts[i]?.url).filter(Boolean);
-            const fallback = new Set<string>();
-            if (activeUrl) fallback.add(activeUrl);
-            for (const pUrl of selectedProductUrls) {
-              if (pUrl) fallback.add(pUrl);
-            }
-            urls = Array.from(fallback);
+          // Add any reddit URLs that were appended during extraction
+          for (const u of scannedUrlsRef.current) {
+            if (u && u.includes("reddit.com")) urlSet.add(u);
           }
+          let urls = Array.from(urlSet);
           // Store filtered URLs so the carousel effect uses the same list
           filteredUrlsRef.current = urls;
           const safeSourceIndex = urls.length > 0 ? activeSourceIndex % urls.length : 0;
