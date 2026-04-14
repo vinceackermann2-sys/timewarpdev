@@ -66,6 +66,7 @@ const Database = () => {
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [pendingTask, setPendingTask] = useState<PendingTask | null>(null);
+  const [initialAssistantMessage, setInitialAssistantMessage] = useState<string | null>(null);
   const [showReferrerCelebration, setShowReferrerCelebration] = useState(false);
   const [showPurchaseCelebration, setShowPurchaseCelebration] = useState(false);
   const [purchasedActions, setPurchasedActions] = useState(0);
@@ -369,7 +370,11 @@ const Database = () => {
                 </>
               )}
               {currentView === "employees" && user && (
-                <AgentChatView activeBrandId={activeBrandId} />
+                <AgentChatView
+                  activeBrandId={activeBrandId}
+                  initialMessage={initialAssistantMessage}
+                  onInitialMessageConsumed={() => setInitialAssistantMessage(null)}
+                />
               )}
               {currentView === "workspaces" && user && (
                 <WorkspacesView onBack={() => handleViewChange("businessdna")} />
@@ -378,7 +383,14 @@ const Database = () => {
                 <ConnectionsView />
               )}
               {currentView === "manage" && user && (
-                <ManageDashboardView activeBrandId={activeBrandId} initialTab={dashboardTab} />
+                <ManageDashboardView
+                  activeBrandId={activeBrandId}
+                  initialTab={dashboardTab}
+                  onExecuteAction={(actionText) => {
+                    setInitialAssistantMessage(actionText);
+                    handleViewChange("employees");
+                  }}
+                />
               )}
             </main>
           </SidebarInset>
