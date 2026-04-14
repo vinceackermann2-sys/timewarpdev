@@ -219,36 +219,39 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
           <SheetTitle className="text-base">{card.title}</SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Source badge + time */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {sourceMeta.icon && (
-              <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            )}
-            <span className="font-medium">{sourceMeta.label}</span>
-            {card.timeAgo && (
-              <>
-                <span className="mx-1">·</span>
-                <Clock className="h-3 w-3" />
-                <span>{card.timeAgo}</span>
-              </>
-            )}
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
+          <div className="space-y-5 flex-1">
+            {/* Source badge + time */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {sourceMeta.icon && (
+                <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              )}
+              <span className="font-medium">{sourceMeta.label}</span>
+              {card.timeAgo && (
+                <>
+                  <span className="mx-1">·</span>
+                  <Clock className="h-3 w-3" />
+                  <span>{card.timeAgo}</span>
+                </>
+              )}
+            </div>
+
+            {/* Source-specific content block */}
+            <SourceContentBlock card={card} />
           </div>
 
-          {/* Source-specific content block (email, meeting, deal, message, file, note, or summary) */}
-          <SourceContentBlock card={card} />
+          {/* Bottom section — pinned to bottom */}
+          <div className="mt-auto pt-5 space-y-4 border-t border-border/60">
+            {/* Details & Recommendations */}
+            {card.detail && (
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Summary & Recommendation</h4>
+                <p className="text-sm text-foreground leading-relaxed">{card.detail}</p>
+              </div>
+            )}
 
-          {/* Details & Recommendations — at bottom */}
-          {card.detail && (
-            <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Details & Recommendations</h4>
-              <p className="text-sm text-foreground leading-relaxed">{card.detail}</p>
-            </div>
-          )}
-
-          {/* Action Button */}
-          {card.actionSuggestion && (
-            <div className="pt-2">
+            {/* Action Button — short label */}
+            {card.actionSuggestion && (
               <Button
                 className="w-full gap-2 text-sm font-semibold"
                 onClick={() => {
@@ -257,12 +260,10 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
                 }}
               >
                 <Sparkles className="h-4 w-4" />
-                {card.actionSuggestion.length > 60
-                  ? card.actionSuggestion.slice(0, 57) + "…"
-                  : card.actionSuggestion}
+                Execute in Assistant
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
