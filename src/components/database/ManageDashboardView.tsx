@@ -254,7 +254,7 @@ function AddObjectiveInline({ onAdd }: { onAdd: (title: string, desc: string) =>
 /* ------------------------------------------------------------------ */
 /*  Main View                                                          */
 /* ------------------------------------------------------------------ */
-export function ManageDashboardView({ activeBrandId, initialTab }: { activeBrandId?: string | null; initialTab?: string }) {
+export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction }: { activeBrandId?: string | null; initialTab?: string; onExecuteAction?: (actionText: string) => void }) {
   const { brands } = useBusinessDNA();
   const [activeTab, setActiveTab] = useState(initialTab || TABS[0].id);
 
@@ -413,7 +413,7 @@ export function ManageDashboardView({ activeBrandId, initialTab }: { activeBrand
         </main>
       </ScrollArea>
 
-      <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} />
+      <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} onExecuteAction={onExecuteAction} />
     </div>
   );
 }

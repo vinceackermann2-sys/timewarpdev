@@ -1,11 +1,13 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Clock, Mail, Calendar, Users, FileText, Hash, BookOpen, Lightbulb, DollarSign } from "lucide-react";
+import { Clock, Mail, Calendar, Users, FileText, Hash, BookOpen, Lightbulb, DollarSign, Sparkles } from "lucide-react";
 import { SOURCE_META, badgeClasses, type DashboardCard } from "./dashboardTypes";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   card: DashboardCard | null;
   open: boolean;
   onClose: () => void;
+  onExecuteAction?: (actionText: string) => void;
 }
 
 function MetaRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
@@ -113,7 +115,7 @@ function SourceMetadataSection({ card }: { card: DashboardCard }) {
   );
 }
 
-export function DashCardDetailPanel({ card, open, onClose }: Props) {
+export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Props) {
   if (!card) return null;
 
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
@@ -151,10 +153,10 @@ export function DashCardDetailPanel({ card, open, onClose }: Props) {
             )}
           </div>
 
-          {/* Source-specific metadata */}
+          {/* Source-specific metadata (includes email content for outlook) */}
           <SourceMetadataSection card={card} />
 
-          {/* Description — skip for outlook since it's shown in the email body */}
+          {/* Summary — skip for outlook since it's shown in the email body */}
           {card.source !== "outlook" && (
             <div>
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Summary</h4>
@@ -162,7 +164,7 @@ export function DashCardDetailPanel({ card, open, onClose }: Props) {
             </div>
           )}
 
-          {/* Detail */}
+          {/* Detail — moved to bottom */}
           {card.detail && (
             <div>
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Details & Recommendations</h4>
@@ -170,14 +172,21 @@ export function DashCardDetailPanel({ card, open, onClose }: Props) {
             </div>
           )}
 
-          {/* Action Suggestion */}
+          {/* Action Button — replaces the old text-only suggested action */}
           {card.actionSuggestion && (
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-2">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Lightbulb className="h-4 w-4 text-primary" />
-                <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">Suggested Action</h4>
-              </div>
-              <p className="text-sm text-foreground leading-relaxed">{card.actionSuggestion}</p>
+            <div className="pt-2">
+              <Button
+                className="w-full gap-2 text-sm font-semibold"
+                onClick={() => {
+                  onExecuteAction?.(card.actionSuggestion!);
+                  onClose();
+                }}
+              >
+                <Sparkles className="h-4 w-4" />
+                {card.actionSuggestion.length > 60
+                  ? card.actionSuggestion.slice(0, 57) + "…"
+                  : card.actionSuggestion}
+              </Button>
             </div>
           )}
         </div>
