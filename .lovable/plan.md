@@ -1,51 +1,45 @@
 
 
-## Plan: Dashboard Card Visual Polish and Real Timestamps
+## Plan: Improve Data Richness and Offer Extraction During Onboarding
+
+### Problem
+1. **Reddit enrichment is conditional** — it only runs when there are "gaps" (empty fields), but the AI extraction prompt is so strict that it often leaves fields empty unnecessarily, and even when Reddit runs, it's limited to gap-filling rather than augmenting existing thin data.
+2. **Offers/pricing often get stripped** — the `sanitizeProductOffers` function aggressively removes offers that lack "strong evidence" on the page. If the page shows a price like "$49.99" but the AI formats it slightly differently (e.g., "$49.99/mo"), the sanitizer drops it. Also, the prompt explicitly says "Do NOT guess prices" which is good, but combined with the strict sanitizer, legitimate pricing gets lost.
+3. **Product and audience data is often thin** — the extraction prompt limits content to 10,000 chars and asks for only ONE product + ONE audience per page, and fields are often left empty.
 
 ### Changes
 
-**1. Pastel priority badges** — Update `badgeClasses` in `dashboardTypes.ts` and `DashCardDetailPanel.tsx`:
-- High → pastel red (`bg-red-100 text-red-700`)
-- Medium → pastel yellow (`bg-yellow-100 text-yellow-700`)  
-- Low → pastel green (`bg-green-100 text-green-700`)
+#### 1. Always Run Reddit Enrichment (not just on gaps)
+**File:** `supabase/functions/scrape-product/index.ts` (~line 1258)
 
-**2. Bigger icons and buttons on cards** — In `ManageDashboardView.tsx`:
-- Icon container: `w-10 h-10` → `w-12 h-12`, icon image: `w-7 h-7` → `w-8 h-8`
-- Button: increase padding and text size (`h-9 px-5 text-sm`)
+- Remove the `if (productGaps || audienceGaps)` gate — always attempt Reddit enrichment
+- Change the merge logic to also **augment** fields that have fewer than 3 items (not just empty ones), so thin data gets supplemented
+- Add more Reddit search queries (e.g., "complaints", "worth it", "vs") for richer coverage
 
-**3. Real `timeAgo` values** — Currently the AI hallucinates `timeAgo` since it doesn't know the current time:
-- Pass the current ISO timestamp in the prompt so the AI can compute accurate relative times
-- Add instruction: "The current time is {ISO date}. Calculate timeAgo relative to this."
-- Also add a `timestamp` field to the card schema so the frontend can compute its own relative time as a fallback
+#### 2. Fix Offer/Pricing Extraction
+**File:** `supabase/functions/scrape-product/index.ts`
 
-**4. Email-style detail panel for Outlook cards** — In `DashCardDetailPanel.tsx`, when `source === "outlook"`, render an email-like layout:
-- Header row with sender avatar placeholder, sender name bold, email address below
-- "Subject:" line styled like an email client
-- Summary rendered as the email body in a card/container with slight background
-- Keep the action suggestion at the bottom
+- Update `PRODUCT_AUDIENCE_PROMPT` (~line 447): Relax the offers instruction — instead of "ONLY include pricing with EXPLICIT prices", change to "Extract any visible pricing, price tiers, subscription costs, or 'starting at' prices. If a price is displayed anywhere on the page, include it as an offer."
+- Update `sanitizeProductOffers` (~line 248): Add a fallback — if the AI returned offers but the sanitizer strips all of them, check the raw page text for price patterns (`$XX`, `€XX`, `/mo`, `/year`) and create a basic offer entry with just the price
+- Update `sanitizeOffer` (~line 232): Make the evidence check less strict — allow offers that have just a title with a price-like pattern (e.g., "$49", "€29/mo")
 
-### Files Modified
-- `src/components/database/dashboardTypes.ts` — pastel badge colors, add `timestamp` field
-- `src/components/database/ManageDashboardView.tsx` — bigger icons, bigger buttons
-- `src/components/database/DashCardDetailPanel.tsx` — pastel badges, email-style outlook section
-- `supabase/functions/dashboard-insights/index.ts` — inject current timestamp, add `timestamp` field to prompt
+#### 3. Enrich Product & Audience Data More Aggressively
+**File:** `supabase/functions/scrape-product/index.ts`
+
+- In the Reddit enrichment merge logic (~line 1320-1350): Change threshold from "only fill empty fields" to "augment fields with fewer than 3 items"
+- Expand `REDDIT_FILL_PROMPT` (~line 1299): Add instruction to also extract pricing/offer intelligence from Reddit (people often mention prices in reviews), but mark these as Reddit-sourced
+- Add a second Reddit search query focused on pricing: `site:reddit.com {brand} pricing cost worth it`
+
+#### 4. Increase Content Window for Richer Extraction  
+**File:** `supabase/functions/scrape-product/index.ts`
+
+- In `PRODUCT_AUDIENCE_PROMPT`: Increase content slice from 10,000 to 12,000 chars for more data coverage
+- Adjust `max_tokens` for product extraction from 8000 to 10000 to allow more detailed responses
 
 ### Technical Details
 
-Badge classes update:
-```typescript
-export const badgeClasses: Record<string, string> = {
-  High: "bg-red-100 text-red-700",
-  Medium: "bg-yellow-100 text-yellow-700",
-  Low: "bg-green-100 text-green-700",
-};
-```
-
-Prompt addition for real timestamps:
-```
-The current date/time is: ${new Date().toISOString()}
-Each card MUST include a "timestamp" field (ISO 8601) based on the real date from the source data. The "timeAgo" field should be calculated relative to the current time.
-```
-
-Email-style Outlook section in detail panel: render From/Subject/Body in a bordered card resembling an email thread, with the sender displayed prominently.
+- All changes are in a single edge function file: `supabase/functions/scrape-product/index.ts`
+- The function will need redeployment after changes
+- No database schema changes needed
+- No frontend changes needed — the data flows through existing Business DNA context
 
