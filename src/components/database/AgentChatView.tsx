@@ -279,7 +279,7 @@ function buildConnectionTaskSteps(payload: {
 }
 
 /* ─── Main view ─── */
-export function AgentChatView({ activeBrandId }: { activeBrandId?: string | null }) {
+export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageConsumed }: { activeBrandId?: string | null; initialMessage?: string | null; onInitialMessageConsumed?: () => void }) {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const { brands } = useBusinessDNA();
@@ -347,6 +347,25 @@ export function AgentChatView({ activeBrandId }: { activeBrandId?: string | null
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  /* ── Auto-send initial message from dashboard action ── */
+  const initialMessageSentRef = useRef(false);
+  useEffect(() => {
+    if (!initialMessage || initialMessageSentRef.current || isSending) return;
+    // Wait for chatInputRef to be ready
+    const timer = setTimeout(() => {
+      if (chatInputRef.current) {
+        chatInputRef.current.innerText = initialMessage;
+        initialMessageSentRef.current = true;
+        onInitialMessageConsumed?.();
+        // Trigger send via a synthetic approach — set text then programmatically click send
+        // We'll dispatch the send directly after setting text
+        const sendBtn = document.querySelector('[data-send-btn]') as HTMLButtonElement;
+        if (sendBtn) sendBtn.click();
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [initialMessage, isSending]);
 
   /* ── Auto-save chat to DB (debounced) ── */
   const saveChatSession = useCallback(async (msgs: ChatMessage[], chatId: string | null) => {
@@ -2485,6 +2504,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
             </button>
           ) : (
             <button
+              data-send-btn
               onClick={handleSendMessage}
               className={`p-2.5 rounded-full text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm ${
                 isActionMode ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90"
