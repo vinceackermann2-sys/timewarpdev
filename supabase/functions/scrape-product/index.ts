@@ -1137,6 +1137,12 @@ ${allUrls.slice(0, 400).join('\n')}` }],
         productPageContents = filtered;
         console.log("Filtered to", productPageContents.length, "selected product pages");
       }
+      // Rebuild scannedUrls to only include pages actually used for extraction
+      scannedUrls.length = 0;
+      scannedUrls.push(baseUrl);
+      for (const page of productPageContents) {
+        if (page.url && !scannedUrls.includes(page.url)) scannedUrls.push(page.url);
+      }
     }
 
     // ══════════════════════════════════════════════

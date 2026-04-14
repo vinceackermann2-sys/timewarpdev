@@ -1238,28 +1238,14 @@ export function BusinessDNAOnboarding({
           // For the Data Found tab, show selected discovered products while extraction runs
           const displayProducts = productsRaw.length > 0 ? productsRaw : selectedProducts.map(i => discoveredProducts[i]).filter(Boolean);
           const brandColors = brandData.colors || {};
-          // Filter sources to only show URLs related to selected products (not unselected ones)
-          const selectedProductUrls = selectedProducts.map(i => discoveredProducts[i]?.url).filter(Boolean);
-          // Build source URLs — fall back to selected product URLs + main URL if scannedUrls is empty
+          // Build source URLs directly from backend scannedUrls (already filtered to actual sources)
           let urls: string[] = [];
           if (scannedUrlsRef.current.length > 0) {
-            urls = scannedUrlsRef.current.filter(url => {
-              const isProductPage = discoveredProducts.some(p => {
-                try {
-                  return p.url && url.includes(new URL(p.url.startsWith("http") ? p.url : `https://${p.url}`).pathname.replace(/\/$/, ""));
-                } catch { return false; }
-              });
-              if (!isProductPage) return true;
-              return selectedProductUrls.some(pUrl => {
-                try {
-                  const pPath = new URL(pUrl.startsWith("http") ? pUrl : `https://${pUrl}`).pathname.replace(/\/$/, "");
-                  return pPath && url.includes(pPath);
-                } catch { return false; }
-              });
-            });
+            urls = [...scannedUrlsRef.current];
           }
           // Fallback: use selected product URLs + main URL
           if (urls.length === 0) {
+            const selectedProductUrls = selectedProducts.map(i => discoveredProducts[i]?.url).filter(Boolean);
             const fallback = new Set<string>();
             if (activeUrl) fallback.add(activeUrl);
             for (const pUrl of selectedProductUrls) {
