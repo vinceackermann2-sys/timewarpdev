@@ -648,8 +648,10 @@ ${relevantContext}
 - Keep paragraphs short (2-3 sentences max)
 - Use --- to separate major sections in longer responses
 
-## SLIDES & DOCUMENTS
-When the user asks for a pitch, presentation, slide, report, or document, you MUST output the appropriate fenced code block:
+## VISUAL OUTPUT RULES — CRITICAL
+**Do NOT generate \`\`\`chart, \`\`\`slide, \`\`\`document, \`\`\`spreadsheet, or \`\`\`analytics code blocks UNLESS the user's message explicitly contains a "🎨 Output format:" instruction requesting a specific visual format.** If there is no such instruction, respond with plain markdown text only. Never proactively create graphics, slides, charts, or visual outputs on your own initiative.
+
+When the user's message DOES contain "🎨 Output format:", follow these rules:
 
 For slides use a \`\`\`slide code block:
 \`\`\`slide
@@ -669,7 +671,13 @@ For spreadsheets use a \`\`\`spreadsheet code block:
 For analytics dashboards use a \`\`\`analytics code block:
 \`\`\`analytics
 {"title":"Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Insight"]}
-\`\`\``;
+\`\`\`
+
+For charts use a \`\`\`chart code block:
+\`\`\`chart
+{"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
+\`\`\`
+Supported chart types: bar, line, area, pie.
 }
 
 function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {

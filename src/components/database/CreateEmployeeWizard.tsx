@@ -239,7 +239,7 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
             <div className="space-y-2">
               <Label className="text-base font-semibold text-foreground">What role will they perform?</Label>
               <p className="text-xs text-muted-foreground">Describe the position or function.</p>
-              <Input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Customer Support Agent" />
+              <Input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. I need a data analyst who analyses our facebook ad metrics" />
             </div>
 
             <div className="relative flex items-center gap-4 py-1">
