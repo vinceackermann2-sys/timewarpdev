@@ -93,7 +93,7 @@ export default function NewHero({ onGetDNA }: NewHeroProps) {
                 <Globe className="w-5 h-5 mr-3 shrink-0 text-slate-400" />
                 <TypewriterInput value={url} onChange={setUrl} className="w-full bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400 text-sm sm:text-base" />
               </div>
-              <button onClick={handleGetDNA} className="bg-[#4a86ff] hover:bg-[#287acc] shrink-0 px-6 py-3 rounded-xl text-white font-bold text-sm border-none cursor-pointer transition-colors whitespace-nowrap flex items-center justify-center gap-2">
+              <button onClick={handleGetDNA} className="bg-[#4a86ff] hover:bg-[#2875ff] shrink-0 px-6 py-3 rounded-xl text-white font-bold text-sm border-none cursor-pointer transition-colors whitespace-nowrap flex items-center justify-center gap-2">
                 Get DNA <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
               </button>
             </div>

@@ -80,7 +80,7 @@ export const Screen1 = () => (
           </div>
         </div>
         <motion.button 
-          animate={{ scale: [1, 1, 0.95, 1], backgroundColor: ["#4a86ff", "#4a86ff", "#287acc", "#4a86ff"] }}
+          animate={{ scale: [1, 1, 0.95, 1], backgroundColor: ["#4a86ff", "#4a86ff", "#2875ff", "#4a86ff"] }}
           transition={{ duration: 3.5, times: [0, 0.8, 0.85, 0.9] }}
           className="shrink-0 px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-white font-bold text-xs sm:text-sm border-none shadow-[0_0_20px_rgba(51,153,255,0.4)] flex items-center gap-1.5 sm:gap-2"
         >

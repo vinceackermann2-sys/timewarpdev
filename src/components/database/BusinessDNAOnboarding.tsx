@@ -862,7 +862,7 @@ export function BusinessDNAOnboarding({
                       }
                     }}
                     disabled={!urlInput.trim()}
-                    className="bg-[#4a86ff] hover:bg-[#287acc] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                    className="bg-[#4a86ff] hover:bg-[#2875ff] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                   >
                     Continue <ArrowRight className="w-4 h-4" />
                   </button>
@@ -959,7 +959,7 @@ export function BusinessDNAOnboarding({
                   }
                 }}
                 disabled={selectedProducts.length === 0 && extractedProducts.length === 0}
-                className="bg-[#4a86ff] disabled:opacity-50 hover:bg-[#287acc] transition-colors text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
+                className="bg-[#4a86ff] disabled:opacity-50 hover:bg-[#2875ff] transition-colors text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
               >
                 Continue <ArrowRight className="w-4 h-4" />
               </button>
@@ -1034,7 +1034,7 @@ export function BusinessDNAOnboarding({
                 <p className="text-[#697386] text-[15px]">No products found. We'll create your business DNA from brand data.</p>
                 <button
                   onClick={() => setStep(4)}
-                  className="mt-4 bg-[#4a86ff] hover:bg-[#287acc] transition-colors text-white px-6 py-2.5 rounded-xl font-medium text-[15px]"
+                  className="mt-4 bg-[#4a86ff] hover:bg-[#2875ff] transition-colors text-white px-6 py-2.5 rounded-xl font-medium text-[15px]"
                 >
                   Continue
                 </button>
@@ -1110,7 +1110,7 @@ export function BusinessDNAOnboarding({
                           setStep(4);
                         }
                       }}
-                      className="bg-[#4a86ff] hover:bg-[#287acc] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] w-full sm:w-auto shrink-0"
+                      className="bg-[#4a86ff] hover:bg-[#2875ff] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] w-full sm:w-auto shrink-0"
                     >
                       {currentProductIndex < selectedProducts.length - 1 ? "Next product" : "Use this image"}{" "}
                       <ArrowRight className="w-4 h-4" />
@@ -1298,7 +1298,7 @@ export function BusinessDNAOnboarding({
                   onClick={() => setStep(6)}
                   disabled={!persistenceComplete}
                   className={`${
-                    !persistenceComplete ? "bg-[#4a86ff]/50 cursor-not-allowed" : "bg-[#4a86ff] hover:bg-[#287acc]"
+                    !persistenceComplete ? "bg-[#4a86ff]/50 cursor-not-allowed" : "bg-[#4a86ff] hover:bg-[#2875ff]"
                   } text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] transition-colors w-full sm:w-auto shrink-0`}
                 >
                   Finalize Agent <ArrowRight className="w-4 h-4" />
@@ -1633,7 +1633,7 @@ export function BusinessDNAOnboarding({
                             if (agentName.trim()) setIsNameSubmitted(true);
                           }}
                           disabled={!agentName.trim()}
-                          className="bg-[#4a86ff] hover:bg-[#287acc] disabled:bg-[#4a86ff]/50 disabled:cursor-not-allowed transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                          className="bg-[#4a86ff] hover:bg-[#2875ff] disabled:bg-[#4a86ff]/50 disabled:cursor-not-allowed transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                         >
                           Continue <ArrowRight className="w-4 h-4" />
                         </button>
@@ -1673,7 +1673,7 @@ export function BusinessDNAOnboarding({
                         }
                         onComplete(agentName.trim(), createdBrandId);
                       }}
-                      className="w-full bg-[#4a86ff] hover:bg-[#287acc] shadow-sm text-white px-6 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                      className="w-full bg-[#4a86ff] hover:bg-[#2875ff] shadow-sm text-white px-6 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                     >
                       Take Me To {agentName.trim()}
                       <ArrowRight className="w-5 h-5 text-white" />
