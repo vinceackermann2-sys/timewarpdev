@@ -493,7 +493,7 @@
     --popover: 210 30% 96%;
     --popover-foreground: 215 25% 15%;
 
-    --primary: 224 42% 57%;
+    --primary: 217 100% 65%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 215 20% 40%;
@@ -502,15 +502,15 @@
     --muted: 210 20% 88%;
     --muted-foreground: 215 15% 35%;
 
-    --accent: 224 42% 95%;
-    --accent-foreground: 224 42% 47%;
+    --accent: 217 100% 95%;
+    --accent-foreground: 217 100% 47%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
     --border: 210 20% 85%;
     --input: 210 20% 85%;
-    --ring: 224 42% 57%;
+    --ring: 217 100% 65%;
 
     --radius: 0.625rem;
 
@@ -521,19 +521,19 @@
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 224 42% 57%;
+    --status-info: 217 100% 65%;
     --status-info-foreground: 0 0% 100%;
 
     /* Portal specific tokens - light */
-    --portal-accent: 224 42% 57%;
-    --portal-accent-bright: 224 42% 62%;
-    --portal-glow: 224 42% 57%;
+    --portal-accent: 217 100% 65%;
+    --portal-accent-bright: 217 100% 70%;
+    --portal-glow: 217 100% 65%;
     --portal-bg-gradient: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 80% 95%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(224 42% 67%), hsl(224 42% 57%));
-    --gradient-accent: linear-gradient(135deg, hsl(224 42% 67%), hsl(224 42% 60%));
-    --shadow-glow: 0 0 12px hsl(224 42% 57% / 0.05);
-    --shadow-glow-lg: 0 0 24px hsl(224 42% 57% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
+    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.05);
+    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.08);
 
     /* Orb tokens - light */
     --orb-core-start: rgba(255, 255, 255, 1);
@@ -562,12 +562,12 @@
 
     --sidebar-background: 40 30% 96%;
     --sidebar-foreground: 215 25% 15%;
-    --sidebar-primary: 224 42% 57%;
+    --sidebar-primary: 217 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 215 20% 40%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 210 20% 85%;
-    --sidebar-ring: 224 42% 57%;
+    --sidebar-ring: 217 100% 65%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --chart-1: 218 100% 93%;
     --chart-2: 218 100% 87%;
@@ -600,7 +600,7 @@
     --popover: 215 20% 16%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 224 42% 67%;
+    --primary: 217 100% 65%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 215 15% 35%;
@@ -610,14 +610,14 @@
     --muted-foreground: 210 20% 70%;
 
     --accent: 215 50% 20%;
-    --accent-foreground: 224 42% 67%;
+    --accent-foreground: 217 100% 65%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
 
     --border: 215 20% 25%;
     --input: 215 20% 25%;
-    --ring: 224 42% 67%;
+    --ring: 217 100% 65%;
 
     /* Status colors - dark */
     --status-success: 142 70% 45%;
@@ -626,19 +626,19 @@
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 224 42% 67%;
+    --status-info: 217 100% 65%;
     --status-info-foreground: 0 0% 100%;
 
     /* Portal specific tokens - dark */
-    --portal-accent: 224 42% 67%;
-    --portal-accent-bright: 224 42% 72%;
-    --portal-glow: 224 42% 67%;
+    --portal-accent: 217 100% 65%;
+    --portal-accent-bright: 217 100% 70%;
+    --portal-glow: 217 100% 65%;
     --portal-bg-gradient: linear-gradient(135deg, hsl(215 25% 6%) 0%, hsl(210 40% 12%) 50%, hsl(215 50% 15%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(224 42% 67%), hsl(224 42% 57%));
-    --gradient-accent: linear-gradient(135deg, hsl(224 42% 67%), hsl(224 42% 60%));
-    --shadow-glow: 0 0 12px hsl(224 42% 67% / 0.08);
-    --shadow-glow-lg: 0 0 24px hsl(224 42% 67% / 0.1);
+    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
+    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.08);
+    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.1);
 
     /* Orb tokens - dark (same as light to keep orb bright) */
     --orb-core-start: rgba(255, 255, 255, 1);
@@ -667,12 +667,12 @@
 
     --sidebar-background: 215 25% 8%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 224 42% 67%;
+    --sidebar-primary: 217 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 42% 60%;
-    --sidebar-accent-foreground: 224 30% 20%;
+    --sidebar-accent: 217 100% 60%;
+    --sidebar-accent-foreground: 217 30% 20%;
     --sidebar-border: 215 20% 25%;
-    --sidebar-ring: 224 42% 67%;
+    --sidebar-ring: 217 100% 65%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --radius: 0.625rem;
     --chart-1: 218 100% 93%;
@@ -697,17 +697,17 @@
   --foreground: 215 25% 15%;
   --card: 210 40% 99%;
   --card-foreground: 215 25% 15%;
-  --primary: 224 42% 57%;
+  --primary: 217 100% 65%;
   --primary-foreground: 0 0% 100%;
   --secondary: 215 20% 40%;
   --secondary-foreground: 0 0% 98%;
   --muted: 210 20% 88%;
   --muted-foreground: 215 15% 35%;
-  --accent: 224 42% 95%;
-  --accent-foreground: 224 42% 47%;
+  --accent: 217 100% 95%;
+  --accent-foreground: 217 100% 47%;
   --border: 210 20% 85%;
   --input: 210 20% 85%;
-  --ring: 224 42% 57%;
+  --ring: 217 100% 65%;
   --destructive: 0 72% 50%;
   --destructive-foreground: 0 85% 97%;
   --orb-core-start: rgba(255, 255, 255, 1);

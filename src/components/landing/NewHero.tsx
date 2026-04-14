@@ -14,7 +14,7 @@ const BrowserMockup = ({ activeStep }: { activeStep: number }) => {
           <div className="w-3 h-3 rounded-full bg-green-400" />
         </div>
         <div className="flex-1 flex justify-center items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#647dbf]" />
+          <Sparkles className="w-3.5 h-3.5 text-[#4a86ff]" />
           <span className="text-[11px] text-slate-600 font-medium tracking-wide">AI CEO</span>
         </div>
       </div>
@@ -24,7 +24,7 @@ const BrowserMockup = ({ activeStep }: { activeStep: number }) => {
           <div key={i} className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden">
             <motion.div
               key={`${activeStep}-${i}`}
-              className="h-full bg-[#647dbf]"
+              className="h-full bg-[#4a86ff]"
               initial={{ width: i < activeStep ? "100%" : "0%" }}
               animate={{ width: i <= activeStep ? "100%" : "0%" }}
               transition={{ duration: i === activeStep ? STEP_DURATIONS[i] / 1000 : 0.3, ease: "linear" }}
@@ -80,20 +80,20 @@ export default function NewHero({ onGetDNA }: NewHeroProps) {
         <div className="flex flex-col items-start gap-6 sm:gap-8 max-w-xl">
           <div className="flex flex-col items-start gap-3 sm:gap-4 w-full">
             <h1 className="text-5xl sm:text-6xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-none text-slate-900 m-0">
-              The future of <span className="text-[#647dbf] italic" style={{ fontFamily: 'cursive' }}>business</span>
+              The future of <span className="text-[#4a86ff] italic" style={{ fontFamily: 'cursive' }}>business</span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl font-normal text-slate-600 m-0">
               Ai powered businesses
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:gap-4 w-full max-w-md">
-            <p className="text-[10px] sm:text-xs font-medium text-[#647dbf] uppercase tracking-wider">Paste company url</p>
+            <p className="text-[10px] sm:text-xs font-medium text-[#4a86ff] uppercase tracking-wider">Paste company url</p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl p-2 w-full shadow-lg border border-slate-200 gap-2 sm:gap-0">
               <div className="flex items-center flex-1 min-w-0 px-4 py-2 sm:py-0">
                 <Globe className="w-5 h-5 mr-3 shrink-0 text-slate-400" />
                 <TypewriterInput value={url} onChange={setUrl} className="w-full bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400 text-sm sm:text-base" />
               </div>
-              <button onClick={handleGetDNA} className="bg-[#647dbf] hover:bg-[#287acc] shrink-0 px-6 py-3 rounded-xl text-white font-bold text-sm border-none cursor-pointer transition-colors whitespace-nowrap flex items-center justify-center gap-2">
+              <button onClick={handleGetDNA} className="bg-[#4a86ff] hover:bg-[#2875ff] shrink-0 px-6 py-3 rounded-xl text-white font-bold text-sm border-none cursor-pointer transition-colors whitespace-nowrap flex items-center justify-center gap-2">
                 Get DNA <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
               </button>
             </div>

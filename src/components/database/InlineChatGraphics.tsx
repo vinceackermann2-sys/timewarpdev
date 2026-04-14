@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { GraphicEditorDialog } from "./GraphicEditorDialog";
 
 const COLORS = [
-  "#647dbf", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6",
+  "#4a86ff", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6",
 ];
 
 function adjustColorBrightness(hex: string, percent: number): string {
@@ -33,11 +33,11 @@ function GraphicActions({ onSave, onDownload, editor }: { onSave: () => void; on
   return (
     <div className="ml-auto flex items-center gap-1">
       {editor}
-      <button onClick={handleSave} className="p-1 rounded hover:bg-[#647dbf]/20 transition-colors" title="Save to database">
-        {saved ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Save className="w-3.5 h-3.5 text-[#647dbf]" />}
+      <button onClick={handleSave} className="p-1 rounded hover:bg-[#4a86ff]/20 transition-colors" title="Save to database">
+        {saved ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Save className="w-3.5 h-3.5 text-[#4a86ff]" />}
       </button>
-      <button onClick={onDownload} className="p-1 rounded hover:bg-[#647dbf]/20 transition-colors" title="Download">
-        <Download className="w-3.5 h-3.5 text-[#647dbf]" />
+      <button onClick={onDownload} className="p-1 rounded hover:bg-[#4a86ff]/20 transition-colors" title="Download">
+        <Download className="w-3.5 h-3.5 text-[#4a86ff]" />
       </button>
     </div>
   );
@@ -111,8 +111,8 @@ export function InlineDocument({ jsonString, editorEnabled = true }: { jsonStrin
 
   return (
     <div className="my-4 rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
-      <div className="bg-[#647dbf]/10 border-b border-[#647dbf]/20 px-5 py-3 flex items-center gap-2">
-        <FileText className="w-4 h-4 text-[#647dbf]" />
+      <div className="bg-[#4a86ff]/10 border-b border-[#4a86ff]/20 px-5 py-3 flex items-center gap-2">
+        <FileText className="w-4 h-4 text-[#4a86ff]" />
         <span className="text-sm font-semibold text-foreground">{config.title}</span>
         {config.date && <span className="text-xs text-muted-foreground">{config.date}</span>}
         <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
@@ -151,8 +151,8 @@ export function InlineSpreadsheet({ jsonString, editorEnabled = true }: { jsonSt
 
   return (
     <div className="my-4 rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
-      <div className="bg-[#647dbf]/10 border-b border-[#647dbf]/20 px-5 py-3 flex items-center gap-2">
-        <Table2 className="w-4 h-4 text-[#647dbf]" />
+      <div className="bg-[#4a86ff]/10 border-b border-[#4a86ff]/20 px-5 py-3 flex items-center gap-2">
+        <Table2 className="w-4 h-4 text-[#4a86ff]" />
         <span className="text-sm font-semibold text-foreground">{config.title}</span>
         <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
@@ -206,7 +206,7 @@ export function InlineSlide({ jsonString, editorEnabled = true }: { jsonString: 
   if (!config) return null;
 
   const layout = config.layout || (config.stats && config.stats.length > 0 ? "stat-callout" : "bullets");
-  const accent = config.accent_color || "#647dbf";
+  const accent = config.accent_color || "#4a86ff";
   const bgColor = config.bg_color || "#1a1a2e";
   const bgGradientEnd = adjustColorBrightness(bgColor, 15);
 

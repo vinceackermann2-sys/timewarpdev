@@ -47,7 +47,7 @@ export const Screen1 = () => (
     >
       <div className="flex flex-col gap-1 mb-2">
         <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-none text-slate-900 m-0">
-          The future of <span className="text-[#647dbf] italic" style={{ fontFamily: 'cursive' }}>business</span>
+          The future of <span className="text-[#4a86ff] italic" style={{ fontFamily: 'cursive' }}>business</span>
         </h2>
         <p className="text-xs sm:text-sm font-normal text-slate-600 m-0">
           Data driven levers pulled for you.
@@ -75,12 +75,12 @@ export const Screen1 = () => (
             <motion.div 
               animate={{ opacity: [1, 0] }}
               transition={{ duration: 0.8, repeat: Infinity, repeatType: "reverse" }}
-              className="w-0.5 h-5 bg-[#647dbf] ml-0.5 self-center"
+              className="w-0.5 h-5 bg-[#4a86ff] ml-0.5 self-center"
             />
           </div>
         </div>
         <motion.button 
-          animate={{ scale: [1, 1, 0.95, 1], backgroundColor: ["#647dbf", "#647dbf", "#287acc", "#647dbf"] }}
+          animate={{ scale: [1, 1, 0.95, 1], backgroundColor: ["#4a86ff", "#4a86ff", "#2875ff", "#4a86ff"] }}
           transition={{ duration: 3.5, times: [0, 0.8, 0.85, 0.9] }}
           className="shrink-0 px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-white font-bold text-xs sm:text-sm border-none shadow-[0_0_20px_rgba(51,153,255,0.4)] flex items-center gap-1.5 sm:gap-2"
         >
@@ -320,7 +320,7 @@ const NodeWithLog = ({ icon, title, stepNum, status, logText, xOffset = -20, siz
   return (
     <motion.div initial={{ opacity: 0, x: xOffset }} animate={{ opacity: 1, x: 0 }} className={`bg-emerald-50 border-2 border-emerald-200 rounded-xl ${isSm ? 'p-2.5 gap-1.5' : 'p-3.5 gap-2.5'} flex flex-col shadow-lg shadow-emerald-100/50 w-full h-full justify-center`}>
       <div className={`flex items-center ${isSm ? 'gap-2' : 'gap-3'}`}>
-        <div className={`${isSm ? 'w-7 h-7' : 'w-9 h-9'} rounded-lg bg-blue-50 text-[#647dbf] flex items-center justify-center shrink-0`}>
+        <div className={`${isSm ? 'w-7 h-7' : 'w-9 h-9'} rounded-lg bg-blue-50 text-[#4a86ff] flex items-center justify-center shrink-0`}>
           <div className={isSm ? 'scale-75' : ''}>{icon}</div>
         </div>
         <div className="flex flex-col">
@@ -533,7 +533,7 @@ const CompactNode = ({ node, currentStep, startStep, endStep }: { node: any, cur
   if (status === 'waiting') return null;
   return (
     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-2 flex flex-col items-center gap-1.5 shadow-lg shadow-emerald-100/50 w-full h-full justify-start text-center">
-      <div className="w-7 h-7 rounded-md bg-blue-50 text-[#647dbf] flex items-center justify-center shrink-0">
+      <div className="w-7 h-7 rounded-md bg-blue-50 text-[#4a86ff] flex items-center justify-center shrink-0">
         <div className="scale-75">{node.i}</div>
       </div>
       <span className="text-[9px] font-bold text-slate-700 leading-tight">{node.t}</span>
