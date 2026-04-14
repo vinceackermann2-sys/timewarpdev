@@ -32,7 +32,7 @@ export function TopBreadcrumb({ currentView, activeBrandId, onSelectBrand }: Top
 
   const activeBrand = brands.find(b => b.id === activeBrandId) || brands[0] || null;
   const displayName = activeBrand?.name || "Select business";
-  const showSkeleton = isLoading && brands.length === 0;
+  const showSkeleton = isLoading && !activeBrand;
 
   const filtered = brands.filter(b =>
     b.name.toLowerCase().includes(search.toLowerCase())
