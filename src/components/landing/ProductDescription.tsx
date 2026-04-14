@@ -127,7 +127,7 @@ export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
           <div className="max-w-xl mx-auto">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center rounded-[14px] p-2 sm:p-[0.5rem_0.5rem_0.5rem_1rem] sm:h-16 bg-card border border-border dark:bg-[rgba(255,255,255,0.06)] dark:border-[rgba(255,255,255,0.1)]">
               <div className="flex items-center flex-1 px-3 sm:px-0 cursor-text" onClick={() => { if (!isEditing) { setIsEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}>
-                <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" style={{ color: "#3399ff" }} />
+                <Globe size={20} className="text-primary opacity-70 mr-3 shrink-0" style={{ color: "#647dbf" }} />
                 {isEditing ? (
                   <input
                     ref={inputRef}
@@ -146,7 +146,7 @@ export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
                     <span className="text-[16px] font-normal whitespace-nowrap overflow-hidden text-muted-foreground dark:text-white/50" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                       {typewriterText}
                     </span>
-                    <span className="inline-block w-[2px] h-[1em] ml-[1px] align-text-bottom animate-pulse" style={{ background: "#3399ff" }} />
+                    <span className="inline-block w-[2px] h-[1em] ml-[1px] align-text-bottom animate-pulse" style={{ background: "#647dbf" }} />
                   </span>
                 )}
               </div>
@@ -165,7 +165,7 @@ export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
                 <span className="text-xs text-muted-foreground dark:text-white/40">No credit card</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-[#3399ff]" />
+                <div className="h-2 w-2 rounded-full bg-[#647dbf]" />
                 <span className="text-xs text-muted-foreground dark:text-white/40">15-90 Seconds</span>
               </div>
             </div>
