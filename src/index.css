@@ -562,12 +562,12 @@
 
     --sidebar-background: 40 30% 96%;
     --sidebar-foreground: 215 25% 15%;
-    --sidebar-primary: 224 42% 57%;
+    --sidebar-primary: 217 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 215 20% 40%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 210 20% 85%;
-    --sidebar-ring: 224 42% 57%;
+    --sidebar-ring: 217 100% 65%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --chart-1: 218 100% 93%;
     --chart-2: 218 100% 87%;
