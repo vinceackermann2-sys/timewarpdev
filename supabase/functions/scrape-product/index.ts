@@ -1298,7 +1298,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
         const brandSearchName = brand.name || metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "";
         const productNames = products.map((p: any) => p.name).filter(Boolean).slice(0, 3).join(" ");
         const searchQuery1 = `site:reddit.com ${brandSearchName} ${productNames} review`;
-        const searchQuery2 = `site:reddit.com ${brandSearchName} pricing cost worth it`;
+        const searchQuery2 = `site:reddit.com ${brandSearchName} ${productNames} complaints worth it vs`;
         console.log("Reddit enrichment — searching:", searchQuery1, "and:", searchQuery2);
 
         // Run both searches in parallel
@@ -1371,8 +1371,7 @@ RULES:
 - Be thorough — aim for 3-5 items per field when evidence exists.
 - For commonObjections, return array of {objection, response} objects based on real complaints/concerns from Reddit.
 - For proofPoints, return array of {category, items} objects.
-- If Reddit mentions pricing, costs, or value assessments, include them in relevant fields like "competitiveAdvantages" or "uniqueSellingPoints" (NOT in "offers").
-- Do NOT fill "offers" fields.
+- Do NOT extract or fill any pricing, cost, or offer-related data from Reddit. Pricing must come from the actual product page only.
 - Return JSON with the same keys as the FIELDS object above. Each key maps to an object with the filled field values.
 
 Return ONLY valid JSON, no markdown fences.`;
