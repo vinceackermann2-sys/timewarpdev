@@ -59,7 +59,7 @@ export default function NewValueComparison() {
                 className="absolute right-2 sm:right-6 top-2 sm:top-6 w-48 sm:w-72 h-64 sm:h-auto sm:bottom-6 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
               >
                 <div className="h-12 border-b border-slate-100 flex items-center px-4 gap-2 bg-slate-50">
-                  <Sparkles className="w-5 h-5 text-[#647dbf]" />
+                  <Sparkles className="w-5 h-5 text-[#4a86ff]" />
                   <span className="text-sm font-bold text-slate-700">TimeWarp</span>
                 </div>
                 <div className="flex-1 p-4 flex flex-col gap-4 overflow-hidden">
@@ -71,7 +71,7 @@ export default function NewValueComparison() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 1 }}
-                    className="hidden sm:block bg-[#647dbf]/10 rounded-xl p-3 text-xs text-[#647dbf] font-medium w-5/6 self-end leading-relaxed"
+                    className="hidden sm:block bg-[#4a86ff]/10 rounded-xl p-3 text-xs text-[#4a86ff] font-medium w-5/6 self-end leading-relaxed"
                   >
                     Summarize this data and draft an email to the team.
                   </motion.div>
@@ -109,7 +109,7 @@ export default function NewValueComparison() {
                   <div className="w-full h-2 bg-slate-100 rounded" />
                   <div className="w-3/4 h-2 bg-slate-100 rounded" />
                   <div className="w-5/6 h-2 bg-slate-100 rounded" />
-                  <div className="absolute bottom-3 right-3 w-7 h-7 bg-[#647dbf] rounded-full flex items-center justify-center shadow-lg shadow-blue-500/50">
+                  <div className="absolute bottom-3 right-3 w-7 h-7 bg-[#4a86ff] rounded-full flex items-center justify-center shadow-lg shadow-blue-500/50">
                     <Sparkles className="w-3.5 h-3.5 text-white" />
                   </div>
                 </div>
@@ -137,8 +137,8 @@ export default function NewValueComparison() {
               </motion.div>
 
               <div className="relative z-10 w-20 h-20 bg-slate-800 rounded-2xl border border-slate-600 flex items-center justify-center shadow-2xl">
-                <Sparkles className="w-8 h-8 text-[#647dbf]" />
-                <div className="absolute -inset-4 rounded-3xl border border-[#647dbf]/20 animate-pulse" />
+                <Sparkles className="w-8 h-8 text-[#4a86ff]" />
+                <div className="absolute -inset-4 rounded-3xl border border-[#4a86ff]/20 animate-pulse" />
               </div>
             </div>
           </div>

@@ -774,7 +774,7 @@ Footer is optional. Fill with realistic, relevant data that addresses their ques
         "Slide": `You MUST create a visually rich presentation slide with content directly relevant to the user's question above.${businessContextRule}
 Include a \`\`\`slide code block with JSON BEFORE your text explanation:
 \`\`\`slide
-{"title":"Slide Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"},{"value":"15K","label":"Users"}],"bullets":["Key point 1","Key point 2"],"takeaway":"Main takeaway","accent_color":"#647dbf"}
+{"title":"Slide Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"},{"value":"15K","label":"Users"}],"bullets":["Key point 1","Key point 2"],"takeaway":"Main takeaway","accent_color":"#4a86ff"}
 \`\`\`
 Supported layouts: "bullets" (default list), "stat-callout" (big numbers + optional bullets), "two-column" (use left_column and right_column arrays), "title-only".
 Always include an icon emoji. Use stats with large formatted numbers when presenting metrics. The slide must clearly reflect this business's DNA, product, and target audience. Use the business's actual data for stats. Then provide additional context below.`,
@@ -2353,10 +2353,10 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 </div>
               )}
               {selectedGraphic && (
-                <div className="flex items-center gap-1.5 bg-[#647dbf]/10 border border-[#647dbf]/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                  <Palette className="w-3.5 h-3.5 text-[#647dbf]" />
-                  <span className="text-xs font-medium text-[#647dbf]">{selectedGraphic}</span>
-                  <button onClick={() => setSelectedGraphic(null)} className="text-[#647dbf]/60 hover:text-[#647dbf]">
+                <div className="flex items-center gap-1.5 bg-[#4a86ff]/10 border border-[#4a86ff]/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
+                  <Palette className="w-3.5 h-3.5 text-[#4a86ff]" />
+                  <span className="text-xs font-medium text-[#4a86ff]">{selectedGraphic}</span>
+                  <button onClick={() => setSelectedGraphic(null)} className="text-[#4a86ff]/60 hover:text-[#4a86ff]">
                     <X className="w-3 h-3" />
                   </button>
                 </div>

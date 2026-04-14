@@ -788,7 +788,7 @@ export function BusinessDNAOnboarding({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowMethodPicker(false)}
-                className="rounded-2xl border border-black/5 hover:border-[#647dbf]/40 bg-[#f4f3ee] overflow-hidden transition-colors text-left cursor-pointer"
+                className="rounded-2xl border border-black/5 hover:border-[#4a86ff]/40 bg-[#f4f3ee] overflow-hidden transition-colors text-left cursor-pointer"
               >
                 <div className="relative">
                   <img src={startBusinessBg} alt="" className="w-full h-48 sm:h-80 object-cover" />
@@ -833,10 +833,10 @@ export function BusinessDNAOnboarding({
             </p>
 
             <div className="w-full max-w-[720px]">
-              <div className="bg-[#f4f3ee] border-[1.5px] border-[#647dbf] rounded-2xl p-2 shadow-sm">
+              <div className="bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ml-1">
-                    <Globe className="w-5 h-5 text-[#647dbf]" strokeWidth={2} />
+                    <Globe className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
                   </div>
                   <input
                     type="text"
@@ -862,7 +862,7 @@ export function BusinessDNAOnboarding({
                       }
                     }}
                     disabled={!urlInput.trim()}
-                    className="bg-[#647dbf] hover:bg-[#287acc] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                    className="bg-[#4a86ff] hover:bg-[#287acc] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                   >
                     Continue <ArrowRight className="w-4 h-4" />
                   </button>
@@ -893,7 +893,7 @@ export function BusinessDNAOnboarding({
             <div className="w-full max-w-[720px] bg-[#f4f3ee] rounded-2xl p-6 shadow-sm border border-black/5">
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-11 h-11 rounded-xl bg-[#e6f2ff] flex items-center justify-center shrink-0">
-                  <Telescope className="w-5 h-5 text-[#647dbf]" strokeWidth={2} />
+                  <Telescope className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
                 </div>
                 <span className="text-[17px] text-[#1a1f36] truncate">{activeUrl}</span>
               </div>
@@ -906,7 +906,7 @@ export function BusinessDNAOnboarding({
                   </div>
                   <button
                     onClick={handleRetry}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#647dbf]/10 hover:bg-[#647dbf]/20 text-[#647dbf] text-sm font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#4a86ff]/10 hover:bg-[#4a86ff]/20 text-[#4a86ff] text-sm font-medium transition-colors"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Try Again
@@ -916,7 +916,7 @@ export function BusinessDNAOnboarding({
                 <div className="flex flex-col gap-3">
                   <div className="w-full h-1.5 bg-[#e5e4df] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#647dbf] rounded-full transition-all duration-300 ease-out"
+                      className="h-full bg-[#4a86ff] rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${Math.max(3, progress)}%` }}
                     />
                   </div>
@@ -940,9 +940,9 @@ export function BusinessDNAOnboarding({
             <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select up to 3 products to import</p>
 
             {/* URL bar with continue */}
-            <div className="w-full max-w-[900px] bg-[#f4f3ee] border-[1.5px] border-[#647dbf] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            <div className="w-full max-w-[900px] bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
               <div className="flex items-center gap-3 px-2 min-w-0">
-                <Globe className="w-5 h-5 text-[#647dbf] shrink-0" strokeWidth={2} />
+                <Globe className="w-5 h-5 text-[#4a86ff] shrink-0" strokeWidth={2} />
                 <span className="text-[#1a1f36] font-medium text-[14px] sm:text-[15px] truncate">{activeUrl}</span>
               </div>
               <button
@@ -959,7 +959,7 @@ export function BusinessDNAOnboarding({
                   }
                 }}
                 disabled={selectedProducts.length === 0 && extractedProducts.length === 0}
-                className="bg-[#647dbf] disabled:opacity-50 hover:bg-[#287acc] transition-colors text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
+                className="bg-[#4a86ff] disabled:opacity-50 hover:bg-[#287acc] transition-colors text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
               >
                 Continue <ArrowRight className="w-4 h-4" />
               </button>
@@ -998,7 +998,7 @@ export function BusinessDNAOnboarding({
                       }}
                       className={`cursor-pointer rounded-2xl overflow-hidden border-2 transition-all ${
                         isSelected
-                          ? "border-[#647dbf] ring-4 ring-[#647dbf]/20"
+                          ? "border-[#4a86ff] ring-4 ring-[#4a86ff]/20"
                           : "border-transparent bg-[#f4f3ee] hover:border-[#e5e4df]"
                       }`}
                     >
@@ -1012,7 +1012,7 @@ export function BusinessDNAOnboarding({
                         )}
                         <div
                           className={`absolute top-3 right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                            isSelected ? "bg-[#647dbf] border-[#647dbf]" : "bg-black/40 border-white/60"
+                            isSelected ? "bg-[#4a86ff] border-[#4a86ff]" : "bg-black/40 border-white/60"
                           }`}
                         >
                           {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
@@ -1034,7 +1034,7 @@ export function BusinessDNAOnboarding({
                 <p className="text-[#697386] text-[15px]">No products found. We'll create your business DNA from brand data.</p>
                 <button
                   onClick={() => setStep(4)}
-                  className="mt-4 bg-[#647dbf] hover:bg-[#287acc] transition-colors text-white px-6 py-2.5 rounded-xl font-medium text-[15px]"
+                  className="mt-4 bg-[#4a86ff] hover:bg-[#287acc] transition-colors text-white px-6 py-2.5 rounded-xl font-medium text-[15px]"
                 >
                   Continue
                 </button>
@@ -1110,7 +1110,7 @@ export function BusinessDNAOnboarding({
                           setStep(4);
                         }
                       }}
-                      className="bg-[#647dbf] hover:bg-[#287acc] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] w-full sm:w-auto shrink-0"
+                      className="bg-[#4a86ff] hover:bg-[#287acc] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] w-full sm:w-auto shrink-0"
                     >
                       {currentProductIndex < selectedProducts.length - 1 ? "Next product" : "Use this image"}{" "}
                       <ArrowRight className="w-4 h-4" />
@@ -1131,13 +1131,13 @@ export function BusinessDNAOnboarding({
                             setSelectedImages(prev => ({ ...prev, [currentProductIndex]: idx }))
                           }
                           className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${
-                            selectedImg === idx ? "border-[#647dbf]" : "border-transparent"
+                            selectedImg === idx ? "border-[#4a86ff]" : "border-transparent"
                           }`}
                         >
                           <img src={bgRemovedImages[imgSrc] || imgSrc} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" onError={() => setFailedImages(prev => new Set(prev).add(imgSrc))} />
                           <div className="absolute top-3 right-3">
                             {selectedImg === idx ? (
-                              <div className="w-6 h-6 rounded-full bg-[#647dbf] flex items-center justify-center">
+                              <div className="w-6 h-6 rounded-full bg-[#4a86ff] flex items-center justify-center">
                                 <Check className="w-4 h-4 text-white" strokeWidth={3} />
                               </div>
                             ) : (
@@ -1204,11 +1204,11 @@ export function BusinessDNAOnboarding({
                       className="flex items-center justify-between cursor-pointer py-2"
                       onClick={() => setIsInfoOpen(!isInfoOpen)}
                     >
-                      <div className="flex items-center gap-2 text-[#647dbf] text-[14px] font-medium">
+                      <div className="flex items-center gap-2 text-[#4a86ff] text-[14px] font-medium">
                         <Lightbulb className="w-4 h-4" />
                         <span>What makes a great product image?</span>
                       </div>
-                      <ChevronUp className={`w-4 h-4 text-[#647dbf] transition-transform ${isInfoOpen ? "" : "rotate-180"}`} />
+                      <ChevronUp className={`w-4 h-4 text-[#4a86ff] transition-transform ${isInfoOpen ? "" : "rotate-180"}`} />
                     </div>
                     {isInfoOpen && (
                       <div className="pt-1 pb-2">
@@ -1287,7 +1287,7 @@ export function BusinessDNAOnboarding({
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
-                    <Sparkles className="w-5 h-5 text-[#647dbf]" />
+                    <Sparkles className="w-5 h-5 text-[#4a86ff]" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-[15px] sm:text-[17px] font-semibold text-[#1a1f36] truncate">{activeUrl}</h3>
@@ -1298,7 +1298,7 @@ export function BusinessDNAOnboarding({
                   onClick={() => setStep(6)}
                   disabled={!persistenceComplete}
                   className={`${
-                    !persistenceComplete ? "bg-[#647dbf]/50 cursor-not-allowed" : "bg-[#647dbf] hover:bg-[#287acc]"
+                    !persistenceComplete ? "bg-[#4a86ff]/50 cursor-not-allowed" : "bg-[#4a86ff] hover:bg-[#287acc]"
                   } text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] transition-colors w-full sm:w-auto shrink-0`}
                 >
                   Finalize Agent <ArrowRight className="w-4 h-4" />
@@ -1313,7 +1313,7 @@ export function BusinessDNAOnboarding({
                   </div>
                   <button
                     onClick={handleRetry}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#647dbf]/10 hover:bg-[#647dbf]/20 text-[#647dbf] text-sm font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#4a86ff]/10 hover:bg-[#4a86ff]/20 text-[#4a86ff] text-sm font-medium transition-colors"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Try Again
@@ -1343,7 +1343,7 @@ export function BusinessDNAOnboarding({
                             {isDone ? (
                               <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
                             ) : (
-                              <Loader2 className="w-4 h-4 text-[#647dbf] animate-spin shrink-0" />
+                              <Loader2 className="w-4 h-4 text-[#4a86ff] animate-spin shrink-0" />
                             )}
                             <span className={`text-[14px] font-medium ${isDone ? "text-[#22c55e]" : "text-[#1a1f36]"}`}>
                               {todo.label}
@@ -1366,7 +1366,7 @@ export function BusinessDNAOnboarding({
                           todo.status === "done"
                             ? "bg-[#22c55e] w-1.5"
                             : i === forgingTodos.filter(t => t.status === "done").length
-                              ? "bg-[#647dbf] w-4"
+                              ? "bg-[#4a86ff] w-4"
                               : "bg-[#d1d0cb] w-1.5"
                         }`}
                       />
@@ -1385,7 +1385,7 @@ export function BusinessDNAOnboarding({
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.35 }}
-                            className="border-l-4 border-[#647dbf] pl-4 py-2.5 bg-white/40 rounded-r-xl pr-4 mt-1"
+                            className="border-l-4 border-[#4a86ff] pl-4 py-2.5 bg-white/40 rounded-r-xl pr-4 mt-1"
                           >
                             <p className="text-[14px] text-[#1a1f36] italic leading-relaxed">
                               "{quote.quote}"
@@ -1446,14 +1446,14 @@ export function BusinessDNAOnboarding({
                   {/* Brand card */}
                   <div className="w-full bg-[#f4f3ee] rounded-xl p-4">
                     <div className="flex items-center gap-3 mb-2">
-                      <Palette className="w-4 h-4 text-[#647dbf] shrink-0" />
+                      <Palette className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <span className="text-[15px] font-medium text-[#1a1f36]">
                         {brandData.name || "Brand Identity"}
                       </span>
                       {forgingTodos.find(t => t.label === "Forging DNA")?.status === "done" ? (
                         <CheckCircle2 className="w-4 h-4 text-[#22c55e] ml-auto shrink-0" />
                       ) : (
-                        <Loader2 className="w-4 h-4 text-[#647dbf] animate-spin ml-auto shrink-0" />
+                        <Loader2 className="w-4 h-4 text-[#4a86ff] animate-spin ml-auto shrink-0" />
                       )}
                     </div>
                     <p className="text-[13px] text-[#697386] mb-2">{brandData.category || "Brand"}</p>
@@ -1472,7 +1472,7 @@ export function BusinessDNAOnboarding({
                   {/* Products */}
                   {displayProducts.map((p: any, i: number) => (
                     <div key={i} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center gap-3">
-                      <ShoppingBag className="w-4 h-4 text-[#647dbf] shrink-0" />
+                      <ShoppingBag className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <span className="text-[15px] font-medium text-[#1a1f36]">{p.name || `Product ${i + 1}`}</span>
                         {p.images?.length > 0 && (
@@ -1482,7 +1482,7 @@ export function BusinessDNAOnboarding({
                       {forgingTodos.find(t => t.label === "Forging DNA")?.status === "done" ? (
                         <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
                       ) : (
-                        <Loader2 className="w-4 h-4 text-[#647dbf] animate-spin shrink-0" />
+                        <Loader2 className="w-4 h-4 text-[#4a86ff] animate-spin shrink-0" />
                       )}
                     </div>
                   ))}
@@ -1490,7 +1490,7 @@ export function BusinessDNAOnboarding({
                   {/* Audiences */}
                   {audiencesRaw.filter((a: any) => a?.name).map((a: any, i: number) => (
                     <div key={`aud-${i}`} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center gap-3">
-                      <Users className="w-4 h-4 text-[#647dbf] shrink-0" />
+                      <Users className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <span className="text-[15px] font-medium text-[#1a1f36]">{a.name}</span>
                         {a.description && (
@@ -1500,7 +1500,7 @@ export function BusinessDNAOnboarding({
                       {forgingTodos.find(t => t.label === "Forging DNA")?.status === "done" ? (
                         <CheckCircle2 className="w-4 h-4 text-[#22c55e] shrink-0" />
                       ) : (
-                        <Loader2 className="w-4 h-4 text-[#647dbf] animate-spin shrink-0" />
+                        <Loader2 className="w-4 h-4 text-[#4a86ff] animate-spin shrink-0" />
                       )}
                     </div>
                   ))}
@@ -1558,7 +1558,7 @@ export function BusinessDNAOnboarding({
                         {verifiedSources.has(i) ? (
                           <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
                         ) : (
-                          <Loader2 className="w-3.5 h-3.5 text-[#647dbf] animate-spin shrink-0" />
+                          <Loader2 className="w-3.5 h-3.5 text-[#4a86ff] animate-spin shrink-0" />
                         )}
                         <img
                           src={`https://www.google.com/s2/favicons?domain=${urlToDisplaySource(url)}&sz=16`}
@@ -1610,10 +1610,10 @@ export function BusinessDNAOnboarding({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                   >
-                    <div className="bg-[#f4f3ee] border-[1.5px] border-[#647dbf] rounded-2xl p-2 shadow-sm">
+                    <div className="bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ml-1">
-                          <WandSparkles className="w-5 h-5 text-[#647dbf]" strokeWidth={2} />
+                          <WandSparkles className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
                         </div>
                         <input
                           type="text"
@@ -1633,7 +1633,7 @@ export function BusinessDNAOnboarding({
                             if (agentName.trim()) setIsNameSubmitted(true);
                           }}
                           disabled={!agentName.trim()}
-                          className="bg-[#647dbf] hover:bg-[#287acc] disabled:bg-[#647dbf]/50 disabled:cursor-not-allowed transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                          className="bg-[#4a86ff] hover:bg-[#287acc] disabled:bg-[#4a86ff]/50 disabled:cursor-not-allowed transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                         >
                           Continue <ArrowRight className="w-4 h-4" />
                         </button>
@@ -1673,7 +1673,7 @@ export function BusinessDNAOnboarding({
                         }
                         onComplete(agentName.trim(), createdBrandId);
                       }}
-                      className="w-full bg-[#647dbf] hover:bg-[#287acc] shadow-sm text-white px-6 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                      className="w-full bg-[#4a86ff] hover:bg-[#287acc] shadow-sm text-white px-6 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                     >
                       Take Me To {agentName.trim()}
                       <ArrowRight className="w-5 h-5 text-white" />
