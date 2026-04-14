@@ -241,17 +241,56 @@ const sanitizeOffer = (offer: any, rawPageText: string, normalizedPageText: stri
     : [];
   const hasStrongEvidence = Boolean(originalPrice || salePrice || discount || bundleDetails || freeGifts.length > 0);
   const hasSupportedTitleOnly = Boolean(title && OFFER_CUE_REGEX.test(title));
-  if (!hasStrongEvidence && !hasSupportedTitleOnly) return null;
+  // Allow offers that have a title containing a price-like pattern (e.g., "$49", "€29/mo")
+  const hasPriceInTitle = Boolean(title && /[$€£¥]\s*\d+|\d+\s*[$€£¥]|\d+\.\d{2}|\/mo|\/month|\/year|\/yr/i.test(title));
+  if (!hasStrongEvidence && !hasSupportedTitleOnly && !hasPriceInTitle) return null;
   return { title, originalPrice, salePrice, discount, bundleDetails, freeGifts, isPopular: Boolean(offer.isPopular) && /\b(most popular|best seller|bestseller|popular choice|top seller)\b/i.test(rawPageText) };
+};
+
+const extractPricesFromText = (text: string): any[] => {
+  const priceRegex = /(?:[$€£¥]\s*\d[\d,]*(?:\.\d{1,2})?(?:\s*\/\s*(?:mo(?:nth)?|yr|year|week))?)|(?:\d[\d,]*(?:\.\d{1,2})?\s*(?:USD|EUR|GBP|AUD|CAD))/gi;
+  const matches = text.match(priceRegex);
+  if (!matches || matches.length === 0) return [];
+  const unique = [...new Set(matches.map(m => m.trim()))].slice(0, 3);
+  return unique.map((price, i) => ({
+    title: `Pricing Option ${i + 1}`,
+    originalPrice: price,
+    salePrice: "",
+    discount: "",
+    bundleDetails: "",
+    freeGifts: [],
+    isPopular: false,
+  }));
 };
 
 const sanitizeProductOffers = (pageText: string, product: any) => {
   if (!product || typeof product !== "object") return;
   const rawPageText = typeof pageText === "string" ? pageText.toLowerCase() : "";
   const normalizedPageText = normalizeSearchText(pageText || "");
-  product.offers = Array.isArray(product.offers)
-    ? product.offers.map((offer: any) => sanitizeOffer(offer, rawPageText, normalizedPageText)).filter(Boolean)
-    : [];
+  const aiOffers = Array.isArray(product.offers) ? product.offers : [];
+  const sanitized = aiOffers.map((offer: any) => sanitizeOffer(offer, rawPageText, normalizedPageText)).filter(Boolean);
+  
+  // Fallback: if AI returned offers but sanitizer stripped all, extract prices from page text
+  if (sanitized.length === 0 && aiOffers.length > 0) {
+    const fallbackOffers = extractPricesFromText(pageText || "");
+    if (fallbackOffers.length > 0) {
+      console.log("Offer fallback: extracted", fallbackOffers.length, "prices from page text");
+      product.offers = fallbackOffers;
+      return;
+    }
+  }
+  
+  // Second fallback: if no offers at all, try extracting from raw page text
+  if (sanitized.length === 0) {
+    const fallbackOffers = extractPricesFromText(pageText || "");
+    if (fallbackOffers.length > 0) {
+      console.log("Offer fallback (no AI offers): extracted", fallbackOffers.length, "prices from page text");
+      product.offers = fallbackOffers;
+      return;
+    }
+  }
+  
+  product.offers = sanitized;
 };
 
 const fetchPageFallback = async (targetUrl: string) => {
@@ -450,8 +489,9 @@ CRITICAL RULES:
 - ONLY use information that is EXPLICITLY present on this page. Do NOT infer, guess, or hallucinate any data.
 - If you cannot find real data for a field, leave it as "" or [].
 - NEVER fabricate data. NEVER use example data. NEVER use data from other businesses or websites.
-- For "offers": ONLY include pricing, deals, or bundles that have EXPLICIT prices or discount percentages written on the page. If there are NO prices, NO pricing tiers, NO discount amounts visible on the page, return "offers": []. Do NOT guess prices. Do NOT invent pricing tiers.
-- For "features", "benefits", "painPoints", etc.: extract ONLY what is stated or clearly implied on the page content. Leave empty [] if the page does not mention them.
+- For "offers": Extract any visible pricing, price tiers, subscription costs, or "starting at" prices. If a price is displayed anywhere on the page, include it as an offer. Include free trials, freemium tiers, and pricing pages. If there are truly NO prices visible, return "offers": [].
+- For "features", "benefits", "painPoints", etc.: extract what is stated or clearly implied on the page content. Aim for at least 3-5 items per field when the page has enough content. Leave empty [] only if the page truly does not mention them.
+- Be thorough — extract ALL relevant data points, not just the most obvious ones.
 
 JSON structure:
 {
@@ -490,8 +530,8 @@ FIELD GUIDELINES:
 Brand: "${brandName}"
 Page URL: ${pageUrl}
 
-Product page content (first 10000 chars):
-${productMarkdown.slice(0, 10000)}`;
+Product page content (first 12000 chars):
+${productMarkdown.slice(0, 12000)}`;
 
 // ══════════════════════════════════════════════
 // PINTEREST SCRAPER
@@ -1144,7 +1184,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
             LOVABLE_API_KEY,
             PRODUCT_AUDIENCE_PROMPT(page.markdown, prelimBrandName, page.url),
             "google/gemini-3-flash-preview",
-            8000,
+            10000,
           );
 
           const product = normalizeProduct(result.product || result.products?.[0]);
@@ -1244,40 +1284,62 @@ ${allUrls.slice(0, 400).join('\n')}` }],
     const PRODUCT_GAP_FIELDS = ["features", "benefits", "painPoints", "useCases", "targetScenarios", "uniqueSellingPoints", "competitiveAdvantages", "commonObjections", "proofPoints", "powerPhrases", "powerWords"];
     const AUDIENCE_GAP_FIELDS = ["buyingTriggers", "useCaseRequirements", "engagementTriggers", "attentionHooks", "commonObjections", "valuePropositions", "keySuccessIndicators", "powerPhrases", "powerWords"];
 
-    const hasGaps = (obj: any, fields: string[]) => {
+    const hasThinFields = (obj: any, fields: string[]) => {
       for (const f of fields) {
         const val = obj[f];
-        if (!val || (Array.isArray(val) && val.length === 0)) return true;
+        if (!val || (Array.isArray(val) && val.length < 3)) return true;
       }
       return false;
     };
 
-    const productGaps = products.some((p: any) => hasGaps(p, PRODUCT_GAP_FIELDS));
-    const audienceGaps = uniqueAudiences.some((a: any) => hasGaps(a, AUDIENCE_GAP_FIELDS));
-
-    if ((productGaps || audienceGaps) && FIRECRAWL_API_KEY) {
+    // Always run Reddit enrichment to augment thin data, not just fill gaps
+    if (FIRECRAWL_API_KEY) {
       try {
         const brandSearchName = brand.name || metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "";
         const productNames = products.map((p: any) => p.name).filter(Boolean).slice(0, 3).join(" ");
-        const searchQuery = `site:reddit.com ${brandSearchName} ${productNames} review`;
-        console.log("Reddit enrichment — searching:", searchQuery);
+        const searchQuery1 = `site:reddit.com ${brandSearchName} ${productNames} review`;
+        const searchQuery2 = `site:reddit.com ${brandSearchName} pricing cost worth it`;
+        console.log("Reddit enrichment — searching:", searchQuery1, "and:", searchQuery2);
 
-        const redditRes = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: searchQuery,
-            limit: 5,
-            scrapeOptions: { formats: ["markdown"] },
+        // Run both searches in parallel
+        const [redditRes1, redditRes2] = await Promise.allSettled([
+          fetch("https://api.firecrawl.dev/v1/search", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ query: searchQuery1, limit: 5, scrapeOptions: { formats: ["markdown"] } }),
           }),
-        });
+          fetch("https://api.firecrawl.dev/v1/search", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ query: searchQuery2, limit: 3, scrapeOptions: { formats: ["markdown"] } }),
+          }),
+        ]);
+
+        // Merge results from both searches
+        const allRedditResults: any[] = [];
+        for (const r of [redditRes1, redditRes2]) {
+          if (r.status === 'fulfilled' && r.value.ok) {
+            try {
+              const data = await r.value.json();
+              if (Array.isArray(data.data)) allRedditResults.push(...data.data);
+            } catch { /* ignore */ }
+          }
+        }
+        const redditRes = { ok: allRedditResults.length > 0 } as any;
+        const mergedRedditData = { data: allRedditResults };
 
         if (redditRes.ok) {
-          const redditData = await redditRes.json();
-          const results = Array.isArray(redditData.data) ? redditData.data : [];
+          const results = allRedditResults;
+          // Deduplicate by URL
+          const seenRedditUrls = new Set<string>();
           const redditContent = results
-            .filter((r: any) => r.url && r.url.includes("reddit.com"))
-            .slice(0, 3);
+            .filter((r: any) => {
+              if (!r.url || !r.url.includes("reddit.com")) return false;
+              if (seenRedditUrls.has(r.url)) return false;
+              seenRedditUrls.add(r.url);
+              return true;
+            })
+            .slice(0, 5);
 
           if (redditContent.length > 0) {
             for (const r of redditContent) {
@@ -1285,32 +1347,33 @@ ${allUrls.slice(0, 400).join('\n')}` }],
             }
             const combinedMarkdown = redditContent.map((r: any) => `## Source: ${r.url}\n${(r.markdown || r.description || "").slice(0, 3000)}`).join("\n\n---\n\n");
 
-            // Build gap lists for each product/audience
+            // Build thin-field lists for each product/audience (fields with < 3 items)
             const gapInfo: any = {};
             products.forEach((p: any, i: number) => {
-              const missing = PRODUCT_GAP_FIELDS.filter(f => !p[f] || (Array.isArray(p[f]) && p[f].length === 0));
-              if (missing.length > 0) gapInfo[`product_${i}_${p.name || i}`] = missing;
+              const thinFields = PRODUCT_GAP_FIELDS.filter(f => !p[f] || (Array.isArray(p[f]) && p[f].length < 3));
+              if (thinFields.length > 0) gapInfo[`product_${i}_${p.name || i}`] = thinFields;
             });
             uniqueAudiences.forEach((a: any, i: number) => {
-              const missing = AUDIENCE_GAP_FIELDS.filter(f => !a[f] || (Array.isArray(a[f]) && a[f].length === 0));
-              if (missing.length > 0) gapInfo[`audience_${i}_${a.name || i}`] = missing;
+              const thinFields = AUDIENCE_GAP_FIELDS.filter(f => !a[f] || (Array.isArray(a[f]) && a[f].length < 3));
+              if (thinFields.length > 0) gapInfo[`audience_${i}_${a.name || i}`] = thinFields;
             });
 
-            const REDDIT_FILL_PROMPT = `You are a data analyst. Given real Reddit discussions about "${brandSearchName}", extract ONLY factual, evidence-backed data to fill missing fields.
+            const REDDIT_FILL_PROMPT = `You are a data analyst. Given real Reddit discussions about "${brandSearchName}", extract factual, evidence-backed data to fill or augment thin fields.
 
 REDDIT DISCUSSIONS:
-${combinedMarkdown.slice(0, 8000)}
+${combinedMarkdown.slice(0, 10000)}
 
-MISSING FIELDS TO FILL:
+FIELDS TO FILL/AUGMENT (these have fewer than 3 items each):
 ${JSON.stringify(gapInfo, null, 2)}
 
 RULES:
-- ONLY fill fields where you find EXPLICIT evidence in the Reddit content above.
-- Do NOT fabricate, infer, or make up data. If no evidence exists for a field, return it as an empty array [].
-- For commonObjections, return array of {objection, response} objects.
+- Extract data where you find evidence in the Reddit content above.
+- Be thorough — aim for 3-5 items per field when evidence exists.
+- For commonObjections, return array of {objection, response} objects based on real complaints/concerns from Reddit.
 - For proofPoints, return array of {category, items} objects.
+- If Reddit mentions pricing, costs, or value assessments, include them in relevant fields like "competitiveAdvantages" or "uniqueSellingPoints" (NOT in "offers").
 - Do NOT fill "offers" fields.
-- Return JSON with the same keys as the MISSING FIELDS object above. Each key maps to an object with the filled field values.
+- Return JSON with the same keys as the FIELDS object above. Each key maps to an object with the filled field values.
 
 Return ONLY valid JSON, no markdown fences.`;
 
@@ -1329,8 +1392,18 @@ Return ONLY valid JSON, no markdown fences.`;
                       if (field === "offers") continue; // Never fill offers
                       const existing = products[idx][field];
                       const newVal = filled[field];
-                      if ((!existing || (Array.isArray(existing) && existing.length === 0)) && newVal && (Array.isArray(newVal) ? newVal.length > 0 : true)) {
+                      if (!newVal || (Array.isArray(newVal) && newVal.length === 0)) continue;
+                      // Augment: merge if existing has < 3 items, or fill if empty
+                      if (!existing || (Array.isArray(existing) && existing.length === 0)) {
                         products[idx][field] = newVal;
+                      } else if (Array.isArray(existing) && existing.length < 3 && Array.isArray(newVal)) {
+                        // Merge without duplicates
+                        const merged = [...existing];
+                        for (const item of newVal) {
+                          const itemStr = JSON.stringify(item);
+                          if (!merged.some(e => JSON.stringify(e) === itemStr)) merged.push(item);
+                        }
+                        products[idx][field] = merged;
                       }
                     }
                   }
@@ -1340,8 +1413,16 @@ Return ONLY valid JSON, no markdown fences.`;
                     for (const field of AUDIENCE_GAP_FIELDS) {
                       const existing = uniqueAudiences[idx][field];
                       const newVal = filled[field];
-                      if ((!existing || (Array.isArray(existing) && existing.length === 0)) && newVal && (Array.isArray(newVal) ? newVal.length > 0 : true)) {
+                      if (!newVal || (Array.isArray(newVal) && newVal.length === 0)) continue;
+                      if (!existing || (Array.isArray(existing) && existing.length === 0)) {
                         uniqueAudiences[idx][field] = newVal;
+                      } else if (Array.isArray(existing) && existing.length < 3 && Array.isArray(newVal)) {
+                        const merged = [...existing];
+                        for (const item of newVal) {
+                          const itemStr = JSON.stringify(item);
+                          if (!merged.some(e => JSON.stringify(e) === itemStr)) merged.push(item);
+                        }
+                        uniqueAudiences[idx][field] = merged;
                       }
                     }
                   }
