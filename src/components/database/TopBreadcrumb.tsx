@@ -40,8 +40,12 @@ export function TopBreadcrumb({ currentView, activeBrandId, onSelectBrand }: Top
 
   return (
     <div className="hidden md:flex items-center gap-2 px-4 h-12 bg-sidebar text-sm shrink-0">
-      {isLoading && brands.length === 0 ? (
-        <Skeleton className="h-5 w-28 rounded-md" />
+      {showSkeleton ? (
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-32 rounded-md" />
+          <span className="text-muted-foreground">/</span>
+          <Skeleton className="h-5 w-20 rounded-md" />
+        </div>
       ) : (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
