@@ -168,7 +168,7 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
           <Button
             className="w-full h-14 text-lg font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transition-all duration-200"
             style={{
-              background: "#3399ff",
+              background: "#647dbf",
               color: "#fff",
               boxShadow: "0 10px 30px -5px rgba(51,153,255,0.25)",
             }}
