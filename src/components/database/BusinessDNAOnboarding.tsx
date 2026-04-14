@@ -284,10 +284,8 @@ export function BusinessDNAOnboarding({
           setDiscoveredProducts(normalizedProducts);
           // Store quick brand info
           if (data.quickBrand) quickBrandRef.current = data.quickBrand;
-          // Capture scanned URLs
-          if (Array.isArray(data.scannedUrls)) {
-            scannedUrlsRef.current = data.scannedUrls;
-          }
+          // Don't capture scannedUrls from discover mode — it contains ALL crawled pages.
+          // We'll build the display URLs from selected products + main URL + reddit later.
         }
       } catch (e) {
         if (!cancelled) {
