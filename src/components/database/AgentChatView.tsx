@@ -348,6 +348,25 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /* ── Auto-send initial message from dashboard action ── */
+  const initialMessageSentRef = useRef(false);
+  useEffect(() => {
+    if (!initialMessage || initialMessageSentRef.current || isSending) return;
+    // Wait for chatInputRef to be ready
+    const timer = setTimeout(() => {
+      if (chatInputRef.current) {
+        chatInputRef.current.innerText = initialMessage;
+        initialMessageSentRef.current = true;
+        onInitialMessageConsumed?.();
+        // Trigger send via a synthetic approach — set text then programmatically click send
+        // We'll dispatch the send directly after setting text
+        const sendBtn = document.querySelector('[data-send-btn]') as HTMLButtonElement;
+        if (sendBtn) sendBtn.click();
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [initialMessage, isSending]);
+
   /* ── Auto-save chat to DB (debounced) ── */
   const saveChatSession = useCallback(async (msgs: ChatMessage[], chatId: string | null) => {
     if (!user || msgs.length === 0) return;
