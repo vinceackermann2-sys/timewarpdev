@@ -279,7 +279,7 @@ function buildConnectionTaskSteps(payload: {
 }
 
 /* ─── Main view ─── */
-export function AgentChatView({ activeBrandId }: { activeBrandId?: string | null }) {
+export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageConsumed }: { activeBrandId?: string | null; initialMessage?: string | null; onInitialMessageConsumed?: () => void }) {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const { brands } = useBusinessDNA();
