@@ -11,7 +11,7 @@ serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const CLIENT_ID = Deno.env.get("ZOOM_CLIENT_ID")!;
   const CLIENT_SECRET = Deno.env.get("ZOOM_CLIENT_SECRET")!;
-  const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/zoom-oauth-callback`;
+  const REDIRECT_URI = `${SUPABASE_URL}/functions/development/zoom-oauth-callback`;
 
   if (error || !code || !stateParam) {
     const fallbackUrl = Deno.env.get("FRONTEND_URL") || "https://timewarpdev.lovable.app";
