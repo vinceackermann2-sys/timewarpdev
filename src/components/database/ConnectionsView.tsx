@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
+import logoMsTeams from "@/assets/logo-ms-teams.svg";
 import logoSlack from "@/assets/logo-slack.png";
 import logoZoom from "@/assets/logo-zoom.svg";
 import logoHubspot from "@/assets/logo-hubspot.svg";
@@ -26,6 +27,7 @@ const integrations: Integration[] = [
   { id: "microsoft_outlook", name: "Microsoft Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook, section: "microsoft", iconBg: "bg-white" },
   { id: "microsoft_onedrive", name: "Microsoft OneDrive", description: "Upload and read files", logo: logoMsOnedrive, section: "microsoft", iconBg: "bg-white" },
   { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft", iconBg: "bg-white" },
+  { id: "microsoft_teams", name: "Microsoft Teams", description: "Messages and channels", logo: logoMsTeams, section: "microsoft", iconBg: "bg-white" },
   { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
   { id: "zoom", name: "Zoom", description: "Meetings and recordings", logo: logoZoom, section: "other", iconBg: "bg-blue-500" },
   { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, section: "other", iconBg: "bg-orange-100" },
