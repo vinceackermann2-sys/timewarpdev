@@ -199,7 +199,7 @@ serve(async (req) => {
           case "zoom": {
             const clientId = Deno.env.get("ZOOM_CLIENT_ID");
             if (!clientId) throw new Error("ZOOM_CLIENT_ID not configured");
-            const redirectUri = `${redirectBase}/zoom-oauth-callback`;
+            const redirectUri = `${SUPABASE_URL}/functions/development/zoom-oauth-callback`;
             const scopes = "user:read meeting:read";
             const state = btoa(JSON.stringify({ ...stateBase, origin }));
             authUrl = `https://zoom.us/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
