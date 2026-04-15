@@ -87,6 +87,14 @@ export function getCardButtonLabel(card: DashboardCard): string {
     slack: "View Message",
     onedrive: "View File",
     onenote: "View Note",
+    teams: "View Message",
   };
   return map[card.source || ""] || "View Details";
 }
+
+export const TAB_SUBTITLES: Record<string, string> = {
+  Briefing: "What You Need to Know",
+  Updates: "Who's Waiting on You",
+  Objectives: "What You Need to Do",
+  "To-Dos": "Where Your Time Should Go",
+};
