@@ -1151,9 +1151,9 @@ Also check: platform markers in HTML (Shopify → ecommerce, Substack → media,
 Page URL: ${formattedUrl}
 Page title: ${metadata?.title || ""}
 
-Homepage content (first 4000 chars):
-${homepageMarkdown.slice(0, 4000)}`,
-          "google/gemini-2.5-flash-lite",
+        Homepage content (first 4000 chars):
+        ${homepageMarkdown.slice(0, 4000)}`,
+          "google/gemini-3.0-flash",
           100,
         );
         const classified = (typeof classifyRes === 'string' ? classifyRes : classifyRes?.type || "").trim().toLowerCase().replace(/[^a-z_]/g, '');
