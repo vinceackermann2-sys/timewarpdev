@@ -8,7 +8,7 @@ export function WorkspaceFooter({ compact = false }: WorkspaceFooterProps) {
   return (
     <div className="w-full" style={{ backgroundColor: '#fff' }}>
       <div className="w-full mx-auto px-4 sm:px-6 py-8 sm:py-14" style={{ maxWidth: 1900 }}>
-        <div className="rounded-2xl border border-border bg-sidebar px-5 sm:px-12 py-8 sm:py-14">
+        <div className="rounded-2xl border border-border bg-white px-5 sm:px-12 py-8 sm:py-14">
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-14">
             {/* Left: logo + links */}
             <div className="flex flex-col gap-8 sm:flex-row sm:gap-14 flex-1">
