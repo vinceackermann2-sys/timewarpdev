@@ -12,6 +12,7 @@ import { InlineDocument, InlineSpreadsheet, InlineSlide } from "./InlineChatGrap
 import { TaskStepsDisplay } from "./TaskStepsDisplay";
 import { ThinkingTimer } from "./ThinkingTimer";
 import { SettingsView } from "@/components/database/SettingsView";
+import { AssistantSuggestions } from "./AssistantSuggestions";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { extractSuggestions } from "@/lib/parseSuggestions";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoGoogle from "@/assets/logo-google.png";
 import logoSlack from "@/assets/logo-slack.png";
@@ -174,6 +176,7 @@ interface ChatMessage {
   currentStepIndex?: number;
   reportContent?: string;
   reportSavedToDb?: boolean;
+  suggestions?: string[];
 }
 
 type EmployeeContext = { id: string; name: string; role: string };
@@ -1078,7 +1081,9 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       handleProgressStep({ label: "Finished", status: "done", action: "complete" });
     }
 
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", taskSteps: [...taskSteps], isStreaming: false } : m));
+    // Parse suggestions from final content
+    const { content: cleanContent, suggestions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
   };
 
   /* ── Agent chat with browser context (computer mode, no employee) ── */
@@ -1431,7 +1436,9 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent || "Task completed.", taskSteps: [...taskSteps], isStreaming: false } : m));
+    // Parse suggestions from final content
+    const { content: cleanContent, suggestions } = extractSuggestions(accumulatedContent || "Task completed.");
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
   };
 
   /* ── Computer mode: run employee via browser extension ── */
@@ -2310,6 +2317,18 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                               content: updatedContent,
                               is_analyzed: true,
                             });
+                          }}
+                        />
+                      )}
+                      {/* Suggested actions */}
+                      {!msg.isStreaming && msg.suggestions && msg.suggestions.length > 0 && (
+                        <AssistantSuggestions
+                          suggestions={msg.suggestions}
+                          onSelect={(suggestion) => {
+                            if (chatInputRef.current) {
+                              chatInputRef.current.innerText = suggestion;
+                              chatInputRef.current.focus();
+                            }
                           }}
                         />
                       )}
