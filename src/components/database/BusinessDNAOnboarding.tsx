@@ -177,6 +177,8 @@ export function BusinessDNAOnboarding({
     { label: "Saving DNA", status: "pending" },
     { label: "Enriching brand", status: "pending" },
   ]);
+  const [businessType, setBusinessType] = useState<BusinessType>("general");
+  const btConfig = BUSINESS_TYPE_CONFIG[businessType];
   const scannedUrlsRef = useRef<string[]>([]);
   const filteredUrlsRef = useRef<string[]>([]);
   const [socialProof, setSocialProof] = useState<{ quote: string; source: string }[]>([]);
