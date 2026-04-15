@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
-import { DashboardCard, badgeClasses, SOURCE_META, getCardButtonLabel } from "./dashboardTypes";
+import { DashboardCard, badgeClasses, SOURCE_META, getCardButtonLabel, TAB_SUBTITLES } from "./dashboardTypes";
 
 const TABS = [
   { id: "Briefing", label: "Briefing", icon: ClipboardCheck },
@@ -337,7 +337,12 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     <div className="h-full flex flex-col bg-background relative overflow-hidden">
       <div className="px-6 lg:px-8 pt-6 pb-3">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-semibold tracking-tight">{activeTab}</h1>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">{activeTab}</h1>
+            {TAB_SUBTITLES[activeTab] && (
+              <p className="text-sm text-muted-foreground mt-0.5">{TAB_SUBTITLES[activeTab]}</p>
+            )}
+          </div>
           {activeBrand && (
             <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}

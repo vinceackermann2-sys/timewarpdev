@@ -91,8 +91,9 @@ serve(async (req) => {
     const hasMsOutlook = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
     const hasMsOnedrive = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
     const hasMsOnenote = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onenote");
+    const hasMsTeams = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_teams");
 
-    const msProviders = ["microsoft", "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"];
+    const msProviders = ["microsoft", "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote", "microsoft_teams"];
     const getMsToken = async () => {
       for (const p of msProviders) {
         const t = await getValidProviderToken(supabase, user.id, p);
@@ -229,6 +230,61 @@ serve(async (req) => {
       })());
     }
 
+    if (hasMsTeams) {
+      searchPromises.push((async () => {
+        try {
+          const msToken = await getMsToken();
+          if (!msToken) return;
+          // Fetch recent Teams chats / messages
+          const chatsRes = await fetch(
+            `https://graph.microsoft.com/v1.0/me/chats?$top=10&$orderby=lastMessagePreview/createdDateTime desc`,
+            { headers: { Authorization: `Bearer ${msToken}` } },
+          );
+          if (!chatsRes.ok) return;
+          const chatsData = await chatsRes.json();
+          const teamsMessages: string[] = [];
+          const chats = (chatsData.value || []).slice(0, 8);
+          await Promise.all(chats.map(async (chat: any) => {
+            if (teamsMessages.length >= 10) return;
+            try {
+              const msgRes = await fetch(
+                `https://graph.microsoft.com/v1.0/me/chats/${chat.id}/messages?$top=3&$orderby=createdDateTime desc`,
+                { headers: { Authorization: `Bearer ${msToken}` } },
+              );
+              if (!msgRes.ok) return;
+              const msgData = await msgRes.json();
+              for (const msg of (msgData.value || [])) {
+                if (teamsMessages.length >= 10) break;
+                if (!msg.body?.content) continue;
+                const preview = msg.body.content.replace(/<[^>]*>/g, "").slice(0, 200).trim();
+                if (!preview) continue;
+                const ts = msg.createdDateTime ? new Date(msg.createdDateTime).toISOString().slice(0, 16).replace("T", " ") : "";
+                const sender = msg.from?.user?.displayName || "Unknown";
+                const chatTopic = chat.topic || "Direct Message";
+                teamsMessages.push(`💬 **${chatTopic}** (${ts}) from ${sender}: ${preview}`);
+              }
+            } catch (_e) { /* skip chat */ }
+          }));
+
+          // Also fetch upcoming online meetings
+          const now = new Date().toISOString();
+          const meetingsRes = await fetch(
+            `https://graph.microsoft.com/v1.0/me/onlineMeetings?$top=5&$filter=startDateTime ge '${now}'&$orderby=startDateTime`,
+            { headers: { Authorization: `Bearer ${msToken}` } },
+          );
+          if (meetingsRes.ok) {
+            const meetData = await meetingsRes.json();
+            const meetings = (meetData.value || []).map((m: any) =>
+              `- ${m.subject || "Untitled"} — ${m.startDateTime?.slice(0, 16)?.replace("T", " ") || "no date"}`
+            );
+            if (meetings.length > 0) teamsMessages.push(`\n**Upcoming Teams Meetings:**\n${meetings.join("\n")}`);
+          }
+
+          if (teamsMessages.length > 0) integrationData += `\n### Recent Microsoft Teams Activity\n${teamsMessages.join("\n")}\n`;
+        } catch (e) { console.error("Teams search error:", e); }
+      })());
+    }
+
     await Promise.all(searchPromises);
 
     // 5. Build context
@@ -280,7 +336,7 @@ ${integrationData ? `\n## Live Integration Data\n${integrationData}` : ""}
 
     // 6. Single AI call for ALL 4 tabs
     const currentTime = new Date().toISOString();
-    const systemPrompt = `You are a business analyst and strategic advisor for "${brandName}". Generate insights across 4 categories by combining INTEGRATION data with the BUSINESS DNA alignment layer.
+    const systemPrompt = `You are a business analyst and strategic advisor for "${brandName}". You execute a first-principles prioritization framework (Impact vs. Urgency) to sort every piece of information into exactly 4 categories.
 
 The current date/time is: ${currentTime}
 Use this to calculate accurate "timeAgo" values. Be precise — do NOT guess or fabricate timestamps.
@@ -289,7 +345,7 @@ Use this to calculate accurate "timeAgo" values. Be precise — do NOT guess or 
 Use the Business Overview, Products, Target Audiences, and AI Employees sections below as the alignment layer. Every insight you generate should be contextualized against this business's identity, goals, products, and audiences. This ensures all cards are strategically relevant — not generic.
 
 ## DATA SOURCES
-Generate cards primarily from CONNECTED INTEGRATION data (HubSpot, Slack, Outlook, OneDrive, OneNote, Zoom). When integration data is available, every card must trace back to a specific integration source. When NO integration data is available, generate cards from the Business DNA alignment layer using source "business-dna" — these should be strategic suggestions based on the business's products, audiences, and brand identity.
+Generate cards primarily from CONNECTED INTEGRATION data (HubSpot, Slack, Outlook, OneDrive, OneNote, Zoom, Microsoft Teams). When integration data is available, every card must trace back to a specific integration source. When NO integration data is available, generate cards from the Business DNA alignment layer using source "business-dna" — these should be strategic suggestions based on the business's products, audiences, and brand identity.
 
 Return a JSON object with exactly these 4 keys: "Briefing", "Updates", "To-Dos", "Objectives". Each key maps to an array of cards.
 
@@ -300,7 +356,7 @@ Each card has:
 - "description": 2-3 sentence insight
 - "detail": 3-5 sentence deep-dive with specific data, recommendations, or solutions. Be actionable.
 - "category": contextual label (e.g. "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth", "Communication", "Strategy")
-- "source": MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "zoom", "business-dna". Use "business-dna" only when no integration data is available for that insight.
+- "source": MUST be one of: "hubspot", "slack", "outlook", "onedrive", "onenote", "zoom", "teams", "business-dna". Use "business-dna" only when no integration data is available for that insight.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
 - "timeAgo": accurate relative time string. For integration data, calculate from source timestamps. For business-dna cards, omit or use "just now".
 - "timestamp": ISO 8601 timestamp of the original event. For business-dna cards, use "${currentTime}".
@@ -312,19 +368,30 @@ Each card has:
   - For "slack": { "channel", "author" }
   - For "onedrive": { "fileName", "sharedBy" }
   - For "onenote": { "notebook" }
+  - For "teams": { "channel", "author" }
   - For "business-dna": { "category": "brand|product|audience|employee" }
 
 Sort cards by priority (High first). Do NOT fabricate integration data.
 
-**Briefing** (3-6 cards): The critical signals — what's on track, what's slipping, and what deserves attention. Synthesize integration health and key metrics through the lens of the business's goals and audience.
+## THE 4 BUCKETS — First-Principles Categorization (Impact × Urgency)
 
-**Updates** (3-6 cards): People, decisions, approvals, and blockers. Surface recent activity from integrations (emails, deals, messages, files) instantly so nothing slows the user down. Include "timeAgo".
+**1. Briefing — "The Signal" (What You Need to Know)** (3-6 cards)
+AI Sorting Logic: Identify what has moved the "needle" — the critical signals.
+Summarize what's on track, what's slipping, and what deserves attention. Synthesize integration health and key metrics through the lens of the business's goals and audience.
 
-**To-Dos** (6-10 cards): The user's highest-leverage actions — clearly defined, prioritized, and ready to execute. Include TWO types:
+**2. Updates — "The Friction" (Who's Waiting on You)** (3-6 cards)
+AI Sorting Logic: Identify "Pending" states — people, decisions, approvals, and blockers.
+Surface recent activity from integrations (emails, deals, messages, files, Teams chats) that require the user's response or action. Include accurate "timeAgo".
+
+**3. Objectives — "The Pivot" (What You Need to Do)** (3-6 cards)
+AI Sorting Logic: Identify what problems are left unclear or unfinished.
+The user's highest-leverage actions: clearly defined, prioritized, and ready to execute. Include BOTH:
   1. PROBLEMS detected in integrations (unresponded emails, stale deals, gaps)
-  2. STRATEGIC SUGGESTIONS: High-leverage tasks based on the business's DNA. Identify the biggest levers to pull — e.g. "Your audience segment X has no targeted product — create one", "Your brand lacks social proof — collect 5 testimonials this week", "No content pipeline for audience Y — draft 3 blog post outlines". These should be the moves that create disproportionate impact.
+  2. STRATEGIC SUGGESTIONS: High-leverage tasks based on the business's DNA — e.g. missing product-market fit for an audience, no content pipeline, missing social proof.
 
-**Objectives** (3-6 cards): Preps meetings, reorganizes priorities, and protects time for the work that matters most. Measurable goals aligned to the business's products, audiences, and growth trajectory.
+**4. To-Dos — "The Leverage" (Where Your Time Should Go)** (6-10 cards)
+AI Sorting Logic: Identify what tasks are most important AND how they should be completed.
+Prep meetings, reorganize calendars, and protect time for the work that matters most. Each to-do should have a clear, specific instruction on HOW to complete it. Think calendar optimization, meeting prep, follow-ups, and time-blocked deep work.
 
 Return ONLY a valid JSON object, no markdown fences.`;
 

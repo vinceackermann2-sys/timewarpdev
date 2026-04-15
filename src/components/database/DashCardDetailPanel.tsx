@@ -188,6 +188,26 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
     );
   }
 
+  /* Microsoft Teams — chat message style */
+  if (source === "teams") {
+    return (
+      <div className="border border-border rounded-lg overflow-hidden">
+        <div className="bg-muted/50 px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <MessageSquare className="h-5 w-5 text-primary shrink-0" />
+            <div className="min-w-0 flex items-center gap-2">
+              {meta?.channel && <span className="text-sm font-semibold text-foreground">{meta.channel}</span>}
+              {meta?.author && <span className="text-xs text-muted-foreground">by {meta.author}</span>}
+            </div>
+          </div>
+        </div>
+        <div className="px-4 py-3">
+          <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
+        </div>
+      </div>
+    );
+  }
+
   /* General / Business DNA / fallback — simple summary */
   return (
     <div>
