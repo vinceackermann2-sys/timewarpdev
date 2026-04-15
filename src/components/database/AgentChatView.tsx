@@ -175,6 +175,7 @@ interface ChatMessage {
   currentStepIndex?: number;
   reportContent?: string;
   reportSavedToDb?: boolean;
+  suggestions?: string[];
 }
 
 type EmployeeContext = { id: string; name: string; role: string };
