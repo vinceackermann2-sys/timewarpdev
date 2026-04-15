@@ -1051,8 +1051,8 @@ export function BusinessDNAOnboarding({
                         </div>
                       </div>
                       <div className="p-3 sm:p-5 bg-[#f4f3ee]">
-                        <p className="text-[12px] font-semibold text-[#697386] tracking-wider mb-1">PRODUCT</p>
-                        <h3 className="text-[16px] font-bold text-[#1a1f36] mb-2 leading-tight">{p.name || `Product ${i + 1}`}</h3>
+                        <p className="text-[12px] font-semibold text-[#697386] tracking-wider mb-1">{btConfig.label}</p>
+                        <h3 className="text-[16px] font-bold text-[#1a1f36] mb-2 leading-tight">{p.name || `${btConfig.label.charAt(0) + btConfig.label.slice(1).toLowerCase()} ${i + 1}`}</h3>
                         {p.description && (
                           <p className="text-[13px] text-[#697386] line-clamp-2">{p.description}</p>
                         )}
@@ -1063,7 +1063,7 @@ export function BusinessDNAOnboarding({
               </div>
             ) : (
               <div className="w-full max-w-[900px] bg-[#f4f3ee] rounded-2xl p-8 text-center">
-                <p className="text-[#697386] text-[15px]">No products found. We'll create your business DNA from brand data.</p>
+                <p className="text-[#697386] text-[15px]">No {btConfig.plural} found. We'll create your business DNA from brand data.</p>
                 <button
                   onClick={() => setStep(4)}
                   className="mt-4 bg-[#4a86ff] hover:bg-[#2875ff] transition-colors text-white px-6 py-2.5 rounded-xl font-medium text-[15px]"
@@ -1130,7 +1130,7 @@ export function BusinessDNAOnboarding({
                           {product?.name || "Product"}
                         </h3>
                         <p className="text-[13px] sm:text-[14px] text-[#697386]">
-                          Product {currentProductIndex + 1} of {selectedProducts.length} – Select best image
+                          {btConfig.label.charAt(0) + btConfig.label.slice(1).toLowerCase()} {currentProductIndex + 1} of {selectedProducts.length} – Select best image
                         </p>
                       </div>
                     </div>
@@ -1150,7 +1150,7 @@ export function BusinessDNAOnboarding({
                   </div>
 
                   <div className="w-full flex flex-col items-start mb-4">
-                    <h2 className="text-[20px] font-semibold text-[#1a1f36] mb-1">Pick the strongest product shot</h2>
+                    <h2 className="text-[20px] font-semibold text-[#1a1f36] mb-1">{btConfig.imageHeadline}</h2>
                   </div>
 
                   {/* Image Grid */}
