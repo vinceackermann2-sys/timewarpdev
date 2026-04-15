@@ -167,6 +167,7 @@ export function BusinessDNAOnboarding({
   const [scrapeComplete, setScrapeComplete] = useState(false);
   const [scrapeError, setScrapeError] = useState(false);
   const [createdBrandId, setCreatedBrandId] = useState<string | undefined>();
+  const [createdBrandRowId, setCreatedBrandRowId] = useState<string | undefined>();
   const [persistenceComplete, setPersistenceComplete] = useState(false);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const workspaceIdRef = useRef<string | null>(null);
@@ -656,6 +657,7 @@ export function BusinessDNAOnboarding({
 
       const finalBrandId = isAddBusiness && activeBrandId ? activeBrandId : brandId;
       setCreatedBrandId(finalBrandId);
+      setCreatedBrandRowId(savedBrandRowId || reloadedBrands.find((brand: any) => brand.id === finalBrandId)?._rowId);
       setForgingTab("confirmed");
 
       // Mark persistence complete immediately — enrichment runs in background
@@ -1633,20 +1635,21 @@ export function BusinessDNAOnboarding({
                       onClick={async () => {
                         if (createdBrandId && agentName.trim()) {
                           try {
+                            const targetRowId = createdBrandRowId || createdBrandId;
                             const { data: existing } = await supabase
                               .from("user_business_data")
                               .select("content")
-                              .eq("id", createdBrandId)
+                              .eq("id", targetRowId)
                               .single();
                             const brandData = JSON.parse(existing?.content || "{}");
                             brandData.agentName = agentName.trim();
                             await supabase
                               .from("user_business_data")
                               .update({ content: JSON.stringify(brandData) })
-                              .eq("id", createdBrandId);
+                              .eq("id", targetRowId);
                             setBrands(prev =>
                               prev.map(b =>
-                                (b as any)._rowId === createdBrandId || b.id === brandData.id
+                                (b as any)._rowId === targetRowId || b.id === brandData.id || b.id === createdBrandId
                                   ? { ...b, agentName: agentName.trim() }
                                   : b
                               )
