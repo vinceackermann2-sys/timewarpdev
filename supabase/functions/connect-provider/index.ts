@@ -14,6 +14,7 @@ const MICROSOFT_SERVICES: Record<string, { scopes: string; label: string }> = {
   microsoft_outlook:  { scopes: "openid profile email offline_access User.Read Mail.Read Calendars.Read", label: "Outlook" },
   microsoft_onedrive: { scopes: "openid profile email offline_access User.Read Files.Read.All", label: "OneDrive" },
   microsoft_onenote:  { scopes: "openid profile email offline_access User.Read Notes.Read", label: "OneNote" },
+  microsoft_teams:    { scopes: "openid profile offline_access User.Read Team.ReadBasic.All OnlineMeetings.Read", label: "Teams" },
 };
 
 function isMicrosoftSubService(provider: string): boolean {
