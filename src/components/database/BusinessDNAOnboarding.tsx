@@ -4,7 +4,8 @@ import {
   Globe, ArrowRight, Sparkles, Check, AlertCircle, RotateCcw, Rocket,
   FolderOpenDot, Lock, Telescope, Loader2, CheckCircle2, ChevronUp,
   Maximize2, UploadCloud, Lightbulb, WandSparkles, Quote, ChevronDown,
-  Palette, Users, ShoppingBag,
+  Palette, Users, ShoppingBag, CreditCard, Briefcase, MapPin, Heart,
+  Building2, type LucideIcon,
 } from "lucide-react";
 import startBusinessBg from "@/assets/start-business-bg.webp";
 import addBusinessBg from "@/assets/add-business-bg.webp";
@@ -20,12 +21,36 @@ const URL_EXAMPLES = [
   "tesla.com",
   "nike.com",
   "apple.com",
-  "dyson.com",
-  "allbirds.com",
-  "glossier.com",
+  "stripe.com",
   "notion.so",
+  "mckinsey.com",
+  "allbirds.com",
   "figma.com",
 ];
+
+// ─── Business Type Config ──────────────────────────────────────
+type BusinessType = "ecommerce" | "saas" | "agency" | "media" | "marketplace" | "consulting" | "nonprofit" | "local" | "enterprise_b2b" | "creator" | "general";
+
+interface BusinessTypeConfig {
+  label: string;
+  plural: string;
+  icon: LucideIcon;
+  imageHeadline: string;
+}
+
+const BUSINESS_TYPE_CONFIG: Record<BusinessType, BusinessTypeConfig> = {
+  ecommerce:      { label: "PRODUCT",  plural: "products",  icon: ShoppingBag, imageHeadline: "Pick the strongest product shot" },
+  saas:           { label: "PLAN",     plural: "plans",     icon: CreditCard,  imageHeadline: "Pick the best UI screenshot" },
+  agency:         { label: "SERVICE",  plural: "services",  icon: Briefcase,   imageHeadline: "Pick the best portfolio piece" },
+  media:          { label: "CONTENT",  plural: "content",   icon: Globe,       imageHeadline: "Pick the best representative image" },
+  marketplace:    { label: "LISTING",  plural: "listings",  icon: ShoppingBag, imageHeadline: "Pick the strongest image" },
+  consulting:     { label: "SERVICE",  plural: "services",  icon: Briefcase,   imageHeadline: "Pick the best visual" },
+  nonprofit:      { label: "PROGRAM",  plural: "programs",  icon: Heart,       imageHeadline: "Pick the best representative image" },
+  local:          { label: "SERVICE",  plural: "services",  icon: MapPin,      imageHeadline: "Pick the best photo of your business" },
+  enterprise_b2b: { label: "SOLUTION", plural: "solutions", icon: Building2,   imageHeadline: "Pick the best visual" },
+  creator:        { label: "OFFERING", plural: "offerings", icon: Sparkles,    imageHeadline: "Pick the best representative image" },
+  general:        { label: "PRODUCT",  plural: "products",  icon: ShoppingBag, imageHeadline: "Pick the strongest image" },
+};
 
 function getInitialSource(url: string): string {
   try {
@@ -146,12 +171,14 @@ export function BusinessDNAOnboarding({
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
   const [forgingTodos, setForgingTodos] = useState<{ label: string; status: "pending" | "done"; completedAt?: Date }[]>([
     { label: "Analyzing business", status: "done" },
-    { label: "Confirming products", status: "pending" },
+    { label: "Confirming offerings", status: "pending" }, // gets overwritten dynamically in step 4
     { label: "Forging DNA", status: "pending" },
     { label: "Confirming data", status: "pending" },
     { label: "Saving DNA", status: "pending" },
     { label: "Enriching brand", status: "pending" },
   ]);
+  const [businessType, setBusinessType] = useState<BusinessType>("general");
+  const btConfig = BUSINESS_TYPE_CONFIG[businessType];
   const scannedUrlsRef = useRef<string[]>([]);
   const filteredUrlsRef = useRef<string[]>([]);
   const [socialProof, setSocialProof] = useState<{ quote: string; source: string }[]>([]);
@@ -285,6 +312,11 @@ export function BusinessDNAOnboarding({
           setDiscoveredProducts(normalizedProducts);
           // Store quick brand info
           if (data.quickBrand) quickBrandRef.current = data.quickBrand;
+          // Set business type from discover response
+          if (data.businessType || data.quickBrand?.businessType) {
+            const bt = (data.businessType || data.quickBrand?.businessType || "general") as BusinessType;
+            if (bt in BUSINESS_TYPE_CONFIG) setBusinessType(bt);
+          }
           // Don't capture scannedUrls from discover mode — it contains ALL crawled pages.
           // We'll build the display URLs from selected products + main URL + reddit later.
         }
@@ -413,7 +445,7 @@ export function BusinessDNAOnboarding({
     // Reset todos for fresh run
     setForgingTodos([
       { label: "Analyzing business", status: "done", completedAt: new Date() },
-      { label: "Confirming products", status: "pending" },
+      { label: `Confirming ${btConfig.plural}`, status: "pending" },
       { label: "Forging DNA", status: "pending" },
       { label: "Confirming data", status: "pending" },
       { label: "Saving DNA", status: "pending" },
@@ -427,7 +459,7 @@ export function BusinessDNAOnboarding({
         .filter(Boolean);
 
       // Mark scraping as active immediately — the backend starts scraping now
-      markTodo("Confirming products");
+      markTodo(`Confirming ${btConfig.plural}`);
 
       const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
         url: activeUrl!.trim(),
@@ -502,6 +534,7 @@ export function BusinessDNAOnboarding({
         logoUrls: Array.isArray(b.logoUrls) ? b.logoUrls : [],
         selectedLogo: 0,
         visualIdentity: b.visualIdentity || undefined,
+        businessType: b.businessType || businessType || undefined,
       };
 
       // Mark AI extraction done — backend returned all brand/product/audience data
@@ -936,8 +969,8 @@ export function BusinessDNAOnboarding({
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-2">Add products to business DNA</h1>
-            <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select up to 3 products to import</p>
+            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-2">Add {btConfig.plural} to business DNA</h1>
+            <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select up to 3 {btConfig.plural} to import</p>
 
             {/* URL bar with continue */}
             <div className="w-full max-w-[900px] bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
@@ -1019,8 +1052,8 @@ export function BusinessDNAOnboarding({
                         </div>
                       </div>
                       <div className="p-3 sm:p-5 bg-[#f4f3ee]">
-                        <p className="text-[12px] font-semibold text-[#697386] tracking-wider mb-1">PRODUCT</p>
-                        <h3 className="text-[16px] font-bold text-[#1a1f36] mb-2 leading-tight">{p.name || `Product ${i + 1}`}</h3>
+                        <p className="text-[12px] font-semibold text-[#697386] tracking-wider mb-1">{btConfig.label}</p>
+                        <h3 className="text-[16px] font-bold text-[#1a1f36] mb-2 leading-tight">{p.name || `${btConfig.label.charAt(0) + btConfig.label.slice(1).toLowerCase()} ${i + 1}`}</h3>
                         {p.description && (
                           <p className="text-[13px] text-[#697386] line-clamp-2">{p.description}</p>
                         )}
@@ -1031,7 +1064,7 @@ export function BusinessDNAOnboarding({
               </div>
             ) : (
               <div className="w-full max-w-[900px] bg-[#f4f3ee] rounded-2xl p-8 text-center">
-                <p className="text-[#697386] text-[15px]">No products found. We'll create your business DNA from brand data.</p>
+                <p className="text-[#697386] text-[15px]">No {btConfig.plural} found. We'll create your business DNA from brand data.</p>
                 <button
                   onClick={() => setStep(4)}
                   className="mt-4 bg-[#4a86ff] hover:bg-[#2875ff] transition-colors text-white px-6 py-2.5 rounded-xl font-medium text-[15px]"
@@ -1098,7 +1131,7 @@ export function BusinessDNAOnboarding({
                           {product?.name || "Product"}
                         </h3>
                         <p className="text-[13px] sm:text-[14px] text-[#697386]">
-                          Product {currentProductIndex + 1} of {selectedProducts.length} – Select best image
+                          {btConfig.label.charAt(0) + btConfig.label.slice(1).toLowerCase()} {currentProductIndex + 1} of {selectedProducts.length} – Select best image
                         </p>
                       </div>
                     </div>
@@ -1112,13 +1145,13 @@ export function BusinessDNAOnboarding({
                       }}
                       className="bg-[#4a86ff] hover:bg-[#2875ff] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] w-full sm:w-auto shrink-0"
                     >
-                      {currentProductIndex < selectedProducts.length - 1 ? "Next product" : "Use this image"}{" "}
+                      {currentProductIndex < selectedProducts.length - 1 ? `Next ${btConfig.label.charAt(0).toLowerCase() + btConfig.label.slice(1).toLowerCase()}` : "Use this image"}{" "}
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
 
                   <div className="w-full flex flex-col items-start mb-4">
-                    <h2 className="text-[20px] font-semibold text-[#1a1f36] mb-1">Pick the strongest product shot</h2>
+                    <h2 className="text-[20px] font-semibold text-[#1a1f36] mb-1">{btConfig.imageHeadline}</h2>
                   </div>
 
                   {/* Image Grid */}

@@ -456,6 +456,7 @@ JSON structure:
   "brand": {
     "name": "",
     "category": "",
+    "businessType": "",
     "colors": { "primary": "#hex", "secondary": "#hex", "background": "#hex", "text": "#hex" },
     "typography": { "fontFamily": "", "fontStyle": "", "fontWeight": "400" },
     "logoUrls": [],
@@ -476,6 +477,18 @@ RULES:
 - For colors: extract dominant hex colors visible on the page.
 - For logoUrls: ONLY actual logo image URLs (not product photos).
 - For visualIdentity: be specific and actionable, not generic.
+- For businessType: classify the business into EXACTLY ONE of these categories based on homepage signals:
+  "ecommerce" (product grids, add-to-cart, Shopify/WooCommerce markers)
+  "saas" (pricing tiers, signup/login, app screenshots, API docs)
+  "agency" (portfolio, case studies, client logos, "our work")
+  "media" (articles, editorial content, Substack/Medium markers)
+  "marketplace" (multi-vendor, buyer/seller, listings)
+  "consulting" (thought leadership, methodology, engagements)
+  "nonprofit" (donate buttons, mission/impact, charity markers)
+  "local" (physical address, hours, local service area, Google Maps)
+  "enterprise_b2b" (solutions, enterprise plans, demo requests, whitepapers)
+  "creator" (personal brand, courses, membership, Patreon/Gumroad)
+  "general" (if none of the above clearly fits)
 
 Page URL: ${pageUrl}
 Page title: ${pageTitle}
@@ -483,12 +496,19 @@ Page title: ${pageTitle}
 Homepage content (first 8000 chars):
 ${homepageMarkdown.slice(0, 8000)}`;
 
-const PRODUCT_AUDIENCE_PROMPT = (productMarkdown: string, brandName: string, pageUrl: string) => `Extract ONE product and ONE matching target audience from this product page. Return ONLY valid JSON.
+const PRODUCT_AUDIENCE_PROMPT = (productMarkdown: string, brandName: string, pageUrl: string) => `Extract ONE product/service/plan/offering and ONE matching target audience from this page. Return ONLY valid JSON.
 
 CRITICAL RULES:
 - ONLY use information that is EXPLICITLY present on this page. Do NOT infer, guess, or hallucinate any data.
 - If you cannot find real data for a field, leave it as "" or [].
 - NEVER fabricate data. NEVER use example data. NEVER use data from other businesses or websites.
+- Adapt field meanings based on business type:
+  * For SaaS: "offers" = pricing tiers/plans, "features" = platform capabilities
+  * For agencies: "offers" = service packages/retainers, "features" = deliverables/methodologies
+  * For nonprofits: "offers" = programs/donation tiers, "features" = initiatives/impact areas
+  * For enterprise B2B: "offers" = solution packages/enterprise plans, "features" = platform capabilities
+  * For creators: "offers" = courses/memberships/products, "features" = content/curriculum
+  * For ecommerce: "offers" = product pricing/bundles, "features" = product specs
 - For "offers": Extract any visible pricing, price tiers, subscription costs, or "starting at" prices. If a price is displayed anywhere on the page, include it as an offer. Include free trials, freemium tiers, and pricing pages. If there are truly NO prices visible, return "offers": [].
 - For "features", "benefits", "painPoints", etc.: extract what is stated or clearly implied on the page content. Aim for at least 3-5 items per field when the page has enough content. Leave empty [] only if the page truly does not mention them.
 - Be thorough — extract ALL relevant data points, not just the most obvious ones.
@@ -519,13 +539,13 @@ JSON structure:
 
 FIELD GUIDELINES:
 - description: [WHAT IT IS] + [NEW MECHANISM] + [OUTCOME] + [HOW IT WORKS]
-- features: Observable facts about the product
+- features: Observable facts about the product/service/plan
 - benefits: [FEATURE] → [WHAT IT MEANS FOR THE CUSTOMER]
 - painPoints: [FRUSTRATION] + [SPECIFIC MOMENT] + [CONSEQUENCE]
 - positioningStatement: "For [TARGET], [PRODUCT] is the [CATEGORY] that [KEY BENEFIT] because [REASON]"
 - commonObjections: Real objections with reframes and proof
 - audience description: [WHO] + [VALUES] + [CORE PAIN] + [DREAM OUTCOME]
-- Every output should feel specific to THIS product, not generic
+- Every output should feel specific to THIS business, not generic
 
 Brand: "${brandName}"
 Page URL: ${pageUrl}
@@ -836,11 +856,16 @@ serve(async (req) => {
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-3-flash-preview",
-                messages: [{ role: "user", content: `You are a product page identifier. From these URLs, select ONLY URLs that lead to a SPECIFIC, INDIVIDUAL product or service page that this company sells directly.
+                messages: [{ role: "user", content: `You are a business page identifier. From these URLs, select ONLY URLs that lead to a SPECIFIC, INDIVIDUAL product, service, plan, or offering page.
 
 INCLUDE:
 - Individual product detail pages (e.g., /products/widget-pro, /model-y, /air-max-90)
-- Individual service pages (e.g., /services/consulting, /plans/enterprise)
+- Individual service pages (e.g., /services/consulting, /solutions/enterprise)
+- Pricing/plan pages for SaaS (e.g., /pricing, /plans/pro, /enterprise)
+- Portfolio/case study pages for agencies (e.g., /work/client-name, /portfolio/project)
+- Program/initiative pages for nonprofits (e.g., /programs/education, /initiatives/clean-water)
+- Solution pages for enterprise B2B (e.g., /solutions/analytics, /platform/security)
+- Course/membership pages for creators (e.g., /courses/masterclass, /membership)
 
 DO NOT INCLUDE:
 - Category, collection, or listing pages (e.g., /shop, /products, /collections/shoes, /all-products)
@@ -1099,9 +1124,50 @@ ${allUrls.slice(0, 400).join('\n')}` }],
       });
 
       // Extract basic brand info from firecrawl (no AI call needed)
+      // Classify business type from homepage content
+      let businessType = "general";
+      try {
+        const classifyRes = await callAI(
+          LOVABLE_API_KEY,
+          `Classify this business into EXACTLY ONE type. Return ONLY the type string, nothing else.
+
+Types: ecommerce, saas, agency, media, marketplace, consulting, nonprofit, local, enterprise_b2b, creator, general
+
+Detection signals:
+- ecommerce: product grids, add-to-cart, Shopify/WooCommerce, SKUs, shipping info
+- saas: pricing tiers, signup/login, app screenshots, API docs, free trial
+- agency: portfolio, case studies, client logos, "our work", team bios
+- media: articles, editorial, publishing, Substack/Medium
+- marketplace: multi-vendor, buyer/seller, listings
+- consulting: thought leadership, methodology, engagements, whitepapers
+- nonprofit: donate buttons, mission/impact, 501(c)(3), charity
+- local: physical address, hours, local service area, Google Maps embed
+- enterprise_b2b: solutions, enterprise plans, demo requests, ROI calculators
+- creator: personal brand, courses, membership, Patreon/Gumroad
+- general: none clearly fit
+
+Also check: platform markers in HTML (Shopify → ecommerce, Substack → media, etc.)
+
+Page URL: ${formattedUrl}
+Page title: ${metadata?.title || ""}
+
+Homepage content (first 4000 chars):
+${homepageMarkdown.slice(0, 4000)}`,
+          "google/gemini-2.5-flash-lite",
+          100,
+        );
+        const classified = (typeof classifyRes === 'string' ? classifyRes : classifyRes?.type || "").trim().toLowerCase().replace(/[^a-z_]/g, '');
+        const validTypes = ["ecommerce", "saas", "agency", "media", "marketplace", "consulting", "nonprofit", "local", "enterprise_b2b", "creator", "general"];
+        if (validTypes.includes(classified)) businessType = classified;
+        console.log("Business type classified as:", businessType);
+      } catch (e) {
+        console.warn("Business type classification failed, defaulting to general:", e);
+      }
+
       const quickBrand = {
         name: metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "My Business",
         category: "Business",
+        businessType,
         colors: firecrawlBranding?.colors ? {
           primary: firecrawlBranding.colors.primary || firecrawlBranding.colors.accent || "#4A86FF",
           secondary: firecrawlBranding.colors.secondary || "#6B7280",
@@ -1111,13 +1177,14 @@ ${allUrls.slice(0, 400).join('\n')}` }],
         logoUrls: firecrawlBranding?.logo ? [firecrawlBranding.logo] : [],
       };
 
-      console.log("Discover mode — found", discoveredProducts.length, "products, scannedUrls:", scannedUrls.length);
+      console.log("Discover mode — found", discoveredProducts.length, "products, businessType:", businessType, "scannedUrls:", scannedUrls.length);
 
       const resultPayload = {
         success: true,
         discoveredProducts,
         quickBrand,
         scannedUrls,
+        businessType,
         isMultiProduct: isCompanyUrl && productPageContents.length > 1,
       };
 

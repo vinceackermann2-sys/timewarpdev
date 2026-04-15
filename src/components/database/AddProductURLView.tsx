@@ -17,10 +17,10 @@ const URL_EXAMPLES = [
   "tesla.com",
   "nike.com",
   "apple.com",
-  "dyson.com",
-  "allbirds.com",
-  "glossier.com",
+  "stripe.com",
   "notion.so",
+  "mckinsey.com",
+  "allbirds.com",
   "figma.com",
 ];
 
