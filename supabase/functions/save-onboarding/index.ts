@@ -106,7 +106,7 @@ serve(async (req) => {
       data_type: "brand",
       title: brandData?.name || "My Business",
       content: JSON.stringify(brandData),
-      metadata: { brandId },
+      metadata: { brandId, dna_segment: "brand", dna_pillars: ["brand"] },
     }).select("id").single();
 
     if (brandErr) {
@@ -125,7 +125,7 @@ serve(async (req) => {
         data_type: "product",
         title: prod?.name || "Imported Product",
         content: JSON.stringify(prod),
-        metadata: { brandId },
+        metadata: { brandId, dna_segment: "product", dna_pillars: ["product"] },
       });
       if (productErr) {
         console.error("Product insert failed:", productErr);
@@ -141,7 +141,7 @@ serve(async (req) => {
         data_type: "audience",
         title: aud?.name || "Target Audience",
         content: JSON.stringify(aud),
-        metadata: { brandId },
+        metadata: { brandId, dna_segment: "audience", dna_pillars: ["audience"] },
       });
       if (audErr) {
         console.error("Audience insert failed:", audErr);

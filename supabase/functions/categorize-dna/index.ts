@@ -58,11 +58,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "AI not configured" }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const systemPrompt = `You are a business analyst. You categorize business information into 3 core pillars of a Business DNA Brain:
+    const systemPrompt = `You are a business analyst. You categorize business information into 9 core pillars of a Business DNA Brain:
 
-1. **brand** - Brand (Identity & Perception): Mission, vision, values, brand voice, visual identity, positioning, market perception, company culture, messaging, storytelling, reputation.
-2. **product** - Product (What You Build & Deliver): Features, pricing, competitive advantages, user experience, product roadmap, value proposition, technology stack, customer feedback on product, use cases.
-3. **sop** - SOP (Standard Operating Procedures): Processes, workflows, playbooks, team structures, operational guidelines, automation rules, quality standards, compliance, hiring procedures, internal documentation.
+1. **brand** - Brand (Identity & Perception): Mission, vision, values, brand voice, tone, visual identity, logo, color palette, positioning, market perception, company culture, messaging, storytelling, reputation, brand promise.
+2. **product** - Product (What You Build & Deliver): Features, benefits, pricing, SKUs, mechanism of action, USPs, competitive advantages, warranty, user experience, product roadmap, value proposition, technology stack, social proof, customer feedback on product, use cases.
+3. **audience** - Audience (Who You Serve): Personas, customer segments, demographics, psychographics, pain points, desires, buying triggers, objections, testimonials, NPS, journey mapping, language patterns, engagement strategies.
+4. **market** - Market (Where You Compete): TAM/SAM/SOM, competitors, industry trends, regulations, SWOT analysis, market landscape, competitive positioning, barriers to entry, market share, industry benchmarks.
+5. **financial** - Financial (How You Make Money): Business model, revenue streams, cost structures, unit economics (CAC/LTV), margins, P&L, churn rate, forecasts, pricing strategy, break-even analysis, funding.
+6. **operations** - Operations (How You Run): Processes, workflows, SOPs, tech stack, vendor relationships, KPIs, compliance, quality standards, automation rules, supply chain, internal documentation.
+7. **people** - People (Who Powers You): Org structure, headcount, capabilities, culture, hiring needs, salary benchmarks, team dynamics, HR policies, attrition, talent strategy, org chart.
+8. **growth** - Growth (How You Scale): Channels, funnels, campaigns, ad performance, email marketing, CTR, ROAS, creative intelligence, retention strategies, acquisition metrics, referral programs, content strategy.
+9. **strategy** - Strategy (Where You're Going): Vision, long-term objectives, OKRs, strategic bets, scenario planning, milestones, roadmap, pivot decisions, exit strategy, risk assessment.
 
 Analyze each piece of business data and categorize it into the MOST relevant pillar. Each data item belongs to ONE segment. Extract a concise insight (1-2 sentences) for each categorization.
 
@@ -70,11 +76,11 @@ Return ONLY valid JSON in this format:
 {
   "categorizations": [
     { "data_id": "uuid-here", "segment": "brand", "insight": "Brief insight extracted" },
-    { "data_id": "uuid-here", "segment": "product", "insight": "Brief insight extracted" }
+    { "data_id": "uuid-here", "segment": "market", "insight": "Brief insight extracted" }
   ]
 }
 
-Skip items that don't clearly fit any segment.`;
+Only categorize items where you have genuine signal alignment. Skip items that don't clearly fit any segment. Never fabricate data.`;
 
     const aiResponse = await fetch("https://ai.lovable.dev/api/chat", {
       method: "POST",
@@ -112,7 +118,7 @@ Skip items that don't clearly fit any segment.`;
 
     // Group by segment
     const segments: Record<string, Array<{ data_id: string; insight: string; title: string; source: string }>> = {
-      brand: [], product: [], sop: []
+      brand: [], product: [], audience: [], market: [], financial: [], operations: [], people: [], growth: [], strategy: []
     };
 
     const dataMap = new Map(businessData.map(d => [d.id, d]));
