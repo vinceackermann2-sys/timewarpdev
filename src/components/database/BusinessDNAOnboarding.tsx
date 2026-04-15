@@ -4,7 +4,8 @@ import {
   Globe, ArrowRight, Sparkles, Check, AlertCircle, RotateCcw, Rocket,
   FolderOpenDot, Lock, Telescope, Loader2, CheckCircle2, ChevronUp,
   Maximize2, UploadCloud, Lightbulb, WandSparkles, Quote, ChevronDown,
-  Palette, Users, ShoppingBag,
+  Palette, Users, ShoppingBag, CreditCard, Briefcase, MapPin, Heart,
+  Building2, type LucideIcon,
 } from "lucide-react";
 import startBusinessBg from "@/assets/start-business-bg.webp";
 import addBusinessBg from "@/assets/add-business-bg.webp";
@@ -20,12 +21,36 @@ const URL_EXAMPLES = [
   "tesla.com",
   "nike.com",
   "apple.com",
-  "dyson.com",
-  "allbirds.com",
-  "glossier.com",
+  "stripe.com",
   "notion.so",
+  "mckinsey.com",
+  "allbirds.com",
   "figma.com",
 ];
+
+// ─── Business Type Config ──────────────────────────────────────
+type BusinessType = "ecommerce" | "saas" | "agency" | "media" | "marketplace" | "consulting" | "nonprofit" | "local" | "enterprise_b2b" | "creator" | "general";
+
+interface BusinessTypeConfig {
+  label: string;
+  plural: string;
+  icon: LucideIcon;
+  imageHeadline: string;
+}
+
+const BUSINESS_TYPE_CONFIG: Record<BusinessType, BusinessTypeConfig> = {
+  ecommerce:      { label: "PRODUCT",  plural: "products",  icon: ShoppingBag, imageHeadline: "Pick the strongest product shot" },
+  saas:           { label: "PLAN",     plural: "plans",     icon: CreditCard,  imageHeadline: "Pick the best UI screenshot" },
+  agency:         { label: "SERVICE",  plural: "services",  icon: Briefcase,   imageHeadline: "Pick the best portfolio piece" },
+  media:          { label: "CONTENT",  plural: "content",   icon: Globe,       imageHeadline: "Pick the best representative image" },
+  marketplace:    { label: "LISTING",  plural: "listings",  icon: ShoppingBag, imageHeadline: "Pick the strongest image" },
+  consulting:     { label: "SERVICE",  plural: "services",  icon: Briefcase,   imageHeadline: "Pick the best visual" },
+  nonprofit:      { label: "PROGRAM",  plural: "programs",  icon: Heart,       imageHeadline: "Pick the best representative image" },
+  local:          { label: "SERVICE",  plural: "services",  icon: MapPin,      imageHeadline: "Pick the best photo of your business" },
+  enterprise_b2b: { label: "SOLUTION", plural: "solutions", icon: Building2,   imageHeadline: "Pick the best visual" },
+  creator:        { label: "OFFERING", plural: "offerings", icon: Sparkles,    imageHeadline: "Pick the best representative image" },
+  general:        { label: "PRODUCT",  plural: "products",  icon: ShoppingBag, imageHeadline: "Pick the strongest image" },
+};
 
 function getInitialSource(url: string): string {
   try {
