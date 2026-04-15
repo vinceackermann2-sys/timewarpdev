@@ -2320,6 +2320,18 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                           }}
                         />
                       )}
+                      {/* Suggested actions */}
+                      {!msg.isStreaming && msg.suggestions && msg.suggestions.length > 0 && (
+                        <AssistantSuggestions
+                          suggestions={msg.suggestions}
+                          onSelect={(suggestion) => {
+                            if (chatInputRef.current) {
+                              chatInputRef.current.innerText = suggestion;
+                              chatInputRef.current.focus();
+                            }
+                          }}
+                        />
+                      )}
                     </div>
                   ) : (
                     <>
