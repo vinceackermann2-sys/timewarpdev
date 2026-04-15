@@ -1145,7 +1145,7 @@ export function BusinessDNAOnboarding({
                       }}
                       className="bg-[#4a86ff] hover:bg-[#2875ff] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] w-full sm:w-auto shrink-0"
                     >
-                      {currentProductIndex < selectedProducts.length - 1 ? "Next product" : "Use this image"}{" "}
+                      {currentProductIndex < selectedProducts.length - 1 ? `Next ${btConfig.label.charAt(0).toLowerCase() + btConfig.label.slice(1).toLowerCase()}` : "Use this image"}{" "}
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
