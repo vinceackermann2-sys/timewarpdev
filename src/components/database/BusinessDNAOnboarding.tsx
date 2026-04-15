@@ -171,7 +171,7 @@ export function BusinessDNAOnboarding({
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
   const [forgingTodos, setForgingTodos] = useState<{ label: string; status: "pending" | "done"; completedAt?: Date }[]>([
     { label: "Analyzing business", status: "done" },
-    { label: "Confirming offerings", status: "pending" },
+    { label: "Confirming offerings", status: "pending" }, // gets overwritten dynamically in step 4
     { label: "Forging DNA", status: "pending" },
     { label: "Confirming data", status: "pending" },
     { label: "Saving DNA", status: "pending" },
@@ -534,6 +534,7 @@ export function BusinessDNAOnboarding({
         logoUrls: Array.isArray(b.logoUrls) ? b.logoUrls : [],
         selectedLogo: 0,
         visualIdentity: b.visualIdentity || undefined,
+        businessType: b.businessType || businessType || undefined,
       };
 
       // Mark AI extraction done — backend returned all brand/product/audience data
