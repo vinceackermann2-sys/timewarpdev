@@ -91,8 +91,9 @@ serve(async (req) => {
     const hasMsOutlook = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
     const hasMsOnedrive = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
     const hasMsOnenote = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onenote");
+    const hasMsTeams = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_teams");
 
-    const msProviders = ["microsoft", "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"];
+    const msProviders = ["microsoft", "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote", "microsoft_teams"];
     const getMsToken = async () => {
       for (const p of msProviders) {
         const t = await getValidProviderToken(supabase, user.id, p);
@@ -226,6 +227,61 @@ serve(async (req) => {
             if (past.length > 0) integrationData += `\n### Recent Zoom Meetings\n${past.join("\n")}\n`;
           }
         } catch (e) { console.error("Zoom search error:", e); }
+      })());
+    }
+
+    if (hasMsTeams) {
+      searchPromises.push((async () => {
+        try {
+          const msToken = await getMsToken();
+          if (!msToken) return;
+          // Fetch recent Teams chats / messages
+          const chatsRes = await fetch(
+            `https://graph.microsoft.com/v1.0/me/chats?$top=10&$orderby=lastMessagePreview/createdDateTime desc`,
+            { headers: { Authorization: `Bearer ${msToken}` } },
+          );
+          if (!chatsRes.ok) return;
+          const chatsData = await chatsRes.json();
+          const teamsMessages: string[] = [];
+          const chats = (chatsData.value || []).slice(0, 8);
+          await Promise.all(chats.map(async (chat: any) => {
+            if (teamsMessages.length >= 10) return;
+            try {
+              const msgRes = await fetch(
+                `https://graph.microsoft.com/v1.0/me/chats/${chat.id}/messages?$top=3&$orderby=createdDateTime desc`,
+                { headers: { Authorization: `Bearer ${msToken}` } },
+              );
+              if (!msgRes.ok) return;
+              const msgData = await msgRes.json();
+              for (const msg of (msgData.value || [])) {
+                if (teamsMessages.length >= 10) break;
+                if (!msg.body?.content) continue;
+                const preview = msg.body.content.replace(/<[^>]*>/g, "").slice(0, 200).trim();
+                if (!preview) continue;
+                const ts = msg.createdDateTime ? new Date(msg.createdDateTime).toISOString().slice(0, 16).replace("T", " ") : "";
+                const sender = msg.from?.user?.displayName || "Unknown";
+                const chatTopic = chat.topic || "Direct Message";
+                teamsMessages.push(`💬 **${chatTopic}** (${ts}) from ${sender}: ${preview}`);
+              }
+            } catch (_e) { /* skip chat */ }
+          }));
+
+          // Also fetch upcoming online meetings
+          const now = new Date().toISOString();
+          const meetingsRes = await fetch(
+            `https://graph.microsoft.com/v1.0/me/onlineMeetings?$top=5&$filter=startDateTime ge '${now}'&$orderby=startDateTime`,
+            { headers: { Authorization: `Bearer ${msToken}` } },
+          );
+          if (meetingsRes.ok) {
+            const meetData = await meetingsRes.json();
+            const meetings = (meetData.value || []).map((m: any) =>
+              `- ${m.subject || "Untitled"} — ${m.startDateTime?.slice(0, 16)?.replace("T", " ") || "no date"}`
+            );
+            if (meetings.length > 0) teamsMessages.push(`\n**Upcoming Teams Meetings:**\n${meetings.join("\n")}`);
+          }
+
+          if (teamsMessages.length > 0) integrationData += `\n### Recent Microsoft Teams Activity\n${teamsMessages.join("\n")}\n`;
+        } catch (e) { console.error("Teams search error:", e); }
       })());
     }
 
