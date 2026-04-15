@@ -167,6 +167,7 @@ export function BusinessDNAOnboarding({
   const [scrapeComplete, setScrapeComplete] = useState(false);
   const [scrapeError, setScrapeError] = useState(false);
   const [createdBrandId, setCreatedBrandId] = useState<string | undefined>();
+  const [createdBrandRowId, setCreatedBrandRowId] = useState<string | undefined>();
   const [persistenceComplete, setPersistenceComplete] = useState(false);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const workspaceIdRef = useRef<string | null>(null);
