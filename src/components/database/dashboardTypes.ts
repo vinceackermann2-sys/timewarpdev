@@ -27,6 +27,13 @@ export interface DashboardCardMetadata {
   notebook?: string;
 }
 
+export interface SuccessMetric {
+  current: string;
+  target: string;
+  gap: string;
+  source?: string;
+}
+
 export interface DashboardCard {
   id: string;
   priority: "High" | "Medium" | "Low";
@@ -39,6 +46,29 @@ export interface DashboardCard {
   timeAgo?: string;
   actionSuggestion?: string;
   metadata?: DashboardCardMetadata;
+
+  // Briefing-specific
+  signalType?: string;
+
+  // Updates-specific
+  waitingParty?: string;
+  requestType?: string;
+  waitDuration?: string;
+  consequence?: string;
+
+  // To-Dos-specific
+  taskType?: string;
+  howTo?: string;
+  estimatedDuration?: string;
+  leverageScore?: number;
+  completed?: boolean;
+
+  // Objectives-specific
+  objectiveType?: string;
+  successMetric?: SuccessMetric;
+  progress?: number;
+  timeHorizon?: string;
+  relatedTodoIds?: string[];
 }
 
 export const badgeClasses: Record<string, string> = {
@@ -93,8 +123,28 @@ export function getCardButtonLabel(card: DashboardCard): string {
 }
 
 export const TAB_SUBTITLES: Record<string, string> = {
-  Briefing: "What You Need to Know",
-  Updates: "Who's Waiting on You",
-  Objectives: "What You Need to Do",
-  "To-Dos": "Where Your Time Should Go",
+  Briefing: "What Has Changed That You Need to Understand",
+  Updates: "Who or What Is Blocked Waiting on You",
+  "To-Dos": "Where Your Time Should Go Right Now",
+  Objectives: "What Strategic Outcomes Must You Drive This Quarter",
 };
+
+/** Wait-duration escalation color classes */
+export function getWaitEscalationColor(waitDuration?: string): string {
+  if (!waitDuration) return "";
+  const lower = waitDuration.toLowerCase();
+  if (lower.includes("week") || lower.includes("7d") || lower.includes(">7")) return "text-[hsl(0_68%_42%)] bg-[hsl(0_100%_96%)] border-[hsl(0_75%_74%)]";
+  if (lower.includes("3d") || lower.includes("4d") || lower.includes("5d") || lower.includes("6d") || lower.includes("3-7")) return "text-[hsl(0_68%_42%)] bg-[hsl(0_100%_97%)] border-[hsl(0_60%_80%)]";
+  if (lower.includes("1d") || lower.includes("2d") || lower.includes("1-3") || lower.includes("day")) return "text-[hsl(37_84%_36%)] bg-[hsl(42_100%_96%)] border-[hsl(42_88%_74%)]";
+  if (lower.includes("hour") || lower.includes("8-24") || lower.includes("h")) return "text-[hsl(37_84%_36%)] bg-[hsl(42_100%_97%)] border-[hsl(42_80%_80%)]";
+  return "text-muted-foreground bg-muted border-border";
+}
+
+/** Estimated duration emoji */
+export function getDurationEmoji(estimatedDuration?: string): string {
+  if (!estimatedDuration) return "🕐";
+  const lower = estimatedDuration.toLowerCase();
+  if (lower.includes("quick") || lower.includes("5 min") || lower.includes("10 min") || lower.includes("15 min")) return "⚡";
+  if (lower.includes("deep") || lower.includes("2 hour") || lower.includes("3 hour") || lower.includes("half day") || lower.includes("full day")) return "💎";
+  return "🕐";
+}
