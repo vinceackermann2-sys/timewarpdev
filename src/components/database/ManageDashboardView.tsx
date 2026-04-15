@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ClipboardCheck, RefreshCw, ListTodo, Award, Clock,
-  Building2, Plus, Loader2, AlertTriangle, Lightbulb, Check,
+  Building2, Plus, Loader2, AlertTriangle, Lightbulb, Check, Users, Zap,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "./BusinessDNAContext";
@@ -11,7 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
-import { DashboardCard, badgeClasses, SOURCE_META, getCardButtonLabel, TAB_SUBTITLES } from "./dashboardTypes";
+import {
+  DashboardCard, badgeClasses, SOURCE_META, getCardButtonLabel, TAB_SUBTITLES,
+  ICON_MAP, getWaitEscalationColor, getDurationEmoji,
+} from "./dashboardTypes";
 
 const TABS = [
   { id: "Briefing", label: "Briefing", icon: ClipboardCheck },
@@ -37,15 +40,13 @@ function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>)
 }
 
 /* ------------------------------------------------------------------ */
-/*  Card Component                                                     */
-/* ------------------------------------------------------------------ */
-/* ------------------------------------------------------------------ */
-/*  Briefing Card (priority badge + progress bar + action button)      */
+/*  Briefing Card                                                      */
 /* ------------------------------------------------------------------ */
 function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
   const priorityClass = badgeClasses[card.priority] || badgeClasses.Low;
   const btnLabel = getCardButtonLabel(card);
+  const SignalIcon = card.signalType ? (ICON_MAP[card.icon || ""] || Lightbulb) : null;
 
   return (
     <div
@@ -53,12 +54,17 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
       onClick={onOpen}
     >
-      {/* Top row: badge + time | source icon */}
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${priorityClass}`}>
             {card.priority} Priority
           </span>
+          {card.signalType && (
+            <span className="text-[10px] text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
+              {SignalIcon && <SignalIcon className="w-3 h-3" />}
+              {card.signalType}
+            </span>
+          )}
           {card.timeAgo && (
             <div className="flex items-center text-muted-foreground/70 text-xs">
               <Clock className="w-3.5 h-3.5 mr-1" />
@@ -68,29 +74,14 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
         </div>
         <div className="shrink-0 bg-white border border-border/40 p-3 rounded-xl flex items-center justify-center w-16 h-16">
           {sourceMeta.icon ? (
-            <img
-              src={sourceMeta.icon}
-              alt={sourceMeta.label}
-              className="w-10 h-10 rounded object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-                (e.target as HTMLImageElement).parentElement!.innerHTML =
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
-              }}
-            />
+            <img src={sourceMeta.icon} alt={sourceMeta.label} className="w-10 h-10 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
           ) : (
             <Building2 className="w-10 h-10 text-muted-foreground" />
           )}
         </div>
       </div>
-
-      {/* Title */}
       <h3 className="text-base font-bold text-foreground leading-snug">{card.title}</h3>
-
-      {/* Preview text */}
       <p className="text-sm text-muted-foreground line-clamp-2">{card.description}</p>
-
-      {/* Action button - opens detail panel on hover */}
       <span
         className="inline-flex items-center justify-center w-full text-sm font-semibold px-7 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-900/20 shadow-[0_2px_8px_rgba(0,0,0,0.12)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.18)] transition-shadow duration-200"
         onMouseEnter={onOpen}
@@ -102,10 +93,11 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
 }
 
 /* ------------------------------------------------------------------ */
-/*  Card Component (Updates / fallback)                                */
+/*  Updates Card — with waiting party + wait duration escalation       */
 /* ------------------------------------------------------------------ */
 function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
+  const waitColor = getWaitEscalationColor(card.waitDuration);
 
   return (
     <button
@@ -113,27 +105,15 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
       className="bg-card border border-border/60 rounded-2xl p-4 w-full flex items-start gap-4 transition-all duration-200 hover:border-primary/30 hover:shadow-md text-left cursor-pointer"
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
-      {/* Source icon */}
       <div className="shrink-0 bg-white border border-border/40 p-2 rounded-xl flex items-center justify-center w-12 h-12 mt-0.5">
         {sourceMeta.icon ? (
-          <img
-            src={sourceMeta.icon}
-            alt={sourceMeta.label}
-            className="w-7 h-7 rounded object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-              (e.target as HTMLImageElement).parentElement!.innerHTML =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
-            }}
-          />
+          <img src={sourceMeta.icon} alt={sourceMeta.label} className="w-7 h-7 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
         ) : (
           <Building2 className="w-7 h-7 text-muted-foreground" />
         )}
       </div>
-
-      {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
+        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
           <span className="font-semibold text-sm text-foreground truncate">{card.title}</span>
           {card.category && (
             <span className="shrink-0 text-[10px] text-muted-foreground font-medium border border-border rounded px-1.5 py-0.5">
@@ -142,11 +122,30 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
           )}
         </div>
         <p className="text-[13px] text-muted-foreground line-clamp-1">{card.description}</p>
-        {card.timeAgo && (
-          <div className="flex items-center text-muted-foreground/70 text-[11px] mt-1.5">
-            <Clock className="w-3 h-3 mr-1" />
-            {card.timeAgo}
-          </div>
+
+        {/* Updates-specific: waiting party + wait duration */}
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          {card.waitingParty && (
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Users className="w-3 h-3" />
+              {card.waitingParty}
+            </span>
+          )}
+          {card.waitDuration && (
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${waitColor || "text-muted-foreground bg-muted border-border"}`}>
+              ⏳ {card.waitDuration}
+            </span>
+          )}
+          {card.timeAgo && !card.waitDuration && (
+            <div className="flex items-center text-muted-foreground/70 text-[11px]">
+              <Clock className="w-3 h-3 mr-1" />
+              {card.timeAgo}
+            </div>
+          )}
+        </div>
+
+        {card.consequence && (
+          <p className="text-[11px] text-destructive/80 mt-1 line-clamp-1">⚠️ {card.consequence}</p>
         )}
       </div>
     </button>
@@ -154,9 +153,11 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
 }
 
 /* ------------------------------------------------------------------ */
-/*  To-Do Card (matches reference style)                               */
+/*  To-Do Card — with estimated duration badge                         */
 /* ------------------------------------------------------------------ */
 function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done: boolean; onToggle: () => void; onOpen: () => void }) {
+  const durationEmoji = getDurationEmoji(card.estimatedDuration);
+
   return (
     <div
       className={`bg-card border border-border/60 rounded-2xl p-4 w-full flex items-center gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md ${done ? "opacity-60" : ""}`}
@@ -166,6 +167,11 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
       <button onClick={onOpen} className={`flex-1 text-left text-sm truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
         {card.title}
       </button>
+      {card.estimatedDuration && (
+        <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium">
+          {durationEmoji} {card.estimatedDuration}
+        </span>
+      )}
       <button
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
         className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${done ? "bg-primary border-primary" : "border-border hover:border-primary/50"}`}
@@ -177,19 +183,41 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
 }
 
 /* ------------------------------------------------------------------ */
-/*  Objective Card (matches reference style)                           */
+/*  Objective Card — with real progress + success metric               */
 /* ------------------------------------------------------------------ */
 function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
+  const progress = typeof card.progress === "number" ? card.progress : 0;
+
   return (
     <div
       className="bg-card border border-border/60 rounded-2xl p-5 w-full flex flex-col gap-3 transition-all duration-200 hover:border-primary/30 hover:shadow-md"
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
-      <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
-      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-        <div className="h-full bg-muted-foreground/30 rounded-full" style={{ width: "70%" }} />
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
+        {card.timeHorizon && (
+          <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium">
+            {card.timeHorizon}
+          </span>
+        )}
       </div>
+      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+        <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${progress}%` }} />
+      </div>
+      {card.successMetric && (
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span>{card.successMetric.current}</span>
+          <span>→</span>
+          <span className="font-medium text-foreground">{card.successMetric.target}</span>
+          {card.successMetric.gap && <span className="text-destructive/70">({card.successMetric.gap})</span>}
+        </div>
+      )}
       <p className="text-[13px] text-muted-foreground line-clamp-2">{card.description}</p>
+      {card.relatedTodoIds && card.relatedTodoIds.length > 0 && (
+        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <Zap className="w-3 h-3" /> {card.relatedTodoIds.length} linked to-do{card.relatedTodoIds.length > 1 ? "s" : ""}
+        </span>
+      )}
       <Button size="sm" onClick={onOpen} className="w-fit h-8 px-4 text-xs font-semibold">
         Accept
       </Button>
@@ -258,7 +286,6 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const { brands } = useBusinessDNA();
   const [activeTab, setActiveTab] = useState(initialTab || TABS[0].id);
 
-  // Sync tab when sidebar changes it
   useEffect(() => {
     if (initialTab) setActiveTab(initialTab);
   }, [initialTab]);
@@ -273,14 +300,12 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
   const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
 
-  // Load cached cards on brand change
   useEffect(() => {
     if (!activeBrand) return;
     const cached = loadCachedCards(activeBrand.id);
     if (cached) {
       setAllTabCards(cached);
     } else {
-      // No cache – fetch automatically
       fetchInsights(activeBrand.id);
     }
   }, [activeBrand?.id]);
