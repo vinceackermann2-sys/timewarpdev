@@ -171,7 +171,7 @@ export function BusinessDNAOnboarding({
   const [forgingTab, setForgingTab] = useState<"found" | "confirmed">("found");
   const [forgingTodos, setForgingTodos] = useState<{ label: string; status: "pending" | "done"; completedAt?: Date }[]>([
     { label: "Analyzing business", status: "done" },
-    { label: "Confirming products", status: "pending" },
+    { label: "Confirming offerings", status: "pending" },
     { label: "Forging DNA", status: "pending" },
     { label: "Confirming data", status: "pending" },
     { label: "Saving DNA", status: "pending" },
@@ -312,6 +312,11 @@ export function BusinessDNAOnboarding({
           setDiscoveredProducts(normalizedProducts);
           // Store quick brand info
           if (data.quickBrand) quickBrandRef.current = data.quickBrand;
+          // Set business type from discover response
+          if (data.businessType || data.quickBrand?.businessType) {
+            const bt = (data.businessType || data.quickBrand?.businessType || "general") as BusinessType;
+            if (bt in BUSINESS_TYPE_CONFIG) setBusinessType(bt);
+          }
           // Don't capture scannedUrls from discover mode — it contains ALL crawled pages.
           // We'll build the display URLs from selected products + main URL + reddit later.
         }
@@ -440,7 +445,7 @@ export function BusinessDNAOnboarding({
     // Reset todos for fresh run
     setForgingTodos([
       { label: "Analyzing business", status: "done", completedAt: new Date() },
-      { label: "Confirming products", status: "pending" },
+      { label: `Confirming ${btConfig.plural}`, status: "pending" },
       { label: "Forging DNA", status: "pending" },
       { label: "Confirming data", status: "pending" },
       { label: "Saving DNA", status: "pending" },
@@ -454,7 +459,7 @@ export function BusinessDNAOnboarding({
         .filter(Boolean);
 
       // Mark scraping as active immediately — the backend starts scraping now
-      markTodo("Confirming products");
+      markTodo(`Confirming ${btConfig.plural}`);
 
       const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
         url: activeUrl!.trim(),
@@ -963,8 +968,8 @@ export function BusinessDNAOnboarding({
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-2">Add products to business DNA</h1>
-            <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select up to 3 products to import</p>
+            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-2">Add {btConfig.plural} to business DNA</h1>
+            <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select up to 3 {btConfig.plural} to import</p>
 
             {/* URL bar with continue */}
             <div className="w-full max-w-[900px] bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
