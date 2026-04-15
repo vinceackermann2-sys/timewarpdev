@@ -1,74 +1,72 @@
 
 
-# Implement Dashboard Intelligence Model from PDF
+# Upgrade Assistant Chat to Match Intelligence Model PDF
 
 ## Summary
 
-Upgrade the dashboard's AI prompt (edge function) and frontend card components to match the 40-page Dashboard Intelligence Model specification. This adds the composite scoring algorithm, tab-specific fields (signalType, waitingParty, howTo, successMetric, etc.), richer card UI per tab, and quality gate enforcement.
+The PDF is largely a specification of the existing architecture, but there are concrete gaps in the system prompts (personality enforcement, anti-patterns, quality rules) and the `buildChatPrompt` in extension-agent which is notably weaker than the research-chat/action-chat prompts. The key changes are upgrading all system prompts to match the PDF's quality standards.
 
-## Technical Details
+## What Already Works (No Changes Needed)
 
-### 1. Update `dashboardTypes.ts` — Extend card schema
+- Intent Classification Engine (5-mode cascade in `handleSendMessage`) — matches PDF exactly
+- Context Assembly Pipeline (5 layers) — all implemented
+- File/URL processing — implemented
+- Employee delegation framework — implemented
+- Computer Mode execution — implemented
+- Chat session persistence — implemented
+- Suggestion system (`[SUGGEST:]` tags + `parseSuggestions.ts`) — implemented
+- Safety guardrails (pre/post-flight) — implemented
+- Connection search intelligence — implemented
 
-Add tab-specific fields to `DashboardCard` interface:
-- `signalType`, `waitingParty`, `requestType`, `waitDuration`, `consequence` (Updates)
-- `taskType`, `howTo`, `estimatedDuration`, `leverageScore`, `completed` (To-Dos)
-- `objectiveType`, `successMetric` (object with `current`, `target`, `gap`, `source`), `progress` (number 0-100), `timeHorizon`, `relatedTodoIds` (Objectives)
+## What Needs Upgrading
 
-Add `TAB_SUBTITLES` update to match PDF definitions:
-- Briefing: "What Has Changed That You Need to Understand"
-- Updates: "Who or What Is Blocked Waiting on You"
-- To-Dos: "Where Your Time Should Go Right Now"
-- Objectives: "What Strategic Outcomes Must You Drive This Quarter"
+### 1. `extension-agent/index.ts` — `buildChatPrompt()` (lines 623-681)
 
-### 2. Rewrite `dashboard-insights/index.ts` system prompt
+The main agent chat prompt is significantly weaker than the PDF specification. Currently it says "You are an intelligent AI assistant" — generic and missing the CEO personality framework entirely. Upgrade to match:
 
-Replace the current loose bucket prompt with the PDF's deterministic classification engine:
+- **Personality Framework**: Add the 7 personality traits (Decisive, Contrarian, Data-Grounded, Constructive, Strategic, Direct) from PDF Section 3.1
+- **Anti-Pattern Rules**: Add explicit "NEVER do" rules from PDF Section 7 (no blind agreement, no generic content, no fabricated metrics, no "I don't have access")
+- **Mandatory Suggestions**: Add the `[SUGGEST:]` tag requirement (currently missing from this prompt — only research-chat and action-chat have it)
+- **Quality Scoring Awareness**: Add quality criteria from PDF Section 6 (Data Grounding 30%, Actionability 20%, Format Richness 15%, Specificity 15%, Personality 10%, Suggestion Quality 10%)
+- **Response Format Rules**: Strengthen table usage, blockquote usage, and horizontal rule usage per PDF Section 3.2
 
-- **Composite Score formula**: `(Impact × 0.45) + (Urgency × 0.35) + (Context × 0.20)` → priority mapping (4.0–5.0 = High, 2.5–3.9 = Medium, 1.0–2.4 = Low)
-- **Tab assignment rules**: Dominant axis determines placement (urgency + external actor → Updates; impact + strategic → Objectives; urgency + user is actor → To-Dos; impact + context + no action → Briefing)
-- **Sorting tests per tab**: Include the quality gate checks as explicit instructions (e.g., Briefing: no-action test, specificity test; Updates: blocker test, wait test, person test; To-Dos: verb test, completability test, how-to test; Objectives: outcome test, measurability test, time-bound test)
-- **Card counts**: Briefing 4–8, Updates 3–8, To-Dos 6–12, Objectives 3–6
-- **Tab-specific field generation**: Instruct AI to return all new fields per tab (signalType for Briefing, waitingParty/requestType/waitDuration/consequence for Updates, taskType/howTo/estimatedDuration for To-Dos, objectiveType/successMetric/progress/timeHorizon/relatedTodoIds for Objectives)
-- **Headline rules**: ≤8 words, must contain number/name/temporal ref/direction. Anti-patterns explicitly listed
-- **Updates urgency escalation**: Wait duration modifiers (+0.5 at 2–8h, +1.0 at 8–24h, +1.5 at 1–3d → yellow minimum, +2.0 at 3–7d → red minimum, +3.0 at >7d → critical)
-- **Cross-tab linking**: Objectives generate relatedTodoIds referencing To-Do card IDs
+### 2. `research-chat/index.ts` — System Prompt (lines 178-210)
 
-### 3. Update `ManageDashboardView.tsx` — Richer card components
+Already strong but missing:
+- Explicit anti-pattern list from PDF Section 7
+- Quality scoring criteria awareness
+- The personality trait "Contrarian" — current prompt says "challenge weak assumptions" but PDF is more explicit
 
-**BriefingCard**: Add signal type icon from `ICON_MAP` based on `card.signalType` or `card.icon`. Keep existing layout but add signal type label.
+### 3. `action-chat/index.ts` — System Prompt (lines 177-212)
 
-**DashCard (Updates)**: Show waiting party name, wait duration badge with escalation color, consequence preview text, and request type icon. Priority escalates visually based on wait duration.
+Already strong but missing:
+- Explicit anti-pattern list
+- Quality scoring criteria awareness
+- Stronger personality enforcement
 
-**TodoCard**: Add estimated duration badge (⚡ Quick / 🕐 Medium / 💎 Deep Work), show `howTo` preview on hover/detail, task type icon. Keep completion checkbox.
+### 4. `run-employee/prompts.ts` — `buildEmployeeChatPrompt()` (lines 144-223)
 
-**ObjectiveCard**: Show real `progress` value from AI in progress bar (not hardcoded 70%), display `successMetric` (current → target), `timeHorizon` badge, and related to-do count.
+Missing the mandatory `[SUGGEST:]` tag at the end of responses. The PDF specifies ALL modes must include suggestions.
 
-### 4. Update `DashCardDetailPanel.tsx` — Tab-aware detail view
+### 5. Update Memory
 
-Extend the detail panel to render tab-specific fields:
-- **Briefing**: Show signalType header, synthesis, deep-dive sections
-- **Updates**: Show waiting party, wait duration with escalation color, consequence of inaction block, recommended response
-- **To-Dos**: Show howTo as numbered steps, estimated duration, leverage score visual, completion criteria
-- **Objectives**: Show success metric (current/target/gap), progress bar, time horizon, sub-milestones from detail, related to-do list
-
-### 5. Save memory
-
-Update `mem://features/manage-dashboard-ui` with the new DIM architecture.
+Save the Assistant Chat Intelligence Model architecture to memory.
 
 ## Files Changed
 
-1. `src/components/database/dashboardTypes.ts` — Extended interfaces and subtitles
-2. `supabase/functions/dashboard-insights/index.ts` — Rewritten system prompt with DIM classification engine
-3. `src/components/database/ManageDashboardView.tsx` — Richer card components per tab
-4. `src/components/database/DashCardDetailPanel.tsx` — Tab-aware detail rendering
-5. `mem://features/manage-dashboard-ui` — Updated memory
+1. `supabase/functions/extension-agent/index.ts` — Rewrite `buildChatPrompt()` with full CEO personality, anti-patterns, quality criteria, and mandatory suggestions
+2. `supabase/functions/research-chat/index.ts` — Add anti-pattern rules and quality scoring awareness to system prompt
+3. `supabase/functions/action-chat/index.ts` — Add anti-pattern rules and quality scoring awareness to system prompt
+4. `supabase/functions/_shared/run-employee/prompts.ts` — Add mandatory `[SUGGEST:]` tag to employee chat prompt
+5. `mem://features/assistant-chat-intelligence-model` — New memory file
 
 ## What Will NOT Change
 
-- The 4-tab structure (Briefing, Updates, To-Dos, Objectives) stays
-- Integration data fetching logic in the edge function stays identical
-- Caching, search, and refresh mechanics stay
-- The sidebar-driven navigation stays
-- No database changes needed
+- Frontend routing logic in `AgentChatView.tsx` — already matches the PDF's ICE cascade
+- RAG retrieval in `_shared/run-employee/rag.ts` — already implements the PDF's Layer 5
+- Connection search in `_shared/run-employee/connections.ts` — already matches PDF's Layer 3
+- File processing logic — already matches PDF's Layer 4
+- Chat session persistence — already matches PDF's Section 5
+- Browser mode prompts — already comprehensive
+- Safety guardrails — already implemented
 
