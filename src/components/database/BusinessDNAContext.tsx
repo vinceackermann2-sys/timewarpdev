@@ -74,6 +74,7 @@ export interface BrandEntry {
   visualIdentity?: VisualIdentityData;
   agentName?: string;
   safetySettings?: SafetySettings;
+  businessType?: string;
 }
 
 export interface ProductEntry extends ProductData {
