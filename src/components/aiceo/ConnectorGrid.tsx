@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
+import logoMsTeams from "@/assets/logo-ms-teams.svg";
 import logoSlack from "@/assets/logo-slack.png";
 import logoHubspot from "@/assets/logo-hubspot.svg";
 import logoZoom from "@/assets/logo-zoom.svg";
@@ -20,6 +21,7 @@ const connectors: ConnectorDef[] = [
   { id: "microsoft_outlook", name: "Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook },
   { id: "microsoft_onedrive", name: "OneDrive", description: "Files & documents", logo: logoMsOnedrive },
   { id: "microsoft_onenote", name: "OneNote", description: "Notes & notebooks", logo: logoMsOnenote },
+  { id: "microsoft_teams", name: "Teams", description: "Messages & channels", logo: logoMsTeams },
   { id: "slack", name: "Slack", description: "Messages & channels", logo: logoSlack },
   { id: "hubspot", name: "HubSpot", description: "CRM, contacts & deals", logo: logoHubspot },
   { id: "zoom", name: "Zoom", description: "Meetings & recordings", logo: logoZoom },
