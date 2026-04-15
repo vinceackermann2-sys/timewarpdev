@@ -59,7 +59,7 @@ serve(async (req) => {
     const tokenData = await tokenResponse.json();
 
     if (!tokenResponse.ok || !tokenData.access_token) {
-      console.error("Zoom token exchange failed");
+      console.error("Zoom token exchange failed", JSON.stringify(tokenData), "status:", tokenResponse.status, "redirect_uri:", REDIRECT_URI, "code_length:", code?.length);
       return Response.redirect(`${frontendUrl}/?oauth_error=token_exchange_failed`, 302);
     }
 
