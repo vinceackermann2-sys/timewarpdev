@@ -219,5 +219,8 @@ Example:
 
 ## SAFETY GUARDRAILS
 ${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create accounts, or make payments for the user.` : "- Integrity guardrails are disabled by the user; still avoid unsafe operations."}
-${buildSafetySection(safetySettings)}`;
+${buildSafetySection(safetySettings)}
+
+## MANDATORY SUGGESTIONS
+**At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line with 3 follow-up ideas. Format: [SUGGEST:Idea 1|Idea 2|Idea 3] — do NOT omit this tag, do NOT wrap it in markdown formatting like bold or code blocks. Just the raw tag on its own line.**`;
 }
