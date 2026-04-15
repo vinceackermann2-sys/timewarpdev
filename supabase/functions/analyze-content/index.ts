@@ -462,6 +462,31 @@ Provide a structured analysis including: platform, content type (post, profile, 
 
     // Persist analyzed content to user_business_data and update bucket context
     if (userId && supabaseAdmin) {
+      // DCE: Classify content into Business DNA pillars
+      let dnaPillars: string[] = [];
+      try {
+        const dceResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              { role: "system", content: `Classify the following content into one or more Business DNA pillars. Return ONLY a JSON array of pillar IDs that genuinely match. Pillars: brand (identity/voice/values), product (features/pricing/USPs), audience (personas/pain points/segments), market (competitors/TAM/trends/SWOT), financial (revenue/costs/margins/CAC/LTV), operations (processes/SOPs/tech stack/KPIs), people (org/hiring/culture/team), growth (channels/funnels/campaigns/ads/retention), strategy (vision/OKRs/milestones/roadmap). Only include pillars with genuine signal. Return [] if nothing matches.` },
+              { role: "user", content: `Title: ${dataTitle}\n\nContent:\n${(extractedText || analysis || "").slice(0, 4000)}` }
+            ],
+            temperature: 0.1,
+          }),
+        });
+        if (dceResponse.ok) {
+          const dceResult = await dceResponse.json();
+          const dceContent = dceResult.choices?.[0]?.message?.content || "[]";
+          const match = dceContent.match(/\[[\s\S]*?\]/);
+          if (match) dnaPillars = JSON.parse(match[0]);
+        }
+      } catch (e) { console.error("DCE classification failed:", e); }
+
+      const primarySegment = dnaPillars[0] || null;
+
       await supabaseAdmin.from("user_business_data").insert({
         user_id: userId,
         data_type: dataType,
@@ -476,6 +501,8 @@ Provide a structured analysis including: platform, content type (post, profile, 
           ...(content.fileMimeType ? { mimeType: content.fileMimeType } : {}),
           ...(type === "audio" ? { mediaType: "audio" } : {}),
           ...(type === "video" ? { mediaType: "video" } : {}),
+          ...(primarySegment ? { dna_segment: primarySegment } : {}),
+          ...(dnaPillars.length > 0 ? { dna_pillars: dnaPillars } : {}),
         },
       });
 
