@@ -1436,7 +1436,9 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: accumulatedContent || "Task completed.", taskSteps: [...taskSteps], isStreaming: false } : m));
+    // Parse suggestions from final content
+    const { content: cleanContent, suggestions } = extractSuggestions(accumulatedContent || "Task completed.");
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
   };
 
   /* ── Computer mode: run employee via browser extension ── */
