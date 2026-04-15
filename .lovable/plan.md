@@ -1,72 +1,94 @@
 
 
-# Upgrade Assistant Chat to Match Intelligence Model PDF
+# Implement Onboarding Intelligence Model from PDF
 
 ## Summary
 
-The PDF is largely a specification of the existing architecture, but there are concrete gaps in the system prompts (personality enforcement, anti-patterns, quality rules) and the `buildChatPrompt` in extension-agent which is notably weaker than the research-chat/action-chat prompts. The key changes are upgrading all system prompts to match the PDF's quality standards.
+The PDF identifies a core architectural gap: the onboarding system is ecommerce-biased. The fix is adding a **Business Type Classification Engine** to the `scrape-product` discover mode, then flowing the detected type through the UI to dynamically adapt labels, icons, and prompts. The entity schemas and extraction pipeline are already comprehensive — the main changes are classification + dynamic UI labels.
 
-## What Already Works (No Changes Needed)
+## Technical Details
 
-- Intent Classification Engine (5-mode cascade in `handleSendMessage`) — matches PDF exactly
-- Context Assembly Pipeline (5 layers) — all implemented
-- File/URL processing — implemented
-- Employee delegation framework — implemented
-- Computer Mode execution — implemented
-- Chat session persistence — implemented
-- Suggestion system (`[SUGGEST:]` tags + `parseSuggestions.ts`) — implemented
-- Safety guardrails (pre/post-flight) — implemented
-- Connection search intelligence — implemented
+### 1. Add Business Type Classification to `scrape-product/index.ts` (Discover Mode)
 
-## What Needs Upgrading
+In the discover mode section (~line 1008), after scraping the homepage, add a lightweight AI classification step before returning results:
 
-### 1. `extension-agent/index.ts` — `buildChatPrompt()` (lines 623-681)
+- Call the AI with homepage content to classify into one of: `ecommerce`, `saas`, `agency`, `media`, `marketplace`, `consulting`, `nonprofit`, `local`, `enterprise_b2b`, `creator`, `general`
+- Use the detection signals from PDF §1.2 (product grids → ecommerce, pricing tiers → SaaS, portfolio → agency, etc.)
+- Also check platform markers (Shopify → ecommerce, Substack → media) and meta tags (Schema.org Product, og:type)
+- Return `businessType` in the discover response alongside `discoveredProducts` and `quickBrand`
+- Store `businessType` in `quickBrand` so it flows downstream
 
-The main agent chat prompt is significantly weaker than the PDF specification. Currently it says "You are an intelligent AI assistant" — generic and missing the CEO personality framework entirely. Upgrade to match:
+### 2. Update `scrape-product/index.ts` — Broaden the product page picker prompt
 
-- **Personality Framework**: Add the 7 personality traits (Decisive, Contrarian, Data-Grounded, Constructive, Strategic, Direct) from PDF Section 3.1
-- **Anti-Pattern Rules**: Add explicit "NEVER do" rules from PDF Section 7 (no blind agreement, no generic content, no fabricated metrics, no "I don't have access")
-- **Mandatory Suggestions**: Add the `[SUGGEST:]` tag requirement (currently missing from this prompt — only research-chat and action-chat have it)
-- **Quality Scoring Awareness**: Add quality criteria from PDF Section 6 (Data Grounding 30%, Actionability 20%, Format Richness 15%, Specificity 15%, Personality 10%, Suggestion Quality 10%)
-- **Response Format Rules**: Strengthen table usage, blockquote usage, and horizontal rule usage per PDF Section 3.2
+The AI prompt that selects product pages (~line 839) currently says "SPECIFIC, INDIVIDUAL product or service page". Update to also recognize:
+- Pricing/plan pages for SaaS
+- Service/portfolio pages for agencies
+- Program/initiative pages for nonprofits
+- Solution pages for enterprise B2B
 
-### 2. `research-chat/index.ts` — System Prompt (lines 178-210)
+### 3. Update `scrape-product/index.ts` — Broaden core mode extraction prompts
 
-Already strong but missing:
-- Explicit anti-pattern list from PDF Section 7
-- Quality scoring criteria awareness
-- The personality trait "Contrarian" — current prompt says "challenge weak assumptions" but PDF is more explicit
+- `PRODUCT_AUDIENCE_PROMPT` (~line 486): Add guidance to adapt field meanings per business type (e.g., "offers" = pricing tiers for SaaS, service packages for agencies)
+- `BRAND_PROMPT` (~line 450): Add `businessType` field to the output schema
 
-### 3. `action-chat/index.ts` — System Prompt (lines 177-212)
+### 4. Update `BusinessDNAOnboarding.tsx` — Dynamic UI labels
 
-Already strong but missing:
-- Explicit anti-pattern list
-- Quality scoring criteria awareness
-- Stronger personality enforcement
+Add a `businessType` state that's set from the discover response. Create a config map:
 
-### 4. `run-employee/prompts.ts` — `buildEmployeeChatPrompt()` (lines 144-223)
+```text
+BUSINESS_TYPE_CONFIG = {
+  ecommerce:     { label: "PRODUCT",  plural: "products",  icon: ShoppingBag, imageHeadline: "Pick the strongest product shot" },
+  saas:          { label: "PLAN",     plural: "plans",     icon: CreditCard,  imageHeadline: "Pick the best UI screenshot" },
+  agency:        { label: "SERVICE",  plural: "services",  icon: Briefcase,   imageHeadline: "Pick the best portfolio piece" },
+  local:         { label: "SERVICE",  plural: "services",  icon: MapPin,      imageHeadline: "Pick the best photo of your business" },
+  nonprofit:     { label: "PROGRAM",  plural: "programs",  icon: Heart,       imageHeadline: "Pick the best representative image" },
+  creator:       { label: "OFFERING", plural: "offerings", icon: Sparkles,    imageHeadline: "Pick the best representative image" },
+  enterprise_b2b:{ label: "SOLUTION", plural: "solutions", icon: Building2,   imageHeadline: "Pick the best visual" },
+  general:       { label: "PRODUCT",  plural: "products",  icon: ShoppingBag, imageHeadline: "Pick the strongest image" },
+}
+```
 
-Missing the mandatory `[SUGGEST:]` tag at the end of responses. The PDF specifies ALL modes must include suggestions.
+Replace all hardcoded strings:
+- Step 2 header: "Add products to business DNA" → `Add ${config.plural} to business DNA`
+- Step 2 card label: "PRODUCT" → `config.label`
+- Step 2 subtitle: "Select up to 3 products to import" → `Select up to 3 ${config.plural} to import`
+- Step 3 headline: "Pick the strongest product shot" → `config.imageHeadline`
+- No-products fallback: "No products found" → `No ${config.plural} found`
+- Forging todo: "Confirming products" → `Confirming ${config.plural}`
+- Product card icon: `ShoppingBag` → `config.icon`
 
-### 5. Update Memory
+### 5. Update URL_EXAMPLES in `BusinessDNAOnboarding.tsx`
 
-Save the Assistant Chat Intelligence Model architecture to memory.
+Add non-ecommerce examples per PDF §6: `stripe.com`, `mckinsey.com`, `charity:water.org` alongside existing ones.
+
+### 6. Fix DEFAULT_AUDIENCE ecommerce bias
+
+The current `DEFAULT_AUDIENCE` in `AudienceDetailView.tsx` is about "busy women aged 28-42 buying skincare." Replace with a neutral, minimal default that works for any business type — just placeholder field names with empty/generic values.
+
+### 7. Store `businessType` in brand metadata
+
+In the persistence step of `BusinessDNAOnboarding.tsx` (~line 495), add `businessType` to the `newBrand` object so it's saved to `user_business_data` metadata and available downstream.
+
+### 8. Update memory
+
+Save the Onboarding Intelligence Model architecture to memory.
 
 ## Files Changed
 
-1. `supabase/functions/extension-agent/index.ts` — Rewrite `buildChatPrompt()` with full CEO personality, anti-patterns, quality criteria, and mandatory suggestions
-2. `supabase/functions/research-chat/index.ts` — Add anti-pattern rules and quality scoring awareness to system prompt
-3. `supabase/functions/action-chat/index.ts` — Add anti-pattern rules and quality scoring awareness to system prompt
-4. `supabase/functions/_shared/run-employee/prompts.ts` — Add mandatory `[SUGGEST:]` tag to employee chat prompt
-5. `mem://features/assistant-chat-intelligence-model` — New memory file
+1. `supabase/functions/scrape-product/index.ts` — Add business type classification in discover mode, broaden page picker and extraction prompts
+2. `src/components/database/BusinessDNAOnboarding.tsx` — Dynamic labels/icons/headlines based on `businessType`, updated URL examples
+3. `src/components/database/AudienceDetailView.tsx` — Replace ecommerce-biased DEFAULT_AUDIENCE with neutral defaults
+4. `mem://business-dna/onboarding-intelligence-model` — New memory file
 
 ## What Will NOT Change
 
-- Frontend routing logic in `AgentChatView.tsx` — already matches the PDF's ICE cascade
-- RAG retrieval in `_shared/run-employee/rag.ts` — already implements the PDF's Layer 5
-- Connection search in `_shared/run-employee/connections.ts` — already matches PDF's Layer 3
-- File processing logic — already matches PDF's Layer 4
-- Chat session persistence — already matches PDF's Section 5
-- Browser mode prompts — already comprehensive
-- Safety guardrails — already implemented
+- The 7-step pipeline structure (Steps 0-6) stays identical
+- `save-onboarding` edge function — already universal
+- `enrich-brand` edge function — already works for any business type
+- Image quality filters — already comprehensive per PDF §5.4
+- Progress animation timing (4.5s ease-out) — already matches PDF
+- Source verification carousel — already implemented
+- Social proof extraction — already implemented
+- Workspace creation logic — already implemented
+- Reddit enrichment — already works universally
 
