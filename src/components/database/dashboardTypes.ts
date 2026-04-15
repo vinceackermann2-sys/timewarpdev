@@ -8,6 +8,7 @@ import logoOutlook from "@/assets/logo-ms-outlook.svg";
 import logoOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoOnenote from "@/assets/logo-ms-onenote.svg";
 import logoZoom from "@/assets/logo-zoom.svg";
+import logoTeams from "@/assets/logo-ms-teams.svg";
 
 export interface DashboardCardMetadata {
   senderName?: string;
@@ -70,6 +71,7 @@ export const SOURCE_META: Record<string, { label: string; icon: string }> = {
   onedrive: { label: "OneDrive", icon: logoOnedrive },
   onenote: { label: "OneNote", icon: logoOnenote },
   zoom: { label: "Zoom", icon: logoZoom },
+  teams: { label: "Teams", icon: logoTeams },
   "business-dna": { label: "Business DNA", icon: "" },
   products: { label: "Products", icon: "" },
   audiences: { label: "Audiences", icon: "" },
