@@ -1635,20 +1635,21 @@ export function BusinessDNAOnboarding({
                       onClick={async () => {
                         if (createdBrandId && agentName.trim()) {
                           try {
+                            const targetRowId = createdBrandRowId || createdBrandId;
                             const { data: existing } = await supabase
                               .from("user_business_data")
                               .select("content")
-                              .eq("id", createdBrandId)
+                              .eq("id", targetRowId)
                               .single();
                             const brandData = JSON.parse(existing?.content || "{}");
                             brandData.agentName = agentName.trim();
                             await supabase
                               .from("user_business_data")
                               .update({ content: JSON.stringify(brandData) })
-                              .eq("id", createdBrandId);
+                              .eq("id", targetRowId);
                             setBrands(prev =>
                               prev.map(b =>
-                                (b as any)._rowId === createdBrandId || b.id === brandData.id
+                                (b as any)._rowId === targetRowId || b.id === brandData.id || b.id === createdBrandId
                                   ? { ...b, agentName: agentName.trim() }
                                   : b
                               )
