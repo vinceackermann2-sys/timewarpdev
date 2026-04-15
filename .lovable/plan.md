@@ -1,71 +1,74 @@
 
 
-# Business DNA 9-Pillar Intelligence Model
+# Implement Dashboard Intelligence Model from PDF
 
-## What This Does
+## Summary
 
-Restructures the Business DNA system from the current 3+2 segments (Brand, Product, Audience, Database, Settings) to the full 9-pillar model from your document. When data enters via URL scrape, file upload, or integration sync, the AI Data Classification Engine (DCE) analyzes it and routes relevant information into the correct pillar fields -- only filling fields where the data genuinely aligns. No fabricated data.
+Upgrade the dashboard's AI prompt (edge function) and frontend card components to match the 40-page Dashboard Intelligence Model specification. This adds the composite scoring algorithm, tab-specific fields (signalType, waitingParty, howTo, successMetric, etc.), richer card UI per tab, and quality gate enforcement.
 
-## The 9 Pillars
+## Technical Details
 
-1. **Brand** -- Identity, voice, visual identity, positioning, perception
-2. **Product** -- Features, pricing, mechanism, USPs, social proof, roadmap
-3. **Audience** -- Personas, journey map, pain points, language patterns, triggers
-4. **Market** -- TAM/SAM/SOM, competitors, trends, regulations, SWOT
-5. **Financial** -- Business model, revenue, costs, unit economics, projections
-6. **Operations** -- Processes, tech stack, vendors, KPIs, compliance
-7. **People** -- Org structure, capabilities, culture, hiring, attrition
-8. **Growth** -- Channels, funnels, campaigns, creative intelligence, retention
-9. **Strategy** -- Vision, objectives, bets, scenarios, milestones
+### 1. Update `dashboardTypes.ts` — Extend card schema
 
-Plus the existing **Database** (raw data) and **Settings** tabs remain.
+Add tab-specific fields to `DashboardCard` interface:
+- `signalType`, `waitingParty`, `requestType`, `waitDuration`, `consequence` (Updates)
+- `taskType`, `howTo`, `estimatedDuration`, `leverageScore`, `completed` (To-Dos)
+- `objectiveType`, `successMetric` (object with `current`, `target`, `gap`, `source`), `progress` (number 0-100), `timeHorizon`, `relatedTodoIds` (Objectives)
 
----
+Add `TAB_SUBTITLES` update to match PDF definitions:
+- Briefing: "What Has Changed That You Need to Understand"
+- Updates: "Who or What Is Blocked Waiting on You"
+- To-Dos: "Where Your Time Should Go Right Now"
+- Objectives: "What Strategic Outcomes Must You Drive This Quarter"
 
-## Technical Plan
+### 2. Rewrite `dashboard-insights/index.ts` system prompt
 
-### 1. Update `BRAIN_SEGMENTS` in `BusinessDNAView.tsx`
+Replace the current loose bucket prompt with the PDF's deterministic classification engine:
 
-Expand from 5 tabs to 11 tabs (9 pillars + Database + Settings). Add new icons for each pillar (TrendingUp, DollarSign, Cog, Users2, Rocket, Target). Each new pillar uses the existing `SegmentContent` component pattern (list of insights with add/edit/delete).
+- **Composite Score formula**: `(Impact × 0.45) + (Urgency × 0.35) + (Context × 0.20)` → priority mapping (4.0–5.0 = High, 2.5–3.9 = Medium, 1.0–2.4 = Low)
+- **Tab assignment rules**: Dominant axis determines placement (urgency + external actor → Updates; impact + strategic → Objectives; urgency + user is actor → To-Dos; impact + context + no action → Briefing)
+- **Sorting tests per tab**: Include the quality gate checks as explicit instructions (e.g., Briefing: no-action test, specificity test; Updates: blocker test, wait test, person test; To-Dos: verb test, completability test, how-to test; Objectives: outcome test, measurability test, time-bound test)
+- **Card counts**: Briefing 4–8, Updates 3–8, To-Dos 6–12, Objectives 3–6
+- **Tab-specific field generation**: Instruct AI to return all new fields per tab (signalType for Briefing, waitingParty/requestType/waitDuration/consequence for Updates, taskType/howTo/estimatedDuration for To-Dos, objectiveType/successMetric/progress/timeHorizon/relatedTodoIds for Objectives)
+- **Headline rules**: ≤8 words, must contain number/name/temporal ref/direction. Anti-patterns explicitly listed
+- **Updates urgency escalation**: Wait duration modifiers (+0.5 at 2–8h, +1.0 at 8–24h, +1.5 at 1–3d → yellow minimum, +2.0 at 3–7d → red minimum, +3.0 at >7d → critical)
+- **Cross-tab linking**: Objectives generate relatedTodoIds referencing To-Do card IDs
 
-### 2. Update `categorize-dna` Edge Function
+### 3. Update `ManageDashboardView.tsx` — Richer card components
 
-Replace the current 3-category system prompt with the full 9-pillar classification schema. The AI receives the document's signal detection table as its classification guide:
+**BriefingCard**: Add signal type icon from `ICON_MAP` based on `card.signalType` or `card.icon`. Keep existing layout but add signal type label.
 
-- **brand**: mission, vision, values, voice, tone, logo, color, positioning
-- **product**: features, benefits, pricing, SKU, mechanism, USP, warranty
-- **audience**: persona, segment, pain point, testimonial, buyer, NPS
-- **market**: competitor, TAM, industry, trend, regulation, SWOT, landscape
-- **financial**: revenue, cost, margin, P&L, CAC, LTV, churn, forecast
-- **operations**: process, workflow, SOP, vendor, tool, compliance, KPI
-- **people**: employee, headcount, org chart, hire, salary, culture, HR
-- **growth**: campaign, ad, email, funnel, CTR, ROAS, creative, channel
-- **strategy**: vision, objective, OKR, milestone, roadmap, scenario, bet
+**DashCard (Updates)**: Show waiting party name, wait duration badge with escalation color, consequence preview text, and request type icon. Priority escalates visually based on wait duration.
 
-The function maps each data item to the most relevant pillar(s), extracts a concise insight, and stores it in `metadata.dna_segment`. A single document can produce insights for multiple pillars (multi-pillar mapping).
+**TodoCard**: Add estimated duration badge (⚡ Quick / 🕐 Medium / 💎 Deep Work), show `howTo` preview on hover/detail, task type icon. Keep completion checkbox.
 
-### 3. Update `analyze-content` Edge Function
+**ObjectiveCard**: Show real `progress` value from AI in progress bar (not hardcoded 70%), display `successMetric` (current → target), `timeHorizon` badge, and related to-do count.
 
-Add a DCE classification step after content analysis. When content is analyzed, the system also determines which pillar(s) the content belongs to and stores the classification in `metadata.dna_pillars` (array of pillar IDs). This happens automatically on every URL scrape, file upload, and integration data sync.
+### 4. Update `DashCardDetailPanel.tsx` — Tab-aware detail view
 
-### 4. Update `save-onboarding` Edge Function
+Extend the detail panel to render tab-specific fields:
+- **Briefing**: Show signalType header, synthesis, deep-dive sections
+- **Updates**: Show waiting party, wait duration with escalation color, consequence of inaction block, recommended response
+- **To-Dos**: Show howTo as numbered steps, estimated duration, leverage score visual, completion criteria
+- **Objectives**: Show success metric (current/target/gap), progress bar, time horizon, sub-milestones from detail, related to-do list
 
-Ensure brand/product/audience data created during onboarding includes proper `metadata.dna_segment` tags so they appear in the correct pillar tabs immediately.
+### 5. Save memory
 
-### 5. Wire New Pillar Tabs to Data
+Update `mem://features/manage-dashboard-ui` with the new DIM architecture.
 
-Each new pillar tab (Market, Financial, Operations, People, Growth, Strategy) renders using the same `SegmentContent` component. Data is fetched by filtering `user_business_data` rows where `metadata->>'dna_segment'` matches the pillar ID, scoped to the active brand.
+## Files Changed
 
-### 6. Save Memory
-
-Store the complete 9-pillar schema and DCE classification signals as a project memory for consistent AI grounding across all edge functions.
-
----
+1. `src/components/database/dashboardTypes.ts` — Extended interfaces and subtitles
+2. `supabase/functions/dashboard-insights/index.ts` — Rewritten system prompt with DIM classification engine
+3. `src/components/database/ManageDashboardView.tsx` — Richer card components per tab
+4. `src/components/database/DashCardDetailPanel.tsx` — Tab-aware detail rendering
+5. `mem://features/manage-dashboard-ui` — Updated memory
 
 ## What Will NOT Change
 
-- The existing Brand, Product, and Audience detail views (BrandListView, ProductListView, AudienceListView) remain as-is -- they are the deep-dive editors
-- Database and Settings tabs stay
-- No new database tables needed -- uses existing `user_business_data` with `metadata.dna_segment`
-- No fake data -- fields only populate when the AI finds genuine signal alignment
+- The 4-tab structure (Briefing, Updates, To-Dos, Objectives) stays
+- Integration data fetching logic in the edge function stays identical
+- Caching, search, and refresh mechanics stay
+- The sidebar-driven navigation stays
+- No database changes needed
 
