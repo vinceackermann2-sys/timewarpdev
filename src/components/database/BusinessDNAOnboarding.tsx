@@ -657,6 +657,7 @@ export function BusinessDNAOnboarding({
 
       const finalBrandId = isAddBusiness && activeBrandId ? activeBrandId : brandId;
       setCreatedBrandId(finalBrandId);
+      setCreatedBrandRowId(savedBrandRowId || reloadedBrands.find((brand: any) => brand.id === finalBrandId)?._rowId);
       setForgingTab("confirmed");
 
       // Mark persistence complete immediately — enrichment runs in background
