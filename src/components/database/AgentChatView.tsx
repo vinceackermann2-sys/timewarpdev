@@ -12,6 +12,7 @@ import { InlineDocument, InlineSpreadsheet, InlineSlide } from "./InlineChatGrap
 import { TaskStepsDisplay } from "./TaskStepsDisplay";
 import { ThinkingTimer } from "./ThinkingTimer";
 import { SettingsView } from "@/components/database/SettingsView";
+import { AssistantSuggestions } from "./AssistantSuggestions";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
