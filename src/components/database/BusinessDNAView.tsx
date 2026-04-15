@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Brain, Palette, Package, Settings, Loader2, Plus, Trash2, Check, X,
-  Pencil, Building2, ArrowLeft, Users, Database
+  Pencil, Building2, ArrowLeft, Users, Database,
+  TrendingUp, DollarSign, Cog, Users2, Rocket, Target
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SettingsView } from "@/components/database/SettingsView";
@@ -53,7 +54,6 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     hslColor: "var(--primary)",
     bgAccent: "bg-primary/10",
     borderAccent: "border-primary/20",
-    beta: true,
   },
   {
     id: "product",
@@ -71,7 +71,73 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     label: "Audience",
     subtitle: "Who You Serve",
     icon: Users,
-    description: "Your audience DNA — demographics, buying triggers, messaging, engagement patterns, objections, and language guidelines.",
+    description: "Your audience DNA — personas, journey map, pain points, language patterns, buying triggers, and engagement strategies.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "market",
+    label: "Market",
+    subtitle: "Where You Compete",
+    icon: TrendingUp,
+    description: "Market intelligence — TAM/SAM/SOM, competitors, industry trends, regulations, SWOT analysis, and market positioning.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "financial",
+    label: "Financial",
+    subtitle: "How You Make Money",
+    icon: DollarSign,
+    description: "Financial DNA — business model, revenue streams, cost structures, unit economics (CAC/LTV), margins, and projections.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "operations",
+    label: "Operations",
+    subtitle: "How You Run",
+    icon: Cog,
+    description: "Operational DNA — processes, workflows, tech stack, vendor relationships, KPIs, compliance, and quality standards.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "people",
+    label: "People",
+    subtitle: "Who Powers You",
+    icon: Users2,
+    description: "People DNA — org structure, capabilities, culture, hiring needs, team dynamics, and talent strategy.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "growth",
+    label: "Growth",
+    subtitle: "How You Scale",
+    icon: Rocket,
+    description: "Growth DNA — channels, funnels, campaigns, creative intelligence, retention strategies, and acquisition metrics.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "strategy",
+    label: "Strategy",
+    subtitle: "Where You're Going",
+    icon: Target,
+    description: "Strategic DNA — vision, objectives, OKRs, strategic bets, scenario planning, milestones, and long-term roadmap.",
     color: "text-primary",
     hslColor: "var(--primary)",
     bgAccent: "bg-primary/10",
@@ -263,7 +329,7 @@ function AgentNameEditor({ brand, onRename, isBrainLearning }: { brand: any; onR
 // ── Main View ──
 export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void; activeBrandId: string }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
-    brand: [], product: [], audience: [], database: [], settings: []
+    brand: [], product: [], audience: [], market: [], financial: [], operations: [], people: [], growth: [], strategy: [], database: [], settings: []
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>("brand");
