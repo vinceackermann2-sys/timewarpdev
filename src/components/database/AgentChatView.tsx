@@ -1081,7 +1081,9 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       handleProgressStep({ label: "Finished", status: "done", action: "complete" });
     }
 
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent || "I'm ready to help. What would you like me to do?", taskSteps: [...taskSteps], isStreaming: false } : m));
+    // Parse suggestions from final content
+    const { content: cleanContent, suggestions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
   };
 
   /* ── Agent chat with browser context (computer mode, no employee) ── */
