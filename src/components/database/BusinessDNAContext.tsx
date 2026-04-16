@@ -340,6 +340,14 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setPrevAudiences(a);
       loadedWorkspaceRef.current = activeWorkspaceId;
       setIsLoading(false);
+
+      // Orphan validation — log warnings for dangling references
+      const brandIds = new Set(b.map(br => br.id));
+      const productIds = new Set(p.map(pr => pr.id));
+      const orphanProducts = p.filter(pr => pr.brandId && !brandIds.has(pr.brandId));
+      const orphanAudiences = a.filter(au => au.productIds?.some(pid => !productIds.has(pid)));
+      if (orphanProducts.length) console.warn(`[DNA Integrity] ${orphanProducts.length} product(s) reference missing brand:`, orphanProducts.map(x => x.id));
+      if (orphanAudiences.length) console.warn(`[DNA Integrity] ${orphanAudiences.length} audience(s) reference missing product:`, orphanAudiences.map(x => x.id));
     }
     load();
   }, [activeWorkspaceId, authLoading, user]);
@@ -400,6 +408,24 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     const rowIdsToDelete = Array.from(new Set([...directRowIds, ...resolvedMissing.flat()]));
     if (rowIdsToDelete.length > 0) {
       await deleteEntities(rowIdsToDelete);
+
+      // Unlink any AI employees that referenced these deleted rows
+      try {
+        const { data: orphanedEmployees } = await supabase
+          .from("ai_employees")
+          .select("id")
+          .in("linked_business_id", rowIdsToDelete);
+        if (orphanedEmployees && orphanedEmployees.length > 0) {
+          const empIds = orphanedEmployees.map(e => e.id);
+          await supabase
+            .from("ai_employees")
+            .update({ linked_business_id: null })
+            .in("id", empIds);
+          toast.info(`${orphanedEmployees.length} employee(s) were unlinked from deleted business`);
+        }
+      } catch (e) {
+        console.error("Failed to unlink employees:", e);
+      }
     }
 
     // Then update local state
@@ -413,6 +439,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     setPrevProducts(newProducts);
     setBrandsState(newBrands);
     setPrevBrands(newBrands);
+
+    // Dispatch mutation event for dashboard invalidation
+    dispatchDnaMutation(brandId);
   };
 
   const deleteProduct = async (productId: string) => {
@@ -512,9 +541,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       return prev && JSON.stringify(prev) !== JSON.stringify(b);
     });
 
-    added.forEach(b => saveEntity("brand", b, undefined, activeWorkspaceId));
-    removed.forEach(b => { if ((b as any)._rowId) deleteEntity((b as any)._rowId); });
-    updated.forEach(b => { if ((b as any)._rowId) saveEntity("brand", b, (b as any)._rowId, activeWorkspaceId); });
+    added.forEach(b => { saveEntity("brand", b, undefined, activeWorkspaceId); dispatchDnaMutation(b.id); });
+    removed.forEach(b => { if ((b as any)._rowId) deleteEntity((b as any)._rowId); dispatchDnaMutation(b.id); });
+    updated.forEach(b => { if ((b as any)._rowId) saveEntity("brand", b, (b as any)._rowId, activeWorkspaceId); dispatchDnaMutation(b.id); });
 
     setPrevBrands(brands);
   }, [brands]);
@@ -529,9 +558,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       return prev && JSON.stringify(prev) !== JSON.stringify(p);
     });
 
-    added.forEach(p => saveEntity("product", p, undefined, activeWorkspaceId));
-    removed.forEach(p => { if ((p as any)._rowId) deleteEntity((p as any)._rowId); });
-    updated.forEach(p => { if ((p as any)._rowId) saveEntity("product", p, (p as any)._rowId, activeWorkspaceId); });
+    added.forEach(p => { saveEntity("product", p, undefined, activeWorkspaceId); dispatchDnaMutation(p.brandId); });
+    removed.forEach(p => { if ((p as any)._rowId) deleteEntity((p as any)._rowId); dispatchDnaMutation(p.brandId); });
+    updated.forEach(p => { if ((p as any)._rowId) saveEntity("product", p, (p as any)._rowId, activeWorkspaceId); dispatchDnaMutation(p.brandId); });
 
     setPrevProducts(products);
   }, [products]);
@@ -546,9 +575,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       return prev && JSON.stringify(prev) !== JSON.stringify(a);
     });
 
-    added.forEach(a => saveEntity("audience", a, undefined, activeWorkspaceId));
-    removed.forEach(a => { if ((a as any)._rowId) deleteEntity((a as any)._rowId); });
-    updated.forEach(a => { if ((a as any)._rowId) saveEntity("audience", a, (a as any)._rowId, activeWorkspaceId); });
+    added.forEach(a => { saveEntity("audience", a, undefined, activeWorkspaceId); dispatchDnaMutation(a.brandId); });
+    removed.forEach(a => { if ((a as any)._rowId) deleteEntity((a as any)._rowId); dispatchDnaMutation(a.brandId); });
+    updated.forEach(a => { if ((a as any)._rowId) saveEntity("audience", a, (a as any)._rowId, activeWorkspaceId); dispatchDnaMutation(a.brandId); });
 
     setPrevAudiences(audiences);
   }, [audiences]);
