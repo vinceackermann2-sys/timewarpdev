@@ -587,7 +587,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Dashboard insights error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: msg }), {
