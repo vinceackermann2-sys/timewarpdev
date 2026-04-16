@@ -6,8 +6,7 @@ interface WorkspaceFooterProps {
 
 export function WorkspaceFooter({ compact = false }: WorkspaceFooterProps) {
   return (
-    <div className="w-full px-4 sm:px-6 py-8 sm:py-14" style={{ maxWidth: 1900 }}>
-      <div className="w-full mx-auto rounded-2xl border border-[#d1d5db] bg-sidebar px-5 sm:px-12 py-8 sm:py-14">
+    <div className="w-full border-t border-[#d1d5db] bg-sidebar px-5 sm:px-12 py-8 sm:py-14">
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-14">
             {/* Left: logo + links */}
             <div className="flex flex-col gap-8 sm:flex-row sm:gap-14 flex-1">
@@ -59,7 +58,6 @@ export function WorkspaceFooter({ compact = false }: WorkspaceFooterProps) {
             <p className="text-muted-foreground text-center sm:text-left" style={{ fontSize: 14 }}>© 2026 Vincent Ackermann, All rights reserved</p>
             <p className="text-muted-foreground" style={{ fontSize: 14 }}>🇸🇪 Made in Sweden</p>
           </div>
-      </div>
     </div>
   );
 }
