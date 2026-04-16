@@ -200,6 +200,14 @@ async function deleteEntity(rowId: string) {
   await deleteEntities([rowId]);
 }
 
+/** Dispatch a custom event so dashboard and other views know DNA changed */
+function dispatchDnaMutation(brandId?: string) {
+  if (!brandId) return;
+  // Clear dashboard cache for this brand
+  try { localStorage.removeItem(`dash_cards_${brandId}`); } catch {}
+  window.dispatchEvent(new CustomEvent("dna_mutated", { detail: { brandId } }));
+}
+
 async function findRowIdsByLogicalIds(dataType: string, logicalIds: string[], workspaceId?: string | null): Promise<string[]> {
   if (logicalIds.length === 0) return [];
 
