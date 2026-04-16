@@ -700,6 +700,11 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
             </div>
           )}
 
+          {/* Quality Score */}
+          {!isEditing && (
+            <QualityScore employee={employee} logs={logs} loadingLogs={loadingLogs} />
+          )}
+
           {/* Produced Files */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Produced Files</h3>
