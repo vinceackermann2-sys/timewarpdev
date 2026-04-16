@@ -27,6 +27,53 @@ interface Props {
   onBack: () => void;
   onDelete: (id: string) => void;
 }
+function QualityScore({ employee, logs, loadingLogs }: { employee: AIEmployee; logs: LogEntry[]; loadingLogs: boolean }) {
+  const procedureSteps = Array.isArray(employee.sop_procedure) ? employee.sop_procedure.filter(s => String(s).trim()) : [];
+  let sopFilledCount = 0;
+  if (employee.sop_title?.trim()) sopFilledCount++;
+  if (employee.sop_purpose?.trim()) sopFilledCount++;
+  if (procedureSteps.length > 0) sopFilledCount++;
+  if (employee.sop_safety_notes?.trim()) sopFilledCount++;
+  const sopCompleteness = Math.round((sopFilledCount / 4) * 100);
+  const safetyCoverage = employee.sop_safety_notes?.trim() ? 100 : 0;
+  const businessGrounding = employee.linked_business_id ? 100 : 0;
+  const completedLogs = logs.filter(l => l.status === "completed").length;
+  const errorLogs = logs.filter(l => l.status === "error").length;
+  const totalExec = completedLogs + errorLogs;
+  const executionSuccess = totalExec > 0 ? Math.round((completedLogs / totalExec) * 100) : null;
+  const qualityOutputs = logs.filter(l => l.status === "completed" && l.message && l.message.length > 100).length;
+  const outputQuality = completedLogs > 0 ? Math.round((qualityOutputs / completedLogs) * 100) : null;
+  const divisor = 3 + (executionSuccess !== null ? 1 : 0) + (outputQuality !== null ? 1 : 0);
+  const overallScore = Math.round((sopCompleteness + safetyCoverage + businessGrounding + (executionSuccess ?? 0) + (outputQuality ?? 0)) / divisor);
+
+  const metrics = [
+    { label: "SOP Completeness", value: sopCompleteness, icon: Target },
+    { label: "Safety Coverage", value: safetyCoverage, icon: Shield },
+    { label: "Business Grounding", value: businessGrounding, icon: Zap },
+    { label: "Execution Success", value: executionSuccess, icon: BarChart3 },
+    { label: "Output Quality", value: outputQuality, icon: Star },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Quality Score</h3>
+        <span className="text-sm font-semibold">{overallScore}%</span>
+      </div>
+      <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+        {metrics.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 text-muted-foreground"><Icon className="h-3 w-3" />{label}</span>
+              <span className="font-medium">{value !== null ? `${value}%` : "No data"}</span>
+            </div>
+            <Progress value={value ?? 0} className="h-1.5" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Safety: blocked action keywords
 const BLOCKED_ACTIONS = [
