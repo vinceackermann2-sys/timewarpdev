@@ -390,6 +390,15 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             </Button>
           )}
         </div>
+        {stale && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+            <span className="text-xs text-amber-800">Business data changed — insights may be outdated.</span>
+            <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 ml-auto" onClick={handleRefresh} disabled={loading}>
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Regenerate"}
+            </Button>
+          </div>
+        )}
         <div className="relative max-w-[220px]">
           <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
