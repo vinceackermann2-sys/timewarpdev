@@ -1217,99 +1217,187 @@ Page title: ${metadata?.title || ""}
     }
 
     // ══════════════════════════════════════════════
-    // STEP 2.5: SCRAPE CONTEXT SUB-URLS (about / mission / pricing / team / contact / faq / values)
-    // These are NOT product pages — they enrich brand voice, audience, and DNA pillars.
+    // STEP 2.5: SMART SUB-URL DISCOVERY + DEEP DNA ANALYSIS
+    // Uses Firecrawl /map to discover ALL sitemap URLs, then tier-ranks and scrapes
+    // up to 15 high-signal pages in parallel (3 batches of 5, 30s total cap).
+    // Falls back gracefully to homepage-link extraction if /map fails.
     // ══════════════════════════════════════════════
     let contextPagesMarkdown = "";
+    const contextPagesByKey: Record<string, string> = {};
     try {
       const productUrlSet = new Set(productPageContents.map(p => p.url));
-      // Collect candidate links from homepage HTML/markdown
-      const linkSource = (homepageHtml || "") + "\n" + (homepageMarkdown || "");
-      const hrefRegex = /href=["']([^"']+)["']/gi;
-      const candidateLinks = new Set<string>();
-      let lm: RegExpExecArray | null;
       const parsedBaseForCtx = (() => { try { return new URL(baseUrl); } catch { return null; } })();
-      while ((lm = hrefRegex.exec(linkSource)) !== null) {
-        let href = lm[1];
-        if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) continue;
-        if (href.startsWith("/") && parsedBaseForCtx) href = `${parsedBaseForCtx.origin}${href}`;
-        if (!href.startsWith("http")) continue;
-        try {
-          const u = new URL(href);
-          if (!parsedBaseForCtx) continue;
-          if (u.hostname.replace(/^www\./, "") !== parsedBaseForCtx.hostname.replace(/^www\./, "")) continue;
-          candidateLinks.add(`${u.origin}${u.pathname.replace(/\/+$/g, "")}`);
-        } catch { /* ignore */ }
+      if (!parsedBaseForCtx) throw new Error("Invalid base URL");
+
+      // ── Step A: URL Discovery (Firecrawl /map → fallback to homepage links) ──
+      let discoveredLinks = new Set<string>();
+      try {
+        const mapRes = await Promise.race([
+          fetch("https://api.firecrawl.dev/v2/map", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ url: baseUrl, limit: 500, includeSubdomains: false }),
+          }),
+          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error("map timeout")), 8000)),
+        ]);
+        if (mapRes.ok) {
+          const mapData = await mapRes.json();
+          const links: string[] = mapData.links || mapData.data?.links || [];
+          for (const link of links) {
+            try {
+              const u = new URL(link);
+              if (u.hostname.replace(/^www\./, "") !== parsedBaseForCtx.hostname.replace(/^www\./, "")) continue;
+              discoveredLinks.add(`${u.origin}${u.pathname.replace(/\/+$/g, "")}`);
+            } catch { /* ignore */ }
+          }
+          console.log(`Firecrawl /map discovered ${discoveredLinks.size} same-domain URLs`);
+        }
+      } catch (e) {
+        console.warn("Firecrawl /map failed, falling back to homepage links:", e);
       }
 
-      // Match path segments that signal context pages
-      const contextPatterns: { key: string; rx: RegExp }[] = [
-        { key: "about",   rx: /\/(about|about-us|company|who-we-are|our-story|story)(\/|$)/i },
-        { key: "mission", rx: /\/(mission|values|purpose|manifesto|vision)(\/|$)/i },
-        { key: "team",    rx: /\/(team|people|leadership|founders)(\/|$)/i },
-        { key: "pricing", rx: /\/(pricing|plans|membership|subscribe)(\/|$)/i },
-        { key: "services",rx: /\/(services|solutions|what-we-do|capabilities|offerings)(\/|$)/i },
-        { key: "contact", rx: /\/(contact|contact-us|get-in-touch|locations)(\/|$)/i },
-        { key: "faq",     rx: /\/(faq|faqs|help|frequently-asked)(\/|$)/i },
-        { key: "press",   rx: /\/(press|media-kit|newsroom)(\/|$)/i },
-      ];
+      // Fallback: extract links from homepage HTML if /map yielded nothing
+      if (discoveredLinks.size === 0) {
+        const linkSource = (homepageHtml || "") + "\n" + (homepageMarkdown || "");
+        const hrefRegex = /href=["']([^"']+)["']/gi;
+        let lm: RegExpExecArray | null;
+        while ((lm = hrefRegex.exec(linkSource)) !== null) {
+          let href = lm[1];
+          if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) continue;
+          if (href.startsWith("/")) href = `${parsedBaseForCtx.origin}${href}`;
+          if (!href.startsWith("http")) continue;
+          try {
+            const u = new URL(href);
+            if (u.hostname.replace(/^www\./, "") !== parsedBaseForCtx.hostname.replace(/^www\./, "")) continue;
+            discoveredLinks.add(`${u.origin}${u.pathname.replace(/\/+$/g, "")}`);
+          } catch { /* ignore */ }
+        }
+        console.log(`Homepage-link fallback found ${discoveredLinks.size} same-domain URLs`);
+      }
 
-      // Pick at most 1 URL per category, max 6 total, dedupe against products
-      const selectedContextUrls: { key: string; url: string }[] = [];
+      // ── Step B: Tier-based filtering & ranking ──
+      // Tier 1 (priority 10): always include if found
+      // Tier 2 (priority 5): include if room
+      // Excluded: blogs, paginated archives, auth pages, language duplicates, file extensions
+      const tier1Patterns: { key: string; rx: RegExp }[] = [
+        { key: "about",       rx: /\/(about|about-us|company|who-we-are)(\/|$)/i },
+        { key: "mission",     rx: /\/(mission|purpose|vision)(\/|$)/i },
+        { key: "team",        rx: /\/(team|people|leadership|founders)(\/|$)/i },
+        { key: "pricing",     rx: /\/(pricing|plans|membership|subscribe)(\/|$)/i },
+        { key: "services",    rx: /\/(services|solutions|what-we-do|capabilities|offerings)(\/|$)/i },
+        { key: "products",    rx: /\/(products|product-overview|features)(\/|$)/i },
+        { key: "contact",     rx: /\/(contact|contact-us|get-in-touch|locations)(\/|$)/i },
+        { key: "faq",         rx: /\/(faq|faqs|help|frequently-asked)(\/|$)/i },
+        { key: "how-it-works",rx: /\/(how-it-works|how-we-work|process|methodology)(\/|$)/i },
+      ];
+      const tier2Patterns: { key: string; rx: RegExp }[] = [
+        { key: "case-studies",rx: /\/(case-studies|case-study|portfolio|work|projects)(\/|$)/i },
+        { key: "customers",   rx: /\/(customers|clients|partners)(\/|$)/i },
+        { key: "testimonials",rx: /\/(testimonials|reviews|stories)(\/|$)/i },
+        { key: "integrations",rx: /\/(integrations|connect|apps|ecosystem)(\/|$)/i },
+        { key: "security",    rx: /\/(security|trust|compliance|privacy-policy)(\/|$)/i },
+        { key: "careers",     rx: /\/(careers|jobs|join-us|hiring)(\/|$)/i },
+        { key: "values",      rx: /\/(values|culture|principles|manifesto)(\/|$)/i },
+        { key: "story",       rx: /\/(our-story|story|history|journey)(\/|$)/i },
+        { key: "press",       rx: /\/(press|media-kit|newsroom|news)(\/|$)/i },
+      ];
+      const excludeRx = /(\/blog\/|\/tag\/|\/author\/|\/category\/|\/page\/\d+|\/login|\/signup|\/sign-in|\/sign-up|\/cart|\/checkout|\/account|\/(de|fr|es|it|pt|ja|zh|ko|nl|sv|no|da|fi|pl|ru)\/|\.(pdf|zip|xml|json|jpg|png|gif|svg|webp|mp4|mp3|css|js)$|[?&]utm_)/i;
+
+      type Pick = { key: string; url: string; tier: 1 | 2 };
+      const picks: Pick[] = [];
       const usedKeys = new Set<string>();
-      for (const link of candidateLinks) {
-        if (productUrlSet.has(link)) continue;
-        if (link === baseUrl) continue;
-        for (const { key, rx } of contextPatterns) {
+
+      const tryMatch = (link: string, patterns: typeof tier1Patterns, tier: 1 | 2) => {
+        for (const { key, rx } of patterns) {
           if (usedKeys.has(key)) continue;
           if (rx.test(link)) {
-            selectedContextUrls.push({ key, url: link });
+            picks.push({ key, url: link, tier });
             usedKeys.add(key);
-            break;
+            return true;
           }
         }
-        if (selectedContextUrls.length >= 6) break;
+        return false;
+      };
+
+      // Pass 1: tier 1 only
+      for (const link of discoveredLinks) {
+        if (productUrlSet.has(link) || link === baseUrl) continue;
+        if (excludeRx.test(link)) continue;
+        tryMatch(link, tier1Patterns, 1);
+      }
+      // Pass 2: tier 2 to fill remaining slots up to 15
+      for (const link of discoveredLinks) {
+        if (picks.length >= 15) break;
+        if (productUrlSet.has(link) || link === baseUrl) continue;
+        if (excludeRx.test(link)) continue;
+        tryMatch(link, tier2Patterns, 2);
       }
 
-      if (selectedContextUrls.length > 0) {
-        console.log("Scraping", selectedContextUrls.length, "context sub-URLs:", selectedContextUrls.map(s => `${s.key}=${s.url}`));
-        const ctxResults = await Promise.allSettled(
-          selectedContextUrls.map(async ({ key, url }) => {
-            try {
-              const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true, waitFor: 1500 }),
-              });
-              if (res.ok) {
-                const d = await res.json();
-                const md = (d.data?.markdown || d.markdown || "").trim();
-                if (md) return { key, url, markdown: md };
-              }
-              const fb = await fetchPageFallback(url);
-              return fb.markdown ? { key, url, markdown: fb.markdown } : null;
-            } catch { return null; }
-          })
-        );
-        const ctxPages = ctxResults
-          .filter((r): r is PromiseFulfilledResult<{ key: string; url: string; markdown: string }> => r.status === "fulfilled" && !!r.value)
-          .map(r => r.value);
+      const selectedContextUrls = picks.slice(0, 15);
 
-        // Cap each section at 2500 chars to keep total prompt budget reasonable
-        contextPagesMarkdown = ctxPages
-          .map(p => `\n\n=== ${p.key.toUpperCase()} PAGE (${p.url}) ===\n${p.markdown.slice(0, 2500)}`)
+      // ── Step C: Parallel scraping in batches of 5, capped at 30s total ──
+      if (selectedContextUrls.length > 0) {
+        console.log(`Scraping ${selectedContextUrls.length} context sub-URLs in batches:`, selectedContextUrls.map(s => `${s.key}=${s.url}`));
+
+        const scrapeOne = async ({ key, url }: Pick): Promise<{ key: string; url: string; markdown: string } | null> => {
+          try {
+            const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true, waitFor: 1000 }),
+            });
+            if (res.ok) {
+              const d = await res.json();
+              const md = (d.data?.markdown || d.markdown || "").trim();
+              if (md) return { key, url, markdown: md };
+            }
+            const fb = await fetchPageFallback(url);
+            return fb.markdown ? { key, url, markdown: fb.markdown } : null;
+          } catch { return null; }
+        };
+
+        // Batch in chunks of 5, with overall 30s race
+        const batches: Pick[][] = [];
+        for (let i = 0; i < selectedContextUrls.length; i += 5) {
+          batches.push(selectedContextUrls.slice(i, i + 5));
+        }
+
+        const allCtxPages: { key: string; url: string; markdown: string }[] = [];
+        const overallDeadline = Promise.race([
+          (async () => {
+            for (const batch of batches) {
+              const batchResults = await Promise.allSettled(batch.map(scrapeOne));
+              for (const r of batchResults) {
+                if (r.status === "fulfilled" && r.value) allCtxPages.push(r.value);
+              }
+            }
+          })(),
+          new Promise<void>((resolve) => setTimeout(() => {
+            console.warn("Context scraping hit 30s timeout, proceeding with partial results");
+            resolve();
+          }, 30000)),
+        ]);
+        await overallDeadline;
+
+        // Cap each section at 2000 chars (down from 2500 to fit more pages)
+        contextPagesMarkdown = allCtxPages
+          .map(p => {
+            const slice = p.markdown.slice(0, 2000);
+            contextPagesByKey[p.key] = slice;
+            return `\n\n## ${p.key.toUpperCase()} PAGE (${p.url})\n${slice}`;
+          })
           .join("");
 
         // Track in scannedUrls so the UI can show what was used
-        for (const p of ctxPages) {
+        for (const p of allCtxPages) {
           if (!scannedUrls.includes(p.url)) scannedUrls.push(p.url);
         }
-        console.log("Context pages collected:", ctxPages.length, "total chars:", contextPagesMarkdown.length);
+        console.log(`Context pages collected: ${allCtxPages.length}/${selectedContextUrls.length}, total chars: ${contextPagesMarkdown.length}`);
       } else {
-        console.log("No context sub-URLs detected on homepage");
+        console.log("No context sub-URLs detected (neither /map nor homepage produced matches)");
       }
     } catch (e) {
-      console.warn("Context sub-URL scraping failed (non-fatal):", e);
+      console.warn("Context sub-URL scraping failed (non-fatal, falling back to homepage-only):", e);
     }
 
     // ══════════════════════════════════════════════
