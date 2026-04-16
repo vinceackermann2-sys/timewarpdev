@@ -720,7 +720,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
               {/* ── CONNECTIONS TAB ── */}
               {activeTab === "connections" && (
-                <div className="-mx-8 -mt-2">
+                <div className="-mx-8 -mt-2 -mb-4">
                   <ConnectionsView />
                 </div>
               )}

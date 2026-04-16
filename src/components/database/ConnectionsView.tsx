@@ -271,7 +271,7 @@ export function ConnectionsView() {
 
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="overflow-auto">
       <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold mb-1">Connectors</h1>
