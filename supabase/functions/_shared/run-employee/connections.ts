@@ -54,6 +54,12 @@ function formatProviderName(provider: string): string {
   if (provider === "microsoft_calendar") return "Calendar";
   if (provider === "microsoft_onedrive") return "OneDrive";
   if (provider === "microsoft_onenote") return "OneNote";
+  if (provider === "google_calendar") return "Google Calendar";
+  if (provider === "google_drive") return "Google Drive";
+  if (provider === "google_docs") return "Google Docs";
+  if (provider === "google_sheets") return "Google Sheets";
+  if (provider === "google_slides") return "Google Slides";
+  if (provider === "google_gmail") return "Gmail";
   if (provider === "slack") return "Slack";
   if (provider === "hubspot") return "HubSpot";
   return provider;
