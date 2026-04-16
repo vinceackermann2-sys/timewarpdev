@@ -17,8 +17,22 @@ const MICROSOFT_SERVICES: Record<string, { scopes: string; label: string }> = {
   microsoft_teams:    { scopes: "openid profile offline_access User.Read Team.ReadBasic.All OnlineMeetings.Read", label: "Teams" },
 };
 
+// Google sub-service scopes — each gets only what it needs
+const GOOGLE_SERVICES: Record<string, { scopes: string; label: string }> = {
+  google_calendar: { scopes: "openid email profile https://www.googleapis.com/auth/calendar.readonly", label: "Google Calendar" },
+  google_drive:    { scopes: "openid email profile https://www.googleapis.com/auth/drive.readonly", label: "Google Drive" },
+  google_docs:     { scopes: "openid email profile https://www.googleapis.com/auth/documents.readonly", label: "Google Docs" },
+  google_sheets:   { scopes: "openid email profile https://www.googleapis.com/auth/spreadsheets.readonly", label: "Google Sheets" },
+  google_slides:   { scopes: "openid email profile https://www.googleapis.com/auth/presentations.readonly", label: "Google Slides" },
+  google_gmail:    { scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly", label: "Gmail" },
+};
+
 function isMicrosoftSubService(provider: string): boolean {
   return provider in MICROSOFT_SERVICES;
+}
+
+function isGoogleSubService(provider: string): boolean {
+  return provider in GOOGLE_SERVICES;
 }
 
 async function resolveBrandRowId(supabaseAdmin: any, userId: string, brandId?: string | null) {
