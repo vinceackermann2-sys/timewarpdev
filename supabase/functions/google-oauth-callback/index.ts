@@ -69,12 +69,12 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    // Store tokens
+    // Store tokens keyed by sub-provider or "google"
     await supabaseAdmin
       .from("user_oauth_tokens")
       .upsert({
         user_id: userId,
-        provider: "google",
+        provider: providerKey,
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token || null,
         token_expires_at: tokenData.expires_in
@@ -90,14 +90,14 @@ serve(async (req) => {
       .from("user_connections")
       .upsert({
         user_id: userId,
-        provider: "google",
+        provider: providerKey,
         status: "connected",
         brand_id: brandId,
         metadata: { email: profile.email, name: profile.name },
       }, { onConflict: "user_id,provider" });
 
     const brandParam = brandId ? `&brandId=${brandId}` : "";
-    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=google${brandParam}`, 302);
+    return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=${providerKey}${brandParam}`, 302);
   } catch (e) {
     console.error("Google OAuth callback error occurred");
     return Response.redirect(`${frontendUrl}/?oauth_error=callback_failed`, 302);
