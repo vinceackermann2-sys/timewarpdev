@@ -296,12 +296,26 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const [searchQuery, setSearchQuery] = useState("");
   const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
   const [completedTodos, setCompletedTodos] = useState<Set<string>>(new Set());
+  const [stale, setStale] = useState(false);
 
   const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
   const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
 
+  // Listen for DNA mutations to mark dashboard stale
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.brandId && activeBrand && detail.brandId === activeBrand.id) {
+        setStale(true);
+      }
+    };
+    window.addEventListener("dna_mutated", handler);
+    return () => window.removeEventListener("dna_mutated", handler);
+  }, [activeBrand?.id]);
+
   useEffect(() => {
     if (!activeBrand) return;
+    setStale(false);
     const cached = loadCachedCards(activeBrand.id);
     if (cached) {
       setAllTabCards(cached);
@@ -337,6 +351,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
 
   const handleRefresh = () => {
     if (!activeBrand || loading) return;
+    setStale(false);
     fetchInsights(activeBrand.id);
   };
 
