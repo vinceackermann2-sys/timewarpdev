@@ -315,6 +315,9 @@ export function ConnectionsView() {
             ))}
           </div>
         </div>
+
+        <div className="mb-6">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Other</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {otherIntegrations.map(integration => (
               <ConnectionCard
