@@ -319,7 +319,7 @@ serve(async (req) => {
       })());
     }
 
-
+    if (hasMsTeams) {
       searchPromises.push((async () => {
         try {
           const msToken = await getMsToken();
