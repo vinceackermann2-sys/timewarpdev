@@ -6,7 +6,7 @@ interface WorkspaceFooterProps {
 
 export function WorkspaceFooter({ compact = false }: WorkspaceFooterProps) {
   return (
-    <div className="w-full bg-sidebar">
+    <div className="w-full bg-sidebar border-t border-[#d1d5db]">
       <div className="w-full mx-auto px-5 sm:px-12 py-8 sm:py-14">
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-14">
             {/* Left: logo + links */}
