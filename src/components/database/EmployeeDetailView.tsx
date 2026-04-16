@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp, Download, Database, X, Pencil, Save, Plus } from "lucide-react";
+import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp, Download, Database, X, Pencil, Save, Plus, Shield, Target, Zap, BarChart3, Star } from "lucide-react";
 import { EmployeeRunOverlay } from "./EmployeeRunOverlay";
 import { useToast } from "@/hooks/use-toast";
 import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
 import { useActionGate } from "@/hooks/useActionGate";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { Progress } from "@/components/ui/progress";
 
 interface LogEntry {
   id: string;
@@ -25,6 +26,53 @@ interface Props {
   employee: AIEmployee;
   onBack: () => void;
   onDelete: (id: string) => void;
+}
+function QualityScore({ employee, logs, loadingLogs }: { employee: AIEmployee; logs: LogEntry[]; loadingLogs: boolean }) {
+  const procedureSteps = Array.isArray(employee.sop_procedure) ? employee.sop_procedure.filter(s => String(s).trim()) : [];
+  let sopFilledCount = 0;
+  if (employee.sop_title?.trim()) sopFilledCount++;
+  if (employee.sop_purpose?.trim()) sopFilledCount++;
+  if (procedureSteps.length > 0) sopFilledCount++;
+  if (employee.sop_safety_notes?.trim()) sopFilledCount++;
+  const sopCompleteness = Math.round((sopFilledCount / 4) * 100);
+  const safetyCoverage = employee.sop_safety_notes?.trim() ? 100 : 0;
+  const businessGrounding = employee.linked_business_id ? 100 : 0;
+  const completedLogs = logs.filter(l => l.status === "completed").length;
+  const errorLogs = logs.filter(l => l.status === "error").length;
+  const totalExec = completedLogs + errorLogs;
+  const executionSuccess = totalExec > 0 ? Math.round((completedLogs / totalExec) * 100) : null;
+  const qualityOutputs = logs.filter(l => l.status === "completed" && l.message && l.message.length > 100).length;
+  const outputQuality = completedLogs > 0 ? Math.round((qualityOutputs / completedLogs) * 100) : null;
+  const divisor = 3 + (executionSuccess !== null ? 1 : 0) + (outputQuality !== null ? 1 : 0);
+  const overallScore = Math.round((sopCompleteness + safetyCoverage + businessGrounding + (executionSuccess ?? 0) + (outputQuality ?? 0)) / divisor);
+
+  const metrics = [
+    { label: "SOP Completeness", value: sopCompleteness, icon: Target },
+    { label: "Safety Coverage", value: safetyCoverage, icon: Shield },
+    { label: "Business Grounding", value: businessGrounding, icon: Zap },
+    { label: "Execution Success", value: executionSuccess, icon: BarChart3 },
+    { label: "Output Quality", value: outputQuality, icon: Star },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Quality Score</h3>
+        <span className="text-sm font-semibold">{overallScore}%</span>
+      </div>
+      <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+        {metrics.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 text-muted-foreground"><Icon className="h-3 w-3" />{label}</span>
+              <span className="font-medium">{value !== null ? `${value}%` : "No data"}</span>
+            </div>
+            <Progress value={value ?? 0} className="h-1.5" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // Safety: blocked action keywords
@@ -238,11 +286,18 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
     updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: false, isManualMode: false, safetyAlert: null });
   };
 
-  const parseAction = (text: string): (BrowserAction & { done?: boolean; message?: string }) | null => {
+  type ParsedAction = BrowserAction & { done?: boolean; message?: string; reasoning?: string };
+
+  const parseAction = (text: string): ParsedAction | ParsedAction[] | null => {
     try {
       const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
       const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : text.trim();
       const parsed = JSON.parse(jsonStr);
+      // Multi-step batching: detect { "steps": [...] } format
+      if (parsed.steps && Array.isArray(parsed.steps)) {
+        const validSteps = parsed.steps.filter((s: any) => s.action);
+        if (validSteps.length > 0) return validSteps;
+      }
       if (parsed.action) return parsed;
       return null;
     } catch {
@@ -347,9 +402,9 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
 
         conversationHistory.push({ role: "assistant", content: aiResponse });
 
-        const action = parseAction(aiResponse);
+        const parsed = parseAction(aiResponse);
 
-        if (!action) {
+        if (!parsed) {
           // Retry: AI responded with plain text instead of JSON — ask it to fix
           conversationHistory.push({
             role: "user",
@@ -359,70 +414,84 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
           continue;
         }
 
-        if (action.done || action.action === "done") {
-          setCurrentStep("Completed");
-          updateOverlay({ visible: false });
-          await logStep("completed", "Completed", action.message || "SOP execution finished.");
-          toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
-          break;
-        }
+        // Normalize: single action → array of one for unified processing
+        const actionBatch: ParsedAction[] = Array.isArray(parsed) ? parsed : [parsed];
 
-        // Safety check BEFORE execution
-        const safetyBlock = isSafetyBlocked(action);
-        if (safetyBlock) {
-          setSafetyAlert(safetyBlock);
-          setIsPaused(true);
-          isPausedRef.current = true;
-          setIsManualMode(true);
-          isManualModeRef.current = true;
-          await logStep("running", `Step ${step + 1} ⚠️`, `SAFETY: ${safetyBlock}`);
-
-          // Wait for user to handle manually and return control
-          await new Promise<void>((resolve) => {
-            pauseResolverRef.current = resolve;
-          });
-
+        let batchDone = false;
+        for (let batchIdx = 0; batchIdx < actionBatch.length; batchIdx++) {
+          const action = actionBatch[batchIdx];
           if (abortRef.current?.signal.aborted) break;
 
-          // After manual takeover, tell AI the user handled it
-          conversationHistory.push({
-            role: "user",
-            content: `The user manually completed the sensitive action (${action.action}). Continue with the next SOP step. Get fresh page context.`,
-          });
-          setSafetyAlert(null);
-          continue;
+          const stepLabel = actionBatch.length > 1
+            ? `Step ${step + 1}.${batchIdx + 1}`
+            : `Step ${step + 1}`;
+
+          if (action.done || action.action === "done") {
+            setCurrentStep("Completed");
+            updateOverlay({ visible: false });
+            await logStep("completed", "Completed", action.message || "SOP execution finished.");
+            toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
+            batchDone = true;
+            break;
+          }
+
+          // Safety check BEFORE execution
+          const safetyBlock = isSafetyBlocked(action);
+          if (safetyBlock) {
+            setSafetyAlert(safetyBlock);
+            setIsPaused(true);
+            isPausedRef.current = true;
+            setIsManualMode(true);
+            isManualModeRef.current = true;
+            await logStep("running", `${stepLabel} ⚠️`, `SAFETY: ${safetyBlock}`);
+
+            // Wait for user to handle manually and return control
+            await new Promise<void>((resolve) => {
+              pauseResolverRef.current = resolve;
+            });
+
+            if (abortRef.current?.signal.aborted) break;
+
+            // After manual takeover, tell AI the user handled it
+            conversationHistory.push({
+              role: "user",
+              content: `The user manually completed the sensitive action (${action.action}). Continue with the next SOP step. Get fresh page context.`,
+            });
+            setSafetyAlert(null);
+            continue;
+          }
+
+          if (action.action === "respond") {
+            setCurrentStep(`${stepLabel}: ${action.message?.slice(0, 60) || "Message"}`);
+            await logStep("running", stepLabel, action.message || action.reasoning || "Response");
+            continue;
+          }
+
+          setCurrentStep(`${stepLabel}: ${action.action}`);
+          updateOverlay({ visible: true, employeeName: employee.name, currentStep: `${stepLabel}: ${action.action}`, isPaused: false, isManualMode: false });
+          await logStep("running", stepLabel, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
+
+          const result = await executeAction(action, true) || { success: false, action: action.action, error: "No response from extension" };
+
+          if (result.success) {
+            await logStep("running", `${stepLabel} ✓`, `Completed: ${action.action}`);
+          } else {
+            await logStep("error", `${stepLabel} ✗`, result.error || "Action failed");
+          }
+
+          const resultMsg = result.success
+            ? `Action "${action.action}" succeeded.${result.data ? ` Data: ${JSON.stringify(result.data)}` : ""}`
+            : `Action "${action.action}" failed: ${result.error || "unknown error"}`;
+
+          // Only add conversation context after the last action in the batch
+          if (batchIdx === actionBatch.length - 1) {
+            const freshContext = await getPageContext();
+            const contextInfo = freshContext?.url ? ` Current page: ${freshContext.url}` : "";
+            conversationHistory.push({ role: "user", content: resultMsg + contextInfo + ` Continue with the next SOP step. You have ${stepCount} total steps to complete.` });
+          }
         }
 
-        if (action.action === "respond") {
-          setCurrentStep(`Step ${step + 1}: ${action.message?.slice(0, 60) || "Message"}`);
-          await logStep("running", `Step ${step + 1}`, action.message || action.reasoning || "Response");
-          conversationHistory.push({
-            role: "user",
-            content: `User saw your message. Continue with the next SOP step.`,
-          });
-          continue;
-        }
-
-        setCurrentStep(`Step ${step + 1}: ${action.action}`);
-        updateOverlay({ visible: true, employeeName: employee.name, currentStep: `Step ${step + 1}: ${action.action}`, isPaused: false, isManualMode: false });
-        await logStep("running", `Step ${step + 1}`, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
-
-        const result = await executeAction(action, true) || { success: false, action: action.action, error: "No response from extension" };
-
-        const resultMsg = result.success
-          ? `Action "${action.action}" succeeded.${result.data ? ` Data: ${JSON.stringify(result.data)}` : ""}`
-          : `Action "${action.action}" failed: ${result.error || "unknown error"}`;
-
-        // Include fresh page context so AI knows current state
-        const freshContext = await getPageContext();
-        const contextInfo = freshContext?.url ? ` Current page: ${freshContext.url}` : "";
-        conversationHistory.push({ role: "user", content: resultMsg + contextInfo + ` Continue with the next SOP step. You have ${stepCount} total steps to complete.` });
-
-        if (result.success) {
-          await logStep("running", `Step ${step + 1} ✓`, `Completed: ${action.action}`);
-        } else {
-          await logStep("error", `Step ${step + 1} ✗`, result.error || "Action failed");
-        }
+        if (batchDone) break;
       }
     } catch (e: any) {
       if (e.name !== "AbortError") {
@@ -677,6 +746,11 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 </Section>
               )}
             </div>
+          )}
+
+          {/* Quality Score */}
+          {!isEditing && (
+            <QualityScore employee={employee} logs={logs} loadingLogs={loadingLogs} />
           )}
 
           {/* Produced Files */}
