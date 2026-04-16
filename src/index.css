@@ -484,7 +484,7 @@
 @layer base {
   :root {
     /* Light theme - Blue Corp Pastel */
-    --background: 210 40% 98%;
+    --background: 40 33% 98%;
     --foreground: 215 25% 15%;
 
     --card: 210 40% 99%;
@@ -693,7 +693,7 @@
 }
 
 .force-light {
-  --background: 210 40% 98%;
+  --background: 40 33% 98%;
   --foreground: 215 25% 15%;
   --card: 210 40% 99%;
   --card-foreground: 215 25% 15%;
