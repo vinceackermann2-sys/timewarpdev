@@ -498,12 +498,13 @@ Page title: ${pageTitle}
 Site content (homepage + context sub-pages, first 20000 chars):
 ${homepageMarkdown.slice(0, 20000)}`;
 
-const PRODUCT_AUDIENCE_PROMPT = (productMarkdown: string, brandName: string, pageUrl: string) => `Extract ONE product/service/plan/offering and ONE matching target audience from this page. Return ONLY valid JSON.
+const PRODUCT_AUDIENCE_PROMPT = (productMarkdown: string, brandName: string, pageUrl: string, enrichmentMarkdown: string = "") => `Extract ONE product/service/plan/offering and ONE matching target audience from this page. Return ONLY valid JSON.
 
 CRITICAL RULES:
-- ONLY use information that is EXPLICITLY present on this page. Do NOT infer, guess, or hallucinate any data.
+- ONLY use information that is EXPLICITLY present on this page or in the additional brand context. Do NOT infer, guess, or hallucinate any data.
 - If you cannot find real data for a field, leave it as "" or [].
 - NEVER fabricate data. NEVER use example data. NEVER use data from other businesses or websites.
+- The PRIMARY source is the product page. Use the additional brand context (about/mission/team/case-studies/etc.) ONLY to enrich audience inference and supporting details.
 - Adapt field meanings based on business type:
   * For SaaS: "offers" = pricing tiers/plans, "features" = platform capabilities
   * For agencies: "offers" = service packages/retainers, "features" = deliverables/methodologies
@@ -553,7 +554,8 @@ Brand: "${brandName}"
 Page URL: ${pageUrl}
 
 Product page content (first 12000 chars):
-${productMarkdown.slice(0, 12000)}`;
+${productMarkdown.slice(0, 12000)}
+${enrichmentMarkdown ? `\n\n=== ADDITIONAL BRAND CONTEXT (for audience inference only, do not invent product features from this) ===\n${enrichmentMarkdown.slice(0, 8000)}` : ""}`;
 
 // ══════════════════════════════════════════════
 // PINTEREST SCRAPER
