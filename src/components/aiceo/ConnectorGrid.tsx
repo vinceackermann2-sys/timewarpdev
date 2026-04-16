@@ -24,7 +24,7 @@ interface ConnectorDef {
 }
 
 
-  { id: "microsoft_outlook", name: "Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook },
+  const connectors: ConnectorDef[] = [
   { id: "microsoft_onedrive", name: "OneDrive", description: "Files & documents", logo: logoMsOnedrive },
   { id: "microsoft_onenote", name: "OneNote", description: "Notes & notebooks", logo: logoMsOnenote },
   { id: "microsoft_teams", name: "Teams", description: "Messages & channels", logo: logoMsTeams },
