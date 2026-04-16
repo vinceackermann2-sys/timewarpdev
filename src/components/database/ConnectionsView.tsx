@@ -266,6 +266,7 @@ export function ConnectionsView() {
   const getProviderEmail = (id: string) => connectedProviders.find(p => p.provider === id)?.email;
 
   const microsoftIntegrations = integrations.filter(i => i.section === "microsoft");
+  const googleIntegrations = integrations.filter(i => i.section === "google");
   const otherIntegrations = integrations.filter(i => i.section === "other");
 
 
@@ -298,7 +299,22 @@ export function ConnectionsView() {
         </div>
 
         <div className="mb-6">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Other</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Google Workspace</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {googleIntegrations.map(integration => (
+              <ConnectionCard
+                key={integration.id}
+                integration={integration}
+                connected={isProviderConnected(integration.id)}
+                email={getProviderEmail(integration.id)}
+                isConnecting={connectingProvider === integration.id}
+                statusLoaded={statusLoaded}
+                onConnect={() => handleConnect(integration.id)}
+                onDisconnect={() => handleDisconnect(integration.id)}
+              />
+            ))}
+          </div>
+        </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {otherIntegrations.map(integration => (
               <ConnectionCard
