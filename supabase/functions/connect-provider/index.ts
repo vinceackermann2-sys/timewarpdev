@@ -181,6 +181,13 @@ serve(async (req) => {
         const service = MICROSOFT_SERVICES[provider];
         const state = btoa(JSON.stringify({ ...stateBase, origin, subProvider: provider }));
         authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(service.scopes)}&state=${state}&response_mode=query`;
+      } else if (isGoogleSubService(provider)) {
+        const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+        if (!clientId) throw new Error("GOOGLE_CLIENT_ID not configured");
+        const redirectUri = `${redirectBase}/google-oauth-callback`;
+        const service = GOOGLE_SERVICES[provider];
+        const state = btoa(JSON.stringify({ ...stateBase, subProvider: provider }));
+        authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(service.scopes)}&state=${state}&access_type=offline&prompt=consent`;
       } else {
         switch (provider) {
           // Legacy "microsoft" still supported for backwards compat
