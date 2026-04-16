@@ -447,7 +447,9 @@ function normalizeAudience(a: any): any {
 // PROMPTS — smaller, focused
 // ══════════════════════════════════════════════
 
-const BRAND_PROMPT = (brandingJson: string | null, homepageMarkdown: string, pageUrl: string, pageTitle: string) => `Extract brand identity from this website homepage. Return ONLY valid JSON.
+const BRAND_PROMPT = (brandingJson: string | null, homepageMarkdown: string, pageUrl: string, pageTitle: string) => `Extract brand identity from this website. Return ONLY valid JSON.
+
+The content below combines the HOMEPAGE plus key context sub-pages (about, mission, team, pricing, services, contact, faq when available). Use ALL of it to ground brand voice, positioning, and visual identity — do not invent anything not present.
 
 ${brandingJson ? `Firecrawl branding data (primary source for colors/fonts/logos):\n${brandingJson}\n` : ""}
 
@@ -493,8 +495,8 @@ RULES:
 Page URL: ${pageUrl}
 Page title: ${pageTitle}
 
-Homepage content (first 8000 chars):
-${homepageMarkdown.slice(0, 8000)}`;
+Site content (homepage + context sub-pages, first 20000 chars):
+${homepageMarkdown.slice(0, 20000)}`;
 
 const PRODUCT_AUDIENCE_PROMPT = (productMarkdown: string, brandName: string, pageUrl: string) => `Extract ONE product/service/plan/offering and ONE matching target audience from this page. Return ONLY valid JSON.
 
@@ -1213,11 +1215,111 @@ Page title: ${metadata?.title || ""}
     }
 
     // ══════════════════════════════════════════════
+    // STEP 2.5: SCRAPE CONTEXT SUB-URLS (about / mission / pricing / team / contact / faq / values)
+    // These are NOT product pages — they enrich brand voice, audience, and DNA pillars.
+    // ══════════════════════════════════════════════
+    let contextPagesMarkdown = "";
+    try {
+      const productUrlSet = new Set(productPageContents.map(p => p.url));
+      // Collect candidate links from homepage HTML/markdown
+      const linkSource = (homepageHtml || "") + "\n" + (homepageMarkdown || "");
+      const hrefRegex = /href=["']([^"']+)["']/gi;
+      const candidateLinks = new Set<string>();
+      let lm: RegExpExecArray | null;
+      const parsedBaseForCtx = (() => { try { return new URL(baseUrl); } catch { return null; } })();
+      while ((lm = hrefRegex.exec(linkSource)) !== null) {
+        let href = lm[1];
+        if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) continue;
+        if (href.startsWith("/") && parsedBaseForCtx) href = `${parsedBaseForCtx.origin}${href}`;
+        if (!href.startsWith("http")) continue;
+        try {
+          const u = new URL(href);
+          if (!parsedBaseForCtx) continue;
+          if (u.hostname.replace(/^www\./, "") !== parsedBaseForCtx.hostname.replace(/^www\./, "")) continue;
+          candidateLinks.add(`${u.origin}${u.pathname.replace(/\/+$/g, "")}`);
+        } catch { /* ignore */ }
+      }
+
+      // Match path segments that signal context pages
+      const contextPatterns: { key: string; rx: RegExp }[] = [
+        { key: "about",   rx: /\/(about|about-us|company|who-we-are|our-story|story)(\/|$)/i },
+        { key: "mission", rx: /\/(mission|values|purpose|manifesto|vision)(\/|$)/i },
+        { key: "team",    rx: /\/(team|people|leadership|founders)(\/|$)/i },
+        { key: "pricing", rx: /\/(pricing|plans|membership|subscribe)(\/|$)/i },
+        { key: "services",rx: /\/(services|solutions|what-we-do|capabilities|offerings)(\/|$)/i },
+        { key: "contact", rx: /\/(contact|contact-us|get-in-touch|locations)(\/|$)/i },
+        { key: "faq",     rx: /\/(faq|faqs|help|frequently-asked)(\/|$)/i },
+        { key: "press",   rx: /\/(press|media-kit|newsroom)(\/|$)/i },
+      ];
+
+      // Pick at most 1 URL per category, max 6 total, dedupe against products
+      const selectedContextUrls: { key: string; url: string }[] = [];
+      const usedKeys = new Set<string>();
+      for (const link of candidateLinks) {
+        if (productUrlSet.has(link)) continue;
+        if (link === baseUrl) continue;
+        for (const { key, rx } of contextPatterns) {
+          if (usedKeys.has(key)) continue;
+          if (rx.test(link)) {
+            selectedContextUrls.push({ key, url: link });
+            usedKeys.add(key);
+            break;
+          }
+        }
+        if (selectedContextUrls.length >= 6) break;
+      }
+
+      if (selectedContextUrls.length > 0) {
+        console.log("Scraping", selectedContextUrls.length, "context sub-URLs:", selectedContextUrls.map(s => `${s.key}=${s.url}`));
+        const ctxResults = await Promise.allSettled(
+          selectedContextUrls.map(async ({ key, url }) => {
+            try {
+              const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true, waitFor: 1500 }),
+              });
+              if (res.ok) {
+                const d = await res.json();
+                const md = (d.data?.markdown || d.markdown || "").trim();
+                if (md) return { key, url, markdown: md };
+              }
+              const fb = await fetchPageFallback(url);
+              return fb.markdown ? { key, url, markdown: fb.markdown } : null;
+            } catch { return null; }
+          })
+        );
+        const ctxPages = ctxResults
+          .filter((r): r is PromiseFulfilledResult<{ key: string; url: string; markdown: string }> => r.status === "fulfilled" && !!r.value)
+          .map(r => r.value);
+
+        // Cap each section at 2500 chars to keep total prompt budget reasonable
+        contextPagesMarkdown = ctxPages
+          .map(p => `\n\n=== ${p.key.toUpperCase()} PAGE (${p.url}) ===\n${p.markdown.slice(0, 2500)}`)
+          .join("");
+
+        // Track in scannedUrls so the UI can show what was used
+        for (const p of ctxPages) {
+          if (!scannedUrls.includes(p.url)) scannedUrls.push(p.url);
+        }
+        console.log("Context pages collected:", ctxPages.length, "total chars:", contextPagesMarkdown.length);
+      } else {
+        console.log("No context sub-URLs detected on homepage");
+      }
+    } catch (e) {
+      console.warn("Context sub-URL scraping failed (non-fatal):", e);
+    }
+
+    // ══════════════════════════════════════════════
     // STEP 3: PARALLEL AI EXTRACTION (brand + products simultaneously)
     // ══════════════════════════════════════════════
 
     console.log("Extracting brand + products in parallel...");
     const brandingJson = firecrawlBranding ? JSON.stringify(firecrawlBranding, null, 2).slice(0, 3000) : null;
+    // Merge homepage + context sub-pages so brand extraction sees the full picture
+    const enrichedBrandMarkdown = contextPagesMarkdown
+      ? `${homepageMarkdown}\n\n${contextPagesMarkdown}`
+      : homepageMarkdown;
 
     // Run brand extraction and all product extractions in parallel
     const [brandSettled, ...productAudienceResults] = await Promise.allSettled([
@@ -1226,7 +1328,7 @@ Page title: ${metadata?.title || ""}
         try {
           const brandResult = await callAI(
             LOVABLE_API_KEY,
-            BRAND_PROMPT(brandingJson, homepageMarkdown, formattedUrl, metadata.title || ""),
+            BRAND_PROMPT(brandingJson, enrichedBrandMarkdown, formattedUrl, metadata.title || ""),
             "google/gemini-3-flash-preview",
             4000,
           );
