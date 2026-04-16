@@ -423,7 +423,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 min-h-0">
             <div className="px-8 pt-8 pb-2">
               <h2 className="text-2xl font-bold tracking-tight">
                 {activeTab === "settings" && "Account Settings"}
@@ -720,7 +720,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
               {/* ── CONNECTIONS TAB ── */}
               {activeTab === "connections" && (
-                <div className="-mx-8 -mt-2 -mb-4">
+                <div className="h-full min-h-0 -mx-8 -mt-2 -mb-4">
                   <ConnectionsView />
                 </div>
               )}
