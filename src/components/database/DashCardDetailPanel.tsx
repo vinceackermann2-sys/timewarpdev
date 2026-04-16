@@ -1,7 +1,69 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Clock, Mail, Calendar, Users, FileText, Hash, BookOpen, Lightbulb, DollarSign, Sparkles, Video, MessageSquare, FolderOpen, StickyNote, Zap, AlertTriangle, Target, TrendingUp } from "lucide-react";
+import { Clock, Mail, Calendar, Users, FileText, Hash, BookOpen, Lightbulb, DollarSign, Sparkles, Video, MessageSquare, FolderOpen, StickyNote, Zap, AlertTriangle, Target, TrendingUp, ClipboardCheck, RefreshCw, ListTodo, Award, Send, Play, Compass, Eye } from "lucide-react";
 import { SOURCE_META, badgeClasses, getWaitEscalationColor, getDurationEmoji, type DashboardCard } from "./dashboardTypes";
 import { Button } from "@/components/ui/button";
+
+/* ── Per-tab framing: eyebrow, accent, CTA, intent ── */
+type TabKind = "Briefing" | "Updates" | "To-Dos" | "Objectives";
+
+function inferTabKind(card: DashboardCard): TabKind {
+  if (card.waitingParty || card.waitDuration || card.consequence) return "Updates";
+  if (card.howTo || card.estimatedDuration || card.taskType || typeof card.leverageScore === "number") return "To-Dos";
+  if (card.successMetric || typeof card.progress === "number" || card.timeHorizon || card.objectiveType) return "Objectives";
+  return "Briefing";
+}
+
+const TAB_FRAMING: Record<TabKind, {
+  eyebrow: string;
+  intent: string;
+  icon: React.ElementType;
+  accentBar: string;
+  accentChip: string;
+  ctaLabel: string;
+  ctaIcon: React.ElementType;
+  summaryLabel: string;
+}> = {
+  Briefing: {
+    eyebrow: "Briefing · What changed",
+    intent: "Read this to stay informed. No immediate action needed.",
+    icon: ClipboardCheck,
+    accentBar: "bg-[hsl(217_100%_65%)]",
+    accentChip: "bg-[hsl(217_100%_96%)] text-[hsl(217_70%_42%)] border border-[hsl(217_80%_88%)]",
+    ctaLabel: "Discuss in Assistant",
+    ctaIcon: Eye,
+    summaryLabel: "Why it matters",
+  },
+  Updates: {
+    eyebrow: "Update · Someone is waiting",
+    intent: "Respond to unblock the person or process waiting on you.",
+    icon: RefreshCw,
+    accentBar: "bg-[hsl(0_75%_60%)]",
+    accentChip: "bg-[hsl(0_100%_97%)] text-[hsl(0_68%_42%)] border border-[hsl(0_75%_84%)]",
+    ctaLabel: "Respond now",
+    ctaIcon: Send,
+    summaryLabel: "Recommended response",
+  },
+  "To-Dos": {
+    eyebrow: "To-Do · Action required",
+    intent: "Complete this task to move work forward.",
+    icon: ListTodo,
+    accentBar: "bg-primary",
+    accentChip: "bg-primary/10 text-primary border border-primary/30",
+    ctaLabel: "Start task",
+    ctaIcon: Play,
+    summaryLabel: "Recommended approach",
+  },
+  Objectives: {
+    eyebrow: "Objective · Strategic outcome",
+    intent: "Drive measurable progress toward this quarter's goal.",
+    icon: Award,
+    accentBar: "bg-[hsl(142_62%_45%)]",
+    accentChip: "bg-[hsl(142_55%_95%)] text-[hsl(142_62%_30%)] border border-[hsl(142_42%_78%)]",
+    ctaLabel: "Plan execution",
+    ctaIcon: Compass,
+    summaryLabel: "Strategic rationale",
+  },
+};
 
 interface Props {
   card: DashboardCard | null;
@@ -342,12 +404,28 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
   if (!card) return null;
 
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
+  const tabKind = inferTabKind(card);
+  const framing = TAB_FRAMING[tabKind];
+  const TabIcon = framing.icon;
+  const CtaIcon = framing.ctaIcon;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-[420px] flex flex-col gap-0 p-0">
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <div className="flex items-center gap-2 mb-2">
+      <SheetContent className="w-full sm:max-w-[440px] flex flex-col gap-0 p-0">
+        {/* Tab-distinct accent bar */}
+        <div className={`h-1 w-full ${framing.accentBar}`} />
+
+        <SheetHeader className="px-6 pt-5 pb-4 border-b border-border space-y-3">
+          {/* Eyebrow — tab identity */}
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${framing.accentChip}`}>
+              <TabIcon className="h-3 w-3" />
+              {framing.eyebrow}
+            </span>
+          </div>
+
+          {/* Priority + category */}
+          <div className="flex items-center gap-2">
             <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${badgeClasses[card.priority] || badgeClasses.Low}`}>
               {card.priority} Priority
             </span>
@@ -357,7 +435,11 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
               </span>
             )}
           </div>
-          <SheetTitle className="text-base">{card.title}</SheetTitle>
+
+          <SheetTitle className="text-base leading-snug text-left">{card.title}</SheetTitle>
+
+          {/* Tab intent line — sets reader expectation */}
+          <p className="text-xs text-muted-foreground leading-relaxed text-left">{framing.intent}</p>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
@@ -377,18 +459,25 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
               )}
             </div>
 
-            {/* Source-specific content block */}
-            <SourceContentBlock card={card} />
-
-            {/* Tab-specific details */}
-            <TabSpecificDetails card={card} />
+            {/* Reorder per tab: Updates & To-Dos lead with tab-specific data, Briefing & Objectives lead with source/context */}
+            {tabKind === "Updates" || tabKind === "To-Dos" ? (
+              <>
+                <TabSpecificDetails card={card} />
+                <SourceContentBlock card={card} />
+              </>
+            ) : (
+              <>
+                <SourceContentBlock card={card} />
+                <TabSpecificDetails card={card} />
+              </>
+            )}
           </div>
 
           {/* Bottom section — pinned to bottom */}
           <div className="mt-auto pt-5 space-y-4 border-t border-border/60">
             {card.detail && (
               <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Summary & Recommendation</h4>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{framing.summaryLabel}</h4>
                 <p className="text-sm text-foreground leading-relaxed">{card.detail}</p>
               </div>
             )}
@@ -401,8 +490,8 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
                   onClose();
                 }}
               >
-                <Sparkles className="h-4 w-4" />
-                Execute in Assistant
+                <CtaIcon className="h-4 w-4" />
+                {framing.ctaLabel}
               </Button>
             )}
           </div>
