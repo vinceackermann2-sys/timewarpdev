@@ -1,7 +1,69 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Clock, Mail, Calendar, Users, FileText, Hash, BookOpen, Lightbulb, DollarSign, Sparkles, Video, MessageSquare, FolderOpen, StickyNote, Zap, AlertTriangle, Target, TrendingUp } from "lucide-react";
+import { Clock, Mail, Calendar, Users, FileText, Hash, BookOpen, Lightbulb, DollarSign, Sparkles, Video, MessageSquare, FolderOpen, StickyNote, Zap, AlertTriangle, Target, TrendingUp, ClipboardCheck, RefreshCw, ListTodo, Award, Send, Play, Compass, Eye } from "lucide-react";
 import { SOURCE_META, badgeClasses, getWaitEscalationColor, getDurationEmoji, type DashboardCard } from "./dashboardTypes";
 import { Button } from "@/components/ui/button";
+
+/* ── Per-tab framing: eyebrow, accent, CTA, intent ── */
+type TabKind = "Briefing" | "Updates" | "To-Dos" | "Objectives";
+
+function inferTabKind(card: DashboardCard): TabKind {
+  if (card.waitingParty || card.waitDuration || card.consequence) return "Updates";
+  if (card.howTo || card.estimatedDuration || card.taskType || typeof card.leverageScore === "number") return "To-Dos";
+  if (card.successMetric || typeof card.progress === "number" || card.timeHorizon || card.objectiveType) return "Objectives";
+  return "Briefing";
+}
+
+const TAB_FRAMING: Record<TabKind, {
+  eyebrow: string;
+  intent: string;
+  icon: React.ElementType;
+  accentBar: string;
+  accentChip: string;
+  ctaLabel: string;
+  ctaIcon: React.ElementType;
+  summaryLabel: string;
+}> = {
+  Briefing: {
+    eyebrow: "Briefing · What changed",
+    intent: "Read this to stay informed. No immediate action needed.",
+    icon: ClipboardCheck,
+    accentBar: "bg-[hsl(217_100%_65%)]",
+    accentChip: "bg-[hsl(217_100%_96%)] text-[hsl(217_70%_42%)] border border-[hsl(217_80%_88%)]",
+    ctaLabel: "Discuss in Assistant",
+    ctaIcon: Eye,
+    summaryLabel: "Why it matters",
+  },
+  Updates: {
+    eyebrow: "Update · Someone is waiting",
+    intent: "Respond to unblock the person or process waiting on you.",
+    icon: RefreshCw,
+    accentBar: "bg-[hsl(0_75%_60%)]",
+    accentChip: "bg-[hsl(0_100%_97%)] text-[hsl(0_68%_42%)] border border-[hsl(0_75%_84%)]",
+    ctaLabel: "Respond now",
+    ctaIcon: Send,
+    summaryLabel: "Recommended response",
+  },
+  "To-Dos": {
+    eyebrow: "To-Do · Action required",
+    intent: "Complete this task to move work forward.",
+    icon: ListTodo,
+    accentBar: "bg-primary",
+    accentChip: "bg-primary/10 text-primary border border-primary/30",
+    ctaLabel: "Start task",
+    ctaIcon: Play,
+    summaryLabel: "Recommended approach",
+  },
+  Objectives: {
+    eyebrow: "Objective · Strategic outcome",
+    intent: "Drive measurable progress toward this quarter's goal.",
+    icon: Award,
+    accentBar: "bg-[hsl(142_62%_45%)]",
+    accentChip: "bg-[hsl(142_55%_95%)] text-[hsl(142_62%_30%)] border border-[hsl(142_42%_78%)]",
+    ctaLabel: "Plan execution",
+    ctaIcon: Compass,
+    summaryLabel: "Strategic rationale",
+  },
+};
 
 interface Props {
   card: DashboardCard | null;
