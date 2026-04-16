@@ -404,12 +404,28 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
   if (!card) return null;
 
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
+  const tabKind = inferTabKind(card);
+  const framing = TAB_FRAMING[tabKind];
+  const TabIcon = framing.icon;
+  const CtaIcon = framing.ctaIcon;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-[420px] flex flex-col gap-0 p-0">
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <div className="flex items-center gap-2 mb-2">
+      <SheetContent className="w-full sm:max-w-[440px] flex flex-col gap-0 p-0">
+        {/* Tab-distinct accent bar */}
+        <div className={`h-1 w-full ${framing.accentBar}`} />
+
+        <SheetHeader className="px-6 pt-5 pb-4 border-b border-border space-y-3">
+          {/* Eyebrow — tab identity */}
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${framing.accentChip}`}>
+              <TabIcon className="h-3 w-3" />
+              {framing.eyebrow}
+            </span>
+          </div>
+
+          {/* Priority + category */}
+          <div className="flex items-center gap-2">
             <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${badgeClasses[card.priority] || badgeClasses.Low}`}>
               {card.priority} Priority
             </span>
@@ -419,7 +435,11 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
               </span>
             )}
           </div>
-          <SheetTitle className="text-base">{card.title}</SheetTitle>
+
+          <SheetTitle className="text-base leading-snug text-left">{card.title}</SheetTitle>
+
+          {/* Tab intent line — sets reader expectation */}
+          <p className="text-xs text-muted-foreground leading-relaxed text-left">{framing.intent}</p>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
@@ -439,18 +459,25 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
               )}
             </div>
 
-            {/* Source-specific content block */}
-            <SourceContentBlock card={card} />
-
-            {/* Tab-specific details */}
-            <TabSpecificDetails card={card} />
+            {/* Reorder per tab: Updates & To-Dos lead with tab-specific data, Briefing & Objectives lead with source/context */}
+            {tabKind === "Updates" || tabKind === "To-Dos" ? (
+              <>
+                <TabSpecificDetails card={card} />
+                <SourceContentBlock card={card} />
+              </>
+            ) : (
+              <>
+                <SourceContentBlock card={card} />
+                <TabSpecificDetails card={card} />
+              </>
+            )}
           </div>
 
           {/* Bottom section — pinned to bottom */}
           <div className="mt-auto pt-5 space-y-4 border-t border-border/60">
             {card.detail && (
               <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Summary & Recommendation</h4>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{framing.summaryLabel}</h4>
                 <p className="text-sm text-foreground leading-relaxed">{card.detail}</p>
               </div>
             )}
@@ -463,8 +490,8 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
                   onClose();
                 }}
               >
-                <Sparkles className="h-4 w-4" />
-                Execute in Assistant
+                <CtaIcon className="h-4 w-4" />
+                {framing.ctaLabel}
               </Button>
             )}
           </div>
