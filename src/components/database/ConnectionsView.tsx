@@ -11,6 +11,12 @@ import logoMsTeams from "@/assets/logo-ms-teams.svg";
 import logoSlack from "@/assets/logo-slack.png";
 import logoZoom from "@/assets/logo-zoom.svg";
 import logoHubspot from "@/assets/logo-hubspot.svg";
+import logoGoogleCalendar from "@/assets/logo-google-calendar.svg";
+import logoGoogleDrive from "@/assets/logo-google-drive.svg";
+import logoGoogleDocs from "@/assets/logo-google-docs.svg";
+import logoGoogleSheets from "@/assets/logo-google-sheets.svg";
+import logoGoogleSlides from "@/assets/logo-google-slides.svg";
+import logoGmail from "@/assets/logo-gmail.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 
 interface Integration {
@@ -19,7 +25,7 @@ interface Integration {
   description: string;
   logo: string;
   comingSoon?: boolean;
-  section: "microsoft" | "other";
+  section: "microsoft" | "google" | "other";
   iconBg?: string;
 }
 
@@ -28,6 +34,12 @@ const integrations: Integration[] = [
   { id: "microsoft_onedrive", name: "Microsoft OneDrive", description: "Upload and read files", logo: logoMsOnedrive, section: "microsoft", iconBg: "bg-white" },
   { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft", iconBg: "bg-white" },
   { id: "microsoft_teams", name: "Microsoft Teams", description: "Messages and channels", logo: logoMsTeams, section: "microsoft", iconBg: "bg-white" },
+  { id: "google_calendar", name: "Google Calendar", description: "Events & scheduling", logo: logoGoogleCalendar, section: "google", iconBg: "bg-white" },
+  { id: "google_drive", name: "Google Drive", description: "Files & folders", logo: logoGoogleDrive, section: "google", iconBg: "bg-white" },
+  { id: "google_docs", name: "Google Docs", description: "Documents", logo: logoGoogleDocs, section: "google", iconBg: "bg-white" },
+  { id: "google_sheets", name: "Google Sheets", description: "Spreadsheets", logo: logoGoogleSheets, section: "google", iconBg: "bg-white" },
+  { id: "google_slides", name: "Google Slides", description: "Presentations", logo: logoGoogleSlides, section: "google", iconBg: "bg-white" },
+  { id: "google_gmail", name: "Gmail", description: "Emails & contacts", logo: logoGmail, section: "google", iconBg: "bg-white" },
   { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
   { id: "zoom", name: "Zoom", description: "Meetings and recordings", logo: logoZoom, section: "other", iconBg: "bg-blue-500" },
   { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, section: "other", iconBg: "bg-orange-100" },
