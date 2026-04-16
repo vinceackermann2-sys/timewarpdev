@@ -9,19 +9,24 @@ import logoMsTeams from "@/assets/logo-ms-teams.svg";
 import logoSlack from "@/assets/logo-slack.png";
 import logoHubspot from "@/assets/logo-hubspot.svg";
 import logoZoom from "@/assets/logo-zoom.svg";
-
-interface ConnectorDef {
-  id: string;
-  name: string;
-  description: string;
-  logo: string;
-}
+import logoGoogleCalendar from "@/assets/logo-google-calendar.svg";
+import logoGoogleDrive from "@/assets/logo-google-drive.svg";
+import logoGoogleDocs from "@/assets/logo-google-docs.svg";
+import logoGoogleSheets from "@/assets/logo-google-sheets.svg";
+import logoGoogleSlides from "@/assets/logo-google-slides.svg";
+import logoGmail from "@/assets/logo-gmail.svg";
 
 const connectors: ConnectorDef[] = [
   { id: "microsoft_outlook", name: "Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook },
   { id: "microsoft_onedrive", name: "OneDrive", description: "Files & documents", logo: logoMsOnedrive },
   { id: "microsoft_onenote", name: "OneNote", description: "Notes & notebooks", logo: logoMsOnenote },
   { id: "microsoft_teams", name: "Teams", description: "Messages & channels", logo: logoMsTeams },
+  { id: "google_calendar", name: "Calendar", description: "Events & scheduling", logo: logoGoogleCalendar },
+  { id: "google_drive", name: "Drive", description: "Files & folders", logo: logoGoogleDrive },
+  { id: "google_docs", name: "Docs", description: "Documents", logo: logoGoogleDocs },
+  { id: "google_sheets", name: "Sheets", description: "Spreadsheets", logo: logoGoogleSheets },
+  { id: "google_slides", name: "Slides", description: "Presentations", logo: logoGoogleSlides },
+  { id: "google_gmail", name: "Gmail", description: "Emails & contacts", logo: logoGmail },
   { id: "slack", name: "Slack", description: "Messages & channels", logo: logoSlack },
   { id: "hubspot", name: "HubSpot", description: "CRM, contacts & deals", logo: logoHubspot },
   { id: "zoom", name: "Zoom", description: "Meetings & recordings", logo: logoZoom },
