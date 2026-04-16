@@ -16,7 +16,14 @@ import logoGoogleSheets from "@/assets/logo-google-sheets.svg";
 import logoGoogleSlides from "@/assets/logo-google-slides.svg";
 import logoGmail from "@/assets/logo-gmail.svg";
 
-const connectors: ConnectorDef[] = [
+interface ConnectorDef {
+  id: string;
+  name: string;
+  description: string;
+  logo: string;
+}
+
+
   { id: "microsoft_outlook", name: "Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook },
   { id: "microsoft_onedrive", name: "OneDrive", description: "Files & documents", logo: logoMsOnedrive },
   { id: "microsoft_onenote", name: "OneNote", description: "Notes & notebooks", logo: logoMsOnenote },
