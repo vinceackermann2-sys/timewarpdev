@@ -24,6 +24,8 @@ serve(async (req) => {
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
+    const subProvider = state.subProvider || null;
+    const providerKey = subProvider || "google";
     if (!userId) throw new Error("No userId in state");
 
     // Verify HMAC nonce to prevent state forgery
