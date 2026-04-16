@@ -1440,14 +1440,21 @@ Page title: ${metadata?.title || ""}
           };
         }
       })(),
-      // Product/audience extractions (parallel)
+      // Product/audience extractions (parallel) — receive a compact slice of context for audience inference
       ...productPageContents.map(async (page, idx) => {
         try {
           const prelimBrandName = metadata?.title?.split(/[|\-–—]/)[0]?.trim() || "the brand";
-          console.log(`Extracting product ${idx + 1}/${productPageContents.length}: ${page.url.slice(0, 80)}`);
+          // Build a compact enrichment payload prioritizing audience-relevant sections
+          const audienceRelevantKeys = ["about", "mission", "team", "case-studies", "customers", "testimonials", "values", "story"];
+          const audienceEnrichment = audienceRelevantKeys
+            .filter(k => contextPagesByKey[k])
+            .map(k => `## ${k.toUpperCase()}\n${contextPagesByKey[k]}`)
+            .join("\n\n")
+            .slice(0, 8000);
+          console.log(`Extracting product ${idx + 1}/${productPageContents.length}: ${page.url.slice(0, 80)} (enrichment: ${audienceEnrichment.length} chars)`);
           const result = await callAI(
             LOVABLE_API_KEY,
-            PRODUCT_AUDIENCE_PROMPT(page.markdown, prelimBrandName, page.url),
+            PRODUCT_AUDIENCE_PROMPT(page.markdown, prelimBrandName, page.url, audienceEnrichment),
             "google/gemini-3-flash-preview",
             10000,
           );
