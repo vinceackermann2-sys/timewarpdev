@@ -12,6 +12,7 @@ import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBrid
 import { useActionGate } from "@/hooks/useActionGate";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { Progress } from "@/components/ui/progress";
 
 interface LogEntry {
   id: string;
