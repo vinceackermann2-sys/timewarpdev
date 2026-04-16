@@ -1326,7 +1326,7 @@ Page title: ${metadata?.title || ""}
         try {
           const brandResult = await callAI(
             LOVABLE_API_KEY,
-            BRAND_PROMPT(brandingJson, homepageMarkdown, formattedUrl, metadata.title || ""),
+            BRAND_PROMPT(brandingJson, enrichedBrandMarkdown, formattedUrl, metadata.title || ""),
             "google/gemini-3-flash-preview",
             4000,
           );
