@@ -447,7 +447,9 @@ function normalizeAudience(a: any): any {
 // PROMPTS — smaller, focused
 // ══════════════════════════════════════════════
 
-const BRAND_PROMPT = (brandingJson: string | null, homepageMarkdown: string, pageUrl: string, pageTitle: string) => `Extract brand identity from this website homepage. Return ONLY valid JSON.
+const BRAND_PROMPT = (brandingJson: string | null, homepageMarkdown: string, pageUrl: string, pageTitle: string) => `Extract brand identity from this website. Return ONLY valid JSON.
+
+The content below combines the HOMEPAGE plus key context sub-pages (about, mission, team, pricing, services, contact, faq when available). Use ALL of it to ground brand voice, positioning, and visual identity — do not invent anything not present.
 
 ${brandingJson ? `Firecrawl branding data (primary source for colors/fonts/logos):\n${brandingJson}\n` : ""}
 
@@ -493,8 +495,8 @@ RULES:
 Page URL: ${pageUrl}
 Page title: ${pageTitle}
 
-Homepage content (first 8000 chars):
-${homepageMarkdown.slice(0, 8000)}`;
+Site content (homepage + context sub-pages, first 20000 chars):
+${homepageMarkdown.slice(0, 20000)}`;
 
 const PRODUCT_AUDIENCE_PROMPT = (productMarkdown: string, brandName: string, pageUrl: string) => `Extract ONE product/service/plan/offering and ONE matching target audience from this page. Return ONLY valid JSON.
 
