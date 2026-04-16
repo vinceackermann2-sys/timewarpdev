@@ -238,11 +238,18 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
     updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: false, isManualMode: false, safetyAlert: null });
   };
 
-  const parseAction = (text: string): (BrowserAction & { done?: boolean; message?: string }) | null => {
+  type ParsedAction = BrowserAction & { done?: boolean; message?: string; reasoning?: string };
+
+  const parseAction = (text: string): ParsedAction | ParsedAction[] | null => {
     try {
       const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
       const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : text.trim();
       const parsed = JSON.parse(jsonStr);
+      // Multi-step batching: detect { "steps": [...] } format
+      if (parsed.steps && Array.isArray(parsed.steps)) {
+        const validSteps = parsed.steps.filter((s: any) => s.action);
+        if (validSteps.length > 0) return validSteps;
+      }
       if (parsed.action) return parsed;
       return null;
     } catch {
@@ -347,9 +354,9 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
 
         conversationHistory.push({ role: "assistant", content: aiResponse });
 
-        const action = parseAction(aiResponse);
+        const parsed = parseAction(aiResponse);
 
-        if (!action) {
+        if (!parsed) {
           // Retry: AI responded with plain text instead of JSON — ask it to fix
           conversationHistory.push({
             role: "user",
@@ -359,70 +366,84 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
           continue;
         }
 
-        if (action.done || action.action === "done") {
-          setCurrentStep("Completed");
-          updateOverlay({ visible: false });
-          await logStep("completed", "Completed", action.message || "SOP execution finished.");
-          toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
-          break;
-        }
+        // Normalize: single action → array of one for unified processing
+        const actionBatch: ParsedAction[] = Array.isArray(parsed) ? parsed : [parsed];
 
-        // Safety check BEFORE execution
-        const safetyBlock = isSafetyBlocked(action);
-        if (safetyBlock) {
-          setSafetyAlert(safetyBlock);
-          setIsPaused(true);
-          isPausedRef.current = true;
-          setIsManualMode(true);
-          isManualModeRef.current = true;
-          await logStep("running", `Step ${step + 1} ⚠️`, `SAFETY: ${safetyBlock}`);
-
-          // Wait for user to handle manually and return control
-          await new Promise<void>((resolve) => {
-            pauseResolverRef.current = resolve;
-          });
-
+        let batchDone = false;
+        for (let batchIdx = 0; batchIdx < actionBatch.length; batchIdx++) {
+          const action = actionBatch[batchIdx];
           if (abortRef.current?.signal.aborted) break;
 
-          // After manual takeover, tell AI the user handled it
-          conversationHistory.push({
-            role: "user",
-            content: `The user manually completed the sensitive action (${action.action}). Continue with the next SOP step. Get fresh page context.`,
-          });
-          setSafetyAlert(null);
-          continue;
+          const stepLabel = actionBatch.length > 1
+            ? `Step ${step + 1}.${batchIdx + 1}`
+            : `Step ${step + 1}`;
+
+          if (action.done || action.action === "done") {
+            setCurrentStep("Completed");
+            updateOverlay({ visible: false });
+            await logStep("completed", "Completed", action.message || "SOP execution finished.");
+            toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
+            batchDone = true;
+            break;
+          }
+
+          // Safety check BEFORE execution
+          const safetyBlock = isSafetyBlocked(action);
+          if (safetyBlock) {
+            setSafetyAlert(safetyBlock);
+            setIsPaused(true);
+            isPausedRef.current = true;
+            setIsManualMode(true);
+            isManualModeRef.current = true;
+            await logStep("running", `${stepLabel} ⚠️`, `SAFETY: ${safetyBlock}`);
+
+            // Wait for user to handle manually and return control
+            await new Promise<void>((resolve) => {
+              pauseResolverRef.current = resolve;
+            });
+
+            if (abortRef.current?.signal.aborted) break;
+
+            // After manual takeover, tell AI the user handled it
+            conversationHistory.push({
+              role: "user",
+              content: `The user manually completed the sensitive action (${action.action}). Continue with the next SOP step. Get fresh page context.`,
+            });
+            setSafetyAlert(null);
+            continue;
+          }
+
+          if (action.action === "respond") {
+            setCurrentStep(`${stepLabel}: ${action.message?.slice(0, 60) || "Message"}`);
+            await logStep("running", stepLabel, action.message || action.reasoning || "Response");
+            continue;
+          }
+
+          setCurrentStep(`${stepLabel}: ${action.action}`);
+          updateOverlay({ visible: true, employeeName: employee.name, currentStep: `${stepLabel}: ${action.action}`, isPaused: false, isManualMode: false });
+          await logStep("running", stepLabel, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
+
+          const result = await executeAction(action, true) || { success: false, action: action.action, error: "No response from extension" };
+
+          if (result.success) {
+            await logStep("running", `${stepLabel} ✓`, `Completed: ${action.action}`);
+          } else {
+            await logStep("error", `${stepLabel} ✗`, result.error || "Action failed");
+          }
+
+          const resultMsg = result.success
+            ? `Action "${action.action}" succeeded.${result.data ? ` Data: ${JSON.stringify(result.data)}` : ""}`
+            : `Action "${action.action}" failed: ${result.error || "unknown error"}`;
+
+          // Only add conversation context after the last action in the batch
+          if (batchIdx === actionBatch.length - 1) {
+            const freshContext = await getPageContext();
+            const contextInfo = freshContext?.url ? ` Current page: ${freshContext.url}` : "";
+            conversationHistory.push({ role: "user", content: resultMsg + contextInfo + ` Continue with the next SOP step. You have ${stepCount} total steps to complete.` });
+          }
         }
 
-        if (action.action === "respond") {
-          setCurrentStep(`Step ${step + 1}: ${action.message?.slice(0, 60) || "Message"}`);
-          await logStep("running", `Step ${step + 1}`, action.message || action.reasoning || "Response");
-          conversationHistory.push({
-            role: "user",
-            content: `User saw your message. Continue with the next SOP step.`,
-          });
-          continue;
-        }
-
-        setCurrentStep(`Step ${step + 1}: ${action.action}`);
-        updateOverlay({ visible: true, employeeName: employee.name, currentStep: `Step ${step + 1}: ${action.action}`, isPaused: false, isManualMode: false });
-        await logStep("running", `Step ${step + 1}`, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
-
-        const result = await executeAction(action, true) || { success: false, action: action.action, error: "No response from extension" };
-
-        const resultMsg = result.success
-          ? `Action "${action.action}" succeeded.${result.data ? ` Data: ${JSON.stringify(result.data)}` : ""}`
-          : `Action "${action.action}" failed: ${result.error || "unknown error"}`;
-
-        // Include fresh page context so AI knows current state
-        const freshContext = await getPageContext();
-        const contextInfo = freshContext?.url ? ` Current page: ${freshContext.url}` : "";
-        conversationHistory.push({ role: "user", content: resultMsg + contextInfo + ` Continue with the next SOP step. You have ${stepCount} total steps to complete.` });
-
-        if (result.success) {
-          await logStep("running", `Step ${step + 1} ✓`, `Completed: ${action.action}`);
-        } else {
-          await logStep("error", `Step ${step + 1} ✗`, result.error || "Action failed");
-        }
+        if (batchDone) break;
       }
     } catch (e: any) {
       if (e.name !== "AbortError") {
