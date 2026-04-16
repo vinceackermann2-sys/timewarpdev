@@ -54,6 +54,12 @@ function formatProviderName(provider: string): string {
   if (provider === "microsoft_calendar") return "Calendar";
   if (provider === "microsoft_onedrive") return "OneDrive";
   if (provider === "microsoft_onenote") return "OneNote";
+  if (provider === "google_calendar") return "Google Calendar";
+  if (provider === "google_drive") return "Google Drive";
+  if (provider === "google_docs") return "Google Docs";
+  if (provider === "google_sheets") return "Google Sheets";
+  if (provider === "google_slides") return "Google Slides";
+  if (provider === "google_gmail") return "Gmail";
   if (provider === "slack") return "Slack";
   if (provider === "hubspot") return "HubSpot";
   return provider;
@@ -133,6 +139,36 @@ export async function getValidProviderToken(supabaseAdmin: any, userId: string, 
   }
 
   if (provider === "slack") return tokenRow.access_token;
+
+  // Google sub-services token refresh
+  if (provider === "google" || provider.startsWith("google_")) {
+    try {
+      const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+      const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+      if (!clientId || !clientSecret) return null;
+      const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: tokenRow.refresh_token,
+          grant_type: "refresh_token",
+        }),
+      });
+      if (refreshRes.ok) {
+        const refreshed = await refreshRes.json();
+        if (refreshed.access_token) {
+          await supabaseAdmin.from("user_oauth_tokens").update({
+            access_token: refreshed.access_token,
+            token_expires_at: refreshed.expires_in ? new Date(Date.now() + refreshed.expires_in * 1000).toISOString() : tokenRow.token_expires_at,
+          }).eq("user_id", userId).eq("provider", provider);
+          return refreshed.access_token;
+        }
+      }
+    } catch (e) { console.error("Google token refresh error:", e); }
+    return null;
+  }
 
   return null;
 }

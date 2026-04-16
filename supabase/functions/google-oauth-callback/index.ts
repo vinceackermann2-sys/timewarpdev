@@ -13,7 +13,7 @@ serve(async (req) => {
   const CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
   const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/google-oauth-callback`;
 
-  const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://digital-guide-genie.lovable.app";
+  const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://timewarpdev.lovable.app";
 
   if (error || !code || !stateParam) {
     return Response.redirect(`${frontendUrl}/?oauth_error=${error || "missing_code"}`, 302);

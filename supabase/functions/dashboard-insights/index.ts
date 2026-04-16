@@ -230,6 +230,95 @@ serve(async (req) => {
       })());
     }
 
+    // Google sub-services
+    const googleProviders = ["google", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "google_gmail"];
+    const getGoogleToken = async () => {
+      for (const p of googleProviders) {
+        if (!connectedProviders.includes(p)) continue;
+        const t = await getValidProviderToken(supabase, user.id, p);
+        if (t) return t;
+      }
+      return null;
+    };
+
+    const hasGoogleCalendar = connectedProviders.some((p: string) => p === "google" || p === "google_calendar");
+    const hasGmail = connectedProviders.some((p: string) => p === "google" || p === "google_gmail");
+    const hasGoogleDrive = connectedProviders.some((p: string) => p === "google" || p === "google_drive" || p === "google_docs" || p === "google_sheets" || p === "google_slides");
+
+    if (hasGmail) {
+      searchPromises.push((async () => {
+        try {
+          const gToken = await getGoogleToken();
+          if (!gToken) return;
+          const res = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=newer_than:7d`,
+            { headers: { Authorization: `Bearer ${gToken}` } },
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const gmailMessages: string[] = [];
+          for (const msg of (data.messages || []).slice(0, 5)) {
+            try {
+              const detailRes = await fetch(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+                { headers: { Authorization: `Bearer ${gToken}` } },
+              );
+              if (!detailRes.ok) continue;
+              const detail = await detailRes.json();
+              const headers = detail.payload?.headers || [];
+              const subject = headers.find((h: any) => h.name === "Subject")?.value || "No Subject";
+              const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
+              const date = headers.find((h: any) => h.name === "Date")?.value || "";
+              gmailMessages.push(`📧 **${subject}** from ${from} (${date})`);
+            } catch { /* skip */ }
+          }
+          if (gmailMessages.length > 0) integrationData += `\n### Recent Gmail Messages\n${gmailMessages.join("\n")}\n`;
+        } catch (e) { console.error("Gmail search error:", e); }
+      })());
+    }
+
+    if (hasGoogleCalendar) {
+      searchPromises.push((async () => {
+        try {
+          const gToken = await getGoogleToken();
+          if (!gToken) return;
+          const now = new Date().toISOString();
+          const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+          const res = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(now)}&timeMax=${encodeURIComponent(nextWeek)}&maxResults=10&singleEvents=true&orderBy=startTime`,
+            { headers: { Authorization: `Bearer ${gToken}` } },
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const events = (data.items || []).map((e: any) => {
+            const start = e.start?.dateTime || e.start?.date || "";
+            return `📅 **${e.summary || "Untitled"}** — ${start.slice(0, 16).replace("T", " ")}`;
+          });
+          if (events.length > 0) integrationData += `\n### Upcoming Google Calendar Events\n${events.join("\n")}\n`;
+        } catch (e) { console.error("Google Calendar error:", e); }
+      })());
+    }
+
+    if (hasGoogleDrive) {
+      searchPromises.push((async () => {
+        try {
+          const gToken = await getGoogleToken();
+          if (!gToken) return;
+          const res = await fetch(
+            `https://www.googleapis.com/drive/v3/files?pageSize=10&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)&q=trashed=false`,
+            { headers: { Authorization: `Bearer ${gToken}` } },
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const files = (data.files || []).map((f: any) => {
+            const type = f.mimeType?.includes("document") ? "📄" : f.mimeType?.includes("spreadsheet") ? "📊" : f.mimeType?.includes("presentation") ? "📽️" : "📁";
+            return `${type} **${f.name}** — modified ${f.modifiedTime?.slice(0, 16)?.replace("T", " ") || ""}`;
+          });
+          if (files.length > 0) integrationData += `\n### Recent Google Drive Files\n${files.join("\n")}\n`;
+        } catch (e) { console.error("Google Drive error:", e); }
+      })());
+    }
+
     if (hasMsTeams) {
       searchPromises.push((async () => {
         try {
@@ -498,7 +587,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Dashboard insights error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: msg }), {
