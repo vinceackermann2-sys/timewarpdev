@@ -205,7 +205,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
   return (
     <aside className="w-[420px] shrink-0 h-[calc(100%-1.5rem)] my-3 mr-3 flex flex-col rounded-2xl border border-border shadow-sm overflow-hidden bg-[#fcfcfd]">
       {/* ── Top bar: time meta · more · close ─────────────── */}
-      <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between bg-[#fcfcfd] shadow-xl">
+      <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-white">
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
           <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
