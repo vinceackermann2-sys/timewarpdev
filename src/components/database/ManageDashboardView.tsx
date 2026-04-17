@@ -105,14 +105,32 @@ function CardShell({
         <p className="text-[12.5px] text-muted-foreground leading-relaxed line-clamp-1">{card.description}</p>
       )}
 
-      {/* Footer: CTA + secondary meta */}
+      {/* Footer: dominant CTA button + secondary meta */}
       {(footerLeft || footerRight) && (
-        <div className="mt-auto pt-1 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">{footerLeft}</div>
+        <div className="mt-1 pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">{footerLeft}</div>
           {footerRight && <div className="shrink-0 flex items-center gap-1.5 text-[11px] text-muted-foreground">{footerRight}</div>}
         </div>
       )}
     </div>
+  );
+}
+
+/* Dominant CTA button — filled, branded by tab, stops propagation so it acts as
+   a real button while the card body still acts as the primary click target. */
+function CardCTA({ tab, onClick, label }: { tab: TabKind; onClick: () => void; label?: string }) {
+  const framing = TAB_FRAMING[tab];
+  const Icon = framing.ctaIcon;
+  return (
+    <Button
+      size="sm"
+      variant={framing.ctaVariant}
+      className="h-8 px-3 text-xs font-semibold gap-1.5 w-full sm:w-auto"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label || framing.ctaLabel}
+    </Button>
   );
 }
 
