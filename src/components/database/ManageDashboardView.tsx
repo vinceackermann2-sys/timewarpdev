@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import {
   DashboardCard, SOURCE_META, TAB_SUBTITLES,
   TAB_FRAMING, type TabKind,
