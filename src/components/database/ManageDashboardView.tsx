@@ -606,9 +606,20 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
                 )
               )}
               {activeTab === "Objectives" && <AddObjectiveInline onAdd={handleAddObjective} />}
-              {filteredCards.length === 0 && !searchQuery && (
-                <div className="text-muted-foreground w-full py-8 text-center text-sm">No insights generated yet.</div>
-              )}
+              {filteredCards.length === 0 && !searchQuery && (() => {
+                const tabKey = activeTab as TabKind;
+                const framing = TAB_FRAMING[tabKey] || TAB_FRAMING.Briefing;
+                const EmptyIcon = framing.emptyIcon;
+                return (
+                  <div className={`w-full py-12 px-6 text-center border-2 border-dashed rounded-2xl ${framing.accentSoftBg}`}>
+                    <div className={`mx-auto w-12 h-12 rounded-full ${framing.accentChip} flex items-center justify-center mb-3`}>
+                      <EmptyIcon className="h-6 w-6" />
+                    </div>
+                    <p className={`text-sm font-semibold ${framing.accentText} mb-1`}>{framing.emptyTitle}</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">{framing.emptyBody}</p>
+                  </div>
+                );
+              })()}
               {filteredCards.length === 0 && searchQuery && (
                 <div className="text-muted-foreground w-full py-8 text-center text-sm">No cards match "{searchQuery}"</div>
               )}
