@@ -180,162 +180,70 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
   );
 }
 
-/* ── Tab-specific detail sections ── */
+/* ── Tab-specific detail sections ──
+   Hero block already shows the headline numbers/people. This section ONLY
+   surfaces what the hero can't: consequence (Updates), how-to steps (To-Dos),
+   metric source + linked todos + objective type (Objectives). No duplicates. */
 function TabSpecificDetails({ card }: { card: DashboardCard }) {
-  // Updates: waiting party, wait duration, consequence
+  // Updates → only consequence (waiting party, duration, request type already in hero)
   if (card.waitingParty || card.waitDuration || card.consequence) {
-    const waitColor = getWaitEscalationColor(card.waitDuration);
+    if (!card.consequence) return null;
     return (
-      <div className="space-y-3">
-        {card.waitingParty && (
-          <div className="flex items-center gap-2 text-sm">
-            <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground text-xs">Waiting on you:</span>
-            <span className="text-foreground font-medium">{card.waitingParty}</span>
-          </div>
-        )}
-        {card.waitDuration && (
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className={`text-xs font-medium px-2 py-0.5 rounded border ${waitColor}`}>
-              ⏳ Waiting {card.waitDuration}
-            </span>
-          </div>
-        )}
-        {card.requestType && (
-          <div className="flex items-center gap-2 text-sm">
-            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground text-xs">Type:</span>
-            <span className="text-foreground">{card.requestType}</span>
-          </div>
-        )}
-        {card.consequence && (
-          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-xs font-semibold text-destructive">Consequence of Inaction</span>
-            </div>
-            <p className="text-sm text-foreground/80">{card.consequence}</p>
-          </div>
-        )}
+      <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3">
+        <div className="flex items-center gap-1.5 mb-1">
+          <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+          <span className="text-xs font-semibold text-destructive">If you don't respond</span>
+        </div>
+        <p className="text-sm text-foreground/80">{card.consequence}</p>
       </div>
     );
   }
 
-  // To-Dos: howTo, estimated duration, leverage
+  // To-Dos → only the how-to steps (duration, leverage, task type already in hero)
   if (card.howTo || card.estimatedDuration || card.taskType) {
-    const durationEmoji = getDurationEmoji(card.estimatedDuration);
+    if (!card.howTo) return null;
     return (
-      <div className="space-y-3">
-        {card.estimatedDuration && (
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground text-xs">Duration:</span>
-            <span className="text-foreground font-medium">{durationEmoji} {card.estimatedDuration}</span>
-          </div>
-        )}
-        {card.taskType && (
-          <div className="flex items-center gap-2 text-sm">
-            <Zap className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground text-xs">Type:</span>
-            <span className="text-foreground">{card.taskType}</span>
-          </div>
-        )}
-        {card.howTo && (
-          <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">How To Complete</h4>
-            <div className="text-sm text-foreground leading-relaxed space-y-1 pl-1">
-              {card.howTo.split(/\n|(?=\d+\.)/).filter(Boolean).map((step, i) => (
-                <p key={i} className="flex items-start gap-1.5">
-                  <span className="text-primary font-semibold shrink-0">{i + 1}.</span>
-                  <span>{step.replace(/^\d+\.\s*/, "").trim()}</span>
-                </p>
-              ))}
-            </div>
-          </div>
-        )}
-        {typeof card.leverageScore === "number" && (
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingUp className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground text-xs">Leverage:</span>
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map(n => (
-                <div key={n} className={`w-4 h-1.5 rounded-full ${n <= card.leverageScore! ? "bg-primary" : "bg-muted"}`} />
-              ))}
-            </div>
-          </div>
-        )}
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">How to complete</h4>
+        <div className="text-sm text-foreground leading-relaxed space-y-1.5">
+          {card.howTo.split(/\n|(?=\d+\.)/).filter(Boolean).map((step, i) => (
+            <p key={i} className="flex items-start gap-2">
+              <span className="text-primary font-semibold shrink-0">{i + 1}.</span>
+              <span>{step.replace(/^\d+\.\s*/, "").trim()}</span>
+            </p>
+          ))}
+        </div>
       </div>
     );
   }
 
-  // Objectives: success metric, progress, time horizon
+  // Objectives → metric source + linked todos + type (progress, metric, horizon already in hero)
   if (card.successMetric || typeof card.progress === "number" || card.timeHorizon) {
-    const progress = typeof card.progress === "number" ? card.progress : 0;
+    const metricSource = card.successMetric?.source;
+    const linkedCount = card.relatedTodoIds?.length || 0;
+    if (!metricSource && !linkedCount && !card.objectiveType) return null;
     return (
-      <div className="space-y-3">
-        {typeof card.progress === "number" && (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Progress</span>
-              <span className="text-xs font-semibold text-foreground">{progress}%</span>
-            </div>
-            <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-        )}
-        {card.successMetric && (
-          <div className="bg-muted/50 border border-border rounded-lg p-3 space-y-1.5">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Success Metric</h4>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">{card.successMetric.current}</span>
-              <span className="text-muted-foreground">→</span>
-              <span className="font-semibold text-foreground">{card.successMetric.target}</span>
-            </div>
-            {card.successMetric.gap && (
-              <p className="text-xs text-destructive/70">Gap: {card.successMetric.gap}</p>
-            )}
-            {card.successMetric.source && (
-              <p className="text-[10px] text-muted-foreground">Source: {card.successMetric.source}</p>
-            )}
-          </div>
-        )}
-        {card.timeHorizon && (
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground text-xs">Horizon:</span>
-            <span className="text-foreground font-medium">{card.timeHorizon}</span>
-          </div>
-        )}
-        {card.relatedTodoIds && card.relatedTodoIds.length > 0 && (
-          <div className="flex items-center gap-2 text-sm">
-            <Target className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground text-xs">{card.relatedTodoIds.length} linked to-do{card.relatedTodoIds.length > 1 ? "s" : ""}</span>
-          </div>
-        )}
+      <div className="space-y-2 text-sm">
         {card.objectiveType && (
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground text-xs">Type:</span>
             <span className="text-foreground">{card.objectiveType}</span>
           </div>
         )}
+        {linkedCount > 0 && (
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-foreground">{linkedCount} linked to-do{linkedCount > 1 ? "s" : ""}</span>
+          </div>
+        )}
+        {metricSource && (
+          <p className="text-[11px] text-muted-foreground pl-6">Metric source: {metricSource}</p>
+        )}
       </div>
     );
   }
 
-  // Briefing: signalType
-  if (card.signalType) {
-    return (
-      <div className="flex items-center gap-2 text-sm">
-        <Lightbulb className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="text-muted-foreground text-xs">Signal:</span>
-        <span className="text-foreground font-medium">{card.signalType}</span>
-      </div>
-    );
-  }
-
+  // Briefing → signalType already shown in hero, nothing extra
   return null;
 }
 
