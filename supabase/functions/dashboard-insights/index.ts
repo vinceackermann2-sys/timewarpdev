@@ -269,10 +269,12 @@ serve(async (req) => {
               const subject = headers.find((h: any) => h.name === "Subject")?.value || "No Subject";
               const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
               const date = headers.find((h: any) => h.name === "Date")?.value || "";
-              gmailMessages.push(`📧 **${subject}** from ${from} (${date})`);
+              // snippet = Gmail's verbatim body preview (~200 chars of actual content)
+              const snippet = (detail.snippet || "").trim();
+              gmailMessages.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${date}\nBODY: ${snippet}`);
             } catch { /* skip */ }
           }
-          if (gmailMessages.length > 0) integrationData += `\n### Recent Gmail Messages\n${gmailMessages.join("\n")}\n`;
+          if (gmailMessages.length > 0) integrationData += `\n### Recent Gmail Messages (use SUBJECT verbatim as metadata.subject, BODY verbatim as metadata.bodyPreview)\n${gmailMessages.join("\n\n")}\n`;
         } catch (e) { console.error("Gmail search error:", e); }
       })());
     }
@@ -510,7 +512,7 @@ Every card has these base fields:
 - "timeAgo": accurate relative time string
 - "timestamp": ISO 8601 timestamp of the original event
 - "actionSuggestion": A specific, actionable next step
-- "metadata": source-specific context (same as before: senderName/senderEmail/subject for outlook, scheduledDate/duration/attendees for zoom, contactName/dealValue/stage for hubspot, channel/author for slack/teams, fileName/sharedBy for onedrive, notebook for onenote)
+- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when the integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize the body. Other fields: senderName/senderEmail (parse from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim message text) for slack/teams; fileName/sharedBy for onedrive; notebook for onenote
 
 ## TAB-SPECIFIC FIELDS
 

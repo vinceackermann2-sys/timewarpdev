@@ -206,7 +206,7 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
             const key = `${subject}|${from}|${receivedAt}`;
             if (seenEmails.has(key)) continue;
             seenEmails.add(key);
-            results.emails.push(`📧 **${subject}** (from: ${from}, ${receivedAt})\n${preview}`);
+            results.emails.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${receivedAt}\nBODY: ${preview}`);
             if (results.emails.length >= 5) break;
           }
         }

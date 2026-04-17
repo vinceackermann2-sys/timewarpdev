@@ -15,6 +15,9 @@ export interface DashboardCardMetadata {
   senderName?: string;
   senderEmail?: string;
   subject?: string;
+  /** Verbatim first ~500 chars of the email body — NEVER a summary */
+  bodyPreview?: string;
+  receivedAt?: string;
   attendees?: string[];
   scheduledDate?: string;
   duration?: string;
@@ -23,6 +26,8 @@ export interface DashboardCardMetadata {
   stage?: string;
   channel?: string;
   author?: string;
+  /** Verbatim message text for Slack / Teams */
+  messageText?: string;
   fileName?: string;
   sharedBy?: string;
   notebook?: string;

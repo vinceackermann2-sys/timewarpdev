@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Clock, Calendar, Users, FileText, Lightbulb, DollarSign, MessageSquare, FolderOpen, StickyNote, AlertTriangle, Target, ChevronDown, ChevronUp, Hourglass } from "lucide-react";
+import { Clock, Calendar, Users, FileText, Lightbulb, DollarSign, MessageSquare, FolderOpen, StickyNote, AlertTriangle, Target, Hourglass } from "lucide-react";
 import { SOURCE_META, badgeClasses, getWaitEscalationColor, getDurationEmoji, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind } from "./dashboardTypes";
 import { Button } from "@/components/ui/button";
 
@@ -32,29 +31,39 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
   const meta = card.metadata;
   const source = card.source || "";
 
-  if (source === "outlook") {
-    if (!meta?.senderName && !meta?.senderEmail && !meta?.subject) return null;
+  if (source === "outlook" || source === "google_gmail" || source === "gmail") {
+    if (!meta?.senderName && !meta?.senderEmail && !meta?.subject && !meta?.bodyPreview) return null;
     return (
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 space-y-2">
-          {(meta?.senderName || meta?.senderEmail) && (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                {(meta?.senderName || meta?.senderEmail || "?")[0].toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{meta?.senderName || "Unknown sender"}</p>
-                {meta?.senderEmail && <p className="text-xs text-muted-foreground truncate">{meta.senderEmail}</p>}
-              </div>
-            </div>
-          )}
-          {meta?.subject && (
-            <div className="flex items-center gap-2 text-sm pt-1 border-t border-border/60">
-              <span className="text-muted-foreground text-xs font-medium">Subject:</span>
-              <span className="text-foreground font-medium truncate">{meta.subject}</span>
-            </div>
+      <div className="border border-border rounded-xl overflow-hidden bg-card">
+        {/* Email header bar — sender + date */}
+        <div className="bg-muted/40 px-4 py-3 border-b border-border flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+            {(meta?.senderName || meta?.senderEmail || "?")[0].toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground truncate">{meta?.senderName || meta?.senderEmail || "Unknown sender"}</p>
+            {meta?.senderEmail && meta?.senderName && (
+              <p className="text-xs text-muted-foreground truncate">{meta.senderEmail}</p>
+            )}
+          </div>
+          {meta?.receivedAt && (
+            <span className="shrink-0 text-[11px] text-muted-foreground">{meta.receivedAt}</span>
           )}
         </div>
+        {/* Subject */}
+        {meta?.subject && (
+          <div className="px-4 pt-3">
+            <p className="text-sm font-semibold text-foreground leading-snug">{meta.subject}</p>
+          </div>
+        )}
+        {/* Body — verbatim preview, NOT a summary */}
+        {meta?.bodyPreview && (
+          <div className="px-4 py-3">
+            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-wrap">
+              {meta.bodyPreview}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -93,12 +102,19 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
   }
 
   if (source === "slack") {
-    if (!meta?.channel && !meta?.author) return null;
+    if (!meta?.channel && !meta?.author && !meta?.messageText) return null;
     return (
-      <div className="border border-border rounded-lg px-4 py-3 bg-muted/50 flex items-center gap-2.5">
-        <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-        {meta?.channel && <span className="text-sm font-semibold text-foreground">#{meta.channel}</span>}
-        {meta?.author && <span className="text-xs text-muted-foreground">by {meta.author}</span>}
+      <div className="border border-border rounded-xl overflow-hidden bg-card">
+        <div className="bg-muted/40 px-4 py-2.5 border-b border-border flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+          {meta?.channel && <span className="text-sm font-semibold text-foreground">#{meta.channel}</span>}
+          {meta?.author && <span className="text-xs text-muted-foreground">· {meta.author}</span>}
+        </div>
+        {meta?.messageText && (
+          <div className="px-4 py-3">
+            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-wrap">{meta.messageText}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -131,12 +147,19 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
   }
 
   if (source === "teams") {
-    if (!meta?.channel && !meta?.author) return null;
+    if (!meta?.channel && !meta?.author && !meta?.messageText) return null;
     return (
-      <div className="border border-border rounded-lg px-4 py-3 bg-muted/50 flex items-center gap-2.5">
-        <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-        {meta?.channel && <span className="text-sm font-semibold text-foreground">{meta.channel}</span>}
-        {meta?.author && <span className="text-xs text-muted-foreground">by {meta.author}</span>}
+      <div className="border border-border rounded-xl overflow-hidden bg-card">
+        <div className="bg-muted/40 px-4 py-2.5 border-b border-border flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+          {meta?.channel && <span className="text-sm font-semibold text-foreground">{meta.channel}</span>}
+          {meta?.author && <span className="text-xs text-muted-foreground">· {meta.author}</span>}
+        </div>
+        {meta?.messageText && (
+          <div className="px-4 py-3">
+            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-wrap">{meta.messageText}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -149,13 +172,16 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
 function hasSourceContent(card: DashboardCard): boolean {
   const meta = card.metadata;
   switch (card.source) {
-    case "outlook": return !!(meta?.senderName || meta?.senderEmail || meta?.subject);
+    case "outlook":
+    case "google_gmail":
+    case "gmail":
+      return !!(meta?.senderName || meta?.senderEmail || meta?.subject || meta?.bodyPreview);
     case "zoom": return !!(meta?.scheduledDate || meta?.duration || (meta?.attendees && meta.attendees.length > 0));
     case "hubspot": return !!(meta?.contactName || meta?.dealValue || meta?.stage);
-    case "slack": return !!(meta?.channel || meta?.author);
+    case "slack": return !!(meta?.channel || meta?.author || meta?.messageText);
     case "onedrive": return !!(meta?.fileName || meta?.sharedBy);
     case "onenote": return !!meta?.notebook;
-    case "teams": return !!(meta?.channel || meta?.author);
+    case "teams": return !!(meta?.channel || meta?.author || meta?.messageText);
     default: return false;
   }
 }
@@ -368,8 +394,6 @@ function TabHeroBlock({ card, tabKind }: { card: DashboardCard; tabKind: TabKind
 }
 
 export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Props) {
-  const [sourceOpen, setSourceOpen] = useState(false);
-
   if (!card) return null;
 
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
@@ -377,7 +401,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
   const framing = TAB_FRAMING[tabKind];
   const TabIcon = framing.icon;
   const CtaIcon = framing.ctaIcon;
-  const sourceCollapsible = tabKind !== "Briefing"; // Briefing keeps source primary
+  const showSource = hasSourceContent(card);
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -386,6 +410,23 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
         <div className={`h-1 w-full ${framing.accentBar}`} />
 
         <SheetHeader className="px-6 pt-5 pb-4 border-b border-border space-y-3">
+          {/* Source badge — TOP, primary context */}
+          {sourceMeta.label && (
+            <div className="flex items-center gap-2 text-xs">
+              {sourceMeta.icon && (
+                <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              )}
+              <span className="font-semibold text-foreground">{sourceMeta.label}</span>
+              {card.timeAgo && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">{card.timeAgo}</span>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${framing.accentChip}`}>
               <TabIcon className="h-3 w-3" />
@@ -406,20 +447,9 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-          {/* Source badge + time */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {sourceMeta.icon && (
-              <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            )}
-            <span className="font-medium">{sourceMeta.label}</span>
-            {card.timeAgo && (
-              <>
-                <span className="mx-1">·</span>
-                <Clock className="h-3 w-3" />
-                <span>{card.timeAgo}</span>
-              </>
-            )}
-          </div>
+          {/* Source content — TOP of body, always expanded.
+              For emails/messages this shows actual subject + verbatim content. */}
+          {showSource && <SourceContentBlock card={card} />}
 
           {/* Tab-personalized hero block — sets the emotional/functional tone */}
           <TabHeroBlock card={card} tabKind={tabKind} />
@@ -431,28 +461,6 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
 
           {/* Tab-specific structured details (consequence for Updates, howTo for To-Dos, etc.) */}
           <TabSpecificDetails card={card} />
-
-          {/* Source content — only when there's structured metadata to show */}
-          {hasSourceContent(card) && (
-            sourceCollapsible ? (
-              <div>
-                <button
-                  onClick={() => setSourceOpen(o => !o)}
-                  className="w-full flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors py-1"
-                >
-                  <span>Source</span>
-                  {sourceOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                </button>
-                {sourceOpen && (
-                  <div className="mt-2">
-                    <SourceContentBlock card={card} />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <SourceContentBlock card={card} />
-            )
-          )}
 
           {/* Rationale / extra detail (no label header — accent color frames it) */}
           {card.detail && (
