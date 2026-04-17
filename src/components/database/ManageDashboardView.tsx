@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ClipboardCheck, RefreshCw, ListTodo, Award, Clock,
   Building2, Plus, Loader2, AlertTriangle, Lightbulb, Check, Users, Zap,
+  TrendingUp, AlertCircle,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "./BusinessDNAContext";
@@ -12,8 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
 import {
-  DashboardCard, badgeClasses, SOURCE_META, getCardButtonLabel, TAB_SUBTITLES,
-  ICON_MAP, getWaitEscalationColor, getDurationEmoji,
+  DashboardCard, badgeClasses, SOURCE_META, TAB_SUBTITLES,
+  ICON_MAP, getWaitEscalationColor, getDurationEmoji, TAB_FRAMING, type TabKind,
 } from "./dashboardTypes";
 
 const TABS = [
