@@ -511,7 +511,8 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const hasCards = Object.values(allTabCards).some(arr => arr.length > 0);
 
   return (
-    <div className="h-full flex flex-col bg-background relative overflow-hidden">
+    <div className="h-full flex bg-background relative overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col">
       <div className="px-6 lg:px-8 pt-6 pb-3">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -614,6 +615,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           )}
         </main>
       </ScrollArea>
+      </div>
 
       <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} onExecuteAction={onExecuteAction} />
     </div>
