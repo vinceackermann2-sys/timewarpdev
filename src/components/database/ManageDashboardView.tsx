@@ -139,6 +139,12 @@ function SourceLogo({ card, size = 14 }: { card: DashboardCard; size?: number })
 function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const SignalIcon = card.signalType ? (ICON_MAP[card.icon || ""] || Lightbulb) : null;
   const framing = TAB_FRAMING.Briefing;
+  const showTime = isRecentTimeAgo(card.timeAgo);
+  // Hide signalType pill if it just duplicates the title
+  const showSignalPill =
+    !!card.signalType &&
+    !!SignalIcon &&
+    !card.title.toLowerCase().includes(card.signalType.toLowerCase());
 
   return (
     <CardShell
@@ -147,8 +153,8 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       onOpen={onOpen}
       meta={
         <>
-          <SourceChip card={card} />
-          {card.timeAgo && (
+          <SourceLogo card={card} size={16} />
+          {showTime && (
             <span className="inline-flex items-center gap-0.5">
               <Clock className="w-3 h-3" />
               {card.timeAgo}
@@ -157,7 +163,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
         </>
       }
       signalBlock={
-        card.signalType && SignalIcon ? (
+        showSignalPill ? (
           <div className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md border w-fit ${framing.accentSoftBg} ${framing.accentText}`}>
             <SignalIcon className="w-3 h-3" />
             {card.signalType}
@@ -180,7 +186,9 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
 function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const waitColor = getWaitEscalationColor(card.waitDuration);
   const framing = TAB_FRAMING.Updates;
-  const initial = (card.waitingParty || card.metadata?.senderName || "?").trim()[0]?.toUpperCase() || "?";
+  const partyName = card.waitingParty || card.metadata?.senderName || "External party";
+  const initial = partyName.trim()[0]?.toUpperCase() || "?";
+  const showTime = isRecentTimeAgo(card.timeAgo) && !card.waitDuration;
 
   return (
     <CardShell
@@ -189,8 +197,8 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
       onOpen={onOpen}
       meta={
         <>
-          <SourceChip card={card} />
-          {card.timeAgo && !card.waitDuration && (
+          <SourceLogo card={card} size={16} />
+          {showTime && (
             <span className="inline-flex items-center gap-0.5">
               <Clock className="w-3 h-3" />
               {card.timeAgo}
@@ -200,20 +208,23 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
       }
       signalBlock={
         <div className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg border ${framing.accentSoftBg}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${framing.accentChip}`}>
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${framing.accentChip}`}>
             {initial}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold text-foreground truncate">
-              {card.waitingParty || card.metadata?.senderName || "External party"}
+            <p className="text-[12.5px] font-semibold text-foreground truncate">
+              {partyName}
+              {card.waitDuration && (
+                <span className="text-muted-foreground font-normal"> · {card.waitDuration}</span>
+              )}
             </p>
-            <p className={`text-[10.5px] ${framing.accentText} font-medium`}>
-              is waiting on you{card.requestType ? ` · ${card.requestType}` : ""}
-            </p>
+            {card.requestType && (
+              <p className={`text-[10.5px] ${framing.accentText} font-medium truncate`}>{card.requestType}</p>
+            )}
           </div>
           {card.waitDuration && (
-            <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded border ${waitColor || "text-muted-foreground bg-muted border-border"}`}>
-              ⏳ {card.waitDuration}
+            <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded border ${waitColor || "text-muted-foreground bg-muted border-border"}`}>
+              {card.waitDuration}
             </span>
           )}
         </div>
@@ -223,14 +234,6 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
           <framing.ctaIcon className="w-3 h-3" />
           {framing.ctaLabel}
         </span>
-      }
-      footerRight={
-        card.priority === "High" && card.consequence ? (
-          <span className="inline-flex items-center gap-1 text-[10px] text-destructive/80 max-w-[180px] truncate" title={card.consequence}>
-            <AlertCircle className="w-3 h-3 shrink-0" />
-            <span className="truncate">{card.consequence}</span>
-          </span>
-        ) : null
       }
     />
   );
@@ -255,23 +258,21 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
           aria-label={done ? "Mark as not done" : "Mark as done"}
-          className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors mr-1 ${done ? "bg-primary border-primary" : "border-border hover:border-primary/60"}`}
+          className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${done ? "bg-primary border-primary" : "border-border hover:border-primary/60"}`}
         >
           {done && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
         </button>
       }
       meta={
         card.estimatedDuration ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">
-            <span>{durationEmoji}</span>
-            {card.estimatedDuration}
+          <span className="inline-flex items-center text-[12px]" title={card.estimatedDuration}>
+            {durationEmoji}
           </span>
         ) : undefined
       }
       signalBlock={
         leverage > 0 ? (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Leverage</span>
+          <div className="flex items-center gap-1.5">
             <div className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map(n => (
                 <div key={n} className={`w-3 h-1.5 rounded-full ${n <= leverage ? "bg-primary" : "bg-muted"}`} />
@@ -291,7 +292,6 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
           <span className="text-[11px] text-muted-foreground italic">Completed</span>
         )
       }
-      footerRight={card.taskType ? <span>{card.taskType}</span> : undefined}
     />
   );
 }
