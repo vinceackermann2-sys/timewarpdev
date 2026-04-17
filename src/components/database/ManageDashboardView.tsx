@@ -417,7 +417,7 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
 
       {/* Objective progress block */}
       {isObjective && (
-        <div className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3 flex flex-col gap-2.5">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#eef2f7]">
           <Skeleton className="h-2.5 w-24" />
           <div className="flex items-end justify-between gap-3">
             <Skeleton className="h-6 w-20" />
