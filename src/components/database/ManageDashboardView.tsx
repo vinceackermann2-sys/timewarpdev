@@ -636,8 +636,8 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             )}
           </div>
           {activeBrand && (
-            <Button variant="outline" size="sm" className="gap-2 text-xs bg-[#fcfcfd] shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)]" onClick={handleRefresh} disabled={loading}>
-              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 bg-[#fcfcfd] shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)]" onClick={handleRefresh} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Update
             </Button>
           )}
@@ -651,13 +651,13 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             </Button>
           </div>
         )}
-        <div className="relative max-w-[220px]">
-          <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-muted-foreground" />
           </div>
           <input
             type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-7 pr-2 py-1.5 border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-[11px] transition-colors bg-white border-border shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)]"
+            className="block w-full pl-10 pr-3 py-2.5 border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm transition-colors bg-white border-border shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)]"
             placeholder="Search cards..."
           />
         </div>
