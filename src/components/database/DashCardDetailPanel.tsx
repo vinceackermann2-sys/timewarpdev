@@ -205,55 +205,35 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
 
   if (minimized) {
     return (
-      <aside className="w-[420px] shrink-0 my-3 mx-3 flex flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_14px_2px_hsl(210_20%_85%/0.75)]">
+      <aside className="w-[420px] shrink-0 my-3 mx-3 flex flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)]">
         <div className="px-6 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">{topLabel}</span>
             <span className="text-sm font-semibold text-foreground truncate ml-2">{card.title}</span>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              aria-label="Expand"
-              onClick={() => setMinimized(false)}
-              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={onClose}
-              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
+          <button
+            type="button"
+            aria-label="Expand"
+            onClick={() => setMinimized(false)}
+            className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
+          >
+            <ChevronDown className="h-4 w-4 rotate-180" />
+          </button>
         </div>
       </aside>
     );
   }
 
   return (
-    <aside className="w-[420px] shrink-0 h-[calc(100%-3rem)] my-6 mx-3 flex flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_14px_2px_hsl(210_20%_85%/0.75)]">
-      {/* ── Top bar: time meta · more · close ─────────────── */}
+    <aside className="w-[420px] shrink-0 h-[calc(100%-3rem)] my-6 mx-3 flex flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)]">
+      {/* ── Top bar: time meta · more · dropdown ─────────────── */}
       <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-white">
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
           <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Minimize"
-            onClick={() => setMinimized(true)}
-            className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-          >
-            <Minimize2 className="h-3.5 w-3.5" />
-          </button>
           <button
             type="button"
             aria-label="More options"
@@ -264,13 +244,11 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
           </button>
           <button
             type="button"
-            aria-label="Close"
-            onClick={onClose}
+            aria-label="Minimize"
+            onClick={() => setMinimized(true)}
             className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <ChevronDown className="h-4 w-4" />
           </button>
         </div>
       </div>
