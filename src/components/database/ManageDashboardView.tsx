@@ -626,7 +626,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   }, [activeTab, filteredCards, detailCard]);
 
   return (
-    <div className="h-full flex relative overflow-hidden bg-white">
+    <div className="h-full flex relative overflow-hidden bg-[#fcfcfd]">
       <div className="flex-1 min-w-0 flex flex-col">
       <div className="px-6 lg:px-8 pt-6 pb-3 bg-white">
         <div className="flex items-center justify-between mb-4">
