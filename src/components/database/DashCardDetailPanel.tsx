@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, ArrowRight, Plug,
 } from "lucide-react";
