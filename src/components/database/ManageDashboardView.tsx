@@ -40,6 +40,13 @@ function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>)
   } catch { /* quota exceeded – ignore */ }
 }
 
+/* Show timeAgo on cards only when "recent" (< ~24h) — keeps cards quiet */
+function isRecentTimeAgo(t?: string): boolean {
+  if (!t) return false;
+  const lower = t.toLowerCase();
+  return /\b(just now|now|min|minute|hour|hr|h ago|m ago|today)\b/.test(lower);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Shared card skeleton — same anatomy across all 4 tabs              */
 /* ------------------------------------------------------------------ */
@@ -69,20 +76,16 @@ function CardShell({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      className={`group relative overflow-hidden bg-card border border-border/60 rounded-2xl pl-5 pr-5 py-4 w-full flex flex-col gap-3 transition-all duration-200 hover:border-border hover:shadow-md cursor-pointer text-left ${dimmed ? "opacity-60" : ""} ${className || ""}`}
+      className={`group relative overflow-hidden bg-card border border-border/60 rounded-2xl pl-5 pr-5 py-4 w-full flex flex-col gap-2.5 transition-all duration-200 hover:border-border hover:shadow-md cursor-pointer text-left ${dimmed ? "opacity-60" : ""} ${className || ""}`}
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
-      {/* Accent rail — left edge, tab identity */}
+      {/* Accent rail — left edge, tab identity (color = identity, no eyebrow text needed) */}
       <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${framing.accentBar}`} />
 
-      {/* Header: eyebrow + priority + meta */}
+      {/* Header: priority dot + leading control + meta */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           {leadingControl}
-          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${framing.accentChip}`}>
-            <framing.icon className="h-2.5 w-2.5" />
-            {framing.eyebrow}
-          </span>
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${priorityClass}`}>
             {card.priority}
           </span>
@@ -98,9 +101,9 @@ function CardShell({
       {/* Tab-specific signal block */}
       {signalBlock}
 
-      {/* Description */}
+      {/* Description — clamp-1 on cards (full text in panel) */}
       {!hideDescription && card.description && (
-        <p className="text-[12.5px] text-muted-foreground leading-relaxed line-clamp-2">{card.description}</p>
+        <p className="text-[12.5px] text-muted-foreground leading-relaxed line-clamp-1">{card.description}</p>
       )}
 
       {/* Footer: CTA + secondary meta */}
@@ -114,19 +117,19 @@ function CardShell({
   );
 }
 
-/* small inline source chip (used in card meta) */
-function SourceChip({ card }: { card: DashboardCard }) {
+/* small inline source logo only (no label text — logo is enough) */
+function SourceLogo({ card, size = 14 }: { card: DashboardCard; size?: number }) {
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
-  if (!sourceMeta.icon && !sourceMeta.label) return null;
+  if (!sourceMeta.icon) return null;
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
-      {sourceMeta.icon ? (
-        <img src={sourceMeta.icon} alt="" className="w-3 h-3 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-      ) : (
-        <Building2 className="w-3 h-3" />
-      )}
-      <span className="truncate max-w-[80px]">{sourceMeta.label}</span>
-    </span>
+    <img
+      src={sourceMeta.icon}
+      alt={sourceMeta.label}
+      title={sourceMeta.label}
+      className="rounded object-contain shrink-0"
+      style={{ width: size, height: size }}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
   );
 }
 
