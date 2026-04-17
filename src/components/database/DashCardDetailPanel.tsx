@@ -395,8 +395,6 @@ function TabHeroBlock({ card, tabKind }: { card: DashboardCard; tabKind: TabKind
 }
 
 export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Props) {
-  const [sourceOpen, setSourceOpen] = useState(false);
-
   if (!card) return null;
 
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
@@ -404,7 +402,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
   const framing = TAB_FRAMING[tabKind];
   const TabIcon = framing.icon;
   const CtaIcon = framing.ctaIcon;
-  const sourceCollapsible = tabKind !== "Briefing"; // Briefing keeps source primary
+  const showSource = hasSourceContent(card);
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
