@@ -269,10 +269,12 @@ serve(async (req) => {
               const subject = headers.find((h: any) => h.name === "Subject")?.value || "No Subject";
               const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
               const date = headers.find((h: any) => h.name === "Date")?.value || "";
-              gmailMessages.push(`📧 **${subject}** from ${from} (${date})`);
+              // snippet = Gmail's verbatim body preview (~200 chars of actual content)
+              const snippet = (detail.snippet || "").trim();
+              gmailMessages.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${date}\nBODY: ${snippet}`);
             } catch { /* skip */ }
           }
-          if (gmailMessages.length > 0) integrationData += `\n### Recent Gmail Messages\n${gmailMessages.join("\n")}\n`;
+          if (gmailMessages.length > 0) integrationData += `\n### Recent Gmail Messages (use SUBJECT verbatim as metadata.subject, BODY verbatim as metadata.bodyPreview)\n${gmailMessages.join("\n\n")}\n`;
         } catch (e) { console.error("Gmail search error:", e); }
       })());
     }
