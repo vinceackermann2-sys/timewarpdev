@@ -32,29 +32,39 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
   const meta = card.metadata;
   const source = card.source || "";
 
-  if (source === "outlook") {
-    if (!meta?.senderName && !meta?.senderEmail && !meta?.subject) return null;
+  if (source === "outlook" || source === "google_gmail" || source === "gmail") {
+    if (!meta?.senderName && !meta?.senderEmail && !meta?.subject && !meta?.bodyPreview) return null;
     return (
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 space-y-2">
-          {(meta?.senderName || meta?.senderEmail) && (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                {(meta?.senderName || meta?.senderEmail || "?")[0].toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{meta?.senderName || "Unknown sender"}</p>
-                {meta?.senderEmail && <p className="text-xs text-muted-foreground truncate">{meta.senderEmail}</p>}
-              </div>
-            </div>
-          )}
-          {meta?.subject && (
-            <div className="flex items-center gap-2 text-sm pt-1 border-t border-border/60">
-              <span className="text-muted-foreground text-xs font-medium">Subject:</span>
-              <span className="text-foreground font-medium truncate">{meta.subject}</span>
-            </div>
+      <div className="border border-border rounded-xl overflow-hidden bg-card">
+        {/* Email header bar — sender + date */}
+        <div className="bg-muted/40 px-4 py-3 border-b border-border flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+            {(meta?.senderName || meta?.senderEmail || "?")[0].toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground truncate">{meta?.senderName || meta?.senderEmail || "Unknown sender"}</p>
+            {meta?.senderEmail && meta?.senderName && (
+              <p className="text-xs text-muted-foreground truncate">{meta.senderEmail}</p>
+            )}
+          </div>
+          {meta?.receivedAt && (
+            <span className="shrink-0 text-[11px] text-muted-foreground">{meta.receivedAt}</span>
           )}
         </div>
+        {/* Subject */}
+        {meta?.subject && (
+          <div className="px-4 pt-3">
+            <p className="text-sm font-semibold text-foreground leading-snug">{meta.subject}</p>
+          </div>
+        )}
+        {/* Body — verbatim preview, NOT a summary */}
+        {meta?.bodyPreview && (
+          <div className="px-4 py-3">
+            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-wrap">
+              {meta.bodyPreview}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
