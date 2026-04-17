@@ -226,7 +226,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
   }
 
   return (
-    <aside className="w-[420px] shrink-0 h-[calc(100%-3rem)] my-6 mx-3 flex flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)]">
+    <aside className="w-[420px] shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)]">
       {/* ── Top bar: time meta · more · dropdown ─────────────── */}
       <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-white">
         <div className="flex items-center gap-1.5 text-muted-foreground">
