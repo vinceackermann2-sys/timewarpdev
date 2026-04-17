@@ -123,7 +123,7 @@ function OriginalContextCard({ card, tabKind }: { card: DashboardCard; tabKind: 
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/30 overflow-hidden">
       {/* Section header */}
-      <div className="px-4 py-2.5 flex items-center gap-2">
+      <div className="px-4 py-2.5 flex items-center gap-2 bg-slate-100">
         {isSystemContext ? (
           <Plug className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         ) : sourceMeta.icon ? (
@@ -141,7 +141,7 @@ function OriginalContextCard({ card, tabKind }: { card: DashboardCard; tabKind: 
         </span>
       </div>
 
-      <div className="px-4 pb-4 space-y-3">
+      <div className="px-4 pb-4 space-y-3 bg-slate-100">
         {/* Sender row (emails / messages with a sender) */}
         {(isEmail || isMessage || senderName) && (
           <div className="flex items-center gap-2.5">
@@ -233,20 +233,20 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
       </div>
 
       {/* ── Title ─────────────────────────────────────────── */}
-      <div className="shrink-0 px-6 pb-5 shadow-xl">
+      <div className="shrink-0 px-6 pb-5 shadow-xl bg-white">
         <h2 className="text-[22px] font-bold leading-tight text-foreground">
           {card.title}
         </h2>
       </div>
 
       {/* ── Scrollable body ───────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 bg-[#fcfcfd] shadow-xl rounded-none">
+      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 shadow-xl rounded-none bg-white">
         <OriginalContextCard card={card} tabKind={tabKind} />
         <InsightsRow tabKind={tabKind} />
       </div>
 
       {/* ── Quick Note ────────────────────────────────────── */}
-      <div className="shrink-0 px-6 pt-4 pb-3 bg-[#fcfcfd] shadow-xl">
+      <div className="shrink-0 px-6 pt-4 pb-3 shadow-xl bg-white">
         <div className="flex items-center gap-2 mb-2">
           <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">

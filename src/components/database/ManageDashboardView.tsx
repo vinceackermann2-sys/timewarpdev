@@ -354,7 +354,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
         </div>
       }
       middle={
-        <div className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3 flex flex-col gap-2.5">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#fcfcfd]">
           <p className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">Current Progress</p>
           <div className="flex items-end justify-between gap-3">
             <div className="flex items-baseline gap-1.5 min-w-0">
@@ -365,7 +365,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
               {label}
             </span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div className="h-1.5 w-full rounded-full overflow-hidden bg-slate-100">
             <div className={`h-full rounded-full transition-all ${barCls}`} style={{ width: `${pct}%` }} />
           </div>
         </div>
