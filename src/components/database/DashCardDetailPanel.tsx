@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, ArrowRight, Plug,
 } from "lucide-react";
@@ -197,88 +196,84 @@ function OriginalContextCard({ card, tabKind }: { card: DashboardCard; tabKind: 
 }
 
 export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Props) {
-  if (!card) return null;
+  if (!card || !open) return null;
 
   const tabKind = inferTabKind(card);
   const ctaLabel = ctaLabelFor(card, tabKind);
   const topLabel = topMetaLabel(card, tabKind);
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-[480px] flex flex-col gap-0 p-0 bg-background [&>.absolute]:hidden">
-        {/* ── Top bar: time meta · more · close ─────────────── */}
-        <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="More options"
-              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreVertical className="h-4 w-4" />
-            </button>
-            {/* Sheet's built-in close button is absolute top-right; we hide it via spacer
-                and provide our own close that respects the layout. */}
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={onClose}
-              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
+    <aside className="w-[420px] shrink-0 h-full flex flex-col border-l border-border bg-background">
+      {/* ── Top bar: time meta · more · close ─────────────── */}
+      <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Clock className="h-3.5 w-3.5" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
         </div>
-
-        {/* ── Title ─────────────────────────────────────────── */}
-        <div className="shrink-0 px-6 pb-5">
-          <h2 className="text-[22px] font-bold leading-tight text-foreground">
-            {card.title}
-          </h2>
-        </div>
-
-        {/* ── Scrollable body ───────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
-          <OriginalContextCard card={card} tabKind={tabKind} />
-          <InsightsRow tabKind={tabKind} />
-        </div>
-
-        {/* ── Quick Note ────────────────────────────────────── */}
-        <div className="shrink-0 px-6 pt-4 pb-3">
-          <div className="flex items-center gap-2 mb-2">
-            <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Quick Note
-            </span>
-          </div>
-          <textarea
-            placeholder="Add a comment, note, or update context..."
-            className="w-full min-h-[60px] resize-none rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background transition-colors"
-          />
-        </div>
-
-        {/* ── Sticky bottom CTA ─────────────────────────────── */}
-        <div className="shrink-0 px-6 pb-5">
-          <Button
-            className="w-full h-12 gap-2 text-[14px] font-semibold rounded-xl bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
-            onClick={() => {
-              if (card.actionSuggestion) {
-                onExecuteAction?.(card.actionSuggestion);
-              }
-              onClose();
-            }}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="More options"
+            className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            onClick={(e) => e.stopPropagation()}
           >
-            {ctaLabel}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+            <MoreVertical className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+
+      {/* ── Title ─────────────────────────────────────────── */}
+      <div className="shrink-0 px-6 pb-5">
+        <h2 className="text-[22px] font-bold leading-tight text-foreground">
+          {card.title}
+        </h2>
+      </div>
+
+      {/* ── Scrollable body ───────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
+        <OriginalContextCard card={card} tabKind={tabKind} />
+        <InsightsRow tabKind={tabKind} />
+      </div>
+
+      {/* ── Quick Note ────────────────────────────────────── */}
+      <div className="shrink-0 px-6 pt-4 pb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Quick Note
+          </span>
+        </div>
+        <textarea
+          placeholder="Add a comment, note, or update context..."
+          className="w-full min-h-[60px] resize-none rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background transition-colors"
+        />
+      </div>
+
+      {/* ── Sticky bottom CTA ─────────────────────────────── */}
+      <div className="shrink-0 px-6 pb-5">
+        <Button
+          className="w-full h-12 gap-2 text-[14px] font-semibold rounded-xl bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
+          onClick={() => {
+            if (card.actionSuggestion) {
+              onExecuteAction?.(card.actionSuggestion);
+            }
+            onClose();
+          }}
+        >
+          {ctaLabel}
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </aside>
   );
 }
