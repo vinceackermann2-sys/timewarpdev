@@ -210,97 +210,91 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
   const ctaLabel = ctaLabelFor(card, tabKind);
   const topLabel = topMetaLabel(card, tabKind);
 
-  if (minimized) {
-    return (
-      <aside className="w-[420px] shrink-0 self-start my-3 mx-3 flex flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)]">
-        <div className="px-6 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">{topLabel}</span>
-            <span className="text-sm font-semibold text-foreground truncate ml-2">{card.title}</span>
-          </div>
-          <button
-            type="button"
-            aria-label="Expand"
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(false); }}
-            className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </button>
-        </div>
-      </aside>
-    );
-  }
-
   return (
-    <aside className="w-[420px] shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)]">
-      {/* ── Top bar: time meta · more · dropdown ─────────────── */}
-      <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-white">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Clock className="h-3.5 w-3.5" />
-          <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
+    <aside
+      className={`w-[420px] shrink-0 self-start ${minimized ? "my-3" : "my-12"} mx-3 grid rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-[grid-template-rows,margin] duration-300 ease-in-out`}
+      style={{ gridTemplateRows: "auto 1fr" }}
+    >
+      {/* ── Top bar: time meta · title (when minimized) · controls ─────────── */}
+      <div className="px-6 py-3 flex items-center justify-between gap-2 bg-white">
+        <div className="flex items-center gap-2 min-w-0 flex-1 text-muted-foreground">
+          <Clock className="h-3.5 w-3.5 shrink-0" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider shrink-0">{topLabel}</span>
+          {minimized && (
+            <span className="text-sm font-semibold text-foreground truncate ml-2">{card.title}</span>
+          )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
+          {!minimized && (
+            <button
+              type="button"
+              aria-label="More options"
+              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+          )}
           <button
             type="button"
-            aria-label="More options"
-            className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreVertical className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Minimize"
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(true); }}
+            aria-label={minimized ? "Expand" : "Minimize"}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(!minimized); }}
             className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
           >
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${minimized ? "" : "rotate-180"}`} />
           </button>
         </div>
       </div>
 
-      {/* ── Title ─────────────────────────────────────────── */}
-      <div className="shrink-0 px-6 pb-5 shadow-xl bg-white">
-        <h2 className="text-[22px] font-bold leading-tight text-foreground">
-          {card.title}
-        </h2>
-      </div>
+      {/* ── Collapsible body — animates downward with grid rows ───────────── */}
+      <div
+        className="grid overflow-hidden transition-[grid-template-rows] duration-300 ease-in-out"
+        style={{ gridTemplateRows: minimized ? "0fr" : "1fr" }}
+      >
+        <div className="min-h-0 overflow-hidden flex flex-col">
+          {/* Title */}
+          <div className="shrink-0 px-6 pt-2 pb-5 bg-white">
+            <h2 className="text-[22px] font-bold leading-tight text-foreground">
+              {card.title}
+            </h2>
+          </div>
 
-      {/* ── Scrollable body ───────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 shadow-xl rounded-none bg-white">
-        <OriginalContextCard card={card} tabKind={tabKind} />
-        <InsightsRow tabKind={tabKind} />
-      </div>
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 bg-white max-h-[55vh]">
+            <OriginalContextCard card={card} tabKind={tabKind} />
+            <InsightsRow tabKind={tabKind} />
+          </div>
 
-      {/* ── Quick Note ────────────────────────────────────── */}
-      <div className="shrink-0 px-6 pt-4 pb-3 shadow-xl bg-white">
-        <div className="flex items-center gap-2 mb-2">
-          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Quick Note
-          </span>
+          {/* Quick Note */}
+          <div className="shrink-0 px-6 pt-4 pb-3 bg-white">
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Quick Note
+              </span>
+            </div>
+            <textarea
+              placeholder="Add a comment, note, or update context..."
+              className="w-full min-h-[60px] resize-none rounded-lg border border-border/60 px-3 py-2 text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors bg-white"
+            />
+          </div>
+
+          {/* Sticky bottom CTA */}
+          <div className="shrink-0 px-6 pb-5 bg-[#fcfcfd]">
+            <Button
+              className="w-full h-12 gap-2 text-[14px] font-semibold rounded-xl bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
+              onClick={() => {
+                if (card.actionSuggestion) {
+                  onExecuteAction?.(card.actionSuggestion);
+                }
+                onClose();
+              }}
+            >
+              {ctaLabel}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <textarea
-          placeholder="Add a comment, note, or update context..."
-          className="w-full min-h-[60px] resize-none rounded-lg border border-border/60 px-3 py-2 text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors bg-white"
-        />
-      </div>
-
-      {/* ── Sticky bottom CTA ─────────────────────────────── */}
-      <div className="shrink-0 px-6 pb-5 bg-[#fcfcfd] shadow-xl">
-        <Button
-          className="w-full h-12 gap-2 text-[14px] font-semibold rounded-xl bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
-          onClick={() => {
-            if (card.actionSuggestion) {
-              onExecuteAction?.(card.actionSuggestion);
-            }
-            onClose();
-          }}
-        >
-          {ctaLabel}
-          <ArrowRight className="h-4 w-4" />
-        </Button>
       </div>
     </aside>
   );
