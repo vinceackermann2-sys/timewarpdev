@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Clock, Mail, Calendar, Users, FileText, Hash, BookOpen, Lightbulb, DollarSign, Sparkles, Video, MessageSquare, FolderOpen, StickyNote, Zap, AlertTriangle, Target, TrendingUp, ChevronDown, ChevronUp, Hourglass } from "lucide-react";
+import { Clock, Calendar, Users, FileText, Lightbulb, DollarSign, MessageSquare, FolderOpen, StickyNote, AlertTriangle, Target, ChevronDown, ChevronUp, Hourglass } from "lucide-react";
 import { SOURCE_META, badgeClasses, getWaitEscalationColor, getDurationEmoji, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind } from "./dashboardTypes";
 import { Button } from "@/components/ui/button";
 
