@@ -1,62 +1,75 @@
 
 
-# Implement Post-Onboarding DNA Mutation Model
+# Goal
+Make the 4 card types (Briefing, Updates, To-Dos, Objectives) and their right-side detail panel feel **cleaner, more congruent, more personal, and purposefully tailored** to what each one actually displays. Today they're inconsistent: BriefingCard is huge with a giant logo, DashCard (Updates) is a horizontal row, TodoCard is a single line, ObjectiveCard has progress bars — but none share a visual language, and the detail panel's source blocks (Outlook/Zoom/etc.) are generic rather than reinforcing the tab's purpose.
 
-## Summary
+# Design principle
+**One shared card skeleton + tab-specific personality.** Same anatomy (accent rail, header row, body, footer) → same accent colors that already exist in the detail panel (`TAB_FRAMING`) → so a card and its open panel feel like the same object expanding.
 
-The PDF defines how Business DNA should safely evolve after onboarding. Most of the core architecture (dual-ID, field edit, cascade delete, re-enrichment, caching, diff-based save, cross-tab sync) is **already fully implemented** in `BusinessDNAContext.tsx`. The PDF identifies concrete propagation gaps to close:
+```text
+┌─[accent rail 3px]──────────────────────────┐
+│ [eyebrow chip]           [time/source]     │  ← tab identity
+│ Title (clamp-2)                            │
+│ ─ tab-specific signal block ─              │  ← what makes THIS tab matter
+│ description (clamp-2)                      │
+│ [primary action]   [secondary meta]        │
+└────────────────────────────────────────────┘
+```
 
-## What's Already Done
-- Dual-ID architecture (_rowId + logical id)
-- All 4 mutation types (field edit, entity addition, cascade delete, re-enrichment)
-- Caching & sync (localStorage, diff-based save, cross-tab storage events)
-- Workspace scoping on all queries
-- Integrity rules: cascade delete, title↔content sync
+# Per-tab personality
 
-## What Needs to Be Implemented
+**Briefing — "What changed"** (calm, informational)
+- Blue accent rail + eyebrow chip "Signal"
+- Source logo small (28px, inline), not the giant 64px box
+- Body: signal type + 2-line summary
+- CTA: ghost-style "Read briefing" (no urgency)
 
-### 1. P0: Dashboard Invalidation on DNA Mutation
+**Updates — "Someone is waiting"** (urgent, human)
+- Red accent rail + eyebrow "Waiting"
+- Hero element: **avatar circle** with waiting party initial + name ("Maria Chen is waiting 3d")
+- Wait duration as prominent escalation pill (color matches `getWaitEscalationColor`)
+- Consequence shown inline if High priority
+- CTA: solid red "Respond now"
 
-**Problem**: Dashboard caches generated insights per brand. When DNA changes (edit/add/delete), the dashboard shows stale data until manually refreshed.
+**To-Dos — "Action required"** (focused, kinetic)
+- Primary accent rail + eyebrow "Task"
+- Checkbox on the left (current behavior preserved)
+- Duration pill + leverage dots (the 5-bar leverage scale already exists in panel — surface on card)
+- Single-line title but with hover-revealed first step preview
+- CTA: "Start" + hover-secondary "Snooze"
 
-**Solution**:
-- In `BusinessDNAContext.tsx`: After any mutation (save, delete, add), dispatch a custom event `dna_mutated` with the affected `brandId`
-- Also clear the dashboard localStorage cache for that brand (`dash_cards_<brandId>`)
-- In `ManageDashboardView.tsx`: Listen for `dna_mutated` events. When received, show an "Insights may be outdated — Regenerate" banner and auto-clear cached cards for that brand
+**Objectives — "Strategic outcome"** (composed, aspirational)
+- Emerald accent rail + eyebrow "Objective"
+- Progress ring (24px circular) replaces flat bar — feels more "goal-shaped"
+- Success metric as before (current → target)
+- Linked to-dos count as small chip
+- CTA: "Plan execution" (matches panel)
 
-### 2. P1: Employee Link Validation on Brand Deletion
+# Right-side panel improvements
+Already tab-aware via `TAB_FRAMING`. Refinements:
+1. **Add tab-personalized hero block** at top of body (under header):
+   - Briefing: "What changed" callout box with the signal
+   - Updates: large avatar + waiting party + escalating timer
+   - To-Dos: duration + leverage + time-to-complete strip
+   - Objectives: progress ring + metric delta
+2. **Make source content secondary** in Updates/To-Dos/Objectives (collapse into "Source context" expandable section). Briefing keeps it primary since the source IS the briefing.
+3. **Empty-state per tab** with personalized copy (Briefing: "All quiet — no new signals", Updates: "Inbox zero — nobody waiting", etc.)
+4. **Sticky footer CTA** so action button is always visible while scrolling long source content.
 
-**Problem**: When a brand is deleted, employees with `linked_business_id` pointing to that brand's row become orphaned.
+# Files to change
+1. **`src/components/database/dashboardTypes.ts`** — export shared `TAB_FRAMING` constant (move from panel) so cards + panel use identical accents/eyebrows/CTA labels.
+2. **`src/components/database/ManageDashboardView.tsx`** — rewrite the 4 card components against the shared skeleton; add tab-personalized empty states.
+3. **`src/components/database/DashCardDetailPanel.tsx`** — import shared `TAB_FRAMING`, add tab-personalized hero block, collapse source content for non-Briefing tabs, sticky footer CTA.
 
-**Solution**:
-- In `BusinessDNAContext.tsx` `deleteBrand()`: After deleting brand entities, query `ai_employees` for any employees whose `linked_business_id` matches any of the deleted row IDs, and set their `linked_business_id` to `null`
-- Show a toast notification: "X employee(s) were unlinked from deleted business"
+# What stays the same
+- Data model (`DashboardCard` interface) — no breaking changes
+- `dashboard-insights` edge function — no changes
+- Tab list & routing — unchanged
+- Existing color tokens (badgeClasses, getWaitEscalationColor, getDurationEmoji)
+- Cache behavior, refresh, search, custom objectives, completed-todo tracking
 
-### 3. Orphan Validation Utilities
-
-**Problem**: Products without valid `brandId` and audiences with empty `productIds` can accumulate.
-
-**Solution**: Add a lightweight `validateIntegrity()` function to `BusinessDNAContext` that:
-- Checks products for orphan `brandId` references
-- Checks audiences for orphan `productIds` references  
-- Returns warnings (not auto-delete — just detection for now)
-- Called on data load, logs warnings to console
-
-### 4. Save Architecture to Memory
-
-Save the complete Post-Onboarding DNA Mutation Model to `mem://business-dna/mutation-model`.
-
-## Files Changed
-
-1. **`src/components/database/BusinessDNAContext.tsx`** — Add `dna_mutated` event dispatch after mutations, dashboard cache invalidation, employee unlink on brand delete, orphan validation on load
-2. **`src/components/database/ManageDashboardView.tsx`** — Listen for `dna_mutated` event, show staleness banner with "Regenerate" button, auto-clear stale cache
-3. **`mem://business-dna/mutation-model`** — Architecture memory
-
-## What Will NOT Change
-- Dual-ID architecture — already correct
-- Cascade delete logic — already correct
-- Diff-based save — already correct
-- Cross-tab localStorage sync — already correct
-- Re-enrichment flow — already correct
-- Edge functions — no changes needed
+# Out of scope
+- Per-tab summary metric strip (separate suggestion)
+- Differentiated empty-state animations
+- Drag-to-reorder, snooze backend
 
