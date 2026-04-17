@@ -1,75 +1,51 @@
 
 
 # Goal
-Make the 4 card types (Briefing, Updates, To-Dos, Objectives) and their right-side detail panel feel **cleaner, more congruent, more personal, and purposefully tailored** to what each one actually displays. Today they're inconsistent: BriefingCard is huge with a giant logo, DashCard (Updates) is a horizontal row, TodoCard is a single line, ObjectiveCard has progress bars — but none share a visual language, and the detail panel's source blocks (Outlook/Zoom/etc.) are generic rather than reinforcing the tab's purpose.
+Reduce text density and visual noise in the 4 dashboard cards and the right-side detail panel. Keep the personality and structure we just shipped — just trim, tighten, and let whitespace do more work.
 
-# Design principle
-**One shared card skeleton + tab-specific personality.** Same anatomy (accent rail, header row, body, footer) → same accent colors that already exist in the detail panel (`TAB_FRAMING`) → so a card and its open panel feel like the same object expanding.
+# Current pain points
+After re-reading `ManageDashboardView.tsx` and `DashCardDetailPanel.tsx`:
+- Cards repeat info: eyebrow chip + priority badge + source label + time + signal block + description + footer meta = 6+ text rows competing.
+- Long verbose strings: "Discuss in Assistant", "Recommended response", intent lines like "Read this to stay informed. No immediate action needed."
+- Detail panel hero blocks restate what the title/source already shows.
+- Source-context section in panel duplicates sender/email/subject that's already in the metadata strip.
+- Description shown both on card AND as first thing in panel body.
 
-```text
-┌─[accent rail 3px]──────────────────────────┐
-│ [eyebrow chip]           [time/source]     │  ← tab identity
-│ Title (clamp-2)                            │
-│ ─ tab-specific signal block ─              │  ← what makes THIS tab matter
-│ description (clamp-2)                      │
-│ [primary action]   [secondary meta]        │
-└────────────────────────────────────────────┘
-```
+# Trim strategy
 
-# Per-tab personality
+## Cards — fewer rows, bigger hierarchy
+**Shared changes**
+- Drop the eyebrow chip text — keep only the colored accent rail + priority dot. Tab identity comes from color, not words.
+- Description: clamp-2 → clamp-1 on cards (full text lives in panel).
+- Remove footer "source label" text when a source logo is already shown — logo alone is enough.
+- Time ago: only show if < 24h, else hide on card (keep in panel).
 
-**Briefing — "What changed"** (calm, informational)
-- Blue accent rail + eyebrow chip "Signal"
-- Source logo small (28px, inline), not the giant 64px box
-- Body: signal type + 2-line summary
-- CTA: ghost-style "Read briefing" (no urgency)
+**Per tab**
+- **Briefing**: kill the "Signal" type pill if it duplicates the title. Show source logo (20px) inline next to title, no separate row.
+- **Updates**: drop "is waiting" suffix → just `Maria Chen · 3d`. Hide consequence on card (panel only). Avatar 32px → 28px.
+- **To-Dos**: remove duration emoji label text, keep only emoji + leverage dots. Single line: `[✓] Title  ⚡ ●●●○○`.
+- **Objectives**: remove "Linked to-dos" chip on card (panel only). Progress ring 32px with % inside, metric one line: `$12k → $20k`.
 
-**Updates — "Someone is waiting"** (urgent, human)
-- Red accent rail + eyebrow "Waiting"
-- Hero element: **avatar circle** with waiting party initial + name ("Maria Chen is waiting 3d")
-- Wait duration as prominent escalation pill (color matches `getWaitEscalationColor`)
-- Consequence shown inline if High priority
-- CTA: solid red "Respond now"
+## Right-side panel — compress hero + collapse repeats
+- **Drop the "intent" sentence** at the top ("Read this to stay informed..."). The eyebrow + accent already convey it.
+- **Drop the eyebrowFull** ("Briefing · What changed") — use short eyebrow only.
+- **Hero block**: keep but tighten — single line where possible. Updates hero becomes one line `[Avatar] Maria Chen · waiting 3d`.
+- **Remove "Why it matters" / "Recommended response" / "Recommended approach" / "Strategic rationale" labels** — just show the description as a clean lead paragraph. The accent color is the framing.
+- **Metadata strip**: dedupe — if `metadata.senderEmail` is shown, don't repeat in source-context section.
+- **Source context section**: rename to just "Source" and only show if there's actual unique content beyond what's in the metadata strip.
+- **Footer CTA**: shorter labels — "Discuss in Assistant" → "Discuss", "Plan execution" → "Plan", "Respond now" → "Respond". Keep icons.
+- Increase vertical spacing between sections (`space-y-5` → `space-y-6`), reduce internal padding density.
 
-**To-Dos — "Action required"** (focused, kinetic)
-- Primary accent rail + eyebrow "Task"
-- Checkbox on the left (current behavior preserved)
-- Duration pill + leverage dots (the 5-bar leverage scale already exists in panel — surface on card)
-- Single-line title but with hover-revealed first step preview
-- CTA: "Start" + hover-secondary "Snooze"
-
-**Objectives — "Strategic outcome"** (composed, aspirational)
-- Emerald accent rail + eyebrow "Objective"
-- Progress ring (24px circular) replaces flat bar — feels more "goal-shaped"
-- Success metric as before (current → target)
-- Linked to-dos count as small chip
-- CTA: "Plan execution" (matches panel)
-
-# Right-side panel improvements
-Already tab-aware via `TAB_FRAMING`. Refinements:
-1. **Add tab-personalized hero block** at top of body (under header):
-   - Briefing: "What changed" callout box with the signal
-   - Updates: large avatar + waiting party + escalating timer
-   - To-Dos: duration + leverage + time-to-complete strip
-   - Objectives: progress ring + metric delta
-2. **Make source content secondary** in Updates/To-Dos/Objectives (collapse into "Source context" expandable section). Briefing keeps it primary since the source IS the briefing.
-3. **Empty-state per tab** with personalized copy (Briefing: "All quiet — no new signals", Updates: "Inbox zero — nobody waiting", etc.)
-4. **Sticky footer CTA** so action button is always visible while scrolling long source content.
+## Empty states
+Already short. Keep title, drop body to a single sentence ≤10 words.
 
 # Files to change
-1. **`src/components/database/dashboardTypes.ts`** — export shared `TAB_FRAMING` constant (move from panel) so cards + panel use identical accents/eyebrows/CTA labels.
-2. **`src/components/database/ManageDashboardView.tsx`** — rewrite the 4 card components against the shared skeleton; add tab-personalized empty states.
-3. **`src/components/database/DashCardDetailPanel.tsx`** — import shared `TAB_FRAMING`, add tab-personalized hero block, collapse source content for non-Briefing tabs, sticky footer CTA.
-
-# What stays the same
-- Data model (`DashboardCard` interface) — no breaking changes
-- `dashboard-insights` edge function — no changes
-- Tab list & routing — unchanged
-- Existing color tokens (badgeClasses, getWaitEscalationColor, getDurationEmoji)
-- Cache behavior, refresh, search, custom objectives, completed-todo tracking
+1. **`src/components/database/dashboardTypes.ts`** — shorten `ctaLabel` strings, optionally remove `intent` and `summaryLabel` (or keep but stop rendering).
+2. **`src/components/database/ManageDashboardView.tsx`** — trim each of the 4 card components per above; tighten `CardShell` paddings.
+3. **`src/components/database/DashCardDetailPanel.tsx`** — remove intent line, remove summaryLabel headers, compress hero blocks to single-line where possible, dedupe source section, shorter footer labels.
 
 # Out of scope
-- Per-tab summary metric strip (separate suggestion)
-- Differentiated empty-state animations
-- Drag-to-reorder, snooze backend
+- Changing colors / accent system (already approved)
+- Removing tab differentiation
+- Data model changes
 
