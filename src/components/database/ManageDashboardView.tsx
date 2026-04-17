@@ -134,7 +134,7 @@ function CardShell({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      className={`group relative border border-border/60 rounded-2xl px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left bg-white shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)] hover:shadow-[0_0_14px_0_hsl(210_20%_75%/0.85)] ${dimmed ? "opacity-60" : ""}`}
+      className={`group relative border border-border/60 rounded-2xl px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left bg-white shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)] hover:shadow-[0_0_12px_0_hsl(210_20%_75%/0.7)] ${dimmed ? "opacity-60" : ""}`}
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
       {/* Header: source logo (or leading control) ↔ accent */}
@@ -636,7 +636,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             )}
           </div>
           {activeBrand && (
-            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 bg-[#fcfcfd] shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)]" onClick={handleRefresh} disabled={loading}>
+            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 bg-[#fcfcfd] shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)]" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Update
             </Button>
@@ -657,7 +657,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           </div>
           <input
             type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2.5 border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm transition-colors bg-white border-border shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)]"
+            className="block w-full pl-10 pr-3 py-2.5 border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm transition-colors bg-white border-border shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)]"
             placeholder="Search cards..."
           />
         </div>
