@@ -2177,11 +2177,11 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
   /* ─────────── Render ─────────── */
   return (
-    <div className="h-full min-h-0 w-full bg-background flex relative overflow-hidden">
+    <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-[#fcfcfd]">
       {/* Main chat area */}
-      <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-[#fcfcfd]">
       {/* Sticky top agent display */}
-      <header className="shrink-0 z-20 flex justify-center items-center py-3 bg-background/80 backdrop-blur-md">
+      <header className="shrink-0 z-20 flex justify-center items-center py-3 backdrop-blur-md bg-[#fcfcfd]">
         {/* History toggle button */}
         <button
           onClick={() => setShowHistory(!showHistory)}
