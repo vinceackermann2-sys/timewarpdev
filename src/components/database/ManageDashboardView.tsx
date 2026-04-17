@@ -536,7 +536,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const [customObjectives, setCustomObjectives] = useState<DashboardCard[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
-  const [detailMinimized, setDetailMinimized] = useState(false);
+  const [detailMinimized, setDetailMinimized] = useState(true);
   const [completedTodos, setCompletedTodos] = useState<Set<string>>(new Set());
   const [stale, setStale] = useState(false);
 
