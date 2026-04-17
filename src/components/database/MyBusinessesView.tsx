@@ -69,7 +69,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
 
           {/* Manage button - owners only */}
           {isOwner && (
-            <Button variant="outline" size="sm" className="gap-1.5 bg-slate-100" onClick={() => onManageWorkspace ? onManageWorkspace() : setShowWorkspaceSettings(true)}>
+            <Button variant="outline" size="sm" className="gap-1.5 bg-[#eef2f7] hover:bg-[#eef2f7]" onClick={() => onManageWorkspace ? onManageWorkspace() : setShowWorkspaceSettings(true)}>
               <Settings className="h-3.5 w-3.5" /> Manage
             </Button>
           )}
