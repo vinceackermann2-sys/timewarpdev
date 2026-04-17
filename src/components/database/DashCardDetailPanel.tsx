@@ -123,7 +123,7 @@ function OriginalContextCard({ card, tabKind }: { card: DashboardCard; tabKind: 
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/30 overflow-hidden">
       {/* Section header */}
-      <div className="px-4 py-2.5 flex items-center gap-2 bg-slate-100">
+      <div className="px-4 py-2.5 flex items-center gap-2 bg-[#eef2f7]">
         {isSystemContext ? (
           <Plug className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         ) : sourceMeta.icon ? (
@@ -141,7 +141,7 @@ function OriginalContextCard({ card, tabKind }: { card: DashboardCard; tabKind: 
         </span>
       </div>
 
-      <div className="px-4 pb-4 space-y-3 bg-slate-100">
+      <div className="px-4 pb-4 space-y-3 bg-[#eef2f7]">
         {/* Sender row (emails / messages with a sender) */}
         {(isEmail || isMessage || senderName) && (
           <div className="flex items-center gap-2.5">
