@@ -625,9 +625,9 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   }, [activeTab, filteredCards, detailCard]);
 
   return (
-    <div className="h-full flex bg-background relative overflow-hidden">
+    <div className="h-full flex relative overflow-hidden bg-white">
       <div className="flex-1 min-w-0 flex flex-col">
-      <div className="px-6 lg:px-8 pt-6 pb-3">
+      <div className="px-6 lg:px-8 pt-6 pb-3 bg-white">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-semibold tracking-tight">{activeTab}</h1>
@@ -636,7 +636,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             )}
           </div>
           {activeBrand && (
-            <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={handleRefresh} disabled={loading}>
+            <Button variant="outline" size="sm" className="gap-2 text-xs bg-[#fcfcfd]" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               Update
             </Button>
@@ -657,7 +657,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           </div>
           <input
             type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-7 pr-2 py-1.5 border border-transparent rounded-md bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background focus:border-border text-[11px] transition-colors"
+            className="block w-full pl-7 pr-2 py-1.5 border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-[11px] transition-colors bg-white border-border"
             placeholder="Search cards..."
           />
         </div>

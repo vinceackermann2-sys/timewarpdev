@@ -203,9 +203,9 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
   const topLabel = topMetaLabel(card, tabKind);
 
   return (
-    <aside className="w-[420px] shrink-0 h-[calc(100%-1.5rem)] my-3 mr-3 flex flex-col rounded-2xl border border-border bg-background shadow-sm overflow-hidden">
+    <aside className="w-[420px] shrink-0 h-[calc(100%-1.5rem)] my-3 mr-3 flex flex-col rounded-2xl border border-border shadow-sm overflow-hidden bg-[#fcfcfd]">
       {/* ── Top bar: time meta · more · close ─────────────── */}
-      <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between">
+      <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between bg-[#fcfcfd]">
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
           <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
@@ -240,13 +240,13 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
       </div>
 
       {/* ── Scrollable body ───────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 bg-[#fcfcfd]">
         <OriginalContextCard card={card} tabKind={tabKind} />
         <InsightsRow tabKind={tabKind} />
       </div>
 
       {/* ── Quick Note ────────────────────────────────────── */}
-      <div className="shrink-0 px-6 pt-4 pb-3">
+      <div className="shrink-0 px-6 pt-4 pb-3 bg-[#fcfcfd]">
         <div className="flex items-center gap-2 mb-2">
           <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -255,12 +255,12 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
         </div>
         <textarea
           placeholder="Add a comment, note, or update context..."
-          className="w-full min-h-[60px] resize-none rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background transition-colors"
+          className="w-full min-h-[60px] resize-none rounded-lg border border-border/60 px-3 py-2 text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors bg-white"
         />
       </div>
 
       {/* ── Sticky bottom CTA ─────────────────────────────── */}
-      <div className="shrink-0 px-6 pb-5">
+      <div className="shrink-0 px-6 pb-5 bg-[#fcfcfd]">
         <Button
           className="w-full h-12 gap-2 text-[14px] font-semibold rounded-xl bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
           onClick={() => {
