@@ -498,16 +498,13 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
         <div className={`h-1 w-full ${framing.accentBar}`} />
 
         <SheetHeader className="px-6 pt-5 pb-4 border-b border-border space-y-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${framing.accentChip}`}>
               <TabIcon className="h-3 w-3" />
-              {framing.eyebrowFull}
+              {framing.eyebrow}
             </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${badgeClasses[card.priority] || badgeClasses.Low}`}>
-              {card.priority} Priority
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${badgeClasses[card.priority] || badgeClasses.Low}`}>
+              {card.priority}
             </span>
             {card.category && (
               <span className="text-[10px] text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded">
@@ -517,12 +514,10 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
           </div>
 
           <SheetTitle className="text-base leading-snug text-left">{card.title}</SheetTitle>
-
-          <p className="text-xs text-muted-foreground leading-relaxed text-left">{framing.intent}</p>
         </SheetHeader>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           {/* Source badge + time */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {sourceMeta.icon && (
@@ -541,11 +536,9 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
           {/* Tab-personalized hero block — sets the emotional/functional tone */}
           <TabHeroBlock card={card} tabKind={tabKind} />
 
-          {/* Description */}
+          {/* Description — clean lead paragraph (no label header) */}
           {card.description && (
-            <div>
-              <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
-            </div>
+            <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
           )}
 
           {/* Tab-specific structured details (consequence for Updates, howTo for To-Dos, etc.) */}
@@ -558,7 +551,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
                 onClick={() => setSourceOpen(o => !o)}
                 className="w-full flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors py-1"
               >
-                <span>Source context · {sourceMeta.label}</span>
+                <span>Source</span>
                 {sourceOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
               </button>
               {sourceOpen && (
@@ -571,10 +564,9 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
             <SourceContentBlock card={card} />
           )}
 
-          {/* Rationale / summary */}
+          {/* Rationale / extra detail (no label header — accent color frames it) */}
           {card.detail && (
-            <div className="pt-2 border-t border-border/60">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{framing.summaryLabel}</h4>
+            <div className="pt-3 border-t border-border/60">
               <p className="text-sm text-foreground leading-relaxed">{card.detail}</p>
             </div>
           )}

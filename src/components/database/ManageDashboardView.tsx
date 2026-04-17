@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ClipboardCheck, RefreshCw, ListTodo, Award, Clock,
-  Building2, Plus, Loader2, AlertTriangle, Lightbulb, Check, Users, Zap,
-  TrendingUp, AlertCircle,
+  Building2, Plus, Loader2, AlertTriangle, Lightbulb, Check,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "./BusinessDNAContext";
@@ -40,6 +39,13 @@ function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>)
   } catch { /* quota exceeded – ignore */ }
 }
 
+/* Show timeAgo on cards only when "recent" (< ~24h) — keeps cards quiet */
+function isRecentTimeAgo(t?: string): boolean {
+  if (!t) return false;
+  const lower = t.toLowerCase();
+  return /\b(just now|now|min|minute|hour|hr|h ago|m ago|today)\b/.test(lower);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Shared card skeleton — same anatomy across all 4 tabs              */
 /* ------------------------------------------------------------------ */
@@ -69,20 +75,16 @@ function CardShell({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      className={`group relative overflow-hidden bg-card border border-border/60 rounded-2xl pl-5 pr-5 py-4 w-full flex flex-col gap-3 transition-all duration-200 hover:border-border hover:shadow-md cursor-pointer text-left ${dimmed ? "opacity-60" : ""} ${className || ""}`}
+      className={`group relative overflow-hidden bg-card border border-border/60 rounded-2xl pl-5 pr-5 py-4 w-full flex flex-col gap-2.5 transition-all duration-200 hover:border-border hover:shadow-md cursor-pointer text-left ${dimmed ? "opacity-60" : ""} ${className || ""}`}
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
-      {/* Accent rail — left edge, tab identity */}
+      {/* Accent rail — left edge, tab identity (color = identity, no eyebrow text needed) */}
       <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${framing.accentBar}`} />
 
-      {/* Header: eyebrow + priority + meta */}
+      {/* Header: priority dot + leading control + meta */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           {leadingControl}
-          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${framing.accentChip}`}>
-            <framing.icon className="h-2.5 w-2.5" />
-            {framing.eyebrow}
-          </span>
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${priorityClass}`}>
             {card.priority}
           </span>
@@ -98,9 +100,9 @@ function CardShell({
       {/* Tab-specific signal block */}
       {signalBlock}
 
-      {/* Description */}
+      {/* Description — clamp-1 on cards (full text in panel) */}
       {!hideDescription && card.description && (
-        <p className="text-[12.5px] text-muted-foreground leading-relaxed line-clamp-2">{card.description}</p>
+        <p className="text-[12.5px] text-muted-foreground leading-relaxed line-clamp-1">{card.description}</p>
       )}
 
       {/* Footer: CTA + secondary meta */}
@@ -114,19 +116,19 @@ function CardShell({
   );
 }
 
-/* small inline source chip (used in card meta) */
-function SourceChip({ card }: { card: DashboardCard }) {
+/* small inline source logo only (no label text — logo is enough) */
+function SourceLogo({ card, size = 14 }: { card: DashboardCard; size?: number }) {
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
-  if (!sourceMeta.icon && !sourceMeta.label) return null;
+  if (!sourceMeta.icon) return null;
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
-      {sourceMeta.icon ? (
-        <img src={sourceMeta.icon} alt="" className="w-3 h-3 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-      ) : (
-        <Building2 className="w-3 h-3" />
-      )}
-      <span className="truncate max-w-[80px]">{sourceMeta.label}</span>
-    </span>
+    <img
+      src={sourceMeta.icon}
+      alt={sourceMeta.label}
+      title={sourceMeta.label}
+      className="rounded object-contain shrink-0"
+      style={{ width: size, height: size }}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
   );
 }
 
@@ -136,6 +138,12 @@ function SourceChip({ card }: { card: DashboardCard }) {
 function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const SignalIcon = card.signalType ? (ICON_MAP[card.icon || ""] || Lightbulb) : null;
   const framing = TAB_FRAMING.Briefing;
+  const showTime = isRecentTimeAgo(card.timeAgo);
+  // Hide signalType pill if it just duplicates the title
+  const showSignalPill =
+    !!card.signalType &&
+    !!SignalIcon &&
+    !card.title.toLowerCase().includes(card.signalType.toLowerCase());
 
   return (
     <CardShell
@@ -144,8 +152,8 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       onOpen={onOpen}
       meta={
         <>
-          <SourceChip card={card} />
-          {card.timeAgo && (
+          <SourceLogo card={card} size={16} />
+          {showTime && (
             <span className="inline-flex items-center gap-0.5">
               <Clock className="w-3 h-3" />
               {card.timeAgo}
@@ -154,7 +162,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
         </>
       }
       signalBlock={
-        card.signalType && SignalIcon ? (
+        showSignalPill ? (
           <div className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md border w-fit ${framing.accentSoftBg} ${framing.accentText}`}>
             <SignalIcon className="w-3 h-3" />
             {card.signalType}
@@ -177,7 +185,9 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
 function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
   const waitColor = getWaitEscalationColor(card.waitDuration);
   const framing = TAB_FRAMING.Updates;
-  const initial = (card.waitingParty || card.metadata?.senderName || "?").trim()[0]?.toUpperCase() || "?";
+  const partyName = card.waitingParty || card.metadata?.senderName || "External party";
+  const initial = partyName.trim()[0]?.toUpperCase() || "?";
+  const showTime = isRecentTimeAgo(card.timeAgo) && !card.waitDuration;
 
   return (
     <CardShell
@@ -186,8 +196,8 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
       onOpen={onOpen}
       meta={
         <>
-          <SourceChip card={card} />
-          {card.timeAgo && !card.waitDuration && (
+          <SourceLogo card={card} size={16} />
+          {showTime && (
             <span className="inline-flex items-center gap-0.5">
               <Clock className="w-3 h-3" />
               {card.timeAgo}
@@ -197,20 +207,23 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
       }
       signalBlock={
         <div className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg border ${framing.accentSoftBg}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${framing.accentChip}`}>
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${framing.accentChip}`}>
             {initial}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold text-foreground truncate">
-              {card.waitingParty || card.metadata?.senderName || "External party"}
+            <p className="text-[12.5px] font-semibold text-foreground truncate">
+              {partyName}
+              {card.waitDuration && (
+                <span className="text-muted-foreground font-normal"> · {card.waitDuration}</span>
+              )}
             </p>
-            <p className={`text-[10.5px] ${framing.accentText} font-medium`}>
-              is waiting on you{card.requestType ? ` · ${card.requestType}` : ""}
-            </p>
+            {card.requestType && (
+              <p className={`text-[10.5px] ${framing.accentText} font-medium truncate`}>{card.requestType}</p>
+            )}
           </div>
           {card.waitDuration && (
-            <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded border ${waitColor || "text-muted-foreground bg-muted border-border"}`}>
-              ⏳ {card.waitDuration}
+            <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded border ${waitColor || "text-muted-foreground bg-muted border-border"}`}>
+              {card.waitDuration}
             </span>
           )}
         </div>
@@ -220,14 +233,6 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
           <framing.ctaIcon className="w-3 h-3" />
           {framing.ctaLabel}
         </span>
-      }
-      footerRight={
-        card.priority === "High" && card.consequence ? (
-          <span className="inline-flex items-center gap-1 text-[10px] text-destructive/80 max-w-[180px] truncate" title={card.consequence}>
-            <AlertCircle className="w-3 h-3 shrink-0" />
-            <span className="truncate">{card.consequence}</span>
-          </span>
-        ) : null
       }
     />
   );
@@ -252,23 +257,21 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
           aria-label={done ? "Mark as not done" : "Mark as done"}
-          className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors mr-1 ${done ? "bg-primary border-primary" : "border-border hover:border-primary/60"}`}
+          className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${done ? "bg-primary border-primary" : "border-border hover:border-primary/60"}`}
         >
           {done && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
         </button>
       }
       meta={
         card.estimatedDuration ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">
-            <span>{durationEmoji}</span>
-            {card.estimatedDuration}
+          <span className="inline-flex items-center text-[12px]" title={card.estimatedDuration}>
+            {durationEmoji}
           </span>
         ) : undefined
       }
       signalBlock={
         leverage > 0 ? (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Leverage</span>
+          <div className="flex items-center gap-1.5">
             <div className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map(n => (
                 <div key={n} className={`w-3 h-1.5 rounded-full ${n <= leverage ? "bg-primary" : "bg-muted"}`} />
@@ -288,7 +291,6 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
           <span className="text-[11px] text-muted-foreground italic">Completed</span>
         )
       }
-      footerRight={card.taskType ? <span>{card.taskType}</span> : undefined}
     />
   );
 }
@@ -339,8 +341,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
           <ProgressRing value={progress} />
           {card.successMetric ? (
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Success metric</p>
-              <p className="text-[12px] font-medium text-foreground truncate">
+              <p className="text-[12.5px] font-medium text-foreground truncate">
                 <span className="text-muted-foreground">{card.successMetric.current}</span>
                 <span className="mx-1.5 text-muted-foreground">→</span>
                 <span className={framing.accentText}>{card.successMetric.target}</span>
@@ -351,7 +352,6 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
             </div>
           ) : (
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Progress</p>
               <p className="text-[12px] font-medium text-foreground">{progress}% toward target</p>
             </div>
           )}
@@ -362,14 +362,6 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
           <framing.ctaIcon className="w-3 h-3" />
           {framing.ctaLabel}
         </span>
-      }
-      footerRight={
-        card.relatedTodoIds && card.relatedTodoIds.length > 0 ? (
-          <span className="inline-flex items-center gap-1">
-            <Zap className="w-3 h-3" />
-            {card.relatedTodoIds.length} linked
-          </span>
-        ) : undefined
       }
     />
   );
