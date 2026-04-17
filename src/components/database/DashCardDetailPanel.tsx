@@ -339,7 +339,149 @@ function TabSpecificDetails({ card }: { card: DashboardCard }) {
   return null;
 }
 
+/* ── Tab-personalized hero block (top of body) ── */
+function ProgressRingLg({ value, accentClass }: { value: number; accentClass: string }) {
+  const r = 22;
+  const c = 2 * Math.PI * r;
+  const offset = c - (Math.max(0, Math.min(100, value)) / 100) * c;
+  return (
+    <svg width="56" height="56" viewBox="0 0 56 56" className="shrink-0">
+      <circle cx="28" cy="28" r={r} className="stroke-muted" strokeWidth="4" fill="none" />
+      <circle
+        cx="28" cy="28" r={r} className={accentClass}
+        strokeWidth="4" fill="none" strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={offset}
+        transform="rotate(-90 28 28)"
+      />
+      <text x="28" y="32" textAnchor="middle" className="fill-foreground" style={{ fontSize: 13, fontWeight: 700 }}>
+        {Math.round(value)}%
+      </text>
+    </svg>
+  );
+}
+
+function TabHeroBlock({ card, tabKind }: { card: DashboardCard; tabKind: TabKind }) {
+  const framing = TAB_FRAMING[tabKind];
+
+  if (tabKind === "Briefing") {
+    if (!card.signalType && !card.detail) return null;
+    return (
+      <div className={`rounded-xl border p-4 ${framing.accentSoftBg}`}>
+        <div className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider mb-2 ${framing.accentText}`}>
+          <Lightbulb className="h-3 w-3" />
+          What changed
+        </div>
+        <p className="text-sm font-semibold text-foreground leading-snug">
+          {card.signalType || card.title}
+        </p>
+      </div>
+    );
+  }
+
+  if (tabKind === "Updates") {
+    const initial = (card.waitingParty || card.metadata?.senderName || "?").trim()[0]?.toUpperCase() || "?";
+    const waitColor = getWaitEscalationColor(card.waitDuration);
+    return (
+      <div className={`rounded-xl border p-4 ${framing.accentSoftBg}`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold shrink-0 ${framing.accentChip}`}>
+            {initial}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground truncate">
+              {card.waitingParty || card.metadata?.senderName || "External party"}
+            </p>
+            <p className={`text-xs ${framing.accentText} font-medium`}>
+              is waiting on you{card.requestType ? ` · ${card.requestType}` : ""}
+            </p>
+          </div>
+        </div>
+        {card.waitDuration && (
+          <div className="mt-3 flex items-center gap-2">
+            <Hourglass className={`h-3.5 w-3.5 ${framing.accentText}`} />
+            <span className={`text-xs font-bold px-2 py-0.5 rounded border ${waitColor || "text-muted-foreground bg-muted border-border"}`}>
+              Waiting {card.waitDuration}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (tabKind === "To-Dos") {
+    const durationEmoji = getDurationEmoji(card.estimatedDuration);
+    const leverage = typeof card.leverageScore === "number" ? card.leverageScore : 0;
+    return (
+      <div className={`rounded-xl border p-4 ${framing.accentSoftBg} grid grid-cols-2 gap-3`}>
+        {card.estimatedDuration && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Time required</p>
+            <p className="text-sm font-semibold text-foreground">{durationEmoji} {card.estimatedDuration}</p>
+          </div>
+        )}
+        {leverage > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Leverage</p>
+            <div className="flex items-center gap-1.5">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <div key={n} className={`w-3.5 h-2 rounded-full ${n <= leverage ? "bg-primary" : "bg-muted"}`} />
+                ))}
+              </div>
+              <span className={`text-xs font-bold ${framing.accentText}`}>{leverage}/5</span>
+            </div>
+          </div>
+        )}
+        {card.taskType && (
+          <div className="col-span-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Task type</p>
+            <p className="text-sm text-foreground">{card.taskType}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (tabKind === "Objectives") {
+    const progress = typeof card.progress === "number" ? card.progress : 0;
+    return (
+      <div className={`rounded-xl border p-4 ${framing.accentSoftBg}`}>
+        <div className="flex items-center gap-4">
+          <ProgressRingLg value={progress} accentClass="stroke-[hsl(142_62%_45%)]" />
+          <div className="min-w-0 flex-1">
+            {card.successMetric ? (
+              <>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Success metric</p>
+                <p className="text-sm font-semibold text-foreground">
+                  <span className="text-muted-foreground font-normal">{card.successMetric.current}</span>
+                  <span className="mx-1.5 text-muted-foreground">→</span>
+                  <span className={framing.accentText}>{card.successMetric.target}</span>
+                </p>
+                {card.successMetric.gap && (
+                  <p className="text-xs text-destructive/70 mt-0.5">Gap: {card.successMetric.gap}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Progress</p>
+                <p className="text-sm font-semibold text-foreground">{progress}% toward target</p>
+              </>
+            )}
+            {card.timeHorizon && (
+              <p className="text-[11px] text-muted-foreground mt-1">Horizon: {card.timeHorizon}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Props) {
+  const [sourceOpen, setSourceOpen] = useState(false);
+
   if (!card) return null;
 
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
@@ -347,23 +489,22 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
   const framing = TAB_FRAMING[tabKind];
   const TabIcon = framing.icon;
   const CtaIcon = framing.ctaIcon;
+  const sourceCollapsible = tabKind !== "Briefing"; // Briefing keeps source primary
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-[440px] flex flex-col gap-0 p-0">
+      <SheetContent className="w-full sm:max-w-[460px] flex flex-col gap-0 p-0">
         {/* Tab-distinct accent bar */}
         <div className={`h-1 w-full ${framing.accentBar}`} />
 
         <SheetHeader className="px-6 pt-5 pb-4 border-b border-border space-y-3">
-          {/* Eyebrow — tab identity */}
           <div className="flex items-center gap-2">
             <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${framing.accentChip}`}>
               <TabIcon className="h-3 w-3" />
-              {framing.eyebrow}
+              {framing.eyebrowFull}
             </span>
           </div>
 
-          {/* Priority + category */}
           <div className="flex items-center gap-2">
             <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${badgeClasses[card.priority] || badgeClasses.Low}`}>
               {card.priority} Priority
@@ -377,64 +518,84 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
 
           <SheetTitle className="text-base leading-snug text-left">{card.title}</SheetTitle>
 
-          {/* Tab intent line — sets reader expectation */}
           <p className="text-xs text-muted-foreground leading-relaxed text-left">{framing.intent}</p>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
-          <div className="space-y-5 flex-1">
-            {/* Source badge + time */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {sourceMeta.icon && (
-                <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-              )}
-              <span className="font-medium">{sourceMeta.label}</span>
-              {card.timeAgo && (
-                <>
-                  <span className="mx-1">·</span>
-                  <Clock className="h-3 w-3" />
-                  <span>{card.timeAgo}</span>
-                </>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {/* Source badge + time */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {sourceMeta.icon && (
+              <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            )}
+            <span className="font-medium">{sourceMeta.label}</span>
+            {card.timeAgo && (
+              <>
+                <span className="mx-1">·</span>
+                <Clock className="h-3 w-3" />
+                <span>{card.timeAgo}</span>
+              </>
+            )}
+          </div>
+
+          {/* Tab-personalized hero block — sets the emotional/functional tone */}
+          <TabHeroBlock card={card} tabKind={tabKind} />
+
+          {/* Description */}
+          {card.description && (
+            <div>
+              <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
+            </div>
+          )}
+
+          {/* Tab-specific structured details (consequence for Updates, howTo for To-Dos, etc.) */}
+          <TabSpecificDetails card={card} />
+
+          {/* Source content — primary for Briefing, collapsible for action tabs */}
+          {sourceCollapsible ? (
+            <div>
+              <button
+                onClick={() => setSourceOpen(o => !o)}
+                className="w-full flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors py-1"
+              >
+                <span>Source context · {sourceMeta.label}</span>
+                {sourceOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+              {sourceOpen && (
+                <div className="mt-2">
+                  <SourceContentBlock card={card} />
+                </div>
               )}
             </div>
+          ) : (
+            <SourceContentBlock card={card} />
+          )}
 
-            {/* Reorder per tab: Updates & To-Dos lead with tab-specific data, Briefing & Objectives lead with source/context */}
-            {tabKind === "Updates" || tabKind === "To-Dos" ? (
-              <>
-                <TabSpecificDetails card={card} />
-                <SourceContentBlock card={card} />
-              </>
-            ) : (
-              <>
-                <SourceContentBlock card={card} />
-                <TabSpecificDetails card={card} />
-              </>
-            )}
-          </div>
-
-          {/* Bottom section — pinned to bottom */}
-          <div className="mt-auto pt-5 space-y-4 border-t border-border/60">
-            {card.detail && (
-              <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{framing.summaryLabel}</h4>
-                <p className="text-sm text-foreground leading-relaxed">{card.detail}</p>
-              </div>
-            )}
-
-            {card.actionSuggestion && (
-              <Button
-                className="w-full gap-2 text-sm font-semibold"
-                onClick={() => {
-                  onExecuteAction?.(card.actionSuggestion!);
-                  onClose();
-                }}
-              >
-                <CtaIcon className="h-4 w-4" />
-                {framing.ctaLabel}
-              </Button>
-            )}
-          </div>
+          {/* Rationale / summary */}
+          {card.detail && (
+            <div className="pt-2 border-t border-border/60">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{framing.summaryLabel}</h4>
+              <p className="text-sm text-foreground leading-relaxed">{card.detail}</p>
+            </div>
+          )}
         </div>
+
+        {/* Sticky footer CTA — always visible */}
+        {card.actionSuggestion && (
+          <div className="shrink-0 border-t border-border bg-card px-6 py-4">
+            <Button
+              variant={framing.ctaVariant}
+              className="w-full gap-2 text-sm font-semibold"
+              onClick={() => {
+                onExecuteAction?.(card.actionSuggestion!);
+                onClose();
+              }}
+            >
+              <CtaIcon className="h-4 w-4" />
+              {framing.ctaLabel}
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
