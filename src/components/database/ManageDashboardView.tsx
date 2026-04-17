@@ -510,6 +510,16 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
 
   const hasCards = Object.values(allTabCards).some(arr => arr.length > 0);
 
+  // Auto-select first card so the right-side detail panel is always populated.
+  useEffect(() => {
+    if (filteredCards.length === 0) {
+      if (detailCard) setDetailCard(null);
+      return;
+    }
+    const stillExists = detailCard && filteredCards.some((c) => c.id === detailCard.id);
+    if (!stillExists) setDetailCard(filteredCards[0]);
+  }, [activeTab, filteredCards, detailCard]);
+
   return (
     <div className="h-full flex bg-background relative overflow-hidden">
       <div className="flex-1 min-w-0 flex flex-col">
