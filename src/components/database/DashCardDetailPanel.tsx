@@ -103,12 +103,19 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
   }
 
   if (source === "slack") {
-    if (!meta?.channel && !meta?.author) return null;
+    if (!meta?.channel && !meta?.author && !meta?.messageText) return null;
     return (
-      <div className="border border-border rounded-lg px-4 py-3 bg-muted/50 flex items-center gap-2.5">
-        <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-        {meta?.channel && <span className="text-sm font-semibold text-foreground">#{meta.channel}</span>}
-        {meta?.author && <span className="text-xs text-muted-foreground">by {meta.author}</span>}
+      <div className="border border-border rounded-xl overflow-hidden bg-card">
+        <div className="bg-muted/40 px-4 py-2.5 border-b border-border flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+          {meta?.channel && <span className="text-sm font-semibold text-foreground">#{meta.channel}</span>}
+          {meta?.author && <span className="text-xs text-muted-foreground">· {meta.author}</span>}
+        </div>
+        {meta?.messageText && (
+          <div className="px-4 py-3">
+            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-wrap">{meta.messageText}</p>
+          </div>
+        )}
       </div>
     );
   }
