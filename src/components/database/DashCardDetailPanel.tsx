@@ -12,6 +12,8 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onExecuteAction?: (actionText: string) => void;
+  minimized?: boolean;
+  onMinimizedChange?: (m: boolean) => void;
 }
 
 /* ── CTA label — must match the card's pill button so the panel feels consistent ── */
@@ -195,8 +197,13 @@ function OriginalContextCard({ card, tabKind }: { card: DashboardCard; tabKind: 
   );
 }
 
-export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Props) {
-  const [minimized, setMinimized] = useState(false);
+export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, minimized: minimizedProp, onMinimizedChange }: Props) {
+  const [minimizedState, setMinimizedState] = useState(false);
+  const minimized = minimizedProp ?? minimizedState;
+  const setMinimized = (v: boolean) => {
+    if (onMinimizedChange) onMinimizedChange(v);
+    else setMinimizedState(v);
+  };
   if (!card || !open) return null;
 
   const tabKind = inferTabKind(card);
