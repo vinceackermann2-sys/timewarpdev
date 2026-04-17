@@ -148,12 +148,19 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
   }
 
   if (source === "teams") {
-    if (!meta?.channel && !meta?.author) return null;
+    if (!meta?.channel && !meta?.author && !meta?.messageText) return null;
     return (
-      <div className="border border-border rounded-lg px-4 py-3 bg-muted/50 flex items-center gap-2.5">
-        <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-        {meta?.channel && <span className="text-sm font-semibold text-foreground">{meta.channel}</span>}
-        {meta?.author && <span className="text-xs text-muted-foreground">by {meta.author}</span>}
+      <div className="border border-border rounded-xl overflow-hidden bg-card">
+        <div className="bg-muted/40 px-4 py-2.5 border-b border-border flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+          {meta?.channel && <span className="text-sm font-semibold text-foreground">{meta.channel}</span>}
+          {meta?.author && <span className="text-xs text-muted-foreground">· {meta.author}</span>}
+        </div>
+        {meta?.messageText && (
+          <div className="px-4 py-3">
+            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-wrap">{meta.messageText}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -166,13 +173,16 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
 function hasSourceContent(card: DashboardCard): boolean {
   const meta = card.metadata;
   switch (card.source) {
-    case "outlook": return !!(meta?.senderName || meta?.senderEmail || meta?.subject);
+    case "outlook":
+    case "google_gmail":
+    case "gmail":
+      return !!(meta?.senderName || meta?.senderEmail || meta?.subject || meta?.bodyPreview);
     case "zoom": return !!(meta?.scheduledDate || meta?.duration || (meta?.attendees && meta.attendees.length > 0));
     case "hubspot": return !!(meta?.contactName || meta?.dealValue || meta?.stage);
-    case "slack": return !!(meta?.channel || meta?.author);
+    case "slack": return !!(meta?.channel || meta?.author || meta?.messageText);
     case "onedrive": return !!(meta?.fileName || meta?.sharedBy);
     case "onenote": return !!meta?.notebook;
-    case "teams": return !!(meta?.channel || meta?.author);
+    case "teams": return !!(meta?.channel || meta?.author || meta?.messageText);
     default: return false;
   }
 }
