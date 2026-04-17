@@ -211,7 +211,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
     <CardShell
       card={card}
       onOpen={onOpen}
-      topLeft={<SourceLogo card={card} />}
+      topRight={<SourceLogo card={card} />}
       footerLeft={<PeopleAvatars names={people} />}
       footerRight={<PillCTA label="Read briefing" onClick={onOpen} />}
     />
@@ -227,7 +227,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
     <CardShell
       card={card}
       onOpen={onOpen}
-      topLeft={<SourceLogo card={card} />}
+      topRight={<SourceLogo card={card} />}
       footerLeft={<PeopleAvatars names={people} />}
       footerRight={<PillCTA label="Respond" onClick={onOpen} />}
     />
@@ -260,7 +260,7 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
       card={card}
       onOpen={onOpen}
       dimmed={done}
-      topLeft={<SourceLogo card={card} />}
+      topRight={<SourceLogo card={card} />}
       leadingControl={
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -336,7 +336,10 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
       onOpen={onOpen}
       hideDescription
       topRight={
-        <span className="w-3 h-3 rounded-full bg-[hsl(217_100%_60%)] shadow-[0_0_0_3px_hsl(217_100%_94%)]" />
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[hsl(217_100%_60%)] shadow-[0_0_0_3px_hsl(217_100%_94%)]" />
+          <SourceLogo card={card} />
+        </div>
       }
       middle={
         <div className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3 flex flex-col gap-2.5">
@@ -382,9 +385,11 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           {isTodo && <Skeleton className="h-4 w-4 rounded-full" />}
+        </div>
+        <div className="flex items-center gap-2">
+          {isObjective && <Skeleton className="h-3 w-3 rounded-full" />}
           <Skeleton className="h-[22px] w-[22px] rounded" />
         </div>
-        {isObjective && <Skeleton className="h-3 w-3 rounded-full" />}
       </div>
 
       {/* Title + description */}
