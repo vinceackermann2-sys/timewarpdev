@@ -1,6 +1,7 @@
 import {
   Building2, TrendingUp, Users, Plug, Mail, ShoppingBag,
   Palette, Bot, Target, Lightbulb, AlertTriangle, RefreshCw, Award, Image,
+  ClipboardCheck, ListTodo, Send, Play, Compass, Eye,
 } from "lucide-react";
 
 import logoHubspot from "@/assets/logo-hubspot.svg";
@@ -127,6 +128,105 @@ export const TAB_SUBTITLES: Record<string, string> = {
   Updates: "Who or What Is Blocked Waiting on You",
   "To-Dos": "Where Your Time Should Go Right Now",
   Objectives: "What Strategic Outcomes Must You Drive This Quarter",
+};
+
+/* ── Per-tab framing: shared visual language for cards + detail panel ── */
+export type TabKind = "Briefing" | "Updates" | "To-Dos" | "Objectives";
+
+export function inferTabKind(card: DashboardCard): TabKind {
+  if (card.waitingParty || card.waitDuration || card.consequence) return "Updates";
+  if (card.howTo || card.estimatedDuration || card.taskType || typeof card.leverageScore === "number") return "To-Dos";
+  if (card.successMetric || typeof card.progress === "number" || card.timeHorizon || card.objectiveType) return "Objectives";
+  return "Briefing";
+}
+
+export interface TabFraming {
+  eyebrow: string;          // short eyebrow chip (card)
+  eyebrowFull: string;      // longer eyebrow (panel)
+  intent: string;
+  icon: React.ElementType;
+  accentBar: string;        // background class for 3px rail / 1px bar
+  accentChip: string;       // chip background for eyebrow
+  accentText: string;       // text accent color class
+  accentSoftBg: string;     // soft tint background for hero blocks
+  ctaLabel: string;
+  ctaIcon: React.ElementType;
+  ctaVariant: "default" | "destructive" | "outline";
+  summaryLabel: string;
+  emptyTitle: string;
+  emptyBody: string;
+  emptyIcon: React.ElementType;
+}
+
+export const TAB_FRAMING: Record<TabKind, TabFraming> = {
+  Briefing: {
+    eyebrow: "Signal",
+    eyebrowFull: "Briefing · What changed",
+    intent: "Read this to stay informed. No immediate action needed.",
+    icon: ClipboardCheck,
+    accentBar: "bg-[hsl(217_100%_65%)]",
+    accentChip: "bg-[hsl(217_100%_96%)] text-[hsl(217_70%_42%)] border border-[hsl(217_80%_88%)]",
+    accentText: "text-[hsl(217_70%_42%)]",
+    accentSoftBg: "bg-[hsl(217_100%_97%)] border-[hsl(217_80%_90%)]",
+    ctaLabel: "Discuss in Assistant",
+    ctaIcon: Eye,
+    ctaVariant: "outline",
+    summaryLabel: "Why it matters",
+    emptyTitle: "All quiet — no new signals",
+    emptyBody: "Your business hasn't surfaced anything new worth your attention right now.",
+    emptyIcon: ClipboardCheck,
+  },
+  Updates: {
+    eyebrow: "Waiting",
+    eyebrowFull: "Update · Someone is waiting",
+    intent: "Respond to unblock the person or process waiting on you.",
+    icon: RefreshCw,
+    accentBar: "bg-[hsl(0_75%_60%)]",
+    accentChip: "bg-[hsl(0_100%_97%)] text-[hsl(0_68%_42%)] border border-[hsl(0_75%_84%)]",
+    accentText: "text-[hsl(0_68%_42%)]",
+    accentSoftBg: "bg-[hsl(0_100%_98%)] border-[hsl(0_75%_88%)]",
+    ctaLabel: "Respond now",
+    ctaIcon: Send,
+    ctaVariant: "destructive",
+    summaryLabel: "Recommended response",
+    emptyTitle: "Inbox zero — nobody waiting",
+    emptyBody: "Nothing is blocked on your response. Use this time for deep work.",
+    emptyIcon: RefreshCw,
+  },
+  "To-Dos": {
+    eyebrow: "Task",
+    eyebrowFull: "To-Do · Action required",
+    intent: "Complete this task to move work forward.",
+    icon: ListTodo,
+    accentBar: "bg-primary",
+    accentChip: "bg-primary/10 text-primary border border-primary/30",
+    accentText: "text-primary",
+    accentSoftBg: "bg-primary/5 border-primary/20",
+    ctaLabel: "Start task",
+    ctaIcon: Play,
+    ctaVariant: "default",
+    summaryLabel: "Recommended approach",
+    emptyTitle: "No tasks queued",
+    emptyBody: "You're caught up. New high-leverage tasks will surface here as they emerge.",
+    emptyIcon: ListTodo,
+  },
+  Objectives: {
+    eyebrow: "Objective",
+    eyebrowFull: "Objective · Strategic outcome",
+    intent: "Drive measurable progress toward this quarter's goal.",
+    icon: Award,
+    accentBar: "bg-[hsl(142_62%_45%)]",
+    accentChip: "bg-[hsl(142_55%_95%)] text-[hsl(142_62%_30%)] border border-[hsl(142_42%_78%)]",
+    accentText: "text-[hsl(142_62%_30%)]",
+    accentSoftBg: "bg-[hsl(142_55%_96%)] border-[hsl(142_42%_82%)]",
+    ctaLabel: "Plan execution",
+    ctaIcon: Compass,
+    ctaVariant: "default",
+    summaryLabel: "Strategic rationale",
+    emptyTitle: "Define your strategic outcomes",
+    emptyBody: "Add objectives to focus your quarter on what truly moves the business.",
+    emptyIcon: Award,
+  },
 };
 
 /** Wait-duration escalation color classes */
