@@ -714,7 +714,11 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       </ScrollArea>
       </div>
 
-      <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} onExecuteAction={onExecuteAction} />
+      {loading && !hasCards && activeBrand ? (
+        <DetailPanelSkeleton />
+      ) : (
+        <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} onExecuteAction={onExecuteAction} />
+      )}
     </div>
   );
 }
