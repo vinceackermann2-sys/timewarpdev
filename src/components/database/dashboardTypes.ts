@@ -1,6 +1,7 @@
 import {
   Building2, TrendingUp, Users, Plug, Mail, ShoppingBag,
   Palette, Bot, Target, Lightbulb, AlertTriangle, RefreshCw, Award, Image,
+  ClipboardCheck, ListTodo, Send, Play, Compass, Eye,
 } from "lucide-react";
 
 import logoHubspot from "@/assets/logo-hubspot.svg";
