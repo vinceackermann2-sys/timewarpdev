@@ -411,6 +411,23 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
         <div className={`h-1 w-full ${framing.accentBar}`} />
 
         <SheetHeader className="px-6 pt-5 pb-4 border-b border-border space-y-3">
+          {/* Source badge — TOP, primary context */}
+          {sourceMeta.label && (
+            <div className="flex items-center gap-2 text-xs">
+              {sourceMeta.icon && (
+                <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              )}
+              <span className="font-semibold text-foreground">{sourceMeta.label}</span>
+              {card.timeAgo && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">{card.timeAgo}</span>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${framing.accentChip}`}>
               <TabIcon className="h-3 w-3" />
@@ -431,20 +448,9 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-          {/* Source badge + time */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {sourceMeta.icon && (
-              <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            )}
-            <span className="font-medium">{sourceMeta.label}</span>
-            {card.timeAgo && (
-              <>
-                <span className="mx-1">·</span>
-                <Clock className="h-3 w-3" />
-                <span>{card.timeAgo}</span>
-              </>
-            )}
-          </div>
+          {/* Source content — TOP of body, always expanded.
+              For emails/messages this shows actual subject + verbatim content. */}
+          {showSource && <SourceContentBlock card={card} />}
 
           {/* Tab-personalized hero block — sets the emotional/functional tone */}
           <TabHeroBlock card={card} tabKind={tabKind} />
@@ -456,28 +462,6 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
 
           {/* Tab-specific structured details (consequence for Updates, howTo for To-Dos, etc.) */}
           <TabSpecificDetails card={card} />
-
-          {/* Source content — only when there's structured metadata to show */}
-          {hasSourceContent(card) && (
-            sourceCollapsible ? (
-              <div>
-                <button
-                  onClick={() => setSourceOpen(o => !o)}
-                  className="w-full flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors py-1"
-                >
-                  <span>Source</span>
-                  {sourceOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                </button>
-                {sourceOpen && (
-                  <div className="mt-2">
-                    <SourceContentBlock card={card} />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <SourceContentBlock card={card} />
-            )
-          )}
 
           {/* Rationale / extra detail (no label header — accent color frames it) */}
           {card.detail && (
