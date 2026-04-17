@@ -362,23 +362,110 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
 }
 
 /* ------------------------------------------------------------------ */
-/*  Skeleton Loader                                                    */
+/*  Skeleton Loader — tab-aware, animated shimmer                      */
 /* ------------------------------------------------------------------ */
-function CardSkeletons() {
+function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
+  const isObjective = tab === "Objectives";
+  const isTodo = tab === "To-Dos";
+  return (
+    <div
+      className="bg-card border border-border/60 rounded-2xl px-6 py-5 flex flex-col gap-4 animate-fade-in"
+      style={{
+        flex: "1 1 calc(50% - 0.75rem)",
+        maxWidth: "calc(50% - 0.5rem)",
+        minWidth: "300px",
+        animationDelay: `${delay}ms`,
+        animationFillMode: "both",
+      }}
+    >
+      {/* Header row */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          {isTodo && <Skeleton className="h-4 w-4 rounded-full" />}
+          <Skeleton className="h-[22px] w-[22px] rounded" />
+        </div>
+        {isObjective && <Skeleton className="h-3 w-3 rounded-full" />}
+      </div>
+
+      {/* Title + description */}
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-4/5" />
+        {!isObjective && (
+          <>
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-3/4" />
+          </>
+        )}
+      </div>
+
+      {/* Objective progress block */}
+      {isObjective && (
+        <div className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3 flex flex-col gap-2.5">
+          <Skeleton className="h-2.5 w-24" />
+          <div className="flex items-end justify-between gap-3">
+            <Skeleton className="h-6 w-20" />
+            <Skeleton className="h-4 w-16 rounded-md" />
+          </div>
+          <Skeleton className="h-1.5 w-full rounded-full" />
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="mt-auto pt-3 border-t border-border/40 flex items-center justify-between">
+        <div className="flex -space-x-1.5">
+          <Skeleton className="h-6 w-6 rounded-full" />
+          <Skeleton className="h-6 w-6 rounded-full" />
+          <Skeleton className="h-6 w-6 rounded-full" />
+        </div>
+        <Skeleton className="h-8 w-28 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+function CardSkeletons({ tab }: { tab: string }) {
   return (
     <div className="flex flex-wrap gap-4">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="bg-card border border-border/60 rounded-2xl px-6 py-5 flex flex-col gap-4" style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}>
-          <Skeleton className="h-6 w-6 rounded" />
-          <Skeleton className="h-4 w-2/3" />
-          <Skeleton className="h-3 w-full" />
-          <div className="pt-3 border-t border-border/40 flex items-center justify-between">
-            <Skeleton className="h-6 w-16 rounded-full" />
-            <Skeleton className="h-8 w-24 rounded-full" />
-          </div>
-        </div>
+      {[0, 1, 2, 3].map((i) => (
+        <SkeletonCard key={i} tab={tab} delay={i * 80} />
       ))}
     </div>
+  );
+}
+
+function DetailPanelSkeleton() {
+  return (
+    <aside className="w-[420px] shrink-0 h-[calc(100%-1.5rem)] my-3 mr-3 flex flex-col rounded-2xl border border-border bg-background shadow-sm overflow-hidden animate-fade-in">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
+        <Skeleton className="h-5 w-24 rounded" />
+        <Skeleton className="h-7 w-7 rounded-md" />
+      </div>
+      {/* Title */}
+      <div className="px-5 py-4 flex flex-col gap-2 border-b border-border/40">
+        <Skeleton className="h-5 w-4/5" />
+        <Skeleton className="h-3 w-2/3" />
+      </div>
+      {/* Body */}
+      <div className="flex-1 px-5 py-4 flex flex-col gap-4">
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-11/12" />
+        <Skeleton className="h-3 w-9/12" />
+        <div className="pt-2 flex flex-col gap-2">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+        <div className="pt-2 flex flex-col gap-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-10 w-full rounded-lg" />
+        </div>
+      </div>
+      {/* CTA */}
+      <div className="px-5 py-4 border-t border-border/60">
+        <Skeleton className="h-9 w-full rounded-md" />
+      </div>
+    </aside>
   );
 }
 
@@ -572,7 +659,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Analyzing {activeBrand.name} data & integrations…
               </div>
-              <CardSkeletons />
+              <CardSkeletons tab={activeTab} />
             </>
           ) : error && !hasCards ? (
             <div className="text-destructive w-full py-8 text-center text-sm">
@@ -627,7 +714,11 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       </ScrollArea>
       </div>
 
-      <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} onExecuteAction={onExecuteAction} />
+      {loading && !hasCards && activeBrand ? (
+        <DetailPanelSkeleton />
+      ) : (
+        <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} onExecuteAction={onExecuteAction} />
+      )}
     </div>
   );
 }
