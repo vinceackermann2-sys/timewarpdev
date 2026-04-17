@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import {
   DashboardCard, SOURCE_META, TAB_SUBTITLES,
   TAB_FRAMING, type TabKind,
@@ -186,10 +187,21 @@ function PillCTA({ label, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
-/* Source logo — top-left of card */
+/* Source logo — top-right of card. Falls back to Business Brain Orb for system/DNA-derived signals. */
 function SourceLogo({ card, size = 22 }: { card: DashboardCard; size?: number }) {
-  const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
-  if (!sourceMeta.icon) return null;
+  const sourceKey = card.source || "general";
+  const sourceMeta = SOURCE_META[sourceKey] || SOURCE_META.general;
+  const isSystem =
+    !sourceMeta.icon ||
+    sourceKey === "general" ||
+    sourceKey === "system" ||
+    sourceKey === "business_dna" ||
+    sourceKey === "dna";
+
+  if (isSystem) {
+    return <BusinessBrainOrb size={size} />;
+  }
+
   return (
     <img
       src={sourceMeta.icon}
