@@ -222,7 +222,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
           <button
             type="button"
             aria-label="Expand"
-            onClick={() => setMinimized(false)}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(false); }}
             className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
           >
             <ChevronDown className="h-4 w-4 rotate-180" />
@@ -252,7 +252,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
           <button
             type="button"
             aria-label="Minimize"
-            onClick={() => setMinimized(true)}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(true); }}
             className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
           >
             <ChevronDown className="h-4 w-4" />
