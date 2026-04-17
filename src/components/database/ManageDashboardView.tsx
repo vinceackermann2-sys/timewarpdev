@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
-  Search, ClipboardCheck, RefreshCw, ListTodo, Award, Clock,
-  Building2, Plus, Loader2, AlertTriangle, Lightbulb, Check,
+  Search, ClipboardCheck, RefreshCw, ListTodo, Award, Calendar,
+  Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "./BusinessDNAContext";
@@ -12,9 +12,70 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
 import {
-  DashboardCard, badgeClasses, SOURCE_META, TAB_SUBTITLES,
-  ICON_MAP, getWaitEscalationColor, getDurationEmoji, TAB_FRAMING, type TabKind,
+  DashboardCard, SOURCE_META, TAB_SUBTITLES,
+  TAB_FRAMING, type TabKind,
 } from "./dashboardTypes";
+
+/* ── People avatars (initials) ─────────────────────────────── */
+const AVATAR_PALETTE = [
+  { bg: "bg-[hsl(217_100%_94%)]", text: "text-[hsl(217_70%_42%)]" },
+  { bg: "bg-[hsl(280_70%_94%)]", text: "text-[hsl(280_55%_45%)]" },
+  { bg: "bg-[hsl(25_95%_92%)]", text: "text-[hsl(25_80%_45%)]" },
+  { bg: "bg-[hsl(142_55%_92%)]", text: "text-[hsl(142_55%_32%)]" },
+  { bg: "bg-[hsl(48_100%_92%)]", text: "text-[hsl(37_85%_38%)]" },
+  { bg: "bg-[hsl(0_85%_94%)]", text: "text-[hsl(0_68%_45%)]" },
+];
+
+function hashPick<T>(seed: string, arr: T[]): T {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return arr[h % arr.length];
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "?";
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function PeopleAvatars({ names }: { names: string[] }) {
+  if (!names.length) return null;
+  return (
+    <div className="flex -space-x-1.5">
+      {names.slice(0, 3).map((n, i) => {
+        const c = hashPick(n, AVATAR_PALETTE);
+        return (
+          <span
+            key={`${n}-${i}`}
+            title={n}
+            className={`w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold ${c.bg} ${c.text}`}
+          >
+            {initials(n)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Pull mentioned people out of card content (heuristic: capitalised "First Last") */
+function extractPeople(card: DashboardCard): string[] {
+  const out = new Set<string>();
+  const add = (n?: string | null) => { if (n && n.trim().length > 1) out.add(n.trim()); };
+  add(card.waitingParty);
+  add(card.metadata?.senderName);
+  add(card.metadata?.contactName);
+  add(card.metadata?.author);
+  add(card.metadata?.sharedBy);
+  if (card.metadata?.attendees) card.metadata.attendees.forEach(add);
+  if (out.size < 2) {
+    const text = `${card.title} ${card.description}`;
+    const matches = text.match(/\b[A-Z][a-z]+\s[A-Z][a-z]+\b/g) || [];
+    matches.slice(0, 3).forEach(add);
+  }
+  return Array.from(out).slice(0, 3);
+}
 
 const TABS = [
   { id: "Briefing", label: "Briefing", icon: ClipboardCheck },
