@@ -536,6 +536,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const [customObjectives, setCustomObjectives] = useState<DashboardCard[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
+  const [detailMinimized, setDetailMinimized] = useState(false);
   const [completedTodos, setCompletedTodos] = useState<Set<string>>(new Set());
   const [stale, setStale] = useState(false);
 
@@ -734,7 +735,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       {loading && !hasCards && activeBrand ? (
         <DetailPanelSkeleton />
       ) : (
-        <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} onExecuteAction={onExecuteAction} />
+        <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} onExecuteAction={onExecuteAction} minimized={detailMinimized} onMinimizedChange={setDetailMinimized} />
       )}
     </div>
   );
