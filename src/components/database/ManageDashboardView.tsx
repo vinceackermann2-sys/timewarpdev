@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
-  Search, ClipboardCheck, RefreshCw, ListTodo, Award, Clock,
-  Building2, Plus, Loader2, AlertTriangle, Lightbulb, Check,
+  Search, ClipboardCheck, RefreshCw, ListTodo, Award, Calendar,
+  Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "./BusinessDNAContext";
@@ -12,9 +12,70 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { DashCardDetailPanel } from "./DashCardDetailPanel";
 import {
-  DashboardCard, badgeClasses, SOURCE_META, TAB_SUBTITLES,
-  ICON_MAP, getWaitEscalationColor, getDurationEmoji, TAB_FRAMING, type TabKind,
+  DashboardCard, SOURCE_META, TAB_SUBTITLES,
+  TAB_FRAMING, type TabKind,
 } from "./dashboardTypes";
+
+/* ── People avatars (initials) ─────────────────────────────── */
+const AVATAR_PALETTE = [
+  { bg: "bg-[hsl(217_100%_94%)]", text: "text-[hsl(217_70%_42%)]" },
+  { bg: "bg-[hsl(280_70%_94%)]", text: "text-[hsl(280_55%_45%)]" },
+  { bg: "bg-[hsl(25_95%_92%)]", text: "text-[hsl(25_80%_45%)]" },
+  { bg: "bg-[hsl(142_55%_92%)]", text: "text-[hsl(142_55%_32%)]" },
+  { bg: "bg-[hsl(48_100%_92%)]", text: "text-[hsl(37_85%_38%)]" },
+  { bg: "bg-[hsl(0_85%_94%)]", text: "text-[hsl(0_68%_45%)]" },
+];
+
+function hashPick<T>(seed: string, arr: T[]): T {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return arr[h % arr.length];
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "?";
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function PeopleAvatars({ names }: { names: string[] }) {
+  if (!names.length) return null;
+  return (
+    <div className="flex -space-x-1.5">
+      {names.slice(0, 3).map((n, i) => {
+        const c = hashPick(n, AVATAR_PALETTE);
+        return (
+          <span
+            key={`${n}-${i}`}
+            title={n}
+            className={`w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold ${c.bg} ${c.text}`}
+          >
+            {initials(n)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Pull mentioned people out of card content (heuristic: capitalised "First Last") */
+function extractPeople(card: DashboardCard): string[] {
+  const out = new Set<string>();
+  const add = (n?: string | null) => { if (n && n.trim().length > 1) out.add(n.trim()); };
+  add(card.waitingParty);
+  add(card.metadata?.senderName);
+  add(card.metadata?.contactName);
+  add(card.metadata?.author);
+  add(card.metadata?.sharedBy);
+  if (card.metadata?.attendees) card.metadata.attendees.forEach(add);
+  if (out.size < 2) {
+    const text = `${card.title} ${card.description}`;
+    const matches = text.match(/\b[A-Z][a-z]+\s[A-Z][a-z]+\b/g) || [];
+    matches.slice(0, 3).forEach(add);
+  }
+  return Array.from(out).slice(0, 3);
+}
 
 const TABS = [
   { id: "Briefing", label: "Briefing", icon: ClipboardCheck },
@@ -47,95 +108,86 @@ function isRecentTimeAgo(t?: string): boolean {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Shared card skeleton — same anatomy across all 4 tabs              */
+/*  Shared card skeleton — clean, generous whitespace                  */
 /* ------------------------------------------------------------------ */
 interface CardShellProps {
-  tab: TabKind;
   card: DashboardCard;
   onOpen: () => void;
-  meta?: ReactNode;            // top-right meta (time/source)
-  signalBlock?: ReactNode;     // tab-specific middle block
-  footerLeft?: ReactNode;      // primary action / CTA
-  footerRight?: ReactNode;     // secondary meta
-  leadingControl?: ReactNode;  // optional left control (e.g. checkbox for to-dos)
+  topRight?: ReactNode;          // tiny accent (e.g. blue dot for objectives)
+  middle?: ReactNode;            // optional middle block (e.g. progress for objectives)
+  footerLeft?: ReactNode;        // avatars / date / leverage
+  footerRight: ReactNode;        // outline pill CTA with arrow
+  leadingControl?: ReactNode;    // optional left control (checkbox for to-dos)
   dimmed?: boolean;
   hideDescription?: boolean;
-  className?: string;
+  topLeft?: ReactNode;           // source logo (briefing/updates/todos)
 }
 
 function CardShell({
-  tab, card, onOpen, meta, signalBlock, footerLeft, footerRight, leadingControl, dimmed, hideDescription, className,
+  card, onOpen, topRight, middle, footerLeft, footerRight,
+  leadingControl, dimmed, hideDescription, topLeft,
 }: CardShellProps) {
-  const framing = TAB_FRAMING[tab];
-  const priorityClass = badgeClasses[card.priority] || badgeClasses.Low;
-
   return (
     <div
       onClick={onOpen}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      className={`group relative overflow-hidden bg-card border border-border/60 rounded-2xl pl-5 pr-5 py-4 w-full flex flex-col gap-2.5 transition-all duration-200 hover:border-border hover:shadow-md cursor-pointer text-left ${dimmed ? "opacity-60" : ""} ${className || ""}`}
+      className={`group relative bg-card border border-border/60 rounded-2xl px-6 py-5 w-full flex flex-col gap-4 transition-all duration-200 hover:border-border hover:shadow-md cursor-pointer text-left ${dimmed ? "opacity-60" : ""}`}
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
-      {/* Accent rail — left edge, tab identity (color = identity, no eyebrow text needed) */}
-      <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${framing.accentBar}`} />
-
-      {/* Header: priority dot + leading control + meta */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          {leadingControl}
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${priorityClass}`}>
-            {card.priority}
-          </span>
+      {/* Header: source logo (or leading control) ↔ accent */}
+      {(topLeft || leadingControl || topRight) && (
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            {leadingControl}
+            {topLeft}
+          </div>
+          {topRight}
         </div>
-        {meta && <div className="shrink-0 flex items-center gap-1.5 text-[11px] text-muted-foreground">{meta}</div>}
+      )}
+
+      {/* Title + description block */}
+      <div className="flex flex-col gap-2">
+        <h3 className={`text-[15px] font-bold leading-snug line-clamp-2 ${dimmed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+          {card.title}
+        </h3>
+        {!hideDescription && card.description && (
+          <p className="text-[12.5px] text-muted-foreground leading-relaxed line-clamp-2">
+            {card.description}
+          </p>
+        )}
       </div>
 
-      {/* Title */}
-      <h3 className={`text-sm font-semibold leading-snug line-clamp-2 ${dimmed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-        {card.title}
-      </h3>
+      {/* Optional middle block (objectives progress) */}
+      {middle}
 
-      {/* Tab-specific signal block */}
-      {signalBlock}
-
-      {/* Description — clamp-1 on cards (full text in panel) */}
-      {!hideDescription && card.description && (
-        <p className="text-[12.5px] text-muted-foreground leading-relaxed line-clamp-1">{card.description}</p>
-      )}
-
-      {/* Footer: dominant CTA button + secondary meta */}
-      {(footerLeft || footerRight) && (
-        <div className="mt-1 pt-2 border-t border-border/40 flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">{footerLeft}</div>
-          {footerRight && <div className="shrink-0 flex items-center gap-1.5 text-[11px] text-muted-foreground">{footerRight}</div>}
-        </div>
-      )}
+      {/* Footer: avatars/date ↔ outline CTA */}
+      <div className="mt-auto pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1 flex items-center">{footerLeft}</div>
+        <div className="shrink-0">{footerRight}</div>
+      </div>
     </div>
   );
 }
 
-/* Dominant CTA button — filled, branded by tab, stops propagation so it acts as
-   a real button while the card body still acts as the primary click target. */
-function CardCTA({ tab, onClick, label }: { tab: TabKind; onClick: () => void; label?: string }) {
-  const framing = TAB_FRAMING[tab];
-  const Icon = framing.ctaIcon;
+/* Outline pill CTA with arrow — matches screenshot exactly */
+function PillCTA({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <Button
       size="sm"
-      variant={framing.ctaVariant}
-      className="h-8 px-3 text-xs font-semibold gap-1.5 w-full sm:w-auto"
+      variant="outline"
+      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 bg-card hover:bg-muted/60 border-border/70 text-foreground/80 hover:text-foreground"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
     >
-      <Icon className="h-3.5 w-3.5" />
-      {label || framing.ctaLabel}
+      {label}
+      <ArrowRight className="h-3.5 w-3.5" />
     </Button>
   );
 }
 
-/* small inline source logo only (no label text — logo is enough) */
-function SourceLogo({ card, size = 14 }: { card: DashboardCard; size?: number }) {
+/* Source logo — top-left of card */
+function SourceLogo({ card, size = 22 }: { card: DashboardCard; size?: number }) {
   const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
   if (!sourceMeta.icon) return null;
   return (
@@ -143,7 +195,7 @@ function SourceLogo({ card, size = 14 }: { card: DashboardCard; size?: number })
       src={sourceMeta.icon}
       alt={sourceMeta.label}
       title={sourceMeta.label}
-      className="rounded object-contain shrink-0"
+      className="object-contain shrink-0"
       style={{ width: size, height: size }}
       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
     />
@@ -151,116 +203,64 @@ function SourceLogo({ card, size = 14 }: { card: DashboardCard; size?: number })
 }
 
 /* ------------------------------------------------------------------ */
-/*  Briefing Card — calm, informational                                */
+/*  Briefing Card                                                      */
 /* ------------------------------------------------------------------ */
 function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
-  const SignalIcon = card.signalType ? (ICON_MAP[card.icon || ""] || Lightbulb) : null;
-  const framing = TAB_FRAMING.Briefing;
-  const showTime = isRecentTimeAgo(card.timeAgo);
-  // Hide signalType pill if it just duplicates the title
-  const showSignalPill =
-    !!card.signalType &&
-    !!SignalIcon &&
-    !card.title.toLowerCase().includes(card.signalType.toLowerCase());
-
+  const people = extractPeople(card);
   return (
     <CardShell
-      tab="Briefing"
       card={card}
       onOpen={onOpen}
-      meta={
-        <>
-          <SourceLogo card={card} size={16} />
-          {showTime && (
-            <span className="inline-flex items-center gap-0.5">
-              <Clock className="w-3 h-3" />
-              {card.timeAgo}
-            </span>
-          )}
-        </>
-      }
-      signalBlock={
-        showSignalPill ? (
-          <div className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md border w-fit ${framing.accentSoftBg} ${framing.accentText}`}>
-            <SignalIcon className="w-3 h-3" />
-            {card.signalType}
-          </div>
-        ) : null
-      }
-      footerLeft={<CardCTA tab="Briefing" onClick={onOpen} label="Read briefing" />}
+      topLeft={<SourceLogo card={card} />}
+      footerLeft={<PeopleAvatars names={people} />}
+      footerRight={<PillCTA label="Read briefing" onClick={onOpen} />}
     />
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Updates Card — urgent, human (waiting party hero)                  */
+/*  Updates Card                                                       */
 /* ------------------------------------------------------------------ */
 function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
-  const waitColor = getWaitEscalationColor(card.waitDuration);
-  const framing = TAB_FRAMING.Updates;
-  const partyName = card.waitingParty || card.metadata?.senderName || "External party";
-  const initial = partyName.trim()[0]?.toUpperCase() || "?";
-  const showTime = isRecentTimeAgo(card.timeAgo) && !card.waitDuration;
-
+  const people = extractPeople(card);
   return (
     <CardShell
-      tab="Updates"
       card={card}
       onOpen={onOpen}
-      meta={
-        <>
-          <SourceLogo card={card} size={16} />
-          {showTime && (
-            <span className="inline-flex items-center gap-0.5">
-              <Clock className="w-3 h-3" />
-              {card.timeAgo}
-            </span>
-          )}
-        </>
-      }
-      signalBlock={
-        <div className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg border ${framing.accentSoftBg}`}>
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${framing.accentChip}`}>
-            {initial}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[12.5px] font-semibold text-foreground truncate">
-              {partyName}
-              {card.waitDuration && (
-                <span className="text-muted-foreground font-normal"> · {card.waitDuration}</span>
-              )}
-            </p>
-            {card.requestType && (
-              <p className={`text-[10.5px] ${framing.accentText} font-medium truncate`}>{card.requestType}</p>
-            )}
-          </div>
-          {card.waitDuration && (
-            <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded border ${waitColor || "text-muted-foreground bg-muted border-border"}`}>
-              {card.waitDuration}
-            </span>
-          )}
-        </div>
-      }
-      footerLeft={<CardCTA tab="Updates" onClick={onOpen} />}
+      topLeft={<SourceLogo card={card} />}
+      footerLeft={<PeopleAvatars names={people} />}
+      footerRight={<PillCTA label="Respond" onClick={onOpen} />}
     />
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  To-Do Card — focused, kinetic (checkbox + leverage + duration)     */
+/*  To-Do Card — checkbox + date + branded CTA                         */
 /* ------------------------------------------------------------------ */
-function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done: boolean; onToggle: () => void; onOpen: () => void }) {
-  const durationEmoji = getDurationEmoji(card.estimatedDuration);
-  const framing = TAB_FRAMING["To-Dos"];
-  const leverage = typeof card.leverageScore === "number" ? card.leverageScore : 0;
+function todoCtaLabel(card: DashboardCard): string {
+  const t = (card.taskType || "").toLowerCase();
+  if (t.includes("approve") || t.includes("sign")) return "Approve & Sign";
+  if (t.includes("delegate")) return "Delegate";
+  if (t.includes("template")) return "Solve via Template";
+  if (t.includes("review")) return "Review";
+  // fall back to a verb pulled from the title
+  const m = card.title.match(/^(Approve|Sign|Review|Draft|Send|Finalize|Delegate|Plan|Schedule)\b/i);
+  if (m) {
+    const verb = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+    if (verb === "Approve" || verb === "Sign") return "Approve & Sign";
+    return verb;
+  }
+  return "Start task";
+}
 
+function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done: boolean; onToggle: () => void; onOpen: () => void }) {
+  const dueLabel = card.estimatedDuration || card.timeAgo;
   return (
     <CardShell
-      tab="To-Dos"
       card={card}
       onOpen={onOpen}
       dimmed={done}
-      hideDescription
+      topLeft={<SourceLogo card={card} />}
       leadingControl={
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -270,99 +270,93 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
           {done && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
         </button>
       }
-      meta={
-        card.estimatedDuration ? (
-          <span className="inline-flex items-center text-[12px]" title={card.estimatedDuration}>
-            {durationEmoji}
-          </span>
-        ) : undefined
-      }
-      signalBlock={
-        leverage > 0 ? (
-          <div className="flex items-center gap-1.5">
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map(n => (
-                <div key={n} className={`w-3 h-1.5 rounded-full ${n <= leverage ? "bg-primary" : "bg-muted"}`} />
-              ))}
-            </div>
-            <span className={`text-[10px] font-semibold ${framing.accentText}`}>{leverage}/5</span>
+      footerLeft={
+        dueLabel ? (
+          <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5" />
+            {dueLabel}
           </div>
         ) : null
       }
-      footerLeft={
-        !done ? (
-          <CardCTA tab="To-Dos" onClick={onOpen} />
-        ) : (
-          <span className="text-[11px] text-muted-foreground italic">Completed</span>
-        )
+      footerRight={
+        done
+          ? <span className="text-[11px] text-muted-foreground italic px-2">Completed</span>
+          : <PillCTA label={todoCtaLabel(card)} onClick={onOpen} />
       }
     />
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Objective Card — composed, aspirational (progress ring)            */
+/*  Objective Card — blue dot + progress block                         */
 /* ------------------------------------------------------------------ */
-function ProgressRing({ value, accentClass = "stroke-[hsl(142_62%_45%)]" }: { value: number; accentClass?: string }) {
-  const r = 14;
-  const c = 2 * Math.PI * r;
-  const offset = c - (Math.max(0, Math.min(100, value)) / 100) * c;
-  return (
-    <svg width="36" height="36" viewBox="0 0 36 36" className="shrink-0">
-      <circle cx="18" cy="18" r={r} className="stroke-muted" strokeWidth="3" fill="none" />
-      <circle
-        cx="18" cy="18" r={r}
-        className={accentClass}
-        strokeWidth="3" fill="none" strokeLinecap="round"
-        strokeDasharray={c} strokeDashoffset={offset}
-        transform="rotate(-90 18 18)"
-      />
-      <text x="18" y="21" textAnchor="middle" className="fill-foreground" style={{ fontSize: 10, fontWeight: 600 }}>
-        {Math.round(value)}%
-      </text>
-    </svg>
-  );
+function parseNumeric(s?: string): number | null {
+  if (!s) return null;
+  const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function objectiveStatus(card: DashboardCard): { label: string; cls: string; barCls: string; pct: number } {
+  const explicit = typeof card.progress === "number" ? card.progress : null;
+  const cur = parseNumeric(card.successMetric?.current);
+  const tgt = parseNumeric(card.successMetric?.target);
+  let pct = explicit ?? (cur !== null && tgt && tgt !== 0 ? (cur / tgt) * 100 : 0);
+  pct = Math.max(0, Math.min(100, pct));
+
+  // Heuristic: lower-is-better metrics (churn, gross churn) → invert
+  const lowerIsBetter = /churn|cost|cac|loss|attrition/i.test(card.title);
+  const ratio = lowerIsBetter && cur !== null && tgt ? tgt / cur : pct / 100;
+
+  let label = "On Track";
+  let cls = "bg-[hsl(142_55%_94%)] text-[hsl(142_62%_30%)] border-[hsl(142_42%_75%)]";
+  let barCls = "bg-[hsl(142_62%_45%)]";
+
+  if (ratio < 0.6) {
+    label = "Behind";
+    cls = "bg-[hsl(0_100%_96%)] text-[hsl(0_68%_42%)] border-[hsl(0_75%_78%)]";
+    barCls = "bg-[hsl(0_72%_55%)]";
+  } else if (ratio < 0.85) {
+    label = "At Risk";
+    cls = "bg-[hsl(42_100%_94%)] text-[hsl(37_84%_36%)] border-[hsl(42_88%_72%)]";
+    barCls = "bg-[hsl(37_92%_55%)]";
+  }
+
+  return { label, cls, barCls, pct };
 }
 
 function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
-  const progress = typeof card.progress === "number" ? card.progress : 0;
-  const framing = TAB_FRAMING.Objectives;
+  const { label, cls, barCls, pct } = objectiveStatus(card);
+  const people = extractPeople(card);
+  const current = card.successMetric?.current;
+  const target = card.successMetric?.target;
 
   return (
     <CardShell
-      tab="Objectives"
       card={card}
       onOpen={onOpen}
-      meta={
-        card.timeHorizon ? (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/60">
-            <Clock className="w-3 h-3" />
-            {card.timeHorizon}
-          </span>
-        ) : undefined
+      hideDescription
+      topRight={
+        <span className="w-3 h-3 rounded-full bg-[hsl(217_100%_60%)] shadow-[0_0_0_3px_hsl(217_100%_94%)]" />
       }
-      signalBlock={
-        <div className={`flex items-center gap-3 px-2.5 py-2 rounded-lg border ${framing.accentSoftBg}`}>
-          <ProgressRing value={progress} />
-          {card.successMetric ? (
-            <div className="min-w-0 flex-1">
-              <p className="text-[12.5px] font-medium text-foreground truncate">
-                <span className="text-muted-foreground">{card.successMetric.current}</span>
-                <span className="mx-1.5 text-muted-foreground">→</span>
-                <span className={framing.accentText}>{card.successMetric.target}</span>
-              </p>
-              {card.successMetric.gap && (
-                <p className="text-[10px] text-destructive/70 truncate">Gap: {card.successMetric.gap}</p>
-              )}
+      middle={
+        <div className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3 flex flex-col gap-2.5">
+          <p className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">Current Progress</p>
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex items-baseline gap-1.5 min-w-0">
+              <span className="text-xl font-bold text-foreground truncate">{current || `${Math.round(pct)}%`}</span>
+              {target && <span className="text-xs text-muted-foreground truncate">/ {target}</span>}
             </div>
-          ) : (
-            <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-medium text-foreground">{progress}% toward target</p>
-            </div>
-          )}
+            <span className={`shrink-0 text-[10.5px] font-semibold px-2 py-0.5 rounded-md border ${cls}`}>
+              {label}
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div className={`h-full rounded-full transition-all ${barCls}`} style={{ width: `${pct}%` }} />
+          </div>
         </div>
       }
-      footerLeft={<CardCTA tab="Objectives" onClick={onOpen} />}
+      footerLeft={<PeopleAvatars names={people} />}
+      footerRight={<PillCTA label="View OKRs" onClick={onOpen} />}
     />
   );
 }
@@ -374,12 +368,13 @@ function CardSkeletons() {
   return (
     <div className="flex flex-wrap gap-4">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="bg-card border border-border/60 rounded-2xl p-4 flex items-start gap-4" style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}>
-          <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-16" />
+        <div key={i} className="bg-card border border-border/60 rounded-2xl px-6 py-5 flex flex-col gap-4" style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}>
+          <Skeleton className="h-6 w-6 rounded" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-full" />
+          <div className="pt-3 border-t border-border/40 flex items-center justify-between">
+            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className="h-8 w-24 rounded-full" />
           </div>
         </div>
       ))}
