@@ -60,7 +60,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
 
   return (
     <>
-    <div className="flex flex-col h-full items-center overflow-y-auto">
+    <div className="flex flex-col h-full items-center overflow-y-auto bg-[#fcfcfd]">
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-border/50 space-y-4 w-full max-w-3xl">
         <div className="flex items-center gap-3">
@@ -69,7 +69,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
 
           {/* Manage button - owners only */}
           {isOwner && (
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onManageWorkspace ? onManageWorkspace() : setShowWorkspaceSettings(true)}>
+            <Button variant="outline" size="sm" className="gap-1.5 bg-slate-100" onClick={() => onManageWorkspace ? onManageWorkspace() : setShowWorkspaceSettings(true)}>
               <Settings className="h-3.5 w-3.5" /> Manage
             </Button>
           )}
@@ -82,7 +82,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
             placeholder="Search businesses..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 text-sm bg-muted/30 border-border/40"
+            className="pl-9 h-9 text-sm bg-white border-border/40"
           />
         </div>
       </div>
@@ -99,7 +99,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
                 if (isFreeUser && brands.length >= 1) { openGate(); return; }
                 onSelectBusiness();
               }}
-              className="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/40 bg-card/30 hover:bg-card/60 p-8 min-h-[200px] transition-colors cursor-pointer"
+              className="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/40 bg-white p-8 min-h-[200px] transition-colors cursor-pointer"
             >
               <div className="h-14 w-14 rounded-xl bg-muted/60 group-hover:bg-primary/10 border border-border/40 group-hover:border-primary/30 flex items-center justify-center transition-colors">
                 <Plus className="h-7 w-7 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -129,7 +129,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onOpenBusiness?.(brand.id)}
-              className="group relative flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card/80 p-6 min-h-[200px] transition-colors cursor-pointer text-left"
+              className="group relative flex flex-col items-start gap-3 rounded-xl border border-border/50 hover:border-primary/30 bg-white p-6 min-h-[200px] transition-colors cursor-pointer text-left"
             >
               {/* Delete only for owners */}
               {isOwner && (
