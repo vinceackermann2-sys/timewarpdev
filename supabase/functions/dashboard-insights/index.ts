@@ -512,7 +512,7 @@ Every card has these base fields:
 - "timeAgo": accurate relative time string
 - "timestamp": ISO 8601 timestamp of the original event
 - "actionSuggestion": A specific, actionable next step
-- "metadata": source-specific context (same as before: senderName/senderEmail/subject for outlook, scheduledDate/duration/attendees for zoom, contactName/dealValue/stage for hubspot, channel/author for slack/teams, fileName/sharedBy for onedrive, notebook for onenote)
+- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when the integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize the body. Other fields: senderName/senderEmail (parse from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim message text) for slack/teams; fileName/sharedBy for onedrive; notebook for onenote
 
 ## TAB-SPECIFIC FIELDS
 
