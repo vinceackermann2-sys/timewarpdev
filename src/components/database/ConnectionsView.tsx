@@ -94,10 +94,10 @@ function ConnectionCard({
 }) {
   return (
     <div
-      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group bg-sidebar ${
+      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group hover:shadow-sm border-border bg-[#eef2f7] ${
         integration.comingSoon
-          ? "border-border/50 opacity-60 cursor-default"
-          : "border-transparent hover:border-primary/40 hover:shadow-sm"
+          ? "opacity-60 cursor-default"
+          : ""
       }`}
     >
       {integration.comingSoon && (
@@ -271,7 +271,7 @@ export function ConnectionsView() {
 
 
   return (
-    <div className="h-full min-h-0 max-h-full overflow-y-auto">
+    <div classname="h-full min-h-0 max-h-full overflow-y-auto bg-[#fcfcfd]">
       <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold mb-1">Connectors</h1>
@@ -281,7 +281,7 @@ export function ConnectionsView() {
         </div>
 
         <div className="mb-6">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Microsoft 365</p>
+          <p className="text-xs font-medium uppercase tracking-wider mb-3 text-black">Microsoft 365</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {microsoftIntegrations.map(integration => (
               <ConnectionCard
@@ -299,7 +299,7 @@ export function ConnectionsView() {
         </div>
 
         <div className="mb-6">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Google Workspace</p>
+          <p className="text-xs font-medium uppercase tracking-wider mb-3 text-black">Google Workspace</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {googleIntegrations.map(integration => (
               <ConnectionCard
@@ -317,7 +317,7 @@ export function ConnectionsView() {
         </div>
 
         <div className="mb-6">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Other</p>
+          <p className="text-xs font-medium uppercase tracking-wider mb-3 text-black">Other</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {otherIntegrations.map(integration => (
               <ConnectionCard
