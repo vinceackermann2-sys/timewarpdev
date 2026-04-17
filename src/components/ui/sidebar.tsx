@@ -301,9 +301,11 @@ const SidebarInput = React.forwardRef<React.ElementRef<typeof Input>, React.Comp
 );
 SidebarInput.displayName = "SidebarInput";
 
-const SidebarHeader = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(({ className, ...props }, ref) => {
-  return <div ref={ref} data-sidebar="header" className={cn("flex flex-col gap-2 p-2 bg-slate-50", className)} {...props} />;
-});
+const SidebarHeader = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
+  ({ className, ...props }, ref) => {
+    return <div ref={ref} data-sidebar="header" className={cn("flex flex-col gap-2 p-2 bg-slate-50", className)} {...props} />;
+  }
+);
 SidebarHeader.displayName = "SidebarHeader";
 
 const SidebarFooter = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(({ className, ...props }, ref) => {
