@@ -193,7 +193,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-[480px] flex flex-col gap-0 p-0 bg-background">
+      <SheetContent className="w-full sm:max-w-[480px] flex flex-col gap-0 p-0 bg-background [&>button[type='button']:last-of-type]:hidden">
         {/* ── Top bar: time meta · more · close ─────────────── */}
         <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-muted-foreground">
