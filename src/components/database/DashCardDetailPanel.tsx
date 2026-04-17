@@ -24,160 +24,125 @@ function MetaRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
   );
 }
 
-/* ── Source content cards — each integration gets a styled content block ── */
+/* ── Source content cards — show only what's UNIQUE to the source.
+   The card.description is already the lead paragraph above this block, so
+   we never repeat it here. We only render this block when the source has
+   structured metadata worth showing (sender, attendees, deal value, etc). */
 function SourceContentBlock({ card }: { card: DashboardCard }) {
   const meta = card.metadata;
   const source = card.source || "";
 
   if (source === "outlook") {
+    if (!meta?.senderName && !meta?.senderEmail && !meta?.subject) return null;
     return (
       <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 border-b border-border space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-              {(meta?.senderName || meta?.senderEmail || "?")[0].toUpperCase()}
+        <div className="bg-muted/50 px-4 py-3 space-y-2">
+          {(meta?.senderName || meta?.senderEmail) && (
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                {(meta?.senderName || meta?.senderEmail || "?")[0].toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{meta?.senderName || "Unknown sender"}</p>
+                {meta?.senderEmail && <p className="text-xs text-muted-foreground truncate">{meta.senderEmail}</p>}
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{meta?.senderName || "Unknown Sender"}</p>
-              {meta?.senderEmail && <p className="text-xs text-muted-foreground truncate">{meta.senderEmail}</p>}
-            </div>
-          </div>
+          )}
           {meta?.subject && (
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm pt-1 border-t border-border/60">
               <span className="text-muted-foreground text-xs font-medium">Subject:</span>
               <span className="text-foreground font-medium truncate">{meta.subject}</span>
             </div>
           )}
-        </div>
-        <div className="px-4 py-3">
-          <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
         </div>
       </div>
     );
   }
 
   if (source === "zoom") {
+    if (!meta?.scheduledDate && !meta?.duration && (!meta?.attendees || meta.attendees.length === 0)) return null;
     return (
       <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <Video className="h-5 w-5 text-primary shrink-0" />
-            <p className="text-sm font-semibold text-foreground">{card.title}</p>
-          </div>
-        </div>
-        <div className="px-4 py-3 space-y-2.5">
+        <div className="bg-muted/50 px-4 py-3 space-y-2.5">
           {meta?.scheduledDate && <MetaRow icon={Calendar} label="Date" value={meta.scheduledDate} />}
           {meta?.duration && <MetaRow icon={Clock} label="Duration" value={meta.duration} />}
           {meta?.attendees && meta.attendees.length > 0 && (
             <div className="flex items-start gap-2 text-sm">
-              <Users className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
+              <Users className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
               <div className="text-foreground space-y-0.5">
                 {meta.attendees.map((a, i) => <p key={i}>{a}</p>)}
               </div>
             </div>
           )}
-          <p className="text-sm text-foreground/80 leading-relaxed pt-1">{card.description}</p>
         </div>
       </div>
     );
   }
 
   if (source === "hubspot") {
+    if (!meta?.contactName && !meta?.dealValue && !meta?.stage) return null;
     return (
       <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <DollarSign className="h-5 w-5 text-primary shrink-0" />
-            <p className="text-sm font-semibold text-foreground">{card.title}</p>
-          </div>
-        </div>
-        <div className="px-4 py-3 space-y-2.5">
+        <div className="bg-muted/50 px-4 py-3 space-y-2.5">
           {meta?.contactName && <MetaRow icon={Users} label="Contact" value={meta.contactName} />}
           {meta?.dealValue && <MetaRow icon={DollarSign} label="Value" value={meta.dealValue} />}
           {meta?.stage && <MetaRow icon={FileText} label="Stage" value={meta.stage} />}
-          <p className="text-sm text-foreground/80 leading-relaxed pt-1">{card.description}</p>
         </div>
       </div>
     );
   }
 
   if (source === "slack") {
+    if (!meta?.channel && !meta?.author) return null;
     return (
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <MessageSquare className="h-5 w-5 text-primary shrink-0" />
-            <div className="min-w-0 flex items-center gap-2">
-              {meta?.channel && <span className="text-sm font-semibold text-foreground">#{meta.channel}</span>}
-              {meta?.author && <span className="text-xs text-muted-foreground">by {meta.author}</span>}
-            </div>
-          </div>
-        </div>
-        <div className="px-4 py-3">
-          <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
-        </div>
+      <div className="border border-border rounded-lg px-4 py-3 bg-muted/50 flex items-center gap-2.5">
+        <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+        {meta?.channel && <span className="text-sm font-semibold text-foreground">#{meta.channel}</span>}
+        {meta?.author && <span className="text-xs text-muted-foreground">by {meta.author}</span>}
       </div>
     );
   }
 
   if (source === "onedrive") {
+    if (!meta?.fileName && !meta?.sharedBy) return null;
     return (
       <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <FolderOpen className="h-5 w-5 text-primary shrink-0" />
-            <p className="text-sm font-semibold text-foreground truncate">{meta?.fileName || card.title}</p>
-          </div>
-        </div>
-        <div className="px-4 py-3 space-y-2">
+        <div className="bg-muted/50 px-4 py-3 space-y-2">
+          {meta?.fileName && (
+            <div className="flex items-center gap-2.5">
+              <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+              <p className="text-sm font-medium text-foreground truncate">{meta.fileName}</p>
+            </div>
+          )}
           {meta?.sharedBy && <MetaRow icon={Users} label="Shared by" value={meta.sharedBy} />}
-          <p className="text-sm text-foreground/80 leading-relaxed">{card.description}</p>
         </div>
       </div>
     );
   }
 
   if (source === "onenote") {
+    if (!meta?.notebook) return null;
     return (
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <StickyNote className="h-5 w-5 text-primary shrink-0" />
-            <p className="text-sm font-semibold text-foreground truncate">{meta?.notebook || card.title}</p>
-          </div>
-        </div>
-        <div className="px-4 py-3">
-          <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
-        </div>
+      <div className="border border-border rounded-lg px-4 py-3 bg-muted/50 flex items-center gap-2.5">
+        <StickyNote className="h-4 w-4 text-muted-foreground shrink-0" />
+        <p className="text-sm font-medium text-foreground truncate">{meta.notebook}</p>
       </div>
     );
   }
 
   if (source === "teams") {
+    if (!meta?.channel && !meta?.author) return null;
     return (
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <MessageSquare className="h-5 w-5 text-primary shrink-0" />
-            <div className="min-w-0 flex items-center gap-2">
-              {meta?.channel && <span className="text-sm font-semibold text-foreground">{meta.channel}</span>}
-              {meta?.author && <span className="text-xs text-muted-foreground">by {meta.author}</span>}
-            </div>
-          </div>
-        </div>
-        <div className="px-4 py-3">
-          <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
-        </div>
+      <div className="border border-border rounded-lg px-4 py-3 bg-muted/50 flex items-center gap-2.5">
+        <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+        {meta?.channel && <span className="text-sm font-semibold text-foreground">{meta.channel}</span>}
+        {meta?.author && <span className="text-xs text-muted-foreground">by {meta.author}</span>}
       </div>
     );
   }
 
-  return (
-    <div>
-      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Summary</h4>
-      <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
-    </div>
-  );
+  // No structured source metadata → nothing to render here (description is shown above)
+  return null;
 }
 
 /* ── Tab-specific detail sections ──
