@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
-  Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, ArrowRight,
+  Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, ArrowRight, Plug,
 } from "lucide-react";
 import {
   SOURCE_META, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind,
@@ -51,7 +51,7 @@ function InsightsRow({ tabKind }: { tabKind: TabKind }) {
     tabKind === "Objectives" ? "Explanation to why its an objective" :
     "Insights";
   return (
-    <div className="border-t border-border/60 pt-5">
+    <div className="pt-1">
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between text-left"
@@ -69,53 +69,65 @@ function InsightsRow({ tabKind }: { tabKind: TabKind }) {
 }
 
 /* ── Original Source Context card — the unified, consistent block ── */
-function OriginalContextCard({ card }: { card: DashboardCard }) {
+function OriginalContextCard({ card, tabKind }: { card: DashboardCard; tabKind: TabKind }) {
   const sourceKey = card.source || "general";
   const sourceMeta = SOURCE_META[sourceKey] || SOURCE_META.general;
   const meta = card.metadata;
 
-  // Header label: "ORIGINAL [SOURCE] CONTEXT"
-  const headerLabel = sourceMeta.label
-    ? `Original ${sourceMeta.label} Context`
-    : "Original System Context";
+  // Objectives always show "ORIGINAL SYSTEM CONTEXT" with a plug icon (system-derived, not external source)
+  const isSystemContext = tabKind === "Objectives";
+
+  // Header label
+  const headerLabel = isSystemContext
+    ? "Original System Context"
+    : sourceMeta.label
+      ? `Original ${sourceMeta.label} Context`
+      : "Original System Context";
 
   // Decide which sub-content to render inside the card
-  const isEmail = sourceKey === "outlook" || sourceKey === "gmail" || sourceKey === "google_gmail";
-  const isMessage = sourceKey === "slack" || sourceKey === "teams";
-  const senderName = meta?.senderName || meta?.contactName || meta?.author || meta?.sharedBy;
-  const senderEmail = meta?.senderEmail;
+  const isEmail = !isSystemContext && (sourceKey === "outlook" || sourceKey === "gmail" || sourceKey === "google_gmail");
+  const isMessage = !isSystemContext && (sourceKey === "slack" || sourceKey === "teams");
+  const senderName = !isSystemContext ? (meta?.senderName || meta?.contactName || meta?.author || meta?.sharedBy) : null;
+  const senderEmail = !isSystemContext ? meta?.senderEmail : null;
   const senderInitial = (senderName || senderEmail || sourceMeta.label || "?").trim()[0]?.toUpperCase() || "?";
 
   // Bullet metadata lines (label: value) — keep concise, never duplicate description
   const bullets: { label: string; value: string }[] = [];
-  if (meta?.stage) bullets.push({ label: "Status", value: meta.stage });
-  if (meta?.dealValue) bullets.push({ label: "Value", value: meta.dealValue });
-  if (meta?.scheduledDate) bullets.push({ label: "Date", value: meta.scheduledDate });
-  if (meta?.duration) bullets.push({ label: "Duration", value: meta.duration });
-  if (meta?.fileName) bullets.push({ label: "File", value: meta.fileName });
-  if (meta?.notebook) bullets.push({ label: "Notebook", value: meta.notebook });
-  if (meta?.channel && (isMessage)) bullets.push({ label: "Channel", value: `#${meta.channel}` });
-  if (card.requestType) bullets.push({ label: "Request", value: card.requestType });
-  if (card.waitDuration) bullets.push({ label: "Time since creation", value: card.waitDuration });
-  if (card.actionSuggestion && card.actionSuggestion.length < 80) {
-    bullets.push({ label: "Action Recommended", value: card.actionSuggestion });
+  if (!isSystemContext) {
+    if (meta?.stage) bullets.push({ label: "Status", value: meta.stage });
+    if (meta?.dealValue) bullets.push({ label: "Value", value: meta.dealValue });
+    if (meta?.scheduledDate) bullets.push({ label: "Date", value: meta.scheduledDate });
+    if (meta?.duration) bullets.push({ label: "Duration", value: meta.duration });
+    if (meta?.fileName) bullets.push({ label: "File", value: meta.fileName });
+    if (meta?.notebook) bullets.push({ label: "Notebook", value: meta.notebook });
+    if (meta?.channel && (isMessage)) bullets.push({ label: "Channel", value: `#${meta.channel}` });
+    if (card.requestType) bullets.push({ label: "Request", value: card.requestType });
+    if (card.waitDuration) bullets.push({ label: "Time since creation", value: card.waitDuration });
+    if (card.actionSuggestion && card.actionSuggestion.length < 80) {
+      bullets.push({ label: "Action Recommended", value: card.actionSuggestion });
+    }
   }
 
   // Subtitle: subject for emails, channel for messages, signalType for briefings, otherwise the title echo (only if no body)
-  const subTitle =
-    meta?.subject ||
-    (isMessage && meta?.channel ? `#${meta.channel}` : null) ||
-    card.signalType ||
-    (bullets.length === 0 ? card.title : null);
+  const subTitle = isSystemContext
+    ? card.title
+    : (meta?.subject ||
+       (isMessage && meta?.channel ? `#${meta.channel}` : null) ||
+       card.signalType ||
+       (bullets.length === 0 ? card.title : null));
 
   // Body text: verbatim email body or message text (NEVER summary)
-  const bodyText = meta?.bodyPreview || meta?.messageText || (bullets.length === 0 && !subTitle ? card.description : null);
+  const bodyText = isSystemContext
+    ? "No snippet available."
+    : (meta?.bodyPreview || meta?.messageText || (bullets.length === 0 && !subTitle ? card.description : null));
 
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/30 overflow-hidden">
       {/* Section header */}
       <div className="px-4 py-2.5 flex items-center gap-2">
-        {sourceMeta.icon ? (
+        {isSystemContext ? (
+          <Plug className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        ) : sourceMeta.icon ? (
           <img
             src={sourceMeta.icon}
             alt=""
@@ -232,13 +244,13 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
         </div>
 
         {/* ── Scrollable body ───────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
-          <OriginalContextCard card={card} />
+        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
+          <OriginalContextCard card={card} tabKind={tabKind} />
           <InsightsRow tabKind={tabKind} />
         </div>
 
         {/* ── Quick Note ────────────────────────────────────── */}
-        <div className="shrink-0 px-6 pt-4 pb-3 border-t border-border/60">
+        <div className="shrink-0 px-6 pt-4 pb-3">
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
