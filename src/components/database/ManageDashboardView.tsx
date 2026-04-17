@@ -636,7 +636,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             )}
           </div>
           {activeBrand && (
-            <Button variant="outline" size="sm" className="gap-2 text-xs bg-[#fcfcfd]" onClick={handleRefresh} disabled={loading}>
+            <Button variant="outline" size="sm" className="gap-2 text-xs bg-[#fcfcfd] shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)]" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               Update
             </Button>
@@ -657,7 +657,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           </div>
           <input
             type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-7 pr-2 py-1.5 border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-[11px] transition-colors bg-white border-border"
+            className="block w-full pl-7 pr-2 py-1.5 border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-[11px] transition-colors bg-white border-border shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)]"
             placeholder="Search cards..."
           />
         </div>
