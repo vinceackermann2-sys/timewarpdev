@@ -134,7 +134,7 @@ function CardShell({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      className={`group relative border border-border/60 rounded-2xl px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left bg-white shadow-[0_0_12px_0_hsl(210_20%_85%/0.9)] hover:shadow-[0_0_18px_0_hsl(210_20%_75%/1)] ${dimmed ? "opacity-60" : ""}`}
+      className={`group relative border border-border/60 rounded-2xl px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left bg-white shadow-[0_0_10px_0_hsl(210_20%_85%/0.7)] hover:shadow-[0_0_14px_0_hsl(210_20%_75%/0.85)] ${dimmed ? "opacity-60" : ""}`}
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
       {/* Header: source logo (or leading control) ↔ accent */}
