@@ -465,7 +465,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium">Email</Label>
-                        <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-muted/30">
+                        <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-slate-100">
                           <Mail className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">{userEmail}</span>
                         </div>
@@ -476,7 +476,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                   <Separator />
                   <div>
                     <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><Key className="h-4 w-4" /> Security</h3>
-                    <div className="rounded-xl bg-muted/40 border border-border p-5 space-y-4">
+                    <div className="rounded-xl border border-border p-5 space-y-4 bg-slate-100">
                       <div>
                         <h4 className="text-sm font-semibold flex items-center gap-2 mb-1"><Key className="h-3.5 w-3.5" /> Change Password</h4>
                         <p className="text-xs text-muted-foreground mb-4">Update your password to keep your account secure.</p>
