@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, ArrowRight, Plug,
+  Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, ArrowRight, Plug, Minimize2, Maximize2,
 } from "lucide-react";
 import {
   SOURCE_META, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind,
