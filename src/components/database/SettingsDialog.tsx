@@ -85,7 +85,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
   const total = totalNum === Infinity ? "∞" : String(totalNum);
 
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-5">
+    <div className="rounded-xl border border-border p-5 bg-slate-100">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
@@ -643,7 +643,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
                   {/* Billing toggle */}
                   <div className="flex justify-center">
-                    <div className="inline-flex items-center rounded-full bg-muted p-1 gap-1">
+                    <div className="inline-flex items-center rounded-full p-1 gap-1 bg-slate-100">
                       {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
                         <button
                           key={period}
