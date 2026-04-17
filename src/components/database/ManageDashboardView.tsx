@@ -342,8 +342,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
           <ProgressRing value={progress} />
           {card.successMetric ? (
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Success metric</p>
-              <p className="text-[12px] font-medium text-foreground truncate">
+              <p className="text-[12.5px] font-medium text-foreground truncate">
                 <span className="text-muted-foreground">{card.successMetric.current}</span>
                 <span className="mx-1.5 text-muted-foreground">→</span>
                 <span className={framing.accentText}>{card.successMetric.target}</span>
@@ -354,7 +353,6 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
             </div>
           ) : (
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Progress</p>
               <p className="text-[12px] font-medium text-foreground">{progress}% toward target</p>
             </div>
           )}
@@ -365,14 +363,6 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
           <framing.ctaIcon className="w-3 h-3" />
           {framing.ctaLabel}
         </span>
-      }
-      footerRight={
-        card.relatedTodoIds && card.relatedTodoIds.length > 0 ? (
-          <span className="inline-flex items-center gap-1">
-            <Zap className="w-3 h-3" />
-            {card.relatedTodoIds.length} linked
-          </span>
-        ) : undefined
       }
     />
   );
