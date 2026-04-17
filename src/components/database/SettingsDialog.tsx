@@ -499,7 +499,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">Manage your workspaces and team members.</p>
                   <div className="rounded-xl border border-border bg-card">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-[#fcfcfd]">
                       <span className="text-sm font-medium text-muted-foreground">{workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}</span>
                       {showCreateWs ? (
                         <div className="flex items-center gap-2">
@@ -528,7 +528,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                               <TableCell><Badge variant={ws.role === "owner" ? "default" : "secondary"} className="capitalize">{ws.role}</Badge></TableCell>
                               <TableCell><span className="text-sm text-muted-foreground">{ws.memberCount} member{ws.memberCount !== 1 ? "s" : ""}</span></TableCell>
                               <TableCell className="text-right">
-                                <Button variant="ghost" size="sm" onClick={() => { setSelectedWsId(ws.workspaceId); setWsDetailTab("users"); setWsFilter(""); setShowInviteForm(false); }} className="text-muted-foreground hover:text-foreground">Manage <ArrowRight className="h-4 w-4 ml-1" /></Button>
+                                <Button variant="ghost" size="sm" onClick={() => { setSelectedWsId(ws.workspaceId); setWsDetailTab("users"); setWsFilter(""); setShowInviteForm(false); }} className="text-muted-foreground hover:text-foreground bg-[#fcfcfd]">Manage <ArrowRight className="h-4 w-4 ml-1" /></Button>
                               </TableCell>
                             </TableRow>
                           ))}
