@@ -2582,7 +2582,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
               </div>
 
               {/* Content */}
-              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col">
+              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-white">
                 {settingsTab === "safety" && (
                   <div className="flex-1">
                     {(() => {
@@ -2605,7 +2605,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                       <h4 className="text-sm font-semibold text-foreground mb-4">Manage Employees</h4>
                       <div className="space-y-4">
                         {employees.map((emp) => (
-                          <div key={emp.id} className="bg-card border border-border p-4 rounded-xl space-y-3">
+                          <div key={emp.id} className="bg-background border border-border p-4 rounded-xl space-y-3">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 mr-4">
                                 <input
