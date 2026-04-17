@@ -205,7 +205,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
   return (
     <aside className="w-[420px] shrink-0 h-[calc(100%-1.5rem)] my-3 mr-3 flex flex-col rounded-2xl border border-border shadow-sm overflow-hidden bg-[#fcfcfd]">
       {/* ── Top bar: time meta · more · close ─────────────── */}
-      <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between bg-[#fcfcfd]">
+      <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between bg-[#fcfcfd] shadow-xl">
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
           <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
@@ -233,20 +233,20 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
       </div>
 
       {/* ── Title ─────────────────────────────────────────── */}
-      <div className="shrink-0 px-6 pb-5">
+      <div className="shrink-0 px-6 pb-5 shadow-xl">
         <h2 className="text-[22px] font-bold leading-tight text-foreground">
           {card.title}
         </h2>
       </div>
 
       {/* ── Scrollable body ───────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 bg-[#fcfcfd]">
+      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 bg-[#fcfcfd] shadow-xl rounded-none">
         <OriginalContextCard card={card} tabKind={tabKind} />
         <InsightsRow tabKind={tabKind} />
       </div>
 
       {/* ── Quick Note ────────────────────────────────────── */}
-      <div className="shrink-0 px-6 pt-4 pb-3 bg-[#fcfcfd]">
+      <div className="shrink-0 px-6 pt-4 pb-3 bg-[#fcfcfd] shadow-xl">
         <div className="flex items-center gap-2 mb-2">
           <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -260,7 +260,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
       </div>
 
       {/* ── Sticky bottom CTA ─────────────────────────────── */}
-      <div className="shrink-0 px-6 pb-5 bg-[#fcfcfd]">
+      <div className="shrink-0 px-6 pb-5 bg-[#fcfcfd] shadow-xl">
         <Button
           className="w-full h-12 gap-2 text-[14px] font-semibold rounded-xl bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
           onClick={() => {
