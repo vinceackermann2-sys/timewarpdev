@@ -83,7 +83,7 @@ export default function NewHero({ onGetDNA }: NewHeroProps) {
               The future of <span className="text-[#4a86ff] italic" style={{ fontFamily: 'cursive' }}>business</span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl font-normal text-slate-600 m-0">
-              Ai powered businesses
+              AI Chief of Staff
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:gap-4 w-full max-w-md">
