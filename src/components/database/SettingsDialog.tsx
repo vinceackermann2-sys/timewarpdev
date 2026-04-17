@@ -508,7 +508,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                           <Button size="sm" variant="ghost" onClick={() => { setShowCreateWs(false); setNewWsName(""); }}>Cancel</Button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)} className="bg-[#fcfcfd]"><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
+                        <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)} className="bg-slate-100 hover:bg-slate-100"><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
                       )}
                     </div>
                     {wsLoading ? (
