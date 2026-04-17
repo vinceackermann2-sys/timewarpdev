@@ -145,6 +145,21 @@ function SourceContentBlock({ card }: { card: DashboardCard }) {
   return null;
 }
 
+/* True when SourceContentBlock would render something */
+function hasSourceContent(card: DashboardCard): boolean {
+  const meta = card.metadata;
+  switch (card.source) {
+    case "outlook": return !!(meta?.senderName || meta?.senderEmail || meta?.subject);
+    case "zoom": return !!(meta?.scheduledDate || meta?.duration || (meta?.attendees && meta.attendees.length > 0));
+    case "hubspot": return !!(meta?.contactName || meta?.dealValue || meta?.stage);
+    case "slack": return !!(meta?.channel || meta?.author);
+    case "onedrive": return !!(meta?.fileName || meta?.sharedBy);
+    case "onenote": return !!meta?.notebook;
+    case "teams": return !!(meta?.channel || meta?.author);
+    default: return false;
+  }
+}
+
 /* ── Tab-specific detail sections ──
    Hero block already shows the headline numbers/people. This section ONLY
    surfaces what the hero can't: consequence (Updates), how-to steps (To-Dos),
@@ -417,24 +432,26 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Pr
           {/* Tab-specific structured details (consequence for Updates, howTo for To-Dos, etc.) */}
           <TabSpecificDetails card={card} />
 
-          {/* Source content — primary for Briefing, collapsible for action tabs */}
-          {sourceCollapsible ? (
-            <div>
-              <button
-                onClick={() => setSourceOpen(o => !o)}
-                className="w-full flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors py-1"
-              >
-                <span>Source</span>
-                {sourceOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-              </button>
-              {sourceOpen && (
-                <div className="mt-2">
-                  <SourceContentBlock card={card} />
-                </div>
-              )}
-            </div>
-          ) : (
-            <SourceContentBlock card={card} />
+          {/* Source content — only when there's structured metadata to show */}
+          {hasSourceContent(card) && (
+            sourceCollapsible ? (
+              <div>
+                <button
+                  onClick={() => setSourceOpen(o => !o)}
+                  className="w-full flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors py-1"
+                >
+                  <span>Source</span>
+                  {sourceOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                </button>
+                {sourceOpen && (
+                  <div className="mt-2">
+                    <SourceContentBlock card={card} />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <SourceContentBlock card={card} />
+            )
           )}
 
           {/* Rationale / extra detail (no label header — accent color frames it) */}
