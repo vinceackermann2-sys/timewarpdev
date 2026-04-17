@@ -354,7 +354,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
         </div>
       }
       middle={
-        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#fcfcfd]">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#eef2f7]">
           <p className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">Current Progress</p>
           <div className="flex items-end justify-between gap-3">
             <div className="flex items-baseline gap-1.5 min-w-0">
