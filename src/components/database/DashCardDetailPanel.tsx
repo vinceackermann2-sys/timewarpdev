@@ -1,6 +1,11 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Clock, Calendar, Users, FileText, Lightbulb, DollarSign, MessageSquare, FolderOpen, StickyNote, AlertTriangle, Target, Hourglass } from "lucide-react";
-import { SOURCE_META, badgeClasses, getWaitEscalationColor, getDurationEmoji, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind } from "./dashboardTypes";
+import { useState } from "react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, ArrowRight,
+} from "lucide-react";
+import {
+  SOURCE_META, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind,
+} from "./dashboardTypes";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -10,482 +15,257 @@ interface Props {
   onExecuteAction?: (actionText: string) => void;
 }
 
-function MetaRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
-  if (!value) return null;
+/* ── CTA label — must match the card's pill button so the panel feels consistent ── */
+function ctaLabelFor(card: DashboardCard, tabKind: TabKind): string {
+  if (tabKind === "Briefing") return "Read briefing";
+  if (tabKind === "Updates") return "Respond";
+  if (tabKind === "Objectives") return "View OKRs";
+  // To-Dos
+  const t = (card.taskType || "").toLowerCase();
+  if (t.includes("approve") || t.includes("sign")) return "Approve & Sign";
+  if (t.includes("delegate")) return "Delegate";
+  if (t.includes("template")) return "Solve via Template";
+  if (t.includes("review")) return "Review";
+  const m = card.title.match(/^(Approve|Sign|Review|Draft|Send|Finalize|Delegate|Plan|Schedule)\b/i);
+  if (m) {
+    const verb = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+    if (verb === "Approve" || verb === "Sign") return "Approve & Sign";
+    return verb;
+  }
+  return "Start task";
+}
+
+/* ── Top meta label (TODAY / 4 HRS AGO / > 7 DAYS / Q3 - Q4) ── */
+function topMetaLabel(card: DashboardCard, tabKind: TabKind): string {
+  if (tabKind === "Objectives") return card.timeHorizon || "Q3 - Q4";
+  if (card.waitDuration) return `> ${card.waitDuration.toUpperCase()}`;
+  if (card.timeAgo) return card.timeAgo.toUpperCase();
+  return "JUST NOW";
+}
+
+/* ── "Insights" / "Explanation" collapsible — empty body matches reference shots ── */
+function InsightsRow({ tabKind }: { tabKind: TabKind }) {
+  const [open, setOpen] = useState(false);
+  const label =
+    tabKind === "To-Dos" ? "Explanation to why its a to do" :
+    tabKind === "Objectives" ? "Explanation to why its an objective" :
+    "Insights";
   return (
-    <div className="flex items-start gap-2.5 text-sm">
-      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-      <div>
-        <span className="text-muted-foreground text-xs">{label}</span>
-        <p className="text-foreground">{value}</p>
+    <div className="border-t border-border/60 pt-5">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[hsl(217_100%_60%)]" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {label}
+          </span>
+        </div>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+    </div>
+  );
+}
+
+/* ── Original Source Context card — the unified, consistent block ── */
+function OriginalContextCard({ card }: { card: DashboardCard }) {
+  const sourceKey = card.source || "general";
+  const sourceMeta = SOURCE_META[sourceKey] || SOURCE_META.general;
+  const meta = card.metadata;
+
+  // Header label: "ORIGINAL [SOURCE] CONTEXT"
+  const headerLabel = sourceMeta.label
+    ? `Original ${sourceMeta.label} Context`
+    : "Original System Context";
+
+  // Decide which sub-content to render inside the card
+  const isEmail = sourceKey === "outlook" || sourceKey === "gmail" || sourceKey === "google_gmail";
+  const isMessage = sourceKey === "slack" || sourceKey === "teams";
+  const senderName = meta?.senderName || meta?.contactName || meta?.author || meta?.sharedBy;
+  const senderEmail = meta?.senderEmail;
+  const senderInitial = (senderName || senderEmail || sourceMeta.label || "?").trim()[0]?.toUpperCase() || "?";
+
+  // Bullet metadata lines (label: value) — keep concise, never duplicate description
+  const bullets: { label: string; value: string }[] = [];
+  if (meta?.stage) bullets.push({ label: "Status", value: meta.stage });
+  if (meta?.dealValue) bullets.push({ label: "Value", value: meta.dealValue });
+  if (meta?.scheduledDate) bullets.push({ label: "Date", value: meta.scheduledDate });
+  if (meta?.duration) bullets.push({ label: "Duration", value: meta.duration });
+  if (meta?.fileName) bullets.push({ label: "File", value: meta.fileName });
+  if (meta?.notebook) bullets.push({ label: "Notebook", value: meta.notebook });
+  if (meta?.channel && (isMessage)) bullets.push({ label: "Channel", value: `#${meta.channel}` });
+  if (card.requestType) bullets.push({ label: "Request", value: card.requestType });
+  if (card.waitDuration) bullets.push({ label: "Time since creation", value: card.waitDuration });
+  if (card.actionSuggestion && card.actionSuggestion.length < 80) {
+    bullets.push({ label: "Action Recommended", value: card.actionSuggestion });
+  }
+
+  // Subtitle: subject for emails, channel for messages, signalType for briefings, otherwise the title echo (only if no body)
+  const subTitle =
+    meta?.subject ||
+    (isMessage && meta?.channel ? `#${meta.channel}` : null) ||
+    card.signalType ||
+    (bullets.length === 0 ? card.title : null);
+
+  // Body text: verbatim email body or message text (NEVER summary)
+  const bodyText = meta?.bodyPreview || meta?.messageText || (bullets.length === 0 && !subTitle ? card.description : null);
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-muted/30 overflow-hidden">
+      {/* Section header */}
+      <div className="px-4 py-2.5 flex items-center gap-2">
+        {sourceMeta.icon ? (
+          <img
+            src={sourceMeta.icon}
+            alt=""
+            className="h-4 w-4 object-contain shrink-0"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        ) : (
+          <div className="h-4 w-4 rounded bg-muted-foreground/20 shrink-0" />
+        )}
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {headerLabel}
+        </span>
+      </div>
+
+      <div className="px-4 pb-4 space-y-3">
+        {/* Sender row (emails / messages with a sender) */}
+        {(isEmail || isMessage || senderName) && (
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-[hsl(217_100%_94%)] text-[hsl(217_70%_42%)] flex items-center justify-center text-sm font-bold shrink-0">
+              {senderInitial}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13.5px] font-bold text-foreground truncate leading-tight">
+                {senderName || (isEmail ? "Outlook Sender" : sourceMeta.label || "System")}
+              </p>
+              {senderEmail && (
+                <p className="text-[11.5px] text-muted-foreground truncate leading-tight">
+                  {senderEmail}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Subtitle — subject / event title */}
+        {subTitle && (
+          <p className="text-[14px] font-bold text-foreground leading-snug">
+            {subTitle}
+          </p>
+        )}
+
+        {/* Bullet metadata */}
+        {bullets.length > 0 && (
+          <div className="space-y-1">
+            {bullets.map((b, i) => (
+              <p key={i} className="text-[13px] text-foreground leading-snug">
+                <span className="font-semibold">{b.label}:</span> {b.value}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Verbatim body / message text */}
+        {bodyText && (
+          <p className="text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
+            {bodyText}
+          </p>
+        )}
+
+        {/* Fallback when nothing structured is available */}
+        {!subTitle && bullets.length === 0 && !bodyText && !senderName && (
+          <p className="text-[12px] text-muted-foreground italic">No snippet available.</p>
+        )}
       </div>
     </div>
   );
 }
 
-/* ── Source content cards — show only what's UNIQUE to the source.
-   The card.description is already the lead paragraph above this block, so
-   we never repeat it here. We only render this block when the source has
-   structured metadata worth showing (sender, attendees, deal value, etc). */
-function SourceContentBlock({ card }: { card: DashboardCard }) {
-  const meta = card.metadata;
-  const source = card.source || "";
-
-  if (source === "outlook" || source === "google_gmail" || source === "gmail") {
-    if (!meta?.senderName && !meta?.senderEmail && !meta?.subject && !meta?.bodyPreview) return null;
-    return (
-      <div className="border border-border rounded-xl overflow-hidden bg-card">
-        {/* Email header bar — sender + date */}
-        <div className="bg-muted/40 px-4 py-3 border-b border-border flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-            {(meta?.senderName || meta?.senderEmail || "?")[0].toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground truncate">{meta?.senderName || meta?.senderEmail || "Unknown sender"}</p>
-            {meta?.senderEmail && meta?.senderName && (
-              <p className="text-xs text-muted-foreground truncate">{meta.senderEmail}</p>
-            )}
-          </div>
-          {meta?.receivedAt && (
-            <span className="shrink-0 text-[11px] text-muted-foreground">{meta.receivedAt}</span>
-          )}
-        </div>
-        {/* Subject */}
-        {meta?.subject && (
-          <div className="px-4 pt-3">
-            <p className="text-sm font-semibold text-foreground leading-snug">{meta.subject}</p>
-          </div>
-        )}
-        {/* Body — verbatim preview, NOT a summary */}
-        {meta?.bodyPreview && (
-          <div className="px-4 py-3">
-            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-wrap">
-              {meta.bodyPreview}
-            </p>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (source === "zoom") {
-    if (!meta?.scheduledDate && !meta?.duration && (!meta?.attendees || meta.attendees.length === 0)) return null;
-    return (
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 space-y-2.5">
-          {meta?.scheduledDate && <MetaRow icon={Calendar} label="Date" value={meta.scheduledDate} />}
-          {meta?.duration && <MetaRow icon={Clock} label="Duration" value={meta.duration} />}
-          {meta?.attendees && meta.attendees.length > 0 && (
-            <div className="flex items-start gap-2 text-sm">
-              <Users className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-              <div className="text-foreground space-y-0.5">
-                {meta.attendees.map((a, i) => <p key={i}>{a}</p>)}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (source === "hubspot") {
-    if (!meta?.contactName && !meta?.dealValue && !meta?.stage) return null;
-    return (
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 space-y-2.5">
-          {meta?.contactName && <MetaRow icon={Users} label="Contact" value={meta.contactName} />}
-          {meta?.dealValue && <MetaRow icon={DollarSign} label="Value" value={meta.dealValue} />}
-          {meta?.stage && <MetaRow icon={FileText} label="Stage" value={meta.stage} />}
-        </div>
-      </div>
-    );
-  }
-
-  if (source === "slack") {
-    if (!meta?.channel && !meta?.author && !meta?.messageText) return null;
-    return (
-      <div className="border border-border rounded-xl overflow-hidden bg-card">
-        <div className="bg-muted/40 px-4 py-2.5 border-b border-border flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-          {meta?.channel && <span className="text-sm font-semibold text-foreground">#{meta.channel}</span>}
-          {meta?.author && <span className="text-xs text-muted-foreground">· {meta.author}</span>}
-        </div>
-        {meta?.messageText && (
-          <div className="px-4 py-3">
-            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-wrap">{meta.messageText}</p>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (source === "onedrive") {
-    if (!meta?.fileName && !meta?.sharedBy) return null;
-    return (
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-3 space-y-2">
-          {meta?.fileName && (
-            <div className="flex items-center gap-2.5">
-              <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
-              <p className="text-sm font-medium text-foreground truncate">{meta.fileName}</p>
-            </div>
-          )}
-          {meta?.sharedBy && <MetaRow icon={Users} label="Shared by" value={meta.sharedBy} />}
-        </div>
-      </div>
-    );
-  }
-
-  if (source === "onenote") {
-    if (!meta?.notebook) return null;
-    return (
-      <div className="border border-border rounded-lg px-4 py-3 bg-muted/50 flex items-center gap-2.5">
-        <StickyNote className="h-4 w-4 text-muted-foreground shrink-0" />
-        <p className="text-sm font-medium text-foreground truncate">{meta.notebook}</p>
-      </div>
-    );
-  }
-
-  if (source === "teams") {
-    if (!meta?.channel && !meta?.author && !meta?.messageText) return null;
-    return (
-      <div className="border border-border rounded-xl overflow-hidden bg-card">
-        <div className="bg-muted/40 px-4 py-2.5 border-b border-border flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-          {meta?.channel && <span className="text-sm font-semibold text-foreground">{meta.channel}</span>}
-          {meta?.author && <span className="text-xs text-muted-foreground">· {meta.author}</span>}
-        </div>
-        {meta?.messageText && (
-          <div className="px-4 py-3">
-            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-wrap">{meta.messageText}</p>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // No structured source metadata → nothing to render here (description is shown above)
-  return null;
-}
-
-/* True when SourceContentBlock would render something */
-function hasSourceContent(card: DashboardCard): boolean {
-  const meta = card.metadata;
-  switch (card.source) {
-    case "outlook":
-    case "google_gmail":
-    case "gmail":
-      return !!(meta?.senderName || meta?.senderEmail || meta?.subject || meta?.bodyPreview);
-    case "zoom": return !!(meta?.scheduledDate || meta?.duration || (meta?.attendees && meta.attendees.length > 0));
-    case "hubspot": return !!(meta?.contactName || meta?.dealValue || meta?.stage);
-    case "slack": return !!(meta?.channel || meta?.author || meta?.messageText);
-    case "onedrive": return !!(meta?.fileName || meta?.sharedBy);
-    case "onenote": return !!meta?.notebook;
-    case "teams": return !!(meta?.channel || meta?.author || meta?.messageText);
-    default: return false;
-  }
-}
-
-/* ── Tab-specific detail sections ──
-   Hero block already shows the headline numbers/people. This section ONLY
-   surfaces what the hero can't: consequence (Updates), how-to steps (To-Dos),
-   metric source + linked todos + objective type (Objectives). No duplicates. */
-function TabSpecificDetails({ card }: { card: DashboardCard }) {
-  // Updates → only consequence (waiting party, duration, request type already in hero)
-  if (card.waitingParty || card.waitDuration || card.consequence) {
-    if (!card.consequence) return null;
-    return (
-      <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3">
-        <div className="flex items-center gap-1.5 mb-1">
-          <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-          <span className="text-xs font-semibold text-destructive">If you don't respond</span>
-        </div>
-        <p className="text-sm text-foreground/80">{card.consequence}</p>
-      </div>
-    );
-  }
-
-  // To-Dos → only the how-to steps (duration, leverage, task type already in hero)
-  if (card.howTo || card.estimatedDuration || card.taskType) {
-    if (!card.howTo) return null;
-    return (
-      <div>
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">How to complete</h4>
-        <div className="text-sm text-foreground leading-relaxed space-y-1.5">
-          {card.howTo.split(/\n|(?=\d+\.)/).filter(Boolean).map((step, i) => (
-            <p key={i} className="flex items-start gap-2">
-              <span className="text-primary font-semibold shrink-0">{i + 1}.</span>
-              <span>{step.replace(/^\d+\.\s*/, "").trim()}</span>
-            </p>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Objectives → metric source + linked todos + type (progress, metric, horizon already in hero)
-  if (card.successMetric || typeof card.progress === "number" || card.timeHorizon) {
-    const metricSource = card.successMetric?.source;
-    const linkedCount = card.relatedTodoIds?.length || 0;
-    if (!metricSource && !linkedCount && !card.objectiveType) return null;
-    return (
-      <div className="space-y-2 text-sm">
-        {card.objectiveType && (
-          <div className="flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-foreground">{card.objectiveType}</span>
-          </div>
-        )}
-        {linkedCount > 0 && (
-          <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-foreground">{linkedCount} linked to-do{linkedCount > 1 ? "s" : ""}</span>
-          </div>
-        )}
-        {metricSource && (
-          <p className="text-[11px] text-muted-foreground pl-6">Metric source: {metricSource}</p>
-        )}
-      </div>
-    );
-  }
-
-  // Briefing → signalType already shown in hero, nothing extra
-  return null;
-}
-
-/* ── Tab-personalized hero block (top of body) ── */
-function ProgressRingLg({ value, accentClass }: { value: number; accentClass: string }) {
-  const r = 22;
-  const c = 2 * Math.PI * r;
-  const offset = c - (Math.max(0, Math.min(100, value)) / 100) * c;
-  return (
-    <svg width="56" height="56" viewBox="0 0 56 56" className="shrink-0">
-      <circle cx="28" cy="28" r={r} className="stroke-muted" strokeWidth="4" fill="none" />
-      <circle
-        cx="28" cy="28" r={r} className={accentClass}
-        strokeWidth="4" fill="none" strokeLinecap="round"
-        strokeDasharray={c} strokeDashoffset={offset}
-        transform="rotate(-90 28 28)"
-      />
-      <text x="28" y="32" textAnchor="middle" className="fill-foreground" style={{ fontSize: 13, fontWeight: 700 }}>
-        {Math.round(value)}%
-      </text>
-    </svg>
-  );
-}
-
-function TabHeroBlock({ card, tabKind }: { card: DashboardCard; tabKind: TabKind }) {
-  const framing = TAB_FRAMING[tabKind];
-
-  if (tabKind === "Briefing") {
-    if (!card.signalType && !card.detail) return null;
-    return (
-      <div className={`rounded-xl border p-4 ${framing.accentSoftBg}`}>
-        <div className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider mb-2 ${framing.accentText}`}>
-          <Lightbulb className="h-3 w-3" />
-          What changed
-        </div>
-        <p className="text-sm font-semibold text-foreground leading-snug">
-          {card.signalType || card.title}
-        </p>
-      </div>
-    );
-  }
-
-  if (tabKind === "Updates") {
-    const initial = (card.waitingParty || card.metadata?.senderName || "?").trim()[0]?.toUpperCase() || "?";
-    const waitColor = getWaitEscalationColor(card.waitDuration);
-    return (
-      <div className={`rounded-xl border p-4 ${framing.accentSoftBg}`}>
-        <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold shrink-0 ${framing.accentChip}`}>
-            {initial}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground truncate">
-              {card.waitingParty || card.metadata?.senderName || "External party"}
-            </p>
-            <p className={`text-xs ${framing.accentText} font-medium`}>
-              is waiting on you{card.requestType ? ` · ${card.requestType}` : ""}
-            </p>
-          </div>
-        </div>
-        {card.waitDuration && (
-          <div className="mt-3 flex items-center gap-2">
-            <Hourglass className={`h-3.5 w-3.5 ${framing.accentText}`} />
-            <span className={`text-xs font-bold px-2 py-0.5 rounded border ${waitColor || "text-muted-foreground bg-muted border-border"}`}>
-              Waiting {card.waitDuration}
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (tabKind === "To-Dos") {
-    const durationEmoji = getDurationEmoji(card.estimatedDuration);
-    const leverage = typeof card.leverageScore === "number" ? card.leverageScore : 0;
-    return (
-      <div className={`rounded-xl border p-4 ${framing.accentSoftBg} grid grid-cols-2 gap-3`}>
-        {card.estimatedDuration && (
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Time required</p>
-            <p className="text-sm font-semibold text-foreground">{durationEmoji} {card.estimatedDuration}</p>
-          </div>
-        )}
-        {leverage > 0 && (
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Leverage</p>
-            <div className="flex items-center gap-1.5">
-              <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map(n => (
-                  <div key={n} className={`w-3.5 h-2 rounded-full ${n <= leverage ? "bg-primary" : "bg-muted"}`} />
-                ))}
-              </div>
-              <span className={`text-xs font-bold ${framing.accentText}`}>{leverage}/5</span>
-            </div>
-          </div>
-        )}
-        {card.taskType && (
-          <div className="col-span-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Task type</p>
-            <p className="text-sm text-foreground">{card.taskType}</p>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (tabKind === "Objectives") {
-    const progress = typeof card.progress === "number" ? card.progress : 0;
-    return (
-      <div className={`rounded-xl border p-4 ${framing.accentSoftBg}`}>
-        <div className="flex items-center gap-4">
-          <ProgressRingLg value={progress} accentClass="stroke-[hsl(142_62%_45%)]" />
-          <div className="min-w-0 flex-1">
-            {card.successMetric ? (
-              <>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Success metric</p>
-                <p className="text-sm font-semibold text-foreground">
-                  <span className="text-muted-foreground font-normal">{card.successMetric.current}</span>
-                  <span className="mx-1.5 text-muted-foreground">→</span>
-                  <span className={framing.accentText}>{card.successMetric.target}</span>
-                </p>
-                {card.successMetric.gap && (
-                  <p className="text-xs text-destructive/70 mt-0.5">Gap: {card.successMetric.gap}</p>
-                )}
-              </>
-            ) : (
-              <>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Progress</p>
-                <p className="text-sm font-semibold text-foreground">{progress}% toward target</p>
-              </>
-            )}
-            {card.timeHorizon && (
-              <p className="text-[11px] text-muted-foreground mt-1">Horizon: {card.timeHorizon}</p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-}
-
 export function DashCardDetailPanel({ card, open, onClose, onExecuteAction }: Props) {
   if (!card) return null;
 
-  const sourceMeta = SOURCE_META[card.source || "general"] || SOURCE_META.general;
   const tabKind = inferTabKind(card);
-  const framing = TAB_FRAMING[tabKind];
-  const TabIcon = framing.icon;
-  const CtaIcon = framing.ctaIcon;
-  const showSource = hasSourceContent(card);
+  const ctaLabel = ctaLabelFor(card, tabKind);
+  const topLabel = topMetaLabel(card, tabKind);
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-[460px] flex flex-col gap-0 p-0">
-        {/* Tab-distinct accent bar */}
-        <div className={`h-1 w-full ${framing.accentBar}`} />
-
-        <SheetHeader className="px-6 pt-5 pb-4 border-b border-border space-y-3">
-          {/* Source badge — TOP, primary context */}
-          {sourceMeta.label && (
-            <div className="flex items-center gap-2 text-xs">
-              {sourceMeta.icon && (
-                <img src={sourceMeta.icon} alt="" className="h-4 w-4 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-              )}
-              <span className="font-semibold text-foreground">{sourceMeta.label}</span>
-              {card.timeAgo && (
-                <>
-                  <span className="text-muted-foreground">·</span>
-                  <Clock className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">{card.timeAgo}</span>
-                </>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${framing.accentChip}`}>
-              <TabIcon className="h-3 w-3" />
-              {framing.eyebrow}
-            </span>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${badgeClasses[card.priority] || badgeClasses.Low}`}>
-              {card.priority}
-            </span>
-            {card.category && (
-              <span className="text-[10px] text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded">
-                {card.category}
-              </span>
-            )}
+      <SheetContent className="w-full sm:max-w-[480px] flex flex-col gap-0 p-0 bg-background [&>.absolute]:hidden">
+        {/* ── Top bar: time meta · more · close ─────────────── */}
+        <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
           </div>
-
-          <SheetTitle className="text-base leading-snug text-left">{card.title}</SheetTitle>
-        </SheetHeader>
-
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-          {/* Source content — TOP of body, always expanded.
-              For emails/messages this shows actual subject + verbatim content. */}
-          {showSource && <SourceContentBlock card={card} />}
-
-          {/* Tab-personalized hero block — sets the emotional/functional tone */}
-          <TabHeroBlock card={card} tabKind={tabKind} />
-
-          {/* Description — clean lead paragraph (no label header) */}
-          {card.description && (
-            <p className="text-sm text-foreground leading-relaxed">{card.description}</p>
-          )}
-
-          {/* Tab-specific structured details (consequence for Updates, howTo for To-Dos, etc.) */}
-          <TabSpecificDetails card={card} />
-
-          {/* Rationale / extra detail (no label header — accent color frames it) */}
-          {card.detail && (
-            <div className="pt-3 border-t border-border/60">
-              <p className="text-sm text-foreground leading-relaxed">{card.detail}</p>
-            </div>
-          )}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="More options"
+              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+            {/* Sheet's built-in close button is absolute top-right; we hide it via spacer
+                and provide our own close that respects the layout. */}
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={onClose}
+              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* Sticky footer CTA — always visible */}
-        {card.actionSuggestion && (
-          <div className="shrink-0 border-t border-border bg-card px-6 py-4">
-            <Button
-              variant={framing.ctaVariant}
-              className="w-full gap-2 text-sm font-semibold"
-              onClick={() => {
-                onExecuteAction?.(card.actionSuggestion!);
-                onClose();
-              }}
-            >
-              <CtaIcon className="h-4 w-4" />
-              {framing.ctaLabel}
-            </Button>
+        {/* ── Title ─────────────────────────────────────────── */}
+        <div className="shrink-0 px-6 pb-5">
+          <h2 className="text-[22px] font-bold leading-tight text-foreground">
+            {card.title}
+          </h2>
+        </div>
+
+        {/* ── Scrollable body ───────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
+          <OriginalContextCard card={card} />
+          <InsightsRow tabKind={tabKind} />
+        </div>
+
+        {/* ── Quick Note ────────────────────────────────────── */}
+        <div className="shrink-0 px-6 pt-4 pb-3 border-t border-border/60">
+          <div className="flex items-center gap-2 mb-2">
+            <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Quick Note
+            </span>
           </div>
-        )}
+          <textarea
+            placeholder="Add a comment, note, or update context..."
+            className="w-full min-h-[60px] resize-none rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background transition-colors"
+          />
+        </div>
+
+        {/* ── Sticky bottom CTA ─────────────────────────────── */}
+        <div className="shrink-0 px-6 pb-5">
+          <Button
+            className="w-full h-12 gap-2 text-[14px] font-semibold rounded-xl bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
+            onClick={() => {
+              if (card.actionSuggestion) {
+                onExecuteAction?.(card.actionSuggestion);
+              }
+              onClose();
+            }}
+          >
+            {ctaLabel}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
       </SheetContent>
     </Sheet>
   );
