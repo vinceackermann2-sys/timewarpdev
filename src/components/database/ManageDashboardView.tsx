@@ -187,12 +187,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
           </div>
         ) : null
       }
-      footerLeft={
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${framing.accentText} group-hover:underline`}>
-          <framing.ctaIcon className="w-3 h-3" />
-          Read briefing
-        </span>
-      }
+      footerLeft={<CardCTA tab="Briefing" onClick={onOpen} label="Read briefing" />}
     />
   );
 }
@@ -246,12 +241,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
           )}
         </div>
       }
-      footerLeft={
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${framing.accentText} group-hover:underline`}>
-          <framing.ctaIcon className="w-3 h-3" />
-          {framing.ctaLabel}
-        </span>
-      }
+      footerLeft={<CardCTA tab="Updates" onClick={onOpen} />}
     />
   );
 }
@@ -301,10 +291,7 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
       }
       footerLeft={
         !done ? (
-          <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${framing.accentText} group-hover:underline`}>
-            <framing.ctaIcon className="w-3 h-3" />
-            {framing.ctaLabel}
-          </span>
+          <CardCTA tab="To-Dos" onClick={onOpen} />
         ) : (
           <span className="text-[11px] text-muted-foreground italic">Completed</span>
         )
@@ -375,12 +362,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
           )}
         </div>
       }
-      footerLeft={
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${framing.accentText} group-hover:underline`}>
-          <framing.ctaIcon className="w-3 h-3" />
-          {framing.ctaLabel}
-        </span>
-      }
+      footerLeft={<CardCTA tab="Objectives" onClick={onOpen} />}
     />
   );
 }
