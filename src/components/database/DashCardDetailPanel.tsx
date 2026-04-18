@@ -126,7 +126,7 @@ function OriginalContextCard({ card, tabKind }: { card: DashboardCard; tabKind: 
       {/* Section header */}
       <div className="px-4 py-2.5 flex items-center gap-2 bg-[#eef2f7]">
         {isSystemContext ? (
-          <Plug className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <BusinessBrainOrb size={16} className="shrink-0" />
         ) : sourceMeta.icon ? (
           <img
             src={sourceMeta.icon}
