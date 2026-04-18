@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ClipboardCheck, RefreshCw, ListTodo, Award, Calendar,
-  Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check, Eye,
+  Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "./BusinessDNAContext";
