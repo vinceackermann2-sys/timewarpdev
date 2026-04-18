@@ -255,7 +255,7 @@ const Auth = () => {
     <div className="min-h-screen max-w-[1900px] mx-auto bg-background flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-5xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 bg-card">
-          <div className="p-6 sm:p-10 flex flex-col justify-center">
+          <div className="p-6 sm:p-10 flex flex-col justify-center bg-[#fcfcfd]">
             <div className="hidden sm:flex items-center gap-2 mb-8">
               <img src="/favicon.png" alt="TimeWarp" className="h-9 w-9 rounded-lg object-cover" />
               <span className="font-semibold text-lg text-foreground">TimeWarp</span>
@@ -308,7 +308,7 @@ const Auth = () => {
                     <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl" />
+                      <Input id="email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl bg-white" />
                     </div>
                   </div>
 
@@ -316,7 +316,7 @@ const Auth = () => {
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl" />
+                      <Input id="password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl bg-white" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
