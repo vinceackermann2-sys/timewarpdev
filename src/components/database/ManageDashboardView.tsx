@@ -5,6 +5,7 @@ import {
   Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/useAuth";
 import { useBusinessDNA } from "./BusinessDNAContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
