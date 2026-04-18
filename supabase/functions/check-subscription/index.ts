@@ -43,13 +43,21 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    if (!authHeader) {
+      return new Response(JSON.stringify({
+        subscribed: false, plan: null, product_id: null, subscription_end: null,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+    }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    if (userError || !userData?.user?.email) {
+      console.warn("[check-subscription] Auth failed:", userError?.message ?? "no user");
+      return new Response(JSON.stringify({
+        subscribed: false, plan: null, product_id: null, subscription_end: null,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+    }
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
 
     // Read current DB subscription
     const { data: storedSubscription } = await supabaseClient
