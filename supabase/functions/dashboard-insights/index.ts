@@ -3,8 +3,6 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 
 import {
   getValidProviderToken,
-  searchMicrosoftData,
-  searchOneNoteData,
 } from "../_shared/run-employee/connections.ts";
 
 const corsHeaders = {
