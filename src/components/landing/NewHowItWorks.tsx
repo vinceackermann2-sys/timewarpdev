@@ -307,9 +307,9 @@ export const Screen4 = () => {
 };
 
 const nodesData = [
-  {s:8, end: 10, i: <Dna className="w-5 h-5"/>, t: "Business DNA", log: "Checking business dna..."},
-  {s:10, end: 12, i: <Globe className="w-5 h-5"/>, t: "Web Search", log: "Matching with real time data..."},
-  {s:12, end: 14, i: <LayoutTemplate className="w-5 h-5"/>, t: "Strategy Plan", log: "Crafting plan..."}
+  {s:8, end: 10, i: <Dna className="w-5 h-5 text-black"/>, t: "Business DNA", log: "Checking business dna..."},
+  {s:10, end: 12, i: <Globe className="w-5 h-5 text-black"/>, t: "Web Search", log: "Matching with real time data..."},
+  {s:12, end: 14, i: <LayoutTemplate className="w-5 h-5 text-black"/>, t: "Strategy Plan", log: "Crafting plan..."}
 ];
 
 const NodeWithLog = ({ icon, title, stepNum, status, logText, xOffset = -20, size = "md" }: { icon: React.ReactNode, title: string, stepNum: number, status: 'waiting' | 'thinking' | 'completed', logText: string, xOffset?: number, size?: "sm" | "md" }) => {
@@ -320,7 +320,7 @@ const NodeWithLog = ({ icon, title, stepNum, status, logText, xOffset = -20, siz
   return (
     <motion.div initial={{ opacity: 0, x: xOffset }} animate={{ opacity: 1, x: 0 }} className={`bg-emerald-50 border-2 border-emerald-200 rounded-xl ${isSm ? 'p-2.5 gap-1.5' : 'p-3.5 gap-2.5'} flex flex-col shadow-lg shadow-emerald-100/50 w-full h-full justify-center`}>
       <div className={`flex items-center ${isSm ? 'gap-2' : 'gap-3'}`}>
-        <div className={`${isSm ? 'w-7 h-7' : 'w-9 h-9'} rounded-lg bg-blue-50 text-[#4a86ff] flex items-center justify-center shrink-0`}>
+        <div className={`${isSm ? 'w-7 h-7' : 'w-9 h-9'} rounded-lg bg-[#f0f6ff]/0 text-[#4a86ff] flex items-center justify-center shrink-0`}>
           <div className={isSm ? 'scale-75' : ''}>{icon}</div>
         </div>
         <div className="flex flex-col">
@@ -497,7 +497,7 @@ const DesktopFlow = () => {
           {step >= 14 && (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white border-2 border-emerald-200 rounded-2xl p-4 flex flex-col gap-3 shadow-xl shadow-emerald-100/50 w-full relative">
               <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="w-4 h-4 text-emerald-500" />
+                <Sparkles className="w-4 h-4 text-black" />
                 <span className="text-xs font-bold text-slate-800">Proposed Strategy</span>
               </div>
               <div className="flex flex-col gap-2">
@@ -693,7 +693,7 @@ const MobileTreeFlow = () => {
           {step >= 14 ? (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white border-2 border-emerald-200 rounded-xl p-4 flex flex-col gap-2.5 shadow-xl shadow-emerald-100/50 w-full">
               <div className="flex items-center justify-center gap-2 mb-1">
-                <Sparkles className="w-4 h-4 text-emerald-500" />
+                <Sparkles className="w-4 h-4 text-black" />
                 <span className="text-xs font-bold text-slate-800">Proposed Strategy</span>
               </div>
               <div className="flex flex-col gap-2">
