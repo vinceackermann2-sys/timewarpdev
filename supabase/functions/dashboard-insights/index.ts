@@ -102,17 +102,63 @@ serve(async (req) => {
       return null;
     };
 
-    if (hasMsOutlook || hasMsOnedrive) {
+    // Helper: paginated fetch with caps
+    const paginateGraph = async (initialUrl: string, token: string, cap: number, timeoutMs = 25000) => {
+      const items: any[] = [];
+      let url: string | null = initialUrl;
+      const startedAt = Date.now();
+      while (url && items.length < cap && Date.now() - startedAt < timeoutMs) {
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, ConsistencyLevel: "eventual" } });
+        if (!res.ok) break;
+        const data = await res.json();
+        const page = data.value || [];
+        items.push(...page);
+        url = data["@odata.nextLink"] || null;
+      }
+      return items.slice(0, cap);
+    };
+
+    if (hasMsOutlook) {
       searchPromises.push((async () => {
         try {
           const msToken = await getMsToken();
           if (!msToken) return;
-          const results = await searchMicrosoftData(msToken, searchQuery2, brandName, {
-            searchEmails: hasMsOutlook, searchFiles: hasMsOnedrive,
-          });
-          if (results.emails.length > 0) integrationData += `\n### Recent Emails (Outlook)\n${results.emails.join("\n")}\n`;
-          if (results.files.length > 0) integrationData += `\n### Recent Files (OneDrive)\n${results.files.join("\n")}\n`;
-        } catch (e) { console.error("MS search error:", e); }
+          // ALL inbox last 7 days + all unread, cap 500
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const url = `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=100&$filter=${encodeURIComponent(`receivedDateTime ge ${sevenDaysAgo} or isRead eq false`)}&$orderby=receivedDateTime desc&$select=subject,bodyPreview,from,receivedDateTime,isRead`;
+          const messages = await paginateGraph(url, msToken, 500);
+          // Sort by recency, trim to top 100 for AI
+          const top = messages
+            .sort((a, b) => (b.receivedDateTime || "").localeCompare(a.receivedDateTime || ""))
+            .slice(0, 100)
+            .map((msg: any) => {
+              const subject = msg.subject || "No subject";
+              const from = msg.from?.emailAddress?.address || "unknown";
+              const receivedAt = msg.receivedDateTime?.slice(0, 16)?.replace("T", " ") || "";
+              const preview = (msg.bodyPreview || "").slice(0, 300);
+              return `📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${receivedAt} | UNREAD: ${msg.isRead === false}\nBODY: ${preview}`;
+            });
+          if (top.length > 0) integrationData += `\n### Outlook Inbox (last 7 days + all unread, ${messages.length} fetched, top ${top.length} shown)\n${top.join("\n\n")}\n`;
+        } catch (e) { console.error("Outlook fetch error:", e); }
+      })());
+    }
+
+    if (hasMsOnedrive) {
+      searchPromises.push((async () => {
+        try {
+          const msToken = await getMsToken();
+          if (!msToken) return;
+          // ALL files modified last 30 days, cap 500
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          const url = `https://graph.microsoft.com/v1.0/me/drive/root/search(q='')?$top=200&$select=name,webUrl,lastModifiedDateTime,size,createdBy`;
+          const allFiles = await paginateGraph(url, msToken, 500);
+          const recent = allFiles
+            .filter((f: any) => f.lastModifiedDateTime && f.lastModifiedDateTime >= thirtyDaysAgo)
+            .sort((a, b) => (b.lastModifiedDateTime || "").localeCompare(a.lastModifiedDateTime || ""))
+            .slice(0, 100)
+            .map((file: any) => `📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""}) — [link](${file.webUrl || ""})`);
+          if (recent.length > 0) integrationData += `\n### OneDrive Files (last 30 days, top ${recent.length} of ${allFiles.length})\n${recent.join("\n")}\n`;
+        } catch (e) { console.error("OneDrive fetch error:", e); }
       })());
     }
 
@@ -121,9 +167,18 @@ serve(async (req) => {
         try {
           const msToken = await getMsToken();
           if (!msToken) return;
-          const results = await searchOneNoteData(msToken, searchQuery2, brandName);
-          if (results.length > 0) integrationData += `\n### Recent Notes (OneNote)\n${results.join("\n")}\n`;
-        } catch (e) { console.error("OneNote search error:", e); }
+          // ALL notebooks → all recent pages, cap 300
+          const url = `https://graph.microsoft.com/v1.0/me/onenote/pages?$top=100&$orderby=lastModifiedDateTime desc&$select=title,createdDateTime,lastModifiedDateTime,links,parentNotebook`;
+          const pages = await paginateGraph(url, msToken, 300);
+          const formatted = pages.slice(0, 100).map((page: any) => {
+            const title = page.title || "Untitled";
+            const modified = page.lastModifiedDateTime?.slice(0, 10) || page.createdDateTime?.slice(0, 10) || "";
+            const link = page.links?.oneNoteWebUrl?.href || "";
+            const notebook = page.parentNotebook?.displayName || "";
+            return `📝 **${title}** (notebook: ${notebook}, modified: ${modified})${link ? ` — [link](${link})` : ""}`;
+          });
+          if (formatted.length > 0) integrationData += `\n### OneNote Pages (top ${formatted.length} of ${pages.length})\n${formatted.join("\n")}\n`;
+        } catch (e) { console.error("OneNote fetch error:", e); }
       })());
     }
 
