@@ -6,6 +6,7 @@ import {
   SOURCE_META, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind,
 } from "./dashboardTypes";
 import { Button } from "@/components/ui/button";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 
 interface Props {
   card: DashboardCard | null;
