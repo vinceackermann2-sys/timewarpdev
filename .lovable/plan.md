@@ -1,57 +1,73 @@
 
 
-The user wants two things:
-1. **Confirmation** that only valuable/scored data reaches the dashboard cards (not raw dumps).
-2. **Expand connector data fetching** so each integration pulls its full relevant dataset, giving the DIM scoring engine more signal to work with.
+## Goal
+Upgrade the right-side detail panel (`DashCardDetailPanel`) so each card renders its source data in a **native, recognizable format** (email, meeting, document, Slack message, etc.), add a **quick-notes** field, and **shrink the action buttons** so they're less text-heavy.
 
-Let me check the current `dashboard-insights` and `sync-provider-data` edge functions to understand what each connector currently fetches.
+## Exploration needed
+- `src/components/database/DashCardDetailPanel.tsx` — current right-side panel layout
+- `src/components/database/dashboardTypes.ts` — already has `metadata` (sender, subject, bodyPreview, attendees, scheduledDate, channel, messageText, fileName, sharedBy, notebook) ✓
+- Confirm where notes would persist (likely `localStorage` keyed by `card.id` for now — no schema change needed unless user wants cross-device sync)
 
 ## Plan
 
-### Part A — Confirmation (no code change)
+### 1. Source-native renderers in the detail panel
+Add a `<SourceNativeBlock>` that switches on `card.source` and renders the metadata in the format the user expects to see:
 
-The dashboard already enforces a quality gate. In `dashboard-insights/index.ts`:
-- Raw provider data is fetched live → passed to Gemini with the **DIM scoring prompt** (Impact 0.45 + Urgency 0.35 + Context 0.20).
-- Only items scoring above the relevance threshold are categorized into Briefing / Updates / To-Dos / Objectives.
-- Quality gates strip vague headlines, dedupe, and cap counts (6–12 To-Dos, 3–6 Objectives, etc.).
-- Verbatim fields (`bodyPreview`, `messageText`) are preserved for the right-side detail panel — never summarized.
+| Source | Native render |
+|---|---|
+| `outlook` / gmail | **Email card**: From (avatar + name + email), Subject (bold), Received timestamp → then verbatim `bodyPreview` in mono/serif body, with "Reply" affordance |
+| `zoom` / teams meeting / calendar | **Meeting card**: Title, scheduled date/time + duration, attendee chips with initials, "Join" pill |
+| `hubspot` | **Deal card**: Contact name, deal value badge, pipeline stage badge, last touch |
+| `slack` / teams chat | **Chat bubble**: Channel `#name`, author + avatar, timestamp, verbatim `messageText` in a chat bubble style |
+| `onedrive` / drive | **File card**: File icon by extension, fileName, sharedBy, "Open file" link |
+| `onenote` | **Note card**: Notebook → Section → Page hierarchy, author, preview |
+| `business-dna` / `products` / `audiences` / `employees` / `general` | Keep current generic block |
 
-So users only see scored, actionable cards — never raw provider dumps.
+Each renderer uses the existing `SOURCE_META` icon as the header chip, sits inside the existing `accentSoftBg` framing, and **shows the real data verbatim** (never summarized — already enforced by `bodyPreview` / `messageText` fields).
 
-### Part B — Expand connector fetch breadth
+### 2. Quick Notes section
+Add below the source-native block:
+- Heading "Quick notes" (small, muted)
+- `<Textarea>` with placeholder "Jot down thoughts, follow-ups, or context…"
+- Auto-save (debounced 600ms) to `localStorage` under key `dash-note:{card.id}`
+- Tiny "Saved" indicator that fades after save
+- No DB write, no schema change
 
-Update each connector fetch in `dashboard-insights/index.ts` (and `_shared/run-employee/connections.ts` where shared) to pull the full relevant dataset instead of small samples.
+### 3. Slimmer action buttons
+Current footer likely shows verbose CTAs ("Discuss in Assistant", "View Email", "Mark complete"). Change to:
+- **Primary CTA** (from `TAB_FRAMING[kind].ctaLabel`) → keep one-word label (Discuss / Respond / Start / Plan), use `size="sm"`, icon-leading
+- **Secondary "Open source"** → icon + short label (e.g. just "Open", icon from `SOURCE_META`), `size="sm"`, `variant="outline"`
+- **Tertiary "Done"** → icon-only `size="icon"` check button with tooltip
+- All in one tight `flex gap-2` row, no full-width stretching
 
-| Connector | Current limit (likely) | New target |
-|---|---|---|
-| Google Drive | ~20 recent files | All files modified in last 30 days (paginated, cap 500) |
-| Google Calendar | Next 10 events | All upcoming events next 30 days (cap 250) |
-| Gmail | ~20 recent | All unread + last 100 read in last 7 days |
-| HubSpot | Top deals | All open deals (all stages, cap 500) |
-| Zoom | Recent meetings | All upcoming meetings next 30 days |
-| Slack | Recent channels | All messages last 7 days across joined channels (cap 1000) |
-| Teams | Recent | All channel messages last 7 days (cap 1000) |
-| OneNote | Recent | All notebooks → all sections → recent pages (cap 300) |
-| OneDrive | Recent | All files modified last 30 days (cap 500) |
-| Outlook | ~20 recent | All inbox last 7 days + all unread (cap 500) |
+### 4. No changes to
+- Card grid / list itself
+- DIM scoring or data fetching
+- `dashboardTypes.ts` (metadata fields already cover everything)
 
-### Implementation steps
+## Files to edit
+- `src/components/database/DashCardDetailPanel.tsx` — add `SourceNativeBlock`, notes section, slim button row
 
-1. **Audit fetch calls** — open `supabase/functions/dashboard-insights/index.ts` and `supabase/functions/_shared/run-employee/connections.ts`. Identify each provider's `?limit=`, `?$top=`, `?maxResults=`, page-token loops.
-2. **Raise per-provider caps + add pagination loops** for Drive/Gmail/Slack/Teams/HubSpot/OneNote/OneDrive/Outlook (most APIs cap per-page at 100–250; loop until cap or no nextPageToken).
-3. **Date-window filters** where applicable (Calendar/Zoom: next 30 days; Gmail/Outlook/Slack/Teams: last 7 days) to keep payloads relevant.
-4. **Token refresh resilience** — keep `getValidProviderToken` wrapper; on 401 trigger one refresh + retry.
-5. **Performance guards** — run all provider fetches in `Promise.allSettled` (parallel), add 25s overall timeout per provider so one slow API doesn't block dashboard render.
-6. **Truncate before AI** — after fetch, sort by recency/value, then trim to top ~100 items per provider before feeding into the DIM scoring prompt (prevents Gemini context overflow while still giving it the full picture to choose from).
-7. **No DB changes, no UI changes** — quality gate, card layout, and right-panel insight rendering already handle the richer data correctly.
-
-### Files to edit
-
-- `supabase/functions/dashboard-insights/index.ts` — main fetch + scoring orchestrator
-- `supabase/functions/_shared/run-employee/connections.ts` — shared provider fetchers (used by both dashboard + employee runs)
-
-### Risk
-
-- Larger payloads → longer dashboard load. Mitigation: parallel fetches, per-provider 25s cap, top-100 trim before AI.
-- Slack workspace search can be slow on large workspaces — keep cursor pagination with a hard 1000-message cap.
+## Approach summary
+```text
+┌─ Detail Panel ──────────────────────────┐
+│ Eyebrow chip · Title                     │
+│ Why-it-matters summary                   │
+│                                          │
+│ ┌─ Source-native block ───────────────┐ │
+│ │ [icon] From: Anna · 2h ago          │ │
+│ │ Subject: Q4 budget review           │ │
+│ │ ───────────────────────────────     │ │
+│ │ Hi team, attached is the draft...   │ │  ← verbatim bodyPreview
+│ │ (rendered as email body)            │ │
+│ └─────────────────────────────────────┘ │
+│                                          │
+│ Quick notes                              │
+│ ┌────────────────────────────────────┐  │
+│ │ [textarea — autosaved]             │  │
+│ └────────────────────────────────────┘  │
+│                                          │
+│ [Discuss] [Open] [✓]                     │  ← slim button row
+└──────────────────────────────────────────┘
+```
 
