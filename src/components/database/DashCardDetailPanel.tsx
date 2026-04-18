@@ -17,8 +17,20 @@ interface Props {
   onMinimizedChange?: (m: boolean) => void;
 }
 
-/* ── CTA label — personal to the card's actual signal / task / objective ── */
+/* ── CTA label — personal to the card's actual proposed action ── */
 function ctaLabelFor(card: DashboardCard, tabKind: TabKind): string {
+  // Prefer the card's actual proposed action (truncated to fit button)
+  const action = card.actionSuggestion?.trim();
+  if (action && action.length > 0) {
+    // Strip trailing punctuation, capitalize first letter
+    const clean = action.replace(/[.!?]+$/, "");
+    if (clean.length <= 42) return clean.charAt(0).toUpperCase() + clean.slice(1);
+    // Too long — extract first verb phrase up to ~42 chars at a word boundary
+    const truncated = clean.slice(0, 42).replace(/\s+\S*$/, "");
+    return truncated.charAt(0).toUpperCase() + truncated.slice(1) + "…";
+  }
+
+  // Fallback per-tab generic verbs (only when no actionSuggestion exists)
   if (tabKind === "Briefing") {
     const sig = (card.signalType || "").toLowerCase();
     if (sig.includes("competitor")) return "Read competitor brief";
@@ -28,42 +40,14 @@ function ctaLabelFor(card: DashboardCard, tabKind: TabKind): string {
     if (sig.includes("customer")) return "Read customer signal";
     return card.signalType ? `Read ${card.signalType.toLowerCase()} brief` : "Read briefing";
   }
-
   if (tabKind === "Updates") {
     const who = card.waitingParty?.split(/[·,(]/)[0]?.trim();
-    const req = (card.requestType || "").toLowerCase();
-    if (req.includes("approv")) return who ? `Approve for ${who}` : "Approve request";
-    if (req.includes("sign")) return who ? `Sign for ${who}` : "Sign now";
-    if (req.includes("decision")) return who ? `Decide for ${who}` : "Make decision";
-    if (req.includes("review")) return who ? `Review for ${who}` : "Review now";
     return who ? `Reply to ${who}` : "Respond now";
   }
-
   if (tabKind === "Objectives") {
-    const obj = (card.objectiveType || "").toLowerCase();
-    if (obj.includes("revenue") || obj.includes("growth")) return "Drive this objective";
-    if (obj.includes("retention")) return "Plan retention work";
-    if (obj.includes("launch")) return "Plan the launch";
-    if (obj.includes("hire") || obj.includes("team")) return "Plan the hire";
     return card.objectiveType ? `Plan ${card.objectiveType.toLowerCase()}` : "Plan execution";
   }
-
-  // To-Dos
-  const t = (card.taskType || "").toLowerCase();
-  if (t.includes("approve") || t.includes("sign")) return "Approve & Sign";
-  if (t.includes("delegate")) return "Delegate this";
-  if (t.includes("template")) return "Solve via Template";
-  if (t.includes("review")) return "Review now";
-  if (t.includes("draft") || t.includes("write")) return "Draft this";
-  if (t.includes("send")) return "Send it";
-  if (t.includes("schedule") || t.includes("plan")) return "Schedule it";
-  const m = card.title.match(/^(Approve|Sign|Review|Draft|Send|Finalize|Delegate|Plan|Schedule)\b/i);
-  if (m) {
-    const verb = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
-    if (verb === "Approve" || verb === "Sign") return "Approve & Sign";
-    return `${verb} this`;
-  }
-  return "Start this task";
+  return card.taskType ? `Start: ${card.taskType.toLowerCase()}` : "Start this task";
 }
 
 /* ── Top meta label (TODAY / 4 HRS AGO / > 7 DAYS / Q3 - Q4) ── */
@@ -76,7 +60,7 @@ function topMetaLabel(card: DashboardCard, tabKind: TabKind): string {
 
 /* ── Insights collapsible — label is personal to this card's signal type ── */
 function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const label = (() => {
     if (tabKind === "Briefing") {
       return card.signalType ? `Why this ${card.signalType.toLowerCase()} matters` : "Why this matters";
@@ -88,9 +72,12 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
     if (tabKind === "To-Dos") {
       return card.taskType ? `Why this ${card.taskType.toLowerCase()} is on your list` : "Why this is on your list";
     }
-    // Objectives
     return card.objectiveType ? `Why this ${card.objectiveType.toLowerCase()} matters` : "Why this objective matters";
   })();
+
+  // The actual insight text — prefer `detail`, fall back to `description`
+  const insightText = card.detail || card.description;
+
   return (
     <div className="pt-1">
       <button
@@ -105,6 +92,11 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
         </div>
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
+      {open && insightText && (
+        <p className="mt-2 pl-6 text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
+          {insightText}
+        </p>
+      )}
     </div>
   );
 }
