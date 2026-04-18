@@ -75,7 +75,7 @@ export default function NewHero({ onGetDNA }: NewHeroProps) {
   };
 
   return (
-    <div className="relative w-full min-h-[calc(100vh-48px)] overflow-hidden flex flex-col lg:flex-row items-center justify-center bg-white py-12 sm:py-20 px-4 sm:px-6 pt-28 sm:pt-32">
+    <div className="relative w-full min-h-[calc(100vh-48px)] overflow-hidden flex flex-col lg:flex-row items-center justify-center py-12 sm:py-20 px-4 sm:px-6 pt-28 sm:pt-32 bg-[#fcfcfd]">
       <div className="max-w-[90rem] w-full mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-10 lg:gap-16 items-center relative z-10">
         <div className="flex flex-col items-start gap-6 sm:gap-8 max-w-xl">
           <div className="flex flex-col items-start gap-3 sm:gap-4 w-full">
