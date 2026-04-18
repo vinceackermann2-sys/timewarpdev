@@ -175,7 +175,7 @@ export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
 
       {/* ── Footer ── */}
       <footer className="relative z-10 bg-background dark:bg-[hsl(0_0%_10%)]">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl pb-10 pt-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[90rem] pb-10 pt-4">
           <div className="rounded-2xl border border-border/50 dark:border-[hsl(0_0%_20%)] bg-muted/30 dark:bg-[hsl(0_0%_14%)] backdrop-blur-sm px-5 sm:px-12 py-8 sm:py-14">
             <div className="flex flex-col gap-8 sm:flex-row sm:gap-14">
               <div className="flex items-start gap-2 shrink-0">
