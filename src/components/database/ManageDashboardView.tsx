@@ -228,7 +228,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       card={card}
       onOpen={onOpen}
       topRight={<SourceLogo card={card} />}
-      footerLeft={<PeopleAvatars names={people} />}
+      footerLeft={<PeopleAvatars />}
       footerRight={<PillCTA label="Read briefing" onClick={onOpen} />}
     />
   );
@@ -244,7 +244,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
       card={card}
       onOpen={onOpen}
       topRight={<SourceLogo card={card} />}
-      footerLeft={<PeopleAvatars names={people} />}
+      footerLeft={<PeopleAvatars />}
       footerRight={<PillCTA label="Respond" onClick={onOpen} />}
     />
   );
@@ -373,7 +373,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
           </div>
         </div>
       }
-      footerLeft={<PeopleAvatars names={people} />}
+      footerLeft={<PeopleAvatars />}
       footerRight={<PillCTA label="View OKRs" onClick={onOpen} />}
     />
   );
