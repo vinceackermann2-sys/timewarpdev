@@ -349,7 +349,6 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
       hideDescription
       topRight={
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[hsl(217_100%_60%)] shadow-[0_0_0_3px_hsl(217_100%_94%)]" />
           <SourceLogo card={card} />
         </div>
       }
