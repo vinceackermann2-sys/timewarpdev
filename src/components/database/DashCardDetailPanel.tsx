@@ -76,13 +76,15 @@ function OriginalContextCard({ card, tabKind }: { card: DashboardCard; tabKind: 
   const sourceMeta = SOURCE_META[sourceKey] || SOURCE_META.general;
   const meta = card.metadata;
 
-  // Objectives, system-derived, or business DNA sources show "TimeWarp Suggestion" with the orb
-  const isSystemContext = tabKind === "Objectives" || sourceKey === "general" || sourceKey === "business_dna" || sourceKey === "dna" || !sourceMeta.label;
+  // Objectives, system-derived, business DNA, or any source without an icon → "TimeWarp Suggestion" with the orb
+  const isSystemContext =
+    tabKind === "Objectives" ||
+    !sourceMeta.label ||
+    !sourceMeta.icon ||
+    ["general", "business-dna", "business_dna", "dna", "products", "audiences", "employees"].includes(sourceKey);
 
   // Header label — just the source name, or TimeWarp Suggestion for system/DNA-derived
-  const headerLabel = isSystemContext
-    ? "TimeWarp Suggestion"
-    : sourceMeta.label;
+  const headerLabel = isSystemContext ? "TimeWarp Suggestion" : sourceMeta.label;
 
   // Decide which sub-content to render inside the card
   const isEmail = !isSystemContext && (sourceKey === "outlook" || sourceKey === "gmail" || sourceKey === "google_gmail");
