@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ClipboardCheck, RefreshCw, ListTodo, Award, Calendar,
-  Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check,
+  Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check, Eye,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBusinessDNA } from "./BusinessDNAContext";
@@ -43,19 +43,22 @@ function initials(name: string): string {
 function PeopleAvatars({ names }: { names: string[] }) {
   if (!names.length) return null;
   return (
-    <div className="flex -space-x-1.5">
-      {names.slice(0, 3).map((n, i) => {
-        const c = hashPick(n, AVATAR_PALETTE);
-        return (
-          <span
-            key={`${n}-${i}`}
-            title={n}
-            className={`w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold ${c.bg} ${c.text}`}
-          >
-            {initials(n)}
-          </span>
-        );
-      })}
+    <div className="flex items-center gap-1.5">
+      <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+      <div className="flex -space-x-1.5">
+        {names.slice(0, 3).map((n, i) => {
+          const c = hashPick(n, AVATAR_PALETTE);
+          return (
+            <span
+              key={`${n}-${i}`}
+              title={`Viewed by ${n}`}
+              className={`w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold ${c.bg} ${c.text}`}
+            >
+              {initials(n)}
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }
