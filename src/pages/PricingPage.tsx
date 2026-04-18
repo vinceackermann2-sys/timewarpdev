@@ -234,7 +234,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#fcfcfd]">
       <div className="max-w-5xl mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" />
@@ -250,7 +250,7 @@ export default function PricingPage() {
 
         {/* Billing toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-full bg-muted p-1 gap-1">
+          <div className="inline-flex items-center rounded-full p-1 gap-1 bg-[#eef2f7]">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
               <button
                 key={period}
@@ -273,7 +273,7 @@ export default function PricingPage() {
         {/* Plan cards */}
         <div className="grid md:grid-cols-3 gap-6 items-stretch">
           {/* Co Founder */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "co_founder" ? "border-primary" : "border-border/60"} bg-card p-7 flex flex-col`}>
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "co_founder" ? "border-primary" : "border-border/60"} p-7 flex flex-col bg-white`}>
             {currentPlan === "co_founder" && (
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
@@ -296,13 +296,13 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full mt-auto" onClick={() => handleGetStarted("co_founder")} disabled={loadingPlan === "co_founder"}>
+            <Button variant="outline" className="w-full mt-auto bg-[#eef2f7] hover:bg-[#eef2f7]/80" onClick={() => handleGetStarted("co_founder")} disabled={loadingPlan === "co_founder"}>
               {loadingPlan === "co_founder" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("co_founder")}
             </Button>
           </div>
 
           {/* Aristotle */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-primary" : "border-primary/60"} bg-card p-7 flex flex-col`}>
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-primary" : "border-primary/60"} p-7 flex flex-col bg-white`}>
             {currentPlan === "aristotle" ? (
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
@@ -335,7 +335,7 @@ export default function PricingPage() {
           </div>
 
           {/* TimeWarp OG */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "timewarp_og" ? "border-primary" : "border-border/60"} bg-card p-7 flex flex-col`}>
+          <div className={`relative rounded-2xl border-2 ${currentPlan === "timewarp_og" ? "border-primary" : "border-border/60"} p-7 flex flex-col bg-white`}>
             {currentPlan === "timewarp_og" && (
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
@@ -363,7 +363,7 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full mt-auto" onClick={() => handleGetStarted("timewarp_og")} disabled={loadingPlan === "timewarp_og"}>
+            <Button variant="outline" className="w-full mt-auto bg-[#eef2f7] hover:bg-[#eef2f7]/80" onClick={() => handleGetStarted("timewarp_og")} disabled={loadingPlan === "timewarp_og"}>
               {loadingPlan === "timewarp_og" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("timewarp_og")}
             </Button>
           </div>
