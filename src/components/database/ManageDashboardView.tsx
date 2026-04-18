@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback, ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   Search, ClipboardCheck, RefreshCw, ListTodo, Award, Calendar,
-  Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check, Eye,
+  Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/useAuth";
 import { useBusinessDNA } from "./BusinessDNAContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,25 +41,25 @@ function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function PeopleAvatars({ names }: { names: string[] }) {
-  if (!names.length) return null;
+function PeopleAvatars() {
+  const { user } = useAuth();
+  if (!user) return null;
+  const meta = (user.user_metadata || {}) as Record<string, any>;
+  const avatarUrl: string | undefined = meta.avatar_url || meta.picture;
+  const fullName: string = meta.full_name || meta.name || meta.display_name || user.email || "You";
   return (
-    <div className="flex items-center gap-1.5">
-      <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-      <div className="flex -space-x-1.5">
-        {names.slice(0, 3).map((n, i) => {
-          const c = hashPick(n, AVATAR_PALETTE);
-          return (
-            <span
-              key={`${n}-${i}`}
-              title={`Viewed by ${n}`}
-              className={`w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold ${c.bg} ${c.text}`}
-            >
-              {initials(n)}
-            </span>
-          );
-        })}
-      </div>
+    <div className="flex -space-x-1.5" title={`Viewed by ${fullName}`}>
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={fullName}
+          className="w-6 h-6 rounded-full ring-2 ring-card object-cover"
+        />
+      ) : (
+        <span className="w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold bg-[hsl(217_100%_94%)] text-[hsl(217_70%_42%)]">
+          {initials(fullName)}
+        </span>
+      )}
     </div>
   );
 }
@@ -227,7 +228,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       card={card}
       onOpen={onOpen}
       topRight={<SourceLogo card={card} />}
-      footerLeft={<PeopleAvatars names={people} />}
+      footerLeft={<PeopleAvatars />}
       footerRight={<PillCTA label="Read briefing" onClick={onOpen} />}
     />
   );
@@ -243,7 +244,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
       card={card}
       onOpen={onOpen}
       topRight={<SourceLogo card={card} />}
-      footerLeft={<PeopleAvatars names={people} />}
+      footerLeft={<PeopleAvatars />}
       footerRight={<PillCTA label="Respond" onClick={onOpen} />}
     />
   );
@@ -372,7 +373,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
           </div>
         </div>
       }
-      footerLeft={<PeopleAvatars names={people} />}
+      footerLeft={<PeopleAvatars />}
       footerRight={<PillCTA label="View OKRs" onClick={onOpen} />}
     />
   );
