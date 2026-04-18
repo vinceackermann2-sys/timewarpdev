@@ -14,7 +14,7 @@ const logos = [
 
 export default function NewValueComparison() {
   return (
-    <section className="py-12 sm:py-20 bg-white border-t border-slate-100">
+    <section className="py-12 sm:py-20 border-t border-slate-100 bg-[#fcfcfd]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Logo Carousel — hidden for now */}
         {false && <div className="mb-16 sm:mb-24 overflow-hidden">
