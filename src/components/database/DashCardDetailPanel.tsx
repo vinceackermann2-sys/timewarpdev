@@ -60,7 +60,7 @@ function topMetaLabel(card: DashboardCard, tabKind: TabKind): string {
 
 /* ── Insights collapsible — label is personal to this card's signal type ── */
 function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const label = (() => {
     if (tabKind === "Briefing") {
       return card.signalType ? `Why this ${card.signalType.toLowerCase()} matters` : "Why this matters";
@@ -72,9 +72,12 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
     if (tabKind === "To-Dos") {
       return card.taskType ? `Why this ${card.taskType.toLowerCase()} is on your list` : "Why this is on your list";
     }
-    // Objectives
     return card.objectiveType ? `Why this ${card.objectiveType.toLowerCase()} matters` : "Why this objective matters";
   })();
+
+  // The actual insight text — prefer `detail`, fall back to `description`
+  const insightText = card.detail || card.description;
+
   return (
     <div className="pt-1">
       <button
@@ -89,6 +92,11 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
         </div>
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
+      {open && insightText && (
+        <p className="mt-2 pl-6 text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
+          {insightText}
+        </p>
+      )}
     </div>
   );
 }
