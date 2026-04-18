@@ -187,29 +187,34 @@ serve(async (req) => {
         try {
           const slackToken = await getValidProviderToken(supabase, user.id, "slack");
           if (!slackToken) return;
-          // Fetch recent messages from the whole workspace (no brand filter)
-          const channelsRes = await fetch(
-            `https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=20&exclude_archived=true`,
-            { headers: { Authorization: `Bearer ${slackToken}` } },
-          );
-          if (!channelsRes.ok) return;
-          const channelsData = await channelsRes.json();
-          if (!channelsData.ok || !channelsData.channels) return;
-
+          // ALL channels (paginated), ALL messages last 7 days, cap 1000
+          const allChannels: any[] = [];
+          let cursor = "";
+          for (let i = 0; i < 5; i++) {
+            const url = `https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=200&exclude_archived=true${cursor ? `&cursor=${cursor}` : ""}`;
+            const res = await fetch(url, { headers: { Authorization: `Bearer ${slackToken}` } });
+            if (!res.ok) break;
+            const d = await res.json();
+            if (!d.ok) break;
+            allChannels.push(...(d.channels || []));
+            cursor = d.response_metadata?.next_cursor || "";
+            if (!cursor) break;
+          }
+          const sevenDaysAgo = (Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000;
           const slackMessages: string[] = [];
-          const channels = channelsData.channels.slice(0, 15);
-          await Promise.all(channels.map(async (channel: any) => {
+          const startedAt = Date.now();
+          await Promise.all(allChannels.slice(0, 100).map(async (channel: any) => {
+            if (slackMessages.length >= 1000 || Date.now() - startedAt > 25000) return;
             try {
-              if (slackMessages.length >= 10) return;
               const histRes = await fetch(
-                `https://slack.com/api/conversations.history?channel=${channel.id}&limit=5`,
+                `https://slack.com/api/conversations.history?channel=${channel.id}&limit=50&oldest=${sevenDaysAgo}`,
                 { headers: { Authorization: `Bearer ${slackToken}` } },
               );
               if (!histRes.ok) return;
               const histData = await histRes.json();
               if (!histData.ok || !histData.messages) return;
               for (const msg of histData.messages) {
-                if (slackMessages.length >= 10) break;
+                if (slackMessages.length >= 1000) break;
                 if (msg.subtype === "channel_join" || msg.subtype === "channel_leave") continue;
                 const ts = msg.ts ? new Date(parseFloat(msg.ts) * 1000).toISOString().slice(0, 16).replace("T", " ") : "";
                 const preview = (msg.text || "").slice(0, 200);
@@ -218,7 +223,8 @@ serve(async (req) => {
               }
             } catch (_e) { /* skip channel */ }
           }));
-          if (slackMessages.length > 0) integrationData += `\n### Recent Slack Activity\n${slackMessages.join("\n")}\n`;
+          const top = slackMessages.slice(0, 100);
+          if (top.length > 0) integrationData += `\n### Slack Messages (last 7d, ${slackMessages.length} fetched, top ${top.length})\n${top.join("\n")}\n`;
         } catch (e) { console.error("Slack search error:", e); }
       })());
     }
@@ -228,28 +234,40 @@ serve(async (req) => {
         try {
           const hsToken = await getValidProviderToken(supabase, user.id, "hubspot");
           if (!hsToken) return;
+          // Top 50 recent contacts
           const contactsRes = await fetch(
-            `https://api.hubapi.com/crm/v3/objects/contacts?limit=5&properties=firstname,lastname,email,createdate&sorts=-createdate`,
+            `https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=firstname,lastname,email,createdate,lifecyclestage&sorts=-createdate`,
             { headers: { Authorization: `Bearer ${hsToken}` } }
           );
           if (contactsRes.ok) {
             const data = await contactsRes.json();
-            const contacts = (data.results || []).map((c: any) =>
-              `- ${c.properties?.firstname || ""} ${c.properties?.lastname || ""} (${c.properties?.email || "no email"}) — added ${c.properties?.createdate?.slice(0, 10) || ""}`
+            const contacts = (data.results || []).slice(0, 50).map((c: any) =>
+              `- ${c.properties?.firstname || ""} ${c.properties?.lastname || ""} (${c.properties?.email || "no email"}) — stage: ${c.properties?.lifecyclestage || "unknown"} — added ${c.properties?.createdate?.slice(0, 10) || ""}`
             );
-            if (contacts.length > 0) integrationData += `\n### Recent HubSpot Contacts\n${contacts.join("\n")}\n`;
+            if (contacts.length > 0) integrationData += `\n### HubSpot Contacts (top ${contacts.length})\n${contacts.join("\n")}\n`;
           }
-          const dealsRes = await fetch(
-            `https://api.hubapi.com/crm/v3/objects/deals?limit=5&properties=dealname,amount,dealstage,closedate&sorts=-createdate`,
-            { headers: { Authorization: `Bearer ${hsToken}` } }
-          );
-          if (dealsRes.ok) {
-            const data = await dealsRes.json();
-            const deals = (data.results || []).map((d: any) =>
-              `- ${d.properties?.dealname || "Unnamed"} — $${d.properties?.amount || "0"} (${d.properties?.dealstage || "unknown stage"})`
+          // ALL deals paginated, cap 500
+          const allDeals: any[] = [];
+          let after: string | undefined = undefined;
+          for (let i = 0; i < 5; i++) {
+            const url = `https://api.hubapi.com/crm/v3/objects/deals?limit=100&properties=dealname,amount,dealstage,closedate,pipeline,hs_lastmodifieddate&sorts=-hs_lastmodifieddate${after ? `&after=${after}` : ""}`;
+            const r = await fetch(url, { headers: { Authorization: `Bearer ${hsToken}` } });
+            if (!r.ok) break;
+            const d = await r.json();
+            allDeals.push(...(d.results || []));
+            after = d.paging?.next?.after;
+            if (!after || allDeals.length >= 500) break;
+          }
+          const openDeals = allDeals
+            .filter((d: any) => {
+              const stage = (d.properties?.dealstage || "").toLowerCase();
+              return !stage.includes("closedwon") && !stage.includes("closedlost") && !stage.includes("closed_won") && !stage.includes("closed_lost");
+            })
+            .slice(0, 100)
+            .map((d: any) =>
+              `- ${d.properties?.dealname || "Unnamed"} — $${d.properties?.amount || "0"} (${d.properties?.dealstage || "unknown stage"}) — modified ${d.properties?.hs_lastmodifieddate?.slice(0, 10) || ""}`
             );
-            if (deals.length > 0) integrationData += `\n### Recent HubSpot Deals\n${deals.join("\n")}\n`;
-          }
+          if (openDeals.length > 0) integrationData += `\n### HubSpot Open Deals (${openDeals.length} of ${allDeals.length} total)\n${openDeals.join("\n")}\n`;
         } catch (e) { console.error("HubSpot search error:", e); }
       })());
     }
@@ -259,28 +277,26 @@ serve(async (req) => {
         try {
           const zoomToken = await getValidProviderToken(supabase, user.id, "zoom");
           if (!zoomToken) return;
-          const meetingsRes = await fetch(
-            `https://api.zoom.us/v2/users/me/meetings?type=scheduled&page_size=5`,
-            { headers: { Authorization: `Bearer ${zoomToken}` } }
-          );
-          if (meetingsRes.ok) {
-            const data = await meetingsRes.json();
-            const meetings = (data.meetings || []).map((m: any) =>
-              `- ${m.topic || "Untitled"} — ${m.start_time?.slice(0, 16)?.replace("T", " ") || "no date"} (${m.duration || 0} min, ${m.type === 2 ? "scheduled" : "recurring"})`
-            );
-            if (meetings.length > 0) integrationData += `\n### Upcoming Zoom Meetings\n${meetings.join("\n")}\n`;
+          // ALL upcoming meetings (paginated, cap 250) filtered to next 30d
+          const allMeetings: any[] = [];
+          let nextPageToken = "";
+          for (let i = 0; i < 5; i++) {
+            const url = `https://api.zoom.us/v2/users/me/meetings?type=upcoming&page_size=100${nextPageToken ? `&next_page_token=${nextPageToken}` : ""}`;
+            const r = await fetch(url, { headers: { Authorization: `Bearer ${zoomToken}` } });
+            if (!r.ok) break;
+            const d = await r.json();
+            allMeetings.push(...(d.meetings || []));
+            nextPageToken = d.next_page_token || "";
+            if (!nextPageToken || allMeetings.length >= 250) break;
           }
-          const pastRes = await fetch(
-            `https://api.zoom.us/v2/users/me/meetings?type=previous_meetings&page_size=5`,
-            { headers: { Authorization: `Bearer ${zoomToken}` } }
-          );
-          if (pastRes.ok) {
-            const data = await pastRes.json();
-            const past = (data.meetings || []).map((m: any) =>
+          const thirtyDaysOut = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          const upcoming = allMeetings
+            .filter((m: any) => !m.start_time || m.start_time <= thirtyDaysOut)
+            .slice(0, 100)
+            .map((m: any) =>
               `- ${m.topic || "Untitled"} — ${m.start_time?.slice(0, 16)?.replace("T", " ") || "no date"} (${m.duration || 0} min)`
             );
-            if (past.length > 0) integrationData += `\n### Recent Zoom Meetings\n${past.join("\n")}\n`;
-          }
+          if (upcoming.length > 0) integrationData += `\n### Zoom Upcoming Meetings (next 30d, ${upcoming.length} of ${allMeetings.length})\n${upcoming.join("\n")}\n`;
         } catch (e) { console.error("Zoom search error:", e); }
       })());
     }
@@ -305,31 +321,44 @@ serve(async (req) => {
         try {
           const gToken = await getGoogleToken();
           if (!gToken) return;
-          const res = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=newer_than:7d`,
-            { headers: { Authorization: `Bearer ${gToken}` } },
-          );
-          if (!res.ok) return;
-          const data = await res.json();
-          const gmailMessages: string[] = [];
-          for (const msg of (data.messages || []).slice(0, 5)) {
-            try {
-              const detailRes = await fetch(
-                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
-                { headers: { Authorization: `Bearer ${gToken}` } },
-              );
-              if (!detailRes.ok) continue;
-              const detail = await detailRes.json();
-              const headers = detail.payload?.headers || [];
-              const subject = headers.find((h: any) => h.name === "Subject")?.value || "No Subject";
-              const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
-              const date = headers.find((h: any) => h.name === "Date")?.value || "";
-              // snippet = Gmail's verbatim body preview (~200 chars of actual content)
-              const snippet = (detail.snippet || "").trim();
-              gmailMessages.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${date}\nBODY: ${snippet}`);
-            } catch { /* skip */ }
+          // ALL unread + last 100 read in past 7 days, cap 500 ids, fetch top 100 details
+          const ids: string[] = [];
+          let pageToken = "";
+          for (let i = 0; i < 5; i++) {
+            const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${encodeURIComponent("(is:unread OR newer_than:7d)")}${pageToken ? `&pageToken=${pageToken}` : ""}`;
+            const r = await fetch(url, { headers: { Authorization: `Bearer ${gToken}` } });
+            if (!r.ok) break;
+            const d = await r.json();
+            ids.push(...((d.messages || []).map((m: any) => m.id)));
+            pageToken = d.nextPageToken || "";
+            if (!pageToken || ids.length >= 500) break;
           }
-          if (gmailMessages.length > 0) integrationData += `\n### Recent Gmail Messages (use SUBJECT verbatim as metadata.subject, BODY verbatim as metadata.bodyPreview)\n${gmailMessages.join("\n\n")}\n`;
+          const gmailMessages: string[] = [];
+          const startedAt = Date.now();
+          // Fetch top 100 details in parallel batches of 20
+          const top = ids.slice(0, 100);
+          for (let i = 0; i < top.length; i += 20) {
+            if (Date.now() - startedAt > 25000) break;
+            const batch = top.slice(i, i + 20);
+            await Promise.all(batch.map(async (id: string) => {
+              try {
+                const detailRes = await fetch(
+                  `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+                  { headers: { Authorization: `Bearer ${gToken}` } },
+                );
+                if (!detailRes.ok) return;
+                const detail = await detailRes.json();
+                const headers = detail.payload?.headers || [];
+                const subject = headers.find((h: any) => h.name === "Subject")?.value || "No Subject";
+                const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
+                const date = headers.find((h: any) => h.name === "Date")?.value || "";
+                const snippet = (detail.snippet || "").trim();
+                const isUnread = (detail.labelIds || []).includes("UNREAD");
+                gmailMessages.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${date} | UNREAD: ${isUnread}\nBODY: ${snippet}`);
+              } catch { /* skip */ }
+            }));
+          }
+          if (gmailMessages.length > 0) integrationData += `\n### Gmail Messages (unread + last 7d, ${ids.length} ids, ${gmailMessages.length} detailed) — use SUBJECT verbatim as metadata.subject, BODY verbatim as metadata.bodyPreview\n${gmailMessages.join("\n\n")}\n`;
         } catch (e) { console.error("Gmail search error:", e); }
       })());
     }
@@ -339,19 +368,26 @@ serve(async (req) => {
         try {
           const gToken = await getGoogleToken();
           if (!gToken) return;
+          // ALL upcoming events next 30 days (paginated, cap 250)
           const now = new Date().toISOString();
-          const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-          const res = await fetch(
-            `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(now)}&timeMax=${encodeURIComponent(nextWeek)}&maxResults=10&singleEvents=true&orderBy=startTime`,
-            { headers: { Authorization: `Bearer ${gToken}` } },
-          );
-          if (!res.ok) return;
-          const data = await res.json();
-          const events = (data.items || []).map((e: any) => {
+          const thirtyDaysOut = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          const allEvents: any[] = [];
+          let pageToken = "";
+          for (let i = 0; i < 5; i++) {
+            const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(now)}&timeMax=${encodeURIComponent(thirtyDaysOut)}&maxResults=100&singleEvents=true&orderBy=startTime${pageToken ? `&pageToken=${pageToken}` : ""}`;
+            const r = await fetch(url, { headers: { Authorization: `Bearer ${gToken}` } });
+            if (!r.ok) break;
+            const d = await r.json();
+            allEvents.push(...(d.items || []));
+            pageToken = d.nextPageToken || "";
+            if (!pageToken || allEvents.length >= 250) break;
+          }
+          const events = allEvents.slice(0, 100).map((e: any) => {
             const start = e.start?.dateTime || e.start?.date || "";
-            return `📅 **${e.summary || "Untitled"}** — ${start.slice(0, 16).replace("T", " ")}`;
+            const attendees = (e.attendees || []).length;
+            return `📅 **${e.summary || "Untitled"}** — ${start.slice(0, 16).replace("T", " ")} (${attendees} attendees)`;
           });
-          if (events.length > 0) integrationData += `\n### Upcoming Google Calendar Events\n${events.join("\n")}\n`;
+          if (events.length > 0) integrationData += `\n### Google Calendar Upcoming (next 30d, ${events.length} of ${allEvents.length})\n${events.join("\n")}\n`;
         } catch (e) { console.error("Google Calendar error:", e); }
       })());
     }
@@ -361,17 +397,25 @@ serve(async (req) => {
         try {
           const gToken = await getGoogleToken();
           if (!gToken) return;
-          const res = await fetch(
-            `https://www.googleapis.com/drive/v3/files?pageSize=10&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)&q=trashed=false`,
-            { headers: { Authorization: `Bearer ${gToken}` } },
-          );
-          if (!res.ok) return;
-          const data = await res.json();
-          const files = (data.files || []).map((f: any) => {
+          // ALL files modified last 30 days (paginated, cap 500)
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          const allFiles: any[] = [];
+          let pageToken = "";
+          for (let i = 0; i < 5; i++) {
+            const q = encodeURIComponent(`trashed=false and modifiedTime > '${thirtyDaysAgo}'`);
+            const url = `https://www.googleapis.com/drive/v3/files?pageSize=100&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink),nextPageToken&q=${q}${pageToken ? `&pageToken=${pageToken}` : ""}`;
+            const r = await fetch(url, { headers: { Authorization: `Bearer ${gToken}` } });
+            if (!r.ok) break;
+            const d = await r.json();
+            allFiles.push(...(d.files || []));
+            pageToken = d.nextPageToken || "";
+            if (!pageToken || allFiles.length >= 500) break;
+          }
+          const files = allFiles.slice(0, 100).map((f: any) => {
             const type = f.mimeType?.includes("document") ? "📄" : f.mimeType?.includes("spreadsheet") ? "📊" : f.mimeType?.includes("presentation") ? "📽️" : "📁";
             return `${type} **${f.name}** — modified ${f.modifiedTime?.slice(0, 16)?.replace("T", " ") || ""}`;
           });
-          if (files.length > 0) integrationData += `\n### Recent Google Drive Files\n${files.join("\n")}\n`;
+          if (files.length > 0) integrationData += `\n### Google Drive Files (last 30d, ${files.length} of ${allFiles.length})\n${files.join("\n")}\n`;
         } catch (e) { console.error("Google Drive error:", e); }
       })());
     }
@@ -381,26 +425,32 @@ serve(async (req) => {
         try {
           const msToken = await getMsToken();
           if (!msToken) return;
-          // Fetch recent Teams chats / messages
-          const chatsRes = await fetch(
-            `https://graph.microsoft.com/v1.0/me/chats?$top=10&$orderby=lastMessagePreview/createdDateTime desc`,
-            { headers: { Authorization: `Bearer ${msToken}` } },
-          );
-          if (!chatsRes.ok) return;
-          const chatsData = await chatsRes.json();
+          // ALL chats (paginated, cap 100), ALL messages last 7 days from each, cap 1000 total
+          const allChats: any[] = [];
+          let chatsUrl: string | null = `https://graph.microsoft.com/v1.0/me/chats?$top=50&$orderby=lastMessagePreview/createdDateTime desc`;
+          for (let i = 0; i < 3 && chatsUrl; i++) {
+            const r: Response = await fetch(chatsUrl, { headers: { Authorization: `Bearer ${msToken}` } });
+            if (!r.ok) break;
+            const d = await r.json();
+            allChats.push(...(d.value || []));
+            chatsUrl = d["@odata.nextLink"] || null;
+            if (allChats.length >= 100) break;
+          }
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
           const teamsMessages: string[] = [];
-          const chats = (chatsData.value || []).slice(0, 8);
-          await Promise.all(chats.map(async (chat: any) => {
-            if (teamsMessages.length >= 10) return;
+          const startedAt = Date.now();
+          await Promise.all(allChats.slice(0, 50).map(async (chat: any) => {
+            if (teamsMessages.length >= 1000 || Date.now() - startedAt > 25000) return;
             try {
               const msgRes = await fetch(
-                `https://graph.microsoft.com/v1.0/me/chats/${chat.id}/messages?$top=3&$orderby=createdDateTime desc`,
+                `https://graph.microsoft.com/v1.0/me/chats/${chat.id}/messages?$top=50&$orderby=createdDateTime desc`,
                 { headers: { Authorization: `Bearer ${msToken}` } },
               );
               if (!msgRes.ok) return;
               const msgData = await msgRes.json();
               for (const msg of (msgData.value || [])) {
-                if (teamsMessages.length >= 10) break;
+                if (teamsMessages.length >= 1000) break;
+                if (msg.createdDateTime && msg.createdDateTime < sevenDaysAgo) break;
                 if (!msg.body?.content) continue;
                 const preview = msg.body.content.replace(/<[^>]*>/g, "").slice(0, 200).trim();
                 if (!preview) continue;
@@ -412,21 +462,22 @@ serve(async (req) => {
             } catch (_e) { /* skip chat */ }
           }));
 
-          // Also fetch upcoming online meetings
+          // Upcoming online meetings (next 30d)
           const now = new Date().toISOString();
           const meetingsRes = await fetch(
-            `https://graph.microsoft.com/v1.0/me/onlineMeetings?$top=5&$filter=startDateTime ge '${now}'&$orderby=startDateTime`,
+            `https://graph.microsoft.com/v1.0/me/onlineMeetings?$top=50&$filter=startDateTime ge '${now}'&$orderby=startDateTime`,
             { headers: { Authorization: `Bearer ${msToken}` } },
           );
           if (meetingsRes.ok) {
             const meetData = await meetingsRes.json();
-            const meetings = (meetData.value || []).map((m: any) =>
+            const meetings = (meetData.value || []).slice(0, 50).map((m: any) =>
               `- ${m.subject || "Untitled"} — ${m.startDateTime?.slice(0, 16)?.replace("T", " ") || "no date"}`
             );
             if (meetings.length > 0) teamsMessages.push(`\n**Upcoming Teams Meetings:**\n${meetings.join("\n")}`);
           }
 
-          if (teamsMessages.length > 0) integrationData += `\n### Recent Microsoft Teams Activity\n${teamsMessages.join("\n")}\n`;
+          const top = teamsMessages.slice(0, 100);
+          if (top.length > 0) integrationData += `\n### Microsoft Teams (last 7d messages + upcoming meetings, ${teamsMessages.length} fetched, top ${top.length})\n${top.join("\n")}\n`;
         } catch (e) { console.error("Teams search error:", e); }
       })());
     }
