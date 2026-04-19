@@ -774,7 +774,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-10 px-3 gap-1.5 text-[13px] font-medium rounded-lg"
+                  className="h-10 px-3 gap-1.5 text-[13px] font-medium rounded-lg bg-[#eef2f7] hover:bg-[#eef2f7]/80"
                   disabled={!sourceUrl}
                   onClick={() => {
                     if (sourceUrl) window.open(sourceUrl, "_blank", "noopener,noreferrer");
