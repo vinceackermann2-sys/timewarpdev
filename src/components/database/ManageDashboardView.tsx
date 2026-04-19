@@ -474,7 +474,7 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
 
 function CardSkeletons({ tab }: { tab: string }) {
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {[0, 1, 2, 3].map((i) => (
         <SkeletonCard key={i} tab={tab} delay={i * 80} />
       ))}
