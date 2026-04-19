@@ -584,114 +584,163 @@ ${connectedSummary}
 ${integrationData ? `\n## Live Integration Data\n${integrationData}` : ""}
 `;
 
-    // 6. Single AI call for ALL 4 tabs
+    // 6. Load previous snapshot for the Delta Layer
+    const { data: prevSnapshotRow } = await supabase
+      .from("dashboard_snapshots")
+      .select("cards")
+      .eq("user_id", user.id)
+      .eq("brand_id", brandId)
+      .maybeSingle();
+    const prevSnapshot: Record<string, { priority: string; tab: string }> =
+      (prevSnapshotRow?.cards as any) || {};
+
+    // 7. Single AI call for ALL 4 tabs + opening summary + health score
     const currentTime = new Date().toISOString();
-    const systemPrompt = `You are a business analyst and strategic advisor for "${brandName}". You implement the Dashboard Intelligence Model (DIM) — a deterministic classification engine that sorts every signal into exactly 4 tabs.
+    const systemPrompt = `You are the executive intelligence engine for "${brandName}". You implement the **Dashboard Intelligence Model v2 (DIM v2)** — a deterministic classification engine that compresses the entire state of the business into the minimum set of decisions required RIGHT NOW.
 
 The current date/time is: ${currentTime}
 Use this to calculate accurate "timeAgo" values. Be precise — do NOT guess or fabricate timestamps.
 
+## THE FIRST PRINCIPLE
+Every card must answer EXACTLY one of these questions:
+- "What has changed that I need to understand?" → Briefing
+- "Who or what is blocked waiting on ME?" → Updates
+- "What should I be working on RIGHT NOW?" → To-Dos
+- "What strategic outcomes must I drive this quarter?" → Objectives
+
+If a piece of intelligence does not answer one of these, OMIT it.
+
 ## ALIGNMENT LAYER (Business DNA)
-Use the Business Overview, Products, Target Audiences, and AI Employees sections as the alignment layer. Every insight must be contextualized against this business's identity, goals, products, and audiences.
+Use the Business Overview, Products, Target Audiences, and AI Employees sections as the ALIGNMENT LAYER. Every insight must be contextualized against this business's identity, goals, products, and audiences. DNA is for tone/context — never as a source of facts.
 
 ## DATA SOURCES — STRICT ANTI-HALLUCINATION RULES
-You MUST generate cards ONLY from the "## Live Integration Data" section below. Every card must trace back to a SPECIFIC item (email subject, message text, deal name, file name, meeting title) that appears VERBATIM in that section.
+You MUST generate cards ONLY from the "## Live Integration Data" section. Every card must trace back to a SPECIFIC item (email subject, message text, deal name, file name, meeting title) that appears VERBATIM in that section.
 
 **ABSOLUTE PROHIBITIONS — VIOLATING THESE IS A CRITICAL FAILURE:**
-- DO NOT invent people's names (e.g. "Alex Miller", "Jordan", "Sarah Chen") that do not appear verbatim in the integration data.
-- DO NOT invent dollar amounts, invoice counts, contract values, or numbers not present in the integration data.
+- DO NOT invent people's names that do not appear verbatim in the integration data.
+- DO NOT invent dollar amounts, invoice counts, contract values, or numbers not present.
 - DO NOT invent file names, deal names, channels, subjects, or messages.
 - DO NOT generate illustrative / example / placeholder / "sample" cards.
-- DO NOT use Business DNA as a source of FACTS — DNA is for tone/context only.
+- DO NOT use Business DNA as a source of facts.
 
-**IF the "## Live Integration Data" section is EMPTY or missing for a tab**, return an EMPTY array for that tab. An empty dashboard is correct and honest. A fabricated dashboard is harmful.
+**IF the "## Live Integration Data" section is EMPTY for a tab → return an EMPTY array.** An empty dashboard is correct and honest. A fabricated dashboard is harmful.
+For Objectives: if NO measurable metrics exist in real integration data, return an empty Objectives array.
 
-For Objectives: if NO measurable metrics exist in real integration data, return an empty Objectives array. Do not invent OKRs.
+## SORTING ALGORITHM — IMPACT × URGENCY × CONTEXT
+Score every signal on three axes (1–5):
+- **Impact (I)**: 5 Critical (revenue/reputation/survival) → 1 Noise (FYI only)
+- **Urgency (U)**: 5 Immediate (<4h) → 1 Anytime (14+ days)
+- **Context (C)**: 5 Core (maps to active strategic objective) → 1 Unrelated
 
-## COMPOSITE SCORING ALGORITHM
-For each signal, score three axes (1-5 scale):
-- Impact (I): How much does this affect revenue, reputation, or strategic position?
-- Urgency (U): How time-sensitive? What's the cost of delay?
-- Context (C): How relevant to current business priorities and connected data?
+**Composite Score = (I × 0.45) + (U × 0.35) + (C × 0.20)**
+Priority bands: 4.0–5.0 = High · 2.5–3.9 = Medium · 1.0–2.4 = Low
 
-**Composite Score** = (I × 0.45) + (U × 0.35) + (C × 0.20)
-
-**Priority Mapping:**
-- 4.0–5.0 → High
-- 2.5–3.9 → Medium
-- 1.0–2.4 → Low
-
-## TAB ASSIGNMENT RULES (Dominant Axis)
-- **Briefing**: Impact + Context dominant, no immediate action required.
-- **Updates**: Urgency dominant + external actor is waiting on the user.
-- **To-Dos**: Urgency dominant + user is the actor.
-- **Objectives**: Impact dominant + strategic/long-term measured outcomes.
+## TAB ASSIGNMENT (Dominant Axis)
+- Urgency dominant + external actor waiting → **Updates**
+- Impact dominant + strategic alignment → **Objectives**
+- Urgency dominant + user is the actor → **To-Dos**
+- Impact + Context dominant + no action required → **Briefing**
 
 ## WAIT DURATION ESCALATION (Updates only)
-- 2–8 hours: +0.5 urgency
-- 8–24 hours: +1.0 urgency
-- 1–3 days: +1.5 urgency → yellow minimum priority
-- 3–7 days: +2.0 urgency → red/High minimum priority
-- >7 days: +3.0 urgency → critical/High priority
+- 2–8h: +0.5 urgency · 8–24h: +1.0 · 1–3d: +1.5 (🟡 minimum) · 3–7d: +2.0 (🔴 minimum) · >7d: +3.0 (auto-High)
 
 ## CARD COUNTS PER TAB (only when real data supports them)
-- Briefing: up to 8 cards (0 if no data)
-- Updates: up to 8 cards (0 if no data)
-- To-Dos: up to 12 cards (0 if no data)
-- Objectives: up to 6 cards (0 if no data)
+Briefing: 4–8 · Updates: 3–8 · To-Dos: 6–12 · Objectives: 3–6. Return 0 if no real data.
+Hard cap: max 40% of cards in any tab can share the same priority — enforce distribution.
 
-## HEADLINE RULES
-- ≤8 words per title
-- Must contain at least one of: a number, name, temporal reference, or direction word — all sourced from REAL integration data
-- Anti-patterns to AVOID: "Important Update", "Action Required", "FYI", "Quick Note"
+## HEADLINE RULES (all tabs)
+- ≤8 words for Briefing/Updates, ≤10 for To-Dos/Objectives
+- Must contain ≥1 of: number, name (proper noun), temporal reference, direction word — sourced from REAL integration data
+- AVOID: "Important Update", "Action Required", "FYI", "Quick Note", "Sales Update"
+
+## UPDATES — CONSEQUENCE LEADS THE HEADLINE
+The most important rule. Headline formula:
+\`[CONSEQUENCE + DOLLAR/RISK AMOUNT] — [PERSON] waiting [DURATION] for [ACTION]\`
+
+GOOD: "$42k deal at risk — Sarah Chen waiting 2 days for your reply"
+BAD: "Sarah Chen awaiting proposal reply (2d)"
+
+## TO-DOS — LEVERAGE LABEL IS VISIBLE
+Every To-Do MUST include a "leverageLabel" field rendered from leverageScore:
+- score ≥ 4.0 → "⚡ High Leverage"
+- score ≥ 2.5 → "🟠 Deep Work"
+- score < 2.5 → "↻ Maintenance"
+
+Every To-Do MUST also include a "howTo" field with 2–3 numbered steps (where to go, what to do, how to know it's done).
+
+## OBJECTIVES — MOMENTUM IS MANDATORY
+Every Objective with a quantifiable success metric MUST include a "momentumIndicator" object:
+\`{ "state": "on_track" | "behind" | "ahead", "display": "<one-sentence plain-English velocity statement>", "projectedDays": <number>, "daysRemaining": <number>, "delta": <number> }\`
+
+Formula: currentPace = currentValue / daysSinceStart. projectedDays = (target − current) / currentPace. delta = daysRemaining − projectedDays.
+- delta within ±5% of daysRemaining → on_track
+- delta < −5% → behind
+- delta > +5% → ahead
+
+Display sentence example: "At current pace, you'll hit this in 94 days. You need 78. You're 16 days behind."
 
 ## QUALITY GATES PER TAB
+- **Briefing**: No-Action · Specificity · Source Test (point to exact line in integration data)
+- **Updates**: Blocker · Wait (real timestamp) · Person (name in data) · Consequence (in headline) · Non-Fabrication
+- **To-Dos**: Verb (start with imperative) · Specificity · Completability (<2h) · How-To (≥2 steps) · Leverage Label visible
+- **Objectives**: Outcome (NOT a verb) · Measurability (current+target) · Time-Bound · Momentum populated · Non-Duplication
 
-**Briefing Quality Tests:**
-1. No-Action Test
-2. Specificity Test (specific data point/name/metric FROM the integration data)
-3. Source Test: Can you point to the exact line in the integration data this came from?
+## SESSION OPENING SUMMARY (REQUIRED)
+You MUST also produce an "openingSummary" object — a chief-of-staff brief rendered above all tabs.
+Formula:
+- Sentence 1 — THE SIGNAL: Single most important Briefing card (highest composite score)
+- Sentence 2 — THE FRICTION: Most urgent Updates card (longest wait × highest consequence)
+- Sentence 3 — THE FOCUS: Highest-leverage To-Do card (highest leverageScore)
 
-**Updates Quality Tests:**
-1. Blocker Test (per integration data)
-2. Wait Test (from real timestamp)
-3. Person Test (name appears in integration data)
+Each sentence must reference REAL names/numbers from the integration data.
+If a tab is empty, OMIT that sentence (1–2 sentences is allowed). If ALL tabs are empty, set openingSummary to null.
 
-**To-Dos Quality Tests:**
-1. Verb Test
-2. Completability Test
-3. How-To Test
-4. Source Test (tied to a real integration item)
+Example: "Pipeline value dropped 18% overnight — two deals stalled in proposal stage. Sarah Chen at Acme Corp has been waiting 3 days for your reply, putting a $42k deal at risk. Your highest-leverage move today is a 10-minute email to Sarah before your 2pm call."
 
-**Objectives Quality Tests:**
-1. Outcome Test
-2. Measurability Test (current/target/gap from REAL data)
-3. Time-Bound Test
+## DASHBOARD HEALTH SCORE (REQUIRED)
+You MUST also produce a "healthScore" object that tells the user how much to trust the dashboard.
+\`{ "score": 0–100, "components": { "tabBalance", "sourceDiversity", "specificity", "actionability", "freshness", "crossTabLinking" } (each 0–100), "reason": "<one-line reason if score < 70, else null>" }\`
 
-Return a JSON object with exactly these 4 keys: "Briefing", "Updates", "To-Dos", "Objectives".
+Weights: tabBalance 25 · sourceDiversity 20 · specificity 20 · actionability 15 · freshness 10 · crossTabLinking 10.
 
-## CARD SCHEMA — ALL TABS
-- "id": unique string
+- tabBalance: penalty if any tab has 0 cards or >3× another tab's count
+- sourceDiversity: unique sources / total connected sources
+- specificity: cards passing the specificity headline test / total
+- actionability: actionSuggestion fields with verb + tool/location / total
+- freshness: cards with source data <48h old / total
+- crossTabLinking: Objectives linked to To-Dos (relatedTodoIds populated) / total objectives
+
+## OUTPUT — RETURN JSON OBJECT WITH EXACTLY THESE TOP-LEVEL KEYS
+\`{
+  "openingSummary": { "text": "<3-sentence brief>", "signal": "<sentence 1>", "friction": "<sentence 2>", "focus": "<sentence 3>" } | null,
+  "healthScore": { "score": 0–100, "components": {...}, "reason": null | "<short reason>" },
+  "Briefing": [ ...cards ],
+  "Updates": [ ...cards ],
+  "To-Dos": [ ...cards ],
+  "Objectives": [ ...cards ]
+}\`
+
+## CARD SCHEMA — UNIVERSAL FIELDS (all tabs)
+- "id": stable string. Reuse the same id if the same underlying source item appears across sessions (e.g. \`outlook:msg:<subject-hash>\`, \`hubspot:deal:<dealname-slug>\`). Stability matters — it powers the Delta Layer.
 - "priority": "High" | "Medium" | "Low"
-- "title": short title (max 8 words)
-- "description": 2-3 sentence insight
-- "detail": 3-5 sentence deep-dive with specific data
-- "category": contextual label
-- "source": one of "hubspot", "slack", "outlook", "gmail", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "onedrive", "onenote", "zoom", "teams". Use the source matching the actual integration data section the card came from. Only use "business-dna" if the card is purely a brand identity reminder (extremely rare).
+- "title": short headline per the rules above
+- "description": 2–3 sentence contextual summary referencing ≥1 Business DNA pillar
+- "detail": 3–5 sentence deep-dive with at least one quantified data point
+- "category": "Sales" | "Marketing" | "Finance" | "Operations" | "People" | "Product" | "Brand" | "Strategy" | "Market" | "Communication"
+- "source": one of "hubspot", "slack", "outlook", "gmail", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "onedrive", "onenote", "zoom", "teams". Only use "business-dna" for pure DNA-gap cards.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
-- "timeAgo": accurate relative time string
-- "timestamp": ISO 8601 timestamp of the original event
-- "actionSuggestion": specific actionable next step
-- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize. Other fields: senderName/senderEmail (parse from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom/calendar; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim) for slack/teams; fileName/sharedBy for onedrive/drive; notebook for onenote.
+- "timeAgo": accurate relative time string ("12 minutes ago" / "3 hours ago" / "2 days ago" / "Apr 8, 2026")
+- "timestamp": ISO 8601 of the original source event
+- "actionSuggestion": specific next step (verb + tool/location, completable in <15 min)
+- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize. Other fields: senderName/senderEmail (from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom/calendar; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim) for slack/teams; fileName/sharedBy for onedrive/drive; notebook for onenote.
 
-## TAB-SPECIFIC FIELDS
+## CARD SCHEMA — TAB-SPECIFIC FIELDS
+- **Briefing**: "signalType" (Metric Shift | Competitive Move | Pipeline Change | Team Activity | Integration Digest | DNA Update | Opportunity Detected | Risk Surfaced)
+- **Updates**: "waitingParty" (real person/entity), "requestType" (Reply Needed | Decision Required | Document Review | Meeting Prep | Follow-Up Overdue | Deal Action | Task Completion), "waitDuration" (from real timestamp), "consequence" (the cost — already surfaced in headline)
+- **To-Dos**: "taskType", "howTo" (≥2 numbered steps), "estimatedDuration" ("⚡ Quick" | "⏱ Medium" | "🟠 Deep Work"), "leverageScore" (1–5, hidden), "leverageLabel" (rendered from score — always populate)
+- **Objectives**: "objectiveType", "successMetric" { current, target, gap, source } — REAL data only, "progress" (0–100), "timeHorizon" ("This Sprint" | "This Month" | "This Quarter" | "This Half"), "relatedTodoIds" (linked To-Do ids — populate when possible), "momentumIndicator" (mandatory when metric is quantifiable)
 
-**Briefing**: signalType
-**Updates**: waitingParty (real name), requestType, waitDuration (from real timestamp), consequence
-**To-Dos**: taskType, howTo (numbered steps), estimatedDuration, leverageScore (1-5)
-**Objectives**: objectiveType, successMetric { current, target, gap, source } — REAL data only, progress (0-100), timeHorizon, relatedTodoIds
-
-Sort cards by priority (High first). **Empty tabs are correct when no data supports them. NEVER fabricate.**
+Sort cards within each tab by priority (High first). **Empty tabs are correct when no data supports them. NEVER fabricate.**
 Return ONLY a valid JSON object, no markdown fences.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -721,24 +770,93 @@ Return ONLY a valid JSON object, no markdown fences.`;
     const aiData = await aiResponse.json();
     const rawContent = aiData.choices?.[0]?.message?.content || "{}";
 
-    let allTabs: Record<string, any[]>;
+    let parsed: Record<string, any>;
     try {
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-      allTabs = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     } catch (e) {
       console.error("Failed to parse AI response:", rawContent.slice(0, 500));
-      allTabs = {};
+      parsed = {};
     }
 
-    // Normalize
-    const result = {
-      Briefing: Array.isArray(allTabs.Briefing) ? allTabs.Briefing : [],
-      Updates: Array.isArray(allTabs.Updates) ? allTabs.Updates : [],
-      "To-Dos": Array.isArray(allTabs["To-Dos"]) ? allTabs["To-Dos"] : [],
-      Objectives: Array.isArray(allTabs.Objectives) ? allTabs.Objectives : [],
+    // 8. Normalize tabs and apply Delta Layer (compute deltaState per card vs. previous snapshot)
+    const TAB_KEYS: Array<"Briefing" | "Updates" | "To-Dos" | "Objectives"> = ["Briefing", "Updates", "To-Dos", "Objectives"];
+    const PRIORITY_ORDER: Record<string, number> = { Low: 1, Medium: 2, High: 3 };
+
+    const annotateDelta = (card: any, tabKey: string) => {
+      const prev = prevSnapshot[card.id];
+      let deltaState: "new" | "escalated" | "unchanged" = "new";
+      if (prev) {
+        deltaState = "unchanged";
+        if (PRIORITY_ORDER[card.priority] > PRIORITY_ORDER[prev.priority]) {
+          deltaState = "escalated";
+        }
+      }
+      return { ...card, deltaState, tab: tabKey };
     };
 
-    return new Response(JSON.stringify({ tabs: result, brandName }), {
+    // Backfill leverageLabel from leverageScore if AI omitted it on a To-Do
+    const backfillLeverage = (card: any) => {
+      if (card.leverageLabel) return card;
+      if (typeof card.leverageScore !== "number") return card;
+      const s = card.leverageScore;
+      const label = s >= 4 ? "⚡ High Leverage" : s >= 2.5 ? "🟠 Deep Work" : "↻ Maintenance";
+      return { ...card, leverageLabel: label };
+    };
+
+    const tabsResult: Record<string, any[]> = {};
+    const nextSnapshot: Record<string, { priority: string; tab: string }> = {};
+    for (const tabKey of TAB_KEYS) {
+      const arr = Array.isArray(parsed[tabKey]) ? parsed[tabKey] : [];
+      const annotated = arr.map((c: any) => {
+        const enriched = tabKey === "To-Dos" ? backfillLeverage(c) : c;
+        const withDelta = annotateDelta(enriched, tabKey);
+        nextSnapshot[withDelta.id] = { priority: withDelta.priority, tab: tabKey };
+        return withDelta;
+      });
+      tabsResult[tabKey] = annotated;
+    }
+
+    // 9. Resolved cards = present in previous snapshot, missing from next
+    const resolvedCardIds: string[] = [];
+    for (const id of Object.keys(prevSnapshot)) {
+      if (!(id in nextSnapshot)) resolvedCardIds.push(id);
+    }
+
+    const openingSummary = parsed.openingSummary && typeof parsed.openingSummary === "object"
+      ? parsed.openingSummary
+      : null;
+    const healthScore = parsed.healthScore && typeof parsed.healthScore === "object"
+      ? parsed.healthScore
+      : null;
+
+    // 10. Persist new snapshot (upsert by user_id + brand_id)
+    try {
+      await supabase
+        .from("dashboard_snapshots")
+        .upsert(
+          {
+            user_id: user.id,
+            brand_id: brandId,
+            cards: nextSnapshot,
+            opening_summary: openingSummary?.text || null,
+            health_score: healthScore,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,brand_id" },
+        );
+    } catch (snapErr) {
+      console.error("Snapshot persist error:", snapErr);
+      // Non-fatal — return the dashboard anyway
+    }
+
+    return new Response(JSON.stringify({
+      tabs: tabsResult,
+      brandName,
+      openingSummary,
+      healthScore,
+      resolvedCardIds,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
