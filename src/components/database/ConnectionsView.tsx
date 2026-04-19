@@ -126,7 +126,7 @@ function ConnectionCard({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 text-xs gap-1.5 w-full"
+            className="h-8 px-3 text-xs gap-1.5 w-full bg-white hover:bg-white"
             disabled={isConnecting}
             onClick={() => onConnect()}
           >
