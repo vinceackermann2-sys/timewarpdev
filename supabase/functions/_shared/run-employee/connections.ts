@@ -272,14 +272,21 @@ export async function searchSlackData(token: string, query: string, topic?: stri
 export async function searchGmailData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const searchTerms = buildSearchTerms(query, topic);
-  if (searchTerms.length === 0) return results;
-  const q = searchTerms.slice(0, 2).join(" OR ");
+  // For generic "show me my recent emails" queries, list the inbox without a search term.
+  // Detect a generic intent by checking if query matches recent/latest/last keywords.
+  const isGenericRecent = /\b(recent|latest|last|new|inbox|unread|my\s+gmails?|my\s+emails?)\b/i.test(query) &&
+    !/\b(about|regarding|from|partner|collab|complaint|deal|invoice|order)\b/i.test(query);
+  // Build query string: empty for generic recent queries, otherwise OR-joined terms.
+  const q = isGenericRecent || searchTerms.length === 0
+    ? ""
+    : searchTerms.slice(0, 2).join(" OR ");
   try {
-    const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=${encodeURIComponent(q)}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    if (!listRes.ok) return results;
+    const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+    const listRes = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!listRes.ok) {
+      console.error("[gmail] list failed:", listRes.status, (await listRes.text()).slice(0, 200));
+      return results;
+    }
     const listData = await listRes.json();
     const ids: string[] = (listData.messages || []).slice(0, 5).map((m: any) => m.id);
     await Promise.all(ids.map(async (id: string) => {
@@ -305,17 +312,44 @@ export async function searchGmailData(token: string, query: string, topic?: stri
 export async function searchGoogleDriveData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const searchTerms = buildSearchTerms(query, topic);
-  if (searchTerms.length === 0) return results;
+  const isGenericRecent = /\b(recent|latest|last|new|my\s+files?|my\s+docs?|my\s+drive)\b/i.test(query) &&
+    !/\b(about|regarding|named|called|titled)\b/i.test(query);
+
+  // Generic recent → just list recent non-trashed files.
+  if (isGenericRecent || searchTerms.length === 0) {
+    try {
+      const r = await fetch(
+        `https://www.googleapis.com/drive/v3/files?pageSize=5&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)&q=${encodeURIComponent("trashed=false")}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (r.ok) {
+        const d = await r.json();
+        for (const f of (d.files || []).slice(0, 5)) {
+          const icon = f.mimeType?.includes("document") ? "📄" : f.mimeType?.includes("spreadsheet") ? "📊" : f.mimeType?.includes("presentation") ? "📽️" : "📁";
+          const modified = f.modifiedTime?.slice(0, 10) || "";
+          results.push(`${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`);
+        }
+      } else {
+        console.error("[drive] list failed:", r.status, (await r.text()).slice(0, 200));
+      }
+    } catch (e) { console.error("Drive list error:", e); }
+    return results;
+  }
+
   for (const term of searchTerms.slice(0, 2)) {
     if (results.length >= 5) break;
     const safe = term.replace(/'/g, "\\'");
-    const q = encodeURIComponent(`name contains '${safe}' or fullText contains '${safe}' and trashed=false`);
+    // Parens around the OR group; trashed=false applied to the whole filter.
+    const q = encodeURIComponent(`(name contains '${safe}' or fullText contains '${safe}') and trashed=false`);
     try {
       const r = await fetch(
         `https://www.googleapis.com/drive/v3/files?pageSize=5&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)&q=${q}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
-      if (!r.ok) continue;
+      if (!r.ok) {
+        console.error("[drive] search failed:", r.status, (await r.text()).slice(0, 200));
+        continue;
+      }
       const d = await r.json();
       for (const f of (d.files || [])) {
         if (results.length >= 5) break;
@@ -385,10 +419,21 @@ export async function searchHubspotData(token: string, query: string, topic?: st
   return results.slice(0, 6);
 }
 
-// Get a Google access token from any connected Google sub-service
+// Get a Google access token from any connected Google sub-service.
+// Skips providers that are marked 'expired' in user_connections to avoid wasted
+// refresh attempts (and cloud usage) on legacy/revoked grants.
 async function getAnyGoogleToken(supabaseAdmin: any, userId: string): Promise<string | null> {
-  const candidates = ["google", "google_gmail", "google_drive", "google_docs", "google_sheets", "google_slides", "google_calendar"];
+  // Prefer the granular per-service tokens; the legacy "google" provider is tried last.
+  const candidates = ["google_gmail", "google_drive", "google_docs", "google_sheets", "google_slides", "google_calendar", "google"];
+  // Look up which Google connections are still healthy
+  const { data: conns } = await supabaseAdmin
+    .from("user_connections")
+    .select("provider, status")
+    .eq("user_id", userId)
+    .like("provider", "google%");
+  const expired = new Set((conns || []).filter((c: any) => c.status === "expired").map((c: any) => c.provider));
   for (const p of candidates) {
+    if (expired.has(p)) continue; // skip known-expired to save refresh calls
     const t = await getValidAccessToken(supabaseAdmin, userId, p);
     if (t) return t;
   }
