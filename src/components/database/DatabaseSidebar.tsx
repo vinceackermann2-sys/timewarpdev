@@ -91,6 +91,25 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDa
   const [wsSearch, setWsSearch] = useState("");
   const [showNewWsInput, setShowNewWsInput] = useState(false);
   const [newWsName, setNewWsName] = useState("");
+  const [creatingWs, setCreatingWs] = useState(false);
+
+  const handleCreateWorkspace = async () => {
+    const name = newWsName.trim();
+    if (!name || creatingWs) return;
+    setCreatingWs(true);
+    try {
+      const id = await createWorkspace(name);
+      selectWorkspace(id);
+      setNewWsName("");
+      setShowNewWsInput(false);
+      setWsPopoverOpen(false);
+      toast({ title: "Workspace created", description: `"${name}" is ready.` });
+    } catch (err: any) {
+      toast({ title: "Could not create workspace", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setCreatingWs(false);
+    }
+  };
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -303,28 +322,39 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDa
                     See all workspaces
                   </button>
                   {showNewWsInput ? (
-                    <div className="px-3 py-2 flex items-center gap-2">
+                    <div
+                      className="px-3 py-2 flex items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <input
                         type="text"
                         placeholder="Workspace name"
                         value={newWsName}
                         onChange={(e) => setNewWsName(e.target.value)}
-                        onKeyDown={async (e) => {
-                          if (e.key === "Enter" && newWsName.trim()) {
-                            const id = await createWorkspace(newWsName.trim());
-                            selectWorkspace(id);
-                            setNewWsName("");
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleCreateWorkspace();
+                          } else if (e.key === "Escape") {
                             setShowNewWsInput(false);
-                            setWsPopoverOpen(false);
+                            setNewWsName("");
                           }
                         }}
                         autoFocus
+                        disabled={creatingWs}
                         className="flex-1 bg-transparent text-sm outline-none border-b border-border pb-0.5 placeholder:text-muted-foreground"
                       />
+                      <button
+                        onClick={handleCreateWorkspace}
+                        disabled={!newWsName.trim() || creatingWs}
+                        className="text-xs font-medium text-primary disabled:opacity-50 hover:underline"
+                      >
+                        {creatingWs ? "..." : "Create"}
+                      </button>
                     </div>
                   ) : (
                     <button
-                      onClick={() => setShowNewWsInput(true)}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowNewWsInput(true); }}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors text-foreground flex items-center gap-1.5"
                     >
                       <Plus className="h-3.5 w-3.5" />
