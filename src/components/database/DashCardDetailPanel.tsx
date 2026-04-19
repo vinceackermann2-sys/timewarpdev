@@ -369,13 +369,8 @@ function FileRender({ card }: { card: DashboardCard }) {
           )}
         </div>
       </div>
-      {m.bodyPreview && (
-        <div className="border-t border-border/40 pt-3">
-          <p className="text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
-            {m.bodyPreview}
-          </p>
-        </div>
-      )}
+      <ExpandableBody text={m.bodyPreview} emptyHint="No file preview was returned by the source." />
+
     </div>
   );
 }
@@ -397,13 +392,8 @@ function NoteRender({ card }: { card: DashboardCard }) {
       {m.author && (
         <p className="text-[11.5px] text-muted-foreground">By {m.author}</p>
       )}
-      {m.bodyPreview && (
-        <div className="border-t border-border/40 pt-3">
-          <p className="text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
-            {m.bodyPreview}
-          </p>
-        </div>
-      )}
+      <ExpandableBody text={m.bodyPreview} emptyHint="No note content was returned by the source." />
+
     </div>
   );
 }
@@ -440,13 +430,8 @@ function DealRender({ card }: { card: DashboardCard }) {
           </span>
         )}
       </div>
-      {m.bodyPreview && (
-        <div className="border-t border-border/40 pt-3">
-          <p className="text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
-            {m.bodyPreview}
-          </p>
-        </div>
-      )}
+      <ExpandableBody text={m.bodyPreview} emptyHint="No deal notes were returned by the source." />
+
     </div>
   );
 }
