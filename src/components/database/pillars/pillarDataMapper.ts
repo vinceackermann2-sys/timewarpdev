@@ -1,7 +1,6 @@
 // Maps real Business DNA entities (brand / products / audiences)
 // onto the structural 9-pillar field IDs defined in pillarConstants.ts.
-// Returns a Record<fieldId, value> — anything missing is left empty so the
-// PillarView falls back to its empty-state UI.
+// Table column headers follow the TimeWarp Business DNA Model doc EXACTLY.
 
 import type { BrandEntry, ProductEntry, AudienceEntry } from "@/components/database/BusinessDNAContext";
 
@@ -20,43 +19,42 @@ export function buildPillarValues(
   const { brand, products, audiences, extended } = ctx;
   const map: FieldValueMap = {};
 
+  // ── BRAND ──────────────────────────────────────────────────────────────
   if (pillarId === "brand" && brand) {
-    // 1. Brand Description (long-text)
     if (brand.category) map.b1 = `${brand.name} — ${brand.category}.`;
-    // 4. Brand Values — table from agentName/category placeholder if absent
-    // 6. Visual Identity — colors + typography
+
+    // 6. Visual Identity → doc columns: Field, What It Captures
     if (brand.colors || brand.typography) {
       const rows: string[][] = [];
       if (brand.colors) {
-        rows.push(["Primary", brand.colors.primary]);
-        rows.push(["Secondary", brand.colors.secondary]);
+        rows.push(["Primary Palette", brand.colors.primary]);
+        rows.push(["Secondary Palette", brand.colors.secondary]);
         rows.push(["Background", brand.colors.background]);
         rows.push(["Text", brand.colors.text]);
       }
       if (brand.typography) {
-        rows.push(["Font Family", brand.typography.fontFamily]);
-        rows.push(["Font Weight", brand.typography.fontWeight]);
-        rows.push(["Font Style", brand.typography.fontStyle]);
+        rows.push(["Typography Stack", `${brand.typography.fontFamily} · ${brand.typography.fontWeight}`]);
       }
-      map.b6 = { columns: ["Token", "Value"], rows };
+      map.b6 = { columns: ["Field", "What It Captures"], rows };
     }
-    // 5. Brand Voice — from visualIdentity.websiteRules etc. if any
+
+    // 5. Brand Voice → doc columns: Component, What It Is, How Determined
     const vi = brand.visualIdentity;
     if (vi?.websiteRules?.length) {
       map.b5 = {
-        columns: ["Channel", "Rule"],
-        rows: vi.websiteRules.map((r) => ["Website", r]),
+        columns: ["Component", "What It Is", "How Determined"],
+        rows: vi.websiteRules.slice(0, 6).map((r) => ["Voice Rule", r, "Extracted from website copy"]),
       };
     }
-    // 8. Brand Personality — derived from category words
+
+    // 8. Brand Personality
     if (brand.category) {
       map.b8 = brand.category.split(/[\s,/]+/).filter(Boolean).slice(0, 5);
     }
-    // 9. Tagline & Power Lines — pull from buttonRules call-to-action examples
-    if (vi?.buttonRules?.length) {
-      map.b9 = vi.buttonRules;
-    }
-    // 10. Brand Perception — from socialMediaRules
+    // 9. Tagline & Power Lines
+    if (vi?.buttonRules?.length) map.b9 = vi.buttonRules;
+
+    // 10. Brand Perception → doc columns: How Customers Describe, How Market Categorizes, Gap
     if (vi?.socialMediaRules?.length) {
       map.b10 = {
         columns: ["Channel", "Perception"],
@@ -65,67 +63,93 @@ export function buildPillarValues(
     }
   }
 
+  // ── PRODUCT ────────────────────────────────────────────────────────────
   if (pillarId === "product") {
-    // 1. Product Description — pick the first product's description
     const first = products[0];
     if (first?.description) map.p1 = first.description;
-    // Product Catalogue — table of all products
     if (products.length) {
-      map.p2 = {
-        columns: ["Name", "Category", "Description"],
-        rows: products.map((p) => [p.name || "—", p.category || "—", (p.description || "").slice(0, 140)]),
-      };
+      // 2. Product Catalogue → doc formula [SKU/VARIANT] + [NAME] + [DESCRIPTION] + [PRICE] + [POSITIONING]
+      map.p2 = products.map((p) => ({
+        name: p.name || "—",
+        price: (p.offers?.[0]?.salePrice || p.offers?.[0]?.originalPrice || "—"),
+        features: [p.category, (p.description || "").slice(0, 100)].filter(Boolean) as string[],
+      }));
     }
-    // Features (list)
     const allFeatures = products.flatMap((p) => p.features || []).filter(nonEmpty);
     if (allFeatures.length) map.p3 = allFeatures.slice(0, 12);
-    // Benefits (list)
     const allBenefits = products.flatMap((p) => p.benefits || []).filter(nonEmpty);
     if (allBenefits.length) map.p4 = allBenefits.slice(0, 12);
-    // Pricing tiers — from offers
-    const offerTiers = products.flatMap((p) =>
-      (p.offers || []).map((o) => ({
-        name: o.title || "Offer",
-        price: o.salePrice || o.originalPrice || "—",
-        features: [o.bundleDetails, ...(o.freeGifts || [])].filter(Boolean) as string[],
-      }))
+
+    // 6. Pricing Architecture → doc columns: Field, What It Is, How Determined
+    const offerRows = products.flatMap((p) =>
+      (p.offers || []).map((o) => [
+        o.title || "Offer",
+        o.salePrice || o.originalPrice || "—",
+        [o.bundleDetails, ...(o.freeGifts || [])].filter(Boolean).join("; ") || "—",
+      ])
     );
-    if (offerTiers.length) map.p6 = offerTiers;
-    // Use Cases (list)
+    if (offerRows.length) {
+      map.p6 = {
+        columns: ["Tier", "Price Point", "What's Included"],
+        rows: offerRows,
+      };
+    }
+
     const allUseCases = products.flatMap((p) => p.useCases || []).filter(nonEmpty);
     if (allUseCases.length) map.p7 = allUseCases.slice(0, 10);
-    // USPs (list)
     const allUsps = products.flatMap((p) => p.uniqueSellingPoints || []).filter(nonEmpty);
     if (allUsps.length) map.p9 = allUsps.slice(0, 10);
-    // Competitive Advantages (list)
+
+    // 10. Competitive Advantages → doc formula [COMPETITOR APPROACH] vs [THIS] + [WHY WE WIN]
     const allAdv = products.flatMap((p) => p.competitiveAdvantages || []).filter(nonEmpty);
-    if (allAdv.length) map.p10 = allAdv.slice(0, 10);
-    // Pain Points (list)
+    if (allAdv.length) {
+      map.p10 = {
+        columns: ["Advantage", "Why We Win"],
+        rows: allAdv.slice(0, 10).map((a) => [a, "Differentiated capability"]),
+      };
+    }
+
     const allPain = products.flatMap((p) => p.painPoints || []).filter(nonEmpty);
     if (allPain.length) map.p11 = allPain.slice(0, 10);
-    // Objections (table)
+
+    // 12. Objections → doc: [OBJECTION] → [REFRAME] → [PROOF]
     const allObj = products.flatMap((p) => p.commonObjections || []).filter((o) => o?.objection);
     if (allObj.length) {
       map.p12 = {
-        columns: ["Objection", "Response"],
+        columns: ["Objection", "Reframe / Response"],
         rows: allObj.map((o) => [o.objection, o.response]),
       };
     }
-    // Social Proof (table)
+
+    // 13. Social Proof → doc columns: Proof Type, What to Capture
     const allProof = products.flatMap((p) => p.proofPoints || []).filter((p) => p?.category);
     if (allProof.length) {
       map.p13 = {
-        columns: ["Category", "Proof"],
+        columns: ["Proof Type", "What to Capture"],
         rows: allProof.map((pp) => [pp.category, (pp.items || []).join("; ")]),
       };
     }
   }
 
+  // ── AUDIENCE ───────────────────────────────────────────────────────────
   if (pillarId === "audience") {
-    // 1. Audience Description
     const first = audiences[0];
+    // 1. Audience Description (single primary)
     if (first?.description) map.a1 = first.description;
-    // Personas — build from each audience
+
+    // 2. Segmentation Model → doc columns: Segment Type, What Defines It, Data Sources
+    if (audiences.length) {
+      map.a2 = {
+        columns: ["Segment", "Defining Characteristic", "Source"],
+        rows: audiences.map((au) => [
+          au.name || "Segment",
+          (au.description || "").slice(0, 120) || "—",
+          "Onboarding intelligence",
+        ]),
+      };
+    }
+
+    // 3. Buyer Persona — composite character per audience
     if (audiences.length) {
       map.a3 = audiences.map((au) => ({
         name: au.name || "Audience",
@@ -134,35 +158,45 @@ export function buildPillarValues(
         fears: (au.commonObjections || []).map((o) => o.objection).filter(Boolean).slice(0, 4),
       }));
     }
-    // Buying Triggers (list)
+
+    // 4. Buying Triggers
     const allTriggers = audiences.flatMap((a) => a.buyingTriggers || []).filter(nonEmpty);
     if (allTriggers.length) map.a4 = allTriggers.slice(0, 10);
-    // Engagement Patterns (table)
+
+    // 9. Engagement Patterns
     const allEngagement = audiences.flatMap((a) => a.engagementTriggers || []).filter(nonEmpty);
-    if (allEngagement.length) {
-      map.a8 = {
-        columns: ["Trigger", "Driver"],
-        rows: allEngagement.map((t) => ["Engagement", t]),
+    if (allEngagement.length) map.a9 = allEngagement.join("; ");
+
+    // 10. Language Patterns → doc columns: Pattern Type, Examples
+    const allHooks = audiences.flatMap((a) => a.attentionHooks || []).filter(nonEmpty);
+    if (allHooks.length) {
+      map.a10 = {
+        columns: ["Pattern", "Example"],
+        rows: allHooks.slice(0, 10).map((h) => ["Attention Hook", h]),
       };
     }
-    // Language Patterns (list)
-    const allHooks = audiences.flatMap((a) => a.attentionHooks || []).filter(nonEmpty);
-    if (allHooks.length) map.a9 = allHooks.slice(0, 10);
-    // Proof Hierarchy (table)
+
+    // 11. Proof Hierarchy
     const allProof = audiences.flatMap((a) => a.proofPoints || []).filter((p) => p?.category);
     if (allProof.length) {
-      map.a10 = {
-        columns: ["Type", "Proof"],
-        rows: allProof.map((pp) => [pp.category, (pp.items || []).join("; ")]),
+      map.a11 = allProof.flatMap((pp) => (pp.items || []).map((i: string) => `${pp.category}: ${i}`)).slice(0, 10);
+    }
+
+    // 12. Retention & Loyalty Drivers
+    const allValueProps = audiences.flatMap((a) => a.valuePropositions || []).filter(nonEmpty);
+    if (allValueProps.length) map.a12 = allValueProps.join("; ");
+
+    // 8. Objections & Responses
+    const allAObj = audiences.flatMap((a) => a.commonObjections || []).filter((o) => o?.objection);
+    if (allAObj.length) {
+      map.a8 = {
+        columns: ["Objection", "Response"],
+        rows: allAObj.map((o) => [o.objection, o.response || "—"]),
       };
     }
-    // Retention drivers (list)
-    const allValueProps = audiences.flatMap((a) => a.valuePropositions || []).filter(nonEmpty);
-    if (allValueProps.length) map.a11 = allValueProps.slice(0, 10);
   }
 
-  // Pillars 4-9 (market, financial, operations, people, growth, strategy):
-  // Populated from pre-generated JSON saved by enrich-pillars (one row per pillar in user_business_data).
+  // ── EXTENDED PILLARS (4-9) ─────────────────────────────────────────────
   const ext = extended || null;
 
   if (pillarId === "market" && ext) {
@@ -175,23 +209,37 @@ export function buildPillarValues(
     }
     if (Array.isArray(ext.competitors) && ext.competitors.length) {
       map.m2 = {
-        columns: ["Competitor", "Positioning", "Strength", "Weakness"],
-        rows: ext.competitors.map((c: any) => [c.name || "—", c.positioning || "—", c.strength || "—", c.weakness || "—"]),
+        columns: ["Competitor", "Positioning", "Strengths", "Weaknesses", "Threat"],
+        rows: ext.competitors.map((c: any) => [
+          c.name || "—", c.positioning || "—", c.strengths || c.strength || "—",
+          c.weaknesses || c.weakness || "—", c.threat_level || "Medium",
+        ]),
       };
     }
     if (Array.isArray(ext.advantages) && ext.advantages.length) {
       map.m4 = {
-        columns: ["Advantage", "Why Sustainable"],
-        rows: ext.advantages.map((a: any) => [a.advantage || "—", a.why_sustainable || "—"]),
+        columns: ["Advantage Type", "How Long to Copy", "What Protects It"],
+        rows: ext.advantages.map((a: any) => [
+          a.type || a.advantage || "—",
+          a.how_long_to_copy || "—",
+          a.what_protects_it || a.why_sustainable || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.forces) && ext.forces.length) {
       map.m5 = {
-        columns: ["Force", "Intensity", "Rationale"],
-        rows: ext.forces.map((f: any) => [f.force || "—", f.intensity || "—", f.rationale || "—"]),
+        columns: ["Force", "Intensity", "Trend", "Implication"],
+        rows: ext.forces.map((f: any) => [
+          f.force || "—", f.intensity || "—", f.trend || "Stable", f.implication || f.rationale || "—",
+        ]),
       };
     }
-    if (Array.isArray(ext.trends) && ext.trends.length) map.m6 = ext.trends;
+    if (Array.isArray(ext.trends) && ext.trends.length) {
+      // List can contain strings or objects
+      map.m6 = ext.trends.map((t: any) =>
+        typeof t === "string" ? t : `${t.trend} (${t.horizon || "Med"}, ${t.type || "Opp"}) — ${t.response || ""}`
+      );
+    }
     if (ext.timing) map.m7 = ext.timing;
     if (ext.white_space) map.m8 = ext.white_space;
   }
@@ -199,29 +247,43 @@ export function buildPillarValues(
   if (pillarId === "financial" && ext) {
     if (Array.isArray(ext.model) && ext.model.length) {
       map.f1 = {
-        columns: ["Stream", "Type", "Notes"],
-        rows: ext.model.map((m: any) => [m.stream || "—", m.type || "—", m.notes || "—"]),
+        columns: ["Field", "Value"],
+        rows: ext.model.map((m: any) => [m.field || m.stream || "—", m.value || m.notes || m.type || "—"]),
       };
     }
     if (Array.isArray(ext.revenue_arch) && ext.revenue_arch.length) {
       map.f2 = {
-        columns: ["Stream", "Share %"],
-        rows: ext.revenue_arch.map((r: any) => [r.stream || "—", r.share_pct || "—"]),
+        columns: ["Stream", "Volume", "Price", "Frequency", "Trend"],
+        rows: ext.revenue_arch.map((r: any) => [
+          r.stream || "—", r.volume || "—", r.price || "—",
+          r.frequency || "—", r.trend || r.share_pct || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.costs) && ext.costs.length) {
       map.f3 = {
-        columns: ["Category", "Item", "Notes"],
-        rows: ext.costs.map((c: any) => [c.category || "—", c.item || "—", c.notes || "—"]),
+        columns: ["Category", "Fixed/Variable", "% of Revenue", "Trend"],
+        rows: ext.costs.map((c: any) => [
+          c.category || "—", c.fixed_or_variable || "—",
+          c.pct_of_revenue || c.amount || "—", c.trend || c.notes || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.unit_economics) && ext.unit_economics.length) {
-      map.f4 = ext.unit_economics.map((u: any) => ({ name: u.metric || "—", value: u.value || "—", context: u.context || "" }));
+      map.f4 = ext.unit_economics.map((u: any) => ({
+        name: u.metric || "—",
+        value: u.value || "—",
+        context: [u.benchmark, u.lever].filter(Boolean).join(" · ") || u.context || "",
+      }));
     }
     if (Array.isArray(ext.profitability) && ext.profitability.length) {
       map.f5 = {
-        columns: ["Stage", "Margin Outlook"],
-        rows: ext.profitability.map((p: any) => [p.stage || "—", p.margin_outlook || "—"]),
+        columns: ["Margin Type", "Current %", "Target %", "Benchmark", "Improvement Path"],
+        rows: ext.profitability.map((p: any) => [
+          p.margin_type || p.stage || "—",
+          p.current_pct || "—", p.target_pct || "—",
+          p.benchmark || "—", p.improvement_path || p.margin_outlook || "—",
+        ]),
       };
     }
     if (ext.cash_flow) map.f6 = ext.cash_flow;
@@ -233,27 +295,38 @@ export function buildPillarValues(
     if (ext.operating_model) map.o1 = ext.operating_model;
     if (Array.isArray(ext.core_processes) && ext.core_processes.length) {
       map.o2 = {
-        columns: ["Process", "Owner", "Outcome"],
-        rows: ext.core_processes.map((p: any) => [p.process || "—", p.owner || "—", p.outcome || "—"]),
+        columns: ["Process", "Owner", "Outcome", "KPI"],
+        rows: ext.core_processes.map((p: any) => [
+          p.process || "—", p.owner || "—", p.outcome || "—", p.kpi || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.tech_stack) && ext.tech_stack.length) {
-      map.o3 = ext.tech_stack.map((t: any) => ({ category: t.category || "Other", tool: t.tool || "—", purpose: t.purpose || "" }));
+      map.o3 = ext.tech_stack.map((t: any) => ({
+        category: t.category || "Other", tool: t.tool || "—", purpose: t.purpose || "",
+      }));
     }
     if (Array.isArray(ext.vendors) && ext.vendors.length) {
       map.o4 = {
-        columns: ["Vendor", "Role"],
-        rows: ext.vendors.map((v: any) => [v.vendor || "—", v.role || "—"]),
+        columns: ["Vendor", "What They Supply", "Criticality", "Risk", "Alternative"],
+        rows: ext.vendors.map((v: any) => [
+          v.vendor || "—", v.supplies || v.role || "—",
+          v.criticality || "3", v.risk || "—", v.alternative || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.quality) && ext.quality.length) map.o5 = ext.quality;
     if (Array.isArray(ext.kpis) && ext.kpis.length) {
-      map.o6 = ext.kpis.map((k: any) => ({ name: k.name || "—", value: k.target || "—", context: k.rationale || "" }));
+      map.o6 = ext.kpis.map((k: any) => ({
+        name: k.name || "—", value: k.target || "—", context: k.rationale || "",
+      }));
     }
     if (Array.isArray(ext.risks) && ext.risks.length) {
       map.o7 = {
-        columns: ["Risk", "Likelihood", "Mitigation"],
-        rows: ext.risks.map((r: any) => [r.risk || "—", r.likelihood || "—", r.mitigation || "—"]),
+        columns: ["Risk", "Likelihood", "Impact", "Mitigation"],
+        rows: ext.risks.map((r: any) => [
+          r.risk || "—", r.likelihood || "—", r.impact || "Medium", r.mitigation || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.compliance) && ext.compliance.length) map.o8 = ext.compliance;
@@ -269,14 +342,19 @@ export function buildPillarValues(
     }
     if (Array.isArray(ext.capabilities) && ext.capabilities.length) {
       map.pe3 = {
-        columns: ["Capability", "Current Level", "Owner"],
-        rows: ext.capabilities.map((c: any) => [c.capability || "—", c.current_level || "—", c.owner || "—"]),
+        columns: ["Capability Domain", "Current (1-5)", "Required (1-5)", "Gap", "Plan"],
+        rows: ext.capabilities.map((c: any) => [
+          c.domain || c.capability || "—",
+          c.current_strength || c.current_level || "—",
+          c.required_strength || "—",
+          c.gap || "—", c.plan || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.culture) && ext.culture.length) {
       map.pe4 = {
-        columns: ["Value", "Behavior"],
-        rows: ext.culture.map((c: any) => [c.value || "—", c.behavior || "—"]),
+        columns: ["Field", "Value"],
+        rows: ext.culture.map((c: any) => [c.field || c.value || "—", c.value || c.behavior || "—"]),
       };
     }
     if (Array.isArray(ext.hiring) && ext.hiring.length) map.pe5 = ext.hiring;
@@ -324,37 +402,69 @@ export function buildPillarValues(
     if (Array.isArray(ext.objectives) && ext.objectives.length) map.s2 = ext.objectives;
     if (Array.isArray(ext.bets) && ext.bets.length) {
       map.s3 = {
-        columns: ["Bet", "Rationale"],
-        rows: ext.bets.map((b: any) => [b.bet || "—", b.rationale || "—"]),
+        columns: ["Bet", "Thesis", "Resources", "Success Signal", "Kill Signal"],
+        rows: ext.bets.map((b: any) => [
+          b.bet || "—", b.thesis || b.rationale || "—",
+          b.resources || "—", b.success_signal || "—", b.kill_signal || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.stage_model) && ext.stage_model.length) {
       map.s4 = {
-        columns: ["Dimension", "Value"],
-        rows: ext.stage_model.map((s: any) => [s.dimension || "—", s.value || "—"]),
+        columns: ["Field", "Value"],
+        rows: ext.stage_model.map((s: any) => [s.field || s.dimension || "—", s.value || "—"]),
       };
     }
     if (Array.isArray(ext.resource_allocation) && ext.resource_allocation.length) {
       map.s5 = {
-        columns: ["Area", "Share %", "Rationale"],
-        rows: ext.resource_allocation.map((r: any) => [r.area || "—", r.share_pct || "—", r.rationale || "—"]),
+        columns: ["Resource", "Current %", "Optimal %", "Rebalancing Rationale"],
+        rows: ext.resource_allocation.map((r: any) => [
+          r.resource || r.area || "—",
+          r.current_pct || r.share_pct || "—",
+          r.optimal_pct || "—",
+          r.rebalancing_rationale || r.rationale || "—",
+        ]),
       };
     }
-    if (Array.isArray(ext.priorities) && ext.priorities.length) map.s6 = ext.priorities;
-    if (Array.isArray(ext.decisions_log) && ext.decisions_log.length) {
+    // 6. Decision Framework (was Strategic Priorities)
+    if (Array.isArray(ext.decision_framework) && ext.decision_framework.length) {
+      map.s6 = {
+        columns: ["Decision Type", "Criteria", "Authority", "Process"],
+        rows: ext.decision_framework.map((d: any) => [
+          d.decision_type || "—", d.criteria || "—", d.authority || "—", d.process || "—",
+        ]),
+      };
+    }
+    // 7. Risk Appetite & Tolerance (was Strategic Decisions Log)
+    if (Array.isArray(ext.risk_appetite) && ext.risk_appetite.length) {
       map.s7 = {
-        columns: ["Date", "Decision", "Rationale"],
-        rows: ext.decisions_log.map((d: any) => [d.date || "—", d.decision || "—", d.rationale || "—"]),
+        columns: ["Risk Domain", "Appetite", "Tolerance Threshold", "Mitigation"],
+        rows: ext.risk_appetite.map((r: any) => [
+          r.domain || "—", r.appetite || "Moderate", r.tolerance_threshold || "—", r.mitigation || "—",
+        ]),
       };
     }
-    if (Array.isArray(ext.roadmap) && ext.roadmap.length) {
-      map.s8 = ext.roadmap.map((r: any) => ({ milestone: r.milestone || "—", horizon: r.horizon || "—", outcome: r.outcome || "" }));
+    // 8. Strategic Milestones (timeline)
+    if (Array.isArray(ext.milestones) && ext.milestones.length) {
+      map.s8 = ext.milestones.map((r: any) => ({
+        milestone: r.milestone || "—", horizon: r.horizon || "—",
+        outcome: r.outcome || "", owner: r.owner || "",
+      }));
+    } else if (Array.isArray(ext.roadmap) && ext.roadmap.length) {
+      // Backward-compat with prior "roadmap" key
+      map.s8 = ext.roadmap.map((r: any) => ({
+        milestone: r.milestone || "—", horizon: r.horizon || "—", outcome: r.outcome || "",
+      }));
     }
     if (ext.narrative) map.s9 = ext.narrative;
     if (Array.isArray(ext.scenarios) && ext.scenarios.length) {
       map.s10 = {
-        columns: ["Scenario", "Trigger", "Response"],
-        rows: ext.scenarios.map((s: any) => [s.scenario || "—", s.trigger || "—", s.response || "—"]),
+        columns: ["Scenario", "Probability", "Key Assumption", "Response", "Early Warnings"],
+        rows: ext.scenarios.map((s: any) => [
+          s.scenario || "—", s.probability || "—",
+          s.key_assumption || s.trigger || "—",
+          s.response || "—", s.early_warnings || "—",
+        ]),
       };
     }
   }
