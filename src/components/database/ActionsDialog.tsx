@@ -145,8 +145,8 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         {/* Header */}
         <div className="text-center pt-8 pb-4 px-6 bg-[#fcfcfd]">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <WandSparkles className="h-7 w-7 text-primary" />
-            <span className="text-4xl font-bold text-primary">
+            <WandSparkles className="h-7 w-7 text-black" />
+            <span className="text-4xl font-bold text-black">
               {isUnlimited ? "∞" : remaining} Actions
             </span>
           </div>
@@ -165,7 +165,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 className={cn(
                   "flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all",
                   activeTab === tab.key
-                    ? "bg-[#eef2f7] shadow-sm text-foreground border border-border/50"
+                    ? "bg-white shadow-sm text-foreground border border-border/50"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
