@@ -751,7 +751,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
               <Button variant="outline" size="sm" className="mt-3" onClick={handleRefresh}>Retry</Button>
             </div>
           ) : (
-            <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="flex flex-wrap gap-4">
+            <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredCards.map((card) =>
                 activeTab === "Briefing" ? (
                   <BriefingCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
