@@ -70,14 +70,9 @@ function isMicrosoftProvider(provider: string): boolean {
   return provider === "microsoft" || provider.startsWith("microsoft_");
 }
 
-// Get token for any available Microsoft sub-service (they all share the same Microsoft account)
+// Get token for any available Microsoft sub-service (delegates to shared helper)
 async function getAnyMicrosoftToken(supabaseAdmin: any, userId: string): Promise<string | null> {
-  const msProviders = ["microsoft", "microsoft_outlook", "microsoft_calendar", "microsoft_onedrive", "microsoft_onenote"];
-  for (const p of msProviders) {
-    const token = await getValidProviderToken(supabaseAdmin, userId, p);
-    if (token) return token;
-  }
-  return null;
+  return _getAnyMicrosoftToken(supabaseAdmin, userId);
 }
 
 function buildNoMatchConnectionContext(
@@ -96,81 +91,10 @@ function buildNoMatchConnectionContext(
   return `\n\n## Connected Sources (Live Search Results)\nUse this section as the primary source of truth for requests about live emails, messages, files, meetings, or collaboration activity. Answer the lookup request directly before offering any ideas.\n\n### Lookup Outcome\n${reason} for **${topic}**.\n\n- **Searched sources:** ${searchedSummary}\n- **Skipped sources:** ${skippedSummary}\n\n**Important:** Treat this as a real lookup outcome. Do **not** invent collaboration requests, emails, files, meetings, or partnership opportunities when no live matches were found.`;
 }
 
-export async function refreshMicrosoftToken(refreshToken: string): Promise<any> {
-  const res = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: Deno.env.get("MICROSOFT_CLIENT_ID")!,
-      client_secret: Deno.env.get("MICROSOFT_CLIENT_SECRET")!,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-  return res.json();
-}
-
+// Delegates to the unified shared OAuth refresh helper.
+// All providers (Microsoft, Google, HubSpot, Zoom, Slack) are handled there.
 export async function getValidProviderToken(supabaseAdmin: any, userId: string, provider: string): Promise<string | null> {
-  const { data: tokenRow } = await supabaseAdmin
-    .from("user_oauth_tokens")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("provider", provider)
-    .maybeSingle();
-
-  if (!tokenRow) return null;
-
-  const expiresAt = tokenRow.token_expires_at ? new Date(tokenRow.token_expires_at) : null;
-  const isExpired = expiresAt && expiresAt < new Date(Date.now() + 60000);
-
-  if (!isExpired) return tokenRow.access_token;
-  if (!tokenRow.refresh_token) return null;
-
-  if (provider === "microsoft" || provider.startsWith("microsoft_")) {
-    const refreshed = await refreshMicrosoftToken(tokenRow.refresh_token);
-    if (refreshed.access_token) {
-      await supabaseAdmin.from("user_oauth_tokens").update({
-        access_token: refreshed.access_token,
-        refresh_token: refreshed.refresh_token || tokenRow.refresh_token,
-        token_expires_at: refreshed.expires_in ? new Date(Date.now() + refreshed.expires_in * 1000).toISOString() : tokenRow.token_expires_at,
-      }).eq("user_id", userId).eq("provider", provider);
-      return refreshed.access_token;
-    }
-  }
-
-  if (provider === "slack") return tokenRow.access_token;
-
-  // Google sub-services token refresh
-  if (provider === "google" || provider.startsWith("google_")) {
-    try {
-      const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
-      const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
-      if (!clientId || !clientSecret) return null;
-      const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          refresh_token: tokenRow.refresh_token,
-          grant_type: "refresh_token",
-        }),
-      });
-      if (refreshRes.ok) {
-        const refreshed = await refreshRes.json();
-        if (refreshed.access_token) {
-          await supabaseAdmin.from("user_oauth_tokens").update({
-            access_token: refreshed.access_token,
-            token_expires_at: refreshed.expires_in ? new Date(Date.now() + refreshed.expires_in * 1000).toISOString() : tokenRow.token_expires_at,
-          }).eq("user_id", userId).eq("provider", provider);
-          return refreshed.access_token;
-        }
-      }
-    } catch (e) { console.error("Google token refresh error:", e); }
-    return null;
-  }
-
-  return null;
+  return getValidAccessToken(supabaseAdmin, userId, provider);
 }
 
 export async function searchMicrosoftData(token: string, query: string, topic?: string, options?: { searchEmails?: boolean; searchFiles?: boolean }): Promise<{ emails: string[]; files: string[] }> {
