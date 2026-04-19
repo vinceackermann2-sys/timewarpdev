@@ -996,7 +996,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     };
 
     // Show processing state
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: m.streamStartTime || Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
 
     const response = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
@@ -1328,7 +1328,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     };
 
     // Show processing state
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: m.streamStartTime || Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
 
     // Log to DB
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});

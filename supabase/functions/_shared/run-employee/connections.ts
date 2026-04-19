@@ -272,14 +272,21 @@ export async function searchSlackData(token: string, query: string, topic?: stri
 export async function searchGmailData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const searchTerms = buildSearchTerms(query, topic);
-  if (searchTerms.length === 0) return results;
-  const q = searchTerms.slice(0, 2).join(" OR ");
+  // For generic "show me my recent emails" queries, list the inbox without a search term.
+  // Detect a generic intent by checking if query matches recent/latest/last keywords.
+  const isGenericRecent = /\b(recent|latest|last|new|inbox|unread|my\s+gmails?|my\s+emails?)\b/i.test(query) &&
+    !/\b(about|regarding|from|partner|collab|complaint|deal|invoice|order)\b/i.test(query);
+  // Build query string: empty for generic recent queries, otherwise OR-joined terms.
+  const q = isGenericRecent || searchTerms.length === 0
+    ? ""
+    : searchTerms.slice(0, 2).join(" OR ");
   try {
-    const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=${encodeURIComponent(q)}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    if (!listRes.ok) return results;
+    const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+    const listRes = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!listRes.ok) {
+      console.error("[gmail] list failed:", listRes.status, (await listRes.text()).slice(0, 200));
+      return results;
+    }
     const listData = await listRes.json();
     const ids: string[] = (listData.messages || []).slice(0, 5).map((m: any) => m.id);
     await Promise.all(ids.map(async (id: string) => {
@@ -385,10 +392,21 @@ export async function searchHubspotData(token: string, query: string, topic?: st
   return results.slice(0, 6);
 }
 
-// Get a Google access token from any connected Google sub-service
+// Get a Google access token from any connected Google sub-service.
+// Skips providers that are marked 'expired' in user_connections to avoid wasted
+// refresh attempts (and cloud usage) on legacy/revoked grants.
 async function getAnyGoogleToken(supabaseAdmin: any, userId: string): Promise<string | null> {
-  const candidates = ["google", "google_gmail", "google_drive", "google_docs", "google_sheets", "google_slides", "google_calendar"];
+  // Prefer the granular per-service tokens; the legacy "google" provider is tried last.
+  const candidates = ["google_gmail", "google_drive", "google_docs", "google_sheets", "google_slides", "google_calendar", "google"];
+  // Look up which Google connections are still healthy
+  const { data: conns } = await supabaseAdmin
+    .from("user_connections")
+    .select("provider, status")
+    .eq("user_id", userId)
+    .like("provider", "google%");
+  const expired = new Set((conns || []).filter((c: any) => c.status === "expired").map((c: any) => c.provider));
   for (const p of candidates) {
+    if (expired.has(p)) continue; // skip known-expired to save refresh calls
     const t = await getValidAccessToken(supabaseAdmin, userId, p);
     if (t) return t;
   }
