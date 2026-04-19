@@ -376,7 +376,7 @@ export function gradeFromScore(score: number): HealthScore["grade"] {
 }
 
 /** Visual styling for the Health Score badge in the dashboard header. */
-export function healthScoreStyle(grade: HealthScore["grade"]): { bg: string; text: string; border: string; emoji: string; label: string } {
+export function healthScoreStyle(grade?: HealthScore["grade"]): { bg: string; text: string; border: string; emoji: string; label: string } {
   switch (grade) {
     case "excellent":
       return { bg: "bg-[hsl(142_55%_94%)]", text: "text-[hsl(142_62%_30%)]", border: "border-[hsl(142_42%_72%)]", emoji: "🟢", label: "Excellent" };
@@ -386,6 +386,8 @@ export function healthScoreStyle(grade: HealthScore["grade"]): { bg: string; tex
       return { bg: "bg-[hsl(25_100%_94%)]", text: "text-[hsl(25_85%_42%)]", border: "border-[hsl(25_80%_75%)]", emoji: "🟠", label: "Needs Work" };
     case "poor":
       return { bg: "bg-[hsl(0_100%_96%)]", text: "text-[hsl(0_68%_42%)]", border: "border-[hsl(0_75%_78%)]", emoji: "🔴", label: "Poor" };
+    default:
+      return { bg: "bg-muted", text: "text-muted-foreground", border: "border-border", emoji: "⚪", label: "Unknown" };
   }
 }
 
