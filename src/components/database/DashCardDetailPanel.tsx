@@ -661,7 +661,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
     return (
       <aside
         onMouseEnter={() => setMinimized(false)}
-        className="w-[420px] shrink-0 self-end mb-12 mx-3 flex flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in cursor-pointer"
+        className="hidden md:flex w-[420px] shrink-0 self-end mb-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in cursor-pointer"
       >
         <div className="px-6 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
