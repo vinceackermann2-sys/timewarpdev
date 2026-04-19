@@ -47,6 +47,45 @@ export interface SuccessMetric {
   source?: string;
 }
 
+/** DIM v2 — momentum velocity indicator on Objectives */
+export interface MomentumIndicator {
+  state: "on_track" | "behind" | "ahead";
+  /** Plain-English velocity sentence rendered beneath the progress bar */
+  display: string;
+  projectedDays?: number;
+  daysRemaining?: number;
+  delta?: number;
+}
+
+/** DIM v2 — per-card session-state delta */
+export type DeltaState = "new" | "escalated" | "resolved" | "unchanged";
+
+/** DIM v2 — Dashboard Health Score */
+export interface HealthScore {
+  /** 0–100 */
+  score: number;
+  grade: "excellent" | "good" | "needs_work" | "poor";
+  /** One-line reason shown when score < 70 */
+  reason?: string;
+  components?: {
+    tabBalance: number;
+    sourceDiversity: number;
+    specificity: number;
+    actionability: number;
+    freshness: number;
+    crossTabLinking: number;
+  };
+}
+
+/** DIM v2 — Session opening summary (3 sentences) */
+export interface OpeningSummary {
+  /** The full 3-sentence brief */
+  text: string;
+  signal?: string;
+  friction?: string;
+  focus?: string;
+}
+
 export interface DashboardCard {
   id: string;
   priority: "High" | "Medium" | "Low";
@@ -74,6 +113,8 @@ export interface DashboardCard {
   howTo?: string;
   estimatedDuration?: string;
   leverageScore?: number;
+  /** DIM v2 — visible label like "⚡ High Leverage" / "🟠 Deep Work" / "↻ Maintenance" */
+  leverageLabel?: string;
   completed?: boolean;
 
   // Objectives-specific
@@ -82,6 +123,16 @@ export interface DashboardCard {
   progress?: number;
   timeHorizon?: string;
   relatedTodoIds?: string[];
+  /** DIM v2 — velocity indicator on Objectives */
+  momentumIndicator?: MomentumIndicator;
+
+  // DIM v2 — universal
+  /** Session-state delta vs. previous snapshot */
+  deltaState?: DeltaState;
+  /** ISO 8601 absolute timestamp of the original event */
+  timestamp?: string;
+  /** Tab assignment from the AI (used for snapshotting) */
+  tab?: TabKind;
 }
 
 export const badgeClasses: Record<string, string> = {
