@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { searchConnectedProviders } from "../_shared/run-employee/connections.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -131,6 +132,7 @@ serve(async (req) => {
 
     // Get user ID from auth token
     let userContext = "";
+    let liveConnectionsContext = "";
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabase.auth.getUser(token);
@@ -144,6 +146,18 @@ serve(async (req) => {
           });
         }
         userContext = await fetchUserBusinessContext(user.id, workspaceId);
+
+        // Live connector search — Gmail/Drive/Calendar/Outlook/OneDrive/OneNote/Slack/HubSpot.
+        // Triggers only on live-data intent. If user names a tool, only that one is searched.
+        try {
+          const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+          if (lastUserMsg) {
+            const { connectionContext } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
+            liveConnectionsContext = connectionContext || "";
+          }
+        } catch (e) {
+          console.error("[research-chat] live connector search failed:", e);
+        }
       }
     }
 
@@ -178,6 +192,7 @@ serve(async (req) => {
     const systemPrompt = `You are an elite AI CEO and executive strategist — decisive, analytical, and unafraid to challenge assumptions. You have FULL ACCESS to the user's actual business data below — this includes the complete text of emails, documents, transcriptions, analysis results, and all uploaded content. You CAN and SHOULD read, reference, and quote this data directly.
 
 ${userContext}
+${liveConnectionsContext}
 ${frontendContext}
 
 ## CRITICAL: You have the actual content
