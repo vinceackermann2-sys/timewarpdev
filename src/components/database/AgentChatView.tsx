@@ -2202,7 +2202,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       </header>
 
       {/* Central area: Orb when no messages, chat when messages exist */}
-      <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain">
+      <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain bg-[#fcfcfd]">
         {!hasMessages ? (
           /* ── Empty state with centered orb ── */
           <div className="flex-1 flex flex-col items-center justify-center px-4 bg-[#fcfcfd]">
@@ -2380,7 +2380,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       </main>
 
       {/* Chat Input */}
-      <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-background">
+      <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-[#fcfcfd]">
         <input
           type="file"
           multiple
