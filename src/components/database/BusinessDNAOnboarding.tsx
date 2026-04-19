@@ -876,26 +876,28 @@ export function BusinessDNAOnboarding({
 
             <div className="w-full max-w-[720px]">
               <div className="bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ml-1">
-                    <Globe className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0 px-1">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0">
+                      <Globe className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
+                    </div>
+                    <input
+                      type="text"
+                      value={urlInput}
+                      onFocus={() => setIsUrlFocused(true)}
+                      onBlur={() => setIsUrlFocused(false)}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && urlInput.trim()) {
+                          setActiveUrl(urlInput.trim());
+                          setStep(1);
+                        }
+                      }}
+                      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[#1a1f36] text-[16px] sm:text-[15px]"
+                      placeholder={`e.g. ${placeholderText}|`}
+                      autoFocus
+                    />
                   </div>
-                  <input
-                    type="text"
-                    value={urlInput}
-                    onFocus={() => setIsUrlFocused(true)}
-                    onBlur={() => setIsUrlFocused(false)}
-                    onChange={(e) => setUrlInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && urlInput.trim()) {
-                        setActiveUrl(urlInput.trim());
-                        setStep(1);
-                      }
-                    }}
-                    className="flex-1 bg-transparent border-none outline-none text-[#1a1f36] text-[16px] sm:text-[15px]"
-                    placeholder={`e.g. ${placeholderText}|`}
-                    autoFocus
-                  />
                   <button
                     onClick={() => {
                       if (urlInput.trim()) {
@@ -904,7 +906,7 @@ export function BusinessDNAOnboarding({
                       }
                     }}
                     disabled={!urlInput.trim()}
-                    className="bg-[#4a86ff] hover:bg-[#2875ff] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                    className="bg-[#4a86ff] hover:bg-[#2875ff] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
                   >
                     Continue <ArrowRight className="w-4 h-4" />
                   </button>
