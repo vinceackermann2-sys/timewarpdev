@@ -90,8 +90,9 @@ serve(async (req) => {
     const hasMsOnedrive = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
     const hasMsOnenote = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onenote");
     const hasMsTeams = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_teams");
+    const hasMsCalendar = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_calendar" || p === "microsoft_outlook");
 
-    const msProviders = ["microsoft", "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote", "microsoft_teams"];
+    const msProviders = ["microsoft", "microsoft_outlook", "microsoft_calendar", "microsoft_onedrive", "microsoft_onenote", "microsoft_teams"];
     const getMsToken = async () => {
       for (const p of msProviders) {
         const t = await getValidProviderToken(supabase, user.id, p);
@@ -121,9 +122,9 @@ serve(async (req) => {
         try {
           const msToken = await getMsToken();
           if (!msToken) return;
-          // ALL inbox last 7 days + all unread, cap 500
+          // ALL inbox last 7 days + all unread, cap 500. Fetch FULL body (not just preview).
           const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-          const url = `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=100&$filter=${encodeURIComponent(`receivedDateTime ge ${sevenDaysAgo} or isRead eq false`)}&$orderby=receivedDateTime desc&$select=subject,bodyPreview,from,receivedDateTime,isRead`;
+          const url = `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=100&$filter=${encodeURIComponent(`receivedDateTime ge ${sevenDaysAgo} or isRead eq false`)}&$orderby=receivedDateTime desc&$select=subject,bodyPreview,body,from,receivedDateTime,isRead`;
           const messages = await paginateGraph(url, msToken, 500);
           // Sort by recency, trim to top 100 for AI
           const top = messages
@@ -133,10 +134,15 @@ serve(async (req) => {
               const subject = msg.subject || "No subject";
               const from = msg.from?.emailAddress?.address || "unknown";
               const receivedAt = msg.receivedDateTime?.slice(0, 16)?.replace("T", " ") || "";
-              const preview = (msg.bodyPreview || "").slice(0, 300);
-              return `📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${receivedAt} | UNREAD: ${msg.isRead === false}\nBODY: ${preview}`;
+              // Prefer full body content (strip HTML), fallback to bodyPreview
+              const rawBody = msg.body?.content || "";
+              const stripped = msg.body?.contentType === "html"
+                ? rawBody.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+                : rawBody.trim();
+              const body = (stripped || msg.bodyPreview || "").slice(0, 800);
+              return `📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${receivedAt} | UNREAD: ${msg.isRead === false}\nBODY: ${body}`;
             });
-          if (top.length > 0) integrationData += `\n### Outlook Inbox (last 7 days + all unread, ${messages.length} fetched, top ${top.length} shown)\n${top.join("\n\n")}\n`;
+          if (top.length > 0) integrationData += `\n### Outlook Inbox (last 7 days + all unread, ${messages.length} fetched, top ${top.length} shown) — use SUBJECT verbatim as metadata.subject, BODY verbatim as metadata.bodyPreview\n${top.join("\n\n")}\n`;
         } catch (e) { console.error("Outlook fetch error:", e); }
       })());
     }
@@ -340,8 +346,9 @@ serve(async (req) => {
             const batch = top.slice(i, i + 20);
             await Promise.all(batch.map(async (id: string) => {
               try {
+                // Use format=full to retrieve the actual body content (not just snippet)
                 const detailRes = await fetch(
-                  `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+                  `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
                   { headers: { Authorization: `Bearer ${gToken}` } },
                 );
                 if (!detailRes.ok) return;
@@ -350,9 +357,36 @@ serve(async (req) => {
                 const subject = headers.find((h: any) => h.name === "Subject")?.value || "No Subject";
                 const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
                 const date = headers.find((h: any) => h.name === "Date")?.value || "";
-                const snippet = (detail.snippet || "").trim();
                 const isUnread = (detail.labelIds || []).includes("UNREAD");
-                gmailMessages.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${date} | UNREAD: ${isUnread}\nBODY: ${snippet}`);
+
+                // Walk MIME parts to find text/plain (preferred) or text/html, decode base64url
+                const decodeB64Url = (s: string) => {
+                  try {
+                    const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+                    const bin = atob(b64);
+                    const bytes = new Uint8Array(bin.length);
+                    for (let j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+                    return new TextDecoder("utf-8").decode(bytes);
+                  } catch { return ""; }
+                };
+                const findPart = (part: any, mime: string): string => {
+                  if (!part) return "";
+                  if (part.mimeType === mime && part.body?.data) return decodeB64Url(part.body.data);
+                  for (const p of (part.parts || [])) {
+                    const r = findPart(p, mime);
+                    if (r) return r;
+                  }
+                  return "";
+                };
+                let body = findPart(detail.payload, "text/plain");
+                if (!body) {
+                  const html = findPart(detail.payload, "text/html");
+                  body = html.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+                }
+                if (!body) body = (detail.snippet || "").trim();
+                body = body.slice(0, 800);
+
+                gmailMessages.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${date} | UNREAD: ${isUnread}\nBODY: ${body}`);
               } catch { /* skip */ }
             }));
           }
@@ -477,6 +511,27 @@ serve(async (req) => {
           const top = teamsMessages.slice(0, 100);
           if (top.length > 0) integrationData += `\n### Microsoft Teams (last 7d messages + upcoming meetings, ${teamsMessages.length} fetched, top ${top.length})\n${top.join("\n")}\n`;
         } catch (e) { console.error("Teams search error:", e); }
+      })());
+    }
+
+    if (hasMsCalendar) {
+      searchPromises.push((async () => {
+        try {
+          const msToken = await getMsToken();
+          if (!msToken) return;
+          // Upcoming Outlook calendar events next 30 days
+          const now = new Date().toISOString();
+          const thirtyDaysOut = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          const url = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${encodeURIComponent(now)}&endDateTime=${encodeURIComponent(thirtyDaysOut)}&$top=100&$orderby=start/dateTime&$select=subject,start,end,attendees,bodyPreview,isOnlineMeeting,location`;
+          const allEvents = await paginateGraph(url, msToken, 250);
+          const events = allEvents.slice(0, 100).map((e: any) => {
+            const start = e.start?.dateTime?.slice(0, 16)?.replace("T", " ") || "";
+            const attendees = (e.attendees || []).length;
+            const loc = e.isOnlineMeeting ? "online" : (e.location?.displayName || "");
+            return `📅 **${e.subject || "Untitled"}** — ${start} (${attendees} attendees${loc ? ", " + loc : ""})`;
+          });
+          if (events.length > 0) integrationData += `\n### Outlook Calendar Upcoming (next 30d, ${events.length} of ${allEvents.length})\n${events.join("\n")}\n`;
+        } catch (e) { console.error("Outlook Calendar error:", e); }
       })());
     }
 
