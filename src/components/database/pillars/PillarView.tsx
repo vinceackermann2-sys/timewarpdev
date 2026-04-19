@@ -12,6 +12,8 @@ interface PillarViewProps {
   brand?: BrandEntry;
   products?: ProductEntry[];
   audiences?: AudienceEntry[];
+  /** Pre-loaded JSON for extended pillars (market/financial/operations/people/growth/strategy), keyed by pillar id. */
+  pillarData?: Record<string, any>;
 }
 
 // Layout constants for the snake-path navigator (mirrors reference design)
@@ -21,7 +23,7 @@ const H_BOTTOM_PADDING = 16;
 const X_HEADLINE = 1;
 const X_CHILD = 13;
 
-export function PillarView({ pillarId, agentName, brand, products = [], audiences = [] }: PillarViewProps) {
+export function PillarView({ pillarId, agentName, brand, products = [], audiences = [], pillarData }: PillarViewProps) {
   const pillar = PILLAR_BY_ID[pillarId];
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
@@ -32,7 +34,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
   // Inject real values into the pillar fields
   const populatedPillar = useMemo(() => {
     if (!pillar) return null;
-    const values = buildPillarValues(pillarId, { brand, products, audiences });
+    const values = buildPillarValues(pillarId, { brand, products, audiences, extended: pillarData?.[pillarId] });
     return {
       ...pillar,
       sections: pillar.sections.map((s) => ({
@@ -40,7 +42,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
         fields: s.fields.map((f) => (values[f.id] !== undefined ? { ...f, value: values[f.id] } : f)),
       })),
     };
-  }, [pillar, pillarId, brand, products, audiences]);
+  }, [pillar, pillarId, brand, products, audiences, pillarData]);
 
   useEffect(() => {
     activeIdRef.current = activeItemId;
