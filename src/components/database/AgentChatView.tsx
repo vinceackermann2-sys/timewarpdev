@@ -355,10 +355,15 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
   const initialMessageSentRef = useRef(false);
   useEffect(() => {
     if (!initialMessage || initialMessageSentRef.current || isSending) return;
+    // Defensive: ensure we always work with a string (AI sometimes returns objects).
+    const messageText = typeof initialMessage === "string"
+      ? initialMessage
+      : String(initialMessage ?? "");
+    if (!messageText.trim()) return;
     // Wait for chatInputRef to be ready
     const timer = setTimeout(() => {
       if (chatInputRef.current) {
-        chatInputRef.current.innerText = initialMessage;
+        chatInputRef.current.innerText = messageText;
         initialMessageSentRef.current = true;
         onInitialMessageConsumed?.();
         // Trigger send via a synthetic approach — set text then programmatically click send
