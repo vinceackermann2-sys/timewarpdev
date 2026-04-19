@@ -14,7 +14,13 @@ import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
 import logoSlack from "@/assets/logo-slack.png";
 import logoZoom from "@/assets/logo-zoom.svg";
-import logoHubspot from "@/assets/logo-hubspot.png";
+import logoHubspot from "@/assets/logo-hubspot.svg";
+import logoGmail from "@/assets/logo-gmail.svg";
+import logoGoogleCalendar from "@/assets/logo-google-calendar.svg";
+import logoGoogleDrive from "@/assets/logo-google-drive.svg";
+import logoGoogleDocs from "@/assets/logo-google-docs.svg";
+import logoGoogleSheets from "@/assets/logo-google-sheets.svg";
+import logoGoogleSlides from "@/assets/logo-google-slides.svg";
 
 /* Provider logo map */
 const PROVIDER_LOGOS: Record<string, string> = {
@@ -24,6 +30,12 @@ const PROVIDER_LOGOS: Record<string, string> = {
   slack: logoSlack,
   zoom: logoZoom,
   hubspot: logoHubspot,
+  google_gmail: logoGmail,
+  google_calendar: logoGoogleCalendar,
+  google_drive: logoGoogleDrive,
+  google_docs: logoGoogleDocs,
+  google_sheets: logoGoogleSheets,
+  google_slides: logoGoogleSlides,
 };
 
 interface TaskStep {
@@ -44,10 +56,17 @@ interface Props {
 function getStepIcon(label: string) {
   const l = label.toLowerCase();
   // Connection provider icons — return string identifiers for special rendering
-  if (l.includes("outlook") || l.includes("email") || l.includes("calendar")) return "microsoft_outlook" as any;
+  // Order matters: more specific matches first (Gmail/Google before generic "email"/"calendar")
+  if (l.includes("gmail")) return "google_gmail" as any;
+  if (l.includes("google calendar")) return "google_calendar" as any;
+  if (l.includes("google drive")) return "google_drive" as any;
+  if (l.includes("google docs")) return "google_docs" as any;
+  if (l.includes("google sheets")) return "google_sheets" as any;
+  if (l.includes("google slides")) return "google_slides" as any;
+  if (l.includes("outlook")) return "microsoft_outlook" as any;
   if (l.includes("onedrive") || l.includes("files")) return "microsoft_onedrive" as any;
   if (l.includes("onenote") || l.includes("notes")) return "microsoft_onenote" as any;
-  if (l.includes("microsoft")) return "microsoft_outlook" as any;
+  if (l.includes("microsoft") || l.includes("email") || l.includes("calendar")) return "microsoft_outlook" as any;
   if (l.includes("slack")) return "slack" as any;
   if (l.includes("zoom") || l.includes("meeting")) return "zoom" as any;
   if (l.includes("hubspot")) return "hubspot" as any;
