@@ -15,9 +15,9 @@ function nonEmpty<T>(v: T | undefined | null | "" | []): v is T {
 
 export function buildPillarValues(
   pillarId: string,
-  ctx: { brand?: BrandEntry; products: ProductEntry[]; audiences: AudienceEntry[] }
+  ctx: { brand?: BrandEntry; products: ProductEntry[]; audiences: AudienceEntry[]; extended?: any }
 ): FieldValueMap {
-  const { brand, products, audiences } = ctx;
+  const { brand, products, audiences, extended } = ctx;
   const map: FieldValueMap = {};
 
   if (pillarId === "brand" && brand) {
