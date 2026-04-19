@@ -86,7 +86,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
       </div>
 
       {/* Sessions list */}
-      <div className="flex-1 overflow-y-auto py-2 bg-[#fcfaf8]">
+      <div className="flex-1 overflow-y-auto py-2 bg-[#eef2f7]">
         {isLoading ? (
           <div className="px-4 space-y-3 pt-2">
             {[1, 2, 3].map(i => (
