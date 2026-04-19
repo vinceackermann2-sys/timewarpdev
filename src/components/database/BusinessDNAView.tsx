@@ -78,6 +78,72 @@ const BRAIN_SEGMENTS: BrainSegment[] = [
     borderAccent: "border-primary/20",
   },
   {
+    id: "market",
+    label: "Market",
+    subtitle: "Landscape & Competitors",
+    icon: TrendingUp,
+    description: "Your market DNA — competitive landscape, TAM/SAM/SOM, industry trends, regulations, and strategic positioning.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "financial",
+    label: "Financial",
+    subtitle: "Revenue, Costs & Margins",
+    icon: DollarSign,
+    description: "Your financial DNA — revenue, costs, margins, P&L, CAC, LTV, churn, forecasts, and unit economics.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "operations",
+    label: "Operations",
+    subtitle: "Process & Tools",
+    icon: Cog,
+    description: "Your operations DNA — workflows, SOPs, vendors, tech stack, compliance, KPIs, and automation systems.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "people",
+    label: "People",
+    subtitle: "Team & Culture",
+    icon: Users2,
+    description: "Your people DNA — team, headcount, org chart, hiring, salaries, culture, and HR practices.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "growth",
+    label: "Growth",
+    subtitle: "Marketing & Acquisition",
+    icon: Rocket,
+    description: "Your growth DNA — campaigns, ads, funnels, channels, creative, ROAS, retention, and referrals.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
+    id: "strategy",
+    label: "Strategy",
+    subtitle: "Vision & Roadmap",
+    icon: Target,
+    description: "Your strategy DNA — vision, OKRs, milestones, roadmap, scenarios, bets, and long-term objectives.",
+    color: "text-primary",
+    hslColor: "var(--primary)",
+    bgAccent: "bg-primary/10",
+    borderAccent: "border-primary/20",
+  },
+  {
     id: "database",
     label: "Database",
     subtitle: "Connected Business Data",
@@ -261,12 +327,19 @@ function AgentNameEditor({ brand, onRename, isBrainLearning }: { brand: any; onR
 }
 
 // ── Main View ──
-export function BusinessDNAView({ onBack, activeBrandId }: { onBack?: () => void; activeBrandId: string }) {
+export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBack?: () => void; activeBrandId: string; activePillar?: string }) {
   const [segmentEntries, setSegmentEntries] = useState<Record<string, SegmentEntry[]>>({
     brand: [], product: [], audience: [], market: [], financial: [], operations: [], people: [], growth: [], strategy: [], database: [], settings: []
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSegment, setActiveSegment] = useState<string | null>("brand");
+  const [activeSegment, setActiveSegment] = useState<string | null>(activePillar || "brand");
+
+  // Sync activeSegment when activePillar prop changes (from sidebar dropdown)
+  useEffect(() => {
+    if (activePillar) {
+      setActiveSegment(activePillar);
+    }
+  }, [activePillar]);
   const { toast } = useToast();
 
   const handleAddManual = async (segmentId: string, text: string) => {
