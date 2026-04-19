@@ -326,7 +326,6 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleInvite()}
-                    className="bg-muted/30"
                     disabled={isSending}
                   />
                   <Button onClick={handleInvite} disabled={isSending || !inviteEmail.trim()}>
