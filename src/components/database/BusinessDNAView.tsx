@@ -528,7 +528,13 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
 
       <div className="flex-1 w-full overflow-hidden">
         {activeSegment && PILLAR_IDS.has(activeSegment) ? (
-          <PillarView pillarId={activeSegment} agentName={activeBrand?.agentName} />
+          <PillarView
+            pillarId={activeSegment}
+            agentName={activeBrand?.agentName}
+            brand={activeBrand}
+            products={products.filter(p => p.brandId === activeBrandId)}
+            audiences={audiences.filter(a => a.brandId === activeBrandId || a.productIds?.some(pid => brandProductIds.includes(pid)))}
+          />
         ) : (
           <div className="h-full overflow-y-auto">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-6">
