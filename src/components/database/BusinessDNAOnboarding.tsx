@@ -741,6 +741,15 @@ export function BusinessDNAOnboarding({
             console.warn("Brand enrichment failed (non-blocking):", e);
             markTodo("Enriching brand");
           });
+
+          // Fire pillar enrichment in parallel — fills market/financial/operations/people/growth/strategy
+          invokeEdgeFunction("enrich-pillars", {
+            brandId: finalBrandId,
+            brandRowId: rowId,
+            workspaceId: data.workspaceId || null,
+          }).catch((e) => {
+            console.warn("Pillar enrichment failed (non-blocking):", e);
+          });
         } else {
           markTodo("Enriching brand");
         }
