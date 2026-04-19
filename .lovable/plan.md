@@ -1,73 +1,88 @@
 
 
 ## Goal
-Upgrade the right-side detail panel (`DashCardDetailPanel`) so each card renders its source data in a **native, recognizable format** (email, meeting, document, Slack message, etc.), add a **quick-notes** field, and **shrink the action buttons** so they're less text-heavy.
 
-## Exploration needed
-- `src/components/database/DashCardDetailPanel.tsx` — current right-side panel layout
-- `src/components/database/dashboardTypes.ts` — already has `metadata` (sender, subject, bodyPreview, attendees, scheduledDate, channel, messageText, fileName, sharedBy, notebook) ✓
-- Confirm where notes would persist (likely `localStorage` keyed by `card.id` for now — no schema change needed unless user wants cross-device sync)
+Convert the **Business DNA** sidebar item into an expandable dropdown (mirroring the Dashboard pattern), with 9 sub-items for the pillars: Brand, Product, Audience, Market, Financial, Operations, People, Growth, Strategy.
 
-## Plan
+The Assistant item (agent name + brain orb icon) stays unchanged. No real values from the uploaded zip are pulled in — UI only.
 
-### 1. Source-native renderers in the detail panel
-Add a `<SourceNativeBlock>` that switches on `card.source` and renders the metadata in the format the user expects to see:
+## Scope
 
-| Source | Native render |
-|---|---|
-| `outlook` / gmail | **Email card**: From (avatar + name + email), Subject (bold), Received timestamp → then verbatim `bodyPreview` in mono/serif body, with "Reply" affordance |
-| `zoom` / teams meeting / calendar | **Meeting card**: Title, scheduled date/time + duration, attendee chips with initials, "Join" pill |
-| `hubspot` | **Deal card**: Contact name, deal value badge, pipeline stage badge, last touch |
-| `slack` / teams chat | **Chat bubble**: Channel `#name`, author + avatar, timestamp, verbatim `messageText` in a chat bubble style |
-| `onedrive` / drive | **File card**: File icon by extension, fileName, sharedBy, "Open file" link |
-| `onenote` | **Note card**: Notebook → Section → Page hierarchy, author, preview |
-| `business-dna` / `products` / `audiences` / `employees` / `general` | Keep current generic block |
+**Files to edit:**
+- `src/components/database/DatabaseSidebar.tsx` — add the dropdown UI
+- `src/pages/Database.tsx` — track active pillar, pass it down
+- `src/components/database/BusinessDNAView.tsx` — accept `activePillar` prop and sync `activeSegment`
+- `src/components/database/TopBreadcrumb.tsx` — show pillar name as third crumb when on Business DNA
 
-Each renderer uses the existing `SOURCE_META` icon as the header chip, sits inside the existing `accentSoftBg` framing, and **shows the real data verbatim** (never summarized — already enforced by `bodyPreview` / `messageText` fields).
+## Design
 
-### 2. Quick Notes section
-Add below the source-native block:
-- Heading "Quick notes" (small, muted)
-- `<Textarea>` with placeholder "Jot down thoughts, follow-ups, or context…"
-- Auto-save (debounced 600ms) to `localStorage` under key `dash-note:{card.id}`
-- Tiny "Saved" indicator that fades after save
-- No DB write, no schema change
+### 1. Sidebar — Business DNA dropdown
 
-### 3. Slimmer action buttons
-Current footer likely shows verbose CTAs ("Discuss in Assistant", "View Email", "Mark complete"). Change to:
-- **Primary CTA** (from `TAB_FRAMING[kind].ctaLabel`) → keep one-word label (Discuss / Respond / Start / Plan), use `size="sm"`, icon-leading
-- **Secondary "Open source"** → icon + short label (e.g. just "Open", icon from `SOURCE_META`), `size="sm"`, `variant="outline"`
-- **Tertiary "Done"** → icon-only `size="icon"` check button with tooltip
-- All in one tight `flex gap-2` row, no full-width stretching
+Identical visual pattern to the existing Dashboard `Collapsible`:
+- Trigger row: `Dna` icon, "Business DNA" label, chevron that rotates 180° when open.
+- Clicking the trigger row both navigates to the Business DNA view AND expands the group (same behavior as Dashboard).
+- Expanded list (collapsed sidebar hides this; only icons in tooltip mode):
+  - Indented under a left-border (`ml-6 border-l border-border/50 pl-2`), small `text-sm` rows, each with a 3.5×3.5 icon + label.
+  - Active pillar highlighted with `bg-primary/10 text-primary font-medium`.
 
-### 4. No changes to
-- Card grid / list itself
-- DIM scoring or data fetching
-- `dashboardTypes.ts` (metadata fields already cover everything)
+Pillar list (icons from lucide-react, all already imported in BusinessDNAView):
 
-## Files to edit
-- `src/components/database/DashCardDetailPanel.tsx` — add `SourceNativeBlock`, notes section, slim button row
+| # | Pillar | Icon |
+|---|--------|------|
+| 1 | Brand | `Palette` |
+| 2 | Product | `Package` |
+| 3 | Audience | `Users` |
+| 4 | Market | `TrendingUp` |
+| 5 | Financial | `DollarSign` |
+| 6 | Operations | `Cog` |
+| 7 | People | `Users2` |
+| 8 | Growth | `Rocket` |
+| 9 | Strategy | `Target` |
 
-## Approach summary
+### 2. State wiring
+
+- Add `dnaPillar` state (default `"brand"`) in `Database.tsx`, similar to existing `dashboardTab`.
+- Pass `activePillar` + `onPillarChange` into `DatabaseSidebar` and `BusinessDNAView`.
+- In `DatabaseSidebar`, new `dnaExpanded` local state (default true if `currentView === "businessdna"`).
+- Clicking a pillar item: calls `onViewChange("businessdna")`, sets `activePillar`, and (if a brand is already active) the BusinessDNAView jumps directly to that segment via `setActiveSegment(pillarId)` in a `useEffect` keyed on the prop.
+- If no brand selected yet (MyBusinessesView is showing), still switch view; the pillar will apply once a business is opened.
+
+### 3. BusinessDNAView change
+
+- Add 6 missing `BrainSegment` entries (`market`, `financial`, `operations`, `people`, `growth`, `strategy`) to the `BRAIN_SEGMENTS` array — currently only 5 exist (brand, product, audience, database, settings). Reuse the same primary color tokens (no new colors).
+- `setActiveSegment` initialised from `activePillar` prop and synced via `useEffect`.
+- The pillars without backed-in entity counts simply use `segmentEntries[id]?.length || 0` (already supported by `getSegmentCount`).
+
+### 4. Breadcrumb
+
+Already shows `Business DNA` as final crumb when on that view. Append a third crumb showing the pillar name when on Business DNA, e.g. `Acme / Business DNA / Brand`.
+
+### 5. What is NOT changed
+
+- Assistant nav item (agent name, brain orb) — untouched.
+- AI CEO logic, no example values from the uploaded zip are surfaced.
+- No DB / RPC changes; no edge functions touched.
+- Onboarding flow untouched.
+
+## Visual reference (sidebar after change)
+
 ```text
-┌─ Detail Panel ──────────────────────────┐
-│ Eyebrow chip · Title                     │
-│ Why-it-matters summary                   │
-│                                          │
-│ ┌─ Source-native block ───────────────┐ │
-│ │ [icon] From: Anna · 2h ago          │ │
-│ │ Subject: Q4 budget review           │ │
-│ │ ───────────────────────────────     │ │
-│ │ Hi team, attached is the draft...   │ │  ← verbatim bodyPreview
-│ │ (rendered as email body)            │ │
-│ └─────────────────────────────────────┘ │
-│                                          │
-│ Quick notes                              │
-│ ┌────────────────────────────────────┐  │
-│ │ [textarea — autosaved]             │  │
-│ └────────────────────────────────────┘  │
-│                                          │
-│ [Discuss] [Open] [✓]                     │  ← slim button row
-└──────────────────────────────────────────┘
+Workspace
+  🤖  Assistant
+  🧬  Business DNA           ▾
+       │  🎨 Brand
+       │  📦 Product
+       │  👥 Audience
+       │  📈 Market
+       │  💲 Financial
+       │  ⚙️ Operations
+       │  👥 People
+       │  🚀 Growth
+       │  🎯 Strategy
+  🔌  Connectors
+
+Manage
+  🗂  Dashboard              ▾
+       │  ...
 ```
 
