@@ -133,6 +133,7 @@ function CardShell({
   card, onOpen, topRight, middle, footerLeft, footerRight,
   leadingControl, dimmed, hideDescription, topLeft,
 }: CardShellProps) {
+  const delta = deltaBadge(card.deltaState);
   return (
     <div
       onClick={onOpen}
@@ -143,11 +144,20 @@ function CardShell({
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
       {/* Header: source logo (or leading control) ↔ accent */}
-      {(topLeft || leadingControl || topRight) && (
+      {(topLeft || leadingControl || topRight || delta) && (
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             {leadingControl}
             {topLeft}
+            {delta && (
+              <span
+                title={delta.label}
+                className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${delta.cls}`}
+              >
+                <span className="leading-none">{delta.glyph}</span>
+                <span>{delta.label}</span>
+              </span>
+            )}
           </div>
           {topRight}
         </div>
@@ -272,12 +282,23 @@ function todoCtaLabel(card: DashboardCard): string {
 
 function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done: boolean; onToggle: () => void; onOpen: () => void }) {
   const dueLabel = card.estimatedDuration || card.timeAgo;
+  const leverageLabel = card.leverageLabel;
+  const leverageCls = leverageLabelStyle(leverageLabel);
   return (
     <CardShell
       card={card}
       onOpen={onOpen}
       dimmed={done}
-      topRight={<SourceLogo card={card} />}
+      topRight={
+        <div className="flex items-center gap-2">
+          {leverageLabel && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${leverageCls}`}>
+              {leverageLabel}
+            </span>
+          )}
+          <SourceLogo card={card} />
+        </div>
+      }
       leadingControl={
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -372,6 +393,15 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
           <div className="h-1.5 w-full rounded-full overflow-hidden bg-white">
             <div className={`h-full rounded-full transition-all ${barCls}`} style={{ width: `${pct}%` }} />
           </div>
+          {card.momentumIndicator?.display && (() => {
+            const m = momentumStyle(card.momentumIndicator!.state);
+            return (
+              <div className={`flex items-center gap-1.5 text-[11px] ${m.text}`}>
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${m.dot}`} />
+                <span className="truncate">{card.momentumIndicator!.display}</span>
+              </div>
+            );
+          })()}
         </div>
       }
       footerLeft={<PeopleAvatars />}
@@ -639,20 +669,50 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     <div className="h-full flex relative overflow-hidden bg-[#fcfcfd]">
       <div className="flex-1 min-w-0 flex flex-col">
       <div className="px-6 lg:px-8 pt-6 pb-3 bg-white">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">{activeTab}</h1>
+        <div className="flex items-start justify-between mb-4 gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-semibold tracking-tight">{activeTab}</h1>
+              {healthScore && (() => {
+                const s = healthScoreStyle(healthScore.grade);
+                return (
+                  <span
+                    title={healthScore.reason || `Dashboard health: ${healthScore.score}/100`}
+                    className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border}`}
+                  >
+                    <span>{s.emoji}</span>
+                    <span>{healthScore.score}/100 · {s.label}</span>
+                  </span>
+                );
+              })()}
+            </div>
             {TAB_SUBTITLES[activeTab] && (
               <p className="text-sm text-muted-foreground mt-0.5">{TAB_SUBTITLES[activeTab]}</p>
             )}
           </div>
           {activeBrand && (
-            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 bg-[#fcfcfd] shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)]" onClick={handleRefresh} disabled={loading}>
+            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 bg-[#fcfcfd] shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)] shrink-0" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Update
             </Button>
           )}
         </div>
+        {openingSummary?.text && (
+          <div className="rounded-xl border border-[hsl(217_80%_90%)] bg-[hsl(217_100%_98%)] px-4 py-3 mb-3">
+            <p className="text-[10px] font-semibold tracking-wider uppercase text-[hsl(217_70%_42%)] mb-1">
+              Today's Brief
+            </p>
+            <p className="text-[13px] leading-relaxed text-foreground/90">
+              {openingSummary.text}
+            </p>
+          </div>
+        )}
+        {healthScore && healthScore.score < 70 && healthScore.reason && (
+          <div className="flex items-center gap-2 bg-[hsl(25_100%_96%)] border border-[hsl(25_80%_82%)] rounded-lg px-3 py-2 mb-3">
+            <AlertTriangle className="h-3.5 w-3.5 text-[hsl(25_85%_42%)] shrink-0" />
+            <span className="text-xs text-[hsl(25_85%_38%)]">{healthScore.reason}</span>
+          </div>
+        )}
         {stale && (
           <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
