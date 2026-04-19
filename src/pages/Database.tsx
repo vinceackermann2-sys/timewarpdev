@@ -387,7 +387,12 @@ const Database = () => {
                   activeBrandId={activeBrandId}
                   initialTab={dashboardTab}
                   onExecuteAction={(actionText) => {
-                    setInitialAssistantMessage(actionText);
+                    // Defensive: AI may occasionally return an object/array — coerce to string.
+                    const text = typeof actionText === "string"
+                      ? actionText
+                      : (actionText == null ? "" : JSON.stringify(actionText));
+                    if (!text.trim()) return;
+                    setInitialAssistantMessage(text);
                     handleViewChange("employees");
                   }}
                 />
