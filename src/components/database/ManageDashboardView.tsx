@@ -393,6 +393,15 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
           <div className="h-1.5 w-full rounded-full overflow-hidden bg-white">
             <div className={`h-full rounded-full transition-all ${barCls}`} style={{ width: `${pct}%` }} />
           </div>
+          {card.momentumIndicator?.display && (() => {
+            const m = momentumStyle(card.momentumIndicator!.state);
+            return (
+              <div className={`flex items-center gap-1.5 text-[11px] ${m.text}`}>
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${m.dot}`} />
+                <span className="truncate">{card.momentumIndicator!.display}</span>
+              </div>
+            );
+          })()}
         </div>
       }
       footerLeft={<PeopleAvatars />}
