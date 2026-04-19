@@ -294,21 +294,25 @@ export async function retrieveRelevantContext(supabase: any, employee: any, user
   const { items: initialItems, selectedBusinessTitle, warning } = await loadScopedBusinessItems(supabase, employee, intent.needsStrictVerification);
   if (warning) return `\n\n## Reference Material\n${warning} Ask the user for the missing business-specific source instead of estimating.`;
   if (!initialItems || initialItems.length === 0) return "";
+  // The 9 Business DNA pillars are all first-class context for the Assistant.
+  const DNA_PILLAR_TYPES = ["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"];
   let scopedItems = intent.needsStrictVerification ? initialItems.filter((item: any) => ["product", "brand"].includes(item.data_type)) : initialItems;
   if (intent.needsStrictVerification && scopedItems.length === 0) return `\n\n## Reference Material\nNo verified brand or product records were found for the selected business${selectedBusinessTitle ? ` (${selectedBusinessTitle})` : ""}. Ask the user for the exact missing price or offer instead of estimating.`;
 
   const allScored = scopedItems.map((item: any) => {
     const searchText = buildSearchText(item);
-    return { ...item, score: keywords.length > 0 ? scoreItem(keywords, searchText, item, userQuery) : (["brand","product","audience"].includes(item.data_type) ? 1 : 0.5), searchText };
+    return { ...item, score: keywords.length > 0 ? scoreItem(keywords, searchText, item, userQuery) : (DNA_PILLAR_TYPES.includes(item.data_type) ? 1 : 0.5), searchText };
   }).sort((a: any, b: any) => b.score - a.score);
 
   const scored = allScored.filter((i: any) => i.score > 0.1);
-  const top = scored.slice(0, 5);
+  // Larger top-K when content creation or no strict verification — we now have up to 9 pillar rows.
+  const top = scored.slice(0, isContentCreation ? 9 : 6);
+  // Always guarantee the foundational 3 pillars are in context.
   const requiredTypes = ["brand", "product", "audience"];
   for (const dt of requiredTypes) {
     if (!top.some((i: any) => i.data_type === dt)) {
       const candidate = allScored.find((i: any) => i.data_type === dt && !top.includes(i));
-      if (candidate) { if (top.length >= 5) top.pop(); top.push(candidate); }
+      if (candidate) { if (top.length >= 9) top.pop(); top.push(candidate); }
     }
   }
 
@@ -318,7 +322,7 @@ export async function retrieveRelevantContext(supabase: any, employee: any, user
     context += `\n### ${item.title} (${item.data_type})\n`;
     if (item.source) context += `Source: ${item.source}\n`;
     const text = stringifyContent(item.analyzed_content || item.content || "");
-    const isDnaType = ["brand", "product", "audience"].includes(item.data_type);
+    const isDnaType = DNA_PILLAR_TYPES.includes(item.data_type);
     const snippetLimit = (isContentCreation && isDnaType) ? 4000 : 1400;
     const excerpt = (isContentCreation && isDnaType && keywords.length === 0) ? text.slice(0, snippetLimit) : extractRelevantSnippet(text, keywords, snippetLimit);
     context += excerpt + "\n";
