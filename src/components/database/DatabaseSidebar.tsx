@@ -222,7 +222,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDa
             <SidebarGroupContent>
               <SidebarMenu>
                 <Collapsible open={dnaExpanded} onOpenChange={setDnaExpanded}>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem onMouseEnter={() => !isCollapsed && setDnaExpanded(true)}>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton
                         isActive={currentView === "businessdna"}
