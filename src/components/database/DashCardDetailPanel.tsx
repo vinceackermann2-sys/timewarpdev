@@ -793,7 +793,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
               <Button
                 size="icon"
                 variant="outline"
-                className={`h-10 w-10 rounded-lg shrink-0 ${done ? "bg-[hsl(142_55%_95%)] text-[hsl(142_62%_30%)] border-[hsl(142_42%_78%)]" : ""}`}
+                className={`h-10 w-10 rounded-lg shrink-0 ${done ? "bg-[hsl(142_55%_95%)] text-[hsl(142_62%_30%)] border-[hsl(142_42%_78%)]" : "bg-[#eef2f7] hover:bg-[#eef2f7]/80"}`}
                 onClick={toggleDone}
                 aria-label="Mark done"
               >
