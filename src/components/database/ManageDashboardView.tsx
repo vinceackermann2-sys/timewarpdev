@@ -670,9 +670,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       <ScrollArea className="flex-1">
         <main className="px-6 lg:px-8 py-6">
           {!activeBrand ? (
-            <div className="text-muted-foreground w-full py-12 text-center border-2 border-dashed border-border rounded-lg">
-              <p>Select a business to see your dashboard.</p>
-            </div>
+            <CardSkeletons tab={activeTab} />
           ) : loading && !hasCards ? (
             <>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
