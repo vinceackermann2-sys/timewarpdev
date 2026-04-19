@@ -90,25 +90,7 @@ export function MyBusinessesView({ onSelectBusiness, onOpenBusiness, onManageWor
       {/* Content */}
       <div className="flex-1 p-6 w-full max-w-3xl overflow-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Add Business Card - only for owners */}
-          {isOwner && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                if (isFreeUser && brands.length >= 1) { openGate(); return; }
-                onSelectBusiness();
-              }}
-              className="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/40 bg-white p-8 min-h-[200px] transition-colors cursor-pointer"
-            >
-              <div className="h-14 w-14 rounded-xl bg-muted/60 group-hover:bg-primary/10 border border-border/40 group-hover:border-primary/30 flex items-center justify-center transition-colors">
-                <Plus className="h-7 w-7 text-muted-foreground group-hover:text-primary transition-colors" />
-              </div>
-              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                Add Business
-              </span>
-            </motion.button>
-          )}
+          {/* Add Business removed — businesses are added via onboarding only */}
 
           {/* Loading skeletons */}
           {loadingBiz && Array.from({ length: Math.max(lastKnownCount.current, 1) }).map((_, i) => (
