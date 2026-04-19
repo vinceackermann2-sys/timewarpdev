@@ -332,6 +332,14 @@ const Database = () => {
 
   return (
     <BusinessDNAProvider>
+      <DnaPillarAutoOpener
+        enabled={currentView === "businessdna" && !showAddProduct}
+        activeBrandId={showBusinessDNA ? activeBrandId : null}
+        onOpenBrand={(brandId) => {
+          setActiveBrandId(brandId);
+          setShowBusinessDNA(true);
+        }}
+      />
       <SidebarProvider>
         <div className="h-screen overflow-hidden flex w-full bg-background">
           <DatabaseSidebar
