@@ -315,14 +315,47 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
   if (searchTerms.length === 0) return results;
   for (const term of searchTerms.slice(0, 2)) {
     if (results.length >= 5) break;
+export async function searchGoogleDriveData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const searchTerms = buildSearchTerms(query, topic);
+  const isGenericRecent = /\b(recent|latest|last|new|my\s+files?|my\s+docs?|my\s+drive)\b/i.test(query) &&
+    !/\b(about|regarding|named|called|titled)\b/i.test(query);
+
+  // Generic recent → just list recent non-trashed files.
+  if (isGenericRecent || searchTerms.length === 0) {
+    try {
+      const r = await fetch(
+        `https://www.googleapis.com/drive/v3/files?pageSize=5&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)&q=${encodeURIComponent("trashed=false")}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (r.ok) {
+        const d = await r.json();
+        for (const f of (d.files || []).slice(0, 5)) {
+          const icon = f.mimeType?.includes("document") ? "📄" : f.mimeType?.includes("spreadsheet") ? "📊" : f.mimeType?.includes("presentation") ? "📽️" : "📁";
+          const modified = f.modifiedTime?.slice(0, 10) || "";
+          results.push(`${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`);
+        }
+      } else {
+        console.error("[drive] list failed:", r.status, (await r.text()).slice(0, 200));
+      }
+    } catch (e) { console.error("Drive list error:", e); }
+    return results;
+  }
+
+  for (const term of searchTerms.slice(0, 2)) {
+    if (results.length >= 5) break;
     const safe = term.replace(/'/g, "\\'");
-    const q = encodeURIComponent(`name contains '${safe}' or fullText contains '${safe}' and trashed=false`);
+    // Parens around the OR group; trashed=false applied to the whole filter.
+    const q = encodeURIComponent(`(name contains '${safe}' or fullText contains '${safe}') and trashed=false`);
     try {
       const r = await fetch(
         `https://www.googleapis.com/drive/v3/files?pageSize=5&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)&q=${q}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
-      if (!r.ok) continue;
+      if (!r.ok) {
+        console.error("[drive] search failed:", r.status, (await r.text()).slice(0, 200));
+        continue;
+      }
       const d = await r.json();
       for (const f of (d.files || [])) {
         if (results.length >= 5) break;
