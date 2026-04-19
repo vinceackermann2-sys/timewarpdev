@@ -671,7 +671,6 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
         <main className="px-6 lg:px-8 py-6">
           {!activeBrand ? (
             <div className="text-muted-foreground w-full py-12 text-center border-2 border-dashed border-border rounded-lg">
-              <Building2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
               <p>Select a business to see your dashboard.</p>
             </div>
           ) : loading && !hasCards ? (
