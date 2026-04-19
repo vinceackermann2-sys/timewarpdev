@@ -132,7 +132,7 @@ export interface DashboardCard {
   /** ISO 8601 absolute timestamp of the original event */
   timestamp?: string;
   /** Tab assignment from the AI (used for snapshotting) */
-  tab?: TabKind;
+  tab?: "Briefing" | "Updates" | "To-Dos" | "Objectives";
 }
 
 export const badgeClasses: Record<string, string> = {
