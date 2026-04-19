@@ -514,6 +514,27 @@ serve(async (req) => {
       })());
     }
 
+    if (hasMsCalendar) {
+      searchPromises.push((async () => {
+        try {
+          const msToken = await getMsToken();
+          if (!msToken) return;
+          // Upcoming Outlook calendar events next 30 days
+          const now = new Date().toISOString();
+          const thirtyDaysOut = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          const url = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${encodeURIComponent(now)}&endDateTime=${encodeURIComponent(thirtyDaysOut)}&$top=100&$orderby=start/dateTime&$select=subject,start,end,attendees,bodyPreview,isOnlineMeeting,location`;
+          const allEvents = await paginateGraph(url, msToken, 250);
+          const events = allEvents.slice(0, 100).map((e: any) => {
+            const start = e.start?.dateTime?.slice(0, 16)?.replace("T", " ") || "";
+            const attendees = (e.attendees || []).length;
+            const loc = e.isOnlineMeeting ? "online" : (e.location?.displayName || "");
+            return `📅 **${e.subject || "Untitled"}** — ${start} (${attendees} attendees${loc ? ", " + loc : ""})`;
+          });
+          if (events.length > 0) integrationData += `\n### Outlook Calendar Upcoming (next 30d, ${events.length} of ${allEvents.length})\n${events.join("\n")}\n`;
+        } catch (e) { console.error("Outlook Calendar error:", e); }
+      })());
+    }
+
     await Promise.all(searchPromises);
 
     // 5. Build context
