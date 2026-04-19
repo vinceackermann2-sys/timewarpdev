@@ -140,8 +140,7 @@ function CardShell({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      className={`group relative border border-border/60 rounded-2xl px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left bg-white shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)] hover:shadow-[0_0_12px_0_hsl(210_20%_75%/0.7)] ${dimmed ? "opacity-60" : ""}`}
-      style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
+      className={`group relative border border-border/60 rounded-2xl px-4 sm:px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left bg-white shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)] hover:shadow-[0_0_12px_0_hsl(210_20%_75%/0.7)] ${dimmed ? "opacity-60" : ""}`}
     >
       {/* Header: source logo (or leading control) ↔ accent */}
       {(topLeft || leadingControl || topRight || delta) && (
@@ -420,11 +419,8 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
   const isTodo = tab === "To-Dos";
   return (
     <div
-      className="bg-card border border-border/60 rounded-2xl px-6 py-5 flex flex-col gap-4 animate-fade-in"
+      className="bg-card border border-border/60 rounded-2xl px-4 sm:px-6 py-5 flex flex-col gap-4 animate-fade-in w-full"
       style={{
-        flex: "1 1 calc(50% - 0.75rem)",
-        maxWidth: "calc(50% - 0.5rem)",
-        minWidth: "300px",
         animationDelay: `${delay}ms`,
         animationFillMode: "both",
       }}
@@ -478,7 +474,7 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
 
 function CardSkeletons({ tab }: { tab: string }) {
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {[0, 1, 2, 3].map((i) => (
         <SkeletonCard key={i} tab={tab} delay={i * 80} />
       ))}
@@ -670,7 +666,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   return (
     <div className="h-full flex relative overflow-hidden bg-[#fcfcfd]">
       <div className="flex-1 min-w-0 flex flex-col">
-      <div className="px-6 lg:px-8 pt-6 pb-3 bg-white">
+      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-white">
         <div className="flex items-start justify-between mb-4 gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
@@ -737,7 +733,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       </div>
 
       <ScrollArea className="flex-1">
-        <main className="px-6 lg:px-8 py-6">
+        <main className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           {!activeBrand ? (
             <CardSkeletons tab={activeTab} />
           ) : loading && !hasCards ? (
@@ -755,7 +751,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
               <Button variant="outline" size="sm" className="mt-3" onClick={handleRefresh}>Retry</Button>
             </div>
           ) : (
-            <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="flex flex-wrap gap-4">
+            <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredCards.map((card) =>
                 activeTab === "Briefing" ? (
                   <BriefingCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
