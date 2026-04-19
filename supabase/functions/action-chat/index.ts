@@ -131,6 +131,7 @@ serve(async (req) => {
 
     // Fetch user's stored business data server-side
     let userContext = "";
+    let liveConnectionsContext = "";
     let userId: string | null = null;
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
@@ -146,6 +147,18 @@ serve(async (req) => {
           });
         }
         userContext = await fetchUserBusinessContext(user.id, workspaceId);
+
+        // Live connector search (Gmail, Drive, Calendar, Outlook, OneDrive, OneNote, Slack, HubSpot)
+        // Triggers only when query mentions live comms/files/CRM. If user names a tool, only that one is searched.
+        try {
+          const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+          if (lastUserMsg) {
+            const { connectionContext } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
+            liveConnectionsContext = connectionContext || "";
+          }
+        } catch (e) {
+          console.error("[action-chat] live connector search failed:", e);
+        }
       }
     }
 
