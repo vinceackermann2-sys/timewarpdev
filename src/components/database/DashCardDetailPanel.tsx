@@ -537,6 +537,56 @@ function QuickNotes({ cardId }: { cardId: string }) {
   );
 }
 
+/* ── Build a deep-link URL into the source app, using whatever metadata we have ── */
+function buildSourceUrl(card: DashboardCard): string | null {
+  const m = card.metadata || {};
+  const src = (card.source || "").toLowerCase();
+  const enc = encodeURIComponent;
+
+  switch (src) {
+    case "outlook": {
+      // Compose a reply if we know the sender; otherwise open the inbox
+      if (m.senderEmail) {
+        return `https://outlook.office.com/mail/deeplink/compose?to=${enc(m.senderEmail)}&subject=${enc("Re: " + (m.subject || card.title))}`;
+      }
+      return "https://outlook.office.com/mail/";
+    }
+    case "gmail":
+    case "google_gmail": {
+      if (m.senderEmail) {
+        return `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(m.senderEmail)}&su=${enc("Re: " + (m.subject || card.title))}`;
+      }
+      return "https://mail.google.com/mail/u/0/#inbox";
+    }
+    case "calendar":
+    case "google_calendar":
+      return "https://calendar.google.com/calendar/u/0/r";
+    case "zoom":
+      return "https://zoom.us/meeting";
+    case "teams":
+      return "https://teams.microsoft.com/";
+    case "slack": {
+      const ch = (m.channel || "").replace(/^#/, "");
+      if (ch) return `https://slack.com/app_redirect?channel=${enc(ch)}`;
+      return "https://app.slack.com/client";
+    }
+    case "onedrive":
+      return "https://onedrive.live.com/";
+    case "google_drive":
+    case "drive":
+      return "https://drive.google.com/drive/my-drive";
+    case "onenote":
+      return "https://www.onenote.com/notebooks";
+    case "hubspot": {
+      const q = m.contactName || m.subject;
+      if (q) return `https://app.hubspot.com/contacts/?query=${enc(q)}`;
+      return "https://app.hubspot.com/";
+    }
+    default:
+      return null;
+  }
+}
+
 export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, minimized: minimizedProp, onMinimizedChange }: Props) {
   const [minimizedState, setMinimizedState] = useState(false);
   const [done, setDone] = useState(false);
@@ -546,8 +596,42 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
     else setMinimizedState(v);
   };
 
-  // Reset done state when card changes
-  useEffect(() => { setDone(false); }, [card?.id]);
+  // Load persisted "done" state when card changes
+  useEffect(() => {
+    if (!card?.id) return;
+    try {
+      setDone(localStorage.getItem(`dash-done:${card.id}`) === "1");
+    } catch { setDone(false); }
+  }, [card?.id]);
+
+  const toggleDone = () => {
+    if (!card?.id) return;
+    setDone((prev) => {
+      const next = !prev;
+      try {
+        if (next) localStorage.setItem(`dash-done:${card.id}`, "1");
+        else localStorage.removeItem(`dash-done:${card.id}`);
+      } catch { /* ignore */ }
+      toast({ description: next ? "Marked as done" : "Marked as not done" });
+      return next;
+    });
+  };
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ description: `${label} copied` });
+    } catch {
+      toast({ description: "Copy failed", variant: "destructive" });
+    }
+  };
+
+  const dismissCard = () => {
+    if (!card?.id) return;
+    try { localStorage.setItem(`dash-dismissed:${card.id}`, "1"); } catch { /* ignore */ }
+    toast({ description: "Card hidden — refresh to remove from list" });
+    onClose();
+  };
 
   if (!card || !open) return null;
 
@@ -557,6 +641,21 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
   const sourceKey = card.source || "general";
   const sourceMeta = SOURCE_META[sourceKey] || SOURCE_META.general;
   const hasExternalSource = !!sourceMeta.icon && !["business-dna", "products", "audiences", "employees", "general"].includes(sourceKey);
+  const sourceUrl = hasExternalSource ? buildSourceUrl(card) : null;
+
+  // Build copyable original-content text (subject + body / message)
+  const originalContent = (() => {
+    const m = card.metadata || {};
+    const parts: string[] = [];
+    if (m.subject) parts.push(`Subject: ${m.subject}`);
+    if (m.senderName || m.senderEmail) parts.push(`From: ${m.senderName || ""} ${m.senderEmail ? `<${m.senderEmail}>` : ""}`.trim());
+    if (m.channel) parts.push(`Channel: ${m.channel}`);
+    if (m.author) parts.push(`Author: ${m.author}`);
+    if (m.fileName) parts.push(`File: ${m.fileName}`);
+    if (m.bodyPreview) parts.push("", m.bodyPreview);
+    if (m.messageText) parts.push("", m.messageText);
+    return parts.join("\n").trim() || card.description || card.title;
+  })();
 
   if (minimized) {
     return (
