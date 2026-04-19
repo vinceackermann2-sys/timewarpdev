@@ -1,12 +1,7 @@
 // enrich-pillars
 // Generates the 6 "extended" Business DNA pillars (market, financial, operations,
-// people, growth, strategy) from the brand + product + audience context that
-// the user already saved during onboarding. Each pillar is stored as its own
-// row in user_business_data (data_type = pillar id) and tagged with brandId
-// in metadata so the UI mapper and AI consumers (Assistant, Dashboard, RAG)
-// can pull them transparently.
-//
-// Fire-and-forget from onboarding — never blocks the user.
+// people, growth, strategy) from the brand + product + audience context.
+// Output JSON shapes follow the TimeWarp Business DNA Model document EXACTLY.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -17,53 +12,61 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Each pillar prompt mirrors the formulas in the DNA model doc.
+// Field shapes are designed so the data mapper can render them with the
+// exact column headers the doc prescribes.
 const PILLAR_PROMPTS: Record<string, string> = {
   market: `Return JSON with the keys exactly:
 {
-  "definition": { "tam": string, "sam": string, "som": string },
-  "competitors": [ { "name": string, "positioning": string, "strength": string, "weakness": string } ],   // 3-5 items
-  "advantages": [ { "advantage": string, "why_sustainable": string } ],   // 3-5 items
-  "forces": [ { "force": "Buyers"|"Suppliers"|"Substitutes"|"New Entrants"|"Rivalry", "intensity": "Low"|"Medium"|"High", "rationale": string } ],
-  "trends": [ string ],   // 4-8 items
-  "timing": string,            // one short paragraph
-  "white_space": string        // one short paragraph
+  "definition": { "tam": string, "sam": string, "som": string, "growth_rate": string, "maturity": "Emerging"|"Growth"|"Mature"|"Declining", "geographic_scope": string, "primary_category": string },
+  "competitors": [ { "name": string, "positioning": string, "strengths": string, "weaknesses": string, "threat_level": "Low"|"Medium"|"High" } ],   // 3-5 items
+  "advantages": [ { "type": "Cost"|"Differentiation"|"Brand"|"Network Effect"|"Switching Cost"|"IP & Patents"|"Distribution"|"Data", "how_long_to_copy": string, "what_protects_it": string } ],   // 3-5 items
+  "forces": [ { "force": "Supplier Power"|"Buyer Power"|"Threat of New Entry"|"Threat of Substitution"|"Competitive Rivalry", "intensity": "Low"|"Medium"|"High", "trend": "Increasing"|"Stable"|"Decreasing", "implication": string } ],
+  "trends": [ { "trend": string, "horizon": "Short"|"Medium"|"Long", "type": "Opportunity"|"Threat", "response": string } ],   // 4-8 items
+  "timing": string,
+  "white_space": string
 }
-TAM/SAM/SOM must be in plain language with currency or volume estimate. Never fabricate exact dollars — use ranges.`,
+Use the doc formula [CATEGORY] + [GEOGRAPHIC SCOPE] + [CUSTOMER BASE SIZE] + [MATURITY STAGE] for definition. Never fabricate exact dollars — use ranges.`,
+
   financial: `Return JSON with the keys exactly:
 {
-  "model": [ { "stream": string, "type": "subscription"|"transactional"|"service"|"licensing"|"ad"|"other", "notes": string } ],
-  "revenue_arch": [ { "stream": string, "share_pct": string } ],   // estimates
-  "costs": [ { "category": "Fixed"|"Variable"|"COGS"|"OPEX"|"CAC", "item": string, "notes": string } ],
-  "unit_economics": [ { "metric": "AOV"|"CAC"|"LTV"|"Gross Margin"|"Payback"|"Churn", "value": string, "context": string } ],
-  "profitability": [ { "stage": string, "margin_outlook": string } ],
+  "model": [ { "field": "Revenue Model Type"|"Value Creation"|"Value Capture"|"Customer Relationship"|"Revenue Concentration"|"Geographic Split", "value": string } ],
+  "revenue_arch": [ { "stream": string, "volume": string, "price": string, "frequency": string, "trend": string } ],
+  "costs": [ { "category": "COGS"|"S&M"|"R&D"|"G&A"|"Customer Success"|"CapEx", "fixed_or_variable": "Fixed"|"Variable", "amount": string, "pct_of_revenue": string, "trend": string } ],
+  "unit_economics": [ { "metric": "CAC"|"LTV"|"LTV:CAC"|"Payback Period"|"Gross Margin"|"NRR"|"Churn Rate"|"AOV"|"Contribution Margin", "value": string, "benchmark": string, "trend": string, "lever": string } ],
+  "profitability": [ { "margin_type": "Gross"|"Contribution"|"Operating"|"EBITDA"|"Net", "current_pct": string, "target_pct": string, "benchmark": string, "improvement_path": string } ],
   "cash_flow": string,
   "projections": [ string ],
   "funding": string
 }
-Estimate cautiously based on industry norms when concrete numbers are not in context. Never invent specific revenue numbers.`,
+Estimate cautiously based on industry norms when concrete numbers are not in context. Never invent specific revenue numbers — use ranges or "estimated".`,
+
   operations: `Return JSON with the keys exactly:
 {
   "operating_model": string,
-  "core_processes": [ { "process": string, "owner": string, "outcome": string } ],
+  "core_processes": [ { "process": string, "owner": string, "outcome": string, "kpi": string } ],
   "tech_stack": [ { "category": "Storefront"|"Payments"|"CRM"|"Analytics"|"Fulfillment"|"Support"|"Comms"|"Other", "tool": string, "purpose": string } ],
-  "vendors": [ { "vendor": string, "role": string } ],
+  "vendors": [ { "vendor": string, "supplies": string, "criticality": "1"|"2"|"3"|"4"|"5", "risk": string, "alternative": string } ],
   "quality": [ string ],
   "kpis": [ { "name": string, "target": string, "rationale": string } ],
-  "risks": [ { "risk": string, "likelihood": "Low"|"Medium"|"High", "mitigation": string } ],
+  "risks": [ { "risk": string, "likelihood": "Low"|"Medium"|"High", "impact": "Low"|"Medium"|"High", "mitigation": string } ],
   "compliance": [ string ]
-}`,
+}
+Use the doc formula [VENDOR] + [WHAT THEY SUPPLY] + [CRITICALITY: 1-5] + [RISK] + [ALTERNATIVE] for vendors.`,
+
   people: `Return JSON with the keys exactly:
 {
   "org_chart": { "ceo": string, "branches": [ { "function": string, "lead": string, "reports": [ string ] } ] },
   "leadership": [ { "role": string, "name": string, "focus": string } ],
-  "capabilities": [ { "capability": string, "current_level": "Gap"|"Emerging"|"Strong", "owner": string } ],
-  "culture": [ { "value": string, "behavior": string } ],
+  "capabilities": [ { "domain": string, "current_strength": "1"|"2"|"3"|"4"|"5", "required_strength": "1"|"2"|"3"|"4"|"5", "gap": string, "plan": string } ],
+  "culture": [ { "field": "Stated Values"|"Lived Behaviors"|"Rituals"|"Artifacts", "value": string } ],
   "hiring": [ string ],
   "performance": string,
   "compensation": string,
   "retention": string
 }
-For org/leadership use plausible function names (Founder, Marketing Lead, Ops Lead, etc.) when no real names are known.`,
+Use the doc formula [CAPABILITY DOMAIN] + [CURRENT STRENGTH: 1-5] + [REQUIRED STRENGTH: 1-5] + [GAP] + [PLAN] for capabilities. Use plausible function names (Founder, Marketing Lead, Ops Lead) when no real names are known.`,
+
   growth: `Return JSON with the keys exactly:
 {
   "growth_model": [ { "lever": string, "channel": string, "expected_impact": string } ],
@@ -76,19 +79,21 @@ For org/leadership use plausible function names (Founder, Marketing Lead, Ops Le
   "referral": string,
   "experiments": [ { "hypothesis": string, "channel": string, "status": "Planned"|"Running"|"Done" } ]
 }`,
+
   strategy: `Return JSON with the keys exactly:
 {
   "vision": string,
   "objectives": [ string ],
-  "bets": [ { "bet": string, "rationale": string } ],
-  "stage_model": [ { "dimension": "Stage"|"Model"|"Moat"|"Distribution", "value": string } ],
-  "resource_allocation": [ { "area": string, "share_pct": string, "rationale": string } ],
-  "priorities": [ string ],
-  "decisions_log": [ { "date": string, "decision": string, "rationale": string } ],
-  "roadmap": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string } ],
+  "bets": [ { "bet": string, "thesis": string, "resources": string, "success_signal": string, "kill_signal": string } ],
+  "stage_model": [ { "field": "Stage"|"Current Constraint"|"Next Stage Trigger"|"What to Optimize", "value": string } ],
+  "resource_allocation": [ { "resource": string, "current_pct": string, "optimal_pct": string, "rebalancing_rationale": string } ],
+  "decision_framework": [ { "decision_type": "Strategic (Irreversible)"|"Operational (Reversible)"|"Investment (Financial)"|"People (Hiring/Firing)"|"Crisis (Time-Pressured)", "criteria": string, "authority": string, "process": string } ],
+  "risk_appetite": [ { "domain": string, "appetite": "Conservative"|"Moderate"|"Aggressive", "tolerance_threshold": string, "mitigation": string } ],
+  "milestones": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string, "owner": string } ],
   "narrative": string,
-  "scenarios": [ { "scenario": "Best"|"Base"|"Downside", "trigger": string, "response": string } ]
-}`,
+  "scenarios": [ { "scenario": "Base"|"Bull"|"Bear"|"Black Swan", "probability": string, "key_assumption": string, "response": string, "early_warnings": string } ]
+}
+Use the doc formulas exactly. For decision_framework follow [DECISION TYPE] + [CRITERIA] + [AUTHORITY] + [PROCESS]. For risk_appetite follow [RISK DOMAIN] + [APPETITE LEVEL] + [TOLERANCE THRESHOLD] + [MITIGATION].`,
 };
 
 async function callAi(systemPrompt: string, userPrompt: string): Promise<any> {
@@ -117,7 +122,6 @@ async function callAi(systemPrompt: string, userPrompt: string): Promise<any> {
   try {
     return JSON.parse(raw);
   } catch {
-    // try to recover: strip markdown fences
     const stripped = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
     return JSON.parse(stripped);
   }
@@ -149,12 +153,7 @@ serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const body = await req.json().catch(() => ({}));
-    const {
-      brandId,                // logical brand id (from metadata)
-      brandRowId,             // user_business_data row id of the brand
-      workspaceId,
-      pillars,                // optional subset, default = all 6
-    } = body;
+    const { brandId, brandRowId, workspaceId, pillars } = body;
 
     if (!brandId || !brandRowId) {
       return new Response(JSON.stringify({ error: "brandId and brandRowId are required" }), {
@@ -162,7 +161,6 @@ serve(async (req) => {
       });
     }
 
-    // Pull brand + product + audience context already stored
     const { data: rows } = await admin
       .from("user_business_data")
       .select("id, data_type, title, content, metadata, workspace_id")
@@ -192,12 +190,13 @@ serve(async (req) => {
     const productContext = productRows.map((r) => safe(r.content)).join("\n---\n").slice(0, 8000);
     const audienceContext = audienceRows.map((r) => safe(r.content)).join("\n---\n").slice(0, 8000);
 
-    const systemPrompt = `You are a senior business strategist generating high-fidelity Business DNA for one of the 9 strategic pillars of a company.
+    const systemPrompt = `You are a senior business strategist generating high-fidelity Business DNA for one of the 9 strategic pillars of a company, following the TimeWarp Business DNA Model document EXACTLY.
 You must:
 - Use ONLY the brand/product/audience context provided to you. Do not fabricate facts.
-- When data is thin, use cautious industry-typical inferences and clearly label them as "estimated" inside string fields. Never invent specific revenue, headcount, or competitor names that contradict the source.
+- When data is thin, use cautious industry-typical inferences and label them as "estimated" inside string fields. Never invent specific revenue, headcount, or competitor names that contradict the source.
 - Always return valid JSON matching the schema you are given. No prose outside the JSON.
-- Keep every string concise and decision-grade — short, punchy, decisive sentences.`;
+- Keep every string concise and decision-grade — short, punchy, decisive sentences.
+- Follow the doc's value formulas exactly (e.g. [VENDOR] + [WHAT THEY SUPPLY] + [CRITICALITY: 1-5] + [RISK] + [ALTERNATIVE]).`;
 
     const buildUserPrompt = (pillarId: string) => `Pillar: ${pillarId.toUpperCase()}
 
@@ -216,7 +215,6 @@ ${PILLAR_PROMPTS[pillarId]}`;
       ? pillars.filter((p: string) => PILLAR_PROMPTS[p])
       : Object.keys(PILLAR_PROMPTS);
 
-    // Run in parallel — each ~3-8s. All 6 in parallel keeps total under ~10s.
     const results = await Promise.allSettled(
       targetPillars.map(async (pillarId) => {
         const data = await callAi(systemPrompt, buildUserPrompt(pillarId));
@@ -227,7 +225,6 @@ ${PILLAR_PROMPTS[pillarId]}`;
     const inserted: string[] = [];
     const failed: { pillar: string; reason: string }[] = [];
 
-    // Upsert: delete any existing row of this data_type+brandId before inserting fresh
     for (const r of results) {
       if (r.status === "rejected") {
         failed.push({ pillar: "unknown", reason: String(r.reason).slice(0, 120) });
@@ -236,7 +233,6 @@ ${PILLAR_PROMPTS[pillarId]}`;
       const { pillarId, data } = r.value;
 
       try {
-        // Remove old version for this brand
         const { data: existing } = await admin
           .from("user_business_data")
           .select("id, metadata")

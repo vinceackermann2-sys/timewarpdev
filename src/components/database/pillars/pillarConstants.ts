@@ -45,6 +45,9 @@ const f = (id: string, name: string, type: FieldType, span: 1 | 2 | 3 = 3): any 
   value: empty(type),
 });
 
+// Field IDs and names mirror the TimeWarp Business DNA Model document EXACTLY
+// (86 fields across 9 pillars). Value formulas (table columns) follow the
+// document's prescribed schemas — e.g. Brand Voice = [Component, What It Is, How Determined].
 export const PILLARS: PillarDefinition[] = [
   // ── 1. BRAND ─────────────────────────────────────────────────────────────
   {
@@ -132,7 +135,9 @@ export const PILLARS: PillarDefinition[] = [
           f("p7", "7. Use Cases", "tags", 1),
           f("p10", "10. Competitive Advantages", "table", 2),
           f("p12", "12. Objections & Responses", "table", 1),
-          f("p13", "13. Product Refinement Checklist", "table", 3),
+          f("p13", "13. Social Proof", "table", 2),
+          f("p14", "14. Product Roadmap", "timeline", 3),
+          f("p15", "15. Product Refinement Checklist", "table", 3),
         ],
       },
     ],
@@ -150,30 +155,31 @@ export const PILLARS: PillarDefinition[] = [
         id: "audience_main",
         title: "Audience Overview",
         fields: [
-          f("a1", "1. Primary Audience Definition", "long-text", 3),
-          f("a2", "2. Personas", "personas", 3),
+          f("a1", "1. Audience Description", "long-text", 3),
+          f("a2", "2. Segmentation Model", "table", 3),
+          f("a3", "3. Buyer Persona", "personas", 3),
         ],
       },
       {
         id: "audience_journey",
         title: "Journey & Triggers",
         fields: [
-          f("a3", "3. Customer Journey", "timeline", 3),
           f("a4", "4. Buying Triggers", "list", 1),
-          f("a5", "5. Decision Criteria", "table", 2),
+          f("a5", "5. Customer Journey Map", "timeline", 3),
+          f("a6", "6. Decision Criteria", "table", 2),
         ],
       },
       {
         id: "audience_psychographics",
         title: "Language & Proof",
         fields: [
-          f("a6", "6. Pain Point Architecture", "list", 1),
-          f("a7", "7. Objections & Responses", "table", 1),
-          f("a8", "8. Engagement Patterns", "text", 1),
-          f("a9", "9. Language Patterns", "table", 2),
-          f("a10", "10. Proof Hierarchy", "list", 1),
-          f("a11", "11. Retention & Loyalty Drivers", "text", 1),
-          f("a12", "12. Audience Refinement Checklist", "table", 3),
+          f("a7", "7. Pain Point Architecture", "list", 1),
+          f("a8", "8. Objections & Responses", "table", 1),
+          f("a9", "9. Engagement Patterns", "text", 1),
+          f("a10", "10. Language Patterns", "table", 2),
+          f("a11", "11. Proof Hierarchy", "list", 1),
+          f("a12", "12. Retention & Loyalty Drivers", "text", 1),
+          f("a13", "13. Audience Refinement Checklist", "table", 3),
         ],
       },
     ],
@@ -374,7 +380,7 @@ export const PILLARS: PillarDefinition[] = [
           f("g5", "5. Campaign Intelligence", "text", 1),
           f("g6", "6. Creative Intelligence", "list", 1),
           f("g7", "7. Retention & Lifecycle", "text", 1),
-          f("g8", "8. Referral & Advocacy", "text", 2),
+          f("g8", "8. Referral & Advocacy Program", "text", 2),
           f("g9", "9. Growth Experiments Log", "table", 3),
           f("g10", "10. Growth Refinement Checklist", "table", 3),
         ],
@@ -404,10 +410,10 @@ export const PILLARS: PillarDefinition[] = [
         title: "Resource & Focus",
         fields: [
           f("s4", "4. Business Stage & Model", "table", 3),
-          f("s5", "5. Resource Allocation", "table", 3),
-          f("s6", "6. Strategic Priorities", "list", 1),
-          f("s7", "7. Strategic Decisions Log", "table", 2),
-          f("s8", "8. Roadmap & Milestones", "timeline", 3),
+          f("s5", "5. Resource Allocation Framework", "table", 3),
+          f("s6", "6. Decision Framework", "table", 2),
+          f("s7", "7. Risk Appetite & Tolerance", "table", 2),
+          f("s8", "8. Strategic Milestones", "timeline", 3),
           f("s9", "9. Strategic Narrative", "text", 2),
           f("s10", "10. Scenario Planning", "table", 3),
           f("s11", "11. Strategy Refinement Checklist", "table", 3),
