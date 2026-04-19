@@ -36,69 +36,48 @@ const normalizeWorkspaceRole = (role: string): WorkspaceRole => {
 };
 
 async function fetchWorkspaces(userId: string): Promise<WorkspaceInfo[]> {
-  const { data: wsData, error } = await supabase.rpc("get_user_workspaces", {
-    _user_id: userId,
-  });
-
-  if (error || !wsData || (wsData as any[]).length === 0) {
-    // For brand-new users, the create_default_workspace trigger may not have
-    // propagated yet. Retry quickly before creating a duplicate.
-    await new Promise(r => setTimeout(r, 250));
-    const { data: retryData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
-    if (retryData && (retryData as any[]).length > 0) {
-      return (retryData as any[]).map((w: any) => ({
-        workspaceId: w.workspace_id,
-        workspaceName: w.workspace_name,
-        role: normalizeWorkspaceRole(w.role),
-        memberCount: Number(w.member_count),
-        createdAt: w.created_at,
-      }));
-    }
-
-    // Still empty — create workspace, but handle 409 conflict gracefully
-    const newWorkspaceId = crypto.randomUUID();
-    const { error: wsError } = await supabase
-      .from("workspaces")
-      .insert({ id: newWorkspaceId, name: "My Workspace", created_by: userId });
-
-    if (wsError) {
-      // 409 conflict = workspace already exists from trigger; re-fetch
-      if (wsError.code === '23505' || wsError.message?.includes('duplicate') || wsError.message?.includes('conflict')) {
-        const { data: conflictData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
-        if (conflictData && (conflictData as any[]).length > 0) {
-          return (conflictData as any[]).map((w: any) => ({
-            workspaceId: w.workspace_id,
-            workspaceName: w.workspace_name,
-            role: normalizeWorkspaceRole(w.role),
-            memberCount: Number(w.member_count),
-            createdAt: w.created_at,
-          }));
-        }
-      }
-      return [];
-    }
-
-    await supabase
-      .from("workspace_members")
-      .insert({ workspace_id: newWorkspaceId, user_id: userId, role: "owner" });
-
-    localStorage.setItem("preferred_workspace_id", newWorkspaceId);
-    return [{
-      workspaceId: newWorkspaceId,
-      workspaceName: "My Workspace",
-      role: "owner" as WorkspaceRole,
-      memberCount: 1,
-      createdAt: new Date().toISOString(),
-    }];
-  }
-
-  return (wsData as any[]).map((w) => ({
+  const mapWorkspaces = (rows: any[]) => rows.map((w: any) => ({
     workspaceId: w.workspace_id,
     workspaceName: w.workspace_name,
     role: normalizeWorkspaceRole(w.role),
     memberCount: Number(w.member_count),
     createdAt: w.created_at,
   }));
+
+  const { data: wsData, error } = await supabase.rpc("get_user_workspaces", {
+    _user_id: userId,
+  });
+
+  if (!error && wsData && (wsData as any[]).length > 0) {
+    return mapWorkspaces(wsData as any[]);
+  }
+
+  await new Promise((r) => setTimeout(r, 250));
+  const { data: retryData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
+  if (retryData && (retryData as any[]).length > 0) {
+    return mapWorkspaces(retryData as any[]);
+  }
+
+  const { data: createdWorkspaceId, error: createError } = await supabase.rpc("create_workspace", {
+    _name: "My Workspace",
+  });
+
+  if (createError) {
+    const { data: conflictData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
+    if (conflictData && (conflictData as any[]).length > 0) {
+      return mapWorkspaces(conflictData as any[]);
+    }
+    return [];
+  }
+
+  localStorage.setItem("preferred_workspace_id", createdWorkspaceId);
+  return [{
+    workspaceId: createdWorkspaceId,
+    workspaceName: "My Workspace",
+    role: "owner",
+    memberCount: 1,
+    createdAt: new Date().toISOString(),
+  }];
 }
 
 export function useWorkspace() {
@@ -226,18 +205,17 @@ export function useWorkspace() {
   const createWorkspace = useCallback(async (name: string) => {
     if (!user) throw new Error("Not authenticated");
 
-    const newId = crypto.randomUUID();
-    const { error: wsError } = await supabase
-      .from("workspaces")
-      .insert({ id: newId, name, created_by: user.id });
-    if (wsError) throw wsError;
+    const trimmedName = name.trim();
+    if (!trimmedName) throw new Error("Workspace name is required");
 
-    await supabase
-      .from("workspace_members")
-      .insert({ workspace_id: newId, user_id: user.id, role: "owner" });
+    const { data, error } = await supabase.rpc("create_workspace", {
+      _name: trimmedName,
+    });
+
+    if (error) throw error;
 
     invalidateWorkspaces();
-    return newId;
+    return data;
   }, [invalidateWorkspaces, user]);
 
   const sendInvite = useCallback(async (email: string, role: WorkspaceRole, wsId?: string) => {
