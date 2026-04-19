@@ -71,7 +71,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
   return (
     <div className="w-64 shrink-0 h-full border border-border/30 bg-card/50 flex flex-col rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-[#fcfaf8]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-[#eef2f7]">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">Chat History</span>
