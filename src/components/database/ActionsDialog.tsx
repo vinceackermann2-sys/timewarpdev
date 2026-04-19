@@ -143,7 +143,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
       <DialogContent className="sm:max-w-xl bg-card border-border p-0 gap-0 overflow-visible" aria-describedby={undefined}>
         <VisuallyHidden.Root><DialogTitle>Get more Actions</DialogTitle></VisuallyHidden.Root>
         {/* Header */}
-        <div className="text-center pt-8 pb-4 px-6">
+        <div className="text-center pt-8 pb-4 px-6 bg-[#fcfcfd]">
           <div className="flex items-center justify-center gap-3 mb-3">
             <WandSparkles className="h-7 w-7 text-primary" />
             <span className="text-4xl font-bold text-primary">
@@ -156,7 +156,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         </div>
 
         {/* Tabs */}
-        <div className="px-6 pb-2">
+        <div className="px-6 pb-2 bg-[#fcfcfd]">
           <div className="flex rounded-xl bg-muted/50 p-1 gap-1">
             {tabs.map((tab) => (
               <button
@@ -165,7 +165,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 className={cn(
                   "flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all",
                   activeTab === tab.key
-                    ? "bg-card shadow-sm text-foreground border border-border/50"
+                    ? "bg-[#eef2f7] shadow-sm text-foreground border border-border/50"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -176,7 +176,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         </div>
 
         {/* Tab Content */}
-        <div className="px-6 pb-8 pt-4 min-h-[220px]">
+        <div className="px-6 pb-8 pt-4 min-h-[220px] bg-[#fcfcfd]">
           {/* Get more Actions */}
           {activeTab === "upgrade" && (
             <div className="space-y-5">
@@ -193,7 +193,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                       type="button"
                       onClick={() => setDropdownOpen(!dropdownOpen)}
                       className={cn(
-                        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-colors",
+                        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background transition-colors",
                         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                         !selectedPackId && "text-muted-foreground"
                       )}
@@ -238,7 +238,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
 
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-3">Want more actions every month?</p>
-                <Button variant="outline" onClick={() => window.open("/pricing", "_self")} className="gap-2">
+                <Button variant="outline" onClick={() => window.open("/pricing", "_self")} className="gap-2 bg-white hover:bg-white">
                   View Plans
                 </Button>
               </div>
