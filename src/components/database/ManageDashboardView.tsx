@@ -328,9 +328,11 @@ function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done:
 /* ------------------------------------------------------------------ */
 /*  Objective Card — blue dot + progress block                         */
 /* ------------------------------------------------------------------ */
-function parseNumeric(s?: string): number | null {
-  if (!s) return null;
-  const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
+function parseNumeric(s?: unknown): number | null {
+  if (s == null) return null;
+  if (typeof s === "number") return Number.isFinite(s) ? s : null;
+  const str = typeof s === "string" ? s : String(s);
+  const n = parseFloat(str.replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : null;
 }
 
