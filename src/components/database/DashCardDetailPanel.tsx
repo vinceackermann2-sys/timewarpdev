@@ -291,6 +291,11 @@ function MessageRender({ card }: { card: DashboardCard }) {
   const m = card.metadata || {};
   const author = m.author || m.senderName || "Unknown";
   const init = initialsFrom(author);
+  const text = (m.messageText || "").trim();
+  const isLong = text.length > 320;
+  const [open, setOpen] = useState(false);
+  const displayed = open || !isLong ? text : text.slice(0, 320).trimEnd() + "…";
+
   return (
     <div className="px-4 py-4 space-y-3 bg-white">
       {m.channel && (
@@ -310,9 +315,26 @@ function MessageRender({ card }: { card: DashboardCard }) {
               <span className="text-[11px] text-muted-foreground shrink-0">{m.receivedAt}</span>
             )}
           </div>
-          {m.messageText && (
-            <div className="mt-1.5 px-3 py-2 rounded-lg rounded-tl-sm bg-muted/50 text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap">
-              {m.messageText}
+          {text ? (
+            <>
+              <div className="mt-1.5 px-3 py-2 rounded-lg rounded-tl-sm bg-muted/50 text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                {displayed}
+              </div>
+              {isLong && (
+                <button
+                  type="button"
+                  onClick={() => setOpen((o) => !o)}
+                  className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-semibold text-[hsl(217_100%_50%)] hover:text-[hsl(217_100%_42%)] transition-colors"
+                >
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+                  {open ? "Show less" : `Show full message (${text.length.toLocaleString()} chars)`}
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="mt-1.5 flex items-center gap-2 text-muted-foreground/80 text-[12px]">
+              <Inbox className="h-3.5 w-3.5" />
+              <span>No message text was returned by the source.</span>
             </div>
           )}
         </div>
