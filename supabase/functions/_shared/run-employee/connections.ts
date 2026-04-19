@@ -546,30 +546,47 @@ export async function searchConnectedProviders(
   const connectedProviders = connections.map((c: any) => c.provider);
   const searchPromises: Promise<void>[] = [];
 
-  // Skip check is now handled per-service below
+  // Per-provider intent: if user names a specific tool, search ONLY that one (saves usage)
+  const namedProviders = detectNamedProviders(userQuery);
+  const useTargeted = namedProviders.length > 0;
+  const isAllowed = (provider: string) => !useTargeted || namedProviders.includes(provider);
+  if (useTargeted) {
+    console.log("[connections] Targeted search — only:", namedProviders);
+  }
 
   // Check for any Microsoft sub-service connection
   const hasMicrosoft = connectedProviders.some((p: string) => isMicrosoftProvider(p));
-  
-  const allKnownProviders = ["microsoft_outlook", "microsoft_calendar", "microsoft_onedrive", "microsoft_onenote", "slack", "hubspot"];
+  const hasAnyGoogle = connectedProviders.some((p: string) => p === "google" || p.startsWith("google_"));
+
+  const allKnownProviders = [
+    "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote",
+    "google_gmail", "google_drive", "google_calendar",
+    "slack", "hubspot",
+  ];
   for (const provider of allKnownProviders) {
     if (isMicrosoftProvider(provider)) {
       if (!hasMicrosoft) {
         skippedProviders.push(provider);
         skippedProviderDetails.push({ provider, reason: "not connected" });
       }
+    } else if (provider.startsWith("google_")) {
+      if (!hasAnyGoogle) {
+        skippedProviders.push(provider);
+        skippedProviderDetails.push({ provider, reason: "not connected" });
+      }
     } else if (!connectedProviders.includes(provider)) {
       skippedProviders.push(provider);
       skippedProviderDetails.push({ provider, reason: "not connected" });
+    } else if (useTargeted && !isAllowed(provider)) {
+      skippedProviderDetails.push({ provider, reason: "not requested in this query" });
     }
   }
 
   if (hasMicrosoft) {
-    const hasOutlook = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
-    const hasOnedrive = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
-    const hasOnenote = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onenote");
+    const hasOutlook = isAllowed("microsoft_outlook") && connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
+    const hasOnedrive = isAllowed("microsoft_onedrive") && connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
+    const hasOnenote = isAllowed("microsoft_onenote") && connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onenote");
 
-    // Search Outlook emails + OneDrive files together (they use shared token)
     if (hasOutlook || hasOnedrive) {
       searchPromises.push((async () => {
         try {
@@ -587,10 +604,7 @@ export async function searchConnectedProviders(
             emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "running", action: "connections" });
             searchedProviders.push("microsoft_onedrive");
           }
-          console.log("[connections] Searching Microsoft (outlook:", hasOutlook, "onedrive:", hasOnedrive, ") query:", userQuery.slice(0, 60), "topic:", t);
-
           const results = await searchMicrosoftData(token, userQuery, t, { searchEmails: hasOutlook, searchFiles: hasOnedrive });
-          console.log("[connections] Microsoft results: emails=", results.emails.length, "files=", results.files.length);
           if (results.emails.length > 0) connectionContext += `\n\n### Live Data from Outlook\n#### Recent Emails\n${results.emails.join("\n\n")}\n`;
           if (results.files.length > 0) connectionContext += `\n\n### Live Data from OneDrive\n#### Recent Files\n${results.files.join("\n\n")}\n`;
           if (hasOutlook) emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "done", action: "connections" });
@@ -603,7 +617,6 @@ export async function searchConnectedProviders(
       })());
     }
 
-    // Search OneNote separately
     if (hasOnenote) {
       searchPromises.push((async () => {
         try {
@@ -614,10 +627,7 @@ export async function searchConnectedProviders(
           }
           emitProgress?.({ label: `Searching OneNote pages for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("microsoft_onenote");
-          console.log("[connections] Searching OneNote with query:", userQuery.slice(0, 60), "topic:", t);
-
           const results = await searchOneNoteData(token, userQuery, t);
-          console.log("[connections] OneNote results:", results.length);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from OneNote\n#### Recent Notes\n${results.join("\n\n")}\n`;
           }
@@ -631,7 +641,68 @@ export async function searchConnectedProviders(
     }
   }
 
-  if (connectedProviders.includes("slack")) {
+  // --- Google Workspace ---
+  if (hasAnyGoogle) {
+    const hasGmail = isAllowed("google_gmail") && connectedProviders.some((p: string) => p === "google" || p === "google_gmail");
+    const hasGDrive = isAllowed("google_drive") && connectedProviders.some((p: string) => p === "google" || p === "google_drive" || p === "google_docs" || p === "google_sheets" || p === "google_slides");
+    const hasGCal = isAllowed("google_calendar") && connectedProviders.some((p: string) => p === "google" || p === "google_calendar");
+
+    if (hasGmail) {
+      searchPromises.push((async () => {
+        try {
+          const token = await getAnyGoogleToken(supabase, userId);
+          if (!token) { skippedProviderDetails.push({ provider: "google_gmail", reason: "token expired or missing" }); return; }
+          emitProgress?.({ label: `Searching Gmail for ${t}`, status: "running", action: "connections" });
+          searchedProviders.push("google_gmail");
+          const results = await searchGmailData(token, userQuery, t);
+          if (results.length > 0) connectionContext += `\n\n### Live Data from Gmail\n${results.join("\n\n")}\n`;
+          emitProgress?.({ label: `Searching Gmail for ${t}`, status: "done", action: "connections" });
+        } catch (e) {
+          console.error("[connections] Gmail search failed:", e);
+          skippedProviderDetails.push({ provider: "google_gmail", reason: "search failed" });
+          emitProgress?.({ label: `Searching Gmail for ${t}`, status: "error", action: "connections" });
+        }
+      })());
+    }
+
+    if (hasGDrive) {
+      searchPromises.push((async () => {
+        try {
+          const token = await getAnyGoogleToken(supabase, userId);
+          if (!token) { skippedProviderDetails.push({ provider: "google_drive", reason: "token expired or missing" }); return; }
+          emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "running", action: "connections" });
+          searchedProviders.push("google_drive");
+          const results = await searchGoogleDriveData(token, userQuery, t);
+          if (results.length > 0) connectionContext += `\n\n### Live Data from Google Drive\n${results.join("\n\n")}\n`;
+          emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "done", action: "connections" });
+        } catch (e) {
+          console.error("[connections] Drive search failed:", e);
+          skippedProviderDetails.push({ provider: "google_drive", reason: "search failed" });
+          emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "error", action: "connections" });
+        }
+      })());
+    }
+
+    if (hasGCal) {
+      searchPromises.push((async () => {
+        try {
+          const token = await getAnyGoogleToken(supabase, userId);
+          if (!token) { skippedProviderDetails.push({ provider: "google_calendar", reason: "token expired or missing" }); return; }
+          emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "running", action: "connections" });
+          searchedProviders.push("google_calendar");
+          const results = await searchGoogleCalendarData(token, userQuery, t);
+          if (results.length > 0) connectionContext += `\n\n### Live Data from Google Calendar\n${results.join("\n\n")}\n`;
+          emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "done", action: "connections" });
+        } catch (e) {
+          console.error("[connections] Calendar search failed:", e);
+          skippedProviderDetails.push({ provider: "google_calendar", reason: "search failed" });
+          emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "error", action: "connections" });
+        }
+      })());
+    }
+  }
+
+  if (connectedProviders.includes("slack") && isAllowed("slack")) {
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "slack");
@@ -642,9 +713,7 @@ export async function searchConnectedProviders(
         }
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "running", action: "connections" });
         searchedProviders.push("slack");
-        console.log("[connections] Searching Slack with query:", userQuery.slice(0, 60), "topic:", t);
         const results = await searchSlackData(token, userQuery, t);
-        console.log("[connections] Slack results:", results.length);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from Slack\n${results.join("\n\n")}\n`;
         }
@@ -653,6 +722,29 @@ export async function searchConnectedProviders(
         console.error("[connections] Slack search failed:", e);
         skippedProviderDetails.push({ provider: "slack", reason: "search failed" });
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "error", action: "connections" });
+      }
+    })());
+  }
+
+  if (connectedProviders.includes("hubspot") && isAllowed("hubspot")) {
+    searchPromises.push((async () => {
+      try {
+        const token = await getValidProviderToken(supabase, userId, "hubspot");
+        if (!token) {
+          skippedProviderDetails.push({ provider: "hubspot", reason: "token expired or missing" });
+          return;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("hubspot", t), status: "running", action: "connections" });
+        searchedProviders.push("hubspot");
+        const results = await searchHubspotData(token, userQuery, t);
+        if (results.length > 0) {
+          connectionContext += `\n\n### Live Data from HubSpot\n${results.join("\n\n")}\n`;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("hubspot", t), status: "done", action: "connections" });
+      } catch (e) {
+        console.error("[connections] HubSpot search failed:", e);
+        skippedProviderDetails.push({ provider: "hubspot", reason: "search failed" });
+        emitProgress?.({ label: getProviderSearchLabel("hubspot", t), status: "error", action: "connections" });
       }
     })());
   }
