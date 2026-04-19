@@ -10,6 +10,13 @@ import logoOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoOnenote from "@/assets/logo-ms-onenote.svg";
 import logoZoom from "@/assets/logo-zoom.svg";
 import logoTeams from "@/assets/logo-ms-teams.svg";
+import logoSlack from "@/assets/logo-slack.png";
+import logoGmail from "@/assets/logo-gmail.svg";
+import logoGoogleCalendar from "@/assets/logo-google-calendar.svg";
+import logoGoogleDrive from "@/assets/logo-google-drive.svg";
+import logoGoogleDocs from "@/assets/logo-google-docs.svg";
+import logoGoogleSheets from "@/assets/logo-google-sheets.svg";
+import logoGoogleSlides from "@/assets/logo-google-slides.svg";
 
 export interface DashboardCardMetadata {
   senderName?: string;
@@ -102,12 +109,20 @@ export const ICON_MAP: Record<string, React.ElementType> = {
 
 export const SOURCE_META: Record<string, { label: string; icon: string }> = {
   hubspot: { label: "HubSpot", icon: logoHubspot },
-  slack: { label: "Slack", icon: "https://cdn.simpleicons.org/slack" },
+  slack: { label: "Slack", icon: logoSlack },
   outlook: { label: "Outlook", icon: logoOutlook },
   onedrive: { label: "OneDrive", icon: logoOnedrive },
   onenote: { label: "OneNote", icon: logoOnenote },
   zoom: { label: "Zoom", icon: logoZoom },
   teams: { label: "Teams", icon: logoTeams },
+  gmail: { label: "Gmail", icon: logoGmail },
+  google_gmail: { label: "Gmail", icon: logoGmail },
+  google_calendar: { label: "Google Calendar", icon: logoGoogleCalendar },
+  calendar: { label: "Google Calendar", icon: logoGoogleCalendar },
+  google_drive: { label: "Google Drive", icon: logoGoogleDrive },
+  google_docs: { label: "Google Docs", icon: logoGoogleDocs },
+  google_sheets: { label: "Google Sheets", icon: logoGoogleSheets },
+  google_slides: { label: "Google Slides", icon: logoGoogleSlides },
   "business-dna": { label: "Business DNA", icon: "" },
   products: { label: "Products", icon: "" },
   audiences: { label: "Audiences", icon: "" },

@@ -594,8 +594,19 @@ Use this to calculate accurate "timeAgo" values. Be precise — do NOT guess or 
 ## ALIGNMENT LAYER (Business DNA)
 Use the Business Overview, Products, Target Audiences, and AI Employees sections as the alignment layer. Every insight must be contextualized against this business's identity, goals, products, and audiences.
 
-## DATA SOURCES
-Generate cards primarily from CONNECTED INTEGRATION data (HubSpot, Slack, Outlook, OneDrive, OneNote, Zoom, Microsoft Teams). When integration data is available, every card must trace back to a specific integration source. When NO integration data is available, generate cards from the Business DNA alignment layer using source "business-dna".
+## DATA SOURCES — STRICT ANTI-HALLUCINATION RULES
+You MUST generate cards ONLY from the "## Live Integration Data" section below. Every card must trace back to a SPECIFIC item (email subject, message text, deal name, file name, meeting title) that appears VERBATIM in that section.
+
+**ABSOLUTE PROHIBITIONS — VIOLATING THESE IS A CRITICAL FAILURE:**
+- DO NOT invent people's names (e.g. "Alex Miller", "Jordan", "Sarah Chen") that do not appear verbatim in the integration data.
+- DO NOT invent dollar amounts, invoice counts, contract values, or numbers not present in the integration data.
+- DO NOT invent file names, deal names, channels, subjects, or messages.
+- DO NOT generate illustrative / example / placeholder / "sample" cards.
+- DO NOT use Business DNA as a source of FACTS — DNA is for tone/context only.
+
+**IF the "## Live Integration Data" section is EMPTY or missing for a tab**, return an EMPTY array for that tab. An empty dashboard is correct and honest. A fabricated dashboard is harmful.
+
+For Objectives: if NO measurable metrics exist in real integration data, return an empty Objectives array. Do not invent OKRs.
 
 ## COMPOSITE SCORING ALGORITHM
 For each signal, score three axes (1-5 scale):
@@ -611,93 +622,76 @@ For each signal, score three axes (1-5 scale):
 - 1.0–2.4 → Low
 
 ## TAB ASSIGNMENT RULES (Dominant Axis)
-- **Briefing**: Impact + Context dominant, no immediate action required. The signal informs.
-- **Updates**: Urgency dominant + external actor is waiting. Someone/something is blocked on the user.
-- **To-Dos**: Urgency dominant + user is the actor. The user must do something.
-- **Objectives**: Impact dominant + strategic/long-term. Measured outcomes over weeks/quarters.
+- **Briefing**: Impact + Context dominant, no immediate action required.
+- **Updates**: Urgency dominant + external actor is waiting on the user.
+- **To-Dos**: Urgency dominant + user is the actor.
+- **Objectives**: Impact dominant + strategic/long-term measured outcomes.
 
 ## WAIT DURATION ESCALATION (Updates only)
-When an external party has been waiting, apply urgency modifiers:
 - 2–8 hours: +0.5 urgency
 - 8–24 hours: +1.0 urgency
 - 1–3 days: +1.5 urgency → yellow minimum priority
 - 3–7 days: +2.0 urgency → red/High minimum priority
 - >7 days: +3.0 urgency → critical/High priority
 
-## CARD COUNTS PER TAB
-- Briefing: 4–8 cards
-- Updates: 3–8 cards
-- To-Dos: 6–12 cards
-- Objectives: 3–6 cards
+## CARD COUNTS PER TAB (only when real data supports them)
+- Briefing: up to 8 cards (0 if no data)
+- Updates: up to 8 cards (0 if no data)
+- To-Dos: up to 12 cards (0 if no data)
+- Objectives: up to 6 cards (0 if no data)
 
 ## HEADLINE RULES
 - ≤8 words per title
-- Must contain at least one of: a number, a name, a temporal reference, or a direction word
-- Anti-patterns to AVOID: "Important Update", "Action Required", "FYI", "Quick Note" — these are too vague
+- Must contain at least one of: a number, name, temporal reference, or direction word — all sourced from REAL integration data
+- Anti-patterns to AVOID: "Important Update", "Action Required", "FYI", "Quick Note"
 
 ## QUALITY GATES PER TAB
 
 **Briefing Quality Tests:**
-1. No-Action Test: Does this card require NO immediate action? If action is needed, move to To-Dos or Updates.
-2. Specificity Test: Does it contain a specific data point, name, or metric? Generic observations fail.
+1. No-Action Test
+2. Specificity Test (specific data point/name/metric FROM the integration data)
+3. Source Test: Can you point to the exact line in the integration data this came from?
 
 **Updates Quality Tests:**
-1. Blocker Test: Is someone/something actually blocked?
-2. Wait Test: Can you identify HOW LONG they've been waiting?
-3. Person Test: Can you name WHO is waiting?
+1. Blocker Test (per integration data)
+2. Wait Test (from real timestamp)
+3. Person Test (name appears in integration data)
 
 **To-Dos Quality Tests:**
-1. Verb Test: Does the title start with an action verb?
-2. Completability Test: Could this be completed in a single work session?
-3. How-To Test: Can you describe specific steps to complete it?
+1. Verb Test
+2. Completability Test
+3. How-To Test
+4. Source Test (tied to a real integration item)
 
 **Objectives Quality Tests:**
-1. Outcome Test: Is this a measurable outcome, not an activity?
-2. Measurability Test: Can you define current state, target state, and gap?
-3. Time-Bound Test: Does it have a clear time horizon?
+1. Outcome Test
+2. Measurability Test (current/target/gap from REAL data)
+3. Time-Bound Test
 
-Return a JSON object with exactly these 4 keys: "Briefing", "Updates", "To-Dos", "Objectives". Each key maps to an array of cards.
+Return a JSON object with exactly these 4 keys: "Briefing", "Updates", "To-Dos", "Objectives".
 
 ## CARD SCHEMA — ALL TABS
-Every card has these base fields:
-- "id": unique string (e.g. "briefing-1", "update-1", "todo-1", "obj-1")
-- "priority": "High" | "Medium" | "Low" (from Composite Score)
-- "title": short title (max 8 words, follow headline rules)
+- "id": unique string
+- "priority": "High" | "Medium" | "Low"
+- "title": short title (max 8 words)
 - "description": 2-3 sentence insight
-- "detail": 3-5 sentence deep-dive with specific data, recommendations, or solutions
-- "category": contextual label (e.g. "Sales", "Marketing", "Operations", "Problem", "Opportunity", "Growth", "Communication", "Strategy")
-- "source": one of "hubspot", "slack", "outlook", "onedrive", "onenote", "zoom", "teams", "business-dna"
+- "detail": 3-5 sentence deep-dive with specific data
+- "category": contextual label
+- "source": one of "hubspot", "slack", "outlook", "gmail", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "onedrive", "onenote", "zoom", "teams". Use the source matching the actual integration data section the card came from. Only use "business-dna" if the card is purely a brand identity reminder (extremely rare).
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
 - "timeAgo": accurate relative time string
 - "timestamp": ISO 8601 timestamp of the original event
-- "actionSuggestion": A specific, actionable next step
-- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when the integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize the body. Other fields: senderName/senderEmail (parse from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim message text) for slack/teams; fileName/sharedBy for onedrive; notebook for onenote
+- "actionSuggestion": specific actionable next step
+- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize. Other fields: senderName/senderEmail (parse from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom/calendar; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim) for slack/teams; fileName/sharedBy for onedrive/drive; notebook for onenote.
 
 ## TAB-SPECIFIC FIELDS
 
-**Briefing cards** also include:
-- "signalType": string — the type of signal (e.g. "Market Shift", "Competitor Move", "Metric Change", "Integration Health", "Trend", "Risk")
+**Briefing**: signalType
+**Updates**: waitingParty (real name), requestType, waitDuration (from real timestamp), consequence
+**To-Dos**: taskType, howTo (numbered steps), estimatedDuration, leverageScore (1-5)
+**Objectives**: objectiveType, successMetric { current, target, gap, source } — REAL data only, progress (0-100), timeHorizon, relatedTodoIds
 
-**Updates cards** also include:
-- "waitingParty": string — name of person/entity waiting on the user
-- "requestType": string — what they need (e.g. "Approval", "Response", "Decision", "Review", "Information")
-- "waitDuration": string — how long they've been waiting (e.g. "2 hours", "1 day", "3 days", ">1 week")
-- "consequence": string — what happens if the user doesn't act (1 sentence)
-
-**To-Dos cards** also include:
-- "taskType": string — category (e.g. "Follow-up", "Meeting Prep", "Deep Work", "Communication", "Review", "Calendar")
-- "howTo": string — numbered steps to complete (e.g. "1. Open the deal in HubSpot\\n2. Review latest notes\\n3. Send follow-up email")
-- "estimatedDuration": string — time estimate (e.g. "5 min", "15 min", "30 min", "1 hour", "2 hours", "Half day")
-- "leverageScore": number 1-5 — how much impact completing this has
-
-**Objectives cards** also include:
-- "objectiveType": string — category (e.g. "Revenue", "Growth", "Efficiency", "Quality", "Retention", "Expansion")
-- "successMetric": { "current": string, "target": string, "gap": string, "source": string } — measurable metric
-- "progress": number 0-100 — current progress percentage
-- "timeHorizon": string — time frame (e.g. "This Week", "This Month", "This Quarter", "This Year")
-- "relatedTodoIds": string[] — IDs of To-Do cards that contribute to this objective
-
-Sort cards by priority (High first) within each tab. Do NOT fabricate integration data.
+Sort cards by priority (High first). **Empty tabs are correct when no data supports them. NEVER fabricate.**
 Return ONLY a valid JSON object, no markdown fences.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
