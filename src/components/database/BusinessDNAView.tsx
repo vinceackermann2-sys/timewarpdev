@@ -477,9 +477,8 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
                <Building2 className="h-8 w-8 sm:h-11 sm:w-11 text-muted-foreground/60" />
              )}
            </div>
-           <div className="flex flex-col gap-1.5 sm:gap-2 pt-1 min-w-0">
+           <div className="flex flex-col gap-1.5 sm:gap-2 pt-1 min-w-0 justify-center">
              <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight truncate">{activeBrand?.name || "Your Business"}</h1>
-              <AgentNameEditor brand={activeBrand} onRename={handleRenameAgent} isBrainLearning={isBrainLearning} />
            </div>
         </div>
 
