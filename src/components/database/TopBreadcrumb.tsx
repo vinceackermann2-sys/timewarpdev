@@ -104,11 +104,7 @@ export function TopBreadcrumb({ currentView, activeBrandId, activeDnaPillar, onS
       )}
 
       <span className="text-muted-foreground">/</span>
-      {currentView === "businessdna" && activeDnaPillar ? (
-        <span className="text-foreground font-medium">{PILLAR_LABELS[activeDnaPillar]}</span>
-      ) : (
-        <span className="text-foreground font-medium">{VIEW_LABELS[currentView]}</span>
-      )}
+      <span className="text-foreground font-medium">{VIEW_LABELS[currentView]}</span>
     </div>
   );
 }
