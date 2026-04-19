@@ -15,7 +15,8 @@ import { DashCardDetailPanel } from "./DashCardDetailPanel";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import {
   DashboardCard, SOURCE_META, TAB_SUBTITLES,
-  TAB_FRAMING, type TabKind,
+  TAB_FRAMING, type TabKind, type OpeningSummary, type HealthScore,
+  healthScoreStyle, gradeFromScore, deltaBadge, leverageLabelStyle, momentumStyle,
 } from "./dashboardTypes";
 
 /* ── People avatars (initials) ─────────────────────────────── */
