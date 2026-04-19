@@ -562,9 +562,11 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     if (!activeBrand) return;
     setStale(false);
     const cached = loadCachedCards(activeBrand.id);
-    if (cached) {
-      setAllTabCards(cached);
+    const cachedHasCards = cached && Object.values(cached).some((arr) => Array.isArray(arr) && arr.length > 0);
+    if (cachedHasCards) {
+      setAllTabCards(cached!);
     } else {
+      // Empty cache (or stale empty result) — always refetch so user sees fresh data
       fetchInsights(activeBrand.id);
     }
   }, [activeBrand?.id]);
