@@ -733,7 +733,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       </div>
 
       <ScrollArea className="flex-1">
-        <main className="px-6 lg:px-8 py-6">
+        <main className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           {!activeBrand ? (
             <CardSkeletons tab={activeTab} />
           ) : loading && !hasCards ? (
