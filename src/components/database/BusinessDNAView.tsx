@@ -19,6 +19,9 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { PillarView } from "@/components/database/pillars/PillarView";
+
+const PILLAR_IDS = new Set(["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"]);
 
 // ── Types ──
 interface SegmentEntry {
