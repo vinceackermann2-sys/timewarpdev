@@ -37,6 +37,7 @@ interface Props {
   steps: TaskStep[];
   currentStepIndex: number;
   isStreaming?: boolean;
+  startTime?: number;
 }
 
 /* ── Lucide icon map for step labels ── */
@@ -209,12 +210,13 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
 }
 
 /* ── Main Component ── */
-export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming }: Props) {
-  const [startTime] = useState(() => Date.now());
+export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming, startTime }: Props) {
+  const [fallbackStartTime] = useState(() => startTime ?? Date.now());
+  const effectiveStartTime = startTime ?? fallbackStartTime;
 
   if (steps.length === 0) return null;
 
-  const sections = buildSections(steps, startTime);
+  const sections = buildSections(steps, effectiveStartTime);
 
   return (
     <div className="mb-4">
