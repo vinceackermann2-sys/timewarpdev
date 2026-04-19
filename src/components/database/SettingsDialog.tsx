@@ -548,8 +548,8 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                   <div className="space-y-4">
                     <p className="text-muted-foreground text-sm">{selectedWs.workspaceName} · {wsMemberData.members.length} member{wsMemberData.members.length !== 1 ? "s" : ""}</p>
                     <div className="inline-flex items-center p-1 rounded-lg bg-muted border border-border">
-                      <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
-                      <button onClick={() => setWsDetailTab("invites")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "invites" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Pending invites</button>
+                      <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "text-foreground shadow-sm bg-white" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
+                      <button onClick={() => setWsDetailTab("invites")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "invites" ? "text-foreground shadow-sm bg-white" : "text-muted-foreground hover:text-foreground"}`}>Pending invites</button>
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <div className="relative flex-1 max-w-sm">
