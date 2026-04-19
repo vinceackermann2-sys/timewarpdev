@@ -2,18 +2,47 @@ import { Check, Box, CheckCircle2 } from "lucide-react";
 import type { PillarField } from "./pillarTypes";
 import type { ReactNode } from "react";
 
-// Detects whether a field has any meaningful data.
+// Detects whether a field has any meaningful data, AND validates that the
+// value shape matches what the renderer for that type expects. If the shape
+// is wrong (e.g. an object passed to a text field), treat it as empty so we
+// render the empty state instead of crashing.
 function isEmpty(field: PillarField): boolean {
   const v = field.value;
   if (v == null) return true;
-  if (typeof v === "string") return v.trim() === "";
-  if (Array.isArray(v)) return v.length === 0;
-  if (field.type === "table") return !v.columns?.length || !v.rows?.length;
-  if (field.type === "typography") return !v.family && !v.weight;
-  if (field.type === "tam-sam-som")
-    return !v.tam?.value && !v.sam?.value && !v.som?.value;
-  if (field.type === "2x2-grid") return !v.points?.length;
-  return false;
+
+  const isObj = (x: any) => x && typeof x === "object" && !Array.isArray(x);
+
+  switch (field.type) {
+    case "text":
+    case "long-text":
+      return typeof v !== "string" || v.trim() === "";
+    case "tags":
+    case "list":
+    case "gallery":
+      return !Array.isArray(v) || v.length === 0;
+    case "colors":
+    case "personas":
+    case "funnel":
+    case "timeline":
+    case "kpi-grid":
+    case "tech-stack":
+    case "pricing-tiers":
+      return !Array.isArray(v) || v.length === 0;
+    case "table":
+      return !isObj(v) || !Array.isArray(v.columns) || !Array.isArray(v.rows) || !v.columns.length || !v.rows.length;
+    case "typography":
+      return !isObj(v) || (!v.family && !v.weight);
+    case "tam-sam-som":
+      return !isObj(v) || (!v.tam?.value && !v.sam?.value && !v.som?.value);
+    case "2x2-grid":
+      return !isObj(v) || !Array.isArray(v.points) || !v.points.length;
+    case "org-chart":
+      return !isObj(v) || !v.role;
+    default:
+      if (typeof v === "string") return v.trim() === "";
+      if (Array.isArray(v)) return v.length === 0;
+      return false;
+  }
 }
 
 function EmptyState({ label }: { label: string }) {
