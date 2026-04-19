@@ -15,7 +15,8 @@ import { DashCardDetailPanel } from "./DashCardDetailPanel";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import {
   DashboardCard, SOURCE_META, TAB_SUBTITLES,
-  TAB_FRAMING, type TabKind,
+  TAB_FRAMING, type TabKind, type OpeningSummary, type HealthScore,
+  healthScoreStyle, gradeFromScore, deltaBadge, leverageLabelStyle, momentumStyle,
 } from "./dashboardTypes";
 
 /* ── People avatars (initials) ─────────────────────────────── */
@@ -534,6 +535,8 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     if (initialTab) setActiveTab(initialTab);
   }, [initialTab]);
   const [allTabCards, setAllTabCards] = useState<Record<string, DashboardCard[]>>({});
+  const [openingSummary, setOpeningSummary] = useState<OpeningSummary | null>(null);
+  const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customObjectives, setCustomObjectives] = useState<DashboardCard[]>([]);
@@ -587,6 +590,8 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
         Objectives: tabs.Objectives || [],
       };
       setAllTabCards(result);
+      setOpeningSummary(data?.openingSummary || null);
+      setHealthScore(data?.healthScore || null);
       saveCachedCards(brandId, result);
     } catch (e: any) {
       console.error("Dashboard insights error:", e);

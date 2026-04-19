@@ -177,6 +177,39 @@ export type Database = {
           },
         ]
       }
+      dashboard_snapshots: {
+        Row: {
+          brand_id: string
+          cards: Json
+          created_at: string
+          health_score: Json | null
+          id: string
+          opening_summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_id: string
+          cards?: Json
+          created_at?: string
+          health_score?: Json | null
+          id?: string
+          opening_summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string
+          cards?: Json
+          created_at?: string
+          health_score?: Json | null
+          id?: string
+          opening_summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       integration_requests: {
         Row: {
           created_at: string

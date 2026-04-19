@@ -47,6 +47,45 @@ export interface SuccessMetric {
   source?: string;
 }
 
+/** DIM v2 — momentum velocity indicator on Objectives */
+export interface MomentumIndicator {
+  state: "on_track" | "behind" | "ahead";
+  /** Plain-English velocity sentence rendered beneath the progress bar */
+  display: string;
+  projectedDays?: number;
+  daysRemaining?: number;
+  delta?: number;
+}
+
+/** DIM v2 — per-card session-state delta */
+export type DeltaState = "new" | "escalated" | "resolved" | "unchanged";
+
+/** DIM v2 — Dashboard Health Score */
+export interface HealthScore {
+  /** 0–100 */
+  score: number;
+  grade: "excellent" | "good" | "needs_work" | "poor";
+  /** One-line reason shown when score < 70 */
+  reason?: string;
+  components?: {
+    tabBalance: number;
+    sourceDiversity: number;
+    specificity: number;
+    actionability: number;
+    freshness: number;
+    crossTabLinking: number;
+  };
+}
+
+/** DIM v2 — Session opening summary (3 sentences) */
+export interface OpeningSummary {
+  /** The full 3-sentence brief */
+  text: string;
+  signal?: string;
+  friction?: string;
+  focus?: string;
+}
+
 export interface DashboardCard {
   id: string;
   priority: "High" | "Medium" | "Low";
@@ -74,6 +113,8 @@ export interface DashboardCard {
   howTo?: string;
   estimatedDuration?: string;
   leverageScore?: number;
+  /** DIM v2 — visible label like "⚡ High Leverage" / "🟠 Deep Work" / "↻ Maintenance" */
+  leverageLabel?: string;
   completed?: boolean;
 
   // Objectives-specific
@@ -82,6 +123,16 @@ export interface DashboardCard {
   progress?: number;
   timeHorizon?: string;
   relatedTodoIds?: string[];
+  /** DIM v2 — velocity indicator on Objectives */
+  momentumIndicator?: MomentumIndicator;
+
+  // DIM v2 — universal
+  /** Session-state delta vs. previous snapshot */
+  deltaState?: DeltaState;
+  /** ISO 8601 absolute timestamp of the original event */
+  timestamp?: string;
+  /** Tab assignment from the AI (used for snapshotting) */
+  tab?: "Briefing" | "Updates" | "To-Dos" | "Objectives";
 }
 
 export const badgeClasses: Record<string, string> = {
@@ -267,4 +318,126 @@ export function getDurationEmoji(estimatedDuration?: string): string {
   if (lower.includes("quick") || lower.includes("5 min") || lower.includes("10 min") || lower.includes("15 min")) return "⚡";
   if (lower.includes("deep") || lower.includes("2 hour") || lower.includes("3 hour") || lower.includes("half day") || lower.includes("full day")) return "💎";
   return "🕐";
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   DIM v2 — Delta Layer, Health Score, Leverage Label, Momentum helpers
+   ────────────────────────────────────────────────────────────────────── */
+
+/** Compact snapshot row stored per user+brand to compute deltaState on next session */
+export type SnapshotCardEntry = { priority: "High" | "Medium" | "Low"; tab: TabKind };
+export type SnapshotCards = Record<string, SnapshotCardEntry>;
+
+/** Compute the per-card delta state by diffing against the previous snapshot. */
+export function computeDeltaState(
+  card: DashboardCard,
+  previous?: SnapshotCards | null,
+): DeltaState {
+  if (!previous) return "new";
+  const prev = previous[card.id];
+  if (!prev) return "new";
+  const order: Record<"High" | "Medium" | "Low", number> = { Low: 1, Medium: 2, High: 3 };
+  if (order[card.priority] > order[prev.priority]) return "escalated";
+  return "unchanged";
+}
+
+/** Build the next snapshot from the current set of cards across all tabs. */
+export function buildSnapshot(
+  tabs: Record<string, DashboardCard[]>,
+): SnapshotCards {
+  const out: SnapshotCards = {};
+  (Object.keys(tabs) as TabKind[]).forEach((tabKey) => {
+    for (const c of tabs[tabKey] || []) {
+      out[c.id] = { priority: c.priority, tab: tabKey };
+    }
+  });
+  return out;
+}
+
+/** Derive the list of resolved card IDs (present last session, gone this session). */
+export function diffResolved(
+  previous: SnapshotCards | null | undefined,
+  next: SnapshotCards,
+): string[] {
+  if (!previous) return [];
+  const out: string[] = [];
+  for (const id of Object.keys(previous)) {
+    if (!(id in next)) out.push(id);
+  }
+  return out;
+}
+
+/** Map raw 0–100 score to grade band. */
+export function gradeFromScore(score: number): HealthScore["grade"] {
+  if (score >= 90) return "excellent";
+  if (score >= 70) return "good";
+  if (score >= 50) return "needs_work";
+  return "poor";
+}
+
+/** Visual styling for the Health Score badge in the dashboard header. */
+export function healthScoreStyle(grade: HealthScore["grade"]): { bg: string; text: string; border: string; emoji: string; label: string } {
+  switch (grade) {
+    case "excellent":
+      return { bg: "bg-[hsl(142_55%_94%)]", text: "text-[hsl(142_62%_30%)]", border: "border-[hsl(142_42%_72%)]", emoji: "🟢", label: "Excellent" };
+    case "good":
+      return { bg: "bg-[hsl(42_100%_94%)]", text: "text-[hsl(37_84%_36%)]", border: "border-[hsl(42_88%_74%)]", emoji: "🟡", label: "Good" };
+    case "needs_work":
+      return { bg: "bg-[hsl(25_100%_94%)]", text: "text-[hsl(25_85%_42%)]", border: "border-[hsl(25_80%_75%)]", emoji: "🟠", label: "Needs Work" };
+    case "poor":
+      return { bg: "bg-[hsl(0_100%_96%)]", text: "text-[hsl(0_68%_42%)]", border: "border-[hsl(0_75%_78%)]", emoji: "🔴", label: "Poor" };
+  }
+}
+
+/** Visual styling for a card's deltaState badge. */
+export function deltaBadge(state?: DeltaState): { glyph: string; label: string; cls: string } | null {
+  switch (state) {
+    case "new":
+      return { glyph: "▲", label: "New", cls: "bg-[hsl(217_100%_96%)] text-[hsl(217_70%_42%)] border border-[hsl(217_80%_85%)]" };
+    case "escalated":
+      return { glyph: "↗", label: "Escalated", cls: "bg-[hsl(0_100%_96%)] text-[hsl(0_68%_42%)] border border-[hsl(0_75%_82%)]" };
+    case "resolved":
+      return { glyph: "✓", label: "Resolved", cls: "bg-[hsl(142_55%_94%)] text-[hsl(142_62%_30%)] border border-[hsl(142_42%_75%)]" };
+    case "unchanged":
+    default:
+      return null; // No badge for unchanged — keep cards quiet
+  }
+}
+
+/** Derive the To-Do leverageLabel from a 1–5 leverage score, if AI didn't supply one. */
+export function leverageLabelFromScore(score?: number): string | null {
+  if (typeof score !== "number") return null;
+  if (score >= 4) return "⚡ High Leverage";
+  if (score >= 2.5) return "🟠 Deep Work";
+  return "↻ Maintenance";
+}
+
+/** Visual styling for the leverageLabel chip on To-Do cards. */
+export function leverageLabelStyle(label?: string): string {
+  if (!label) return "";
+  if (label.includes("High Leverage")) return "bg-[hsl(217_100%_96%)] text-[hsl(217_70%_42%)] border-[hsl(217_80%_85%)]";
+  if (label.includes("Deep Work")) return "bg-[hsl(25_100%_94%)] text-[hsl(25_85%_42%)] border-[hsl(25_80%_75%)]";
+  return "bg-muted/60 text-muted-foreground border-border";
+}
+
+/** Visual styling for the momentum indicator on Objectives. */
+export function momentumStyle(state?: MomentumIndicator["state"]): { dot: string; text: string; label: string } {
+  switch (state) {
+    case "ahead":
+      return { dot: "bg-[hsl(217_100%_55%)]", text: "text-[hsl(217_70%_42%)]", label: "🔵 Ahead" };
+    case "behind":
+      return { dot: "bg-[hsl(0_72%_55%)]", text: "text-[hsl(0_68%_42%)]", label: "🔴 Behind" };
+    case "on_track":
+    default:
+      return { dot: "bg-[hsl(142_62%_45%)]", text: "text-[hsl(142_62%_30%)]", label: "🟢 On Track" };
+  }
+}
+
+/** The full edge-function response shape for /functions/v1/dashboard-insights. */
+export interface DashboardInsightsResponse {
+  tabs: Record<TabKind, DashboardCard[]>;
+  brandName: string;
+  openingSummary?: OpeningSummary | null;
+  healthScore?: HealthScore | null;
+  resolvedCardIds?: string[];
 }
