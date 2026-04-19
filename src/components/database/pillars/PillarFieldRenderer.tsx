@@ -219,7 +219,7 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
                     return (
                       <td
                         key={j}
-                        className={`px-4 py-3 text-foreground/80 ${isYes || isNo ? "text-center" : ""}`}
+                        className={`px-4 py-3 text-foreground/80 bg-white ${isYes || isNo ? "text-center" : ""}`}
                       >
                         {content}
                       </td>
