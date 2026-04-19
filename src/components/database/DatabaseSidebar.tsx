@@ -55,6 +55,14 @@ import {
   RefreshCw,
   ListTodo,
   Award,
+  Package,
+  Users,
+  TrendingUp,
+  DollarSign,
+  Cog,
+  Users2,
+  Rocket,
+  Target,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTheme } from "next-themes";
@@ -67,6 +75,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 
 type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
 export type DashboardTab = "Briefing" | "Updates" | "To-Dos" | "Objectives";
+export type DnaPillar = "brand" | "product" | "audience" | "market" | "financial" | "operations" | "people" | "growth" | "strategy";
 
 interface DatabaseSidebarProps {
   currentView: View;
@@ -74,10 +83,13 @@ interface DatabaseSidebarProps {
   userEmail: string;
   activeDashboardTab?: DashboardTab;
   onDashboardTabChange?: (tab: DashboardTab) => void;
+  activeDnaPillar?: DnaPillar;
+  onDnaPillarChange?: (pillar: DnaPillar) => void;
 }
 
-export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDashboardTab, onDashboardTabChange }: DatabaseSidebarProps) {
+export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDashboardTab, onDashboardTabChange, activeDnaPillar, onDnaPillarChange }: DatabaseSidebarProps) {
   const [dashExpanded, setDashExpanded] = useState(currentView === "manage");
+  const [dnaExpanded, setDnaExpanded] = useState(currentView === "businessdna");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { state, toggleSidebar, setOpen } = useSidebar();
@@ -149,17 +161,63 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDa
                     {!isCollapsed && <span>Assistant</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    isActive={currentView === "businessdna"}
-                    onClick={() => onViewChange("businessdna")}
-                    tooltip="Business DNA"
-                    className={currentView === "businessdna" ? "bg-primary/10 text-primary" : ""}
-                  >
-                    <Dna className="h-4 w-4" />
-                    {!isCollapsed && <span>Business DNA</span>}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <Collapsible open={dnaExpanded} onOpenChange={setDnaExpanded}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        isActive={currentView === "businessdna"}
+                        onClick={() => {
+                          onViewChange("businessdna");
+                          setDnaExpanded(true);
+                        }}
+                        tooltip="Business DNA"
+                        className={currentView === "businessdna" ? "bg-primary/10 text-primary" : ""}
+                      >
+                        <Dna className="h-4 w-4 shrink-0" />
+                        {!isCollapsed && (
+                          <>
+                            <span className="flex-1">Business DNA</span>
+                            <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${dnaExpanded ? "rotate-180" : ""}`} />
+                          </>
+                        )}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    {!isCollapsed && (
+                      <CollapsibleContent>
+                        <div className="ml-6 border-l border-border/50 pl-2 mt-1 space-y-0.5">
+                          {([
+                            { id: "brand" as const, label: "Brand", icon: Palette },
+                            { id: "product" as const, label: "Product", icon: Package },
+                            { id: "audience" as const, label: "Audience", icon: Users },
+                            { id: "market" as const, label: "Market", icon: TrendingUp },
+                            { id: "financial" as const, label: "Financial", icon: DollarSign },
+                            { id: "operations" as const, label: "Operations", icon: Cog },
+                            { id: "people" as const, label: "People", icon: Users2 },
+                            { id: "growth" as const, label: "Growth", icon: Rocket },
+                            { id: "strategy" as const, label: "Strategy", icon: Target },
+                          ]).map((pillar) => {
+                            const isPillarActive = currentView === "businessdna" && activeDnaPillar === pillar.id;
+                            return (
+                              <button
+                                key={pillar.id}
+                                onClick={() => {
+                                  onViewChange("businessdna");
+                                  onDnaPillarChange?.(pillar.id);
+                                }}
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                                  isPillarActive ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                }`}
+                              >
+                                <pillar.icon className="h-3.5 w-3.5 shrink-0" />
+                                <span>{pillar.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </CollapsibleContent>
+                    )}
+                  </SidebarMenuItem>
+                </Collapsible>
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     isActive={currentView === "connections"}
