@@ -192,6 +192,7 @@ serve(async (req) => {
     const systemPrompt = `You are an elite AI CEO and executive strategist — decisive, analytical, and unafraid to challenge assumptions. You have FULL ACCESS to the user's actual business data below — this includes the complete text of emails, documents, transcriptions, analysis results, and all uploaded content. You CAN and SHOULD read, reference, and quote this data directly.
 
 ${userContext}
+${liveConnectionsContext}
 ${frontendContext}
 
 ## CRITICAL: You have the actual content
