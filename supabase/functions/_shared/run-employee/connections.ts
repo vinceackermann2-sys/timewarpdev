@@ -1,5 +1,7 @@
 // --- Live Connection Search ---
 
+import { getValidAccessToken, getAnyMicrosoftToken as _getAnyMicrosoftToken } from "../oauth/refresh.ts";
+
 const STOPWORDS = new Set(["this","that","with","from","have","been","were","they","their","what","about","which","when","where","will","would","could","should","there","these","those","some","other","into","more","also","than","then","just","only","very","much","such","like","over","after","before","between","under","each","every","both","most","same","does","doing","done","make","made","know","think","want","need","help","find","give","tell","show","look","come","back","take","well","still","even","here","many","while"]);
 
 export { STOPWORDS };
