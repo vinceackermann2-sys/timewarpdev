@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { getValidAccessToken } from "../_shared/oauth/refresh.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,95 +9,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function refreshMicrosoftToken(refreshToken: string): Promise<any> {
-  const res = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: Deno.env.get("MICROSOFT_CLIENT_ID")!,
-      client_secret: Deno.env.get("MICROSOFT_CLIENT_SECRET")!,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-  return res.json();
-}
-
-async function refreshGoogleToken(refreshToken: string): Promise<any> {
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: Deno.env.get("GOOGLE_CLIENT_ID")!,
-      client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET")!,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-  return res.json();
-}
-
-async function refreshHubSpotToken(refreshToken: string): Promise<any> {
-  const res = await fetch("https://api.hubapi.com/oauth/v1/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: Deno.env.get("HUBSPOT_CLIENT_ID")!,
-      client_secret: Deno.env.get("HUBSPOT_CLIENT_SECRET")!,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-  return res.json();
-}
-
+// Delegate to the unified shared OAuth refresh helper.
+// Handles Microsoft, Google, HubSpot, Zoom, Slack — including single-use Zoom refresh tokens
+// and Slack token rotation. Marks connection as `expired` on hard failure so UI can prompt reconnect.
 async function getValidToken(supabaseAdmin: any, userId: string, provider: string): Promise<string | null> {
-  const { data: tokenRow } = await supabaseAdmin
-    .from("user_oauth_tokens")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("provider", provider)
-    .maybeSingle();
-
-  if (!tokenRow) return null;
-
-  // Check if token is expired
-  const expiresAt = tokenRow.token_expires_at ? new Date(tokenRow.token_expires_at) : null;
-  const isExpired = expiresAt && expiresAt < new Date(Date.now() + 60000); // 1 min buffer
-
-  if (!isExpired) return tokenRow.access_token;
-
-  // Try refresh
-  if (!tokenRow.refresh_token) return null;
-
-  let refreshed: any;
-  if (provider === "microsoft") {
-    refreshed = await refreshMicrosoftToken(tokenRow.refresh_token);
-  } else if (provider === "google") {
-    refreshed = await refreshGoogleToken(tokenRow.refresh_token);
-  } else if (provider === "hubspot") {
-    refreshed = await refreshHubSpotToken(tokenRow.refresh_token);
-  } else {
-    return tokenRow.access_token; // Slack tokens don't expire typically
-  }
-
-  if (refreshed.access_token) {
-    await supabaseAdmin
-      .from("user_oauth_tokens")
-      .update({
-        access_token: refreshed.access_token,
-        refresh_token: refreshed.refresh_token || tokenRow.refresh_token,
-        token_expires_at: refreshed.expires_in
-          ? new Date(Date.now() + refreshed.expires_in * 1000).toISOString()
-          : tokenRow.token_expires_at,
-      })
-      .eq("user_id", userId)
-      .eq("provider", provider);
-
-    return refreshed.access_token;
-  }
-
-  return null;
+  return getValidAccessToken(supabaseAdmin, userId, provider);
 }
 
 // Extract text from a PDF using the AI gateway (Gemini multimodal)
