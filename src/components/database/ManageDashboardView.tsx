@@ -282,12 +282,23 @@ function todoCtaLabel(card: DashboardCard): string {
 
 function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done: boolean; onToggle: () => void; onOpen: () => void }) {
   const dueLabel = card.estimatedDuration || card.timeAgo;
+  const leverageLabel = card.leverageLabel;
+  const leverageCls = leverageLabelStyle(leverageLabel);
   return (
     <CardShell
       card={card}
       onOpen={onOpen}
       dimmed={done}
-      topRight={<SourceLogo card={card} />}
+      topRight={
+        <div className="flex items-center gap-2">
+          {leverageLabel && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${leverageCls}`}>
+              {leverageLabel}
+            </span>
+          )}
+          <SourceLogo card={card} />
+        </div>
+      }
       leadingControl={
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
