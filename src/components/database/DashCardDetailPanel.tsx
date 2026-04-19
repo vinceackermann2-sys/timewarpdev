@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, Check, ExternalLink,
-  Mail, Calendar, FileText, Hash, Briefcase, StickyNote, Users,
+  Mail, Calendar, FileText, Hash, Briefcase, StickyNote, Users, Inbox,
 } from "lucide-react";
 import {
   SOURCE_META, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind,
