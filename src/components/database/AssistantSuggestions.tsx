@@ -18,13 +18,13 @@ export function AssistantSuggestions({ suggestions, onSelect, isLoading }: Assis
           onClick={() => onSelect(suggestion)}
           className={cn(
             "group flex items-start gap-2.5 text-left px-4 py-3 rounded-xl",
-            "bg-card/60 hover:bg-card border border-border/50 hover:border-primary/30",
+            "bg-[#eef2f7] border border-border/50 hover:border-primary/30",
             "transition-all duration-200 cursor-pointer",
             "shadow-sm hover:shadow-md",
             "max-w-md"
           )}
         >
-          <MessageSquare className="h-4 w-4 flex-shrink-0 mt-0.5 text-primary/60 group-hover:text-primary transition-colors" />
+          <MessageSquare className="h-4 w-4 flex-shrink-0 mt-0.5 text-black transition-colors" />
           <span className="text-sm text-foreground/80 group-hover:text-foreground leading-relaxed transition-colors">
             {suggestion}
           </span>
