@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, Check, ExternalLink,
-  Mail, Calendar, FileText, Hash, Briefcase, StickyNote, Users,
+  Mail, Calendar, FileText, Hash, Briefcase, StickyNote, Users, Inbox,
 } from "lucide-react";
 import {
   SOURCE_META, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind,
@@ -147,6 +147,53 @@ function SourceChip({ card }: { card: DashboardCard }) {
   );
 }
 
+/* ── Expandable verbatim body — shows ~6 lines, expands on click if longer ── */
+function ExpandableBody({
+  text,
+  serif = false,
+  emptyHint,
+  threshold = 320,
+}: { text?: string; serif?: boolean; emptyHint: string; threshold?: number }) {
+  const [open, setOpen] = useState(false);
+  const trimmed = (text || "").trim();
+
+  if (!trimmed) {
+    return (
+      <div className="border-t border-border/40 pt-3">
+        <div className="flex items-center gap-2 text-muted-foreground/80 text-[12px]">
+          <Inbox className="h-3.5 w-3.5" />
+          <span>{emptyHint}</span>
+        </div>
+      </div>
+    );
+  }
+
+  const isLong = trimmed.length > threshold;
+  const displayed = open || !isLong ? trimmed : trimmed.slice(0, threshold).trimEnd() + "…";
+  const fontClass = serif ? "font-[ui-serif,Georgia,serif]" : "";
+
+  return (
+    <div className="border-t border-border/40 pt-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+        Original content
+      </p>
+      <p className={`text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap ${fontClass}`}>
+        {displayed}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="mt-2 inline-flex items-center gap-1 text-[11.5px] font-semibold text-[hsl(217_100%_50%)] hover:text-[hsl(217_100%_42%)] transition-colors"
+        >
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+          {open ? "Show less" : `Show full content (${trimmed.length.toLocaleString()} chars)`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ── Email native render ── */
 function EmailRender({ card }: { card: DashboardCard }) {
   const m = card.metadata || {};
@@ -178,14 +225,8 @@ function EmailRender({ card }: { card: DashboardCard }) {
         </div>
       )}
 
-      {/* Body — verbatim */}
-      {m.bodyPreview && (
-        <div className="border-t border-border/40 pt-3">
-          <p className="text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap font-[ui-serif,Georgia,serif]">
-            {m.bodyPreview}
-          </p>
-        </div>
-      )}
+      {/* Body — verbatim, expandable */}
+      <ExpandableBody text={m.bodyPreview} serif emptyHint="No email body was returned by the source." />
     </div>
   );
 }
@@ -250,6 +291,11 @@ function MessageRender({ card }: { card: DashboardCard }) {
   const m = card.metadata || {};
   const author = m.author || m.senderName || "Unknown";
   const init = initialsFrom(author);
+  const text = (m.messageText || "").trim();
+  const isLong = text.length > 320;
+  const [open, setOpen] = useState(false);
+  const displayed = open || !isLong ? text : text.slice(0, 320).trimEnd() + "…";
+
   return (
     <div className="px-4 py-4 space-y-3 bg-white">
       {m.channel && (
@@ -269,9 +315,26 @@ function MessageRender({ card }: { card: DashboardCard }) {
               <span className="text-[11px] text-muted-foreground shrink-0">{m.receivedAt}</span>
             )}
           </div>
-          {m.messageText && (
-            <div className="mt-1.5 px-3 py-2 rounded-lg rounded-tl-sm bg-muted/50 text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap">
-              {m.messageText}
+          {text ? (
+            <>
+              <div className="mt-1.5 px-3 py-2 rounded-lg rounded-tl-sm bg-muted/50 text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                {displayed}
+              </div>
+              {isLong && (
+                <button
+                  type="button"
+                  onClick={() => setOpen((o) => !o)}
+                  className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-semibold text-[hsl(217_100%_50%)] hover:text-[hsl(217_100%_42%)] transition-colors"
+                >
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+                  {open ? "Show less" : `Show full message (${text.length.toLocaleString()} chars)`}
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="mt-1.5 flex items-center gap-2 text-muted-foreground/80 text-[12px]">
+              <Inbox className="h-3.5 w-3.5" />
+              <span>No message text was returned by the source.</span>
             </div>
           )}
         </div>
@@ -306,13 +369,8 @@ function FileRender({ card }: { card: DashboardCard }) {
           )}
         </div>
       </div>
-      {m.bodyPreview && (
-        <div className="border-t border-border/40 pt-3">
-          <p className="text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
-            {m.bodyPreview}
-          </p>
-        </div>
-      )}
+      <ExpandableBody text={m.bodyPreview} emptyHint="No file preview was returned by the source." />
+
     </div>
   );
 }
@@ -334,13 +392,8 @@ function NoteRender({ card }: { card: DashboardCard }) {
       {m.author && (
         <p className="text-[11.5px] text-muted-foreground">By {m.author}</p>
       )}
-      {m.bodyPreview && (
-        <div className="border-t border-border/40 pt-3">
-          <p className="text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
-            {m.bodyPreview}
-          </p>
-        </div>
-      )}
+      <ExpandableBody text={m.bodyPreview} emptyHint="No note content was returned by the source." />
+
     </div>
   );
 }
@@ -377,13 +430,8 @@ function DealRender({ card }: { card: DashboardCard }) {
           </span>
         )}
       </div>
-      {m.bodyPreview && (
-        <div className="border-t border-border/40 pt-3">
-          <p className="text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
-            {m.bodyPreview}
-          </p>
-        </div>
-      )}
+      <ExpandableBody text={m.bodyPreview} emptyHint="No deal notes were returned by the source." />
+
     </div>
   );
 }
