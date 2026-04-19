@@ -2,12 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import {
   Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, Check, ExternalLink,
   Mail, Calendar, FileText, Hash, Briefcase, StickyNote, Users, Inbox,
+  Copy, EyeOff, RotateCcw,
 } from "lucide-react";
 import {
   SOURCE_META, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind,
 } from "./dashboardTypes";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 
 interface Props {
@@ -532,6 +537,56 @@ function QuickNotes({ cardId }: { cardId: string }) {
   );
 }
 
+/* ── Build a deep-link URL into the source app, using whatever metadata we have ── */
+function buildSourceUrl(card: DashboardCard): string | null {
+  const m = card.metadata || {};
+  const src = (card.source || "").toLowerCase();
+  const enc = encodeURIComponent;
+
+  switch (src) {
+    case "outlook": {
+      // Compose a reply if we know the sender; otherwise open the inbox
+      if (m.senderEmail) {
+        return `https://outlook.office.com/mail/deeplink/compose?to=${enc(m.senderEmail)}&subject=${enc("Re: " + (m.subject || card.title))}`;
+      }
+      return "https://outlook.office.com/mail/";
+    }
+    case "gmail":
+    case "google_gmail": {
+      if (m.senderEmail) {
+        return `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(m.senderEmail)}&su=${enc("Re: " + (m.subject || card.title))}`;
+      }
+      return "https://mail.google.com/mail/u/0/#inbox";
+    }
+    case "calendar":
+    case "google_calendar":
+      return "https://calendar.google.com/calendar/u/0/r";
+    case "zoom":
+      return "https://zoom.us/meeting";
+    case "teams":
+      return "https://teams.microsoft.com/";
+    case "slack": {
+      const ch = (m.channel || "").replace(/^#/, "");
+      if (ch) return `https://slack.com/app_redirect?channel=${enc(ch)}`;
+      return "https://app.slack.com/client";
+    }
+    case "onedrive":
+      return "https://onedrive.live.com/";
+    case "google_drive":
+    case "drive":
+      return "https://drive.google.com/drive/my-drive";
+    case "onenote":
+      return "https://www.onenote.com/notebooks";
+    case "hubspot": {
+      const q = m.contactName || m.subject;
+      if (q) return `https://app.hubspot.com/contacts/?query=${enc(q)}`;
+      return "https://app.hubspot.com/";
+    }
+    default:
+      return null;
+  }
+}
+
 export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, minimized: minimizedProp, onMinimizedChange }: Props) {
   const [minimizedState, setMinimizedState] = useState(false);
   const [done, setDone] = useState(false);
@@ -541,8 +596,42 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
     else setMinimizedState(v);
   };
 
-  // Reset done state when card changes
-  useEffect(() => { setDone(false); }, [card?.id]);
+  // Load persisted "done" state when card changes
+  useEffect(() => {
+    if (!card?.id) return;
+    try {
+      setDone(localStorage.getItem(`dash-done:${card.id}`) === "1");
+    } catch { setDone(false); }
+  }, [card?.id]);
+
+  const toggleDone = () => {
+    if (!card?.id) return;
+    setDone((prev) => {
+      const next = !prev;
+      try {
+        if (next) localStorage.setItem(`dash-done:${card.id}`, "1");
+        else localStorage.removeItem(`dash-done:${card.id}`);
+      } catch { /* ignore */ }
+      toast({ description: next ? "Marked as done" : "Marked as not done" });
+      return next;
+    });
+  };
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ description: `${label} copied` });
+    } catch {
+      toast({ description: "Copy failed", variant: "destructive" });
+    }
+  };
+
+  const dismissCard = () => {
+    if (!card?.id) return;
+    try { localStorage.setItem(`dash-dismissed:${card.id}`, "1"); } catch { /* ignore */ }
+    toast({ description: "Card hidden — refresh to remove from list" });
+    onClose();
+  };
 
   if (!card || !open) return null;
 
@@ -552,6 +641,21 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
   const sourceKey = card.source || "general";
   const sourceMeta = SOURCE_META[sourceKey] || SOURCE_META.general;
   const hasExternalSource = !!sourceMeta.icon && !["business-dna", "products", "audiences", "employees", "general"].includes(sourceKey);
+  const sourceUrl = hasExternalSource ? buildSourceUrl(card) : null;
+
+  // Build copyable original-content text (subject + body / message)
+  const originalContent = (() => {
+    const m = card.metadata || {};
+    const parts: string[] = [];
+    if (m.subject) parts.push(`Subject: ${m.subject}`);
+    if (m.senderName || m.senderEmail) parts.push(`From: ${m.senderName || ""} ${m.senderEmail ? `<${m.senderEmail}>` : ""}`.trim());
+    if (m.channel) parts.push(`Channel: ${m.channel}`);
+    if (m.author) parts.push(`Author: ${m.author}`);
+    if (m.fileName) parts.push(`File: ${m.fileName}`);
+    if (m.bodyPreview) parts.push("", m.bodyPreview);
+    if (m.messageText) parts.push("", m.messageText);
+    return parts.join("\n").trim() || card.description || card.title;
+  })();
 
   if (minimized) {
     return (
@@ -588,14 +692,42 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
             <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
           </div>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="More options"
-              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreVertical className="h-4 w-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="More options"
+                  className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors outline-none"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => copyToClipboard(card.title, "Title")}>
+                  <Copy className="h-3.5 w-3.5 mr-2" /> Copy title
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => copyToClipboard(originalContent, "Original content")}>
+                  <FileText className="h-3.5 w-3.5 mr-2" /> Copy original content
+                </DropdownMenuItem>
+                {sourceUrl && (
+                  <DropdownMenuItem onClick={() => window.open(sourceUrl, "_blank", "noopener,noreferrer")}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in {sourceMeta.label}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleDone}>
+                  {done ? (
+                    <><RotateCcw className="h-3.5 w-3.5 mr-2" /> Mark as not done</>
+                  ) : (
+                    <><Check className="h-3.5 w-3.5 mr-2" /> Mark as done</>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={dismissCard} className="text-destructive focus:text-destructive">
+                  <EyeOff className="h-3.5 w-3.5 mr-2" /> Dismiss card
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button
               type="button"
               aria-label="Minimize"
@@ -643,13 +775,16 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
                   size="sm"
                   variant="outline"
                   className="h-10 px-3 gap-1.5 text-[13px] font-medium rounded-lg"
-                  onClick={() => { /* future: deep-link to source */ }}
+                  disabled={!sourceUrl}
+                  onClick={() => {
+                    if (sourceUrl) window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                  }}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   Open
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Open in {sourceMeta.label}</TooltipContent>
+              <TooltipContent>{sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}</TooltipContent>
             </Tooltip>
           )}
 
@@ -659,7 +794,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
                 size="icon"
                 variant="outline"
                 className={`h-10 w-10 rounded-lg shrink-0 ${done ? "bg-[hsl(142_55%_95%)] text-[hsl(142_62%_30%)] border-[hsl(142_42%_78%)]" : ""}`}
-                onClick={() => setDone((d) => !d)}
+                onClick={toggleDone}
                 aria-label="Mark done"
               >
                 <Check className="h-4 w-4" />
