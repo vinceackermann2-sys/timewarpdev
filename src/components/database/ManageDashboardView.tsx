@@ -419,11 +419,8 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
   const isTodo = tab === "To-Dos";
   return (
     <div
-      className="bg-card border border-border/60 rounded-2xl px-6 py-5 flex flex-col gap-4 animate-fade-in"
+      className="bg-card border border-border/60 rounded-2xl px-4 sm:px-6 py-5 flex flex-col gap-4 animate-fade-in w-full"
       style={{
-        flex: "1 1 calc(50% - 0.75rem)",
-        maxWidth: "calc(50% - 0.5rem)",
-        minWidth: "300px",
         animationDelay: `${delay}ms`,
         animationFillMode: "both",
       }}
