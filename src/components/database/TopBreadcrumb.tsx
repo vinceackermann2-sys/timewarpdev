@@ -19,13 +19,28 @@ const VIEW_LABELS: Record<View, string> = {
   manage: "Dashboard",
 };
 
+type DnaPillar = "brand" | "product" | "audience" | "market" | "financial" | "operations" | "people" | "growth" | "strategy";
+
+const PILLAR_LABELS: Record<DnaPillar, string> = {
+  brand: "Brand",
+  product: "Product",
+  audience: "Audience",
+  market: "Market",
+  financial: "Financial",
+  operations: "Operations",
+  people: "People",
+  growth: "Growth",
+  strategy: "Strategy",
+};
+
 interface TopBreadcrumbProps {
   currentView: View;
   activeBrandId?: string | null;
+  activeDnaPillar?: DnaPillar;
   onSelectBrand?: (brandId: string) => void;
 }
 
-export function TopBreadcrumb({ currentView, activeBrandId, onSelectBrand }: TopBreadcrumbProps) {
+export function TopBreadcrumb({ currentView, activeBrandId, activeDnaPillar, onSelectBrand }: TopBreadcrumbProps) {
   const { brands, isLoading } = useBusinessDNA();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -90,6 +105,12 @@ export function TopBreadcrumb({ currentView, activeBrandId, onSelectBrand }: Top
 
       <span className="text-muted-foreground">/</span>
       <span className="text-foreground font-medium">{VIEW_LABELS[currentView]}</span>
+      {currentView === "businessdna" && activeDnaPillar && (
+        <>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-foreground font-medium">{PILLAR_LABELS[activeDnaPillar]}</span>
+        </>
+      )}
     </div>
   );
 }

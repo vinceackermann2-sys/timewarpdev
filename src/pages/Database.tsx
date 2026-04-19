@@ -40,7 +40,7 @@ function MobileHeader() {
   );
 }
 
-import type { DashboardTab } from "@/components/database/DatabaseSidebar";
+import type { DashboardTab, DnaPillar } from "@/components/database/DatabaseSidebar";
 
 type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
 
@@ -73,6 +73,7 @@ const Database = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>("Briefing");
+  const [dnaPillar, setDnaPillar] = useState<DnaPillar>("brand");
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
@@ -318,12 +319,15 @@ const Database = () => {
             userEmail={user?.email || ""}
             activeDashboardTab={dashboardTab}
             onDashboardTabChange={setDashboardTab}
+            activeDnaPillar={dnaPillar}
+            onDnaPillarChange={setDnaPillar}
           />
           <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
             <MobileHeader />
             <TopBreadcrumb
               currentView={currentView}
               activeBrandId={activeBrandId}
+              activeDnaPillar={currentView === "businessdna" ? dnaPillar : undefined}
               onSelectBrand={(brandId) => {
                 setActiveBrandId(brandId);
                 setShowBusinessDNA(true);
@@ -352,6 +356,7 @@ const Database = () => {
                   ) : showBusinessDNA && activeBrandId ? (
                     <BusinessDNAView
                       activeBrandId={activeBrandId}
+                      activePillar={dnaPillar}
                       onBack={() => {
                         setShowBusinessDNA(false);
                         setActiveBrandId(null);
