@@ -2,12 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import {
   Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, Check, ExternalLink,
   Mail, Calendar, FileText, Hash, Briefcase, StickyNote, Users, Inbox,
+  Copy, EyeOff, RotateCcw,
 } from "lucide-react";
 import {
   SOURCE_META, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind,
 } from "./dashboardTypes";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 
 interface Props {
