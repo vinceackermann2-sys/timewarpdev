@@ -267,16 +267,169 @@ export async function searchSlackData(token: string, query: string, topic?: stri
   return results.slice(0, 5);
 }
 
+// --- Google Workspace search (query-scoped, low-usage) ---
+
+export async function searchGmailData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const searchTerms = buildSearchTerms(query, topic);
+  if (searchTerms.length === 0) return results;
+  const q = searchTerms.slice(0, 2).join(" OR ");
+  try {
+    const listRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=${encodeURIComponent(q)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!listRes.ok) return results;
+    const listData = await listRes.json();
+    const ids: string[] = (listData.messages || []).slice(0, 5).map((m: any) => m.id);
+    await Promise.all(ids.map(async (id: string) => {
+      try {
+        const r = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (!r.ok) return;
+        const d = await r.json();
+        const headers = d.payload?.headers || [];
+        const subject = headers.find((h: any) => h.name === "Subject")?.value || "No Subject";
+        const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
+        const date = headers.find((h: any) => h.name === "Date")?.value || "";
+        const snippet = (d.snippet || "").slice(0, 300);
+        results.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${date}\nBODY: ${snippet}`);
+      } catch { /* skip */ }
+    }));
+  } catch (e) { console.error("Gmail search error:", e); }
+  return results.slice(0, 5);
+}
+
+export async function searchGoogleDriveData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const searchTerms = buildSearchTerms(query, topic);
+  if (searchTerms.length === 0) return results;
+  for (const term of searchTerms.slice(0, 2)) {
+    if (results.length >= 5) break;
+    const safe = term.replace(/'/g, "\\'");
+    const q = encodeURIComponent(`name contains '${safe}' or fullText contains '${safe}' and trashed=false`);
+    try {
+      const r = await fetch(
+        `https://www.googleapis.com/drive/v3/files?pageSize=5&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime,webViewLink)&q=${q}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!r.ok) continue;
+      const d = await r.json();
+      for (const f of (d.files || [])) {
+        if (results.length >= 5) break;
+        const icon = f.mimeType?.includes("document") ? "📄" : f.mimeType?.includes("spreadsheet") ? "📊" : f.mimeType?.includes("presentation") ? "📽️" : "📁";
+        const modified = f.modifiedTime?.slice(0, 10) || "";
+        results.push(`${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`);
+      }
+    } catch (e) { console.error("Drive search error:", e); }
+  }
+  return results;
+}
+
+export async function searchGoogleCalendarData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const searchTerms = buildSearchTerms(query, topic);
+  if (searchTerms.length === 0) return results;
+  const q = searchTerms[0];
+  try {
+    const now = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const future = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+    const r = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?q=${encodeURIComponent(q)}&timeMin=${encodeURIComponent(now)}&timeMax=${encodeURIComponent(future)}&maxResults=5&singleEvents=true&orderBy=startTime`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!r.ok) return results;
+    const d = await r.json();
+    for (const ev of (d.items || []).slice(0, 5)) {
+      const start = (ev.start?.dateTime || ev.start?.date || "").slice(0, 16).replace("T", " ");
+      const attendees = (ev.attendees || []).length;
+      results.push(`📅 **${ev.summary || "Untitled"}** — ${start} (${attendees} attendees)`);
+    }
+  } catch (e) { console.error("Calendar search error:", e); }
+  return results;
+}
+
+export async function searchHubspotData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const searchTerms = buildSearchTerms(query, topic);
+  if (searchTerms.length === 0) return results;
+  const q = searchTerms[0];
+  try {
+    // Search contacts
+    const contactsRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/search`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query: q, limit: 5, properties: ["firstname", "lastname", "email", "lifecyclestage"] }),
+    });
+    if (contactsRes.ok) {
+      const d = await contactsRes.json();
+      for (const c of (d.results || []).slice(0, 3)) {
+        results.push(`👤 ${c.properties?.firstname || ""} ${c.properties?.lastname || ""} (${c.properties?.email || "no email"}) — stage: ${c.properties?.lifecyclestage || "unknown"}`);
+      }
+    }
+    // Search deals
+    const dealsRes = await fetch(`https://api.hubapi.com/crm/v3/objects/deals/search`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query: q, limit: 5, properties: ["dealname", "amount", "dealstage"] }),
+    });
+    if (dealsRes.ok) {
+      const d = await dealsRes.json();
+      for (const deal of (d.results || []).slice(0, 3)) {
+        results.push(`💼 ${deal.properties?.dealname || "Unnamed"} — $${deal.properties?.amount || "0"} (${deal.properties?.dealstage || "unknown"})`);
+      }
+    }
+  } catch (e) { console.error("HubSpot search error:", e); }
+  return results.slice(0, 6);
+}
+
+// Get a Google access token from any connected Google sub-service
+async function getAnyGoogleToken(supabaseAdmin: any, userId: string): Promise<string | null> {
+  const candidates = ["google", "google_gmail", "google_drive", "google_docs", "google_sheets", "google_slides", "google_calendar"];
+  for (const p of candidates) {
+    const t = await getValidAccessToken(supabaseAdmin, userId, p);
+    if (t) return t;
+  }
+  return null;
+}
+
+// --- Per-provider intent detection ---
+// If the user explicitly names a provider, only search that one (saves usage).
+const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
+  { keys: /\b(gmail|g[\s-]?mail)\b/i, providers: ["google_gmail"] },
+  { keys: /\b(google\s*drive|gdrive|google\s*docs?|google\s*sheets?|google\s*slides?)\b/i, providers: ["google_drive"] },
+  { keys: /\b(google\s*calendar|gcal)\b/i, providers: ["google_calendar"] },
+  { keys: /\bgoogle\b/i, providers: ["google_gmail", "google_drive", "google_calendar"] },
+  { keys: /\b(outlook)\b/i, providers: ["microsoft_outlook"] },
+  { keys: /\b(onedrive|one\s*drive|sharepoint)\b/i, providers: ["microsoft_onedrive"] },
+  { keys: /\b(onenote|one\s*note)\b/i, providers: ["microsoft_onenote"] },
+  { keys: /\b(microsoft|teams|m365|office\s*365)\b/i, providers: ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"] },
+  { keys: /\bslack\b/i, providers: ["slack"] },
+  { keys: /\b(hubspot|hub\s*spot|crm)\b/i, providers: ["hubspot"] },
+];
+
+export function detectNamedProviders(query: string): string[] {
+  if (!query) return [];
+  const matched = new Set<string>();
+  for (const { keys, providers } of PROVIDER_NAME_PATTERNS) {
+    if (keys.test(query)) providers.forEach((p) => matched.add(p));
+  }
+  return Array.from(matched);
+}
+
 // --- Intent Analysis ---
 const CONNECTION_TRIGGER_PATTERNS = [
   /\b(collab\w*|collaboration\w*|partnership\w*|partner\w*|meeting\w*|follow.?up|agenda)\b/i,
   /\b(complaint|issue|ticket|support|bug|problem|incident)\b/i,
-  /\b(email|mail|inbox|message|slack|teams|chat|dm|thread)\b/i,
-  /\b(file|document|doc|sheet|drive|onedrive|sharepoint)\b/i,
-  /\b(calendar|schedule|event|appointment|invite)\b/i,
-  /\b(customer|client)\s+(said|wrote|asked|mentioned|replied|responded)\b/i,
+  /\b(email|mail|inbox|message|slack|teams|chat|dm|thread|gmail|outlook)\b/i,
+  /\b(file|document|doc|sheet|drive|onedrive|sharepoint|gdrive)\b/i,
+  /\b(calendar|schedule|event|appointment|invite|gcal)\b/i,
+  /\b(customer|client|contact|deal|lead|crm|hubspot)\b.{0,40}\b(said|wrote|asked|mentioned|replied|responded|deal|stage|pipeline|value)\b/i,
+  /\b(hubspot|crm)\b/i,
   /\b(recent|latest|new|incoming|pending|unread)\b/i,
-  /\b(check|search|find|look\s+up|pull)\s+(my|our|the)\s+(email|slack|message|file|drive)\b/i,
+  /\b(check|search|find|look\s+up|pull)\s+(my|our|the)\s+(email|slack|message|file|drive|gmail|hubspot|crm)\b/i,
   /\b(what|any)\b.{0,30}\b(coming\s+up|scheduled|planned|pending)\b/i,
 ];
 
