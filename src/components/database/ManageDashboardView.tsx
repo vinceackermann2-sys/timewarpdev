@@ -590,6 +590,8 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
         Objectives: tabs.Objectives || [],
       };
       setAllTabCards(result);
+      setOpeningSummary(data?.openingSummary || null);
+      setHealthScore(data?.healthScore || null);
       saveCachedCards(brandId, result);
     } catch (e: any) {
       console.error("Dashboard insights error:", e);
