@@ -692,14 +692,42 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
             <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
           </div>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="More options"
-              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreVertical className="h-4 w-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="More options"
+                  className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors outline-none"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => copyToClipboard(card.title, "Title")}>
+                  <Copy className="h-3.5 w-3.5 mr-2" /> Copy title
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => copyToClipboard(originalContent, "Original content")}>
+                  <FileText className="h-3.5 w-3.5 mr-2" /> Copy original content
+                </DropdownMenuItem>
+                {sourceUrl && (
+                  <DropdownMenuItem onClick={() => window.open(sourceUrl, "_blank", "noopener,noreferrer")}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in {sourceMeta.label}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleDone}>
+                  {done ? (
+                    <><RotateCcw className="h-3.5 w-3.5 mr-2" /> Mark as not done</>
+                  ) : (
+                    <><Check className="h-3.5 w-3.5 mr-2" /> Mark as done</>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={dismissCard} className="text-destructive focus:text-destructive">
+                  <EyeOff className="h-3.5 w-3.5 mr-2" /> Dismiss card
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button
               type="button"
               aria-label="Minimize"
@@ -747,13 +775,16 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
                   size="sm"
                   variant="outline"
                   className="h-10 px-3 gap-1.5 text-[13px] font-medium rounded-lg"
-                  onClick={() => { /* future: deep-link to source */ }}
+                  disabled={!sourceUrl}
+                  onClick={() => {
+                    if (sourceUrl) window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                  }}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   Open
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Open in {sourceMeta.label}</TooltipContent>
+              <TooltipContent>{sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}</TooltipContent>
             </Tooltip>
           )}
 
@@ -763,7 +794,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
                 size="icon"
                 variant="outline"
                 className={`h-10 w-10 rounded-lg shrink-0 ${done ? "bg-[hsl(142_55%_95%)] text-[hsl(142_62%_30%)] border-[hsl(142_42%_78%)]" : ""}`}
-                onClick={() => setDone((d) => !d)}
+                onClick={toggleDone}
                 aria-label="Mark done"
               >
                 <Check className="h-4 w-4" />
