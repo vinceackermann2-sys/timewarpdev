@@ -312,12 +312,6 @@ export async function searchGmailData(token: string, query: string, topic?: stri
 export async function searchGoogleDriveData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const searchTerms = buildSearchTerms(query, topic);
-  if (searchTerms.length === 0) return results;
-  for (const term of searchTerms.slice(0, 2)) {
-    if (results.length >= 5) break;
-export async function searchGoogleDriveData(token: string, query: string, topic?: string): Promise<string[]> {
-  const results: string[] = [];
-  const searchTerms = buildSearchTerms(query, topic);
   const isGenericRecent = /\b(recent|latest|last|new|my\s+files?|my\s+docs?|my\s+drive)\b/i.test(query) &&
     !/\b(about|regarding|named|called|titled)\b/i.test(query);
 
