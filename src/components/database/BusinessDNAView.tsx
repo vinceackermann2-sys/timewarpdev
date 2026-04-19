@@ -19,6 +19,9 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { PillarView } from "@/components/database/pillars/PillarView";
+
+const PILLAR_IDS = new Set(["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"]);
 
 // ── Types ──
 interface SegmentEntry {
@@ -523,96 +526,51 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
         </div>
       </div>
 
-      <div className="flex-1 w-full overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-6">
-        <AnimatePresence mode="wait">
-          {!activeSegment ? (
-            <motion.div
-              key="brain-idle"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="flex flex-col items-center justify-center py-16"
-            >
-              <IdleState totalInsights={totalInsights} />
-            </motion.div>
-          ) : activeSegment === "brand" ? (
-            <motion.div
-              key="brand-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="pt-5"
-            >
-              <BrandListView activeBrandId={activeBrandId} />
-            </motion.div>
-          ) : activeSegment === "product" ? (
-            <motion.div
-              key="product-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="pt-5"
-            >
-              <ProductListView activeBrandId={activeBrandId} />
-            </motion.div>
-          ) : activeSegment === "audience" ? (
-            <motion.div
-              key="audience-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="pt-5"
-            >
-              <AudienceListView activeBrandId={activeBrandId} />
-            </motion.div>
-          ) : activeSegment === "database" ? (
-            <motion.div
-              key="database-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="pt-5"
-            >
-              <BusinessDataListView activeBrandId={activeBrandId} />
-            </motion.div>
-          ) : activeSegment === "settings" ? (
-            <motion.div
-              key="settings-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="pt-0"
-            >
-              <SettingsView activeBrandId={activeBrandId} />
-            </motion.div>
-          ) : activeSegmentData ? (
-            <motion.div
-              key={activeSegment}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="pt-5"
-            >
-              <SegmentContent
-                segment={activeSegmentData}
-                entries={segmentEntries[activeSegment] || []}
-                isLoading={isLoading}
-                onAddManual={handleAddManual}
-                onDeleteEntry={handleDeleteEntry}
-                onEditEntry={handleEditEntry}
-              />
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-        </div>
+      <div className="flex-1 w-full overflow-hidden">
+        {activeSegment && PILLAR_IDS.has(activeSegment) ? (
+          <PillarView pillarId={activeSegment} agentName={activeBrand?.agentName} />
+        ) : (
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-6">
+              <AnimatePresence mode="wait">
+                {!activeSegment ? (
+                  <motion.div
+                    key="brain-idle"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex flex-col items-center justify-center py-16"
+                  >
+                    <IdleState totalInsights={totalInsights} />
+                  </motion.div>
+                ) : activeSegment === "database" ? (
+                  <motion.div
+                    key="database-view"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="pt-5"
+                  >
+                    <BusinessDataListView activeBrandId={activeBrandId} />
+                  </motion.div>
+                ) : activeSegment === "settings" ? (
+                  <motion.div
+                    key="settings-view"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="pt-0"
+                  >
+                    <SettingsView activeBrandId={activeBrandId} />
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
       </div>
 
     </div>
