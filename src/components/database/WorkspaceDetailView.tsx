@@ -168,14 +168,6 @@ export function WorkspaceDetailView({
           </p>
         </div>
 
-        {/* ← All workspaces */}
-        <button
-          onClick={onBack}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 inline-block"
-        >
-          ← All workspaces
-        </button>
-
         {/* Tabs */}
         <div className="inline-flex items-center p-1 rounded-lg border border-border mb-4 bg-[#eef2f7]">
           <button
