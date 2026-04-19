@@ -264,12 +264,12 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 <Input
                   readOnly
                   value={referralLink || "Loading..."}
-                  className="bg-muted/30 text-sm"
+                  className="bg-[#eef2f7] text-sm"
                 />
                 <Button
                   onClick={handleCopyLink}
                   variant="outline"
-                  className="shrink-0 gap-1.5"
+                  className="shrink-0 gap-1.5 bg-white hover:bg-white"
                   disabled={!referralLink}
                 >
                   {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
