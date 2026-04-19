@@ -158,6 +158,41 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
       <div className="max-w-[1400px] mx-auto px-6 md:px-10 py-10 flex flex-col xl:flex-row gap-10 items-start">
         {/* Main column */}
         <div className="flex-1 min-w-0 w-full">
+          {/* Pillar Header — business logo + name + agent line */}
+          <div className="flex items-start justify-between mb-10 pb-8 border-b border-border">
+            <div className="flex items-start gap-5">
+              <div className="w-20 h-20 rounded-[20px] bg-card border border-border flex items-center justify-center shadow-md shrink-0 overflow-hidden p-2">
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt={brand?.name || "Business logo"}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <BusinessBrainOrb size={40} />
+                )}
+              </div>
+              <div className="flex-1">
+                <h1 className="text-3xl font-black text-foreground tracking-tight mb-2">
+                  {populatedPillar.name}
+                </h1>
+                <div className="flex items-center gap-2">
+                  <BusinessBrainOrb size={16} />
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                    <span className="text-primary">{agentName || "AI CEO"}</span>
+                    <span>//</span>
+                    <motion.span
+                      animate={{ opacity: [1, 0.4, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      Learning
+                    </motion.span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Document flow */}
           <div className="space-y-14">
             {populatedPillar.sections.map((section) => (
