@@ -535,6 +535,8 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     if (initialTab) setActiveTab(initialTab);
   }, [initialTab]);
   const [allTabCards, setAllTabCards] = useState<Record<string, DashboardCard[]>>({});
+  const [openingSummary, setOpeningSummary] = useState<OpeningSummary | null>(null);
+  const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customObjectives, setCustomObjectives] = useState<DashboardCard[]>([]);
