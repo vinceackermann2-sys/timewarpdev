@@ -147,6 +147,53 @@ function SourceChip({ card }: { card: DashboardCard }) {
   );
 }
 
+/* ── Expandable verbatim body — shows ~6 lines, expands on click if longer ── */
+function ExpandableBody({
+  text,
+  serif = false,
+  emptyHint,
+  threshold = 320,
+}: { text?: string; serif?: boolean; emptyHint: string; threshold?: number }) {
+  const [open, setOpen] = useState(false);
+  const trimmed = (text || "").trim();
+
+  if (!trimmed) {
+    return (
+      <div className="border-t border-border/40 pt-3">
+        <div className="flex items-center gap-2 text-muted-foreground/80 text-[12px]">
+          <Inbox className="h-3.5 w-3.5" />
+          <span>{emptyHint}</span>
+        </div>
+      </div>
+    );
+  }
+
+  const isLong = trimmed.length > threshold;
+  const displayed = open || !isLong ? trimmed : trimmed.slice(0, threshold).trimEnd() + "…";
+  const fontClass = serif ? "font-[ui-serif,Georgia,serif]" : "";
+
+  return (
+    <div className="border-t border-border/40 pt-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+        Original content
+      </p>
+      <p className={`text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap ${fontClass}`}>
+        {displayed}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="mt-2 inline-flex items-center gap-1 text-[11.5px] font-semibold text-[hsl(217_100%_50%)] hover:text-[hsl(217_100%_42%)] transition-colors"
+        >
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+          {open ? "Show less" : `Show full content (${trimmed.length.toLocaleString()} chars)`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ── Email native render ── */
 function EmailRender({ card }: { card: DashboardCard }) {
   const m = card.metadata || {};
@@ -178,14 +225,8 @@ function EmailRender({ card }: { card: DashboardCard }) {
         </div>
       )}
 
-      {/* Body — verbatim */}
-      {m.bodyPreview && (
-        <div className="border-t border-border/40 pt-3">
-          <p className="text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap font-[ui-serif,Georgia,serif]">
-            {m.bodyPreview}
-          </p>
-        </div>
-      )}
+      {/* Body — verbatim, expandable */}
+      <ExpandableBody text={m.bodyPreview} serif emptyHint="No email body was returned by the source." />
     </div>
   );
 }
