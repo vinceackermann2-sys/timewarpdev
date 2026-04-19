@@ -2218,7 +2218,16 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         ) : (
           /* ── Chat messages ── */
           <div className="flex-1 min-h-full px-4 md:px-6 py-6 space-y-5 max-w-3xl mx-auto w-full">
-            {messages.map((msg) => (
+            {messages.map((msg) => {
+              const displayTaskSteps = msg.role === "assistant"
+                ? ((msg.taskSteps && msg.taskSteps.length > 0)
+                    ? msg.taskSteps
+                    : (msg.isStreaming
+                        ? [{ action: "process", label: "Starting request", status: "running" as const }]
+                        : []))
+                : [];
+
+              return (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                 {msg.role === "assistant" && (
                   <div className="flex-shrink-0 mr-3 mt-1">
@@ -2236,11 +2245,12 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                   {msg.role === "assistant" ? (
                     <div className="max-w-none text-foreground text-[14.5px] leading-[1.75]">
                       {/* Task step indicators */}
-                      {msg.taskSteps && msg.taskSteps.length > 0 && (
+                      {displayTaskSteps.length > 0 && (
                         <TaskStepsDisplay
-                          steps={msg.taskSteps}
+                          steps={displayTaskSteps}
                           currentStepIndex={msg.currentStepIndex ?? -1}
                           isStreaming={msg.isStreaming}
+                          startTime={msg.streamStartTime}
                         />
                       )}
                       {/* Main content */}
@@ -2296,7 +2306,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                           }}
                         >{msg.content}</ReactMarkdown>
                       )}
-                      {msg.isStreaming && !msg.content && (!msg.taskSteps || msg.taskSteps.length === 0) && (
+                      {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
                         <div className="flex items-center gap-3 py-2">
                           <span className="text-lg font-semibold text-foreground/70">
                             Thinking<span className="inline-flex w-[1.5em] text-left"><span className="animate-pulse">...</span></span>
@@ -2304,7 +2314,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                           {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} className="text-xs" />}
                         </div>
                       )}
-                      {msg.isStreaming && msg.content && (!msg.taskSteps || msg.taskSteps.length === 0) && (
+                      {msg.isStreaming && msg.content && displayTaskSteps.length === 0 && (
                         <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5" />
                       )}
                       {/* Inline document viewer */}
@@ -2363,7 +2373,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                   )}
                 </div>
               </div>
-            ))}
+            )})}
             <div ref={messagesEndRef} />
           </div>
         )}
