@@ -133,6 +133,7 @@ function CardShell({
   card, onOpen, topRight, middle, footerLeft, footerRight,
   leadingControl, dimmed, hideDescription, topLeft,
 }: CardShellProps) {
+  const delta = deltaBadge(card.deltaState);
   return (
     <div
       onClick={onOpen}
@@ -143,11 +144,20 @@ function CardShell({
       style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}
     >
       {/* Header: source logo (or leading control) ↔ accent */}
-      {(topLeft || leadingControl || topRight) && (
+      {(topLeft || leadingControl || topRight || delta) && (
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             {leadingControl}
             {topLeft}
+            {delta && (
+              <span
+                title={delta.label}
+                className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${delta.cls}`}
+              >
+                <span className="leading-none">{delta.glyph}</span>
+                <span>{delta.label}</span>
+              </span>
+            )}
           </div>
           {topRight}
         </div>
