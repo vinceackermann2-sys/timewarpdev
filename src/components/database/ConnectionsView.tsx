@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { triggerDnaReEnrich } from "@/lib/triggerDnaReEnrich";
 import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
@@ -191,11 +192,14 @@ export function ConnectionsView() {
     const params = new URLSearchParams(window.location.search);
     const oauthSuccess = params.get("oauth_success");
     const oauthError = params.get("oauth_error");
+    const brandIdParam = params.get("brand_id") || params.get("brandId") || undefined;
     if (oauthSuccess) {
       const label = integrations.find(i => i.id === oauthSuccess)?.name || oauthSuccess;
       toast.success(`${label} connected successfully!`);
       window.history.replaceState({}, "", window.location.pathname);
       checkConnections();
+      // Background DNA re-enrichment so newly-connected data flows into the pillars.
+      void triggerDnaReEnrich(brandIdParam);
     } else if (oauthError) {
       toast.error(`Connection failed: ${oauthError}`);
       window.history.replaceState({}, "", window.location.pathname);

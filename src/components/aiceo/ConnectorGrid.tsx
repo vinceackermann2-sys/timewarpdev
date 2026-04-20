@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { triggerDnaReEnrich } from "@/lib/triggerDnaReEnrich";
 import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
