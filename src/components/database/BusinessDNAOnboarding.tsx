@@ -980,8 +980,8 @@ export function BusinessDNAOnboarding({
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-2">Add {btConfig.plural} to business DNA</h1>
-            <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select up to 3 {btConfig.plural} to import</p>
+            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-2">Add your {btConfig.label.toLowerCase()} to business DNA</h1>
+            <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select 1 {btConfig.label.toLowerCase()} to import</p>
 
             {/* URL bar with continue */}
             <div className="w-full max-w-[900px] bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
@@ -991,11 +991,14 @@ export function BusinessDNAOnboarding({
               </div>
               <button
                 onClick={() => {
-                  if (selectedProducts.length === 0) {
-                    const allIdx = extractedProducts.slice(0, 3).map((_: any, i: number) => i);
-                    setSelectedProducts(allIdx);
+                  let chosen = selectedProducts;
+                  if (chosen.length === 0 && extractedProducts.length > 0) {
+                    chosen = [0];
+                    setSelectedProducts(chosen);
                   }
-                  if (extractedProducts.some((p: any) => p.images?.length > 0)) {
+                  const firstIdx = chosen[0];
+                  const firstProduct = firstIdx !== undefined ? extractedProducts[firstIdx] : undefined;
+                  if (firstProduct?.images?.length > 0) {
                     setCurrentProductIndex(0);
                     setStep(3);
                   } else {
@@ -1034,10 +1037,11 @@ export function BusinessDNAOnboarding({
                     <div
                       key={i}
                       onClick={() => {
+                        // Single-select: clicking always replaces selection with this product
                         if (isSelected) {
-                          setSelectedProducts(selectedProducts.filter(id => id !== i));
-                        } else if (selectedProducts.length < 3) {
-                          setSelectedProducts([...selectedProducts, i]);
+                          setSelectedProducts([]);
+                        } else {
+                          setSelectedProducts([i]);
                         }
                       }}
                       className={`cursor-pointer rounded-2xl overflow-hidden border-2 transition-all ${
