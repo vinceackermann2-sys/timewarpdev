@@ -232,9 +232,35 @@ export function buildPillarValues(
         rows: allAObj.map((o) => [o.objection, o.response || "—"]),
       };
     }
-  }
 
-  // ── EXTENDED PILLARS (4-9) ─────────────────────────────────────────────
+    // AI-enriched additions (a5/a6/a7/a13)
+    if (extended) {
+      if (Array.isArray(extended.journey) && extended.journey.length) {
+        map.a5 = extended.journey.map((s: any) => ({
+          date: s.stage || "—",
+          title: s.moment || "—",
+          desc: s.thought || "",
+        }));
+      }
+      if (Array.isArray(extended.decision_criteria) && extended.decision_criteria.length) {
+        map.a6 = {
+          columns: ["Criterion", "Weight", "What Proves It"],
+          rows: extended.decision_criteria.map((d: any) => [
+            d.criterion || "—", d.weight || "—", d.what_proves_it || "—",
+          ]),
+        };
+      }
+      if (Array.isArray(extended.pain_architecture) && extended.pain_architecture.length) {
+        map.a7 = extended.pain_architecture;
+      }
+      if (Array.isArray(extended.checklist) && extended.checklist.length) {
+        map.a13 = {
+          columns: ["Item", "Status"],
+          rows: extended.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+        };
+      }
+    }
+  }
   const ext = extended || null;
 
   if (pillarId === "market" && ext) {
