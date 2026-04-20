@@ -545,7 +545,8 @@ export function BusinessDNAOnboarding({
       }
 
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
-      const filteredProducts = productsRaw.slice(0, 5);
+      // 9-pillar model: 1 product per business
+      const filteredProducts = productsRaw.slice(0, 1);
 
       const newProducts: ProductEntry[] = filteredProducts.map((p: any, i: number) => {
         const selectedImgIdx = selectedImages[i];
@@ -609,7 +610,7 @@ export function BusinessDNAOnboarding({
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
       const parsedAudiences: AudienceEntry[] = audiencesRaw
         .filter((a: any) => a?.name)
-        .slice(0, 5)
+        .slice(0, 1) // 9-pillar model: 1 audience per business
         .map((a: any, i: number) => ({
           ...DEFAULT_AUDIENCE,
           id: `audience-${Date.now()}-${i}`,
