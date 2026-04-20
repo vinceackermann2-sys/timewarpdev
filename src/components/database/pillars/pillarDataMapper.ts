@@ -54,12 +54,31 @@ export function buildPillarValues(
     // 9. Tagline & Power Lines
     if (vi?.buttonRules?.length) map.b9 = vi.buttonRules;
 
-    // 10. Brand Perception → doc columns: How Customers Describe, How Market Categorizes, Gap
+    // 10. Brand Perception → doc columns: Channel, Perception
     if (vi?.socialMediaRules?.length) {
       map.b10 = {
         columns: ["Channel", "Perception"],
         rows: vi.socialMediaRules.map((r) => ["Social", r]),
       };
+    }
+
+    // AI-enriched additions (b2/b3/b4/b7/b11)
+    if (extended) {
+      if (extended.mission) map.b2 = extended.mission;
+      if (extended.vision) map.b3 = extended.vision;
+      if (Array.isArray(extended.values) && extended.values.length) {
+        map.b4 = {
+          columns: ["Value", "Lived Behavior"],
+          rows: extended.values.map((v: any) => [v.value || "—", v.behavior || "—"]),
+        };
+      }
+      if (extended.positioning) map.b7 = extended.positioning;
+      if (Array.isArray(extended.checklist) && extended.checklist.length) {
+        map.b11 = {
+          columns: ["Item", "Status"],
+          rows: extended.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+        };
+      }
     }
   }
 
@@ -128,6 +147,25 @@ export function buildPillarValues(
         columns: ["Proof Type", "What to Capture"],
         rows: allProof.map((pp) => [pp.category, (pp.items || []).join("; ")]),
       };
+    }
+
+    // AI-enriched additions (p5/p8/p14/p15)
+    if (extended) {
+      if (extended.mechanism) map.p5 = extended.mechanism;
+      if (extended.value_proposition) map.p8 = extended.value_proposition;
+      if (Array.isArray(extended.roadmap) && extended.roadmap.length) {
+        map.p14 = extended.roadmap.map((r: any) => ({
+          date: r.horizon || "—",
+          title: r.milestone || "—",
+          desc: r.outcome || "",
+        }));
+      }
+      if (Array.isArray(extended.checklist) && extended.checklist.length) {
+        map.p15 = {
+          columns: ["Item", "Status"],
+          rows: extended.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+        };
+      }
     }
   }
 
