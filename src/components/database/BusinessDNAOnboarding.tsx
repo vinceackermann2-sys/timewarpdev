@@ -175,7 +175,6 @@ export function BusinessDNAOnboarding({
     { label: "Forging DNA", status: "pending" },
     { label: "Confirming data", status: "pending" },
     { label: "Saving DNA", status: "pending" },
-    { label: "Enriching brand", status: "pending" },
   ]);
   const [businessType, setBusinessType] = useState<BusinessType>("general");
   const btConfig = BUSINESS_TYPE_CONFIG[businessType];
@@ -449,7 +448,6 @@ export function BusinessDNAOnboarding({
       { label: "Forging DNA", status: "pending" },
       { label: "Confirming data", status: "pending" },
       { label: "Saving DNA", status: "pending" },
-      { label: "Enriching brand", status: "pending" },
     ]);
 
     (async () => {
@@ -702,7 +700,8 @@ export function BusinessDNAOnboarding({
         setTimeout(() => setStep(6), 800);
       }
 
-      // Enrichment — fire and forget in background (non-blocking)
+      // 9-pillar model: skip brand image enrichment (moodboard/illustrations).
+      // Only run text-based pillar enrichment (market/financial/operations/people/growth/strategy).
       if (contextAvailable) {
         let rowId: string | undefined = savedBrandRowId;
         if (!rowId) {
@@ -716,34 +715,7 @@ export function BusinessDNAOnboarding({
           }
         }
         if (rowId) {
-          const firstProduct = filteredProducts[0] || {};
-          const firstAudience = audiencesRaw[0] || {};
-          // Fire enrichment without awaiting — it completes in background
-          invokeEdgeFunction("enrich-brand", {
-            brandRowId: rowId,
-            brandName,
-            brandCategory: b.category || "lifestyle",
-            brandColors: b.colors || {},
-            audienceDesc: firstAudience.description || "",
-            audiencePowerWords: (firstAudience.powerWords || []).slice(0, 5).join(", "),
-            productBenefits: (firstProduct.benefits || []).slice(0, 6).join("; "),
-            buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
-            websiteUrl: activeUrl || "",
-            productImageUrls: filteredProducts
-              .map((p: any) => p.images?.[0]?.url || p.images?.[0])
-              .filter((u: any) => typeof u === "string" && u.length > 0)
-              .slice(0, 3),
-          }).then(res => {
-            if (res.data?.success && refreshBrand) {
-              refreshBrand(finalBrandId);
-            }
-            markTodo("Enriching brand");
-          }).catch(e => {
-            console.warn("Brand enrichment failed (non-blocking):", e);
-            markTodo("Enriching brand");
-          });
-
-          // Fire pillar enrichment in parallel — fills market/financial/operations/people/growth/strategy
+          // Fire pillar enrichment in background — fills the 9 pillars with text data
           invokeEdgeFunction("enrich-pillars", {
             brandId: finalBrandId,
             brandRowId: rowId,
@@ -751,11 +723,7 @@ export function BusinessDNAOnboarding({
           }).catch((e) => {
             console.warn("Pillar enrichment failed (non-blocking):", e);
           });
-        } else {
-          markTodo("Enriching brand");
         }
-      } else {
-        markTodo("Enriching brand");
       }
     })();
 
