@@ -453,8 +453,50 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
   const totalInsights = Object.values(segmentEntries).reduce((sum, arr) => sum + arr.length, 0);
   const activeSegmentData = BRAIN_SEGMENTS.find(s => s.id === activeSegment);
 
-  // Don't render until brand data has loaded — show skeleton
+  // Don't render until brand data has loaded — show skeleton matching the active layout
   if (dnaLoading || !activeBrand) {
+    const showPillarSkeleton = activeSegment && PILLAR_IDS.has(activeSegment);
+    if (showPillarSkeleton) {
+      // Skeleton mirrors the new PillarView layout (header + sections + right-rail navigator)
+      return (
+        <div className="flex h-full w-full">
+          <div className="flex-1 overflow-hidden">
+            <div className="max-w-3xl mx-auto px-6 pt-8 pb-12 space-y-8">
+              {/* Pillar header */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                  <Skeleton className="h-7 w-40" />
+                </div>
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+              {/* Sections */}
+              {Array.from({ length: 3 }).map((_, s) => (
+                <div key={s} className="space-y-4">
+                  <Skeleton className="h-6 w-48" />
+                  <div className="space-y-3">
+                    {Array.from({ length: 4 }).map((_, f) => (
+                      <div key={f} className="rounded-lg border border-border/40 bg-card/50 p-4 space-y-2">
+                        <Skeleton className="h-3.5 w-32" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Right-rail navigator skeleton */}
+          <div className="hidden lg:block w-48 shrink-0 border-l border-border/50 px-4 py-8 space-y-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-4 w-full rounded" />
+            ))}
+          </div>
+        </div>
+      );
+    }
+    // Default skeleton (non-pillar landing — segment tabs)
     return (
       <div className="flex flex-col h-full items-center">
         <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-0 space-y-4 sm:space-y-6 border-b border-border/50 w-full max-w-5xl">
