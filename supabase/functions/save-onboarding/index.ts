@@ -117,8 +117,8 @@ serve(async (req) => {
       );
     }
 
-    // Insert products (support both single productData and array productsData, max 5)
-    const allProducts = (productsData || (productData ? [productData] : [])).slice(0, 5);
+    // Insert products — 9-pillar model: 1 product per business
+    const allProducts = (productsData || (productData ? [productData] : [])).slice(0, 1);
     for (const prod of allProducts) {
       const { error: productErr } = await admin.from("user_business_data").insert({
         ...basePayload,
@@ -132,8 +132,8 @@ serve(async (req) => {
       }
     }
 
-    // Insert audiences (support both single audienceData and array audiencesData, max 5)
-    const allAudiences = (audiencesData || (audienceData ? [audienceData] : [])).slice(0, 5);
+    // Insert audiences — 9-pillar model: 1 audience per business
+    const allAudiences = (audiencesData || (audienceData ? [audienceData] : [])).slice(0, 1);
     for (const aud of allAudiences) {
       if (!aud) continue;
       const { error: audErr } = await admin.from("user_business_data").insert({
