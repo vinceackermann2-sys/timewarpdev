@@ -65,6 +65,26 @@ serve(async (req) => {
       return parsed?.brandId === logicalBrandId || item.metadata?.brandId === logicalBrandId;
     });
 
+    // 1b. Load the 6 extended DNA pillars (market, financial, operations, people, growth, strategy).
+    // These live as separate user_business_data rows (NOT source='business-dna') and were missing
+    // from the dashboard's analysis context until now.
+    const EXTENDED_PILLAR_TYPES = ["market", "financial", "operations", "people", "growth", "strategy"];
+    let pillarsQuery = supabase
+      .from("user_business_data")
+      .select("id, title, content, data_type, metadata, created_at")
+      .in("data_type", EXTENDED_PILLAR_TYPES);
+    if (workspaceId) pillarsQuery = pillarsQuery.eq("workspace_id", workspaceId);
+    else pillarsQuery = pillarsQuery.eq("user_id", user.id);
+    const { data: extendedPillarRows } = await pillarsQuery.limit(200);
+    const extendedPillars: Record<string, any> = {};
+    for (const row of (extendedPillarRows || [])) {
+      // Scope to the active brand when metadata declares it; otherwise include user-wide rows.
+      const rowBrandId = (row as any).metadata?.brandId;
+      if (rowBrandId && rowBrandId !== logicalBrandId && rowBrandId !== brandId) continue;
+      const parsed = tryParseJson((row as any).content);
+      if (parsed && typeof parsed === "object") extendedPillars[(row as any).data_type] = parsed;
+    }
+
     // 2. Load connections
     const { data: connections } = await supabase
       .from("user_connections")
@@ -559,12 +579,26 @@ AI Agent: ${brandContent.agentName || "Not configured"}
 ` : "Brand data not available.";
 
     const connectedSummary = connectedProviders.length > 0
-      ? `Connected integrations: ${connectedProviders.join(", ")}`
+      ? `Connected integrations (${connectedProviders.length}): ${connectedProviders.join(", ")}`
       : "No integrations connected.";
 
     const employeesSummary = (employees || []).length > 0
       ? (employees || []).map((e: any) => `- ${e.name} (${e.role}) — ${e.status}`).join("\n")
       : "No AI employees linked.";
+
+    // Stringify each extended pillar (capped) so the AI can use it as alignment context.
+    const PILLAR_LABELS: Record<string, string> = {
+      market: "Market", financial: "Financial", operations: "Operations",
+      people: "People", growth: "Growth", strategy: "Strategy",
+    };
+    const extendedPillarsSummary = EXTENDED_PILLAR_TYPES
+      .map((t) => {
+        const data = extendedPillars[t];
+        if (!data) return `### ${PILLAR_LABELS[t]}\n_(not yet defined)_`;
+        const json = JSON.stringify(data, null, 2).slice(0, 2000);
+        return `### ${PILLAR_LABELS[t]}\n${json}`;
+      })
+      .join("\n\n");
 
     const fullContext = `
 ## Business Overview
@@ -575,6 +609,9 @@ ${productsSummary}
 
 ## Target Audiences
 ${audiencesSummary}
+
+## Extended Business DNA (Market / Financial / Operations / People / Growth / Strategy)
+${extendedPillarsSummary}
 
 ## AI Employees
 ${employeesSummary}
@@ -610,8 +647,8 @@ Every card must answer EXACTLY one of these questions:
 
 If a piece of intelligence does not answer one of these, OMIT it.
 
-## ALIGNMENT LAYER (Business DNA)
-Use the Business Overview, Products, Target Audiences, and AI Employees sections as the ALIGNMENT LAYER. Every insight must be contextualized against this business's identity, goals, products, and audiences. DNA is for tone/context — never as a source of facts.
+## ALIGNMENT LAYER (Full 9-Pillar Business DNA + Connections)
+Use ALL of these sections as the ALIGNMENT LAYER: Business Overview, Products, Target Audiences, **Extended Business DNA (Market, Financial, Operations, People, Growth, Strategy)**, AI Employees, and connected Integrations. Every insight must be contextualized against this business's identity, goals, products, audiences, market position, financials, ops, team, growth motion, and strategy. When the Extended DNA defines an OKR, KPI, target, milestone, or risk, you MUST surface it as an Objective (with momentumIndicator) when there is real signal in Live Integration Data. DNA is for tone/context/alignment — never as a source of fabricated facts.
 
 ## DATA SOURCES — STRICT ANTI-HALLUCINATION RULES
 You MUST generate cards ONLY from the "## Live Integration Data" section. Every card must trace back to a SPECIFIC item (email subject, message text, deal name, file name, meeting title) that appears VERBATIM in that section.
