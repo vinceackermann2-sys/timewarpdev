@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { triggerDnaReEnrich } from "@/lib/triggerDnaReEnrich";
 import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
@@ -59,13 +60,16 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
       toast.success(`${label} connected!`);
       window.history.replaceState({}, "", window.location.pathname);
       setConnectedProviders(prev => prev.includes(oauthSuccess) ? prev : [...prev, oauthSuccess]);
+      // Re-enrich Business DNA pillars that benefit from live integration data.
+      // Runs in background; AI will only fill fields where it has real evidence.
+      void triggerDnaReEnrich(brandId);
       return;
     }
     if (oauthError) {
       toast.error(`Connection failed: ${oauthError}`);
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, []);
+  }, [brandId]);
 
   useEffect(() => { checkConnections(); }, []);
 

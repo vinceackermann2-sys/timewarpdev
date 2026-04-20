@@ -235,10 +235,51 @@ serve(async (req) => {
     const productContext = productRows.map((r) => safe(r.content)).join("\n---\n").slice(0, 8000);
     const audienceContext = audienceRows.map((r) => safe(r.content)).join("\n---\n").slice(0, 8000);
 
+    // ---- Connection signals ----------------------------------------------------
+    // When the user has connected providers (Outlook, Gmail, OneDrive, HubSpot,
+    // Slack, etc.), surface a tiny, anti-fabrication summary of what we observe:
+    // # of contacts, vendor-domain hints, top tools mentioned, # of files, # of
+    // deals/pipeline value, # of Slack channels, etc. The AI uses this STRICTLY
+    // as evidence — never as license to invent specifics. Each pillar prompt
+    // already enforces "empty if no evidence".
+    const { data: connectionsRaw } = await admin
+      .from("user_connections")
+      .select("provider, status, metadata, connected_at")
+      .eq("user_id", user.id)
+      .eq("status", "connected");
+    const connectedProviders: string[] = (connectionsRaw || []).map((c: any) => c.provider);
+
+    let connectionContext = "(no integrations connected)";
+    if (connectedProviders.length > 0) {
+      const lines: string[] = [];
+      lines.push(`Connected providers (${connectedProviders.length}): ${connectedProviders.join(", ")}`);
+      // Pillar relevance map — tells AI which pillars these signals can ground.
+      lines.push("Provider → pillar relevance:");
+      const relevance: Record<string, string> = {
+        microsoft_outlook: "people, operations, growth (customer comms, vendor emails, team activity)",
+        microsoft_onedrive: "operations, strategy (documents, contracts, decks, processes)",
+        microsoft_onenote: "operations, strategy (notes, SOPs, planning docs)",
+        microsoft_teams: "people, operations (channels = teams/processes, members = headcount)",
+        google_gmail: "people, operations, growth (customer comms, vendors)",
+        google_calendar: "people, operations (recurring meetings = processes, attendees = team)",
+        google_drive: "operations, strategy (documents, decks, contracts)",
+        google_docs: "operations, strategy",
+        google_sheets: "financial, operations (KPI sheets, budgets, trackers)",
+        google_slides: "strategy, growth (decks, plans, pitches)",
+        slack: "people, operations (channels = teams, members = headcount, activity)",
+        hubspot: "financial, growth, audience (deals, pipeline, contacts, owners = team)",
+        zoom: "people, operations (recurring meetings, recordings)",
+      };
+      for (const p of connectedProviders) {
+        if (relevance[p]) lines.push(`  • ${p} → ${relevance[p]}`);
+      }
+      connectionContext = lines.join("\n");
+    }
+
     const systemPrompt = `You are a senior business strategist generating Business DNA for one of the 9 strategic pillars, following the TimeWarp Business DNA Model document.
 
 CRITICAL EVIDENCE RULES — read carefully:
-- You are working from ONLY a brand description, product list, and audience list captured during onboarding. You have NO access to the company's internal systems, financials, headcount, vendors, tech stack, KPIs, or operations.
+- You are working from a brand description, product list, audience list captured during onboarding, AND a list of which integrations the user has connected. The presence of a connection is a SIGNAL (e.g. "HubSpot connected" → there IS a CRM/pipeline; "Slack connected with N members" → there IS a team) but NOT a license to invent specific names, dollar amounts, or counts you do not see in the context.
 - DO NOT fabricate. Do not invent specific revenue numbers, headcount, employee names, real vendor names, real competitor names, real CAC/LTV/margin numbers, real funding amounts, or real internal processes.
 - For EACH field, decide: is there direct evidence in the provided context, OR is this a safe externally-observable category-level inference (e.g. "B2B SaaS companies in this category typically use a subscription revenue model")?
   - If YES (direct evidence) → fill it concretely.
@@ -263,6 +304,9 @@ ${productContext || "(no products)"}
 
 AUDIENCES (${audienceRows.length}):
 ${audienceContext || "(no audiences)"}
+
+CONNECTION SIGNALS:
+${connectionContext}
 
 ${PILLAR_PROMPTS[pillarId]}`;
 
