@@ -175,7 +175,6 @@ export function BusinessDNAOnboarding({
     { label: "Forging DNA", status: "pending" },
     { label: "Confirming data", status: "pending" },
     { label: "Saving DNA", status: "pending" },
-    { label: "Enriching brand", status: "pending" },
   ]);
   const [businessType, setBusinessType] = useState<BusinessType>("general");
   const btConfig = BUSINESS_TYPE_CONFIG[businessType];
@@ -449,7 +448,6 @@ export function BusinessDNAOnboarding({
       { label: "Forging DNA", status: "pending" },
       { label: "Confirming data", status: "pending" },
       { label: "Saving DNA", status: "pending" },
-      { label: "Enriching brand", status: "pending" },
     ]);
 
     (async () => {
@@ -545,7 +543,8 @@ export function BusinessDNAOnboarding({
       }
 
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
-      const filteredProducts = productsRaw.slice(0, 5);
+      // 9-pillar model: 1 product per business
+      const filteredProducts = productsRaw.slice(0, 1);
 
       const newProducts: ProductEntry[] = filteredProducts.map((p: any, i: number) => {
         const selectedImgIdx = selectedImages[i];
@@ -609,7 +608,7 @@ export function BusinessDNAOnboarding({
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
       const parsedAudiences: AudienceEntry[] = audiencesRaw
         .filter((a: any) => a?.name)
-        .slice(0, 5)
+        .slice(0, 1) // 9-pillar model: 1 audience per business
         .map((a: any, i: number) => ({
           ...DEFAULT_AUDIENCE,
           id: `audience-${Date.now()}-${i}`,
@@ -701,7 +700,8 @@ export function BusinessDNAOnboarding({
         setTimeout(() => setStep(6), 800);
       }
 
-      // Enrichment — fire and forget in background (non-blocking)
+      // 9-pillar model: skip brand image enrichment (moodboard/illustrations).
+      // Only run text-based pillar enrichment (market/financial/operations/people/growth/strategy).
       if (contextAvailable) {
         let rowId: string | undefined = savedBrandRowId;
         if (!rowId) {
@@ -715,34 +715,7 @@ export function BusinessDNAOnboarding({
           }
         }
         if (rowId) {
-          const firstProduct = filteredProducts[0] || {};
-          const firstAudience = audiencesRaw[0] || {};
-          // Fire enrichment without awaiting — it completes in background
-          invokeEdgeFunction("enrich-brand", {
-            brandRowId: rowId,
-            brandName,
-            brandCategory: b.category || "lifestyle",
-            brandColors: b.colors || {},
-            audienceDesc: firstAudience.description || "",
-            audiencePowerWords: (firstAudience.powerWords || []).slice(0, 5).join(", "),
-            productBenefits: (firstProduct.benefits || []).slice(0, 6).join("; "),
-            buyingTriggers: (firstAudience.buyingTriggers || []).slice(0, 4).join("; "),
-            websiteUrl: activeUrl || "",
-            productImageUrls: filteredProducts
-              .map((p: any) => p.images?.[0]?.url || p.images?.[0])
-              .filter((u: any) => typeof u === "string" && u.length > 0)
-              .slice(0, 3),
-          }).then(res => {
-            if (res.data?.success && refreshBrand) {
-              refreshBrand(finalBrandId);
-            }
-            markTodo("Enriching brand");
-          }).catch(e => {
-            console.warn("Brand enrichment failed (non-blocking):", e);
-            markTodo("Enriching brand");
-          });
-
-          // Fire pillar enrichment in parallel — fills market/financial/operations/people/growth/strategy
+          // Fire pillar enrichment in background — fills the 9 pillars with text data
           invokeEdgeFunction("enrich-pillars", {
             brandId: finalBrandId,
             brandRowId: rowId,
@@ -750,11 +723,7 @@ export function BusinessDNAOnboarding({
           }).catch((e) => {
             console.warn("Pillar enrichment failed (non-blocking):", e);
           });
-        } else {
-          markTodo("Enriching brand");
         }
-      } else {
-        markTodo("Enriching brand");
       }
     })();
 
@@ -980,8 +949,8 @@ export function BusinessDNAOnboarding({
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-2">Add {btConfig.plural} to business DNA</h1>
-            <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select up to 3 {btConfig.plural} to import</p>
+            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-2">Add your {btConfig.label.toLowerCase()} to business DNA</h1>
+            <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select 1 {btConfig.label.toLowerCase()} to import</p>
 
             {/* URL bar with continue */}
             <div className="w-full max-w-[900px] bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
@@ -991,11 +960,14 @@ export function BusinessDNAOnboarding({
               </div>
               <button
                 onClick={() => {
-                  if (selectedProducts.length === 0) {
-                    const allIdx = extractedProducts.slice(0, 3).map((_: any, i: number) => i);
-                    setSelectedProducts(allIdx);
+                  let chosen = selectedProducts;
+                  if (chosen.length === 0 && extractedProducts.length > 0) {
+                    chosen = [0];
+                    setSelectedProducts(chosen);
                   }
-                  if (extractedProducts.some((p: any) => p.images?.length > 0)) {
+                  const firstIdx = chosen[0];
+                  const firstProduct = firstIdx !== undefined ? extractedProducts[firstIdx] : undefined;
+                  if (firstProduct?.images?.length > 0) {
                     setCurrentProductIndex(0);
                     setStep(3);
                   } else {
@@ -1034,10 +1006,11 @@ export function BusinessDNAOnboarding({
                     <div
                       key={i}
                       onClick={() => {
+                        // Single-select: clicking always replaces selection with this product
                         if (isSelected) {
-                          setSelectedProducts(selectedProducts.filter(id => id !== i));
-                        } else if (selectedProducts.length < 3) {
-                          setSelectedProducts([...selectedProducts, i]);
+                          setSelectedProducts([]);
+                        } else {
+                          setSelectedProducts([i]);
                         }
                       }}
                       className={`cursor-pointer rounded-2xl overflow-hidden border-2 transition-all ${

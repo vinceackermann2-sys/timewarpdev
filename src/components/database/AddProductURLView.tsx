@@ -114,9 +114,9 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
       };
       setBrands(prev => [...prev, newBrand]);
 
-      // Build products array (handle both array and single format)
+      // Build products array — 9-pillar model: 1 product per business
       const productsRaw = extracted.products || (extracted.product ? [extracted.product] : []);
-      const newProducts: ProductEntry[] = productsRaw.slice(0, 5).map((p: any, i: number) => ({
+      const newProducts: ProductEntry[] = productsRaw.slice(0, 1).map((p: any, i: number) => ({
         ...DEFAULT_PRODUCT,
         id: `product-${Date.now()}-${i}`,
         name: p.name || `Imported Product ${i + 1}`,
@@ -170,11 +170,11 @@ export function AddProductURLView({ onBack, onComplete, activeBrandId }: AddProd
 
       const finalBrandId = activeBrandId || brandId;
 
-      // Build audiences array
+      // Build audiences array — 9-pillar model: 1 audience per business
       const audiencesRaw = extracted.audiences || (extracted.audience ? [extracted.audience] : []);
       const newAudiences: AudienceEntry[] = audiencesRaw
         .filter((a: any) => a?.name)
-        .slice(0, 5)
+        .slice(0, 1)
         .map((a: any, i: number) => ({
           ...DEFAULT_AUDIENCE,
           id: `audience-${Date.now()}-${i}`,
