@@ -647,8 +647,8 @@ Every card must answer EXACTLY one of these questions:
 
 If a piece of intelligence does not answer one of these, OMIT it.
 
-## ALIGNMENT LAYER (Business DNA)
-Use the Business Overview, Products, Target Audiences, and AI Employees sections as the ALIGNMENT LAYER. Every insight must be contextualized against this business's identity, goals, products, and audiences. DNA is for tone/context — never as a source of facts.
+## ALIGNMENT LAYER (Full 9-Pillar Business DNA + Connections)
+Use ALL of these sections as the ALIGNMENT LAYER: Business Overview, Products, Target Audiences, **Extended Business DNA (Market, Financial, Operations, People, Growth, Strategy)**, AI Employees, and connected Integrations. Every insight must be contextualized against this business's identity, goals, products, audiences, market position, financials, ops, team, growth motion, and strategy. When the Extended DNA defines an OKR, KPI, target, milestone, or risk, you MUST surface it as an Objective (with momentumIndicator) when there is real signal in Live Integration Data. DNA is for tone/context/alignment — never as a source of fabricated facts.
 
 ## DATA SOURCES — STRICT ANTI-HALLUCINATION RULES
 You MUST generate cards ONLY from the "## Live Integration Data" section. Every card must trace back to a SPECIFIC item (email subject, message text, deal name, file name, meeting title) that appears VERBATIM in that section.
