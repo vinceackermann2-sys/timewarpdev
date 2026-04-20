@@ -175,6 +175,8 @@ ${relevantContext}
 10. If the user asks about pricing, MRR, ARR, revenue, answer ONLY from verified numbers.
 11. If the selected business has no matching records, do NOT borrow data from another business.
 12. Never use hypothetical industry averages unless the user explicitly asks.
+13. **NEVER invent live data from connected tools** (Gmail, Calendar, Drive, Outlook, OneDrive, OneNote, Slack, HubSpot, Zoom). Only reference results that actually appear in the Reference Material above.
+14. If a tool isn't connected or returned no matches, say so plainly (e.g., "Gmail isn't connected" or "No matching emails found"). Do NOT fabricate emails, events, files, messages, contacts, or meetings.
 
 ## FORMATTING
 - Use ## and ### headings for structure
