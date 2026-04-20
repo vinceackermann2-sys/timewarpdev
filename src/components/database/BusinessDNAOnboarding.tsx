@@ -1555,7 +1555,7 @@ export function BusinessDNAOnboarding({
                     {urls.map((url, i) => {
                       const isReddit = url.includes("reddit.com");
                       return (
-                      <div key={i} className="flex items-center gap-2 text-[13px] text-[#697386] py-1 px-2 rounded-lg hover:bg-[#f4f3ee]">
+                      <div key={i} className="flex items-center gap-2 text-[13px] text-[#697386] py-1 px-2 rounded-lg bg-[#eef2f7]">
                         {verifiedSources.has(i) ? (
                           <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
                         ) : (
