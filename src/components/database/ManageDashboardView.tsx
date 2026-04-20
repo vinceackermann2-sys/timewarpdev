@@ -601,12 +601,13 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
   const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
 
-  // Listen for DNA mutations to mark dashboard stale
+  // Listen for DNA mutations to mark dashboard stale (persisted across sessions)
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.brandId && activeBrand && detail.brandId === activeBrand.id) {
         setStale(true);
+        markCacheStale(activeBrand.id);
       }
     };
     window.addEventListener("dna_mutated", handler);
@@ -618,10 +619,13 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     setStale(false);
     const cached = loadCachedCards(activeBrand.id);
     const cachedHasCards = cached && Object.values(cached).some((arr) => Array.isArray(arr) && arr.length > 0);
+    const staleCache = isCacheStale(activeBrand.id);
     if (cachedHasCards) {
       setAllTabCards(cached!);
+      // Auto-refresh in background if cache is stale (older than threshold or invalidated)
+      if (staleCache) fetchInsights(activeBrand.id);
     } else {
-      // Empty cache (or stale empty result) — always refetch so user sees fresh data
+      // Empty cache — always refetch so user sees fresh data
       fetchInsights(activeBrand.id);
     }
   }, [activeBrand?.id]);
