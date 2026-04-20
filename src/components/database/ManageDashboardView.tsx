@@ -91,6 +91,9 @@ const TABS = [
 ];
 
 const CACHE_KEY_PREFIX = "dash_cards_";
+const CACHE_TS_PREFIX = "dash_cards_ts_";
+const STALE_FLAG_PREFIX = "dash_stale_";
+const AUTO_REFRESH_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 function loadCachedCards(brandId: string): Record<string, DashboardCard[]> | null {
   try {
@@ -103,7 +106,28 @@ function loadCachedCards(brandId: string): Record<string, DashboardCard[]> | nul
 function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>) {
   try {
     localStorage.setItem(CACHE_KEY_PREFIX + brandId, JSON.stringify(tabs));
+    localStorage.setItem(CACHE_TS_PREFIX + brandId, String(Date.now()));
+    localStorage.removeItem(STALE_FLAG_PREFIX + brandId);
   } catch { /* quota exceeded – ignore */ }
+}
+
+function getCacheAgeMs(brandId: string): number {
+  try {
+    const ts = localStorage.getItem(CACHE_TS_PREFIX + brandId);
+    if (!ts) return Infinity;
+    return Date.now() - parseInt(ts, 10);
+  } catch { return Infinity; }
+}
+
+function isCacheStale(brandId: string): boolean {
+  try {
+    if (localStorage.getItem(STALE_FLAG_PREFIX + brandId) === "1") return true;
+  } catch { /* ignore */ }
+  return getCacheAgeMs(brandId) > AUTO_REFRESH_MS;
+}
+
+function markCacheStale(brandId: string) {
+  try { localStorage.setItem(STALE_FLAG_PREFIX + brandId, "1"); } catch { /* ignore */ }
 }
 
 /* Show timeAgo on cards only when "recent" (< ~24h) — keeps cards quiet */
@@ -577,12 +601,13 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
   const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
 
-  // Listen for DNA mutations to mark dashboard stale
+  // Listen for DNA mutations to mark dashboard stale (persisted across sessions)
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.brandId && activeBrand && detail.brandId === activeBrand.id) {
         setStale(true);
+        markCacheStale(activeBrand.id);
       }
     };
     window.addEventListener("dna_mutated", handler);
@@ -594,10 +619,13 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     setStale(false);
     const cached = loadCachedCards(activeBrand.id);
     const cachedHasCards = cached && Object.values(cached).some((arr) => Array.isArray(arr) && arr.length > 0);
+    const staleCache = isCacheStale(activeBrand.id);
     if (cachedHasCards) {
       setAllTabCards(cached!);
+      // Auto-refresh in background if cache is stale (older than threshold or invalidated)
+      if (staleCache) fetchInsights(activeBrand.id);
     } else {
-      // Empty cache (or stale empty result) — always refetch so user sees fresh data
+      // Empty cache — always refetch so user sees fresh data
       fetchInsights(activeBrand.id);
     }
   }, [activeBrand?.id]);
