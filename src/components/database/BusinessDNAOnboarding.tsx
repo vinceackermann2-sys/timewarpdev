@@ -1490,7 +1490,7 @@ export function BusinessDNAOnboarding({
 
                   {/* Audiences */}
                   {audiencesRaw.filter((a: any) => a?.name).map((a: any, i: number) => (
-                    <div key={`aud-${i}`} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center gap-3">
+                    <div key={`aud-${i}`} className="w-full rounded-xl p-4 flex items-center gap-3 bg-[#eef2f7]">
                       <Users className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <span className="text-[15px] font-medium text-[#1a1f36]">{a.name}</span>
