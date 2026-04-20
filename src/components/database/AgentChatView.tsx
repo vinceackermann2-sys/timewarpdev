@@ -2585,7 +2585,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 <select
                   value={selectedAgent}
                   onChange={(e) => setSelectedAgent(e.target.value)}
-                  className="bg-transparent border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate"
+                  className="border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate bg-[#eef2f7]"
                 >
                   {agents.map((agent) => (
                     <option key={agent.id} value={agent.name}>{agent.name}</option>
@@ -2617,7 +2617,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
               </div>
 
               {/* Content */}
-              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-white">
+              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-[#fcfcfd]">
                 {settingsTab === "safety" && (
                   <div className="flex-1">
                     {(() => {
@@ -2640,7 +2640,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                       <h4 className="text-sm font-semibold text-foreground mb-4">Manage Employees</h4>
                       <div className="space-y-4">
                         {employees.map((emp) => (
-                          <div key={emp.id} className="bg-background border border-border p-4 rounded-xl space-y-3">
+                          <div key={emp.id} className="border border-border p-4 rounded-xl space-y-3 bg-[#eef2f7]">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 mr-4">
                                 <input
