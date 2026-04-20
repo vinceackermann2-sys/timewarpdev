@@ -289,27 +289,6 @@ const Database = () => {
     return null;
   }
 
-  if (showOnboarding) {
-    return (
-      <BusinessDNAProvider>
-        <BusinessDNAOnboarding
-          productUrl={onboardingUrl}
-          onComplete={(agentName, brandId) => {
-            setOnboardingUrl(null);
-            queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-            if (brandId) {
-              setCurrentView("businessdna");
-              localStorage.setItem("tw_current_view", "businessdna");
-              setActiveBrandId(brandId);
-              setShowBusinessDNA(true);
-            }
-            // Delay hiding onboarding until after state is set
-            setTimeout(() => setShowOnboarding(false), 100);
-          }}
-        />
-      </BusinessDNAProvider>
-    );
-  }
 
   const handleViewChange = (view: View) => {
     if (!user) {
