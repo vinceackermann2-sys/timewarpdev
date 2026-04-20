@@ -168,6 +168,11 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDa
                       setDashExpanded(true);
                       setDnaExpanded(false);
                     }}
+                    onMouseLeave={() => {
+                      if (isCollapsed) return;
+                      if (currentView === "manage") return; // keep open when on the page
+                      setDashExpanded(false);
+                    }}
                   >
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton
