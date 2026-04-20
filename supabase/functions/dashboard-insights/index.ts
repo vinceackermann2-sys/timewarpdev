@@ -65,6 +65,26 @@ serve(async (req) => {
       return parsed?.brandId === logicalBrandId || item.metadata?.brandId === logicalBrandId;
     });
 
+    // 1b. Load the 6 extended DNA pillars (market, financial, operations, people, growth, strategy).
+    // These live as separate user_business_data rows (NOT source='business-dna') and were missing
+    // from the dashboard's analysis context until now.
+    const EXTENDED_PILLAR_TYPES = ["market", "financial", "operations", "people", "growth", "strategy"];
+    let pillarsQuery = supabase
+      .from("user_business_data")
+      .select("id, title, content, data_type, metadata, created_at")
+      .in("data_type", EXTENDED_PILLAR_TYPES);
+    if (workspaceId) pillarsQuery = pillarsQuery.eq("workspace_id", workspaceId);
+    else pillarsQuery = pillarsQuery.eq("user_id", user.id);
+    const { data: extendedPillarRows } = await pillarsQuery.limit(200);
+    const extendedPillars: Record<string, any> = {};
+    for (const row of (extendedPillarRows || [])) {
+      // Scope to the active brand when metadata declares it; otherwise include user-wide rows.
+      const rowBrandId = (row as any).metadata?.brandId;
+      if (rowBrandId && rowBrandId !== logicalBrandId && rowBrandId !== brandId) continue;
+      const parsed = tryParseJson((row as any).content);
+      if (parsed && typeof parsed === "object") extendedPillars[(row as any).data_type] = parsed;
+    }
+
     // 2. Load connections
     const { data: connections } = await supabase
       .from("user_connections")
