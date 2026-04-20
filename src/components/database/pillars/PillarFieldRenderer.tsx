@@ -489,7 +489,7 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
                 {cat.category}
               </h4>
               <div className="flex flex-wrap gap-2">
-                {cat.tools.map((tool: string, j: number) => (
+                {(Array.isArray(cat.tools) ? cat.tools : []).map((tool: string, j: number) => (
                   <div
                     key={j}
                     className="flex items-center gap-2 bg-card border border-border px-3 py-1.5 rounded-lg shadow-sm"
