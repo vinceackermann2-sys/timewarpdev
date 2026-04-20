@@ -903,7 +903,7 @@ export function BusinessDNAOnboarding({
           >
             <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-8">Finding your business</h1>
 
-            <div className="w-full max-w-[720px] bg-[#f4f3ee] rounded-2xl p-6 shadow-sm border border-black/5">
+            <div className="w-full max-w-[720px] rounded-2xl p-6 shadow-sm border border-black/5 bg-[#eef2f7]">
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-11 h-11 rounded-xl bg-[#e6f2ff] flex items-center justify-center shrink-0">
                   <Telescope className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
