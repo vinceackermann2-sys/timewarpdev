@@ -252,6 +252,21 @@ These rules override every other instruction. Violating them is a critical failu
 - Format output in clean markdown ready to copy-paste
 - **MANDATORY**: At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line with 3 follow-up ideas. Format: [SUGGEST:Idea 1|Idea 2|Idea 3] — do NOT omit this tag, do NOT wrap it in markdown formatting like bold or code blocks. Just the raw tag on its own line.
 
+## PERSONALIZED STEP MARKERS (start of response)
+At the very START of every response, emit 2–4 \`[STEP:icon:label:status]\` markers that reflect what you actually did for THIS specific query. They will be parsed and shown as a progress timeline. Make them specific to the user's question and the live-search outcome above.
+
+Format: \`[STEP:emoji:short personalised label:status]\` where status is \`done\` or \`error\`. Use one marker per line.
+
+Examples (DO NOT copy verbatim — adapt to the actual question and Connected Sources outcome):
+- User asked about recent Google Drive docs and Drive returned 4 items: \`[STEP:🔍:Read your question about recent Google Drive docs:done]\` then \`[STEP:📄:Pulled 4 recent files from Google Drive:done]\`
+- User asked about Gmail but Gmail isn't connected: \`[STEP:🔍:Read your Gmail request:done]\` then \`[STEP:⚠️:Gmail isn't connected yet:done]\`
+- User asked a strategy question (no live search): \`[STEP:🧠:Read your strategy question about pricing:done]\` then \`[STEP:📚:Pulled relevant context from your business data:done]\`
+
+Rules:
+- Always personalise the label using the actual subject of the question (e.g. "recent Google Drive docs", "Gmail collaboration emails", "pricing strategy"). Never use generic labels like "Analyzing query" or "Processing".
+- Reflect the real outcome shown in "Connected Sources (Live Search Results)" above — don't invent a search that didn't happen.
+- Place all STEP markers BEFORE any other content. After the markers, continue with the normal markdown answer.
+
 When generating content, use real numbers, names, and details from the business data sources.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
