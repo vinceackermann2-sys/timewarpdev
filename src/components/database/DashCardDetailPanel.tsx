@@ -660,7 +660,6 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
   if (minimized) {
     return (
       <aside
-        onMouseEnter={() => setMinimized(false)}
         className="hidden md:flex w-[420px] shrink-0 self-end mb-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in cursor-pointer"
       >
         <div className="px-6 py-3 flex items-center justify-between gap-2">
@@ -684,10 +683,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
 
   return (
     <TooltipProvider delayDuration={250}>
-      <aside
-        onMouseLeave={() => setMinimized(true)}
-        className="hidden md:flex w-[420px] shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in"
-      >
+      <aside className="hidden md:flex w-[420px] shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-[#fcfcfd] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in">
         {/* ── Top bar ─────────────── */}
         <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-white">
           <div className="flex items-center gap-1.5 text-muted-foreground">
