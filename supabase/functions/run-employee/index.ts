@@ -347,17 +347,17 @@ serve(async (req) => {
         (async () => {
           try {
             const topic = extractQueryTopic(connectionLookupQuery);
-            sendStep(`Understanding your question about ${topic}`, "running", "analysis");
+            sendStep(`Reading what you asked about ${topic}`, "running", "analysis");
             const decision = shouldSearchConnections(connectionLookupQuery);
-            sendStep(`Understanding your question about ${topic}`, "done", "analysis", decision.reason);
+            sendStep(`Got it — you want help with ${topic}`, "done", "analysis", decision.reason);
 
-            sendStep(`Gathering business data on ${topic}`, "running", "context");
+            sendStep(`Pulling your business context on ${topic}`, "running", "context");
             const relevantContext = await retrieveRelevantContext(supabase, {
               ...employee,
               workspace_id: effectiveWsId,
               linked_business_id: effectiveBrandId,
             }, lastUserMsg);
-            sendStep(`Gathered business data on ${topic}`, "done", "context");
+            sendStep(`Loaded your business context on ${topic}`, "done", "context");
 
             const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
               supabase,
@@ -370,18 +370,18 @@ serve(async (req) => {
             let result: { content: string; continuation?: boolean };
 
             if (preVerifiedContent) {
-              sendStep(`Verified business data for ${topic}`, "running", "response");
+              sendStep(`Using verified numbers for ${topic}`, "running", "response");
               send({ type: "content", delta: preVerifiedContent });
               result = { content: preVerifiedContent, continuation: false };
-              sendStep(`Verified business data for ${topic}`, "done", "response");
+              sendStep(`Used verified numbers for ${topic}`, "done", "response");
             } else {
-              sendStep(`Crafting your answer on ${topic}`, "running", "response");
+              sendStep(`Writing your answer on ${topic}`, "running", "response");
               result = await buildAiResponse(relevantContext, connectionContext, (delta) => {
                 send({ type: "content", delta });
               });
-              sendStep(`Crafting your answer on ${topic}`, "done", "response");
+              sendStep(`Wrote your answer on ${topic}`, "done", "response");
             }
-            if (!result.continuation) sendStep("Finished", "done", "complete");
+            if (!result.continuation) sendStep("All done — here's what I found", "done", "complete");
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic });
             close();

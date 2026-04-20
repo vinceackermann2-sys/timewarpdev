@@ -523,21 +523,38 @@ export function extractQueryTopic(query: string): string {
 
 export function getProviderSearchLabel(provider: string, topic?: string): string {
   const suffix = topic ? ` for ${topic}` : "";
-  if (provider === "microsoft") return `Searching Microsoft 365 emails & files${suffix}`;
-  if (provider === "microsoft_outlook") return `Searching Outlook emails${suffix}`;
-  if (provider === "microsoft_onedrive") return `Searching OneDrive files${suffix}`;
-  if (provider === "microsoft_onenote") return `Searching OneNote pages${suffix}`;
-  if (provider === "slack") return `Searching Slack messages & channels${suffix}`;
-  if (provider === "hubspot") return `Searching HubSpot records${suffix}`;
+  if (provider === "microsoft") return `Peeking into your Microsoft 365${suffix}`;
+  if (provider === "microsoft_outlook") return `Peeking into your Outlook inbox${suffix}`;
+  if (provider === "microsoft_onedrive") return `Looking through your OneDrive${suffix}`;
+  if (provider === "microsoft_onenote") return `Flipping through your OneNote pages${suffix}`;
+  if (provider === "google_gmail") return `Peeking into your Gmail${suffix}`;
+  if (provider === "google_calendar") return `Checking your Google Calendar${suffix}`;
+  if (provider === "google_drive") return `Looking through your Google Drive${suffix}`;
+  if (provider === "google_docs") return `Skimming your Google Docs${suffix}`;
+  if (provider === "google_sheets") return `Scanning your Google Sheets${suffix}`;
+  if (provider === "google_slides") return `Browsing your Google Slides${suffix}`;
+  if (provider === "slack") return `Listening in on your Slack${suffix}`;
+  if (provider === "zoom") return `Checking your Zoom meetings${suffix}`;
+  if (provider === "hubspot") return `Digging through your HubSpot${suffix}`;
   return `Searching ${formatProviderName(provider)}${suffix}`;
 }
 
 export function getProviderSkipLabel(provider: string, reason: string): string {
-  if (provider === "microsoft") return `Skipped Microsoft 365 — ${reason}`;
-  if (provider.startsWith("microsoft_")) return `Skipped ${formatProviderName(provider)} — ${reason}`;
-  if (provider === "slack") return `Skipped Slack — ${reason}`;
-  if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
-  return `Skipped ${formatProviderName(provider)} — ${reason}`;
+  const friendly = (r: string) => {
+    if (r === "not connected") return "not connected yet";
+    if (r === "not requested in this query") return "not needed for this one";
+    if (r === "token expired or missing") return "needs reconnecting";
+    if (r === "search failed") return "couldn't reach it";
+    return r;
+  };
+  const r = friendly(reason);
+  if (provider === "microsoft") return `Skipping Microsoft 365 — ${r}`;
+  if (provider.startsWith("microsoft_")) return `Skipping ${formatProviderName(provider)} — ${r}`;
+  if (provider === "slack") return `Skipping Slack — ${r}`;
+  if (provider === "zoom") return `Skipping Zoom — ${r}`;
+  if (provider === "hubspot") return `Skipping HubSpot — ${r}`;
+  if (provider.startsWith("google")) return `Skipping ${formatProviderName(provider)} — ${r}`;
+  return `Skipping ${formatProviderName(provider)} — ${r}`;
 }
 
 export async function searchConnectedProviders(
