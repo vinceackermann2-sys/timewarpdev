@@ -18,7 +18,15 @@ const corsHeaders = {
 const PILLAR_PROMPTS: Record<string, string> = {
   market: `Return JSON with the keys exactly:
 {
-  "definition": { "tam": string, "sam": string, "som": string, "growth_rate": string, "maturity": "Emerging"|"Growth"|"Mature"|"Declining", "geographic_scope": string, "primary_category": string },
+  "definition": {
+    "tam": { "size": string, "scope": string },
+    "sam": { "size": string, "scope": string },
+    "som": { "size": string, "scope": string },
+    "growth_rate": string,
+    "maturity": "Emerging"|"Growth"|"Mature"|"Declining",
+    "geographic_scope": string,
+    "primary_category": string
+  },
   "competitors": [ { "name": string, "positioning": string, "strengths": string, "weaknesses": string, "threat_level": "Low"|"Medium"|"High" } ],   // 3-5 items
   "advantages": [ { "type": "Cost"|"Differentiation"|"Brand"|"Network Effect"|"Switching Cost"|"IP & Patents"|"Distribution"|"Data", "how_long_to_copy": string, "what_protects_it": string } ],   // 3-5 items
   "forces": [ { "force": "Supplier Power"|"Buyer Power"|"Threat of New Entry"|"Threat of Substitution"|"Competitive Rivalry", "intensity": "Low"|"Medium"|"High", "trend": "Increasing"|"Stable"|"Decreasing", "implication": string } ],
@@ -26,7 +34,7 @@ const PILLAR_PROMPTS: Record<string, string> = {
   "timing": string,
   "white_space": string
 }
-Use the doc formula [CATEGORY] + [GEOGRAPHIC SCOPE] + [CUSTOMER BASE SIZE] + [MATURITY STAGE] for definition. Never fabricate exact dollars — use ranges.`,
+For tam/sam/som, "size" MUST be a SHORT money figure ONLY (e.g. "$120B", "$8.5B", "~$400M", "$50–80M"). Never put descriptions in "size". "scope" is a SHORT phrase (max 8 words) describing what's included (e.g. "Global digital ad software", "EN-speaking SMB Meta advertisers", "Action-based AI ad platforms"). Use the formula [CATEGORY] + [GEOGRAPHIC SCOPE] + [CUSTOMER BASE SIZE] + [MATURITY STAGE] when reasoning, but keep "scope" terse. Use ranges if uncertain — never fabricate exact dollars.`,
 
   financial: `Return JSON with the keys exactly:
 {
