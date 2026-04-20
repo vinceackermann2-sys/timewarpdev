@@ -1284,7 +1284,7 @@ export function BusinessDNAOnboarding({
             <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-6 sm:mb-8">Forging your business DNA</h1>
 
             {/* Top Card with source verification carousel */}
-            <div className="w-full bg-[#f4f3ee] rounded-2xl p-4 sm:p-6 mb-6 shadow-sm">
+            <div className="w-full rounded-2xl p-4 sm:p-6 mb-6 shadow-sm bg-[#eef2f7]">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
@@ -1417,7 +1417,7 @@ export function BusinessDNAOnboarding({
                   className={`px-4 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-2 transition-colors ${
                     forgingTab === "found"
                       ? "bg-white border border-[#e5e4df] text-[#1a1f36] shadow-sm"
-                      : "bg-[#f4f3ee] text-[#697386] hover:bg-[#e5e4df]"
+                      : "text-[#697386] bg-[#eef2f7]"
                   }`}
                 >
                   Data Found
@@ -1432,7 +1432,7 @@ export function BusinessDNAOnboarding({
                   className={`px-4 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-2 transition-colors ${
                     forgingTab === "confirmed"
                       ? "bg-white border border-[#e5e4df] text-[#1a1f36] shadow-sm"
-                      : "bg-[#f4f3ee] text-[#697386] hover:bg-[#e5e4df]"
+                      : "text-[#697386] bg-[#eef2f7]"
                   }`}
                 >
                   Confirmed Data
@@ -1445,7 +1445,7 @@ export function BusinessDNAOnboarding({
               {forgingTab === "found" ? (
                 <div className="w-full flex flex-col gap-3">
                   {/* Brand card */}
-                  <div className="w-full bg-[#f4f3ee] rounded-xl p-4">
+                  <div className="w-full rounded-xl p-4 bg-[#eef2f7]">
                     <div className="flex items-center gap-3 mb-2">
                       <Palette className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <span className="text-[15px] font-medium text-[#1a1f36]">
@@ -1472,7 +1472,7 @@ export function BusinessDNAOnboarding({
 
                   {/* Products */}
                   {displayProducts.map((p: any, i: number) => (
-                    <div key={i} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center gap-3">
+                    <div key={i} className="w-full rounded-xl p-4 flex items-center gap-3 bg-[#eef2f7]">
                       <ShoppingBag className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <span className="text-[15px] font-medium text-[#1a1f36]">{p.name || `Product ${i + 1}`}</span>
@@ -1490,7 +1490,7 @@ export function BusinessDNAOnboarding({
 
                   {/* Audiences */}
                   {audiencesRaw.filter((a: any) => a?.name).map((a: any, i: number) => (
-                    <div key={`aud-${i}`} className="w-full bg-[#f4f3ee] rounded-xl p-4 flex items-center gap-3">
+                    <div key={`aud-${i}`} className="w-full rounded-xl p-4 flex items-center gap-3 bg-[#eef2f7]">
                       <Users className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <span className="text-[15px] font-medium text-[#1a1f36]">{a.name}</span>
