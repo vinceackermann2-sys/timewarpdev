@@ -305,6 +305,9 @@ ${productContext || "(no products)"}
 AUDIENCES (${audienceRows.length}):
 ${audienceContext || "(no audiences)"}
 
+CONNECTION SIGNALS:
+${connectionContext}
+
 ${PILLAR_PROMPTS[pillarId]}`;
 
     const targetPillars: string[] = Array.isArray(pillars) && pillars.length
