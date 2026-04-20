@@ -354,7 +354,10 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
       if (!activeBrandId) return;
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
-      const extendedTypes = ["market", "financial", "operations", "people", "growth", "strategy"];
+      const extendedTypes = [
+        "market", "financial", "operations", "people", "growth", "strategy",
+        "brand_dna", "product_dna", "audience_dna",
+      ];
       const { data } = await (supabase as any)
         .from("user_business_data")
         .select("data_type, content, metadata")
@@ -362,13 +365,18 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
         .in("data_type", extendedTypes);
       if (cancelled || !data) return;
       const next: Record<string, any> = {};
+      // Map *_dna types back to their pillar id (brand/product/audience)
+      const typeToPillar: Record<string, string> = {
+        brand_dna: "brand", product_dna: "product", audience_dna: "audience",
+      };
       for (const row of data) {
         const md = (row as any).metadata || {};
         if (md.brandId && md.brandId !== activeBrandId) continue;
+        const pillarKey = typeToPillar[(row as any).data_type] || (row as any).data_type;
         try {
-          next[(row as any).data_type] = JSON.parse((row as any).content);
+          next[pillarKey] = JSON.parse((row as any).content);
         } catch {
-          next[(row as any).data_type] = (row as any).content;
+          next[pillarKey] = (row as any).content;
         }
       }
       setExtendedPillarData(next);

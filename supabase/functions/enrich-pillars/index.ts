@@ -278,11 +278,18 @@ ${PILLAR_PROMPTS[pillarId]}`;
       const { pillarId, data } = r.value;
 
       try {
+        // brand/product/audience enrichments are stored under separate
+        // *_dna data_types so they don't collide with the source rows.
+        const TYPE_MAP: Record<string, string> = {
+          brand: "brand_dna", product: "product_dna", audience: "audience_dna",
+        };
+        const storageType = TYPE_MAP[pillarId] || pillarId;
+
         const { data: existing } = await admin
           .from("user_business_data")
           .select("id, metadata")
           .eq("user_id", user.id)
-          .eq("data_type", pillarId);
+          .eq("data_type", storageType);
         const stale = (existing || []).filter((row: any) => (row.metadata?.brandId || null) === brandId).map((row: any) => row.id);
         if (stale.length) {
           await admin.from("user_business_data").delete().in("id", stale);
@@ -293,7 +300,7 @@ ${PILLAR_PROMPTS[pillarId]}`;
           workspace_id: wsId,
           source: "business-dna",
           is_analyzed: true,
-          data_type: pillarId,
+          data_type: storageType,
           title: `${pillarId.charAt(0).toUpperCase() + pillarId.slice(1)} DNA`,
           content: JSON.stringify(data),
           metadata: { brandId, dna_segment: pillarId, dna_pillars: [pillarId], generated_by: "enrich-pillars", generated_at: new Date().toISOString() },
