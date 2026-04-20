@@ -747,104 +747,10 @@ export function BusinessDNAOnboarding({
 
   // ── RENDER ───────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#fcfbf9] flex flex-col items-center justify-center py-6 sm:py-12 px-3 sm:px-4 font-sans overflow-y-auto">
-      <AnimatePresence mode="wait">
-        {/* ─── METHOD PICKER (add-business only) ─── */}
-        {showMethodPicker && step === 0 && (
-          <motion.div
-            key="method-picker"
-            className="w-full max-w-4xl mx-auto text-center space-y-6 px-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ duration: 0.4 }}
-          >
-            {isAddBusiness && onBack && (
-              <div className="w-full text-left mb-2">
-                <button
-                  onClick={onBack}
-                  className="flex items-center gap-1.5 text-sm text-[#697386] hover:text-[#1a1f36] transition-colors"
-                >
-                  <ArrowRight className="h-4 w-4 rotate-180" />
-                  Back
-                </button>
-              </div>
-            )}
-            <div className="space-y-2 py-4">
-              <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] tracking-tight">
-                How would you like to get started?
-              </h1>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              {/* From Scratch — Coming Soon */}
-              <div className="relative rounded-2xl border border-black/5 bg-[#f4f3ee] overflow-hidden opacity-75 cursor-not-allowed">
-                <div className="absolute top-3 right-3 z-10">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/90 text-[#697386] border border-black/5">
-                    <Lock className="h-2.5 w-2.5" /> Coming Soon
-                  </span>
-                </div>
-                <div className="relative">
-                  <img src={addBusinessBg} alt="" className="w-full h-48 sm:h-80 object-cover" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Rocket className="h-16 w-16 text-white drop-shadow-lg" />
-                  </div>
-                </div>
-                <div className="p-5 text-left">
-                  <h3 className="text-base font-semibold text-[#1a1f36]">From Scratch</h3>
-                  <p className="text-sm text-[#697386] mt-1">Create from scratch with AI</p>
-                </div>
-              </div>
-              {/* From Existing */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowMethodPicker(false)}
-                className="rounded-2xl border border-black/5 hover:border-[#4a86ff]/40 bg-[#f4f3ee] overflow-hidden transition-colors text-left cursor-pointer"
-              >
-                <div className="relative">
-                  <img src={startBusinessBg} alt="" className="w-full h-48 sm:h-80 object-cover" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <FolderOpenDot className="h-16 w-16 text-white drop-shadow-lg" />
-                  </div>
-                </div>
-                <div className="p-5">
-                  <h3 className="text-base font-semibold text-[#1a1f36]">From Existing</h3>
-                  <p className="text-sm text-[#697386] mt-1">Create from existing business</p>
-                </div>
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ─── STEP 0: URL INPUT ─── */}
-        {step === 0 && !showMethodPicker && (
-          <motion.div
-            key="url-input"
-            className="w-full max-w-3xl px-4 flex flex-col items-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ duration: 0.4 }}
-          >
-            {isAddBusiness && (
-              <div className="w-full text-left mb-4">
-                <button
-                  onClick={() => setShowMethodPicker(true)}
-                  className="flex items-center gap-1.5 text-sm text-[#697386] hover:text-[#1a1f36] transition-colors"
-                >
-                  <ArrowRight className="h-4 w-4 rotate-180" />
-                  Back
-                </button>
-              </div>
-            )}
-
-            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-3">Add a business</h1>
-            <p className="text-[#697386] text-[15px] mb-8 text-center">
-              Paste your company URL. We only access public data.
-            </p>
-
+    <div className="min-h-screen flex flex-col items-center justify-center py-6 sm:py-12 px-3 sm:px-4 font-sans overflow-y-auto bg-[#fcfcfd]">
+...
             <div className="w-full max-w-[720px]">
-              <div className="bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm">
+              <div className="border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm bg-[#eef2f7]">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                   <div className="flex items-center gap-2 flex-1 min-w-0 px-1">
                     <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0">
