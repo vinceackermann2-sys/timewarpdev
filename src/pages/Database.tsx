@@ -103,28 +103,19 @@ const Database = () => {
     const productUrl = searchParams.get("url");
     const onboarding = searchParams.get("onboarding");
 
+    // Legacy: any /app?onboarding=business-dna links now redirect to dedicated page
     if (onboarding === "business-dna") {
-      setShowOnboarding(true);
-      // Capture URL for onboarding scraping
+      const qs = productUrl ? `?url=${encodeURIComponent(productUrl)}` : "";
+      navigate(`/onboarding${qs}`, { replace: true });
+      return;
+    }
+
+    if (addProduct === "true") {
+      setCurrentView("businessdna");
+      localStorage.setItem("tw_current_view", "businessdna");
+      setShowAddProduct(true);
       if (productUrl) {
-        setOnboardingUrl(productUrl);
-      }
-      // Strip onboarding & addProduct params so refresh doesn't replay
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("onboarding");
-      newParams.delete("addProduct");
-      newParams.delete("url");
-      const qs = newParams.toString();
-      window.history.replaceState({}, "", `/app${qs ? `?${qs}` : ""}`);
-    } else {
-      // Only handle addProduct when NOT in onboarding flow
-      if (addProduct === "true") {
-        setCurrentView("businessdna");
-        localStorage.setItem("tw_current_view", "businessdna");
-        setShowAddProduct(true);
-        if (productUrl) {
-          sessionStorage.setItem("pendingProductUrl", productUrl);
-        }
+        sessionStorage.setItem("pendingProductUrl", productUrl);
       }
     }
 
@@ -145,19 +136,20 @@ const Database = () => {
         }
       }
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
-  // Fallback: detect brand-new user from OAuth redirect (no onboarding param)
+  // Fallback: detect brand-new user (just signed up via OAuth) and route them
+  // to the dedicated onboarding page.
   useEffect(() => {
-    if (!user || showOnboarding) return;
+    if (!user) return;
     const alreadyShown = sessionStorage.getItem("tw_onboarding_shown");
     if (alreadyShown) return;
     const createdAt = new Date(user.created_at).getTime();
     if (Date.now() - createdAt < 30000) {
       sessionStorage.setItem("tw_onboarding_shown", "true");
-      setShowOnboarding(true);
+      navigate("/onboarding", { replace: true });
     }
-  }, [user, showOnboarding]);
+  }, [user, navigate]);
 
   // Redirect to auth if not authenticated
   useEffect(() => {
