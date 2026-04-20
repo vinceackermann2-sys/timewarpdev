@@ -3,7 +3,14 @@
 // only fill fields that have real evidence — empty fields are preserved as Gaps.
 import { supabase } from "@/integrations/supabase/client";
 
-const GROUNDED_PILLARS = ["people", "operations", "financial", "growth"];
+// All 9 pillars — connection signals can ground evidence anywhere (e.g. HubSpot
+// hints at audience/market segments, Slides hints at strategy/brand, Sheets at
+// financial, etc.). The strict anti-fabrication rules in the prompt ensure
+// fields without evidence remain empty (Gap).
+const ALL_PILLARS = [
+  "brand", "product", "audience", "market",
+  "financial", "operations", "people", "growth", "strategy",
+];
 
 export async function triggerDnaReEnrich(brandId?: string): Promise<void> {
   if (!brandId) return;
