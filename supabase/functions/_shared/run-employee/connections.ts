@@ -419,7 +419,48 @@ export async function searchHubspotData(token: string, query: string, topic?: st
   return results.slice(0, 6);
 }
 
-// Get a Google access token from any connected Google sub-service.
+export async function searchZoomData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const searchTerms = buildSearchTerms(query, topic);
+  const lowerTerms = searchTerms.map((t) => t.toLowerCase());
+  const matchTopic = (topic_: string) =>
+    lowerTerms.length === 0 || lowerTerms.some((term) =>
+      term.split(/\s+/).some((w) => w.length > 2 && topic_.toLowerCase().includes(w))
+    );
+  try {
+    const upRes = await fetch(`https://api.zoom.us/v2/users/me/meetings?type=upcoming&page_size=20`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (upRes.ok) {
+      const data = await upRes.json();
+      for (const m of (data.meetings || [])) {
+        if (results.length >= 5) break;
+        const t_ = (m.topic || "Untitled").toString();
+        if (!matchTopic(t_)) continue;
+        const start = (m.start_time || "").slice(0, 16).replace("T", " ");
+        results.push(`📹 **${t_}** — ${start} (${m.duration || 0} min)${m.join_url ? ` — [join](${m.join_url})` : ""}`);
+      }
+    }
+    if (results.length < 5) {
+      const pastRes = await fetch(`https://api.zoom.us/v2/users/me/meetings?type=previous_meetings&page_size=20`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (pastRes.ok) {
+        const data = await pastRes.json();
+        for (const m of (data.meetings || [])) {
+          if (results.length >= 5) break;
+          const t_ = (m.topic || "Untitled").toString();
+          if (!matchTopic(t_)) continue;
+          const start = (m.start_time || "").slice(0, 16).replace("T", " ");
+          results.push(`📹 **${t_}** (past) — ${start}`);
+        }
+      }
+    }
+  } catch (e) { console.error("Zoom search error:", e); }
+  return results.slice(0, 5);
+}
+
+
 // Skips providers that are marked 'expired' in user_connections to avoid wasted
 // refresh attempts (and cloud usage) on legacy/revoked grants.
 async function getAnyGoogleToken(supabaseAdmin: any, userId: string): Promise<string | null> {
@@ -453,6 +494,7 @@ const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
   { keys: /\b(microsoft|teams|m365|office\s*365)\b/i, providers: ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"] },
   { keys: /\bslack\b/i, providers: ["slack"] },
   { keys: /\b(hubspot|hub\s*spot|crm)\b/i, providers: ["hubspot"] },
+  { keys: /\b(zoom|webinar)\b/i, providers: ["zoom"] },
 ];
 
 export function detectNamedProviders(query: string): string[] {
@@ -523,21 +565,38 @@ export function extractQueryTopic(query: string): string {
 
 export function getProviderSearchLabel(provider: string, topic?: string): string {
   const suffix = topic ? ` for ${topic}` : "";
-  if (provider === "microsoft") return `Searching Microsoft 365 emails & files${suffix}`;
-  if (provider === "microsoft_outlook") return `Searching Outlook emails${suffix}`;
-  if (provider === "microsoft_onedrive") return `Searching OneDrive files${suffix}`;
-  if (provider === "microsoft_onenote") return `Searching OneNote pages${suffix}`;
-  if (provider === "slack") return `Searching Slack messages & channels${suffix}`;
-  if (provider === "hubspot") return `Searching HubSpot records${suffix}`;
+  if (provider === "microsoft") return `Peeking into your Microsoft 365${suffix}`;
+  if (provider === "microsoft_outlook") return `Peeking into your Outlook inbox${suffix}`;
+  if (provider === "microsoft_onedrive") return `Looking through your OneDrive${suffix}`;
+  if (provider === "microsoft_onenote") return `Flipping through your OneNote pages${suffix}`;
+  if (provider === "google_gmail") return `Peeking into your Gmail${suffix}`;
+  if (provider === "google_calendar") return `Checking your Google Calendar${suffix}`;
+  if (provider === "google_drive") return `Looking through your Google Drive${suffix}`;
+  if (provider === "google_docs") return `Skimming your Google Docs${suffix}`;
+  if (provider === "google_sheets") return `Scanning your Google Sheets${suffix}`;
+  if (provider === "google_slides") return `Browsing your Google Slides${suffix}`;
+  if (provider === "slack") return `Listening in on your Slack${suffix}`;
+  if (provider === "zoom") return `Checking your Zoom meetings${suffix}`;
+  if (provider === "hubspot") return `Digging through your HubSpot${suffix}`;
   return `Searching ${formatProviderName(provider)}${suffix}`;
 }
 
 export function getProviderSkipLabel(provider: string, reason: string): string {
-  if (provider === "microsoft") return `Skipped Microsoft 365 — ${reason}`;
-  if (provider.startsWith("microsoft_")) return `Skipped ${formatProviderName(provider)} — ${reason}`;
-  if (provider === "slack") return `Skipped Slack — ${reason}`;
-  if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
-  return `Skipped ${formatProviderName(provider)} — ${reason}`;
+  const friendly = (r: string) => {
+    if (r === "not connected") return "not connected yet";
+    if (r === "not requested in this query") return "not needed for this one";
+    if (r === "token expired or missing") return "needs reconnecting";
+    if (r === "search failed") return "couldn't reach it";
+    return r;
+  };
+  const r = friendly(reason);
+  if (provider === "microsoft") return `Skipping Microsoft 365 — ${r}`;
+  if (provider.startsWith("microsoft_")) return `Skipping ${formatProviderName(provider)} — ${r}`;
+  if (provider === "slack") return `Skipping Slack — ${r}`;
+  if (provider === "zoom") return `Skipping Zoom — ${r}`;
+  if (provider === "hubspot") return `Skipping HubSpot — ${r}`;
+  if (provider.startsWith("google")) return `Skipping ${formatProviderName(provider)} — ${r}`;
+  return `Skipping ${formatProviderName(provider)} — ${r}`;
 }
 
 export async function searchConnectedProviders(
@@ -552,7 +611,7 @@ export async function searchConnectedProviders(
   const skippedProviderDetails: SkippedProviderDetail[] = [];
   let connectionContext = "";
   const t = topic || extractQueryTopic(userQuery);
-  const connectionCheckLabel = `Checking connected sources for ${t}`;
+  const connectionCheckLabel = `Checking your connected tools for ${t}`;
 
   const decision = shouldSearchConnections(userQuery);
   console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
@@ -574,7 +633,7 @@ export async function searchConnectedProviders(
 
   if (!connections || connections.length === 0) {
     console.log("[connections] No connected providers found");
-    for (const provider of ["microsoft", "slack", "hubspot"]) {
+    for (const provider of ["microsoft_outlook", "google_gmail", "slack", "zoom", "hubspot"]) {
       skippedProviders.push(provider);
       skippedProviderDetails.push({ provider, reason: "not connected" });
     }
@@ -582,9 +641,9 @@ export async function searchConnectedProviders(
       t,
       searchedProviders,
       skippedProviderDetails,
-      "No connected sources are currently available",
+      "No connected tools are linked yet — I have nothing live to look at",
     );
-    emitProgress?.({ label: `Checking connected sources for ${t}`, status: "done", action: "connections", detail: "No integrations are currently connected" });
+    emitProgress?.({ label: connectionCheckLabel, status: "done", action: "connections", detail: "Nothing connected yet" });
     return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
@@ -606,7 +665,7 @@ export async function searchConnectedProviders(
   const allKnownProviders = [
     "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote",
     "google_gmail", "google_drive", "google_calendar",
-    "slack", "hubspot",
+    "slack", "zoom", "hubspot",
   ];
   for (const provider of allKnownProviders) {
     if (isMicrosoftProvider(provider)) {
