@@ -426,24 +426,40 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
 
     case "tam-sam-som": {
       const v = field.value;
+      const tam = v?.tam ?? {};
+      const sam = v?.sam ?? {};
+      const som = v?.som ?? {};
       return (
-        <div className="relative w-full aspect-square max-w-[300px] flex items-center justify-center py-4">
-          <div className="absolute inset-0 bg-primary/5 border-2 border-primary/20 rounded-full flex flex-col items-center justify-start pt-8 pb-4 shadow-inner">
-            <span className="text-xl font-black text-primary">{v.tam.value}</span>
-            <span className="text-[10px] font-bold uppercase text-primary/60 mt-1">
-              {v.tam.label}
+        <div className="relative w-full aspect-square max-w-[360px] mx-auto py-4">
+          {/* TAM — outer */}
+          <div className="absolute inset-0 bg-primary/5 border-2 border-primary/20 rounded-full shadow-inner" />
+          <div className="absolute inset-x-0 top-[6%] flex flex-col items-center px-4 text-center">
+            <span className="text-base font-black text-primary leading-tight truncate max-w-[80%]">
+              {tam.value}
+            </span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-primary/60 mt-0.5 truncate max-w-[80%]">
+              {tam.label || "TAM"}
             </span>
           </div>
-          <div className="absolute w-[70%] h-[70%] bottom-0 bg-primary/10 border-2 border-primary/30 rounded-full flex flex-col items-center justify-start pt-6 pb-4">
-            <span className="text-lg font-black text-primary">{v.sam.value}</span>
-            <span className="text-[10px] font-bold uppercase text-primary/60 mt-1">
-              {v.sam.label}
+
+          {/* SAM — middle */}
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[70%] h-[70%] bg-primary/10 border-2 border-primary/30 rounded-full" />
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-[44%] flex flex-col items-center px-4 text-center w-[60%]">
+            <span className="text-sm font-black text-primary leading-tight truncate max-w-full">
+              {sam.value}
+            </span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-primary/60 mt-0.5 truncate max-w-full">
+              {sam.label || "SAM"}
             </span>
           </div>
-          <div className="absolute w-[40%] h-[40%] bottom-0 bg-primary border border-primary rounded-full flex flex-col items-center justify-center shadow-md">
-            <span className="text-base font-black text-primary-foreground">{v.som.value}</span>
-            <span className="text-[9px] font-bold uppercase text-primary-foreground/80 mt-0.5">
-              SOM
+
+          {/* SOM — inner */}
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[40%] h-[40%] bg-primary border border-primary rounded-full shadow-md flex flex-col items-center justify-center px-2 text-center">
+            <span className="text-xs font-black text-primary-foreground leading-tight truncate max-w-full">
+              {som.value}
+            </span>
+            <span className="text-[8px] font-bold uppercase tracking-wider text-primary-foreground/80 mt-0.5 truncate max-w-full">
+              {som.label || "SOM"}
             </span>
           </div>
         </div>
