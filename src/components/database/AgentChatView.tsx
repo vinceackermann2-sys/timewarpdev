@@ -203,37 +203,45 @@ function isExplicitEmployeeComputerRequest(message: string) {
 }
 
 function getConnectionSearchLabel(provider: string, topic: string) {
-  if (provider === "microsoft_outlook") return `Searching Outlook emails & calendar for ${topic}`;
-  if (provider === "microsoft_onedrive") return `Searching OneDrive files for ${topic}`;
-  if (provider === "microsoft_onenote") return `Searching OneNote notes for ${topic}`;
-  if (provider === "microsoft") return `Searching Outlook emails for ${topic}`;
-  if (provider === "google_gmail") return `Searching Gmail for ${topic}`;
-  if (provider === "google_calendar") return `Searching Google Calendar for ${topic}`;
-  if (provider === "google_drive") return `Searching Google Drive for ${topic}`;
-  if (provider === "google_docs") return `Searching Google Docs for ${topic}`;
-  if (provider === "google_sheets") return `Searching Google Sheets for ${topic}`;
-  if (provider === "google_slides") return `Searching Google Slides for ${topic}`;
-  if (provider === "slack") return `Searching Slack messages & channels for ${topic}`;
-  if (provider === "zoom") return `Searching Zoom meetings for ${topic}`;
-  if (provider === "hubspot") return `Searching HubSpot records for ${topic}`;
+  if (provider === "microsoft_outlook") return `Peeking into your Outlook inbox for ${topic}`;
+  if (provider === "microsoft_onedrive") return `Looking through your OneDrive for ${topic}`;
+  if (provider === "microsoft_onenote") return `Flipping through your OneNote pages for ${topic}`;
+  if (provider === "microsoft") return `Peeking into your Microsoft 365 for ${topic}`;
+  if (provider === "google_gmail") return `Peeking into your Gmail for ${topic}`;
+  if (provider === "google_calendar") return `Checking your Google Calendar for ${topic}`;
+  if (provider === "google_drive") return `Looking through your Google Drive for ${topic}`;
+  if (provider === "google_docs") return `Skimming your Google Docs for ${topic}`;
+  if (provider === "google_sheets") return `Scanning your Google Sheets for ${topic}`;
+  if (provider === "google_slides") return `Browsing your Google Slides for ${topic}`;
+  if (provider === "slack") return `Listening in on your Slack for ${topic}`;
+  if (provider === "zoom") return `Checking your Zoom meetings for ${topic}`;
+  if (provider === "hubspot") return `Digging through your HubSpot for ${topic}`;
   return `Searching ${provider} for ${topic}`;
 }
 
 function getConnectionSkipLabel(provider: string, reason: string) {
-  if (provider === "microsoft_outlook") return `Skipped Outlook — ${reason}`;
-  if (provider === "microsoft_onedrive") return `Skipped OneDrive — ${reason}`;
-  if (provider === "microsoft_onenote") return `Skipped OneNote — ${reason}`;
-  if (provider === "microsoft") return `Skipped Microsoft — ${reason}`;
-  if (provider === "google_gmail") return `Skipped Gmail — ${reason}`;
-  if (provider === "google_calendar") return `Skipped Google Calendar — ${reason}`;
-  if (provider === "google_drive") return `Skipped Google Drive — ${reason}`;
-  if (provider === "google_docs") return `Skipped Google Docs — ${reason}`;
-  if (provider === "google_sheets") return `Skipped Google Sheets — ${reason}`;
-  if (provider === "google_slides") return `Skipped Google Slides — ${reason}`;
-  if (provider === "slack") return `Skipped Slack — ${reason}`;
-  if (provider === "zoom") return `Skipped Zoom — ${reason}`;
-  if (provider === "hubspot") return `Skipped HubSpot — ${reason}`;
-  return `Skipped ${provider} — ${reason}`;
+  const friendly = (r: string) => {
+    if (r === "not connected") return "not connected yet";
+    if (r === "not requested in this query") return "not needed for this one";
+    if (r === "token expired or missing") return "needs reconnecting";
+    if (r === "search failed") return "couldn't reach it";
+    return r;
+  };
+  const r = friendly(reason);
+  if (provider === "microsoft_outlook") return `Skipping Outlook — ${r}`;
+  if (provider === "microsoft_onedrive") return `Skipping OneDrive — ${r}`;
+  if (provider === "microsoft_onenote") return `Skipping OneNote — ${r}`;
+  if (provider === "microsoft") return `Skipping Microsoft — ${r}`;
+  if (provider === "google_gmail") return `Skipping Gmail — ${r}`;
+  if (provider === "google_calendar") return `Skipping Google Calendar — ${r}`;
+  if (provider === "google_drive") return `Skipping Google Drive — ${r}`;
+  if (provider === "google_docs") return `Skipping Google Docs — ${r}`;
+  if (provider === "google_sheets") return `Skipping Google Sheets — ${r}`;
+  if (provider === "google_slides") return `Skipping Google Slides — ${r}`;
+  if (provider === "slack") return `Skipping Slack — ${r}`;
+  if (provider === "zoom") return `Skipping Zoom — ${r}`;
+  if (provider === "hubspot") return `Skipping HubSpot — ${r}`;
+  return `Skipping ${provider} — ${r}`;
 }
 
 function upsertChatTaskStep(taskSteps: ChatTaskStep[], nextStep: ChatTaskStep) {
