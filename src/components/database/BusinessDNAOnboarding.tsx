@@ -1023,7 +1023,7 @@ export function BusinessDNAOnboarding({
                         {imgUrl && !failedImages.has(imgUrl) ? (
                           <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" onError={() => setFailedImages(prev => new Set(prev).add(imgUrl!))} />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-[#e6e5e0]/[0.54]">
+                          <div className="w-full h-full flex items-center justify-center bg-[#e6e5e0]">
                             <Globe className="w-8 h-8 text-[#697386]/40" />
                           </div>
                         )}
