@@ -419,7 +419,48 @@ export async function searchHubspotData(token: string, query: string, topic?: st
   return results.slice(0, 6);
 }
 
-// Get a Google access token from any connected Google sub-service.
+export async function searchZoomData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const searchTerms = buildSearchTerms(query, topic);
+  const lowerTerms = searchTerms.map((t) => t.toLowerCase());
+  const matchTopic = (topic_: string) =>
+    lowerTerms.length === 0 || lowerTerms.some((term) =>
+      term.split(/\s+/).some((w) => w.length > 2 && topic_.toLowerCase().includes(w))
+    );
+  try {
+    const upRes = await fetch(`https://api.zoom.us/v2/users/me/meetings?type=upcoming&page_size=20`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (upRes.ok) {
+      const data = await upRes.json();
+      for (const m of (data.meetings || [])) {
+        if (results.length >= 5) break;
+        const t_ = (m.topic || "Untitled").toString();
+        if (!matchTopic(t_)) continue;
+        const start = (m.start_time || "").slice(0, 16).replace("T", " ");
+        results.push(`📹 **${t_}** — ${start} (${m.duration || 0} min)${m.join_url ? ` — [join](${m.join_url})` : ""}`);
+      }
+    }
+    if (results.length < 5) {
+      const pastRes = await fetch(`https://api.zoom.us/v2/users/me/meetings?type=previous_meetings&page_size=20`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (pastRes.ok) {
+        const data = await pastRes.json();
+        for (const m of (data.meetings || [])) {
+          if (results.length >= 5) break;
+          const t_ = (m.topic || "Untitled").toString();
+          if (!matchTopic(t_)) continue;
+          const start = (m.start_time || "").slice(0, 16).replace("T", " ");
+          results.push(`📹 **${t_}** (past) — ${start}`);
+        }
+      }
+    }
+  } catch (e) { console.error("Zoom search error:", e); }
+  return results.slice(0, 5);
+}
+
+
 // Skips providers that are marked 'expired' in user_connections to avoid wasted
 // refresh attempts (and cloud usage) on legacy/revoked grants.
 async function getAnyGoogleToken(supabaseAdmin: any, userId: string): Promise<string | null> {
