@@ -270,14 +270,14 @@ function buildConnectionTaskSteps(payload: {
   if (!payload.connectionDecision.shouldSearch) {
     return [{
       action: "connections",
-      label: `Skipping connected sources for ${topic} — ${payload.connectionDecision.reason || "not needed for this request"}`,
+      label: `No need to check connected tools for ${topic} — ${payload.connectionDecision.reason || "I can answer from your business context"}`,
       status: "done",
     }];
   }
 
   const steps: ChatTaskStep[] = [{
     action: "connections",
-    label: `Checking connected sources for ${topic}`,
+    label: `Checking your connected tools for ${topic}`,
     status: "done",
     detail: payload.connectionDecision.reason,
   }];
