@@ -111,6 +111,34 @@ For funnel: volume is a count/range like "10,000 visits" or "~2k", rate is the c
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
 Use the doc formulas exactly. For decision_framework follow [DECISION TYPE] + [CRITERIA] + [AUTHORITY] + [PROCESS]. For risk_appetite follow [RISK DOMAIN] + [APPETITE LEVEL] + [TOLERANCE THRESHOLD] + [MITIGATION]. Always include checklist of 5-8 items.`,
+
+  brand: `Return JSON with the keys exactly:
+{
+  "mission": string,
+  "vision": string,
+  "values": [ { "value": string, "behavior": string } ],
+  "positioning": string,
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
+}
+mission/vision are 1-2 sentences. positioning follows [FOR target] + [WHO need] + [OUR brand IS category] + [THAT does benefit] + [UNLIKE alternative]. Always include checklist of 5-8 items.`,
+
+  product: `Return JSON with the keys exactly:
+{
+  "mechanism": string,
+  "value_proposition": string,
+  "roadmap": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string } ],
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
+}
+mechanism = how the product creates the result (1-2 sentences). value_proposition = the elevator-pitch promise. roadmap is 4-8 forward milestones. Always include checklist of 5-8 items.`,
+
+  audience: `Return JSON with the keys exactly:
+{
+  "journey": [ { "stage": "Awareness"|"Consideration"|"Decision"|"Onboarding"|"Retention"|"Advocacy", "moment": string, "thought": string } ],
+  "decision_criteria": [ { "criterion": string, "weight": "High"|"Medium"|"Low", "what_proves_it": string } ],
+  "pain_architecture": [ string ],
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
+}
+journey is the customer journey map. pain_architecture is 5-10 ranked pain points (most acute first). Always include checklist of 5-8 items.`,
 };
 
 async function callAi(systemPrompt: string, userPrompt: string): Promise<any> {
