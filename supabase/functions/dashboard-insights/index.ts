@@ -579,12 +579,26 @@ AI Agent: ${brandContent.agentName || "Not configured"}
 ` : "Brand data not available.";
 
     const connectedSummary = connectedProviders.length > 0
-      ? `Connected integrations: ${connectedProviders.join(", ")}`
+      ? `Connected integrations (${connectedProviders.length}): ${connectedProviders.join(", ")}`
       : "No integrations connected.";
 
     const employeesSummary = (employees || []).length > 0
       ? (employees || []).map((e: any) => `- ${e.name} (${e.role}) — ${e.status}`).join("\n")
       : "No AI employees linked.";
+
+    // Stringify each extended pillar (capped) so the AI can use it as alignment context.
+    const PILLAR_LABELS: Record<string, string> = {
+      market: "Market", financial: "Financial", operations: "Operations",
+      people: "People", growth: "Growth", strategy: "Strategy",
+    };
+    const extendedPillarsSummary = EXTENDED_PILLAR_TYPES
+      .map((t) => {
+        const data = extendedPillars[t];
+        if (!data) return `### ${PILLAR_LABELS[t]}\n_(not yet defined)_`;
+        const json = JSON.stringify(data, null, 2).slice(0, 2000);
+        return `### ${PILLAR_LABELS[t]}\n${json}`;
+      })
+      .join("\n\n");
 
     const fullContext = `
 ## Business Overview
@@ -595,6 +609,9 @@ ${productsSummary}
 
 ## Target Audiences
 ${audiencesSummary}
+
+## Extended Business DNA (Market / Financial / Operations / People / Growth / Strategy)
+${extendedPillarsSummary}
 
 ## AI Employees
 ${employeesSummary}
