@@ -2585,62 +2585,15 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 <select
                   value={selectedAgent}
                   onChange={(e) => setSelectedAgent(e.target.value)}
-                  className="bg-transparent border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate"
+                  className="border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate bg-[#eef2f7]"
                 >
-                  {agents.map((agent) => (
-                    <option key={agent.id} value={agent.name}>{agent.name}</option>
-                  ))}
-                </select>
-              </div>
-              <button onClick={() => setIsSettingsOpen(false)} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors flex-shrink-0">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
-              {/* Sidebar — horizontal on mobile */}
-              <div className="sm:w-64 bg-card border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-y-auto shrink-0">
-                {([
-                  { key: "safety", label: "Safety", icon: Shield },
-                  { key: "employees", label: "Employees", icon: Users },
-                  { key: "connections", label: "Connections", icon: Link },
-                ] as const).map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => setSettingsTab(key)}
-                    className={`text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 sm:gap-3 whitespace-nowrap ${settingsTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-
+...
               {/* Content */}
-              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-white">
+              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-[#fcfcfd]">
                 {settingsTab === "safety" && (
-                  <div className="flex-1">
-                    {(() => {
-                      const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
-                      if (activeBrand) {
-                        return <SettingsView activeBrandId={activeBrand.id} />;
-                      }
-                      return (
-                        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                          <p>Select an agent to configure safety settings.</p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {settingsTab === "employees" && (
-                  <div className="space-y-6 flex-1">
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground mb-4">Manage Employees</h4>
-                      <div className="space-y-4">
+...
                         {employees.map((emp) => (
-                          <div key={emp.id} className="bg-background border border-border p-4 rounded-xl space-y-3">
+                          <div key={emp.id} className="border border-border p-4 rounded-xl space-y-3 bg-[#eef2f7]">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 mr-4">
                                 <input
