@@ -773,7 +773,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
                   <DashCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
                 )
               )}
-              {activeTab === "Objectives" && <AddObjectiveInline onAdd={handleAddObjective} />}
+              
               {filteredCards.length === 0 && !searchQuery && (() => {
                 const tabKey = activeTab as TabKind;
                 const framing = TAB_FRAMING[tabKey] || TAB_FRAMING.Briefing;
