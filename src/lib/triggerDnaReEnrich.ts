@@ -39,7 +39,7 @@ export async function triggerDnaReEnrich(brandId?: string): Promise<void> {
 
     // Fire-and-forget (no await on the response).
     void supabase.functions.invoke("enrich-pillars", {
-      body: { brandId, brandRowId, pillars: GROUNDED_PILLARS },
+      body: { brandId, brandRowId, pillars: ALL_PILLARS },
     });
   } catch (err) {
     console.warn("triggerDnaReEnrich failed (non-blocking):", err);
