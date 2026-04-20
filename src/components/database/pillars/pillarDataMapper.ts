@@ -201,10 +201,23 @@ export function buildPillarValues(
 
   if (pillarId === "market" && ext) {
     if (ext.definition) {
+      // Backwards compatible: support both new {size, scope} shape and legacy string
+      const norm = (v: any, fallbackLabel: string) => {
+        if (v && typeof v === "object") {
+          return { label: fallbackLabel, value: v.size || "—", scope: v.scope || "" };
+        }
+        const str = typeof v === "string" ? v : "";
+        const moneyMatch = str.match(/(?:[~<>]\s*)?\$\s?\d[\d.,]*\s?(?:[KMBT]|million|billion|trillion)?(?:\s?[–-]\s?\$?\d[\d.,]*\s?(?:[KMBT]|million|billion|trillion)?)?/i);
+        return {
+          label: fallbackLabel,
+          value: moneyMatch ? moneyMatch[0].trim() : (str ? "—" : ""),
+          scope: moneyMatch ? str.replace(moneyMatch[0], "").replace(/^[\s,—-]+|[\s,—-]+$/g, "") : str,
+        };
+      };
       map.m1 = {
-        tam: { label: "TAM", value: ext.definition.tam || "" },
-        sam: { label: "SAM", value: ext.definition.sam || "" },
-        som: { label: "SOM", value: ext.definition.som || "" },
+        tam: norm(ext.definition.tam, "TAM"),
+        sam: norm(ext.definition.sam, "SAM"),
+        som: norm(ext.definition.som, "SOM"),
       };
     }
     if (Array.isArray(ext.competitors) && ext.competitors.length) {

@@ -430,38 +430,60 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
       const sam = v?.sam ?? {};
       const som = v?.som ?? {};
       return (
-        <div className="relative w-full aspect-square max-w-[360px] mx-auto py-4">
-          {/* TAM — outer */}
-          <div className="absolute inset-0 bg-primary/5 border-2 border-primary/20 rounded-full shadow-inner" />
-          <div className="absolute inset-x-0 top-[6%] flex flex-col items-center px-4 text-center">
-            <span className="text-base font-black text-primary leading-tight truncate max-w-[80%]">
-              {tam.value}
-            </span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-primary/60 mt-0.5 truncate max-w-[80%]">
-              {tam.label || "TAM"}
-            </span>
+        <div className="space-y-6">
+          <div className="relative w-full aspect-square max-w-[360px] mx-auto">
+            {/* TAM — outer */}
+            <div className="absolute inset-0 bg-primary/5 border-2 border-primary/20 rounded-full shadow-inner" />
+            <div className="absolute inset-x-0 top-[7%] flex flex-col items-center px-4 text-center">
+              <span className="text-lg font-black text-primary leading-tight truncate max-w-[80%]">
+                {tam.value || "—"}
+              </span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-primary/60 mt-0.5">
+                {tam.label || "TAM"}
+              </span>
+            </div>
+
+            {/* SAM — middle */}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[70%] h-[70%] bg-primary/10 border-2 border-primary/30 rounded-full" />
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-[44%] flex flex-col items-center px-4 text-center w-[60%]">
+              <span className="text-base font-black text-primary leading-tight truncate max-w-full">
+                {sam.value || "—"}
+              </span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-primary/60 mt-0.5">
+                {sam.label || "SAM"}
+              </span>
+            </div>
+
+            {/* SOM — inner */}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[40%] h-[40%] bg-primary border border-primary rounded-full shadow-md flex flex-col items-center justify-center px-2 text-center">
+              <span className="text-sm font-black text-primary-foreground leading-tight truncate max-w-full">
+                {som.value || "—"}
+              </span>
+              <span className="text-[8px] font-bold uppercase tracking-wider text-primary-foreground/80 mt-0.5">
+                {som.label || "SOM"}
+              </span>
+            </div>
           </div>
 
-          {/* SAM — middle */}
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[70%] h-[70%] bg-primary/10 border-2 border-primary/30 rounded-full" />
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-[44%] flex flex-col items-center px-4 text-center w-[60%]">
-            <span className="text-sm font-black text-primary leading-tight truncate max-w-full">
-              {sam.value}
-            </span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-primary/60 mt-0.5 truncate max-w-full">
-              {sam.label || "SAM"}
-            </span>
-          </div>
-
-          {/* SOM — inner */}
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[40%] h-[40%] bg-primary border border-primary rounded-full shadow-md flex flex-col items-center justify-center px-2 text-center">
-            <span className="text-xs font-black text-primary-foreground leading-tight truncate max-w-full">
-              {som.value}
-            </span>
-            <span className="text-[8px] font-bold uppercase tracking-wider text-primary-foreground/80 mt-0.5 truncate max-w-full">
-              {som.label || "SOM"}
-            </span>
-          </div>
+          {(tam.scope || sam.scope || som.scope) && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { ...tam, label: tam.label || "TAM" },
+                { ...sam, label: sam.label || "SAM" },
+                { ...som, label: som.label || "SOM" },
+              ].map((tier, i) => (
+                <div key={i} className="rounded-xl border border-border bg-muted/30 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    {tier.label}
+                  </div>
+                  <div className="text-sm font-bold text-foreground mb-1">{tier.value || "—"}</div>
+                  <div className="text-[12px] text-muted-foreground leading-snug">
+                    {tier.scope || "—"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }
