@@ -953,7 +953,7 @@ export function BusinessDNAOnboarding({
             <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select 1 {btConfig.label.toLowerCase()} to import</p>
 
             {/* URL bar with continue */}
-            <div className="w-full max-w-[900px] bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            <div className="w-full max-w-[900px] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-[#eef2f7]">
               <div className="flex items-center gap-3 px-2 min-w-0">
                 <Globe className="w-5 h-5 text-[#4a86ff] shrink-0" strokeWidth={2} />
                 <span className="text-[#1a1f36] font-medium text-[14px] sm:text-[15px] truncate">{activeUrl}</span>
@@ -1035,7 +1035,7 @@ export function BusinessDNAOnboarding({
                           {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                         </div>
                       </div>
-                      <div className="p-3 sm:p-5 bg-[#f4f3ee]">
+                      <div className="p-3 sm:p-5 bg-[#eef2f7]">
                         <p className="text-[12px] font-semibold text-[#697386] tracking-wider mb-1">{btConfig.label}</p>
                         <h3 className="text-[16px] font-bold text-[#1a1f36] mb-2 leading-tight">{p.name || `${btConfig.label.charAt(0) + btConfig.label.slice(1).toLowerCase()} ${i + 1}`}</h3>
                         {p.description && (
