@@ -239,6 +239,11 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDa
                       setDnaExpanded(true);
                       setDashExpanded(false);
                     }}
+                    onMouseLeave={() => {
+                      if (isCollapsed) return;
+                      if (currentView === "businessdna") return; // keep open when on the page
+                      setDnaExpanded(false);
+                    }}
                   >
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton
