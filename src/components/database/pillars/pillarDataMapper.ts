@@ -54,12 +54,31 @@ export function buildPillarValues(
     // 9. Tagline & Power Lines
     if (vi?.buttonRules?.length) map.b9 = vi.buttonRules;
 
-    // 10. Brand Perception → doc columns: How Customers Describe, How Market Categorizes, Gap
+    // 10. Brand Perception → doc columns: Channel, Perception
     if (vi?.socialMediaRules?.length) {
       map.b10 = {
         columns: ["Channel", "Perception"],
         rows: vi.socialMediaRules.map((r) => ["Social", r]),
       };
+    }
+
+    // AI-enriched additions (b2/b3/b4/b7/b11)
+    if (extended) {
+      if (extended.mission) map.b2 = extended.mission;
+      if (extended.vision) map.b3 = extended.vision;
+      if (Array.isArray(extended.values) && extended.values.length) {
+        map.b4 = {
+          columns: ["Value", "Lived Behavior"],
+          rows: extended.values.map((v: any) => [v.value || "—", v.behavior || "—"]),
+        };
+      }
+      if (extended.positioning) map.b7 = extended.positioning;
+      if (Array.isArray(extended.checklist) && extended.checklist.length) {
+        map.b11 = {
+          columns: ["Item", "Status"],
+          rows: extended.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+        };
+      }
     }
   }
 
@@ -129,6 +148,25 @@ export function buildPillarValues(
         rows: allProof.map((pp) => [pp.category, (pp.items || []).join("; ")]),
       };
     }
+
+    // AI-enriched additions (p5/p8/p14/p15)
+    if (extended) {
+      if (extended.mechanism) map.p5 = extended.mechanism;
+      if (extended.value_proposition) map.p8 = extended.value_proposition;
+      if (Array.isArray(extended.roadmap) && extended.roadmap.length) {
+        map.p14 = extended.roadmap.map((r: any) => ({
+          date: r.horizon || "—",
+          title: r.milestone || "—",
+          desc: r.outcome || "",
+        }));
+      }
+      if (Array.isArray(extended.checklist) && extended.checklist.length) {
+        map.p15 = {
+          columns: ["Item", "Status"],
+          rows: extended.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+        };
+      }
+    }
   }
 
   // ── AUDIENCE ───────────────────────────────────────────────────────────
@@ -194,9 +232,35 @@ export function buildPillarValues(
         rows: allAObj.map((o) => [o.objection, o.response || "—"]),
       };
     }
-  }
 
-  // ── EXTENDED PILLARS (4-9) ─────────────────────────────────────────────
+    // AI-enriched additions (a5/a6/a7/a13)
+    if (extended) {
+      if (Array.isArray(extended.journey) && extended.journey.length) {
+        map.a5 = extended.journey.map((s: any) => ({
+          date: s.stage || "—",
+          title: s.moment || "—",
+          desc: s.thought || "",
+        }));
+      }
+      if (Array.isArray(extended.decision_criteria) && extended.decision_criteria.length) {
+        map.a6 = {
+          columns: ["Criterion", "Weight", "What Proves It"],
+          rows: extended.decision_criteria.map((d: any) => [
+            d.criterion || "—", d.weight || "—", d.what_proves_it || "—",
+          ]),
+        };
+      }
+      if (Array.isArray(extended.pain_architecture) && extended.pain_architecture.length) {
+        map.a7 = extended.pain_architecture;
+      }
+      if (Array.isArray(extended.checklist) && extended.checklist.length) {
+        map.a13 = {
+          columns: ["Item", "Status"],
+          rows: extended.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+        };
+      }
+    }
+  }
   const ext = extended || null;
 
   if (pillarId === "market" && ext) {
@@ -255,6 +319,25 @@ export function buildPillarValues(
     }
     if (ext.timing) map.m7 = ext.timing;
     if (ext.white_space) map.m8 = ext.white_space;
+    if (ext.positioning_map && Array.isArray(ext.positioning_map.points) && ext.positioning_map.points.length) {
+      map.m3 = {
+        xLabel: ext.positioning_map.x_label || "",
+        yLabel: ext.positioning_map.y_label || "",
+        points: ext.positioning_map.points.map((p: any) => ({
+          name: p.name || "—",
+          x: typeof p.x === "number" ? p.x : 50,
+          y: typeof p.y === "number" ? p.y : 50,
+          isUs: !!p.is_us,
+          color: p.is_us ? "hsl(217 100% 65%)" : "#94a3b8",
+        })),
+      };
+    }
+    if (Array.isArray(ext.checklist) && ext.checklist.length) {
+      map.m9 = {
+        columns: ["Item", "Status"],
+        rows: ext.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+      };
+    }
   }
 
   if (pillarId === "financial" && ext) {
@@ -302,6 +385,12 @@ export function buildPillarValues(
     if (ext.cash_flow) map.f6 = ext.cash_flow;
     if (Array.isArray(ext.projections) && ext.projections.length) map.f7 = ext.projections;
     if (ext.funding) map.f8 = ext.funding;
+    if (Array.isArray(ext.checklist) && ext.checklist.length) {
+      map.f9 = {
+        columns: ["Item", "Status"],
+        rows: ext.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+      };
+    }
   }
 
   if (pillarId === "operations" && ext) {
@@ -315,9 +404,16 @@ export function buildPillarValues(
       };
     }
     if (Array.isArray(ext.tech_stack) && ext.tech_stack.length) {
-      map.o3 = ext.tech_stack.map((t: any) => ({
-        category: t.category || "Other", tool: t.tool || "—", purpose: t.purpose || "",
-      }));
+      // Group by category — renderer expects { category, tools: [name] }
+      const byCat = new Map<string, string[]>();
+      for (const t of ext.tech_stack) {
+        const cat = t.category || "Other";
+        const tool = t.tool || t.name || "";
+        if (!tool) continue;
+        if (!byCat.has(cat)) byCat.set(cat, []);
+        byCat.get(cat)!.push(tool);
+      }
+      map.o3 = Array.from(byCat.entries()).map(([category, tools]) => ({ category, tools }));
     }
     if (Array.isArray(ext.vendors) && ext.vendors.length) {
       map.o4 = {
@@ -343,10 +439,33 @@ export function buildPillarValues(
       };
     }
     if (Array.isArray(ext.compliance) && ext.compliance.length) map.o8 = ext.compliance;
+    if (Array.isArray(ext.checklist) && ext.checklist.length) {
+      map.o9 = {
+        columns: ["Item", "Status"],
+        rows: ext.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+      };
+    }
   }
 
   if (pillarId === "people" && ext) {
-    if (ext.org_chart) map.pe1 = ext.org_chart;
+    // org-chart renderer expects { role, name, children: [...] }
+    if (ext.org_chart) {
+      const oc = ext.org_chart;
+      if (oc && (oc.role || oc.name) && Array.isArray(oc.children)) {
+        map.pe1 = oc; // already correct shape
+      } else if (oc && (oc.ceo || Array.isArray(oc.branches))) {
+        // Legacy {ceo, branches:[{function, lead, reports:[]}]}
+        map.pe1 = {
+          role: "CEO",
+          name: oc.ceo || "",
+          children: (oc.branches || []).map((b: any) => ({
+            role: b.function || "—",
+            name: b.lead || "",
+            children: (b.reports || []).map((r: string) => ({ role: r, name: "" })),
+          })),
+        };
+      }
+    }
     if (Array.isArray(ext.leadership) && ext.leadership.length) {
       map.pe2 = {
         columns: ["Role", "Name", "Focus"],
@@ -366,14 +485,23 @@ export function buildPillarValues(
     }
     if (Array.isArray(ext.culture) && ext.culture.length) {
       map.pe4 = {
-        columns: ["Field", "Value"],
-        rows: ext.culture.map((c: any) => [c.field || c.value || "—", c.value || c.behavior || "—"]),
+        columns: ["Component", "What It Captures"],
+        rows: ext.culture.map((c: any) => [
+          c.component || c.field || "—",
+          c.what_it_captures || c.value || c.behavior || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.hiring) && ext.hiring.length) map.pe5 = ext.hiring;
     if (ext.performance) map.pe6 = ext.performance;
     if (ext.compensation) map.pe7 = ext.compensation;
     if (ext.retention) map.pe8 = ext.retention;
+    if (Array.isArray(ext.checklist) && ext.checklist.length) {
+      map.pe9 = {
+        columns: ["Item", "Status"],
+        rows: ext.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
+      };
+    }
   }
 
   if (pillarId === "growth" && ext) {
@@ -390,7 +518,14 @@ export function buildPillarValues(
       };
     }
     if (Array.isArray(ext.funnel) && ext.funnel.length) {
-      map.g3 = ext.funnel.map((f: any) => ({ stage: f.stage || "—", metric: f.metric || "—", value: f.value || "—" }));
+      // Renderer expects { stage, volume, rate, color }
+      const palette = ["#4a86ff", "#5b8df4", "#6c95e9", "#7e9cdd", "#90a3d2", "#a2acc7"];
+      map.g3 = ext.funnel.map((f: any, i: number) => ({
+        stage: f.stage || "—",
+        volume: f.volume || f.value || f.metric || "—",
+        rate: f.rate || "",
+        color: f.color || palette[i % palette.length],
+      }));
     }
     if (Array.isArray(ext.content) && ext.content.length) {
       map.g4 = {
@@ -406,6 +541,12 @@ export function buildPillarValues(
       map.g9 = {
         columns: ["Hypothesis", "Channel", "Status"],
         rows: ext.experiments.map((e: any) => [e.hypothesis || "—", e.channel || "—", e.status || "—"]),
+      };
+    }
+    if (Array.isArray(ext.checklist) && ext.checklist.length) {
+      map.g10 = {
+        columns: ["Item", "Status"],
+        rows: ext.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
       };
     }
   }
@@ -457,16 +598,18 @@ export function buildPillarValues(
         ]),
       };
     }
-    // 8. Strategic Milestones (timeline)
+    // 8. Strategic Milestones (timeline) — renderer expects { date, title, desc }
     if (Array.isArray(ext.milestones) && ext.milestones.length) {
       map.s8 = ext.milestones.map((r: any) => ({
-        milestone: r.milestone || "—", horizon: r.horizon || "—",
-        outcome: r.outcome || "", owner: r.owner || "",
+        date: r.horizon || "—",
+        title: r.milestone || "—",
+        desc: [r.outcome, r.owner ? `Owner: ${r.owner}` : ""].filter(Boolean).join(" · "),
       }));
     } else if (Array.isArray(ext.roadmap) && ext.roadmap.length) {
-      // Backward-compat with prior "roadmap" key
       map.s8 = ext.roadmap.map((r: any) => ({
-        milestone: r.milestone || "—", horizon: r.horizon || "—", outcome: r.outcome || "",
+        date: r.horizon || "—",
+        title: r.milestone || "—",
+        desc: r.outcome || "",
       }));
     }
     if (ext.narrative) map.s9 = ext.narrative;
@@ -478,6 +621,12 @@ export function buildPillarValues(
           s.key_assumption || s.trigger || "—",
           s.response || "—", s.early_warnings || "—",
         ]),
+      };
+    }
+    if (Array.isArray(ext.checklist) && ext.checklist.length) {
+      map.s11 = {
+        columns: ["Item", "Status"],
+        rows: ext.checklist.map((c: any) => [c.item || "—", c.status || "—"]),
       };
     }
   }

@@ -32,8 +32,11 @@ const PILLAR_PROMPTS: Record<string, string> = {
   "forces": [ { "force": "Supplier Power"|"Buyer Power"|"Threat of New Entry"|"Threat of Substitution"|"Competitive Rivalry", "intensity": "Low"|"Medium"|"High", "trend": "Increasing"|"Stable"|"Decreasing", "implication": string } ],
   "trends": [ { "trend": string, "horizon": "Short"|"Medium"|"Long", "type": "Opportunity"|"Threat", "response": string } ],   // 4-8 items
   "timing": string,
-  "white_space": string
+  "positioning_map": { "x_label": string, "y_label": string, "points": [ { "name": string, "x": number, "y": number, "is_us": boolean } ] },
+  "white_space": string,
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
+For positioning_map, x_label & y_label are short axis labels (e.g. "Price: Low → High", "Quality: Basic → Premium"). x and y are 0-100. Include 4-7 named competitors plus exactly one with is_us=true. Always populate checklist with 5-8 items capturing whether each market field is well-defined.
 For tam/sam/som, "size" MUST be a SHORT money figure ONLY (e.g. "$120B", "$8.5B", "~$400M", "$50–80M"). Never put descriptions in "size". "scope" is a SHORT phrase (max 8 words) describing what's included (e.g. "Global digital ad software", "EN-speaking SMB Meta advertisers", "Action-based AI ad platforms"). Use the formula [CATEGORY] + [GEOGRAPHIC SCOPE] + [CUSTOMER BASE SIZE] + [MATURITY STAGE] when reasoning, but keep "scope" terse. Use ranges if uncertain — never fabricate exact dollars.`,
 
   financial: `Return JSON with the keys exactly:
@@ -45,9 +48,10 @@ For tam/sam/som, "size" MUST be a SHORT money figure ONLY (e.g. "$120B", "$8.5B"
   "profitability": [ { "margin_type": "Gross"|"Contribution"|"Operating"|"EBITDA"|"Net", "current_pct": string, "target_pct": string, "benchmark": string, "improvement_path": string } ],
   "cash_flow": string,
   "projections": [ string ],
-  "funding": string
+  "funding": string,
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-Estimate cautiously based on industry norms when concrete numbers are not in context. Never invent specific revenue numbers — use ranges or "estimated".`,
+Estimate cautiously based on industry norms when concrete numbers are not in context. Never invent specific revenue numbers — use ranges or "estimated". Always include a "checklist" array of 5-8 {item, status} objects covering each financial field.`,
 
   operations: `Return JSON with the keys exactly:
 {
@@ -58,35 +62,39 @@ Estimate cautiously based on industry norms when concrete numbers are not in con
   "quality": [ string ],
   "kpis": [ { "name": string, "target": string, "rationale": string } ],
   "risks": [ { "risk": string, "likelihood": "Low"|"Medium"|"High", "impact": "Low"|"Medium"|"High", "mitigation": string } ],
-  "compliance": [ string ]
+  "compliance": [ string ],
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-Use the doc formula [VENDOR] + [WHAT THEY SUPPLY] + [CRITICALITY: 1-5] + [RISK] + [ALTERNATIVE] for vendors.`,
+Use the doc formula [VENDOR] + [WHAT THEY SUPPLY] + [CRITICALITY: 1-5] + [RISK] + [ALTERNATIVE] for vendors. Always populate checklist with 5-8 items.`,
 
   people: `Return JSON with the keys exactly:
 {
-  "org_chart": { "ceo": string, "branches": [ { "function": string, "lead": string, "reports": [ string ] } ] },
+  "org_chart": { "role": string, "name": string, "children": [ { "role": string, "name": string, "children": [ { "role": string, "name": string } ] } ] },
   "leadership": [ { "role": string, "name": string, "focus": string } ],
   "capabilities": [ { "domain": string, "current_strength": "1"|"2"|"3"|"4"|"5", "required_strength": "1"|"2"|"3"|"4"|"5", "gap": string, "plan": string } ],
-  "culture": [ { "field": "Stated Values"|"Lived Behaviors"|"Rituals"|"Artifacts", "value": string } ],
+  "culture": [ { "component": "Stated Values"|"Lived Behaviors"|"Rituals"|"Artifacts", "what_it_captures": string } ],
   "hiring": [ string ],
   "performance": string,
   "compensation": string,
-  "retention": string
+  "retention": string,
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-Use the doc formula [CAPABILITY DOMAIN] + [CURRENT STRENGTH: 1-5] + [REQUIRED STRENGTH: 1-5] + [GAP] + [PLAN] for capabilities. Use plausible function names (Founder, Marketing Lead, Ops Lead) when no real names are known.`,
+org_chart MUST be a recursive tree with {role, name, children}. Top node is the CEO/Founder. Use the doc formula [CAPABILITY DOMAIN] + [CURRENT STRENGTH: 1-5] + [REQUIRED STRENGTH: 1-5] + [GAP] + [PLAN] for capabilities. Use plausible function names (Founder, Marketing Lead, Ops Lead) when no real names are known. Always include checklist of 5-8 items.`,
 
   growth: `Return JSON with the keys exactly:
 {
   "growth_model": [ { "lever": string, "channel": string, "expected_impact": string } ],
   "channels": [ { "channel": string, "stage": "Awareness"|"Consideration"|"Conversion"|"Retention", "fit": "Low"|"Medium"|"High", "notes": string } ],
-  "funnel": [ { "stage": "Awareness"|"Interest"|"Consideration"|"Purchase"|"Retention"|"Advocacy", "metric": string, "value": string } ],
+  "funnel": [ { "stage": "Awareness"|"Interest"|"Consideration"|"Purchase"|"Retention"|"Advocacy", "volume": string, "rate": string, "color": string } ],
   "content": [ { "format": string, "topic": string, "channel": string } ],
   "campaigns": string,
   "creative": [ string ],
   "retention": string,
   "referral": string,
-  "experiments": [ { "hypothesis": string, "channel": string, "status": "Planned"|"Running"|"Done" } ]
-}`,
+  "experiments": [ { "hypothesis": string, "channel": string, "status": "Planned"|"Running"|"Done" } ],
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
+}
+For funnel: volume is a count/range like "10,000 visits" or "~2k", rate is the conversion rate to next stage like "12%", and color is a HEX (e.g. "#4a86ff") with progressively deeper saturation per stage. Always include checklist of 5-8 items.`,
 
   strategy: `Return JSON with the keys exactly:
 {
@@ -99,9 +107,38 @@ Use the doc formula [CAPABILITY DOMAIN] + [CURRENT STRENGTH: 1-5] + [REQUIRED ST
   "risk_appetite": [ { "domain": string, "appetite": "Conservative"|"Moderate"|"Aggressive", "tolerance_threshold": string, "mitigation": string } ],
   "milestones": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string, "owner": string } ],
   "narrative": string,
-  "scenarios": [ { "scenario": "Base"|"Bull"|"Bear"|"Black Swan", "probability": string, "key_assumption": string, "response": string, "early_warnings": string } ]
+  "scenarios": [ { "scenario": "Base"|"Bull"|"Bear"|"Black Swan", "probability": string, "key_assumption": string, "response": string, "early_warnings": string } ],
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-Use the doc formulas exactly. For decision_framework follow [DECISION TYPE] + [CRITERIA] + [AUTHORITY] + [PROCESS]. For risk_appetite follow [RISK DOMAIN] + [APPETITE LEVEL] + [TOLERANCE THRESHOLD] + [MITIGATION].`,
+Use the doc formulas exactly. For decision_framework follow [DECISION TYPE] + [CRITERIA] + [AUTHORITY] + [PROCESS]. For risk_appetite follow [RISK DOMAIN] + [APPETITE LEVEL] + [TOLERANCE THRESHOLD] + [MITIGATION]. Always include checklist of 5-8 items.`,
+
+  brand: `Return JSON with the keys exactly:
+{
+  "mission": string,
+  "vision": string,
+  "values": [ { "value": string, "behavior": string } ],
+  "positioning": string,
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
+}
+mission/vision are 1-2 sentences. positioning follows [FOR target] + [WHO need] + [OUR brand IS category] + [THAT does benefit] + [UNLIKE alternative]. Always include checklist of 5-8 items.`,
+
+  product: `Return JSON with the keys exactly:
+{
+  "mechanism": string,
+  "value_proposition": string,
+  "roadmap": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string } ],
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
+}
+mechanism = how the product creates the result (1-2 sentences). value_proposition = the elevator-pitch promise. roadmap is 4-8 forward milestones. Always include checklist of 5-8 items.`,
+
+  audience: `Return JSON with the keys exactly:
+{
+  "journey": [ { "stage": "Awareness"|"Consideration"|"Decision"|"Onboarding"|"Retention"|"Advocacy", "moment": string, "thought": string } ],
+  "decision_criteria": [ { "criterion": string, "weight": "High"|"Medium"|"Low", "what_proves_it": string } ],
+  "pain_architecture": [ string ],
+  "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
+}
+journey is the customer journey map. pain_architecture is 5-10 ranked pain points (most acute first). Always include checklist of 5-8 items.`,
 };
 
 async function callAi(systemPrompt: string, userPrompt: string): Promise<any> {
@@ -241,11 +278,18 @@ ${PILLAR_PROMPTS[pillarId]}`;
       const { pillarId, data } = r.value;
 
       try {
+        // brand/product/audience enrichments are stored under separate
+        // *_dna data_types so they don't collide with the source rows.
+        const TYPE_MAP: Record<string, string> = {
+          brand: "brand_dna", product: "product_dna", audience: "audience_dna",
+        };
+        const storageType = TYPE_MAP[pillarId] || pillarId;
+
         const { data: existing } = await admin
           .from("user_business_data")
           .select("id, metadata")
           .eq("user_id", user.id)
-          .eq("data_type", pillarId);
+          .eq("data_type", storageType);
         const stale = (existing || []).filter((row: any) => (row.metadata?.brandId || null) === brandId).map((row: any) => row.id);
         if (stale.length) {
           await admin.from("user_business_data").delete().in("id", stale);
@@ -256,7 +300,7 @@ ${PILLAR_PROMPTS[pillarId]}`;
           workspace_id: wsId,
           source: "business-dna",
           is_analyzed: true,
-          data_type: pillarId,
+          data_type: storageType,
           title: `${pillarId.charAt(0).toUpperCase() + pillarId.slice(1)} DNA`,
           content: JSON.stringify(data),
           metadata: { brandId, dna_segment: pillarId, dna_pillars: [pillarId], generated_by: "enrich-pillars", generated_at: new Date().toISOString() },
