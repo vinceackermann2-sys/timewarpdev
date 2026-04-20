@@ -91,6 +91,9 @@ const TABS = [
 ];
 
 const CACHE_KEY_PREFIX = "dash_cards_";
+const CACHE_TS_PREFIX = "dash_cards_ts_";
+const STALE_FLAG_PREFIX = "dash_stale_";
+const AUTO_REFRESH_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 function loadCachedCards(brandId: string): Record<string, DashboardCard[]> | null {
   try {
@@ -103,7 +106,28 @@ function loadCachedCards(brandId: string): Record<string, DashboardCard[]> | nul
 function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>) {
   try {
     localStorage.setItem(CACHE_KEY_PREFIX + brandId, JSON.stringify(tabs));
+    localStorage.setItem(CACHE_TS_PREFIX + brandId, String(Date.now()));
+    localStorage.removeItem(STALE_FLAG_PREFIX + brandId);
   } catch { /* quota exceeded – ignore */ }
+}
+
+function getCacheAgeMs(brandId: string): number {
+  try {
+    const ts = localStorage.getItem(CACHE_TS_PREFIX + brandId);
+    if (!ts) return Infinity;
+    return Date.now() - parseInt(ts, 10);
+  } catch { return Infinity; }
+}
+
+function isCacheStale(brandId: string): boolean {
+  try {
+    if (localStorage.getItem(STALE_FLAG_PREFIX + brandId) === "1") return true;
+  } catch { /* ignore */ }
+  return getCacheAgeMs(brandId) > AUTO_REFRESH_MS;
+}
+
+function markCacheStale(brandId: string) {
+  try { localStorage.setItem(STALE_FLAG_PREFIX + brandId, "1"); } catch { /* ignore */ }
 }
 
 /* Show timeAgo on cards only when "recent" (< ~24h) — keeps cards quiet */
