@@ -453,6 +453,7 @@ const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
   { keys: /\b(microsoft|teams|m365|office\s*365)\b/i, providers: ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"] },
   { keys: /\bslack\b/i, providers: ["slack"] },
   { keys: /\b(hubspot|hub\s*spot|crm)\b/i, providers: ["hubspot"] },
+  { keys: /\b(zoom|webinar)\b/i, providers: ["zoom"] },
 ];
 
 export function detectNamedProviders(query: string): string[] {
@@ -569,7 +570,7 @@ export async function searchConnectedProviders(
   const skippedProviderDetails: SkippedProviderDetail[] = [];
   let connectionContext = "";
   const t = topic || extractQueryTopic(userQuery);
-  const connectionCheckLabel = `Checking connected sources for ${t}`;
+  const connectionCheckLabel = `Checking your connected tools for ${t}`;
 
   const decision = shouldSearchConnections(userQuery);
   console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
@@ -591,7 +592,7 @@ export async function searchConnectedProviders(
 
   if (!connections || connections.length === 0) {
     console.log("[connections] No connected providers found");
-    for (const provider of ["microsoft", "slack", "hubspot"]) {
+    for (const provider of ["microsoft_outlook", "google_gmail", "slack", "zoom", "hubspot"]) {
       skippedProviders.push(provider);
       skippedProviderDetails.push({ provider, reason: "not connected" });
     }
@@ -599,9 +600,9 @@ export async function searchConnectedProviders(
       t,
       searchedProviders,
       skippedProviderDetails,
-      "No connected sources are currently available",
+      "No connected tools are linked yet — I have nothing live to look at",
     );
-    emitProgress?.({ label: `Checking connected sources for ${t}`, status: "done", action: "connections", detail: "No integrations are currently connected" });
+    emitProgress?.({ label: connectionCheckLabel, status: "done", action: "connections", detail: "Nothing connected yet" });
     return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
@@ -623,7 +624,7 @@ export async function searchConnectedProviders(
   const allKnownProviders = [
     "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote",
     "google_gmail", "google_drive", "google_calendar",
-    "slack", "hubspot",
+    "slack", "zoom", "hubspot",
   ];
   for (const provider of allKnownProviders) {
     if (isMicrosoftProvider(provider)) {
