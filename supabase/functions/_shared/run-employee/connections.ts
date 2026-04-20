@@ -485,9 +485,11 @@ async function getAnyGoogleToken(supabaseAdmin: any, userId: string): Promise<st
 // If the user explicitly names a provider, only search that one (saves usage).
 const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
   { keys: /\b(gmail|g[\s-]?mail)\b/i, providers: ["google_gmail"] },
-  { keys: /\b(google\s*drive|gdrive|google\s*docs?|google\s*sheets?|google\s*slides?)\b/i, providers: ["google_drive"] },
+  // "google docs", "google documents", "google files", "google drive", "gdrive", "google sheets", "google slides"
+  { keys: /\b(google\s*(docs?|documents?|files?|drives?|sheets?|slides?)|gdrive)\b/i, providers: ["google_drive"] },
   { keys: /\b(google\s*calendar|gcal)\b/i, providers: ["google_calendar"] },
-  { keys: /\bgoogle\b/i, providers: ["google_gmail", "google_drive", "google_calendar"] },
+  // Bare "google" (no specific sub-tool) — assume Drive only when paired with file/doc keywords; otherwise fan out.
+  { keys: /\bgoogle\b(?!\s*(docs?|documents?|files?|drives?|sheets?|slides?|calendar|gcal|mail))/i, providers: ["google_gmail", "google_drive", "google_calendar"] },
   { keys: /\b(outlook)\b/i, providers: ["microsoft_outlook"] },
   { keys: /\b(onedrive|one\s*drive|sharepoint)\b/i, providers: ["microsoft_onedrive"] },
   { keys: /\b(onenote|one\s*note)\b/i, providers: ["microsoft_onenote"] },
