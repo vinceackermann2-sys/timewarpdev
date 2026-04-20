@@ -954,7 +954,87 @@ export function BusinessDNAOnboarding({
 
             {/* URL bar with continue */}
             <div className="w-full max-w-[900px] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-[#eef2f7]">
-...
+              <div className="flex items-center gap-3 px-2 min-w-0">
+                <Globe className="w-5 h-5 text-[#4a86ff] shrink-0" strokeWidth={2} />
+                <span className="text-[#1a1f36] font-medium text-[14px] sm:text-[15px] truncate">{activeUrl}</span>
+              </div>
+              <button
+                onClick={() => {
+                  let chosen = selectedProducts;
+                  if (chosen.length === 0 && extractedProducts.length > 0) {
+                    chosen = [0];
+                    setSelectedProducts(chosen);
+                  }
+                  const firstIdx = chosen[0];
+                  const firstProduct = firstIdx !== undefined ? extractedProducts[firstIdx] : undefined;
+                  if (firstProduct?.images?.length > 0) {
+                    setCurrentProductIndex(0);
+                    setStep(3);
+                  } else {
+                    setStep(4);
+                  }
+                }}
+                disabled={selectedProducts.length === 0 && extractedProducts.length === 0}
+                className="bg-[#4a86ff] disabled:opacity-50 hover:bg-[#2875ff] transition-colors text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
+              >
+                Continue <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Product Cards Grid */}
+            {extractedProducts.length > 0 ? (
+              <div className="w-full max-w-[900px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {extractedProducts.slice(0, 10).map((p: any, i: number) => {
+                  const isSelected = selectedProducts.includes(i);
+                  // Find first usable image (skip broken CDN transform stubs)
+                  const isUsableImage = (u?: string) => !!u && /^https?:\/\//i.test(u) &&
+                    u.length > 30 &&
+                    !/(beacon|atb|tracking|pixel|spacer|blank|transparent|placehold|placeholder|favicon|1x1|badge)/i.test(u) &&
+                    !/[?&](w|width|h|height)=([1-9]|[1-4]\d)(&|$)/i.test(u) &&
+                    !u.endsWith('.svg') &&
+                    !u.includes('data:image');
+                  const allImgUrls = (p.images || []).map((img: any) => typeof img === 'string' ? img : img?.url ?? img?.src ?? null);
+                  const rawImgUrl = allImgUrls.find(isUsableImage) || null;
+                  // Resolve relative/protocol-relative URLs
+                  let resolvedImgUrl = rawImgUrl;
+                  if (rawImgUrl && !rawImgUrl.startsWith('http') && !rawImgUrl.startsWith('data:')) {
+                    try { resolvedImgUrl = new URL(rawImgUrl.startsWith('//') ? `https:${rawImgUrl}` : rawImgUrl, p.url || activeUrl).toString(); } catch { resolvedImgUrl = null; }
+                  }
+                  const imgUrl = resolvedImgUrl ? (bgRemovedImages[resolvedImgUrl] || resolvedImgUrl) : null;
+                  if (i === 0) console.log("Product card render:", { name: p.name, rawImgUrl, resolvedImgUrl, imgUrl, allImages: p.images?.slice(0, 3) });
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        // Single-select: clicking always replaces selection with this product
+                        if (isSelected) {
+                          setSelectedProducts([]);
+                        } else {
+                          setSelectedProducts([i]);
+                        }
+                      }}
+                      className={`cursor-pointer rounded-2xl overflow-hidden border-2 transition-all ${
+                        isSelected
+                          ? "border-[#4a86ff] ring-4 ring-[#4a86ff]/20"
+                          : "border-transparent bg-[#f4f3ee] hover:border-[#e5e4df]"
+                      }`}
+                    >
+                      <div className="relative h-36 sm:h-48 bg-white flex items-center justify-center">
+                        {imgUrl && !failedImages.has(imgUrl) ? (
+                          <img src={imgUrl} alt={p.name} className="w-full h-full object-cover" onError={() => setFailedImages(prev => new Set(prev).add(imgUrl!))} />
+                        ) : (
+                          <div className="w-full h-full bg-[#e5e4df] flex items-center justify-center">
+                            <Globe className="w-8 h-8 text-[#697386]/40" />
+                          </div>
+                        )}
+                        <div
+                          className={`absolute top-3 right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            isSelected ? "bg-[#4a86ff] border-[#4a86ff]" : "bg-black/40 border-white/60"
+                          }`}
+                        >
+                          {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                        </div>
+                      </div>
                       <div className="p-3 sm:p-5 bg-[#eef2f7]">
                         <p className="text-[12px] font-semibold text-[#697386] tracking-wider mb-1">{btConfig.label}</p>
                         <h3 className="text-[16px] font-bold text-[#1a1f36] mb-2 leading-tight">{p.name || `${btConfig.label.charAt(0) + btConfig.label.slice(1).toLowerCase()} ${i + 1}`}</h3>
