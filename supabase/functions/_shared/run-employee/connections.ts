@@ -716,14 +716,17 @@ export async function searchConnectedProviders(
   }
 
   const connectedProviders = connections.map((c: any) => c.provider);
+  const inventory = buildConnectedToolsInventory(connectedProviders);
   const searchPromises: Promise<void>[] = [];
 
-  // Per-provider intent: if user names a specific tool, search ONLY that one (saves usage)
-  const namedProviders = detectNamedProviders(userQuery);
+  // Per-provider intent: if user names a specific tool, search ONLY that one (saves usage).
+  // Generic intent (e.g. "documents", "emails") is narrowed to providers the user actually has connected.
+  const rawNamedProviders = detectNamedProviders(userQuery);
+  const namedProviders = narrowProvidersByConnections(rawNamedProviders, connectedProviders, userQuery);
   const useTargeted = namedProviders.length > 0;
   const isAllowed = (provider: string) => !useTargeted || namedProviders.includes(provider);
   if (useTargeted) {
-    console.log("[connections] Targeted search — only:", namedProviders);
+    console.log("[connections] Targeted search — raw:", rawNamedProviders, "narrowed:", namedProviders);
   }
 
   // Check for any Microsoft sub-service connection
