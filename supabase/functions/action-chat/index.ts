@@ -28,21 +28,8 @@ async function fetchUserBusinessContext(userId: string, workspaceId?: string): P
     }
   }
 
-  // Try bucket context first
-  const bucketPath = `${userId}/context.json`;
-  const { data: fileData } = await supabase.storage
-    .from("business-data")
-    .download(bucketPath);
-
-  if (fileData && !workspaceId) {
-    try {
-      const text = await fileData.text();
-      const contextObj = JSON.parse(text);
-      if (contextObj.items && contextObj.items.length > 0) {
-        return formatContextItems(contextObj.items);
-      }
-    } catch { /* fall through */ }
-  }
+  // NOTE: We intentionally bypass the legacy `context.json` storage cache —
+  // it can be stale and miss the new 9-pillar Business DNA rows. Always query DB.
 
   // Fallback: query DB
   let query = supabase
@@ -72,6 +59,14 @@ function truncate(text: string, max: number): string {
 }
 
 function formatContextItems(items: any[]): string {
+  // Surface the full 9-pillar Business DNA first (brand, product, audience, market,
+  // financial, operations, people, growth, strategy) so the AI always grounds in it.
+  const DNA_TYPES = ["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"];
+  items = [...items].sort((a, b) => {
+    const ai = DNA_TYPES.indexOf(a?.data_type); const bi = DNA_TYPES.indexOf(b?.data_type);
+    const ar = ai === -1 ? 99 : ai; const br = bi === -1 ? 99 : bi;
+    return ar - br;
+  });
   const MAX_CONTEXT_CHARS = 200000;
   const MAX_ITEM_CHARS = 2000;
   let context = "\n\n## User's Business Data\n\n";
@@ -193,6 +188,12 @@ serve(async (req) => {
 ${userContext}
 ${liveConnectionsContext}
 ${frontendContext}
+
+## 🔒 PRIVACY & SCOPE — ABSOLUTE RULES (READ FIRST)
+- You may ONLY discuss data that belongs to THIS user / THIS workspace and that appears in the "User's Business Data" or "Live Data" sections above, plus what the user has typed in chat.
+- NEVER answer questions about other users of this platform, other workspaces, other customers, or any third party's private data (their finances, employees, internal docs, plans, customer lists). You do not have access to that and must not invent any.
+- If asked about another person's, company's, or competitor's PRIVATE / INTERNAL data, say plainly that you only have access to the user's own business data, then offer either to use what you do have or to do public web research instead. Do NOT speculate as if you knew their numbers.
+- Treat data about the user themselves the same way: only what's actually in the context above is real. Do not fabricate "the user's" emails, docs, KPIs, employees, customers, deals, or revenue.
 
 ## 🎯 ANSWER THE ACTUAL QUESTION (HIGHEST PRIORITY)
 - Read the user's MOST RECENT message carefully and answer THAT specific question.
