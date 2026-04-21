@@ -24,9 +24,23 @@ interface Props {
   onMinimizedChange?: (m: boolean) => void;
 }
 
-/* ── Short, one-word-ish CTA verb ── */
+/* ── Short, personal CTA verb derived from the card's own suggestion ── */
 function shortCtaVerb(card: DashboardCard, tabKind: TabKind): string {
-  // Prefer the framing default (Discuss / Respond / Start / Plan) — it's already short
+  const suggestion = (card.actionSuggestion || "").trim();
+  if (suggestion) {
+    // Take the first clause / sentence, then the first 3-4 words
+    const firstClause = suggestion.split(/[.!?;:\n]/)[0].trim();
+    const words = firstClause.split(/\s+/).filter(Boolean);
+    if (words.length > 0) {
+      // Capitalize first word (keep rest as-is), cap to 4 words for a short button label
+      const capped = words.slice(0, 4);
+      capped[0] = capped[0].charAt(0).toUpperCase() + capped[0].slice(1);
+      const label = capped.join(" ");
+      // Strip a trailing comma if any
+      return label.replace(/[,]+$/, "");
+    }
+  }
+  // Fallback to the tab's generic verb
   return TAB_FRAMING[tabKind].ctaLabel;
 }
 
