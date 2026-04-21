@@ -497,6 +497,12 @@ const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
   { keys: /\bslack\b/i, providers: ["slack"] },
   { keys: /\b(hubspot|hub\s*spot|crm)\b/i, providers: ["hubspot"] },
   { keys: /\b(zoom|webinar)\b/i, providers: ["zoom"] },
+  // Generic file/doc keywords without a provider name → fan out to all file/doc providers (Google Drive + OneDrive)
+  { keys: /\b(documents?|docs?|files?|spreadsheets?|sheets?|slides?|presentations?)\b/i, providers: ["google_drive", "microsoft_onedrive"] },
+  // Generic email keywords without a provider name → fan out to email providers
+  { keys: /\b(emails?|mails?|inbox|messages?)\b/i, providers: ["google_gmail", "microsoft_outlook"] },
+  // Generic calendar keywords → fan out to calendar providers
+  { keys: /\b(calendar|schedule|meetings?|appointments?|events?)\b/i, providers: ["google_calendar", "microsoft_outlook"] },
 ];
 
 export function detectNamedProviders(query: string): string[] {
