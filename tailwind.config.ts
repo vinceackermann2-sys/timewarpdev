@@ -67,6 +67,11 @@ export default {
   				info: 'hsl(var(--status-info))',
   				'info-foreground': 'hsl(var(--status-info-foreground))'
   			},
+  			brand: {
+  				intelligence: 'hsl(var(--accent-intelligence))',
+  				network: 'hsl(var(--accent-network))',
+  				energy: 'hsl(var(--accent-energy))'
+  			},
   			browser: {
   				bg: 'hsl(var(--browser-bg))',
   				header: 'hsl(var(--browser-header))',
