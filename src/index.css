@@ -746,13 +746,17 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    letter-spacing: -0.01em;
+    line-height: 1.5;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    @apply font-semibold;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
   }
 
   /* Mobile: prevent iOS zoom-on-focus by ensuring inputs are at least 16px */
