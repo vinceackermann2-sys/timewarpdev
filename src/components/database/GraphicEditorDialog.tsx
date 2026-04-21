@@ -118,7 +118,7 @@ export function GraphicEditorDialog({
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
-          className="max-w-6xl w-[95vw] border border-border bg-background p-0 sm:rounded-2xl shadow-2xl overflow-hidden"
+          className="max-w-6xl w-[95vw] border border-border bg-background p-0 sm:rounded-2xl shadow-2xl overflow-hidden [&>button.absolute]:hidden"
         >
           <div className="flex h-[88vh] flex-col">
             {/* Header */}

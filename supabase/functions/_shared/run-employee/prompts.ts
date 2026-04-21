@@ -210,19 +210,20 @@ For slides use \`\`\`slide, for documents use \`\`\`document, for spreadsheets u
 When generating slides, you MUST include "brand_colors" from the business's Brand data in the slide JSON. Use the brand's primary color as "accent_color" and include "bg_color" (dark variant of the brand color) for the slide background. If no brand colors are available, default to accent_color "#3399ff" and bg_color "#1a1a2e".
 
 **SLIDE DESIGN RULES — CRITICAL:**
-- Slides MUST be visually rich and use MINIMAL text. Think pitch-deck quality, NOT a wall of text.
-- Use large stat callouts (big numbers with small labels) instead of long sentences.
-- Use short punchy bullets (3-6 words each), max 4 bullets per slide.
-- Prefer "stats" arrays with big numbers/metrics over bullet lists when showing data.
-- Titles should be 3-6 words max — concise and impactful.
-- Include a short "subtitle" for context instead of long descriptions.
-- Include "brand_name" to personalize the header.
-- Use emoji icons in bullets for visual flair.
-- Prefer multiple focused slides over one dense slide.
+- Slides MUST be visually rich and use MINIMAL text. Think pitch-deck quality.
+- **VARY THE LAYOUT per slide.** Do NOT reuse the same template for every slide. Pick the layout that fits the content. Supported "layout" values: "stat-callout" (big numbers), "bullets" (short list), "two-column" (use "left_column" and "right_column" string arrays), "title-only" (title + subtitle + takeaway).
+- Short punchy bullets (3-6 words), max 4 per slide. Titles 3-6 words.
+- Include "subtitle", "brand_name", and an emoji "icon" when appropriate.
 
-Example:
+**MULTI-SLIDE DECKS:**
+When the user asks for a deck, presentation, or multiple slides (or the topic needs more than one), output MULTIPLE separate \`\`\`slide code blocks back-to-back — one block per slide. Each slide should pick a layout that fits its content (e.g. title-only intro → stat-callout data → two-column comparison → bullets summary). Decide how many slides are appropriate (typically 3-7); do NOT default to a single slide and do NOT default to one fixed template.
+
+Examples:
 \`\`\`slide
-{"title":"Revenue Growth","subtitle":"Q1 2026 Performance","accent_color":"#FF6B35","bg_color":"#2D1B0E","brand_name":"Acme Co","stats":[{"value":"$2.4M","label":"Revenue"},{"value":"+34%","label":"Growth"},{"value":"1,200","label":"New Customers"}],"takeaway":"Record quarter driven by enterprise expansion"}
+{"title":"Q1 Revenue","subtitle":"2026 Performance","layout":"stat-callout","accent_color":"#FF6B35","bg_color":"#2D1B0E","brand_name":"Acme","stats":[{"value":"$2.4M","label":"Revenue"},{"value":"+34%","label":"Growth"}],"takeaway":"Record quarter"}
+\`\`\`
+\`\`\`slide
+{"title":"What Drove Growth","layout":"two-column","accent_color":"#FF6B35","bg_color":"#2D1B0E","left_column":["Enterprise expansion","New EU market","Upsell motion"],"right_column":["Pricing change","Better onboarding","Referral program"]}
 \`\`\`
 
 ## SAFETY GUARDRAILS
