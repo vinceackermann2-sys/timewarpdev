@@ -362,7 +362,7 @@ export default function PricingPage() {
                 className={cn(
                   "px-6 py-2 rounded-full text-sm font-medium transition-all capitalize",
                   billing === period
-                    ? "text-primary-foreground shadow-sm bg-white"
+                    ? "shadow-sm bg-white text-black"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
