@@ -118,24 +118,21 @@ export function GraphicEditorDialog({
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
-          className="max-w-6xl w-[95vw] border-0 bg-[#FAFAFD] p-0 sm:rounded-2xl shadow-[0_24px_80px_-12px_rgba(29,29,31,0.18)] overflow-hidden"
+          className="max-w-6xl w-[95vw] border border-border bg-background p-0 sm:rounded-2xl shadow-2xl overflow-hidden"
         >
           <div className="flex h-[88vh] flex-col">
             {/* Header */}
-            <DialogHeader className="flex-row items-center justify-between border-b border-[#F3F4F6] bg-white px-6 py-4 space-y-0">
-              <div className="flex items-center gap-2.5">
-                <div className="h-7 w-7 rounded-lg bg-[#1D1D1F] flex items-center justify-center">
-                  <Sparkles className="h-3.5 w-3.5 text-white" />
-                </div>
-                <DialogTitle className="text-[15px] font-semibold text-[#1D1D1F] tracking-tight">{title}</DialogTitle>
-              </div>
+            <DialogHeader className="flex-row items-center justify-between border-b border-border bg-card px-5 py-3 space-y-0">
+              <DialogTitle className="text-sm font-semibold text-foreground tracking-tight">
+                {title}
+              </DialogTitle>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setOpen(false)}
-                  className="h-8 px-3 text-[13px] text-muted-foreground hover:text-foreground hover:bg-[#F3F4F6] rounded-lg"
+                  className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground rounded-lg"
                 >
                   Cancel
                 </Button>
@@ -143,31 +140,31 @@ export function GraphicEditorDialog({
                   type="button"
                   size="sm"
                   onClick={handleApply}
-                  className="h-8 px-4 text-[13px] bg-[#1D1D1F] text-white hover:bg-[#1D1D1F]/90 rounded-lg shadow-none"
+                  className="h-8 px-4 text-xs rounded-lg"
                 >
                   Apply changes
                 </Button>
               </div>
             </DialogHeader>
 
-            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[340px_minmax(0,1fr)]">
+            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[320px_minmax(0,1fr)]">
               {/* Left: AI Chat */}
-              <div className="flex flex-col border-b border-[#F3F4F6] bg-white lg:border-b-0 lg:border-r overflow-hidden">
+              <div className="flex flex-col border-b border-border bg-card lg:border-b-0 lg:border-r overflow-hidden">
                 {/* Chat messages */}
-                <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
                   {chatHistory.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                      <div className="h-10 w-10 rounded-xl bg-[#F3F4F6] flex items-center justify-center mb-4">
-                        <Sparkles className="w-4 h-4 text-[#9D75BD]" />
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                      <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center mb-3">
+                        <Sparkles className="w-4 h-4 text-primary" />
                       </div>
-                      <p className="text-[13px] font-medium text-[#1D1D1F]">Refine with AI</p>
-                      <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed">
-                        Or click any text in the preview to edit it directly.
+                      <p className="text-[13px] font-medium text-foreground">Refine with AI</p>
+                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                        Or click any text in the preview to edit directly.
                       </p>
-                      <div className="mt-5 w-full space-y-1.5">
+                      <div className="mt-4 w-full space-y-1.5">
                         {[
                           "Make the title shorter",
-                          "Add a new bullet point",
+                          "Add a bullet point",
                           "Make it more concise",
                         ].map((s) => (
                           <button
@@ -178,7 +175,7 @@ export function GraphicEditorDialog({
                                 handleAiRefine();
                               }
                             }}
-                            className="w-full text-left text-[12px] text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg hover:bg-[#FAFAFD] border border-[#F3F4F6] transition-colors"
+                            className="w-full text-left text-xs text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg hover:bg-muted/60 border border-border transition-colors"
                           >
                             {s}
                           </button>
@@ -192,15 +189,15 @@ export function GraphicEditorDialog({
                       className={cn(
                         "text-[13px] px-3.5 py-2.5 rounded-2xl max-w-[92%] leading-relaxed",
                         msg.role === "user"
-                          ? "bg-[#1D1D1F] text-white ml-auto rounded-br-md"
-                          : "bg-[#F3F4F6] text-[#1D1D1F] rounded-bl-md"
+                          ? "bg-primary text-primary-foreground ml-auto rounded-br-md"
+                          : "bg-muted text-foreground rounded-bl-md"
                       )}
                     >
                       {msg.content}
                     </div>
                   ))}
                   {isRefining && (
-                    <div className="flex items-center gap-2 text-[12px] text-muted-foreground px-1">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       Updating preview…
                     </div>
@@ -209,13 +206,13 @@ export function GraphicEditorDialog({
                 </div>
 
                 {/* Chat input bar */}
-                <div className="p-3 border-t border-[#F3F4F6] bg-white">
-                  <div className="flex items-end bg-[#FAFAFD] border border-[#F3F4F6] rounded-2xl p-1.5 focus-within:border-[#1D1D1F]/20 transition-colors">
+                <div className="p-3 border-t border-border">
+                  <div className="flex items-end bg-background border border-border rounded-2xl p-1.5 focus-within:border-primary/40 transition-colors">
                     <div
                       ref={chatInputRef}
                       contentEditable
                       suppressContentEditableWarning
-                      className="flex-1 bg-transparent border-none outline-none text-[#1D1D1F] text-[14px] px-3 py-2 min-w-[80px] max-h-[120px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/70 cursor-text"
+                      className="flex-1 bg-transparent border-none outline-none text-foreground text-sm px-3 py-2 min-w-[80px] max-h-[120px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/70 cursor-text"
                       data-placeholder="Ask AI to refine…"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
@@ -227,7 +224,7 @@ export function GraphicEditorDialog({
                     <button
                       onClick={handleAiRefine}
                       disabled={isRefining}
-                      className="h-8 w-8 rounded-xl bg-[#1D1D1F] text-white transition-all active:scale-95 flex items-center justify-center hover:bg-[#1D1D1F]/90 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                      className="h-8 w-8 rounded-xl bg-primary text-primary-foreground transition-all active:scale-95 flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                     >
                       {isRefining ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUp className="w-4 h-4" />}
                     </button>
@@ -236,12 +233,12 @@ export function GraphicEditorDialog({
               </div>
 
               {/* Right: Live editable preview */}
-              <div className="min-h-0 overflow-auto bg-[#FAFAFD] p-8">
+              <div className="min-h-0 overflow-auto bg-muted/30 p-8">
                 <div className="mx-auto max-w-3xl">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3 font-medium">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-3 font-medium">
                     Live preview · click any text to edit
                   </p>
-                  <div className="rounded-2xl bg-white border border-[#F3F4F6] shadow-[0_2px_12px_-2px_rgba(29,29,31,0.06)] overflow-hidden">
+                  <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden">
                     <EditablePreview value={draftValue} onChange={setDraftValue} renderPreview={renderPreview} />
                   </div>
                 </div>
@@ -278,7 +275,7 @@ function EditablePreview({ value, onChange, renderPreview }: {
       el.style.cursor = "text";
       el.setAttribute("contenteditable", "true");
       el.style.outline = "none";
-      el.classList.add("hover:ring-1", "hover:ring-[#9D75BD]/30", "focus:ring-1", "focus:ring-[#9D75BD]/60", "focus:bg-[#9D75BD]/5", "rounded-md", "px-1", "-mx-1", "transition-all");
+      el.classList.add("hover:ring-1", "hover:ring-primary/30", "focus:ring-1", "focus:ring-primary/60", "focus:bg-primary/5", "rounded-md", "px-1", "-mx-1", "transition-all");
     };
 
     // Walk all text elements
