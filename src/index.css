@@ -532,26 +532,27 @@
     --status-info: 217 100% 65%;
     --status-info-foreground: 0 0% 100%;
 
-    /* Portal specific tokens - light */
-    --portal-accent: 217 100% 65%;
-    --portal-accent-bright: 217 100% 70%;
-    --portal-glow: 217 100% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 80% 95%) 100%);
+    /* Portal specific tokens - V2 brand purple as accent */
+    --portal-accent: 280 30% 60%;
+    --portal-accent-bright: 280 30% 70%;
+    --portal-glow: 280 30% 60%;
+    --portal-bg-gradient: linear-gradient(135deg, hsl(240 25% 98%) 0%, hsl(0 0% 100%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
-    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.05);
-    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(240 4% 12%), hsl(240 4% 18%));
+    --gradient-accent: linear-gradient(135deg, hsl(280 30% 60%), hsl(213 36% 65%));
+    /* Brand System V2 ambient soft shadow */
+    --shadow-glow: 0 8px 30px rgb(0 0 0 / 0.04);
+    --shadow-glow-lg: 0 8px 30px rgb(0 0 0 / 0.04);
 
     /* Orb tokens - light */
     --orb-core-start: rgba(255, 255, 255, 1);
-    --orb-core-mid1: rgba(209, 227, 255, 1);
-    --orb-core-mid2: rgba(133, 176, 255, 1);
-    --orb-core-end: rgba(74, 134, 255, 1);
-    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.1);
+    --orb-core-mid1: rgba(232, 220, 240, 1);
+    --orb-core-mid2: rgba(184, 150, 210, 1);
+    --orb-core-end: rgba(157, 117, 189, 1);
+    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.08);
     --orb-shadow-inner-light: rgba(255, 255, 255, 0.8);
-    --orb-shadow-outer: rgba(133, 176, 255, 0.3);
-    --orb-glow: rgba(133, 176, 255, 0.3);
+    --orb-shadow-outer: rgba(157, 117, 189, 0.25);
+    --orb-glow: rgba(157, 117, 189, 0.25);
     --orb-trail-dim: rgba(180, 180, 200, 0.3);
     --orb-trail-mid: rgba(200, 200, 220, 0.6);
     --orb-trail-bright: rgba(220, 220, 240, 0.9);
@@ -562,20 +563,20 @@
     --orb-shine-fade: rgba(255, 255, 255, 0.5);
 
     /* Browser chrome colors - light */
-    --browser-bg: 210 30% 97%;
-    --browser-header: 210 25% 94%;
+    --browser-bg: 0 0% 100%;
+    --browser-header: 240 25% 98%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
     --browser-dot-green: 142 76% 36%;
 
-    --sidebar-background: 210 40% 96%;
-    --sidebar-foreground: 215 25% 15%;
-    --sidebar-primary: 217 100% 65%;
+    --sidebar-background: 240 25% 98%;
+    --sidebar-foreground: 240 4% 12%;
+    --sidebar-primary: 240 4% 12%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 40%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 210 20% 85%;
-    --sidebar-ring: 217 100% 65%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 240 4% 12%;
+    --sidebar-border: 220 14% 96%;
+    --sidebar-ring: 240 4% 12%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --chart-1: 218 100% 93%;
     --chart-2: 218 100% 87%;
