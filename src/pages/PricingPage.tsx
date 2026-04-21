@@ -214,7 +214,7 @@ function PlanCard({
         className={cn(
           "w-full h-12 rounded-full font-semibold mb-8",
           buttonVariant === "primary" && "bg-foreground text-background hover:bg-foreground/90",
-          buttonVariant === "outline" && "bg-background text-foreground border border-border hover:bg-secondary/30",
+          buttonVariant === "outline" && "text-foreground border border-border bg-[#fcfcfd]",
           buttonVariant === "dark" && "bg-foreground text-background hover:bg-foreground/90",
           buttonGradient && "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 border-0"
         )}
@@ -338,7 +338,7 @@ export default function PricingPage() {
     : "USD / month\nbilled annually";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#fcfcfd]">
       <div className="max-w-6xl mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
           <ArrowLeft className="h-4 w-4" />
@@ -354,7 +354,7 @@ export default function PricingPage() {
 
         {/* Billing toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-full p-1.5 gap-1 bg-secondary/40 border border-border">
+          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-[#eef2f7]">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
               <button
                 key={period}
@@ -362,7 +362,7 @@ export default function PricingPage() {
                 className={cn(
                   "px-6 py-2 rounded-full text-sm font-medium transition-all capitalize",
                   billing === period
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "text-primary-foreground shadow-sm bg-white"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
