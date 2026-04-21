@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, ArrowLeft, Loader2, ShoppingCart, ChevronDown, WandSparkles } from "lucide-react";
+import { Check, ArrowLeft, Loader2, ShoppingCart, ChevronDown, WandSparkles, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 type BillingPeriod = "monthly" | "quarterly" | "annually";
 type PlanKey = "co_founder" | "aristotle" | "timewarp_og";
+type DisplayPlan = "free" | PlanKey;
 
 const STRIPE_PRICES: Record<BillingPeriod, Record<PlanKey, string>> = {
   monthly: {
@@ -51,36 +52,47 @@ const ACTION_PACKS = [
   { label: "400 Actions", price: "$100.00", priceId: "price_1TBAJoGKbzbe9CQLnIE5C2IC" },
 ];
 
-interface Feature {
-  name: string;
-  co_founder: string | boolean;
-  aristotle: string | boolean;
-  timewarp_og: string | boolean;
-}
-
-const features: Feature[] = [
-  { name: "Team members", co_founder: "Unlimited", aristotle: "Unlimited", timewarp_og: "Unlimited" },
-  { name: "Connected data", co_founder: "5GB", aristotle: "10GB", timewarp_og: "Unlimited" },
-  { name: "Actions / month", co_founder: "100", aristotle: "1,000", timewarp_og: "Unlimited" },
-  { name: "Businesses", co_founder: "3", aristotle: "10", timewarp_og: "Unlimited" },
-  { name: "Employees", co_founder: "3", aristotle: "10", timewarp_og: "Unlimited" },
-  { name: "Developer Line", co_founder: false, aristotle: true, timewarp_og: true },
-  { name: "Priority Support", co_founder: false, aristotle: false, timewarp_og: true },
-];
-
-function FeatureValue({ value }: { value: string | boolean }) {
-  if (typeof value === "string") {
-    return <span className="text-sm font-medium text-foreground">{value}</span>;
-  }
-  return value ? (
-    <Check className="h-5 w-5 text-primary" />
-  ) : (
-    <X className="h-5 w-5 text-muted-foreground/40" />
-  );
-}
+// Benefits — must reflect what is actually enforced by useSubscription / DB
+const PLAN_BENEFITS: Record<DisplayPlan, { tagline: string; bullets: string[] }> = {
+  free: {
+    tagline: "Try us out, see what lands",
+    bullets: ["1 Business", "1 AI Employee", "1GB connected data"],
+  },
+  co_founder: {
+    tagline: "For early-stage founders getting started",
+    bullets: [
+      "100 Actions / month",
+      "Up to 3 AI Employees",
+      "Up to 3 Businesses",
+      "5GB connected data",
+    ],
+  },
+  aristotle: {
+    tagline: "For growing businesses scaling operations",
+    bullets: [
+      "Everything in Co Founder, plus:",
+      "1,000 Actions / month",
+      "Up to 10 AI Employees",
+      "Up to 10 Businesses",
+      "10GB connected data",
+      "Direct developer line",
+    ],
+  },
+  timewarp_og: {
+    tagline: "Unlimited power for serious operators",
+    bullets: [
+      "Unlimited Actions",
+      "Unlimited AI Employees",
+      "Unlimited Businesses",
+      "Unlimited connected data",
+      "Direct developer line",
+      "Priority support",
+    ],
+  },
+};
 
 function CurrentPlanCard({ userId }: { userId?: string }) {
-  const { plan, hasActivePlan } = useSubscription();
+  const { plan } = useSubscription();
 
   const { data } = useQuery<{ actions_used: number; bonus_actions: number }>({
     queryKey: ["pricing-actions", userId],
@@ -110,36 +122,128 @@ function CurrentPlanCard({ userId }: { userId?: string }) {
   const total = limit === Infinity ? Infinity : limit + bonus;
   const remaining = total === Infinity ? "∞" : String(Math.max(0, total - used));
 
-  const planFeatures = plan ? features.map(f => ({
-    name: f.name,
-    value: f[plan],
-  })) : [];
-
   return (
-    <div className="rounded-2xl border-2 border-primary/30 bg-card p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="rounded-2xl border border-border bg-card p-6">
+      <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
-          <p className="text-2xl font-bold mt-0.5">{planName}</p>
+          <p className="text-2xl font-bold mt-1">{planName}</p>
         </div>
         <div className="text-right">
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Actions Remaining</p>
-          <p className="text-2xl font-bold mt-0.5 flex items-center gap-1.5 justify-end">
+          <p className="text-2xl font-bold mt-1 flex items-center gap-1.5 justify-end">
             <WandSparkles className="h-5 w-5 text-primary" />
             {remaining}
           </p>
         </div>
       </div>
-      {hasActivePlan && planFeatures.length > 0 && (
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-4 pt-4 border-t border-border/50">
-          {planFeatures.map(f => (
-            <div key={f.name} className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{f.name}</span>
-              <FeatureValue value={f.value} />
-            </div>
-          ))}
+    </div>
+  );
+}
+
+interface PlanCardProps {
+  planKey: DisplayPlan;
+  title: string;
+  price: string;
+  priceSuffix?: string;
+  priceSubtitle?: string;
+  badge?: { label: string; variant: "popular" | "warning" } | null;
+  buttonLabel: string;
+  buttonVariant: "primary" | "outline" | "dark";
+  buttonGradient?: boolean;
+  loading?: boolean;
+  onClick: () => void;
+}
+
+function PlanCard({
+  planKey,
+  title,
+  price,
+  priceSuffix,
+  priceSubtitle,
+  badge,
+  buttonLabel,
+  buttonVariant,
+  buttonGradient,
+  loading,
+  onClick,
+}: PlanCardProps) {
+  const benefits = PLAN_BENEFITS[planKey];
+
+  return (
+    <div className="relative rounded-3xl border border-border bg-card p-8 flex flex-col shadow-sm">
+      {/* Badge top right */}
+      {badge && (
+        <div className="absolute top-6 right-6">
+          <Badge
+            className={cn(
+              "px-3 py-1 text-xs font-medium rounded-full",
+              badge.variant === "popular" && "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/10",
+              badge.variant === "warning" && "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/10"
+            )}
+          >
+            {badge.label}
+          </Badge>
         </div>
       )}
+
+      {/* Sparkle icon */}
+      <Sparkles className="h-6 w-6 text-primary mb-6" strokeWidth={2} />
+
+      {/* Title + tagline */}
+      <h3 className="text-2xl font-bold mb-2">{title}</h3>
+      <p className="text-muted-foreground text-sm mb-8 min-h-[40px]">{benefits.tagline}</p>
+
+      {/* Price */}
+      <div className="mb-8 flex items-end gap-3">
+        <span className="text-5xl font-bold tracking-tight leading-none">{price}</span>
+        {priceSuffix && (
+          <div className="text-xs text-muted-foreground leading-tight pb-1">
+            {priceSuffix.split("\n").map((l, i) => <div key={i}>{l}</div>)}
+          </div>
+        )}
+      </div>
+      {priceSubtitle && (
+        <p className="text-xs text-muted-foreground -mt-6 mb-6">{priceSubtitle}</p>
+      )}
+
+      {/* CTA Button */}
+      <Button
+        onClick={onClick}
+        disabled={loading}
+        className={cn(
+          "w-full h-12 rounded-full font-semibold mb-8",
+          buttonVariant === "primary" && "bg-foreground text-background hover:bg-foreground/90",
+          buttonVariant === "outline" && "bg-background text-foreground border border-border hover:bg-secondary/30",
+          buttonVariant === "dark" && "bg-foreground text-background hover:bg-foreground/90",
+          buttonGradient && "bg-gradient-to-r from-primary via-primary to-purple-500 text-primary-foreground hover:opacity-90 border-0"
+        )}
+        variant={buttonGradient ? undefined : "default"}
+      >
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : buttonLabel}
+      </Button>
+
+      {/* Benefits list */}
+      <ul className="space-y-3 mt-auto">
+        {benefits.bullets.map((bullet, i) => {
+          const isHeader = bullet.endsWith(":");
+          if (isHeader) {
+            return (
+              <li key={i} className="text-sm font-semibold text-foreground pt-1">
+                {bullet}
+              </li>
+            );
+          }
+          return (
+            <li key={i} className="flex items-start gap-3">
+              <div className="h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Check className="h-4 w-4 text-primary" strokeWidth={2.5} />
+              </div>
+              <span className="text-sm text-foreground/80">{bullet}</span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -153,7 +257,7 @@ export default function PricingPage() {
   const [purchasingPriceId, setPurchasingPriceId] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { plan: currentPlan } = useSubscription();
+  const { plan: currentPlan, hasActivePlan } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
   const prices = PRICES[billing];
@@ -228,144 +332,127 @@ export default function PricingPage() {
     }
   };
 
-  const getPlanButtonLabel = (plan: PlanKey) => {
-    if (currentPlan === plan) return "Manage Plan";
-    return "Get Started";
-  };
+  const isFree = !hasActivePlan;
+  const periodSuffix = billing === "monthly" ? "USD / month\nbilled monthly"
+    : billing === "quarterly" ? "USD / month\nbilled quarterly"
+    : "USD / month\nbilled annually";
 
   return (
-    <div className="min-h-screen bg-[#fcfcfd]">
-      <div className="max-w-5xl mx-auto px-4 pt-8 pb-4">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-4 pt-8 pb-4">
+        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
           <ArrowLeft className="h-4 w-4" />
           Back to home
         </Link>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 pb-20 space-y-10">
+      <div className="max-w-6xl mx-auto px-4 pb-20 space-y-12">
         {/* Header */}
-        <div className="text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Plans & Pricing</h1>
+        <div className="text-center pt-8">
+          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight">Plans & Pricing</h1>
         </div>
 
         {/* Billing toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-full p-1 gap-1 bg-[#eef2f7]">
+          <div className="inline-flex items-center rounded-full p-1.5 gap-1 bg-secondary/40 border border-border">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
               <button
                 key={period}
                 onClick={() => setBilling(period)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-all capitalize ${
+                className={cn(
+                  "px-6 py-2 rounded-full text-sm font-medium transition-all capitalize",
                   billing === period
-                    ? "bg-background text-foreground shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
-                }`}
+                )}
               >
                 {period}
                 {period === "annually" && (
-                  <span className="ml-1.5 text-xs text-primary font-semibold">-20%</span>
+                  <span className={cn("ml-1.5 text-xs font-semibold", billing === period ? "text-primary-foreground/90" : "text-primary")}>
+                    -20%
+                  </span>
                 )}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Plan cards */}
+        {/* Plan cards — Free / Co Founder / Aristotle */}
         <div className="grid md:grid-cols-3 gap-6 items-stretch">
-          {/* Co Founder */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "co_founder" ? "border-primary" : "border-border/60"} p-7 flex flex-col bg-white`}>
-            {currentPlan === "co_founder" && (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
-              </div>
-            )}
-            <div className="h-6 mb-4" />
-            <h3 className="text-xl font-bold mb-1">Co Founder</h3>
-            <p className="text-muted-foreground text-sm mb-5">For early-stage founders getting started</p>
-            <div className="mb-6 h-16 flex flex-col justify-center">
-              <div>
-                <span className="text-4xl font-bold">${prices.co_founder}</span>
-                <span className="text-muted-foreground text-sm"> / mo</span>
-              </div>
-            </div>
-            <div className="space-y-3.5 flex-1 mb-6">
-              {features.map((f) => (
-                <div key={f.name} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{f.name}</span>
-                  <FeatureValue value={f.co_founder} />
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-auto bg-[#eef2f7] hover:bg-[#eef2f7]/80" onClick={() => handleGetStarted("co_founder")} disabled={loadingPlan === "co_founder"}>
-              {loadingPlan === "co_founder" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("co_founder")}
-            </Button>
-          </div>
+          <PlanCard
+            planKey="free"
+            title="Free"
+            price="€0"
+            buttonLabel={isFree ? "Manage Plan" : "Downgrade"}
+            buttonVariant="outline"
+            onClick={() => {
+              if (isFree) return;
+              handleManageSubscription();
+            }}
+          />
 
-          {/* Aristotle */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "aristotle" ? "border-primary" : "border-primary/60"} p-7 flex flex-col bg-white`}>
-            {currentPlan === "aristotle" ? (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
-              </div>
-            ) : (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Most Popular</Badge>
-              </div>
-            )}
-            <div className="h-6 mb-4" />
-            <h3 className="text-xl font-bold mb-1">Aristotle</h3>
-            <p className="text-muted-foreground text-sm mb-5">For growing businesses scaling operations</p>
-            <div className="mb-6 h-16 flex flex-col justify-center">
-              <div>
-                <span className="text-4xl font-bold">${prices.aristotle}</span>
-                <span className="text-muted-foreground text-sm"> / mo</span>
-              </div>
-            </div>
-            <div className="space-y-3.5 flex-1 mb-6">
-              {features.map((f) => (
-                <div key={f.name} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{f.name}</span>
-                  <FeatureValue value={f.aristotle} />
-                </div>
-              ))}
-            </div>
-            <Button className="w-full mt-auto" onClick={() => handleGetStarted("aristotle")} disabled={loadingPlan === "aristotle"}>
-              {loadingPlan === "aristotle" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("aristotle")}
-            </Button>
-          </div>
+          <PlanCard
+            planKey="co_founder"
+            title="Co Founder"
+            price={`$${prices.co_founder}`}
+            priceSuffix={periodSuffix}
+            badge={null}
+            buttonLabel={currentPlan === "co_founder" ? "Manage Plan" : "Get Started"}
+            buttonVariant="dark"
+            loading={loadingPlan === "co_founder"}
+            onClick={() => handleGetStarted("co_founder")}
+          />
 
-          {/* TimeWarp OG */}
-          <div className={`relative rounded-2xl border-2 ${currentPlan === "timewarp_og" ? "border-primary" : "border-border/60"} p-7 flex flex-col bg-white`}>
-            {currentPlan === "timewarp_og" && (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground border-primary px-4 py-1 text-xs">Your Plan</Badge>
-              </div>
-            )}
-            <div className="h-6 mb-4 flex items-center gap-2">
-              <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
-                Ends April 20th
-              </Badge>
-            </div>
-            <h3 className="text-xl font-bold mb-1">TimeWarp OG</h3>
-            <p className="text-muted-foreground text-sm mb-5">Unlimited power for serious operators</p>
-            <div className="mb-6 h-16 flex flex-col justify-center">
-              <div>
-                <span className="text-4xl font-bold">$499</span>
-                <span className="text-muted-foreground text-sm"> / 3 months</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">One-time payment</p>
-            </div>
-            <div className="space-y-3.5 flex-1 mb-6">
-              {features.map((f) => (
-                <div key={f.name} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{f.name}</span>
-                  <FeatureValue value={f.timewarp_og} />
+          <PlanCard
+            planKey="aristotle"
+            title="Aristotle"
+            price={`$${prices.aristotle}`}
+            priceSuffix={periodSuffix}
+            badge={currentPlan === "aristotle" ? { label: "Your Plan", variant: "popular" } : { label: "Most Popular", variant: "popular" }}
+            buttonLabel={currentPlan === "aristotle" ? "Manage Plan" : "Get Started"}
+            buttonVariant="primary"
+            buttonGradient
+            loading={loadingPlan === "aristotle"}
+            onClick={() => handleGetStarted("aristotle")}
+          />
+        </div>
+
+        {/* TimeWarp OG — full width below */}
+        <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex items-start gap-5 flex-1">
+              <Sparkles className="h-7 w-7 text-primary mt-1 shrink-0" strokeWidth={2} />
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-2xl font-bold">TimeWarp OG</h3>
+                  <Badge className="bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/10 text-xs rounded-full">
+                    Limited offer
+                  </Badge>
                 </div>
-              ))}
+                <p className="text-muted-foreground text-sm mb-3">{PLAN_BENEFITS.timewarp_og.tagline}</p>
+                <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+                  {PLAN_BENEFITS.timewarp_og.bullets.map((b, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-sm text-foreground/80">
+                      <Check className="h-3.5 w-3.5 text-primary" strokeWidth={2.5} />
+                      {b}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <Button variant="outline" className="w-full mt-auto bg-[#eef2f7] hover:bg-[#eef2f7]/80" onClick={() => handleGetStarted("timewarp_og")} disabled={loadingPlan === "timewarp_og"}>
-              {loadingPlan === "timewarp_og" ? <Loader2 className="h-4 w-4 animate-spin" /> : getPlanButtonLabel("timewarp_og")}
-            </Button>
+            <div className="flex flex-col items-start md:items-end gap-3 shrink-0">
+              <div>
+                <span className="text-3xl font-bold">$499</span>
+                <span className="text-muted-foreground text-sm ml-1">/ 3 months</span>
+              </div>
+              <Button
+                onClick={() => handleGetStarted("timewarp_og")}
+                disabled={loadingPlan === "timewarp_og"}
+                className="rounded-full px-8 h-11 bg-foreground text-background hover:bg-foreground/90"
+              >
+                {loadingPlan === "timewarp_og" ? <Loader2 className="h-4 w-4 animate-spin" /> : (currentPlan === "timewarp_og" ? "Manage Plan" : "Become an OG")}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -375,7 +462,7 @@ export default function PricingPage() {
             <CurrentPlanCard userId={userId} />
 
             {/* Action Packs */}
-            <div className="rounded-2xl border-2 border-border/60 bg-card p-6 flex flex-col">
+            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col">
               <h2 className="text-xl font-bold mb-1">Action Packs</h2>
               <p className="text-sm text-muted-foreground mb-5">Buy additional actions instantly — no subscription required.</p>
 
@@ -419,7 +506,7 @@ export default function PricingPage() {
                 <Button
                   onClick={() => selectedPackId && handlePurchasePack(selectedPackId)}
                   disabled={!selectedPackId || purchasingPriceId !== null}
-                  className="gap-1.5 shrink-0"
+                  className="gap-1.5 shrink-0 rounded-md"
                 >
                   {purchasingPriceId ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ShoppingCart className="h-4 w-4" /> Buy</>}
                 </Button>
