@@ -16,7 +16,7 @@ const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "past_due"])
 
 const FREE_LIMITS = {
   dataBytes: 1 * 1024 * 1024 * 1024,
-  actionsPerMonth: 0,
+  actionsPerMonth: 10,
   devLine: false,
   priority: false,
   maxEmployees: 1,
@@ -30,15 +30,15 @@ const PLAN_LIMITS = {
     actionsPerMonth: 100,
     devLine: false,
     priority: false,
-    maxEmployees: 3,
+    maxEmployees: 10,
     maxBusinesses: 3,
   },
   aristotle: {
     dataBytes: 10 * 1024 * 1024 * 1024,
-    actionsPerMonth: 1000,
+    actionsPerMonth: 500,
     devLine: true,
     priority: false,
-    maxEmployees: 10,
+    maxEmployees: 50,
     maxBusinesses: 10,
   },
   timewarp_og: {
