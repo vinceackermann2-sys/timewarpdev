@@ -326,20 +326,25 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
-      const [b, p, a] = await Promise.all([
-        loadEntities<BrandEntry>("brand", activeWorkspaceId, session),
+      // PHASE 1: Load brands first — this is the only data we need to decide
+      // between onboarding vs. DNA view. Flip isLoading off ASAP.
+      const b = await loadEntities<BrandEntry>("brand", activeWorkspaceId, session);
+      setBrandsState(b);
+      try { localStorage.setItem("cached_brands", JSON.stringify(b)); } catch {}
+      setPrevBrands(b);
+      loadedWorkspaceRef.current = activeWorkspaceId;
+      setIsLoading(false);
+
+      // PHASE 2: Load products + audiences in the background — these aren't
+      // gating the initial route decision and the UI can render without them.
+      const [p, a] = await Promise.all([
         loadEntities<ProductEntry>("product", activeWorkspaceId, session),
         loadEntities<AudienceEntry>("audience", activeWorkspaceId, session),
       ]);
-      setBrandsState(b);
-      try { localStorage.setItem("cached_brands", JSON.stringify(b)); } catch {}
       setProductsState(p);
       setAudiencesState(a);
-      setPrevBrands(b);
       setPrevProducts(p);
       setPrevAudiences(a);
-      loadedWorkspaceRef.current = activeWorkspaceId;
-      setIsLoading(false);
 
       // Orphan validation — log warnings for dangling references
       const brandIds = new Set(b.map(br => br.id));
