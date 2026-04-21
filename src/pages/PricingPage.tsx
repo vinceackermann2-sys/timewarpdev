@@ -39,7 +39,7 @@ const PRICES: Record<BillingPeriod, Record<PlanKey, number>> = {
 
 const ACTION_LIMITS: Record<string, number> = {
   co_founder: 100,
-  aristotle: 1000,
+  aristotle: 500,
   timewarp_og: Infinity,
 };
 
