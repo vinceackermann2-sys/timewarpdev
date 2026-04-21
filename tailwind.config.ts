@@ -67,11 +67,6 @@ export default {
   				info: 'hsl(var(--status-info))',
   				'info-foreground': 'hsl(var(--status-info-foreground))'
   			},
-  			brand: {
-  				purple: 'hsl(var(--brand-purple))',
-  				blue: 'hsl(var(--brand-blue))',
-  				pink: 'hsl(var(--brand-pink))'
-  			},
   			browser: {
   				bg: 'hsl(var(--browser-bg))',
   				header: 'hsl(var(--browser-header))',
@@ -87,7 +82,6 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Inter',
   				'Plus Jakarta Sans',
   				'ui-sans-serif',
   				'system-ui',
