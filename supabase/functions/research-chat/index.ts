@@ -60,6 +60,14 @@ function truncate(text: string, max: number): string {
 }
 
 function formatContextItems(items: any[]): string {
+  // Surface the full 9-pillar Business DNA first (brand, product, audience, market,
+  // financial, operations, people, growth, strategy) so the AI always grounds in it.
+  const DNA_TYPES = ["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"];
+  items = [...items].sort((a, b) => {
+    const ai = DNA_TYPES.indexOf(a?.data_type); const bi = DNA_TYPES.indexOf(b?.data_type);
+    const ar = ai === -1 ? 99 : ai; const br = bi === -1 ? 99 : bi;
+    return ar - br;
+  });
   const MAX_CONTEXT_CHARS = 200000;
   const MAX_ITEM_CHARS = 2000;
   let context = "\n\n## User's Business Data\n\n";
