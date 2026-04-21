@@ -55,21 +55,28 @@ interface Props {
 /* ── Lucide icon map for step labels ── */
 function getStepIcon(label: string) {
   const l = label.toLowerCase();
-  // Connection provider icons — return string identifiers for special rendering
-  // Order matters: more specific matches first (Gmail/Google before generic "email"/"calendar")
-  if (l.includes("gmail")) return "google_gmail" as any;
-  if (l.includes("google calendar")) return "google_calendar" as any;
-  if (l.includes("google drive")) return "google_drive" as any;
-  if (l.includes("google docs")) return "google_docs" as any;
-  if (l.includes("google sheets")) return "google_sheets" as any;
-  if (l.includes("google slides")) return "google_slides" as any;
-  if (l.includes("outlook")) return "microsoft_outlook" as any;
-  if (l.includes("onedrive") || l.includes("files")) return "microsoft_onedrive" as any;
-  if (l.includes("onenote") || l.includes("notes")) return "microsoft_onenote" as any;
-  if (l.includes("microsoft") || l.includes("email") || l.includes("calendar")) return "microsoft_outlook" as any;
-  if (l.includes("slack")) return "slack" as any;
-  if (l.includes("zoom") || l.includes("meeting")) return "zoom" as any;
-  if (l.includes("hubspot")) return "hubspot" as any;
+  // Connection provider icons — only show provider logos for actual connection-fetch
+  // steps (the agent backend emits labels like "Peeking into your Gmail for X",
+  // "Skipping Gmail — Y", "Looking through your Google Drive for Z", etc.).
+  // We require one of those provider-action verbs to be present so we don't slap
+  // the Gmail logo on every step just because the user's question mentions "gmail".
+  const isProviderStep =
+    /\b(peeking into|skipping|looking through|checking your|flipping through|searching your|fetching your|reading your|scanning your)\b/.test(l);
+  if (isProviderStep) {
+    if (l.includes("gmail")) return "google_gmail" as any;
+    if (l.includes("google calendar")) return "google_calendar" as any;
+    if (l.includes("google drive")) return "google_drive" as any;
+    if (l.includes("google docs")) return "google_docs" as any;
+    if (l.includes("google sheets")) return "google_sheets" as any;
+    if (l.includes("google slides")) return "google_slides" as any;
+    if (l.includes("outlook")) return "microsoft_outlook" as any;
+    if (l.includes("onedrive")) return "microsoft_onedrive" as any;
+    if (l.includes("onenote")) return "microsoft_onenote" as any;
+    if (l.includes("microsoft 365") || l.includes("microsoft")) return "microsoft_outlook" as any;
+    if (l.includes("slack")) return "slack" as any;
+    if (l.includes("zoom")) return "zoom" as any;
+    if (l.includes("hubspot")) return "hubspot" as any;
+  }
   if (l.includes("dna") || l.includes("brand") || l.includes("audience") || l.includes("product")) return Dna;
   if (l.includes("database") || l.includes("business data") || l.includes("gathering")) return Database;
   if (l.includes("internet") || l.includes("web search") || l.includes("searching the web") || l.includes("browsing")) return Globe;

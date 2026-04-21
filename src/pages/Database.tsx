@@ -60,6 +60,74 @@ function DnaPillarAutoOpener({
   return null;
 }
 
+// Renders a skeleton placeholder while BusinessDNA data is still loading,
+// then either the DNA view (if a brand exists) or the onboarding flow.
+function BusinessDnaArea({
+  showAddProduct,
+  showBusinessDNA,
+  activeBrandId,
+  dnaPillar,
+  onAddProductBack,
+  onAddProductComplete,
+  onDnaBack,
+  onOnboardingComplete,
+}: {
+  showAddProduct: boolean;
+  showBusinessDNA: boolean;
+  activeBrandId: string | null;
+  dnaPillar: DnaPillar;
+  onAddProductBack: () => void;
+  onAddProductComplete: (agentName: string, brandId?: string) => void;
+  onDnaBack: () => void;
+  onOnboardingComplete: (agentName: string, brandId?: string) => void;
+}) {
+  const { isLoading } = useBusinessDNA();
+
+  if (showAddProduct) {
+    return (
+      <BusinessDNAOnboarding
+        isAddBusiness
+        activeBrandId={activeBrandId}
+        onBack={onAddProductBack}
+        onComplete={onAddProductComplete}
+      />
+    );
+  }
+
+  if (showBusinessDNA && activeBrandId) {
+    return (
+      <BusinessDNAView
+        activeBrandId={activeBrandId}
+        activePillar={dnaPillar}
+        onBack={onDnaBack}
+      />
+    );
+  }
+
+  // Still loading brand list — show a skeleton instead of flashing onboarding
+  if (isLoading) {
+    return (
+      <div className="h-full w-full flex flex-col p-6 gap-6">
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="p-5 rounded-xl border border-border/60 bg-card flex flex-col gap-3">
+              <Skeleton className="h-10 w-10 rounded-lg" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return <BusinessDNAOnboarding onComplete={onOnboardingComplete} />;
+}
+
 import type { DashboardTab, DnaPillar } from "@/components/database/DatabaseSidebar";
 
 type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
@@ -338,36 +406,26 @@ const Database = () => {
                 />
               )}
               {currentView === "businessdna" && user && (
-                <>
-                  {showAddProduct ? (
-                    <BusinessDNAOnboarding
-                      isAddBusiness
-                      activeBrandId={activeBrandId}
-                      onBack={() => setShowAddProduct(false)}
-                      onComplete={(_agentName, newBrandId) => {
-                        setShowAddProduct(false);
-                        setActiveBrandId(newBrandId || activeBrandId);
-                        setShowBusinessDNA(true);
-                      }}
-                    />
-                  ) : showBusinessDNA && activeBrandId ? (
-                    <BusinessDNAView
-                      activeBrandId={activeBrandId}
-                      activePillar={dnaPillar}
-                      onBack={() => {
-                        setShowBusinessDNA(false);
-                        setActiveBrandId(null);
-                      }}
-                    />
-                  ) : (
-                    <BusinessDNAOnboarding
-                      onComplete={(_agentName, newBrandId) => {
-                        setActiveBrandId(newBrandId || activeBrandId);
-                        setShowBusinessDNA(true);
-                      }}
-                    />
-                  )}
-                </>
+                <BusinessDnaArea
+                  showAddProduct={showAddProduct}
+                  showBusinessDNA={showBusinessDNA}
+                  activeBrandId={activeBrandId}
+                  dnaPillar={dnaPillar}
+                  onAddProductBack={() => setShowAddProduct(false)}
+                  onAddProductComplete={(_agentName, newBrandId) => {
+                    setShowAddProduct(false);
+                    setActiveBrandId(newBrandId || activeBrandId);
+                    setShowBusinessDNA(true);
+                  }}
+                  onDnaBack={() => {
+                    setShowBusinessDNA(false);
+                    setActiveBrandId(null);
+                  }}
+                  onOnboardingComplete={(_agentName, newBrandId) => {
+                    setActiveBrandId(newBrandId || activeBrandId);
+                    setShowBusinessDNA(true);
+                  }}
+                />
               )}
               {currentView === "employees" && user && (
                 <AgentChatView
