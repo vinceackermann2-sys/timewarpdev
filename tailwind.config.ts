@@ -67,6 +67,11 @@ export default {
   				info: 'hsl(var(--status-info))',
   				'info-foreground': 'hsl(var(--status-info-foreground))'
   			},
+  			brand: {
+  				intelligence: 'hsl(var(--accent-intelligence))',
+  				network: 'hsl(var(--accent-network))',
+  				energy: 'hsl(var(--accent-energy))'
+  			},
   			browser: {
   				bg: 'hsl(var(--browser-bg))',
   				header: 'hsl(var(--browser-header))',
@@ -82,7 +87,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Plus Jakarta Sans',
+  				'Inter',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
@@ -90,6 +95,12 @@ export default {
   				'Segoe UI Emoji',
   				'Segoe UI Symbol',
   				'Noto Color Emoji'
+  			],
+  			display: [
+  				'Inter',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif'
   			],
   			serif: [
   				'ui-serif',
