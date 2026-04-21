@@ -360,13 +360,11 @@ const Database = () => {
                       }}
                     />
                   ) : (
-                    <MyBusinessesView
-                      onSelectBusiness={() => setShowAddProduct(true)}
-                      onOpenBusiness={(brandId) => {
-                        setActiveBrandId(brandId);
+                    <BusinessDNAOnboarding
+                      onComplete={(_agentName, newBrandId) => {
+                        setActiveBrandId(newBrandId || activeBrandId);
                         setShowBusinessDNA(true);
                       }}
-                      onManageWorkspace={() => handleViewChange("workspaces")}
                     />
                   )}
                 </>
