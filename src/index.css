@@ -512,7 +512,7 @@
     --input: 220 14% 96%;
     --ring: 240 6% 12%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;                  /* 8px */
 
     /* Status colors - light */
     --status-success: 142 76% 36%;
@@ -521,29 +521,34 @@
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 217 100% 65%;
+    --status-info: 281 31% 60%;
     --status-info-foreground: 0 0% 100%;
 
+    /* Brand accents */
+    --accent-intelligence: 281 31% 60%;  /* #9D75BD Purple */
+    --accent-network: 217 41% 65%;       /* #7E9BCD Blue */
+    --accent-energy: 338 47% 74%;        /* #DE9EB6 Pink */
+
     /* Portal specific tokens - light */
-    --portal-accent: 217 100% 65%;
-    --portal-accent-bright: 217 100% 70%;
-    --portal-glow: 217 100% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 80% 95%) 100%);
+    --portal-accent: 281 31% 60%;
+    --portal-accent-bright: 281 31% 70%;
+    --portal-glow: 281 31% 60%;
+    --portal-bg-gradient: linear-gradient(135deg, hsl(240 20% 98%) 0%, hsl(281 31% 95%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
-    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.05);
-    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(281 31% 60%), hsl(217 41% 65%));
+    --gradient-accent: linear-gradient(135deg, hsl(217 41% 65%), hsl(338 47% 74%));
+    --shadow-glow: 0 8px 30px rgb(0 0 0 / 0.04);
+    --shadow-glow-lg: 0 12px 40px rgb(0 0 0 / 0.06);
 
-    /* Orb tokens - light */
+    /* Orb tokens - light (refined to brand purple/blue) */
     --orb-core-start: rgba(255, 255, 255, 1);
-    --orb-core-mid1: rgba(209, 227, 255, 1);
-    --orb-core-mid2: rgba(133, 176, 255, 1);
-    --orb-core-end: rgba(74, 134, 255, 1);
-    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.1);
-    --orb-shadow-inner-light: rgba(255, 255, 255, 0.8);
-    --orb-shadow-outer: rgba(133, 176, 255, 0.3);
-    --orb-glow: rgba(133, 176, 255, 0.3);
+    --orb-core-mid1: rgba(232, 220, 240, 1);
+    --orb-core-mid2: rgba(157, 117, 189, 0.8);
+    --orb-core-end: rgba(126, 155, 205, 1);
+    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.08);
+    --orb-shadow-inner-light: rgba(255, 255, 255, 0.85);
+    --orb-shadow-outer: rgba(157, 117, 189, 0.25);
+    --orb-glow: rgba(157, 117, 189, 0.25);
     --orb-trail-dim: rgba(180, 180, 200, 0.3);
     --orb-trail-mid: rgba(200, 200, 220, 0.6);
     --orb-trail-bright: rgba(220, 220, 240, 0.9);
@@ -554,37 +559,37 @@
     --orb-shine-fade: rgba(255, 255, 255, 0.5);
 
     /* Browser chrome colors - light */
-    --browser-bg: 210 30% 97%;
-    --browser-header: 210 25% 94%;
+    --browser-bg: 240 20% 98%;
+    --browser-header: 220 14% 96%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
     --browser-dot-green: 142 76% 36%;
 
-    --sidebar-background: 210 40% 96%;
-    --sidebar-foreground: 215 25% 15%;
-    --sidebar-primary: 217 100% 65%;
+    --sidebar-background: 240 20% 98%;
+    --sidebar-foreground: 240 6% 12%;
+    --sidebar-primary: 240 6% 12%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 40%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 210 20% 85%;
-    --sidebar-ring: 217 100% 65%;
-    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-    --chart-1: 218 100% 93%;
-    --chart-2: 218 100% 87%;
-    --chart-3: 210 57% 78%;
-    --chart-4: 216 38% 47%;
-    --chart-5: 240 3% 46%;
-    --sidebar: 0 0% 98%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 240 6% 12%;
+    --sidebar-border: 220 14% 96%;
+    --sidebar-ring: 240 6% 12%;
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --chart-1: 281 31% 60%;
+    --chart-2: 217 41% 65%;
+    --chart-3: 338 47% 74%;
+    --chart-4: 240 6% 12%;
+    --chart-5: 220 9% 46%;
+    --sidebar: 240 20% 98%;
     --font-serif: Merriweather, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
     --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
-    --shadow-2xs: none;
-    --shadow-xs: none;
-    --shadow-sm: none;
-    --shadow: none;
-    --shadow-md: none;
-    --shadow-lg: none;
-    --shadow-xl: none;
-    --shadow-2xl: none;
+    --shadow-2xs: 0 1px 2px rgb(0 0 0 / 0.02);
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.03);
+    --shadow-sm: 0 2px 8px rgb(0 0 0 / 0.03);
+    --shadow: 0 4px 16px rgb(0 0 0 / 0.04);
+    --shadow-md: 0 6px 24px rgb(0 0 0 / 0.04);
+    --shadow-lg: 0 8px 30px rgb(0 0 0 / 0.04);
+    --shadow-xl: 0 12px 40px rgb(0 0 0 / 0.05);
+    --shadow-2xl: 0 20px 60px rgb(0 0 0 / 0.06);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
