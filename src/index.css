@@ -483,34 +483,42 @@
 
 @layer base {
   :root {
-    /* Light theme - Blue Corp Pastel */
-    --background: 40 33% 98%;
-    --foreground: 215 25% 15%;
+    /* Brand System V2 - Premium Tinted White, Deep Slate, Tri-accent */
+    /* #FAFAFD Premium Tinted White */
+    --background: 240 25% 98%;
+    /* #1D1D1F Deep Slate */
+    --foreground: 240 4% 12%;
 
-    --card: 210 40% 99%;
-    --card-foreground: 215 25% 15%;
+    /* #FFFFFF pure white containers */
+    --card: 0 0% 100%;
+    --card-foreground: 240 4% 12%;
 
-    --popover: 210 30% 96%;
-    --popover-foreground: 215 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 4% 12%;
 
-    --primary: 217 100% 65%;
+    /* Primary action = Deep Slate buttons */
+    --primary: 240 4% 12%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 20% 40%;
-    --secondary-foreground: 0 0% 98%;
+    /* Secondary = transparent w/ light gray border, text deep slate */
+    --secondary: 240 25% 98%;
+    --secondary-foreground: 240 4% 12%;
 
-    --muted: 210 20% 88%;
-    --muted-foreground: 215 15% 35%;
+    /* #F3F4F6 muted bg, #6B7280 muted text */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 217 100% 95%;
-    --accent-foreground: 217 100% 47%;
+    /* Accent = Brand Purple 5% */
+    --accent: 280 30% 60%;
+    --accent-foreground: 240 4% 12%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 210 20% 85%;
-    --input: 210 20% 85%;
-    --ring: 217 100% 65%;
+    /* #F3F4F6 borders */
+    --border: 220 14% 96%;
+    --input: 220 14% 96%;
+    --ring: 240 4% 12%;
 
     --radius: 0.625rem;
 
