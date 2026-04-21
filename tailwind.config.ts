@@ -87,7 +87,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Plus Jakarta Sans',
+  				'Inter',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
@@ -95,6 +95,12 @@ export default {
   				'Segoe UI Emoji',
   				'Segoe UI Symbol',
   				'Noto Color Emoji'
+  			],
+  			display: [
+  				'Inter',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif'
   			],
   			serif: [
   				'ui-serif',
