@@ -514,6 +514,66 @@ export function detectNamedProviders(query: string): string[] {
   return Array.from(matched);
 }
 
+// Narrow generic intent (e.g. "documents", "emails", "meetings") to ONLY the
+// providers the user actually has connected. This prevents the AI from saying
+// it checked OneDrive when only Google Drive is connected.
+// If the user explicitly named a provider (e.g. "gmail", "onedrive"), we keep
+// the original list so they get an accurate "not connected" message.
+export function narrowProvidersByConnections(
+  detectedProviders: string[],
+  connectedProviders: string[],
+  query: string,
+): string[] {
+  if (detectedProviders.length === 0) return [];
+  // If the user explicitly named a specific provider in the query, do not narrow.
+  const explicitProviderRegex = /\b(gmail|outlook|onedrive|onenote|slack|hubspot|zoom|teams|sharepoint|gdrive|gcal|google\s*(docs?|drives?|sheets?|slides?|calendar|mail))\b/i;
+  if (explicitProviderRegex.test(query)) return detectedProviders;
+
+  const connectedSet = new Set<string>();
+  for (const p of connectedProviders) {
+    connectedSet.add(p);
+    // Legacy aggregate "google" / "microsoft" cover their sub-services
+    if (p === "google") {
+      ["google_gmail", "google_drive", "google_calendar", "google_docs", "google_sheets", "google_slides"].forEach((x) => connectedSet.add(x));
+    }
+    if (p === "microsoft") {
+      ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"].forEach((x) => connectedSet.add(x));
+    }
+  }
+  const narrowed = detectedProviders.filter((p) => connectedSet.has(p));
+  // If nothing matches (user asked for X but has none of those connected), keep
+  // the original list so the skip message correctly says "not connected".
+  return narrowed.length > 0 ? narrowed : detectedProviders;
+}
+
+// Human-readable inventory of which integrations the user has connected vs not.
+// Surfaced into the AI prompt so it never references disconnected tools.
+const ALL_TRACKED_PROVIDERS = [
+  "google_gmail", "google_drive", "google_calendar",
+  "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote",
+  "slack", "hubspot", "zoom",
+];
+
+export function buildConnectedToolsInventory(connectedProviders: string[]): string {
+  const connectedSet = new Set<string>();
+  for (const p of connectedProviders) {
+    connectedSet.add(p);
+    if (p === "google") ["google_gmail", "google_drive", "google_calendar"].forEach((x) => connectedSet.add(x));
+    if (p === "microsoft") ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"].forEach((x) => connectedSet.add(x));
+  }
+  const connected = ALL_TRACKED_PROVIDERS.filter((p) => connectedSet.has(p));
+  const notConnected = ALL_TRACKED_PROVIDERS.filter((p) => !connectedSet.has(p));
+
+  const connectedList = connected.length > 0
+    ? connected.map((p) => `- ✅ ${formatProviderName(p)}`).join("\n")
+    : "- (none yet)";
+  const notConnectedList = notConnected.length > 0
+    ? notConnected.map((p) => `- ❌ ${formatProviderName(p)} (not connected)`).join("\n")
+    : "- (all integrations connected)";
+
+  return `\n\n## 🔌 User's Connected Integrations Inventory\nThis is the AUTHORITATIVE list of integrations the user has connected to their account. Use this to interpret generic questions correctly:\n- If the user asks about "documents" or "files" and only Google Drive is connected, they mean Google Drive. Do NOT mention OneDrive.\n- If the user asks about "emails" and only Gmail is connected, they mean Gmail. Do NOT mention Outlook.\n- If the user asks about a tool that is NOT connected, say plainly it isn't connected yet and suggest connecting it under Settings → Connections.\n- NEVER claim to have searched a tool that is marked ❌ below.\n\n### Connected\n${connectedList}\n\n### Not connected\n${notConnectedList}\n`;
+}
+
 // --- Intent Analysis ---
 const CONNECTION_TRIGGER_PATTERNS = [
   /\b(collab\w*|collaboration\w*|partnership\w*|partner\w*|meeting\w*|follow.?up|agenda)\b/i,
@@ -625,6 +685,17 @@ export async function searchConnectedProviders(
   console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
 
   if (!decision.shouldSearch) {
+    // Even when we skip live search, surface the inventory so the AI never
+    // claims to have access to disconnected tools in passing remarks.
+    try {
+      const { data: invConns } = await supabase
+        .from("user_connections")
+        .select("provider")
+        .eq("user_id", userId)
+        .eq("status", "connected");
+      const invProviders = (invConns || []).map((c: any) => c.provider);
+      connectionContext = buildConnectedToolsInventory(invProviders);
+    } catch (_e) { /* non-fatal */ }
     return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
@@ -645,7 +716,8 @@ export async function searchConnectedProviders(
       skippedProviders.push(provider);
       skippedProviderDetails.push({ provider, reason: "not connected" });
     }
-    connectionContext = buildNoMatchConnectionContext(
+    const emptyInventory = buildConnectedToolsInventory([]);
+    connectionContext = emptyInventory + buildNoMatchConnectionContext(
       t,
       searchedProviders,
       skippedProviderDetails,
@@ -656,14 +728,17 @@ export async function searchConnectedProviders(
   }
 
   const connectedProviders = connections.map((c: any) => c.provider);
+  const inventory = buildConnectedToolsInventory(connectedProviders);
   const searchPromises: Promise<void>[] = [];
 
-  // Per-provider intent: if user names a specific tool, search ONLY that one (saves usage)
-  const namedProviders = detectNamedProviders(userQuery);
+  // Per-provider intent: if user names a specific tool, search ONLY that one (saves usage).
+  // Generic intent (e.g. "documents", "emails") is narrowed to providers the user actually has connected.
+  const rawNamedProviders = detectNamedProviders(userQuery);
+  const namedProviders = narrowProvidersByConnections(rawNamedProviders, connectedProviders, userQuery);
   const useTargeted = namedProviders.length > 0;
   const isAllowed = (provider: string) => !useTargeted || namedProviders.includes(provider);
   if (useTargeted) {
-    console.log("[connections] Targeted search — only:", namedProviders);
+    console.log("[connections] Targeted search — raw:", rawNamedProviders, "narrowed:", namedProviders);
   }
 
   // Check for any Microsoft sub-service connection
@@ -872,9 +947,9 @@ export async function searchConnectedProviders(
       ? skippedProviderDetails.map(({ provider, reason }) => `${formatProviderName(provider)} (${reason})`).join(", ")
       : "none";
 
-    connectionContext = `\n\n## Connected Sources (Live Search Results)\nUse this section as the primary source of truth for requests about live emails, messages, files, meetings, or collaboration activity. Answer the lookup request directly before offering any ideas.\n\n- **Searched sources:** ${searchedSummary}\n- **Skipped sources:** ${skippedSummary}\n${connectionContext}`;
+    connectionContext = inventory + `\n\n## Connected Sources (Live Search Results)\nUse this section as the primary source of truth for requests about live emails, messages, files, meetings, or collaboration activity. Answer the lookup request directly before offering any ideas.\n\n- **Searched sources:** ${searchedSummary}\n- **Skipped sources:** ${skippedSummary}\n${connectionContext}`;
   } else {
-    connectionContext = buildNoMatchConnectionContext(
+    connectionContext = inventory + buildNoMatchConnectionContext(
       t,
       searchedProviders,
       skippedProviderDetails,
