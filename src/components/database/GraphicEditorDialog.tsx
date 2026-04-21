@@ -1,5 +1,5 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { Maximize2, Send, Loader2, ArrowUp, Sparkles } from "lucide-react";
+import { ReactNode, useEffect, useState, useRef } from "react";
+import { Maximize2, Loader2, ArrowUp, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -117,74 +117,134 @@ export function GraphicEditorDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-5xl border-border bg-background p-0 sm:rounded-2xl">
-          <div className="flex max-h-[85vh] flex-col overflow-hidden">
-            <DialogHeader className="border-b border-border px-6 py-4">
-              <DialogTitle>{title}</DialogTitle>
+        <DialogContent
+          className="max-w-6xl w-[95vw] border-0 bg-[#FAFAFD] p-0 sm:rounded-2xl shadow-[0_24px_80px_-12px_rgba(29,29,31,0.18)] overflow-hidden"
+        >
+          <div className="flex h-[88vh] flex-col">
+            {/* Header */}
+            <DialogHeader className="flex-row items-center justify-between border-b border-[#F3F4F6] bg-white px-6 py-4 space-y-0">
+              <div className="flex items-center gap-2.5">
+                <div className="h-7 w-7 rounded-lg bg-[#1D1D1F] flex items-center justify-center">
+                  <Sparkles className="h-3.5 w-3.5 text-white" />
+                </div>
+                <DialogTitle className="text-[15px] font-semibold text-[#1D1D1F] tracking-tight">{title}</DialogTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setOpen(false)}
+                  className="h-8 px-3 text-[13px] text-muted-foreground hover:text-foreground hover:bg-[#F3F4F6] rounded-lg"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleApply}
+                  className="h-8 px-4 text-[13px] bg-[#1D1D1F] text-white hover:bg-[#1D1D1F]/90 rounded-lg shadow-none"
+                >
+                  Apply changes
+                </Button>
+              </div>
             </DialogHeader>
 
-            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[340px_minmax(0,1fr)]">
               {/* Left: AI Chat */}
-              <div className="flex flex-col border-b border-border lg:border-b-0 lg:border-r overflow-hidden">
+              <div className="flex flex-col border-b border-[#F3F4F6] bg-white lg:border-b-0 lg:border-r overflow-hidden">
                 {/* Chat messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px]">
+                <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3">
                   {chatHistory.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                      <Sparkles className="w-8 h-8 text-primary/30 mb-3" />
-                      <p className="text-sm text-muted-foreground">Ask AI to refine the graphic</p>
-                      <p className="text-xs text-muted-foreground/60 mt-1">"Make the title shorter" · "Add a new bullet" · "Change the color to red"</p>
+                    <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                      <div className="h-10 w-10 rounded-xl bg-[#F3F4F6] flex items-center justify-center mb-4">
+                        <Sparkles className="w-4 h-4 text-[#9D75BD]" />
+                      </div>
+                      <p className="text-[13px] font-medium text-[#1D1D1F]">Refine with AI</p>
+                      <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed">
+                        Or click any text in the preview to edit it directly.
+                      </p>
+                      <div className="mt-5 w-full space-y-1.5">
+                        {[
+                          "Make the title shorter",
+                          "Add a new bullet point",
+                          "Make it more concise",
+                        ].map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => {
+                              if (chatInputRef.current) {
+                                chatInputRef.current.innerText = s;
+                                handleAiRefine();
+                              }
+                            }}
+                            className="w-full text-left text-[12px] text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg hover:bg-[#FAFAFD] border border-[#F3F4F6] transition-colors"
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {chatHistory.map((msg, i) => (
-                    <div key={i} className={cn("text-sm px-3 py-2 rounded-xl max-w-[95%] leading-relaxed",
-                      msg.role === "user"
-                        ? "bg-[#e5e7eb] text-foreground ml-auto"
-                        : "bg-muted text-foreground"
-                    )}>
+                    <div
+                      key={i}
+                      className={cn(
+                        "text-[13px] px-3.5 py-2.5 rounded-2xl max-w-[92%] leading-relaxed",
+                        msg.role === "user"
+                          ? "bg-[#1D1D1F] text-white ml-auto rounded-br-md"
+                          : "bg-[#F3F4F6] text-[#1D1D1F] rounded-bl-md"
+                      )}
+                    >
                       {msg.content}
                     </div>
                   ))}
+                  {isRefining && (
+                    <div className="flex items-center gap-2 text-[12px] text-muted-foreground px-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Updating preview…
+                    </div>
+                  )}
                   <div ref={chatEndRef} />
                 </div>
 
-              {/* Apply button */}
-                <div className="p-3 border-t border-border flex justify-end gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button type="button" size="sm" onClick={handleApply}>Apply changes</Button>
-                </div>
-
-                {/* Chat input bar — matching employee chat bar */}
-                <div className="p-3 border-t border-border">
-                  <div className="flex items-center bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
-                    <div className="flex-1 flex items-center px-3 py-1">
-                      <div
-                        ref={chatInputRef}
-                        contentEditable
-                        suppressContentEditableWarning
-                        className="flex-1 bg-transparent border-none outline-none text-foreground text-base min-w-[80px] max-h-[120px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text cursor-text"
-                        data-placeholder="Ask me anything..."
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleAiRefine();
-                          }
-                        }}
-                      />
-                    </div>
+                {/* Chat input bar */}
+                <div className="p-3 border-t border-[#F3F4F6] bg-white">
+                  <div className="flex items-end bg-[#FAFAFD] border border-[#F3F4F6] rounded-2xl p-1.5 focus-within:border-[#1D1D1F]/20 transition-colors">
+                    <div
+                      ref={chatInputRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      className="flex-1 bg-transparent border-none outline-none text-[#1D1D1F] text-[14px] px-3 py-2 min-w-[80px] max-h-[120px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/70 cursor-text"
+                      data-placeholder="Ask AI to refine…"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleAiRefine();
+                        }
+                      }}
+                    />
                     <button
                       onClick={handleAiRefine}
                       disabled={isRefining}
-                      className="p-2.5 rounded-full bg-foreground text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm hover:bg-foreground/90 disabled:opacity-40"
+                      className="h-8 w-8 rounded-xl bg-[#1D1D1F] text-white transition-all active:scale-95 flex items-center justify-center hover:bg-[#1D1D1F]/90 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                     >
-                      {isRefining ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-5 h-5" />}
+                      {isRefining ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUp className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Right: Live editable preview */}
-              <div className="min-h-0 overflow-auto bg-muted/10 p-6">
-                <EditablePreview value={draftValue} onChange={setDraftValue} renderPreview={renderPreview} />
+              <div className="min-h-0 overflow-auto bg-[#FAFAFD] p-8">
+                <div className="mx-auto max-w-3xl">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3 font-medium">
+                    Live preview · click any text to edit
+                  </p>
+                  <div className="rounded-2xl bg-white border border-[#F3F4F6] shadow-[0_2px_12px_-2px_rgba(29,29,31,0.06)] overflow-hidden">
+                    <EditablePreview value={draftValue} onChange={setDraftValue} renderPreview={renderPreview} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
