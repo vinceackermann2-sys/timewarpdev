@@ -699,18 +699,6 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-xl font-semibold tracking-tight">{activeTab}</h1>
-              {healthScore && (() => {
-                const s = healthScoreStyle(healthScore.grade);
-                return (
-                  <span
-                    title={healthScore.reason || `Dashboard health: ${healthScore.score}/100`}
-                    className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border}`}
-                  >
-                    <span>{s.emoji}</span>
-                    <span>{healthScore.score}/100 · {s.label}</span>
-                  </span>
-                );
-              })()}
             </div>
             {TAB_SUBTITLES[activeTab] && (
               <p className="text-sm text-muted-foreground mt-0.5">{TAB_SUBTITLES[activeTab]}</p>
@@ -723,22 +711,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             </Button>
           )}
         </div>
-        {openingSummary?.text && (
-          <div className="rounded-xl border border-[hsl(217_80%_90%)] bg-[hsl(217_100%_98%)] px-4 py-3 mb-3">
-            <p className="text-[10px] font-semibold tracking-wider uppercase text-[hsl(217_70%_42%)] mb-1">
-              Today's Brief
-            </p>
-            <p className="text-[13px] leading-relaxed text-foreground/90">
-              {openingSummary.text}
-            </p>
-          </div>
-        )}
-        {healthScore && healthScore.score < 70 && healthScore.reason && (
-          <div className="flex items-center gap-2 bg-[hsl(25_100%_96%)] border border-[hsl(25_80%_82%)] rounded-lg px-3 py-2 mb-3">
-            <AlertTriangle className="h-3.5 w-3.5 text-[hsl(25_85%_42%)] shrink-0" />
-            <span className="text-xs text-[hsl(25_85%_38%)]">{healthScore.reason}</span>
-          </div>
-        )}
+
         {stale && (
           <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
