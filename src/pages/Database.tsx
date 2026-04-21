@@ -8,7 +8,6 @@ import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
 
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { BusinessDNAView } from "@/components/database/BusinessDNAView";
-import { MyBusinessesView } from "@/components/database/MyBusinessesView";
 import { BusinessDNAOnboarding } from "@/components/database/BusinessDNAOnboarding";
 import { BusinessDNAProvider, useBusinessDNA } from "@/components/database/BusinessDNAContext";
 import { Menu } from "lucide-react";
@@ -42,7 +41,7 @@ function MobileHeader() {
 
 // Auto-opens the active (or first) brand into BusinessDNAView whenever the user
 // is on the Business DNA view but no brand is selected yet — so clicking a pillar
-// in the sidebar jumps straight into the pillar instead of showing MyBusinessesView.
+// in the sidebar jumps straight into the pillar instead of showing onboarding.
 function DnaPillarAutoOpener({
   enabled,
   activeBrandId,
@@ -361,13 +360,11 @@ const Database = () => {
                       }}
                     />
                   ) : (
-                    <MyBusinessesView
-                      onSelectBusiness={() => setShowAddProduct(true)}
-                      onOpenBusiness={(brandId) => {
-                        setActiveBrandId(brandId);
+                    <BusinessDNAOnboarding
+                      onComplete={(_agentName, newBrandId) => {
+                        setActiveBrandId(newBrandId || activeBrandId);
                         setShowBusinessDNA(true);
                       }}
-                      onManageWorkspace={() => handleViewChange("workspaces")}
                     />
                   )}
                 </>
