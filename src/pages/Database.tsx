@@ -81,7 +81,7 @@ function BusinessDnaArea({
   onDnaBack: () => void;
   onOnboardingComplete: (agentName: string, brandId?: string) => void;
 }) {
-  const { isLoading } = useBusinessDNA();
+  const { isLoading, brands } = useBusinessDNA();
 
   if (showAddProduct) {
     return (
@@ -104,8 +104,9 @@ function BusinessDnaArea({
     );
   }
 
-  // Still loading brand list — show a skeleton instead of flashing onboarding
-  if (isLoading) {
+  // Still loading brand list, OR brands exist but the auto-opener hasn't fired yet —
+  // show a skeleton instead of flashing onboarding or an empty page.
+  if (isLoading || brands.length > 0) {
     return (
       <div className="h-full w-full flex flex-col p-6 gap-6">
         <div className="space-y-2">
@@ -125,6 +126,7 @@ function BusinessDnaArea({
     );
   }
 
+  // No brands and not loading → first-time onboarding
   return <BusinessDNAOnboarding onComplete={onOnboardingComplete} />;
 }
 
