@@ -699,18 +699,6 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-xl font-semibold tracking-tight">{activeTab}</h1>
-              {healthScore && (() => {
-                const s = healthScoreStyle(healthScore.grade);
-                return (
-                  <span
-                    title={healthScore.reason || `Dashboard health: ${healthScore.score}/100`}
-                    className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border}`}
-                  >
-                    <span>{s.emoji}</span>
-                    <span>{healthScore.score}/100 · {s.label}</span>
-                  </span>
-                );
-              })()}
             </div>
             {TAB_SUBTITLES[activeTab] && (
               <p className="text-sm text-muted-foreground mt-0.5">{TAB_SUBTITLES[activeTab]}</p>
