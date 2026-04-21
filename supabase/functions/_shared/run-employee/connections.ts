@@ -685,6 +685,17 @@ export async function searchConnectedProviders(
   console.log("[connections] Intent decision:", JSON.stringify(decision), "query:", userQuery?.slice(0, 80));
 
   if (!decision.shouldSearch) {
+    // Even when we skip live search, surface the inventory so the AI never
+    // claims to have access to disconnected tools in passing remarks.
+    try {
+      const { data: invConns } = await supabase
+        .from("user_connections")
+        .select("provider")
+        .eq("user_id", userId)
+        .eq("status", "connected");
+      const invProviders = (invConns || []).map((c: any) => c.provider);
+      connectionContext = buildConnectedToolsInventory(invProviders);
+    } catch (_e) { /* non-fatal */ }
     return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
