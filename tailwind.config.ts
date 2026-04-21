@@ -73,6 +73,11 @@ export default {
   				'dot-red': 'hsl(var(--browser-dot-red))',
   				'dot-yellow': 'hsl(var(--browser-dot-yellow))',
   				'dot-green': 'hsl(var(--browser-dot-green))'
+  			},
+  			brand: {
+  				purple: 'hsl(var(--brand-purple))',
+  				blue: 'hsl(var(--brand-blue))',
+  				pink: 'hsl(var(--brand-pink))'
   			}
   		},
   		borderRadius: {
