@@ -8,7 +8,6 @@ import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
 
 import { TimeWarpAIView } from "@/components/database/TimeWarpAIView";
 import { BusinessDNAView } from "@/components/database/BusinessDNAView";
-import { MyBusinessesView } from "@/components/database/MyBusinessesView";
 import { BusinessDNAOnboarding } from "@/components/database/BusinessDNAOnboarding";
 import { BusinessDNAProvider, useBusinessDNA } from "@/components/database/BusinessDNAContext";
 import { Menu } from "lucide-react";
