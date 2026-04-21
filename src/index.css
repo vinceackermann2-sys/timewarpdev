@@ -483,36 +483,36 @@
 
 @layer base {
   :root {
-    /* Light theme - Premium Tinted White (NO GREY) */
-    --background: 240 20% 98%;        /* #FAFAFD */
-    --foreground: 240 6% 12%;          /* #1D1D1F */
+    /* Light theme - Blue Corp Pastel */
+    --background: 40 33% 98%;
+    --foreground: 215 25% 15%;
 
-    --card: 0 0% 100%;                 /* #FFFFFF */
-    --card-foreground: 240 6% 12%;
+    --card: 210 40% 99%;
+    --card-foreground: 215 25% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 12%;
+    --popover: 210 30% 96%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 240 6% 12%;             /* #1D1D1F (BUTTON_STYLE bg) */
+    --primary: 217 100% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 9% 46%;           /* #6B7280 */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 215 20% 40%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 220 14% 96%;              /* #F3F4F6 */
-    --muted-foreground: 220 9% 46%;    /* #6B7280 */
+    --muted: 210 20% 88%;
+    --muted-foreground: 215 15% 35%;
 
-    --accent: 281 31% 60%;             /* #9D75BD purple */
-    --accent-foreground: 0 0% 100%;
+    --accent: 217 100% 95%;
+    --accent-foreground: 217 100% 47%;
 
     --destructive: 0 72% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 0 85% 97%;
 
-    --border: 220 14% 96%;             /* #F3F4F6 */
-    --input: 220 14% 96%;
-    --ring: 240 6% 12%;
+    --border: 210 20% 85%;
+    --input: 210 20% 85%;
+    --ring: 217 100% 65%;
 
-    --radius: 0.5rem;                  /* 8px */
+    --radius: 0.625rem;
 
     /* Status colors - light */
     --status-success: 142 76% 36%;
@@ -521,34 +521,29 @@
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 281 31% 60%;
+    --status-info: 217 100% 65%;
     --status-info-foreground: 0 0% 100%;
 
-    /* Brand accents */
-    --accent-intelligence: 281 31% 60%;  /* #9D75BD Purple */
-    --accent-network: 217 41% 65%;       /* #7E9BCD Blue */
-    --accent-energy: 338 47% 74%;        /* #DE9EB6 Pink */
-
     /* Portal specific tokens - light */
-    --portal-accent: 281 31% 60%;
-    --portal-accent-bright: 281 31% 70%;
-    --portal-glow: 281 31% 60%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(240 20% 98%) 0%, hsl(281 31% 95%) 100%);
+    --portal-accent: 217 100% 65%;
+    --portal-accent-bright: 217 100% 70%;
+    --portal-glow: 217 100% 65%;
+    --portal-bg-gradient: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 80% 95%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(281 31% 60%), hsl(217 41% 65%));
-    --gradient-accent: linear-gradient(135deg, hsl(217 41% 65%), hsl(338 47% 74%));
-    --shadow-glow: 0 8px 30px rgb(0 0 0 / 0.04);
-    --shadow-glow-lg: 0 12px 40px rgb(0 0 0 / 0.06);
+    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
+    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.05);
+    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.08);
 
-    /* Orb tokens - light (refined to brand purple/blue) */
+    /* Orb tokens - light */
     --orb-core-start: rgba(255, 255, 255, 1);
-    --orb-core-mid1: rgba(232, 220, 240, 1);
-    --orb-core-mid2: rgba(157, 117, 189, 0.8);
-    --orb-core-end: rgba(126, 155, 205, 1);
-    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.08);
-    --orb-shadow-inner-light: rgba(255, 255, 255, 0.85);
-    --orb-shadow-outer: rgba(157, 117, 189, 0.25);
-    --orb-glow: rgba(157, 117, 189, 0.25);
+    --orb-core-mid1: rgba(209, 227, 255, 1);
+    --orb-core-mid2: rgba(133, 176, 255, 1);
+    --orb-core-end: rgba(74, 134, 255, 1);
+    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.1);
+    --orb-shadow-inner-light: rgba(255, 255, 255, 0.8);
+    --orb-shadow-outer: rgba(133, 176, 255, 0.3);
+    --orb-glow: rgba(133, 176, 255, 0.3);
     --orb-trail-dim: rgba(180, 180, 200, 0.3);
     --orb-trail-mid: rgba(200, 200, 220, 0.6);
     --orb-trail-bright: rgba(220, 220, 240, 0.9);
@@ -559,37 +554,37 @@
     --orb-shine-fade: rgba(255, 255, 255, 0.5);
 
     /* Browser chrome colors - light */
-    --browser-bg: 240 20% 98%;
-    --browser-header: 220 14% 96%;
+    --browser-bg: 210 30% 97%;
+    --browser-header: 210 25% 94%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
     --browser-dot-green: 142 76% 36%;
 
-    --sidebar-background: 240 20% 98%;
-    --sidebar-foreground: 240 6% 12%;
-    --sidebar-primary: 240 6% 12%;
+    --sidebar-background: 210 40% 96%;
+    --sidebar-foreground: 215 25% 15%;
+    --sidebar-primary: 217 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 240 6% 12%;
-    --sidebar-border: 220 14% 96%;
-    --sidebar-ring: 240 6% 12%;
-    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-    --chart-1: 281 31% 60%;
-    --chart-2: 217 41% 65%;
-    --chart-3: 338 47% 74%;
-    --chart-4: 240 6% 12%;
-    --chart-5: 220 9% 46%;
-    --sidebar: 240 20% 98%;
+    --sidebar-accent: 215 20% 40%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 210 20% 85%;
+    --sidebar-ring: 217 100% 65%;
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --chart-1: 218 100% 93%;
+    --chart-2: 218 100% 87%;
+    --chart-3: 210 57% 78%;
+    --chart-4: 216 38% 47%;
+    --chart-5: 240 3% 46%;
+    --sidebar: 0 0% 98%;
     --font-serif: Merriweather, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
     --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
-    --shadow-2xs: 0 1px 2px rgb(0 0 0 / 0.02);
-    --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.03);
-    --shadow-sm: 0 2px 8px rgb(0 0 0 / 0.03);
-    --shadow: 0 4px 16px rgb(0 0 0 / 0.04);
-    --shadow-md: 0 6px 24px rgb(0 0 0 / 0.04);
-    --shadow-lg: 0 8px 30px rgb(0 0 0 / 0.04);
-    --shadow-xl: 0 12px 40px rgb(0 0 0 / 0.05);
-    --shadow-2xl: 0 20px 60px rgb(0 0 0 / 0.06);
+    --shadow-2xs: none;
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+    --shadow-xl: none;
+    --shadow-2xl: none;
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
@@ -698,31 +693,31 @@
 }
 
 .force-light {
-  --background: 240 20% 98%;
-  --foreground: 240 6% 12%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 6% 12%;
-  --primary: 240 6% 12%;
+  --background: 40 33% 98%;
+  --foreground: 215 25% 15%;
+  --card: 210 40% 99%;
+  --card-foreground: 215 25% 15%;
+  --primary: 217 100% 65%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 9% 46%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 220 14% 96%;
-  --muted-foreground: 220 9% 46%;
-  --accent: 281 31% 60%;
-  --accent-foreground: 0 0% 100%;
-  --border: 220 14% 96%;
-  --input: 220 14% 96%;
-  --ring: 240 6% 12%;
+  --secondary: 215 20% 40%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 210 20% 88%;
+  --muted-foreground: 215 15% 35%;
+  --accent: 217 100% 95%;
+  --accent-foreground: 217 100% 47%;
+  --border: 210 20% 85%;
+  --input: 210 20% 85%;
+  --ring: 217 100% 65%;
   --destructive: 0 72% 50%;
-  --destructive-foreground: 0 0% 100%;
+  --destructive-foreground: 0 85% 97%;
   --orb-core-start: rgba(255, 255, 255, 1);
-  --orb-core-mid1: rgba(232, 220, 240, 1);
-  --orb-core-mid2: rgba(157, 117, 189, 0.8);
-  --orb-core-end: rgba(126, 155, 205, 1);
-  --orb-shadow-inner-dark: rgba(0, 0, 0, 0.08);
-  --orb-shadow-inner-light: rgba(255, 255, 255, 0.85);
-  --orb-shadow-outer: rgba(157, 117, 189, 0.25);
-  --orb-glow: rgba(157, 117, 189, 0.25);
+  --orb-core-mid1: rgba(209, 227, 255, 1);
+  --orb-core-mid2: rgba(133, 176, 255, 1);
+  --orb-core-end: rgba(74, 134, 255, 1);
+  --orb-shadow-inner-dark: rgba(0, 0, 0, 0.1);
+  --orb-shadow-inner-light: rgba(255, 255, 255, 0.8);
+  --orb-shadow-outer: rgba(133, 176, 255, 0.3);
+  --orb-glow: rgba(133, 176, 255, 0.3);
   --orb-trail-dim: rgba(180, 180, 200, 0.3);
   --orb-trail-mid: rgba(200, 200, 220, 0.6);
   --orb-trail-bright: rgba(220, 220, 240, 0.9);
@@ -746,17 +741,13 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
-    letter-spacing: -0.01em;
-    line-height: 1.5;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold;
-    font-family: 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
+    @apply font-semibold tracking-tight;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
   }
 
   /* Mobile: prevent iOS zoom-on-focus by ensuring inputs are at least 16px */
@@ -795,49 +786,6 @@
     box-shadow: var(--shadow-glow-lg);
   }
 
-  /* Brand: ambient soft elevation */
-  .shadow-ambient {
-    box-shadow: 0 8px 30px rgb(0 0 0 / 0.04);
-    --tw-ring-color: rgb(0 0 0 / 0.05);
-    --tw-ring-offset-shadow: 0 0 #0000;
-    --tw-ring-shadow: 0 0 0 1px var(--tw-ring-color);
-    box-shadow: var(--tw-ring-shadow), 0 8px 30px rgb(0 0 0 / 0.04);
-  }
-
-  /* Brand: UI labels (all-caps, wide tracking) */
-  .ui-label {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    line-height: 1.2;
-  }
-
-  .ui-label-sm {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-  }
-
-  /* Brand: ambient lighting blurs (structural accents) */
-  .ambient-blur-purple {
-    background: radial-gradient(circle, hsl(var(--accent-intelligence) / 0.35), transparent 60%);
-    filter: blur(80px);
-  }
-
-  .ambient-blur-blue {
-    background: radial-gradient(circle, hsl(var(--accent-network) / 0.3), transparent 60%);
-    filter: blur(100px);
-  }
-
-  .ambient-blur-pink {
-    background: radial-gradient(circle, hsl(var(--accent-energy) / 0.3), transparent 60%);
-    filter: blur(90px);
-  }
-
   .glass-portal {
     backdrop-filter: blur(20px);
     background: hsl(var(--card) / 0.6);
@@ -849,24 +797,20 @@
   }
 
   .portal-card {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 8px 30px rgb(0 0 0 / 0.04);
+    background: linear-gradient(145deg, hsl(215 30% 12% / 0.8), hsl(215 30% 8% / 0.9));
+    border: 1px solid hsl(var(--border) / 0.4);
+    box-shadow: 0 8px 32px hsl(0 0% 0% / 0.3);
   }
 
   .portal-button {
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 0.08);
+    background: hsl(var(--portal-accent));
+    box-shadow: 0 4px 12px hsl(var(--portal-accent) / 0.2);
     transition: all 0.3s ease;
   }
 
   .portal-button:hover {
-    box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
-    transform: translateY(-1px);
+    box-shadow: 0 6px 20px hsl(var(--portal-accent) / 0.3);
+    transform: translateY(-2px);
   }
 }
 
