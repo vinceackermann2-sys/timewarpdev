@@ -483,36 +483,36 @@
 
 @layer base {
   :root {
-    /* Light theme - Blue Corp Pastel */
-    --background: 40 33% 98%;
-    --foreground: 215 25% 15%;
+    /* Brand System V2 — Premium Tinted White, Deep Slate, Tri-Accent */
+    --background: 240 20% 99%;          /* #FAFAFD App BG */
+    --foreground: 240 6% 12%;           /* #1D1D1F Primary text */
 
-    --card: 210 40% 99%;
-    --card-foreground: 215 25% 15%;
+    --card: 0 0% 100%;                  /* #FFFFFF pure white surface */
+    --card-foreground: 240 6% 12%;
 
-    --popover: 210 30% 96%;
-    --popover-foreground: 215 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 12%;
 
-    --primary: 217 100% 65%;
+    --primary: 240 6% 12%;              /* #1D1D1F — buttons */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 20% 40%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 14% 96%;           /* #F3F4F6 surface */
+    --secondary-foreground: 240 6% 12%;
 
-    --muted: 210 20% 88%;
-    --muted-foreground: 215 15% 35%;
+    --muted: 220 14% 96%;               /* #F3F4F6 */
+    --muted-foreground: 220 9% 46%;     /* #6B7280 */
 
-    --accent: 217 100% 95%;
-    --accent-foreground: 217 100% 47%;
+    --accent: 278 30% 60%;              /* #9D75BD purple — Intelligence */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 50%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 85%;
-    --input: 210 20% 85%;
-    --ring: 217 100% 65%;
+    --border: 220 14% 96%;              /* #F3F4F6 */
+    --input: 220 14% 96%;
+    --ring: 240 6% 12%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;                   /* 8px standardized */
 
     /* Status colors - light */
     --status-success: 142 76% 36%;
@@ -521,19 +521,24 @@
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 217 100% 65%;
+    --status-info: 216 42% 65%;
     --status-info-foreground: 0 0% 100%;
 
-    /* Portal specific tokens - light */
-    --portal-accent: 217 100% 65%;
-    --portal-accent-bright: 217 100% 70%;
-    --portal-glow: 217 100% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 80% 95%) 100%);
+    /* Tri-accent brand tokens */
+    --brand-purple: 278 30% 60%;        /* #9D75BD Intelligence */
+    --brand-blue: 216 42% 65%;          /* #7E9BCD Network */
+    --brand-pink: 337 51% 75%;          /* #DE9EB6 Energy */
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
-    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.05);
-    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.08);
+    /* Portal specific tokens - light */
+    --portal-accent: 278 30% 60%;
+    --portal-accent-bright: 278 30% 68%;
+    --portal-glow: 278 30% 60%;
+    --portal-bg-gradient: linear-gradient(135deg, hsl(240 20% 99%) 0%, hsl(0 0% 100%) 100%);
+
+    --gradient-primary: linear-gradient(135deg, hsl(240 6% 12%), hsl(240 6% 18%));
+    --gradient-accent: linear-gradient(135deg, hsl(278 30% 60%), hsl(216 42% 65%));
+    --shadow-glow: 0 8px 30px rgb(0 0 0 / 0.04);
+    --shadow-glow-lg: 0 12px 40px rgb(0 0 0 / 0.06);
 
     /* Orb tokens - light */
     --orb-core-start: rgba(255, 255, 255, 1);
