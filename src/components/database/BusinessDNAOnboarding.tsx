@@ -965,14 +965,7 @@ export function BusinessDNAOnboarding({
                     chosen = [0];
                     setSelectedProducts(chosen);
                   }
-                  const firstIdx = chosen[0];
-                  const firstProduct = firstIdx !== undefined ? extractedProducts[firstIdx] : undefined;
-                  if (firstProduct?.images?.length > 0) {
-                    setCurrentProductIndex(0);
-                    setStep(3);
-                  } else {
-                    setStep(4);
-                  }
+                  setStep(4);
                 }}
                 disabled={selectedProducts.length === 0 && extractedProducts.length === 0}
                 className="bg-[#4a86ff] disabled:opacity-50 hover:bg-[#2875ff] transition-colors text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
