@@ -305,14 +305,14 @@ export async function retrieveRelevantContext(supabase: any, employee: any, user
   }).sort((a: any, b: any) => b.score - a.score);
 
   const scored = allScored.filter((i: any) => i.score > 0.1);
-  // Larger top-K when content creation or no strict verification — we now have up to 9 pillar rows.
-  const top = scored.slice(0, isContentCreation ? 9 : 6);
-  // Always guarantee the foundational 3 pillars are in context.
-  const requiredTypes = ["brand", "product", "audience"];
-  for (const dt of requiredTypes) {
+  // Allow up to all 9 DNA pillar rows + a few extras when not strict.
+  const baseLimit = isContentCreation ? 14 : 12;
+  const top = scored.slice(0, baseLimit);
+  // Always guarantee EVERY DNA pillar row is in context when one exists for this business.
+  for (const dt of DNA_PILLAR_TYPES) {
     if (!top.some((i: any) => i.data_type === dt)) {
       const candidate = allScored.find((i: any) => i.data_type === dt && !top.includes(i));
-      if (candidate) { if (top.length >= 9) top.pop(); top.push(candidate); }
+      if (candidate) top.push(candidate);
     }
   }
 
