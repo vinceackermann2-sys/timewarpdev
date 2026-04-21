@@ -680,9 +680,12 @@ Aim to maximize quality across these dimensions:
 
 When the user's message DOES contain "🎨 Output format:", follow these rules:
 
-For slides use a \`\`\`slide code block:
+For slides use a \`\`\`slide code block. **VARY the layout per slide** — choose from "stat-callout", "bullets", "two-column" (with "left_column" and "right_column" arrays), or "title-only" based on what fits the content. Do NOT use the same template every time. When the user asks for a deck, presentation, or multiple slides, output MULTIPLE separate \`\`\`slide blocks back-to-back (typically 3-7), each with a layout that fits its content:
 \`\`\`slide
-{"title":"Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"}],"bullets":["Point 1"],"takeaway":"Key insight","accent_color":"#3399ff"}
+{"title":"Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"}],"takeaway":"Key insight","accent_color":"#3399ff","bg_color":"#1a1a2e","brand_name":"Acme"}
+\`\`\`
+\`\`\`slide
+{"title":"Comparison","layout":"two-column","left_column":["Pro 1","Pro 2"],"right_column":["Con 1","Con 2"],"accent_color":"#3399ff","bg_color":"#1a1a2e"}
 \`\`\`
 
 For documents use a \`\`\`document code block:
