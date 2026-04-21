@@ -417,45 +417,6 @@ export default function PricingPage() {
           />
         </div>
 
-        {/* TimeWarp OG — full width below */}
-        <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div className="flex items-start gap-5 flex-1">
-              <Sparkles className="h-7 w-7 text-primary mt-1 shrink-0" strokeWidth={2} />
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-2xl font-bold">TimeWarp OG</h3>
-                  <Badge className="bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/10 text-xs rounded-full">
-                    Limited offer
-                  </Badge>
-                </div>
-                <p className="text-muted-foreground text-sm mb-3">{PLAN_BENEFITS.timewarp_og.tagline}</p>
-                <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-                  {PLAN_BENEFITS.timewarp_og.bullets.map((b, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-sm text-foreground/80">
-                      <Check className="h-3.5 w-3.5 text-primary" strokeWidth={2.5} />
-                      {b}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col items-start md:items-end gap-3 shrink-0">
-              <div>
-                <span className="text-3xl font-bold">$499</span>
-                <span className="text-muted-foreground text-sm ml-1">/ 3 months</span>
-              </div>
-              <Button
-                onClick={() => handleGetStarted("timewarp_og")}
-                disabled={loadingPlan === "timewarp_og"}
-                className="rounded-full px-8 h-11 bg-foreground text-background hover:bg-foreground/90"
-              >
-                {loadingPlan === "timewarp_og" ? <Loader2 className="h-4 w-4 animate-spin" /> : (currentPlan === "timewarp_og" ? "Manage Plan" : "Become an OG")}
-              </Button>
-            </div>
-          </div>
-        </div>
-
         {/* Current plan & Action Packs (only if logged in) */}
         {isLoggedIn && (
           <div className="grid md:grid-cols-2 gap-6">
