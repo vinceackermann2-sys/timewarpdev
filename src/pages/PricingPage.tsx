@@ -39,7 +39,7 @@ const PRICES: Record<BillingPeriod, Record<PlanKey, number>> = {
 
 const ACTION_LIMITS: Record<string, number> = {
   co_founder: 100,
-  aristotle: 1000,
+  aristotle: 500,
   timewarp_og: Infinity,
 };
 
@@ -56,25 +56,22 @@ const ACTION_PACKS = [
 const PLAN_BENEFITS: Record<DisplayPlan, { tagline: string; bullets: string[] }> = {
   free: {
     tagline: "Try us out, see what lands",
-    bullets: ["1 Business", "1 AI Employee", "1GB connected data"],
+    bullets: ["10 Actions", "1 AI Employee", "1 business"],
   },
   co_founder: {
     tagline: "For early-stage founders getting started",
     bullets: [
-      "100 Actions / month",
-      "Up to 3 AI Employees",
-      "Up to 3 Businesses",
-      "5GB connected data",
+      "10x usage of free",
+      "Up to 10 AI employees",
+      "Smarter brain",
     ],
   },
   aristotle: {
     tagline: "For growing businesses scaling operations",
     bullets: [
       "Everything in Co Founder, plus:",
-      "1,000 Actions / month",
-      "Up to 10 AI Employees",
-      "Up to 10 Businesses",
-      "10GB connected data",
+      "5x usage of co founder",
+      "Up to 50 AI employees",
       "Direct developer line",
     ],
   },
