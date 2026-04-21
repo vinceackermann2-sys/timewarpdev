@@ -787,53 +787,19 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
         {/* ── Quick Note ────────────────────────────────────── */}
         <QuickNotes cardId={card.id} />
 
-        {/* ── Sticky bottom — slim button row ─────────────────────────── */}
-        <div className="shrink-0 px-6 pb-5 pt-2 bg-[#fcfcfd] shadow-xl flex items-center gap-2">
+        {/* ── Sticky bottom — single personalized action button ─────── */}
+        <div className="shrink-0 px-6 pb-5 pt-2 bg-[#fcfcfd] shadow-xl">
           <Button
             size="sm"
-            className="flex-1 h-10 gap-1.5 text-[13px] font-semibold rounded-lg bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
+            className="w-full h-10 gap-1.5 text-[13px] font-semibold rounded-lg bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
             onClick={() => {
               if (card.actionSuggestion) onExecuteAction?.(card.actionSuggestion);
               onClose();
             }}
+            title={card.actionSuggestion || ctaVerb}
           >
-            {ctaVerb}
+            <span className="truncate">{ctaVerb}</span>
           </Button>
-
-          {hasExternalSource && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-10 px-3 gap-1.5 text-[13px] font-medium rounded-lg bg-[#eef2f7] hover:bg-[#eef2f7]/80"
-                  disabled={!sourceUrl}
-                  onClick={() => {
-                    if (sourceUrl) window.open(sourceUrl, "_blank", "noopener,noreferrer");
-                  }}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Open
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}</TooltipContent>
-            </Tooltip>
-          )}
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="outline"
-                className={`h-10 w-10 rounded-lg shrink-0 ${done ? "bg-[hsl(142_55%_95%)] text-[hsl(142_62%_30%)] border-[hsl(142_42%_78%)]" : "bg-[#eef2f7] hover:bg-[#eef2f7]/80"}`}
-                onClick={toggleDone}
-                aria-label="Mark done"
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{done ? "Marked done" : "Mark done"}</TooltipContent>
-          </Tooltip>
         </div>
       </aside>
     </TooltipProvider>
