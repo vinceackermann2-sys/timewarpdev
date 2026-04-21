@@ -213,10 +213,10 @@ function PlanCard({
         disabled={loading}
         className={cn(
           "w-full h-12 rounded-full font-semibold mb-8",
-          buttonVariant === "primary" && "bg-foreground text-background hover:bg-foreground/90",
+          buttonVariant === "primary" && !buttonGradient && "bg-foreground text-background hover:bg-foreground/90",
           buttonVariant === "outline" && "text-foreground border border-border bg-[#fcfcfd]",
           buttonVariant === "dark" && "bg-foreground text-background hover:bg-foreground/90",
-          buttonGradient && "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 border-0"
+          buttonGradient && "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 border-0 bg-primary"
         )}
         variant={buttonGradient ? undefined : "default"}
       >
