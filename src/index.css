@@ -805,9 +805,42 @@
   }
 
   .portal-card {
-    background: linear-gradient(145deg, hsl(215 30% 12% / 0.8), hsl(215 30% 8% / 0.9));
-    border: 1px solid hsl(var(--border) / 0.4);
-    box-shadow: 0 8px 32px hsl(0 0% 0% / 0.3);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Brand System V2 — Tri-accent intelligence backgrounds */
+  .bg-intelligence {
+    background-color: hsl(var(--brand-purple) / 0.05);
+  }
+  .bg-network {
+    background-color: hsl(var(--brand-blue) / 0.05);
+  }
+  .bg-energy {
+    background-color: hsl(var(--brand-pink) / 0.05);
+  }
+
+  /* Ambient diffused radial gradient utility */
+  .ambient-glow-purple {
+    background: radial-gradient(circle at 30% 20%, hsl(var(--brand-purple) / 0.15) 0%, transparent 60%);
+    filter: blur(80px);
+  }
+  .ambient-glow-blue {
+    background: radial-gradient(circle at 70% 30%, hsl(var(--brand-blue) / 0.15) 0%, transparent 60%);
+    filter: blur(80px);
+  }
+  .ambient-glow-pink {
+    background: radial-gradient(circle at 50% 80%, hsl(var(--brand-pink) / 0.12) 0%, transparent 60%);
+    filter: blur(80px);
+  }
+
+  /* UI label preset — bold all-caps tracking */
+  .ui-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
   }
 
   .portal-button {
