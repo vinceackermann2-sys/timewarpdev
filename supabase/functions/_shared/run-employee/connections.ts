@@ -705,7 +705,8 @@ export async function searchConnectedProviders(
       skippedProviders.push(provider);
       skippedProviderDetails.push({ provider, reason: "not connected" });
     }
-    connectionContext = buildNoMatchConnectionContext(
+    const emptyInventory = buildConnectedToolsInventory([]);
+    connectionContext = emptyInventory + buildNoMatchConnectionContext(
       t,
       searchedProviders,
       skippedProviderDetails,
