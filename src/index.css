@@ -595,105 +595,105 @@
   }
 
   .dark {
-    /* Dark theme - Blue Corp Pastel */
-    --background: 0 0% 10%;
-    --foreground: 0 0% 98%;
+    /* Dark theme mirrors light Brand System V2 (project is light-only) */
+    --background: 240 20% 99%;
+    --foreground: 240 6% 12%;
 
-    --card: 215 20% 12%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 12%;
 
-    --popover: 215 20% 16%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 12%;
 
-    --primary: 217 100% 65%;
+    --primary: 240 6% 12%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 15% 35%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 240 6% 12%;
 
-    --muted: 215 15% 30%;
-    --muted-foreground: 210 20% 70%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 215 50% 20%;
-    --accent-foreground: 217 100% 65%;
+    --accent: 278 30% 60%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 215 20% 25%;
-    --input: 215 20% 25%;
-    --ring: 217 100% 65%;
+    --border: 220 14% 96%;
+    --input: 220 14% 96%;
+    --ring: 240 6% 12%;
 
-    /* Status colors - dark */
-    --status-success: 142 70% 45%;
+    --status-success: 142 76% 36%;
     --status-success-foreground: 0 0% 100%;
     --status-warning: 38 92% 50%;
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 217 100% 65%;
+    --status-info: 216 42% 65%;
     --status-info-foreground: 0 0% 100%;
 
-    /* Portal specific tokens - dark */
-    --portal-accent: 217 100% 65%;
-    --portal-accent-bright: 217 100% 70%;
-    --portal-glow: 217 100% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(215 25% 6%) 0%, hsl(210 40% 12%) 50%, hsl(215 50% 15%) 100%);
+    --brand-purple: 278 30% 60%;
+    --brand-blue: 216 42% 65%;
+    --brand-pink: 337 51% 75%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
-    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.08);
-    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.1);
+    --portal-accent: 278 30% 60%;
+    --portal-accent-bright: 278 30% 68%;
+    --portal-glow: 278 30% 60%;
+    --portal-bg-gradient: linear-gradient(135deg, hsl(240 20% 99%) 0%, hsl(0 0% 100%) 100%);
 
-    /* Orb tokens - dark (same as light to keep orb bright) */
+    --gradient-primary: linear-gradient(135deg, hsl(240 6% 12%), hsl(240 6% 18%));
+    --gradient-accent: linear-gradient(135deg, hsl(278 30% 60%), hsl(216 42% 65%));
+    --shadow-glow: 0 8px 30px rgb(0 0 0 / 0.04);
+    --shadow-glow-lg: 0 12px 40px rgb(0 0 0 / 0.06);
+
     --orb-core-start: rgba(255, 255, 255, 1);
-    --orb-core-mid1: rgba(209, 227, 255, 1);
-    --orb-core-mid2: rgba(133, 176, 255, 1);
-    --orb-core-end: rgba(74, 134, 255, 1);
-    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.1);
-    --orb-shadow-inner-light: rgba(255, 255, 255, 0.8);
-    --orb-shadow-outer: rgba(133, 176, 255, 0.3);
-    --orb-glow: rgba(133, 176, 255, 0.3);
+    --orb-core-mid1: rgba(232, 220, 240, 1);
+    --orb-core-mid2: rgba(200, 170, 220, 1);
+    --orb-core-end: rgba(157, 117, 189, 1);
+    --orb-shadow-inner-dark: rgba(29, 29, 31, 0.08);
+    --orb-shadow-inner-light: rgba(255, 255, 255, 0.85);
+    --orb-shadow-outer: rgba(157, 117, 189, 0.25);
+    --orb-glow: rgba(157, 117, 189, 0.25);
     --orb-trail-dim: rgba(180, 180, 200, 0.3);
     --orb-trail-mid: rgba(200, 200, 220, 0.6);
     --orb-trail-bright: rgba(220, 220, 240, 0.9);
     --orb-trail-peak: rgba(255, 255, 255, 1);
-    --orb-trail-bg: hsl(0 0% 10%);
+    --orb-trail-bg: white;
     --orb-shine: rgba(255, 255, 255, 1);
     --orb-shine-mid: rgba(255, 255, 255, 0.9);
     --orb-shine-fade: rgba(255, 255, 255, 0.5);
 
-    /* Browser chrome colors - dark */
-    --browser-bg: 215 25% 8%;
-    --browser-header: 215 22% 12%;
+    --browser-bg: 0 0% 100%;
+    --browser-header: 220 14% 96%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
-    --browser-dot-green: 142 70% 45%;
+    --browser-dot-green: 142 76% 36%;
 
-    --sidebar-background: 215 25% 8%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 217 100% 65%;
+    --sidebar-background: 240 20% 99%;
+    --sidebar-foreground: 240 6% 12%;
+    --sidebar-primary: 240 6% 12%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 100% 60%;
-    --sidebar-accent-foreground: 217 30% 20%;
-    --sidebar-border: 215 20% 25%;
-    --sidebar-ring: 217 100% 65%;
-    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-    --radius: 0.625rem;
-    --chart-1: 218 100% 93%;
-    --chart-2: 218 100% 87%;
-    --chart-3: 210 57% 78%;
-    --chart-4: 216 38% 47%;
-    --chart-5: 240 3% 46%;
-    --sidebar: 240 3% 15%;
-    --shadow-2xs: none;
-    --shadow-xs: none;
-    --shadow-sm: none;
-    --shadow: none;
-    --shadow-md: none;
-    --shadow-lg: none;
-    --shadow-xl: none;
-    --shadow-2xl: none;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 240 6% 12%;
+    --sidebar-border: 220 14% 96%;
+    --sidebar-ring: 240 6% 12%;
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --radius: 0.5rem;
+    --chart-1: 278 30% 60%;
+    --chart-2: 216 42% 65%;
+    --chart-3: 337 51% 75%;
+    --chart-4: 240 6% 12%;
+    --chart-5: 220 9% 46%;
+    --sidebar: 240 20% 99%;
+    --shadow-2xs: 0 1px 2px rgb(0 0 0 / 0.02);
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.03);
+    --shadow-sm: 0 2px 8px rgb(0 0 0 / 0.03);
+    --shadow: 0 4px 16px rgb(0 0 0 / 0.04);
+    --shadow-md: 0 6px 20px rgb(0 0 0 / 0.04);
+    --shadow-lg: 0 8px 30px rgb(0 0 0 / 0.04);
+    --shadow-xl: 0 12px 40px rgb(0 0 0 / 0.05);
+    --shadow-2xl: 0 16px 50px rgb(0 0 0 / 0.06);
   }
 }
 
