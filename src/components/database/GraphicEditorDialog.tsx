@@ -278,7 +278,7 @@ function EditablePreview({ value, onChange, renderPreview }: {
       el.style.cursor = "text";
       el.setAttribute("contenteditable", "true");
       el.style.outline = "none";
-      el.classList.add("hover:ring-1", "hover:ring-primary/30", "focus:ring-1", "focus:ring-primary/50", "rounded", "transition-shadow");
+      el.classList.add("hover:ring-1", "hover:ring-[#9D75BD]/30", "focus:ring-1", "focus:ring-[#9D75BD]/60", "focus:bg-[#9D75BD]/5", "rounded-md", "px-1", "-mx-1", "transition-all");
     };
 
     // Walk all text elements
