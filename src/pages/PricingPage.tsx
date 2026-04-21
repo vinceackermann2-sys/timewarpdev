@@ -213,10 +213,10 @@ function PlanCard({
         disabled={loading}
         className={cn(
           "w-full h-12 rounded-full font-semibold mb-8",
-          buttonVariant === "primary" && "bg-foreground text-background hover:bg-foreground/90",
+          buttonVariant === "primary" && !buttonGradient && "bg-foreground text-background hover:bg-foreground/90",
           buttonVariant === "outline" && "text-foreground border border-border bg-[#fcfcfd]",
           buttonVariant === "dark" && "bg-foreground text-background hover:bg-foreground/90",
-          buttonGradient && "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 border-0"
+          buttonGradient && "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 border-0 bg-primary"
         )}
         variant={buttonGradient ? undefined : "default"}
       >
@@ -362,7 +362,7 @@ export default function PricingPage() {
                 className={cn(
                   "px-6 py-2 rounded-full text-sm font-medium transition-all capitalize",
                   billing === period
-                    ? "text-primary-foreground shadow-sm bg-white"
+                    ? "shadow-sm bg-white text-black"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
