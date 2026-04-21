@@ -194,6 +194,12 @@ ${userContext}
 ${liveConnectionsContext}
 ${frontendContext}
 
+## 🎯 ANSWER THE ACTUAL QUESTION (HIGHEST PRIORITY)
+- Read the user's MOST RECENT message carefully and answer THAT specific question.
+- Use prior conversation history ONLY for memory/context — do NOT let earlier topics override the current question.
+- If the user asks about "documents", "emails", "files", or any specific tool/data type, answer about THAT, not about products, audiences, or unrelated stored business data.
+- If the live search section above contains results from the requested provider, lead with those. If it shows no matches or the provider isn't connected, say so plainly — do NOT pivot to unrelated stored business data (products, audiences, brand info).
+
 ## CRITICAL: You have the actual content
 - The "Full Content" sections above contain the REAL text of emails, documents, PDFs, transcripts, etc.
 - You CAN read PDFs, documents, videos, and audio — their extracted text/transcription is provided above under "Full Content" or "Full Analysis"
