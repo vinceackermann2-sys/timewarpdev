@@ -29,21 +29,8 @@ async function fetchUserBusinessContext(userId: string, workspaceId?: string): P
     }
   }
 
-  // Try to read consolidated context from storage bucket first
-  const bucketPath = `${userId}/context.json`;
-  const { data: fileData } = await supabase.storage
-    .from("business-data")
-    .download(bucketPath);
-
-  if (fileData && !workspaceId) {
-    try {
-      const text = await fileData.text();
-      const contextObj = JSON.parse(text);
-      if (contextObj.items && contextObj.items.length > 0) {
-        return formatContextItems(contextObj.items);
-      }
-    } catch { /* fall through to DB query */ }
-  }
+  // NOTE: We intentionally bypass the legacy `context.json` storage cache —
+  // it can be stale and miss the new 9-pillar Business DNA rows. Always query DB.
 
   // Fallback: query DB directly
   let query = supabase
