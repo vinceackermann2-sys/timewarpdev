@@ -52,10 +52,11 @@ function topMetaLabel(card: DashboardCard, tabKind: TabKind): string {
   return "JUST NOW";
 }
 
-/* ── Insights collapsible — label is personal to this card's signal type ── */
+/* ── Insights collapsible — 5 personalized rows with colored accent rails ── */
 function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind }) {
   const [open, setOpen] = useState(true);
-  const label = (() => {
+
+  const headerLabel = (() => {
     if (tabKind === "Briefing") {
       return card.signalType ? `Why this ${card.signalType.toLowerCase()} matters` : "Why this matters";
     }
@@ -69,7 +70,62 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
     return card.objectiveType ? `Why this ${card.objectiveType.toLowerCase()} matters` : "Why this objective matters";
   })();
 
-  const insightText = card.detail || card.description;
+  // Personalized per-card values, grounded in the card's own data
+  const dataPoint = (() => {
+    if (tabKind === "Updates" && card.waitingParty) {
+      return `${card.waitingParty}${card.waitDuration ? ` waiting ${card.waitDuration}` : ""}`;
+    }
+    if (tabKind === "Objectives" && card.successMetric) {
+      const m = card.successMetric;
+      return `${m.current || "—"} → ${m.target || "—"}${m.gap ? ` (gap ${m.gap})` : ""}`;
+    }
+    if (tabKind === "To-Dos" && card.estimatedDuration) {
+      return `${card.title} · ${card.estimatedDuration}`;
+    }
+    return card.title;
+  })();
+
+  const pattern = card.detail || card.description;
+
+  const crossPillar = (() => {
+    if (tabKind === "Objectives" && card.relatedTodoIds?.length) {
+      return `Linked to ${card.relatedTodoIds.length} active to-do${card.relatedTodoIds.length > 1 ? "s" : ""}.`;
+    }
+    if (card.category) return `Affects the ${card.category} pillar of your business.`;
+    if (tabKind === "Briefing" && card.signalType) return `Connects to your ${card.signalType.toLowerCase()} workstream.`;
+    if (tabKind === "Updates") return "Blocks downstream work until you respond.";
+    if (tabKind === "To-Dos") return "Moves a current objective forward.";
+    return "Touches multiple areas of your operation.";
+  })();
+
+  const implication = (() => {
+    if (card.consequence) return card.consequence;
+    if (tabKind === "Updates") return "If left unanswered, the request escalates and slows the team.";
+    if (tabKind === "To-Dos") return card.howTo
+      ? `If skipped, you lose the leverage from: ${card.howTo}`
+      : "If skipped, this work compounds into a larger backlog.";
+    if (tabKind === "Objectives" && card.successMetric?.gap) {
+      return `If untouched, you stay ${card.successMetric.gap} away from target.`;
+    }
+    if (tabKind === "Briefing") return "If ignored, you lose context that informs upcoming decisions.";
+    return "Acting now preserves momentum and prevents downstream cost.";
+  })();
+
+  const watchSignal = (() => {
+    if (tabKind === "Updates" && card.requestType) return `Watch for similar ${card.requestType.toLowerCase()} requests piling up.`;
+    if (tabKind === "To-Dos" && card.leverageLabel) return `Track whether ${card.leverageLabel.replace(/^[^A-Za-z]+/, "")} tasks keep clustering here.`;
+    if (tabKind === "Objectives") return "Re-check progress weekly against the success metric.";
+    if (card.source) return `Monitor new activity from ${card.source} for related signals.`;
+    return "Re-evaluate if the same theme appears again this week.";
+  })();
+
+  const rows: { label: string; value: string; rail: string }[] = [
+    { label: "Data Point",   value: dataPoint,   rail: "bg-[hsl(264_46%_60%)]" }, // purple
+    { label: "Pattern",      value: pattern || "", rail: "bg-[hsl(217_45%_65%)]" }, // blue
+    { label: "Cross-Pillar", value: crossPillar, rail: "bg-[hsl(280_38%_70%)]" }, // lavender
+    { label: "Implication",  value: implication, rail: "bg-[hsl(335_55%_75%)]" }, // pink
+    { label: "Watch Signal", value: watchSignal, rail: "bg-[hsl(160_42%_62%)]" }, // mint
+  ].filter((r) => r.value && r.value.trim().length > 0);
 
   return (
     <div className="pt-1">
@@ -80,15 +136,23 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[hsl(217_100%_60%)]" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {label}
+            {headerLabel}
           </span>
         </div>
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
-      {open && insightText && (
-        <p className="mt-2 pl-6 text-[13px] text-foreground/85 leading-relaxed whitespace-pre-wrap">
-          {insightText}
-        </p>
+      {open && rows.length > 0 && (
+        <div className="mt-3 space-y-3">
+          {rows.map((r) => (
+            <div key={r.label} className="flex gap-3">
+              <div className={`w-[3px] rounded-full shrink-0 ${r.rail}`} />
+              <p className="text-[13px] leading-relaxed text-foreground/85">
+                <span className="font-semibold text-foreground">{r.label}:</span>{" "}
+                {r.value}
+              </p>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
