@@ -795,6 +795,49 @@
     box-shadow: var(--shadow-glow-lg);
   }
 
+  /* Brand: ambient soft elevation */
+  .shadow-ambient {
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.04);
+    --tw-ring-color: rgb(0 0 0 / 0.05);
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 0 1px var(--tw-ring-color);
+    box-shadow: var(--tw-ring-shadow), 0 8px 30px rgb(0 0 0 / 0.04);
+  }
+
+  /* Brand: UI labels (all-caps, wide tracking) */
+  .ui-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    line-height: 1.2;
+  }
+
+  .ui-label-sm {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Brand: ambient lighting blurs (structural accents) */
+  .ambient-blur-purple {
+    background: radial-gradient(circle, hsl(var(--accent-intelligence) / 0.35), transparent 60%);
+    filter: blur(80px);
+  }
+
+  .ambient-blur-blue {
+    background: radial-gradient(circle, hsl(var(--accent-network) / 0.3), transparent 60%);
+    filter: blur(100px);
+  }
+
+  .ambient-blur-pink {
+    background: radial-gradient(circle, hsl(var(--accent-energy) / 0.3), transparent 60%);
+    filter: blur(90px);
+  }
+
   .glass-portal {
     backdrop-filter: blur(20px);
     background: hsl(var(--card) / 0.6);
@@ -806,20 +849,24 @@
   }
 
   .portal-card {
-    background: linear-gradient(145deg, hsl(215 30% 12% / 0.8), hsl(215 30% 8% / 0.9));
-    border: 1px solid hsl(var(--border) / 0.4);
-    box-shadow: 0 8px 32px hsl(0 0% 0% / 0.3);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.04);
   }
 
   .portal-button {
-    background: hsl(var(--portal-accent));
-    box-shadow: 0 4px 12px hsl(var(--portal-accent) / 0.2);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.08);
     transition: all 0.3s ease;
   }
 
   .portal-button:hover {
-    box-shadow: 0 6px 20px hsl(var(--portal-accent) / 0.3);
-    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+    transform: translateY(-1px);
   }
 }
 
