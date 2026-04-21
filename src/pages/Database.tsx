@@ -406,36 +406,26 @@ const Database = () => {
                 />
               )}
               {currentView === "businessdna" && user && (
-                <>
-                  {showAddProduct ? (
-                    <BusinessDNAOnboarding
-                      isAddBusiness
-                      activeBrandId={activeBrandId}
-                      onBack={() => setShowAddProduct(false)}
-                      onComplete={(_agentName, newBrandId) => {
-                        setShowAddProduct(false);
-                        setActiveBrandId(newBrandId || activeBrandId);
-                        setShowBusinessDNA(true);
-                      }}
-                    />
-                  ) : showBusinessDNA && activeBrandId ? (
-                    <BusinessDNAView
-                      activeBrandId={activeBrandId}
-                      activePillar={dnaPillar}
-                      onBack={() => {
-                        setShowBusinessDNA(false);
-                        setActiveBrandId(null);
-                      }}
-                    />
-                  ) : (
-                    <BusinessDNAOnboarding
-                      onComplete={(_agentName, newBrandId) => {
-                        setActiveBrandId(newBrandId || activeBrandId);
-                        setShowBusinessDNA(true);
-                      }}
-                    />
-                  )}
-                </>
+                <BusinessDnaArea
+                  showAddProduct={showAddProduct}
+                  showBusinessDNA={showBusinessDNA}
+                  activeBrandId={activeBrandId}
+                  dnaPillar={dnaPillar}
+                  onAddProductBack={() => setShowAddProduct(false)}
+                  onAddProductComplete={(_agentName, newBrandId) => {
+                    setShowAddProduct(false);
+                    setActiveBrandId(newBrandId || activeBrandId);
+                    setShowBusinessDNA(true);
+                  }}
+                  onDnaBack={() => {
+                    setShowBusinessDNA(false);
+                    setActiveBrandId(null);
+                  }}
+                  onOnboardingComplete={(_agentName, newBrandId) => {
+                    setActiveBrandId(newBrandId || activeBrandId);
+                    setShowBusinessDNA(true);
+                  }}
+                />
               )}
               {currentView === "employees" && user && (
                 <AgentChatView
