@@ -216,9 +216,9 @@ function PlanCard({
           buttonVariant === "primary" && !buttonGradient && "bg-foreground text-background hover:bg-foreground/90",
           buttonVariant === "outline" && "text-foreground border border-border bg-[#fcfcfd]",
           buttonVariant === "dark" && "bg-foreground text-background hover:bg-foreground/90",
-          buttonGradient && "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 border-0 bg-primary"
+          buttonGradient && "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 border-0 bg-primary hover:no-underline"
         )}
-        variant={buttonGradient ? undefined : "default"}
+        variant={buttonGradient ? "link" : "default"}
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : buttonLabel}
       </Button>
