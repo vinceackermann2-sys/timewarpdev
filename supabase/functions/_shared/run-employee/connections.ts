@@ -936,9 +936,9 @@ export async function searchConnectedProviders(
       ? skippedProviderDetails.map(({ provider, reason }) => `${formatProviderName(provider)} (${reason})`).join(", ")
       : "none";
 
-    connectionContext = `\n\n## Connected Sources (Live Search Results)\nUse this section as the primary source of truth for requests about live emails, messages, files, meetings, or collaboration activity. Answer the lookup request directly before offering any ideas.\n\n- **Searched sources:** ${searchedSummary}\n- **Skipped sources:** ${skippedSummary}\n${connectionContext}`;
+    connectionContext = inventory + `\n\n## Connected Sources (Live Search Results)\nUse this section as the primary source of truth for requests about live emails, messages, files, meetings, or collaboration activity. Answer the lookup request directly before offering any ideas.\n\n- **Searched sources:** ${searchedSummary}\n- **Skipped sources:** ${skippedSummary}\n${connectionContext}`;
   } else {
-    connectionContext = buildNoMatchConnectionContext(
+    connectionContext = inventory + buildNoMatchConnectionContext(
       t,
       searchedProviders,
       skippedProviderDetails,
