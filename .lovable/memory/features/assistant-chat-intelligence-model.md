@@ -32,3 +32,9 @@ type: feature
 - `research-chat/index.ts` — Anti-patterns + quality scoring added
 - `action-chat/index.ts` — Anti-patterns + quality scoring added
 - `run-employee/prompts.ts` — Mandatory [SUGGEST:] tag added
+
+## Connected Integrations Awareness
+- `_shared/run-employee/connections.ts` exports `buildConnectedToolsInventory()` injected into every chat prompt as "🔌 User's Connected Integrations Inventory" (✅ connected / ❌ not connected list).
+- `narrowProvidersByConnections()` filters generic intent (e.g. "documents", "emails") to only providers the user actually has connected — prevents AI from referencing OneDrive when only Google Drive is connected.
+- Explicit provider names (gmail, outlook, onedrive, etc.) are NOT narrowed so the user gets an accurate "not connected" message.
+- Inventory is surfaced even on non-live-data queries (strategy questions) so the AI never falsely claims access to disconnected tools.
