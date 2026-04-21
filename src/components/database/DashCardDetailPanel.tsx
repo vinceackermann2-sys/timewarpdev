@@ -24,9 +24,23 @@ interface Props {
   onMinimizedChange?: (m: boolean) => void;
 }
 
-/* ── Short, one-word-ish CTA verb ── */
+/* ── Short, personal CTA verb derived from the card's own suggestion ── */
 function shortCtaVerb(card: DashboardCard, tabKind: TabKind): string {
-  // Prefer the framing default (Discuss / Respond / Start / Plan) — it's already short
+  const suggestion = (card.actionSuggestion || "").trim();
+  if (suggestion) {
+    // Take the first clause / sentence, then the first 3-4 words
+    const firstClause = suggestion.split(/[.!?;:\n]/)[0].trim();
+    const words = firstClause.split(/\s+/).filter(Boolean);
+    if (words.length > 0) {
+      // Capitalize first word (keep rest as-is), cap to 4 words for a short button label
+      const capped = words.slice(0, 4);
+      capped[0] = capped[0].charAt(0).toUpperCase() + capped[0].slice(1);
+      const label = capped.join(" ");
+      // Strip a trailing comma if any
+      return label.replace(/[,]+$/, "");
+    }
+  }
+  // Fallback to the tab's generic verb
   return TAB_FRAMING[tabKind].ctaLabel;
 }
 
@@ -691,6 +705,25 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
             <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
           </div>
           <div className="flex items-center gap-1">
+            {hasExternalSource && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}
+                    disabled={!sourceUrl}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (sourceUrl) window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed outline-none"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}</TooltipContent>
+              </Tooltip>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -754,53 +787,19 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
         {/* ── Quick Note ────────────────────────────────────── */}
         <QuickNotes cardId={card.id} />
 
-        {/* ── Sticky bottom — slim button row ─────────────────────────── */}
-        <div className="shrink-0 px-6 pb-5 pt-2 bg-[#fcfcfd] shadow-xl flex items-center gap-2">
+        {/* ── Sticky bottom — single personalized action button ─────── */}
+        <div className="shrink-0 px-6 pb-5 pt-2 bg-[#fcfcfd] shadow-xl">
           <Button
             size="sm"
-            className="flex-1 h-10 gap-1.5 text-[13px] font-semibold rounded-lg bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
+            className="w-full h-10 gap-1.5 text-[13px] font-semibold rounded-lg bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
             onClick={() => {
               if (card.actionSuggestion) onExecuteAction?.(card.actionSuggestion);
               onClose();
             }}
+            title={card.actionSuggestion || ctaVerb}
           >
-            {ctaVerb}
+            <span className="truncate">{ctaVerb}</span>
           </Button>
-
-          {hasExternalSource && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-10 px-3 gap-1.5 text-[13px] font-medium rounded-lg bg-[#eef2f7] hover:bg-[#eef2f7]/80"
-                  disabled={!sourceUrl}
-                  onClick={() => {
-                    if (sourceUrl) window.open(sourceUrl, "_blank", "noopener,noreferrer");
-                  }}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Open
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}</TooltipContent>
-            </Tooltip>
-          )}
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="outline"
-                className={`h-10 w-10 rounded-lg shrink-0 ${done ? "bg-[hsl(142_55%_95%)] text-[hsl(142_62%_30%)] border-[hsl(142_42%_78%)]" : "bg-[#eef2f7] hover:bg-[#eef2f7]/80"}`}
-                onClick={toggleDone}
-                aria-label="Mark done"
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{done ? "Marked done" : "Mark done"}</TooltipContent>
-          </Tooltip>
         </div>
       </aside>
     </TooltipProvider>
