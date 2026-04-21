@@ -151,63 +151,14 @@ export function GraphicEditorDialog({
               {/* Left: AI Chat */}
               <div className="flex flex-col border-b border-border bg-card lg:border-b-0 lg:border-r overflow-hidden">
                 {/* Chat messages */}
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#fcfcfd]">
                   {chatHistory.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                      <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center mb-3">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                      </div>
-                      <p className="text-[13px] font-medium text-foreground">Refine with AI</p>
-                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                        Or click any text in the preview to edit directly.
-                      </p>
-                      <div className="mt-4 w-full space-y-1.5">
-                        {[
-                          "Make the title shorter",
-                          "Add a bullet point",
-                          "Make it more concise",
-                        ].map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => {
-                              if (chatInputRef.current) {
-                                chatInputRef.current.innerText = s;
-                                handleAiRefine();
-                              }
-                            }}
-                            className="w-full text-left text-xs text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg hover:bg-muted/60 border border-border transition-colors"
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {chatHistory.map((msg, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "text-[13px] px-3.5 py-2.5 rounded-2xl max-w-[92%] leading-relaxed",
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground ml-auto rounded-br-md"
-                          : "bg-muted text-foreground rounded-bl-md"
-                      )}
-                    >
-                      {msg.content}
-                    </div>
-                  ))}
-                  {isRefining && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Updating preview…
-                    </div>
-                  )}
-                  <div ref={chatEndRef} />
-                </div>
-
+                      <div className="h-9 w-9 rounded-xl flex items-center justify-center mb-3 bg-[#dae0e7]/0">
+// ... keep existing code
                 {/* Chat input bar */}
-                <div className="p-3 border-t border-border">
-                  <div className="flex items-end bg-background border border-border rounded-2xl p-1.5 focus-within:border-primary/40 transition-colors">
+                <div className="p-3 border-t border-border bg-[#fcfcfd]">
+                  <div className="flex items-end border border-border rounded-2xl p-1.5 focus-within:border-primary/40 transition-colors bg-white">
                     <div
                       ref={chatInputRef}
                       contentEditable
