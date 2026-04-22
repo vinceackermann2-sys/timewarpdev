@@ -15,8 +15,8 @@ type BrandRow = { id: string; agentName?: string; name?: string; _rowId?: string
 export interface ExtensionBridgeActions {
   getPageContext: () => Promise<any>;
   executeAction: (action: any) => Promise<any>;
-  signalStart: (id: string, name: string) => Promise<void>;
-  signalStop: (id: string) => Promise<void>;
+  signalStart: (id: string, name: string) => Promise<boolean>;
+  signalStop: (id: string) => void;
   updateOverlay: (state: { visible: boolean; employeeName?: string; currentStep?: string }) => void;
 }
 
