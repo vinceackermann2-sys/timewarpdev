@@ -940,6 +940,9 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     // Add assistant placeholder
     const assistantId = crypto.randomUUID();
     setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
+    activeAssistantIdRef.current = assistantId;
+    stalledRef.current = false;
+    lastActivityRef.current = Date.now();
 
     try {
       // If files are attached, always use chat mode (not browser automation) so the AI analyzes them
