@@ -17,7 +17,6 @@ export type Database = {
       agent_chat_sessions: {
         Row: {
           agent_name: string | null
-          assistant_memory: string
           created_at: string
           id: string
           messages: Json
@@ -28,7 +27,6 @@ export type Database = {
         }
         Insert: {
           agent_name?: string | null
-          assistant_memory?: string
           created_at?: string
           id?: string
           messages?: Json
@@ -39,7 +37,6 @@ export type Database = {
         }
         Update: {
           agent_name?: string | null
-          assistant_memory?: string
           created_at?: string
           id?: string
           messages?: Json
