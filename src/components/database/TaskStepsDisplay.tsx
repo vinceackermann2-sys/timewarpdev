@@ -4,7 +4,8 @@ import {
   Brain, Search, PenLine, Cog, RefreshCw, CircleCheck,
   CircleX, StopCircle, Globe, MousePointerClick,
   Keyboard, ClipboardList, ScrollText, Clock,
-  SearchCode, Download, Zap, AlertTriangle, Dna, Database
+  SearchCode, Download, Zap, AlertTriangle, Dna, Database,
+  Lightbulb, Compass, Target, Sparkles, Ear, Pencil, FileSearch, Wand2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
@@ -77,12 +78,27 @@ function getStepIcon(label: string) {
     if (l.includes("zoom")) return "zoom" as any;
     if (l.includes("hubspot")) return "hubspot" as any;
   }
-  if (l.includes("dna") || l.includes("brand") || l.includes("audience") || l.includes("product")) return Dna;
-  if (l.includes("database") || l.includes("business data") || l.includes("gathering")) return Database;
+  // Always use the DNA icon when the step is about Business DNA / brand / audience / product
+  if (l.includes("business dna") || l.includes(" dna ") || l.endsWith(" dna") || l.startsWith("dna ")) return Dna;
+  if (l.includes("brand") || l.includes("audience") || l.includes("product") || l.includes("positioning") || l.includes("business model")) return Dna;
+  if (l.includes("database") || l.includes("business data")) return Database;
   if (l.includes("internet") || l.includes("web search") || l.includes("searching the web") || l.includes("browsing")) return Globe;
-  if (l.includes("context") || l.includes("memory") || l.includes("understanding")) return Brain;
+  // Varied icons for the "understand" step phrasings
+  if (l.includes("listening") || l.includes("sitting with")) return Ear;
+  if (l.includes("framing") || l.includes("angle") || l.includes("sharpening")) return Compass;
+  if (l.includes("unpacking") || l.includes("understanding") || l.includes("memory") || l.includes("context")) return Brain;
+  // Varied icons for the "gather" step phrasings
+  if (l.includes("receipts") || l.includes("numbers") || l.includes("facts")) return FileSearch;
+  if (l.includes("stitching") || l.includes("sweeping") || l.includes("signals")) return Search;
+  if (l.includes("digging") || l.includes("pulling")) return Database;
+  if (l.includes("gathering")) return Database;
+  // Varied icons for the "craft / answer" step phrasings
+  if (l.includes("sketching") || l.includes("play")) return Lightbulb;
+  if (l.includes("drafting") || l.includes("writing") || l.includes("composing")) return Pencil;
+  if (l.includes("shaping") || l.includes("crafting")) return Wand2;
+  if (l.includes("recommendation") || l.includes("call on") || l.includes("move") || l.includes("take")) return Target;
+  if (l.includes("generating")) return Sparkles;
   if (l.includes("analyz") || l.includes("reviewing")) return Search;
-  if (l.includes("writing") || l.includes("generating") || l.includes("composing") || l.includes("drafting") || l.includes("crafting")) return PenLine;
   if (l.includes("checking connected") || l.includes("connected sources")) return Search;
   if (l.includes("processing") || l.includes("employee") || l.includes("preparing")) return Cog;
   if (l.includes("extending") || l.includes("continu") || l.includes("part") || l.includes("refining")) return RefreshCw;
@@ -92,7 +108,7 @@ function getStepIcon(label: string) {
   if (l.includes("navigat") || l.includes("fetching") || l.includes("connecting")) return Globe;
   if (l.includes("click")) return MousePointerClick;
   if (l.includes("type") || l.includes("fill")) return Keyboard;
-  if (l.includes("extract") || l.includes("read") || l.includes("gathering")) return ClipboardList;
+  if (l.includes("extract") || l.includes("read")) return ClipboardList;
   if (l.includes("scroll")) return ScrollText;
   if (l.includes("wait")) return Clock;
   if (l.includes("search") || l.includes("looking")) return SearchCode;
