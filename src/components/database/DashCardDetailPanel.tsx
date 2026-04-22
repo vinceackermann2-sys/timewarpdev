@@ -119,13 +119,22 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
     return "Re-evaluate if the same theme appears again this week.";
   })();
 
-  // Tab-specific labels — Updates uses action-oriented labels (History/Context/Recommendation/Time Cost/Escalation Path)
+  // Tab-specific labels — Updates and To-Dos use action-oriented labels
   const labels = (() => {
     if (tabKind === "Updates") {
       return {
         dataPoint: "History",
         pattern: "Context",
         crossPillar: "Recommendation",
+        implication: "Time Cost",
+        watchSignal: "Escalation Path",
+      };
+    }
+    if (tabKind === "To-Dos") {
+      return {
+        dataPoint: "Value",
+        pattern: "Dependencies",
+        crossPillar: "Completion Criteria",
         implication: "Time Cost",
         watchSignal: "Escalation Path",
       };
@@ -175,12 +184,48 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
     return "If unresolved soon, momentum stalls and the request escalates.";
   })();
 
+  // To-Dos-specific personalized values
+  const todosValue = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.metadata?.dealValue) return `${card.metadata.dealValue} opportunity. Acting now preserves the upside.`;
+    if (card.leverageLabel?.includes("High Leverage")) return `${card.title} is a high-leverage move — the payoff compounds across other work.`;
+    if (card.leverageLabel?.includes("Deep Work")) return `${card.title} is deep work that protects long-term progress.`;
+    return `${card.title} moves a current objective forward and unlocks downstream work.`;
+  })();
+
+  const todosDependencies = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.relatedTodoIds?.length) return `Unblocks ${card.relatedTodoIds.length} related task${card.relatedTodoIds.length > 1 ? "s" : ""} downstream.`;
+    if (card.metadata?.scheduledDate) return `Tied to the meeting scheduled ${card.metadata.scheduledDate}.`;
+    if (card.category) return `Unblocks the next step in your ${card.category} workstream.`;
+    return "Unblocks the next step in your current workflow.";
+  })();
+
+  const todosCriteria = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.howTo) return card.howTo;
+    if (card.actionSuggestion) return card.actionSuggestion;
+    return `${card.title} completed and logged.`;
+  })();
+
+  const todosTimeCost = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.estimatedDuration) return `~${card.estimatedDuration} of focused effort.`;
+    return "~15 minutes of focused effort.";
+  })();
+
+  const todosEscalation = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.consequence) return card.consequence;
+    return "If skipped, the work compounds into a larger backlog and slows momentum.";
+  })();
+
   const rows: { label: string; value: string; rail: string }[] = [
-    { label: labels.dataPoint,   value: (updatesHistory ?? dataPoint) || "",        rail: "bg-[hsl(264_46%_60%)]" }, // purple
-    { label: labels.pattern,     value: (updatesContext ?? pattern) || "",          rail: "bg-[hsl(217_45%_65%)]" }, // blue
-    { label: labels.crossPillar, value: (updatesRecommendation ?? crossPillar) || "", rail: "bg-[hsl(160_42%_62%)]" }, // mint (recommendation)
-    { label: labels.implication, value: (updatesTimeCost ?? implication) || "",     rail: "bg-[hsl(42_88%_65%)]" }, // amber (time cost)
-    { label: labels.watchSignal, value: (updatesEscalation ?? watchSignal) || "",   rail: "bg-[hsl(335_55%_75%)]" }, // pink (escalation)
+    { label: labels.dataPoint,   value: (updatesHistory ?? todosValue ?? dataPoint) || "",                  rail: "bg-[hsl(264_46%_60%)]" }, // purple
+    { label: labels.pattern,     value: (updatesContext ?? todosDependencies ?? pattern) || "",             rail: "bg-[hsl(217_45%_65%)]" }, // blue
+    { label: labels.crossPillar, value: (updatesRecommendation ?? todosCriteria ?? crossPillar) || "",      rail: "bg-[hsl(160_42%_62%)]" }, // mint
+    { label: labels.implication, value: (updatesTimeCost ?? todosTimeCost ?? implication) || "",            rail: "bg-[hsl(42_88%_65%)]" }, // amber
+    { label: labels.watchSignal, value: (updatesEscalation ?? todosEscalation ?? watchSignal) || "",        rail: "bg-[hsl(335_55%_75%)]" }, // pink
   ].filter((r) => r.value && r.value.trim().length > 0);
 
   return (
