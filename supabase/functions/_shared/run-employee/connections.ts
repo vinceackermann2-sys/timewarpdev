@@ -658,6 +658,9 @@ export function extractQueryTopic(query: string): string {
   if (!query || query.length < 3) return "your request";
   const q = query.toLowerCase().trim();
   const topicPatterns: [RegExp, string][] = [
+    [/\b(my|our|the)?\s*(last|latest|recent)\s*\d*\s*(documents?|docs?|files?|attachments?)\b/i, "recent documents"],
+    [/\b(my|our|the)?\s*(last|latest|recent)\s*\d*\s*(emails?|mails?|messages?)\b/i, "recent messages"],
+    [/\b(my|our|the)?\s*(last|latest|recent)\s*\d*\s*(meetings?|events?|appointments?|calendar)\b/i, "recent meetings"],
     [/\bcollabs?\b/i, "collaborations & partnerships"],
     [/\b(?:any|are there|check for|find)\b.{0,10}\b(collaborat\w*|partnership\w*)/i, "collaborations & partnerships"],
     [/\b(?:any|are there|check for|find)\b.{0,10}\b(complaint\w*|issue\w*|problem\w*)/i, "complaints & issues"],
