@@ -259,6 +259,82 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
   );
 }
 
+/* ── How-To Execution Plan — numbered steps for To-Dos, derived from card data ── */
+function ExecutionPlan({ card }: { card: DashboardCard }) {
+  const steps = (() => {
+    // 1. Try to split howTo into numbered/bulleted steps
+    const raw = (card.howTo || "").trim();
+    if (raw) {
+      // Match patterns like "1. ...", "1) ...", "- ...", or sentences split by ". "
+      const numbered = raw.match(/(?:^|\n)\s*(?:\d+[.)]|[-•])\s+([^\n]+)/g);
+      if (numbered && numbered.length >= 2) {
+        return numbered.map((s) => s.replace(/^[\s\n]*(?:\d+[.)]|[-•])\s+/, "").trim()).filter(Boolean).slice(0, 5);
+      }
+      const sentences = raw.split(/(?<=[.!?])\s+(?=[A-Z])/).map((s) => s.trim()).filter((s) => s.length > 8);
+      if (sentences.length >= 2) return sentences.slice(0, 5);
+    }
+    // 2. Fall back to source-aware default plan
+    const source = (card.source || "").toLowerCase();
+    const m = card.metadata || {};
+    if (source === "hubspot") {
+      return [
+        `Open HubSpot and review the latest activity${m.contactName ? ` with ${m.contactName}` : ""}.`,
+        `Draft your next move based on the current ${m.stage || "deal"} stage.`,
+        `Log the action and set the next follow-up reminder.`,
+      ];
+    }
+    if (["outlook", "gmail", "google_gmail"].includes(source)) {
+      return [
+        `Open the email${m.senderName ? ` from ${m.senderName}` : ""} and re-read the request.`,
+        `Draft a focused reply addressing the specific ask.`,
+        `Send and flag for follow-up if a response is expected.`,
+      ];
+    }
+    if (["zoom", "calendar", "google_calendar", "teams"].includes(source)) {
+      return [
+        `Review the meeting agenda${m.subject ? ` for "${m.subject}"` : ""}.`,
+        `Prepare the 2–3 key questions or talking points you need to cover.`,
+        `Join 2 minutes early to ensure your environment is ready.`,
+      ];
+    }
+    if (source === "slack") {
+      return [
+        `Open the ${m.channel || "Slack"} thread and read the full context.`,
+        `Reply with a clear, concise next step or decision.`,
+        `Pin or bookmark if it requires follow-up later.`,
+      ];
+    }
+    // 3. Generic fallback
+    return [
+      `Open the relevant context for "${card.title}".`,
+      `Take the focused action that moves it forward.`,
+      `Log the outcome so the next step is obvious.`,
+    ];
+  })();
+
+  if (!steps.length) return null;
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-white px-5 py-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground mb-4">
+        How to Execution Plan
+      </p>
+      <ol className="space-y-3.5">
+        {steps.map((step, i) => (
+          <li key={i} className="flex gap-3">
+            <div className="shrink-0 w-6 h-6 rounded-full border border-[hsl(264_46%_60%)] text-[hsl(264_46%_50%)] flex items-center justify-center text-[11px] font-semibold">
+              {i + 1}
+            </div>
+            <p className="text-[13px] leading-relaxed text-foreground/85 pt-[2px]">
+              {step}
+            </p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 /* ── Source classification helpers ── */
 type SourceKind = "email" | "meeting" | "message" | "file" | "note" | "deal" | "system";
 
