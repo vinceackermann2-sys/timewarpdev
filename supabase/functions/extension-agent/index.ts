@@ -359,7 +359,20 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               page_url: pageContext?.url || null,
             }).then(() => {});
 
-            sendStep(`Crafting your answer on ${answerTopic}`, "running", "response");
+            const isAnswerDna = /\b(dna|brand|audience|product|positioning|business model)\b/i.test(answerTopic);
+            const craftPhrases = isAnswerDna ? [
+              `Drafting your Business DNA take on ${answerTopic}`,
+              `Writing your Business DNA read on ${answerTopic}`,
+              `Shaping your Business DNA call on ${answerTopic}`,
+            ] : [
+              `Putting your move together on ${answerTopic}`,
+              `Sketching your play for ${answerTopic}`,
+              `Writing your sharp take on ${answerTopic}`,
+              `Pulling my recommendation on ${answerTopic}`,
+              `Lining up the call on ${answerTopic}`,
+            ];
+            const craftLabel = craftPhrases[Math.floor(Math.random() * craftPhrases.length)];
+            sendStep(craftLabel, "running", "response");
             const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
               headers: {
