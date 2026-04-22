@@ -350,11 +350,11 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
     try {
       if (chatId) {
         await supabase.from("agent_chat_sessions")
-          .update({ messages: nonStreaming, updated_at: new Date().toISOString(), title, assistant_memory: sessionMemory ?? "" })
+          .update({ messages: nonStreaming as any, updated_at: new Date().toISOString(), title, assistant_memory: sessionMemory ?? "" })
           .eq("id", chatId);
       } else {
         const { data } = await supabase.from("agent_chat_sessions")
-          .insert(payload)
+          .insert(payload as any)
           .select("id")
           .maybeSingle();
         if (data?.id) setActiveChatId(data.id);
