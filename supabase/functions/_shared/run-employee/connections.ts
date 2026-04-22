@@ -791,8 +791,11 @@ export async function searchConnectedProviders(
     console.log("[connections] Targeted search — raw:", rawNamedProviders, "narrowed:", namedProviders);
   }
 
+  const hasOutlookConnection = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
+  const hasOnedriveConnection = connectedProviders.includes("microsoft_onedrive");
+  const hasOnenoteConnection = connectedProviders.includes("microsoft_onenote");
   // Check for any Microsoft sub-service connection
-  const hasMicrosoft = connectedProviders.some((p: string) => isMicrosoftProvider(p));
+  const hasMicrosoft = hasOutlookConnection || hasOnedriveConnection || hasOnenoteConnection;
   const hasAnyGoogle = connectedProviders.some((p: string) => p === "google" || p.startsWith("google_"));
 
   const allKnownProviders = [
@@ -802,7 +805,13 @@ export async function searchConnectedProviders(
   ];
   for (const provider of allKnownProviders) {
     if (isMicrosoftProvider(provider)) {
-      if (!hasMicrosoft) {
+      const providerConnected = provider === "microsoft_outlook"
+        ? hasOutlookConnection
+        : provider === "microsoft_onedrive"
+          ? hasOnedriveConnection
+          : hasOnenoteConnection;
+
+      if (!providerConnected) {
         skippedProviders.push(provider);
         skippedProviderDetails.push({ provider, reason: "not connected" });
       }
@@ -820,9 +829,9 @@ export async function searchConnectedProviders(
   }
 
   if (hasMicrosoft) {
-    const hasOutlook = isAllowed("microsoft_outlook") && connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
-    const hasOnedrive = isAllowed("microsoft_onedrive") && connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
-    const hasOnenote = isAllowed("microsoft_onenote") && connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onenote");
+    const hasOutlook = isAllowed("microsoft_outlook") && hasOutlookConnection;
+    const hasOnedrive = isAllowed("microsoft_onedrive") && hasOnedriveConnection;
+    const hasOnenote = isAllowed("microsoft_onenote") && hasOnenoteConnection;
 
     if (hasOutlook || hasOnedrive) {
       searchPromises.push((async () => {
