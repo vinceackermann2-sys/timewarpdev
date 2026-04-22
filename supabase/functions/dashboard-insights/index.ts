@@ -983,7 +983,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
     const initialValidation = validateDashboardPayload(parsed);
     if (!initialValidation.valid) {
       const repairPrompt = `Repair this dashboard JSON so it follows schema exactly. Error: ${initialValidation.reason}. Return only JSON object with Briefing, Updates, To-Dos, Objectives, openingSummary, healthScore.`;
-      const repairResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const repairResponse = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -997,7 +997,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
           ],
           stream: false,
         }),
-      });
+      }, 30_000);
       if (repairResponse.ok) {
         const repairData = await repairResponse.json();
         const repairContent = repairData?.choices?.[0]?.message?.content || "{}";
