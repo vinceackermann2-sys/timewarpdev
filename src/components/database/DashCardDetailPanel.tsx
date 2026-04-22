@@ -1023,6 +1023,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 shadow-xl rounded-none bg-white">
           <SourceNativeBlock card={card} tabKind={tabKind} />
           <InsightsRow card={card} tabKind={tabKind} />
+          {tabKind === "To-Dos" && <ExecutionPlan card={card} />}
         </div>
 
         {/* ── Quick Note ────────────────────────────────────── */}
