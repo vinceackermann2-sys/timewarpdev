@@ -242,7 +242,7 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
         className="w-full flex items-center justify-between text-left"
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[hsl(217_100%_60%)]" />
+          <Sparkles className="h-4 w-4 text-[hsl(217_100%_60%)] text-black" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {headerLabel}
           </span>
