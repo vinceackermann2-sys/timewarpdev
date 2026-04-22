@@ -577,14 +577,15 @@ export function buildConnectedToolsInventory(connectedProviders: string[]): stri
 // --- Intent Analysis ---
 const CONNECTION_TRIGGER_PATTERNS = [
   /\b(collab\w*|collaboration\w*|partnership\w*|partner\w*|meeting\w*|follow.?up|agenda)\b/i,
-  /\b(complaint|issue|ticket|support|bug|problem|incident)\b/i,
-  /\b(email|mail|inbox|message|slack|teams|chat|dm|thread|gmail|outlook)\b/i,
-  /\b(file|document|doc|sheet|drive|onedrive|sharepoint|gdrive)\b/i,
-  /\b(calendar|schedule|event|appointment|invite|gcal)\b/i,
-  /\b(customer|client|contact|deal|lead|crm|hubspot)\b.{0,40}\b(said|wrote|asked|mentioned|replied|responded|deal|stage|pipeline|value)\b/i,
+  /\b(complaint|issue|ticket|support|bug|problem|incident)s?\b/i,
+  /\b(email|mail|inbox|message|slack|teams|chat|dm|thread|gmail|outlook)s?\b/i,
+  /\b(file|document|doc|sheet|attachment|drive|onedrive|sharepoint|gdrive|gdoc|gsheet|gslide|slides?|presentation)s?\b/i,
+  /\b(calendar|schedule|event|appointment|invite|gcal)s?\b/i,
+  /\b(customer|client|contact|deal|lead|crm|hubspot)s?\b.{0,40}\b(said|wrote|asked|mentioned|replied|responded|deal|stage|pipeline|value)s?\b/i,
   /\b(hubspot|crm)\b/i,
-  /\b(recent|latest|new|incoming|pending|unread)\b/i,
-  /\b(check|search|find|look\s+up|pull)\s+(my|our|the)\s+(email|slack|message|file|drive|gmail|hubspot|crm)\b/i,
+  /\b(recent|latest|new|incoming|pending|unread|last)\b.{0,30}\b(email|mail|message|file|document|doc|sheet|drive|onedrive|gmail|slack|meeting|event|note|page|ticket|deal|lead|contact|presentation|slide)s?\b/i,
+  /\b(my|our|the)\s+(last|latest|recent)\s+\d*\s*(email|mail|message|file|document|doc|sheet|drive|onedrive|gmail|slack|meeting|event|note|page|ticket|deal|lead|contact|presentation|slide)s?\b/i,
+  /\b(check|search|find|look\s+up|pull|show|list|get)\s+(me\s+)?(my|our|the)?\s*(email|slack|message|file|document|doc|sheet|drive|gmail|hubspot|crm|note|page|meeting|event|deal|lead|contact|presentation|slide)s?\b/i,
   /\b(what|any)\b.{0,30}\b(coming\s+up|scheduled|planned|pending)\b/i,
 ];
 
