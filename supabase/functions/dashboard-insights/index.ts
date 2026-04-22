@@ -936,7 +936,18 @@ Return ONLY a valid JSON object, no markdown fences.`;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Helper: fetch with timeout to prevent the function from hitting the 150s edge idle limit.
+    const fetchWithTimeout = async (url: string, init: RequestInit, timeoutMs: number) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...init, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
+    const aiResponse = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -949,7 +960,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
           { role: "user", content: fullContext },
         ],
       }),
-    });
+    }, 90_000);
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text().catch(() => "");
@@ -972,7 +983,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
     const initialValidation = validateDashboardPayload(parsed);
     if (!initialValidation.valid) {
       const repairPrompt = `Repair this dashboard JSON so it follows schema exactly. Error: ${initialValidation.reason}. Return only JSON object with Briefing, Updates, To-Dos, Objectives, openingSummary, healthScore.`;
-      const repairResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const repairResponse = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -986,7 +997,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
           ],
           stream: false,
         }),
-      });
+      }, 30_000);
       if (repairResponse.ok) {
         const repairData = await repairResponse.json();
         const repairContent = repairData?.choices?.[0]?.message?.content || "{}";
