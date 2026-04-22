@@ -18,6 +18,10 @@ import {
   buildBrowserSystemPrompt,
   buildEmployeeChatPrompt,
 } from "../_shared/run-employee/prompts.ts";
+import {
+  buildBusinessBrainContext,
+  logBusinessLearningEvent,
+} from "../_shared/run-employee/business-brain.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,6 +68,66 @@ const BLOCKED_SELECTOR_PATTERNS = [
   /log.?in|sign.?in/i,
   /pay|purchase|buy|checkout|place.?order|subscribe/i,
 ];
+
+function extractJsonCodeBlock(content: string): string | null {
+  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (jsonMatch?.[1]) return jsonMatch[1];
+  const trimmed = content.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) return trimmed;
+  return null;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function validateSingleAction(action: unknown): { valid: boolean; reason?: string; actionObj?: Record<string, unknown> } {
+  if (!isObject(action)) return { valid: false, reason: "Action must be a JSON object." };
+  const actionType = typeof action.action === "string" ? action.action : "";
+  if (!actionType) return { valid: false, reason: "Missing required field: action." };
+  if (typeof action.reasoning !== "string" || action.reasoning.trim().length === 0) {
+    return { valid: false, reason: "Missing required field: reasoning." };
+  }
+
+  const requires = (field: string) => action[field] !== undefined && action[field] !== null && String(action[field]).trim().length > 0;
+  if (actionType === "navigate" && !requires("url")) return { valid: false, reason: "Navigate action must include url." };
+  if ((actionType === "click" || actionType === "extract" || actionType === "type") && !requires("selector")) {
+    return { valid: false, reason: `${actionType} action must include selector.` };
+  }
+  if (actionType === "type" && !requires("value")) return { valid: false, reason: "Type action must include value." };
+  if (actionType === "wait" && typeof action.duration !== "number") return { valid: false, reason: "Wait action must include numeric duration." };
+  if ((actionType === "respond" || actionType === "done") && !requires("message")) {
+    return { valid: false, reason: `${actionType} action must include message.` };
+  }
+  return { valid: true, actionObj: action };
+}
+
+function validateActionPayload(content: string): { valid: boolean; reason?: string; payload?: any } {
+  const jsonRaw = extractJsonCodeBlock(content);
+  if (!jsonRaw) return { valid: false, reason: "Response is not valid JSON or JSON code block." };
+
+  let payload: any;
+  try {
+    payload = JSON.parse(jsonRaw);
+  } catch {
+    return { valid: false, reason: "JSON parsing failed." };
+  }
+
+  if (!isObject(payload)) return { valid: false, reason: "Top-level response must be an object." };
+
+  if (Array.isArray(payload.steps)) {
+    if (payload.steps.length === 0) return { valid: false, reason: "steps array cannot be empty." };
+    for (let i = 0; i < payload.steps.length; i++) {
+      const stepValidation = validateSingleAction(payload.steps[i]);
+      if (!stepValidation.valid) return { valid: false, reason: `Invalid step ${i + 1}: ${stepValidation.reason}` };
+    }
+    return { valid: true, payload };
+  }
+
+  const singleValidation = validateSingleAction(payload);
+  if (!singleValidation.valid) return { valid: false, reason: singleValidation.reason };
+  return { valid: true, payload };
+}
 
 function runPreflightGuardrails(userMessage: string, safety: any): string | null {
   if (!userMessage || !safety) return null;
@@ -113,29 +177,56 @@ function runPostflightGuardrails(content: string, safety: any): string {
 function validateBrowserActions(content: string, safety: any): string | null {
   if (!safety || safety.integrityEnabled === false) return null;
   try {
-    const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    if (!jsonMatch) return null;
-    const action = JSON.parse(jsonMatch[1]);
+    const validation = validateActionPayload(content);
+    if (!validation.valid) {
+      return "```json\n" + JSON.stringify({ action: "respond", message: "⚠️ I could not safely execute that because the action format was invalid. Please retry.", reasoning: validation.reason || "Invalid action format", done: false }) + "\n```";
+    }
 
-    if (action.action === "navigate" && action.url) {
-      for (const pattern of BLOCKED_URL_PATTERNS) {
-        if (pattern.test(action.url)) {
-          return "```json\n" + JSON.stringify({ action: "respond", message: `⚠️ Navigation to "${action.url}" was blocked by the **Integrity** guardrail.`, reasoning: "Safety guardrail", done: false }) + "\n```";
+    const payload = validation.payload;
+    const actions = Array.isArray(payload.steps) ? payload.steps : [payload];
+    for (const action of actions) {
+      if (action.action === "navigate" && action.url) {
+        for (const pattern of BLOCKED_URL_PATTERNS) {
+          if (pattern.test(action.url)) {
+            return "```json\n" + JSON.stringify({ action: "respond", message: `⚠️ Navigation to "${action.url}" was blocked by the **Integrity** guardrail.`, reasoning: "Safety guardrail", done: false }) + "\n```";
+          }
         }
       }
-    }
-    if (action.action === "click" && action.selector) {
-      for (const pattern of BLOCKED_SELECTOR_PATTERNS) {
-        if (pattern.test(action.selector)) {
-          return "```json\n" + JSON.stringify({ action: "respond", message: `⚠️ Clicking "${action.selector}" was blocked.`, reasoning: "Safety guardrail", done: false }) + "\n```";
+      if (action.action === "click" && action.selector) {
+        for (const pattern of BLOCKED_SELECTOR_PATTERNS) {
+          if (pattern.test(action.selector)) {
+            return "```json\n" + JSON.stringify({ action: "respond", message: `⚠️ Clicking "${action.selector}" was blocked.`, reasoning: "Safety guardrail", done: false }) + "\n```";
+          }
         }
       }
-    }
-    if (action.action === "type" && action.selector && /password|passwd|secret|card.?number|cvv|cvc|ssn/i.test(action.selector)) {
-      return "```json\n" + JSON.stringify({ action: "respond", message: `⚠️ Typing into "${action.selector}" was blocked.`, reasoning: "Safety guardrail", done: false }) + "\n```";
+      if (action.action === "type" && action.selector && /password|passwd|secret|card.?number|cvv|cvc|ssn/i.test(action.selector)) {
+        return "```json\n" + JSON.stringify({ action: "respond", message: `⚠️ Typing into "${action.selector}" was blocked.`, reasoning: "Safety guardrail", done: false }) + "\n```";
+      }
     }
   } catch {}
   return null;
+}
+
+function ensureDnaSections(content: string): string {
+  const requiredSections = ["## DNA Fit", "## Recommendation", "## Next 7 Days", "## KPI Impact"];
+  const missing = requiredSections.filter((section) => !content.includes(section));
+  if (missing.length === 0) return content;
+  const fallback = `
+## DNA Fit
+This recommendation is aligned using your Business Operating Profile and recent learning signals.
+
+## Recommendation
+${content.slice(0, 1200)}
+
+## Next 7 Days
+- Convert the recommendation into 3 concrete actions.
+- Execute and track measurable outcomes.
+- Review and iterate based on performance.
+
+## KPI Impact
+- Expected impact: improved decision quality and faster execution with business-specific alignment.
+`;
+  return fallback.trim();
 }
 
 // =====================================================
@@ -201,6 +292,11 @@ serve(async (req) => {
 
     const effectiveBrandId = brandId || employee.linked_business_id;
     const { identity, safetySettings } = await loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId });
+    const { businessId, profileContext, learningContext } = await buildBusinessBrainContext(supabase, {
+      userId: user.id,
+      brandId: effectiveBrandId,
+      workspaceId: workspaceId || employee.workspace_id,
+    });
 
     const lastUserMsg = extractLastUserMessage(messages);
     const connectionLookupQuery = typeof connectionQuery === "string" && connectionQuery.trim().length > 0
@@ -244,7 +340,7 @@ serve(async (req) => {
       connectionContext: string,
       emitContent?: (delta: string) => void,
     ) => {
-      const fullContext = relevantContext + connectionContext;
+      const fullContext = `${profileContext}\n${learningContext}\n${relevantContext}${connectionContext}`;
       const systemPrompt = isBrowserMode
         ? buildBrowserSystemPrompt(employee, identity, fullContext, pageContext, safetySettings)
         : buildEmployeeChatPrompt(employee, identity, fullContext, safetySettings);
@@ -283,25 +379,42 @@ serve(async (req) => {
       let fullContent = "";
       let timedOut = false;
       let streamDone = false;
+      let eventBuffer = "";
 
       try {
         while (true) {
           if (Date.now() - startTime > TIMEOUT_MS) { timedOut = true; break; }
           const { done, value } = await reader.read();
           if (done) { streamDone = true; break; }
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-          for (const line of lines) {
+          eventBuffer += decoder.decode(value, { stream: true });
+          const eventBlocks = eventBuffer.split("\n\n");
+          eventBuffer = eventBlocks.pop() || "";
+          for (const block of eventBlocks) {
+            for (const line of block.split("\n")) {
+              if (!line.startsWith("data: ")) continue;
+              const data = line.slice(6).trim();
+              if (data === "[DONE]") { streamDone = true; break; }
+              try {
+                const parsed = JSON.parse(data);
+                const delta = parsed.choices?.[0]?.delta?.content || "";
+                if (delta) { fullContent += delta; emitContent?.(delta); }
+              } catch {}
+            }
+            if (streamDone) break;
+          }
+          if (streamDone) break;
+        }
+        if (eventBuffer.trim()) {
+          for (const line of eventBuffer.split("\n")) {
             if (!line.startsWith("data: ")) continue;
             const data = line.slice(6).trim();
-            if (data === "[DONE]") { streamDone = true; break; }
+            if (!data || data === "[DONE]") continue;
             try {
               const parsed = JSON.parse(data);
               const delta = parsed.choices?.[0]?.delta?.content || "";
               if (delta) { fullContent += delta; emitContent?.(delta); }
             } catch {}
           }
-          if (streamDone) break;
         }
       } finally {
         try { reader.cancel(); } catch {}
@@ -310,8 +423,37 @@ serve(async (req) => {
       let content = (continuationContent || "") + fullContent;
       content = runPostflightGuardrails(content, safetySettings);
       if (isBrowserMode) {
+        const actionValidation = validateActionPayload(content);
+        if (!actionValidation.valid) {
+          const repairPrompt = `Your last browser-action response was invalid: ${actionValidation.reason || "format error"}.
+Return ONLY a valid JSON code block matching the action schema. Do not add prose.`;
+          const repairResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-flash-preview",
+              messages: [
+                { role: "system", content: "You repair malformed browser action JSON. Output only a JSON code block." },
+                { role: "user", content: `Invalid response:\n${content}\n\n${repairPrompt}` },
+              ],
+              stream: false,
+            }),
+          });
+          if (repairResponse.ok) {
+            const repairJson = await repairResponse.json();
+            const repaired = repairJson?.choices?.[0]?.message?.content || "";
+            if (validateActionPayload(repaired).valid) {
+              content = repaired;
+            }
+          }
+        }
         const actionBlock = validateBrowserActions(content, safetySettings);
         if (actionBlock) content = actionBlock;
+      } else {
+        content = ensureDnaSections(content);
       }
 
       return { content, continuation: timedOut && content.length > 0 };
@@ -325,6 +467,18 @@ serve(async (req) => {
       }, lastUserMsg);
       const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(supabase, user.id, connectionLookupQuery);
       const result = await buildAiResponse(relevantContext, connectionContext);
+      await logBusinessLearningEvent(supabase, {
+        userId: user.id,
+        workspaceId: effectiveWsId,
+        businessId: businessId || effectiveBrandId,
+        employeeId: employee_id,
+        agentSurface: "run-employee",
+        mode: "browser",
+        userMessage: lastUserMsg,
+        assistantResponse: result.content || "",
+        profileContext,
+        metadata: { queryTopic, searchedProviders, skippedProviders },
+      });
       return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -371,8 +525,9 @@ serve(async (req) => {
 
             if (preVerifiedContent) {
               sendStep(`Using verified numbers for ${topic}`, "running", "response");
-              send({ type: "content", delta: preVerifiedContent });
-              result = { content: preVerifiedContent, continuation: false };
+              const verifiedWithSections = ensureDnaSections(preVerifiedContent);
+              send({ type: "content", delta: verifiedWithSections });
+              result = { content: verifiedWithSections, continuation: false };
               sendStep(`Used verified numbers for ${topic}`, "done", "response");
             } else {
               sendStep(`Writing your answer on ${topic}`, "running", "response");
@@ -382,6 +537,18 @@ serve(async (req) => {
               sendStep(`Wrote your answer on ${topic}`, "done", "response");
             }
             if (!result.continuation) sendStep("All done — here's what I found", "done", "complete");
+            await logBusinessLearningEvent(supabase, {
+              userId: user.id,
+              workspaceId: effectiveWsId,
+              businessId: businessId || effectiveBrandId,
+              employeeId: employee_id,
+              agentSurface: "run-employee",
+              mode: "chat",
+              userMessage: lastUserMsg,
+              assistantResponse: result.content || "",
+              profileContext,
+              metadata: { queryTopic, searchedProviders, skippedProviders, connectionDecision },
+            });
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic });
             close();

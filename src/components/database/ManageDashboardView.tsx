@@ -663,6 +663,47 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     fetchInsights(activeBrand.id);
   };
 
+  const trackLearningEvent = useCallback(async (
+    eventType: "opened" | "clicked" | "completed" | "dismissed" | "snoozed" | "promoted",
+    card: DashboardCard,
+    extra?: Record<string, unknown>,
+  ) => {
+    if (!activeBrand) return;
+    try {
+      await supabase.functions.invoke("dashboard-learning-event", {
+        body: {
+          businessId: activeBrand.id,
+          workspaceId,
+          cardId: card.id,
+          tab: card.tab || inferTabFromCard(card, activeTab as TabKind),
+          eventType,
+          source: card.source || null,
+          category: card.category || null,
+          metadata: {
+            priority: card.priority,
+            theme: (card.category || "").toLowerCase() || undefined,
+            ...extra,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Failed to track dashboard learning event:", error);
+    }
+  }, [activeBrand, workspaceId, activeTab]);
+
+  const inferTabFromCard = (card: DashboardCard, currentTab: TabKind): TabKind => {
+    if (card.tab) return card.tab;
+    if (card.waitingParty || card.waitDuration || card.consequence) return "Updates";
+    if (card.successMetric || typeof card.progress === "number" || card.objectiveType) return "Objectives";
+    if (card.howTo || card.taskType || typeof card.leverageScore === "number") return "To-Dos";
+    return currentTab || "Briefing";
+  };
+
+  const openCardWithTracking = (card: DashboardCard) => {
+    setDetailCard(card);
+    trackLearningEvent("opened", card, { interaction: "card-open" });
+  };
+
   const handleAddObjective = (title: string, description: string) => {
     const newObj: DashboardCard = {
       id: `custom-${Date.now()}`, priority: "High", title, description,
@@ -755,7 +796,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredCards.map((card) =>
                 activeTab === "Briefing" ? (
-                  <BriefingCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
+                  <BriefingCard key={card.id} card={card} onOpen={() => openCardWithTracking(card)} />
                 ) : activeTab === "To-Dos" ? (
                   <TodoCard
                     key={card.id}
@@ -763,15 +804,17 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
                     done={completedTodos.has(card.id)}
                     onToggle={() => setCompletedTodos(prev => {
                       const next = new Set(prev);
-                      next.has(card.id) ? next.delete(card.id) : next.add(card.id);
+                      const wasDone = next.has(card.id);
+                      wasDone ? next.delete(card.id) : next.add(card.id);
+                      if (!wasDone) trackLearningEvent("completed", card, { interaction: "todo-toggle" });
                       return next;
                     })}
-                    onOpen={() => setDetailCard(card)}
+                    onOpen={() => openCardWithTracking(card)}
                   />
                 ) : activeTab === "Objectives" ? (
-                  <ObjectiveCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
+                  <ObjectiveCard key={card.id} card={card} onOpen={() => openCardWithTracking(card)} />
                 ) : (
-                  <DashCard key={card.id} card={card} onOpen={() => setDetailCard(card)} />
+                  <DashCard key={card.id} card={card} onOpen={() => openCardWithTracking(card)} />
                 )
               )}
               
@@ -801,7 +844,15 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       {loading && !hasCards && activeBrand ? (
         <DetailPanelSkeleton />
       ) : (
-        <DashCardDetailPanel card={detailCard} open={!!detailCard} onClose={() => setDetailCard(null)} onExecuteAction={onExecuteAction} minimized={detailMinimized} onMinimizedChange={setDetailMinimized} />
+        <DashCardDetailPanel
+          card={detailCard}
+          open={!!detailCard}
+          onClose={() => setDetailCard(null)}
+          onExecuteAction={onExecuteAction}
+          minimized={detailMinimized}
+          onMinimizedChange={setDetailMinimized}
+          onTrackEvent={trackLearningEvent}
+        />
       )}
     </div>
   );

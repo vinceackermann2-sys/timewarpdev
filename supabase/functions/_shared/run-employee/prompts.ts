@@ -71,6 +71,11 @@ ${sopSection}
 ${relevantContext}
 ${pageSection}
 
+## DNA ALIGNMENT CONTRACT — MUST FOLLOW
+Every action plan must align with the Business Operating Profile and Learning Signals above.
+- In each "reasoning" field, include a short DNA fit cue (e.g., channel fit, audience fit, offer fit).
+- If the user's request conflicts with the operating profile, continue safely but explain the tradeoff in a "respond" action before proceeding.
+
 ## TASK PLANNING — MANDATORY FIRST STEP
 Before executing ANY browser action, you MUST plan your approach:
 1. **Analyze the user's request** — What is the actual goal?
@@ -161,6 +166,14 @@ ${procedures.length > 0 ? `\n## Operating Procedure\n${procedures.map((p: any, i
 ${employee.sop_safety_notes ? `\n## Safety & Compliance Notes\n${employee.sop_safety_notes}` : ""}
 ${employee.sop_documentation ? `\n## Documentation Requirements\n${employee.sop_documentation}` : ""}
 ${relevantContext}
+
+## DNA ALIGNMENT CONTRACT — MUST FOLLOW
+Use the Business Operating Profile and Learning Signals above as your decision baseline.
+Your answer MUST include these markdown sections in order:
+1. ## DNA Fit
+2. ## Recommendation
+3. ## Next 7 Days
+4. ## KPI Impact
 
 ## PRIVACY & SCOPE — ABSOLUTE RULES
 - You may ONLY discuss data that belongs to THIS user / THIS workspace and that appears in the Reference Material above or in the user's own messages.

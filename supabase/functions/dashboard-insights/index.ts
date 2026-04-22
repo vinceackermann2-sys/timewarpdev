@@ -4,6 +4,10 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 import {
   getValidProviderToken,
 } from "../_shared/run-employee/connections.ts";
+import {
+  buildBusinessBrainContext,
+  logBusinessLearningEvent,
+} from "../_shared/run-employee/business-brain.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +18,91 @@ const corsHeaders = {
 function tryParseJson(value: unknown): any | null {
   if (typeof value !== "string") return value && typeof value === "object" ? value : null;
   try { return JSON.parse(value); } catch { return null; }
+}
+
+type NormalizedEvidence = {
+  sourceType: string;
+  timestamp: string;
+  actor: string;
+  objectName: string;
+  rawUrgency: number;
+  revenuePotential: number;
+  customerImpact: number;
+  ownerRequired: number;
+  dnaAudienceFit: number;
+  dnaOfferFit: number;
+  dnaChannelFit: number;
+  objectiveFit: number;
+  learningWeight: number;
+  detail: string;
+};
+
+function clampScore(n: number): number {
+  return Math.max(1, Math.min(5, Number.isFinite(n) ? n : 3));
+}
+
+function buildWeightLookup(weights: any | null): Record<string, number> {
+  if (!weights || typeof weights !== "object") return {};
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(weights)) {
+    const num = Number(value);
+    if (Number.isFinite(num)) out[key] = num;
+  }
+  return out;
+}
+
+function parseLearningStateRow(row: any) {
+  return {
+    sourceWeights: buildWeightLookup(row?.source_weights),
+    categoryWeights: buildWeightLookup(row?.category_weights),
+    tabWeights: buildWeightLookup(row?.tab_weights),
+    themeWeights: buildWeightLookup(row?.theme_weights),
+  };
+}
+
+function scoreEvidence(detail: string, source: string, learningState: ReturnType<typeof parseLearningStateRow>): number {
+  const lower = detail.toLowerCase();
+  let score = 0;
+  if (/\burgent|asap|today|overdue|waiting|blocked\b/.test(lower)) score += 1.3;
+  if (/\$\s?\d+|\bdeal\b|\brevenue\b|\bpipeline\b/.test(lower)) score += 1.1;
+  if (/\bcustomer|client|account|proposal|renewal\b/.test(lower)) score += 0.8;
+  score += learningState.sourceWeights[source] || 0;
+  return clampScore(1 + score);
+}
+
+function extractHeadline(detail: string): string {
+  const cleaned = detail.replace(/\s+/g, " ").trim();
+  if (!cleaned) return "Signal detected";
+  return cleaned.slice(0, 110);
+}
+
+function ensureCardFields(card: any, tabKey: string): any {
+  const updated = { ...card };
+  if (!updated.whyThisMattersForThisBusiness) {
+    updated.whyThisMattersForThisBusiness = "This directly affects your business priorities, target audience, and current operating goals.";
+  }
+  if (tabKey === "To-Dos" && !updated.expectedOutcome) {
+    updated.expectedOutcome = "Improved execution velocity and clearer KPI movement.";
+  }
+  if (tabKey === "Objectives" && !updated.dnaDrivers) {
+    updated.dnaDrivers = ["brand", "audience", "growth"];
+  }
+  return updated;
+}
+
+function validateDashboardPayload(payload: any): { valid: boolean; reason?: string } {
+  if (!payload || typeof payload !== "object") return { valid: false, reason: "Top-level payload is not an object." };
+  const requiredTop = ["Briefing", "Updates", "To-Dos", "Objectives"];
+  for (const key of requiredTop) {
+    if (!Array.isArray(payload[key])) return { valid: false, reason: `Missing or invalid array: ${key}` };
+  }
+  for (const key of requiredTop) {
+    for (const card of payload[key]) {
+      if (!card?.id || !card?.title || !card?.priority) return { valid: false, reason: `Card in ${key} missing id/title/priority.` };
+      if (!card?.metadata || typeof card.metadata !== "object") return { valid: false, reason: `Card ${card.id} in ${key} missing metadata.` };
+    }
+  }
+  return { valid: true };
 }
 
 serve(async (req) => {
@@ -51,6 +140,18 @@ serve(async (req) => {
     const brandRow = items.find((item: any) => item.id === brandId);
     const brandContent = tryParseJson(brandRow?.content);
     const brandName = brandContent?.name || brandRow?.title || "Business";
+    const { businessId, profileContext, learningContext } = await buildBusinessBrainContext(supabase, {
+      userId: user.id,
+      brandId,
+      workspaceId,
+    });
+    const { data: learningStateRow } = await supabase
+      .from("business_learning_state")
+      .select("source_weights, category_weights, tab_weights, theme_weights")
+      .eq("business_id", businessId || brandId)
+      .maybeSingle();
+    const learningState = parseLearningStateRow(learningStateRow);
+    const normalizedEvidence: NormalizedEvidence[] = [];
 
     const logicalBrandId = brandContent?.id || brandId;
     const brandProducts = items.filter((item: any) => {
@@ -557,6 +658,38 @@ serve(async (req) => {
 
     await Promise.all(searchPromises);
 
+    // 4b. Normalize evidence lines for ranking context
+    const evidenceLines = integrationData
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .filter((line) => /^(📧|💬|📅|📄|📊|📽️|📝|- )/.test(line));
+    for (const line of evidenceLines.slice(0, 240)) {
+      const sourceType = line.includes("📧") ? "email"
+        : line.includes("💬") ? "message"
+        : line.includes("📅") ? "meeting"
+        : line.includes("📄") || line.includes("📊") || line.includes("📽️") ? "file"
+        : line.includes("📝") ? "note"
+        : "signal";
+      const learningWeight = scoreEvidence(line, sourceType, learningState);
+      normalizedEvidence.push({
+        sourceType,
+        timestamp: new Date().toISOString(),
+        actor: sourceType === "email" ? "external_sender" : "integration_actor",
+        objectName: extractHeadline(line),
+        rawUrgency: learningWeight,
+        revenuePotential: /\$\s?\d+|deal|pipeline|revenue/i.test(line) ? 4 : 2,
+        customerImpact: /\bcustomer|client|account|proposal|meeting/i.test(line) ? 4 : 2,
+        ownerRequired: /\bwaiting|reply|follow.?up|decision|overdue\b/i.test(line) ? 4 : 2,
+        dnaAudienceFit: /audience|customer|icp|buyer/i.test(line) ? 4 : 3,
+        dnaOfferFit: /offer|plan|pricing|proposal|product/i.test(line) ? 4 : 3,
+        dnaChannelFit: /slack|gmail|outlook|calendar|drive|zoom|teams/i.test(line) ? 4 : 3,
+        objectiveFit: /target|kpi|goal|revenue|growth|pipeline/i.test(line) ? 4 : 3,
+        learningWeight,
+        detail: line,
+      });
+    }
+
     // 5. Build context
     const productsSummary = brandProducts.map((p: any) => {
       const parsed = tryParseJson(p.content);
@@ -601,6 +734,12 @@ AI Agent: ${brandContent.agentName || "Not configured"}
       .join("\n\n");
 
     const fullContext = `
+## Business Operating Profile (Canonical)
+${profileContext || "No operating profile available."}
+
+## Learning Signals (Personalized Memory)
+${learningContext || "No learning signals available yet."}
+
 ## Business Overview
 ${brandSummary}
 
@@ -619,6 +758,13 @@ ${employeesSummary}
 ## Integrations
 ${connectedSummary}
 ${integrationData ? `\n## Live Integration Data\n${integrationData}` : ""}
+
+## Normalized Evidence
+${normalizedEvidence.length > 0
+  ? normalizedEvidence.slice(0, 120).map((e) =>
+      `- [${e.sourceType}] ${e.objectName} | urgency:${e.rawUrgency} revenue:${e.revenuePotential} owner:${e.ownerRequired} objectiveFit:${e.objectiveFit} learning:${e.learningWeight}`
+    ).join("\n")
+  : "No normalized evidence available."}
 `;
 
     // 6. Load previous snapshot for the Delta Layer
@@ -649,6 +795,8 @@ If a piece of intelligence does not answer one of these, OMIT it.
 
 ## ALIGNMENT LAYER (Full 9-Pillar Business DNA + Connections)
 Use ALL of these sections as the ALIGNMENT LAYER: Business Overview, Products, Target Audiences, **Extended Business DNA (Market, Financial, Operations, People, Growth, Strategy)**, AI Employees, and connected Integrations. Every insight must be contextualized against this business's identity, goals, products, audiences, market position, financials, ops, team, growth motion, and strategy. When the Extended DNA defines an OKR, KPI, target, milestone, or risk, you MUST surface it as an Objective (with momentumIndicator) when there is real signal in Live Integration Data. DNA is for tone/context/alignment — never as a source of fabricated facts.
+
+You are operating in CEO cockpit mode. Prefer strategic clarity and executive actionability over noisy activity summaries.
 
 ## DATA SOURCES — STRICT ANTI-HALLUCINATION RULES
 You MUST generate cards ONLY from the "## Live Integration Data" section. Every card must trace back to a SPECIFIC item (email subject, message text, deal name, file name, meeting title) that appears VERBATIM in that section.
@@ -777,6 +925,11 @@ Weights: tabBalance 25 · sourceDiversity 20 · specificity 20 · actionability 
 - **To-Dos**: "taskType", "howTo" (≥2 numbered steps), "estimatedDuration" ("⚡ Quick" | "⏱ Medium" | "🟠 Deep Work"), "leverageScore" (1–5, hidden), "leverageLabel" (rendered from score — always populate)
 - **Objectives**: "objectiveType", "successMetric" { current, target, gap, source } — REAL data only, "progress" (0–100), "timeHorizon" ("This Sprint" | "This Month" | "This Quarter" | "This Half"), "relatedTodoIds" (linked To-Do ids — populate when possible), "momentumIndicator" (mandatory when metric is quantifiable)
 
+## BUSINESS BRAIN FIELDS (MANDATORY ON EVERY CARD)
+- "whyThisMattersForThisBusiness": one sentence on why this specific business should care right now
+- For To-Dos add "expectedOutcome": one sentence outcome
+- For Objectives add "dnaDrivers": array of relevant pillars (e.g. ["audience","growth","financial"])
+
 Sort cards within each tab by priority (High first). **Empty tabs are correct when no data supports them. NEVER fabricate.**
 Return ONLY a valid JSON object, no markdown fences.`;
 
@@ -816,6 +969,37 @@ Return ONLY a valid JSON object, no markdown fences.`;
       parsed = {};
     }
 
+    const initialValidation = validateDashboardPayload(parsed);
+    if (!initialValidation.valid) {
+      const repairPrompt = `Repair this dashboard JSON so it follows schema exactly. Error: ${initialValidation.reason}. Return only JSON object with Briefing, Updates, To-Dos, Objectives, openingSummary, healthScore.`;
+      const repairResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: "You repair malformed dashboard JSON outputs. Output only JSON." },
+            { role: "user", content: `${repairPrompt}\n\nInvalid JSON:\n${rawContent}` },
+          ],
+          stream: false,
+        }),
+      });
+      if (repairResponse.ok) {
+        const repairData = await repairResponse.json();
+        const repairContent = repairData?.choices?.[0]?.message?.content || "{}";
+        try {
+          const jsonMatch = repairContent.match(/\{[\s\S]*\}/);
+          const repaired = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+          if (validateDashboardPayload(repaired).valid) parsed = repaired;
+        } catch {
+          // keep original parsed
+        }
+      }
+    }
+
     // 8. Normalize tabs and apply Delta Layer (compute deltaState per card vs. previous snapshot)
     const TAB_KEYS: Array<"Briefing" | "Updates" | "To-Dos" | "Objectives"> = ["Briefing", "Updates", "To-Dos", "Objectives"];
     const PRIORITY_ORDER: Record<string, number> = { Low: 1, Medium: 2, High: 3 };
@@ -846,7 +1030,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
     for (const tabKey of TAB_KEYS) {
       const arr = Array.isArray(parsed[tabKey]) ? parsed[tabKey] : [];
       const annotated = arr.map((c: any) => {
-        const enriched = tabKey === "To-Dos" ? backfillLeverage(c) : c;
+        const enriched = ensureCardFields(tabKey === "To-Dos" ? backfillLeverage(c) : c, tabKey);
         const withDelta = annotateDelta(enriched, tabKey);
         nextSnapshot[withDelta.id] = { priority: withDelta.priority, tab: tabKey };
         return withDelta;
@@ -866,6 +1050,33 @@ Return ONLY a valid JSON object, no markdown fences.`;
     const healthScore = parsed.healthScore && typeof parsed.healthScore === "object"
       ? parsed.healthScore
       : null;
+    let strategicSuggestions = Array.isArray(parsed.Suggestions)
+      ? parsed.Suggestions.slice(0, 3)
+      : [];
+    if (strategicSuggestions.length === 0) {
+      const topTodo = Array.isArray(parsed["To-Dos"]) ? parsed["To-Dos"][0] : null;
+      const topObjective = Array.isArray(parsed["Objectives"]) ? parsed["Objectives"][0] : null;
+      const fallback: any[] = [];
+      if (topTodo?.title) {
+        fallback.push({
+          id: `suggestion-todo-${String(topTodo.id || "top").slice(0, 24)}`,
+          title: `Execute: ${topTodo.title}`,
+          rationale: topTodo.whyThisMattersForThisBusiness || "High leverage action from live integration signals.",
+          expectedImpact: topTodo.expectedOutcome || "Near-term execution and momentum improvement.",
+          confidence: "medium",
+        });
+      }
+      if (topObjective?.title) {
+        fallback.push({
+          id: `suggestion-objective-${String(topObjective.id || "top").slice(0, 24)}`,
+          title: `Advance Objective: ${topObjective.title}`,
+          rationale: topObjective.whyThisMattersForThisBusiness || "Strategic objective aligned with business DNA.",
+          expectedImpact: "Improved objective momentum and KPI clarity.",
+          confidence: "medium",
+        });
+      }
+      strategicSuggestions = fallback.slice(0, 3);
+    }
 
     // 10. Persist new snapshot (upsert by user_id + brand_id)
     try {
@@ -887,11 +1098,57 @@ Return ONLY a valid JSON object, no markdown fences.`;
       // Non-fatal — return the dashboard anyway
     }
 
+    // 11. Log learning event for dashboard generation
+    await logBusinessLearningEvent(supabase, {
+      userId: user.id,
+      workspaceId,
+      businessId: businessId || brandId,
+      agentSurface: "run-employee",
+      mode: "chat",
+      userMessage: `dashboard-insights:${brandName}`,
+      assistantResponse: JSON.stringify({
+        openingSummary,
+        healthScore,
+        briefingCount: tabsResult["Briefing"]?.length || 0,
+        updatesCount: tabsResult["Updates"]?.length || 0,
+        todosCount: tabsResult["To-Dos"]?.length || 0,
+        objectivesCount: tabsResult["Objectives"]?.length || 0,
+      }),
+      profileContext,
+      metadata: {
+        normalizedEvidenceCount: normalizedEvidence.length,
+        connectedProviders,
+      },
+    });
+
+    // 12. Record shown events for ranking feedback loop
+    const shownRows: any[] = [];
+    for (const tabKey of TAB_KEYS) {
+      for (const card of tabsResult[tabKey]) {
+        shownRows.push({
+          user_id: user.id,
+          workspace_id: workspaceId || null,
+          business_id: businessId || brandId,
+          card_id: card.id,
+          tab: tabKey,
+          event_type: "shown",
+          source: card.source || null,
+          category: card.category || null,
+          priority: card.priority || null,
+          metadata: { deltaState: card.deltaState || "new" },
+        });
+      }
+    }
+    if (shownRows.length > 0) {
+      await supabase.from("dashboard_card_events").insert(shownRows).then(() => {}).catch(() => {});
+    }
+
     return new Response(JSON.stringify({
       tabs: tabsResult,
       brandName,
       openingSummary,
       healthScore,
+      suggestions: strategicSuggestions,
       resolvedCardIds,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

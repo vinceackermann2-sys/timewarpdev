@@ -113,10 +113,16 @@ export function useExtensionBridge() {
       window.postMessage({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }, "*");
       setTimeout(() => {
         if (resolversRef.current.has("page_context")) {
-          resolversRef.current.delete("page_context");
-          resolve({});
+          // Retry once before failing; page scraping can be slightly delayed.
+          window.postMessage({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }, "*");
+          setTimeout(() => {
+            if (resolversRef.current.has("page_context")) {
+              resolversRef.current.delete("page_context");
+              resolve({});
+            }
+          }, 2500);
         }
-      }, 1500);
+      }, 2500);
     });
   }, []);
 
@@ -128,8 +134,14 @@ export function useExtensionBridge() {
       window.postMessage(msg, "*");
       setTimeout(() => {
         if (resolversRef.current.has("action_result")) {
-          resolversRef.current.delete("action_result");
-          resolve({ success: false, action: action.action, error: "Timeout waiting for extension" });
+          // Retry once before failing to reduce false timeout failures.
+          window.postMessage(msg, "*");
+          setTimeout(() => {
+            if (resolversRef.current.has("action_result")) {
+              resolversRef.current.delete("action_result");
+              resolve({ success: false, action: action.action, error: "Timeout waiting for extension after retry" });
+            }
+          }, 15000);
         }
       }, 15000);
     });

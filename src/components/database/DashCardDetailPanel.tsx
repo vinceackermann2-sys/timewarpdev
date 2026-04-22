@@ -22,6 +22,7 @@ interface Props {
   onExecuteAction?: (actionText: string) => void;
   minimized?: boolean;
   onMinimizedChange?: (m: boolean) => void;
+  onTrackEvent?: (eventType: "opened" | "clicked" | "completed" | "dismissed" | "snoozed" | "promoted", card: DashboardCard, extra?: Record<string, unknown>) => void;
 }
 
 /* ── Short, personal CTA verb derived from the card's own suggestion ── */
@@ -935,7 +936,7 @@ function buildSourceUrl(card: DashboardCard): string | null {
   }
 }
 
-export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, minimized: minimizedProp, onMinimizedChange }: Props) {
+export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, minimized: minimizedProp, onMinimizedChange, onTrackEvent }: Props) {
   const [minimizedState, setMinimizedState] = useState(false);
   const [done, setDone] = useState(false);
   const minimized = minimizedProp ?? minimizedState;
@@ -961,6 +962,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
         else localStorage.removeItem(`dash-done:${card.id}`);
       } catch { /* ignore */ }
       toast({ description: next ? "Marked as done" : "Marked as not done" });
+      if (next) onTrackEvent?.("completed", card, { priority: card.priority, theme: (card.category || "").toLowerCase() });
       return next;
     });
   };
@@ -977,6 +979,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
   const dismissCard = () => {
     if (!card?.id) return;
     try { localStorage.setItem(`dash-dismissed:${card.id}`, "1"); } catch { /* ignore */ }
+    onTrackEvent?.("dismissed", card, { priority: card.priority, theme: (card.category || "").toLowerCase() });
     toast({ description: "Card hidden — refresh to remove from list" });
     onClose();
   };
@@ -1048,7 +1051,10 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
                     disabled={!sourceUrl}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (sourceUrl) window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                      if (sourceUrl) {
+                        onTrackEvent?.("clicked", card, { priority: card.priority, theme: (card.category || "").toLowerCase(), destination: "source-link" });
+                        window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                      }
                     }}
                     className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed outline-none"
                   >
@@ -1077,7 +1083,10 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
                   <FileText className="h-3.5 w-3.5 mr-2" /> Copy original content
                 </DropdownMenuItem>
                 {sourceUrl && (
-                  <DropdownMenuItem onClick={() => window.open(sourceUrl, "_blank", "noopener,noreferrer")}>
+                  <DropdownMenuItem onClick={() => {
+                    onTrackEvent?.("clicked", card, { priority: card.priority, theme: (card.category || "").toLowerCase(), destination: "source-link" });
+                    window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                  }}>
                     <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in {sourceMeta.label}
                   </DropdownMenuItem>
                 )}
@@ -1129,6 +1138,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
             size="sm"
             className="w-full h-10 gap-1.5 text-[13px] font-semibold rounded-lg bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
             onClick={() => {
+              onTrackEvent?.("clicked", card, { priority: card.priority, theme: (card.category || "").toLowerCase(), destination: "cta-action" });
               if (card.actionSuggestion) onExecuteAction?.(card.actionSuggestion);
               onClose();
             }}
