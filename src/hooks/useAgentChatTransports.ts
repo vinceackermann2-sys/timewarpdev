@@ -15,8 +15,8 @@ type BrandRow = { id: string; agentName?: string; name?: string; _rowId?: string
 export interface ExtensionBridgeActions {
   getPageContext: () => Promise<any>;
   executeAction: (action: any) => Promise<any>;
-  signalStart: (id: string, name: string) => Promise<void>;
-  signalStop: (id: string) => Promise<void>;
+  signalStart: (id: string, name: string) => Promise<boolean>;
+  signalStop: (id: string) => void;
   updateOverlay: (state: { visible: boolean; employeeName?: string; currentStep?: string }) => void;
 }
 
@@ -55,7 +55,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
   const runAgentChat = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
     const userContent = buildMultimodalContent(userMsg.content);
-    chatHistory.push({ role: "user", content: userContent as string | Record<string, unknown>[] });
+    (chatHistory as any[]).push({ role: "user", content: userContent });
 
     const brandRowId = resolveBrandRowId();
 
@@ -364,7 +364,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
     const userContent = buildMultimodalContent(userMsg.content);
-    chatHistory.push({ role: "user", content: userContent as string | Record<string, unknown>[] });
+    (chatHistory as any[]).push({ role: "user", content: userContent });
 
     const brandRowId = resolveBrandRowId();
 
