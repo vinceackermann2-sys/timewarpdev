@@ -220,13 +220,20 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
     return "If skipped, the work compounds into a larger backlog and slows momentum.";
   })();
 
+  const toStr = (v: unknown): string => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "number" || typeof v === "boolean") return String(v);
+    try { return JSON.stringify(v); } catch { return ""; }
+  };
+
   const rows: { label: string; value: string; rail: string }[] = [
-    { label: labels.dataPoint,   value: (updatesHistory ?? todosValue ?? dataPoint) || "",                  rail: "bg-[hsl(264_46%_60%)]" }, // purple
-    { label: labels.pattern,     value: (updatesContext ?? todosDependencies ?? pattern) || "",             rail: "bg-[hsl(217_45%_65%)]" }, // blue
-    { label: labels.crossPillar, value: (updatesRecommendation ?? todosCriteria ?? crossPillar) || "",      rail: "bg-[hsl(160_42%_62%)]" }, // mint
-    { label: labels.implication, value: (updatesTimeCost ?? todosTimeCost ?? implication) || "",            rail: "bg-[hsl(42_88%_65%)]" }, // amber
-    { label: labels.watchSignal, value: (updatesEscalation ?? todosEscalation ?? watchSignal) || "",        rail: "bg-[hsl(335_55%_75%)]" }, // pink
-  ].filter((r) => r.value && r.value.trim().length > 0);
+    { label: labels.dataPoint,   value: toStr(updatesHistory ?? todosValue ?? dataPoint),                  rail: "bg-[hsl(264_46%_60%)]" }, // purple
+    { label: labels.pattern,     value: toStr(updatesContext ?? todosDependencies ?? pattern),             rail: "bg-[hsl(217_45%_65%)]" }, // blue
+    { label: labels.crossPillar, value: toStr(updatesRecommendation ?? todosCriteria ?? crossPillar),      rail: "bg-[hsl(160_42%_62%)]" }, // mint
+    { label: labels.implication, value: toStr(updatesTimeCost ?? todosTimeCost ?? implication),            rail: "bg-[hsl(42_88%_65%)]" }, // amber
+    { label: labels.watchSignal, value: toStr(updatesEscalation ?? todosEscalation ?? watchSignal),        rail: "bg-[hsl(335_55%_75%)]" }, // pink
+  ].filter((r) => r.value.trim().length > 0);
 
   return (
     <div className="pt-1">
@@ -263,7 +270,15 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
 function ExecutionPlan({ card }: { card: DashboardCard }) {
   const steps = (() => {
     // 1. Try to split howTo into numbered/bulleted steps
-    const raw = (card.howTo || "").trim();
+    const howToVal: unknown = card.howTo;
+    let raw = "";
+    if (Array.isArray(howToVal)) {
+      raw = howToVal.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join("\n").trim();
+    } else if (typeof howToVal === "string") {
+      raw = howToVal.trim();
+    } else if (howToVal != null) {
+      try { raw = JSON.stringify(howToVal); } catch { raw = ""; }
+    }
     if (raw) {
       // Match patterns like "1. ...", "1) ...", "- ...", or sentences split by ". "
       const numbered = raw.match(/(?:^|\n)\s*(?:\d+[.)]|[-•])\s+([^\n]+)/g);
