@@ -427,7 +427,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             }
 
             const finalContent = runPostflightGuardrails(fullContent, safetySettings);
-            sendStep(`Crafting your answer on ${answerTopic}`, "done", "response");
+            sendStep(craftLabel, "done", "response");
             sendStep("Finished", "done", "complete");
             send({ type: "result", content: finalContent, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic: answerTopic });
             close();
