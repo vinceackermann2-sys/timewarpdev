@@ -119,12 +119,68 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
     return "Re-evaluate if the same theme appears again this week.";
   })();
 
+  // Tab-specific labels — Updates uses action-oriented labels (History/Context/Recommendation/Time Cost/Escalation Path)
+  const labels = (() => {
+    if (tabKind === "Updates") {
+      return {
+        dataPoint: "History",
+        pattern: "Context",
+        crossPillar: "Recommendation",
+        implication: "Time Cost",
+        watchSignal: "Escalation Path",
+      };
+    }
+    return {
+      dataPoint: "Data Point",
+      pattern: "Pattern",
+      crossPillar: "Cross-Pillar",
+      implication: "Implication",
+      watchSignal: "Watch Signal",
+    };
+  })();
+
+  // Updates-specific personalized values for the new label scheme
+  const updatesHistory = (() => {
+    if (tabKind !== "Updates") return null;
+    const who = card.metadata?.senderName || card.waitingParty?.split(/[·,(]/)[0]?.trim() || "Contact";
+    const when = card.timeAgo || card.waitDuration || "recently";
+    const action = card.metadata?.subject ? `sent "${card.metadata.subject}"` : (card.requestType ? `${card.requestType.toLowerCase()} request` : "reached out");
+    return `${who} ${action} ${when}.`;
+  })();
+
+  const updatesContext = (() => {
+    if (tabKind !== "Updates") return null;
+    const parts: string[] = [];
+    if (card.metadata?.dealValue) parts.push(`${card.metadata.dealValue} deal value`);
+    if (card.metadata?.stage) parts.push(card.metadata.stage);
+    if (card.waitingParty) parts.push(`${card.waitingParty} is waiting`);
+    if (card.metadata?.contactName) parts.push(`${card.metadata.contactName} is the contact`);
+    return parts.length ? parts.join(". ") + "." : (card.detail || card.description || "");
+  })();
+
+  const updatesRecommendation = (() => {
+    if (tabKind !== "Updates") return null;
+    return card.actionSuggestion || `Respond to unblock ${card.waitingParty?.split(/[·,(]/)[0]?.trim() || "the requester"}.`;
+  })();
+
+  const updatesTimeCost = (() => {
+    if (tabKind !== "Updates") return null;
+    if (card.estimatedDuration) return `~${card.estimatedDuration} to draft reply`;
+    return "~5 minutes to draft reply";
+  })();
+
+  const updatesEscalation = (() => {
+    if (tabKind !== "Updates") return null;
+    if (card.consequence) return card.consequence;
+    return "If unresolved soon, momentum stalls and the request escalates.";
+  })();
+
   const rows: { label: string; value: string; rail: string }[] = [
-    { label: "Data Point",   value: dataPoint,   rail: "bg-[hsl(264_46%_60%)]" }, // purple
-    { label: "Pattern",      value: pattern || "", rail: "bg-[hsl(217_45%_65%)]" }, // blue
-    { label: "Cross-Pillar", value: crossPillar, rail: "bg-[hsl(280_38%_70%)]" }, // lavender
-    { label: "Implication",  value: implication, rail: "bg-[hsl(335_55%_75%)]" }, // pink
-    { label: "Watch Signal", value: watchSignal, rail: "bg-[hsl(160_42%_62%)]" }, // mint
+    { label: labels.dataPoint,   value: (updatesHistory ?? dataPoint) || "",        rail: "bg-[hsl(264_46%_60%)]" }, // purple
+    { label: labels.pattern,     value: (updatesContext ?? pattern) || "",          rail: "bg-[hsl(217_45%_65%)]" }, // blue
+    { label: labels.crossPillar, value: (updatesRecommendation ?? crossPillar) || "", rail: "bg-[hsl(160_42%_62%)]" }, // mint (recommendation)
+    { label: labels.implication, value: (updatesTimeCost ?? implication) || "",     rail: "bg-[hsl(42_88%_65%)]" }, // amber (time cost)
+    { label: labels.watchSignal, value: (updatesEscalation ?? watchSignal) || "",   rail: "bg-[hsl(335_55%_75%)]" }, // pink (escalation)
   ].filter((r) => r.value && r.value.trim().length > 0);
 
   return (
