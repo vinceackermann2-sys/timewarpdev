@@ -270,7 +270,15 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
 function ExecutionPlan({ card }: { card: DashboardCard }) {
   const steps = (() => {
     // 1. Try to split howTo into numbered/bulleted steps
-    const raw = (card.howTo || "").trim();
+    const howToVal: unknown = card.howTo;
+    let raw = "";
+    if (Array.isArray(howToVal)) {
+      raw = howToVal.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join("\n").trim();
+    } else if (typeof howToVal === "string") {
+      raw = howToVal.trim();
+    } else if (howToVal != null) {
+      try { raw = JSON.stringify(howToVal); } catch { raw = ""; }
+    }
     if (raw) {
       // Match patterns like "1. ...", "1) ...", "- ...", or sentences split by ". "
       const numbered = raw.match(/(?:^|\n)\s*(?:\d+[.)]|[-•])\s+([^\n]+)/g);
