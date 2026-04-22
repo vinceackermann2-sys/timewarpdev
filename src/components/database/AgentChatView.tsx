@@ -1049,6 +1049,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
   /* ── Cancel in-progress message ── */
   const handleCancelMessage = () => {
+    stalledRef.current = true; // prevent stall watchdog from firing right after manual cancel
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
