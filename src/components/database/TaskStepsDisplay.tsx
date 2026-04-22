@@ -62,7 +62,7 @@ function getStepIcon(label: string) {
   // We require one of those provider-action verbs to be present so we don't slap
   // the Gmail logo on every step just because the user's question mentions "gmail".
   const isProviderStep =
-    /\b(peeking into|skipping|looking through|checking your|flipping through|searching your|fetching your|reading your|scanning your)\b/.test(l);
+    /\b(peeking into|skipping|looking through|checking your|flipping through|searching your|searching|fetching your|reading your|scanning your|browsing your|digging through|listening in on)\b/.test(l);
   if (isProviderStep) {
     if (l.includes("gmail")) return "google_gmail" as any;
     if (l.includes("google calendar")) return "google_calendar" as any;

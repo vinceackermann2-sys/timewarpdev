@@ -50,6 +50,14 @@ function buildSearchTerms(query: string, topic?: string): string[] {
   ).slice(0, 4);
 }
 
+function isGenericRecentFileQuery(query: string): boolean {
+  const normalized = normalizeSearchTerm(query);
+  const asksForRecency = /\b(recent|latest|last|newest|new|most\s+recent)\b/i.test(normalized);
+  const asksForFiles = /\b(documents?|docs?|files?|spreadsheets?|sheets?|slides?|presentations?)\b/i.test(normalized);
+  const asksForNamedFile = /\b(about|regarding|named|called|titled|containing|with)\b/i.test(normalized);
+  return asksForRecency && asksForFiles && !asksForNamedFile;
+}
+
 function formatProviderName(provider: string): string {
   if (provider === "microsoft") return "Microsoft 365";
   if (provider === "microsoft_outlook") return "Outlook";
@@ -105,6 +113,7 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
   const seenEmails = new Set<string>();
   const seenFiles = new Set<string>();
   const searchTerms = buildSearchTerms(query, topic);
+  const isGenericRecentFiles = isGenericRecentFileQuery(query);
   if (searchTerms.length === 0) return results;
 
   for (const term of searchTerms) {
@@ -143,6 +152,24 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
 
     try {
       if (searchFiles && results.files.length < 5) {
+        if (isGenericRecentFiles) {
+          const fileRes = await fetch(
+            `https://graph.microsoft.com/v1.0/me/drive/recent?$top=5`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+          if (fileRes.ok) {
+            const data = await fileRes.json();
+            for (const file of (data.value || [])) {
+              const fileKey = file.webUrl || `${file.name}|${file.lastModifiedDateTime || ""}`;
+              if (seenFiles.has(fileKey)) continue;
+              seenFiles.add(fileKey);
+              results.files.push(`📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""}) — [link](${file.webUrl || ""})`);
+              if (results.files.length >= 5) break;
+            }
+          }
+          if (results.files.length >= 5) break;
+          continue;
+        }
         const fileRes = await fetch(
           `https://graph.microsoft.com/v1.0/me/drive/root/search(q='${encodedTerm}')?$top=5&$select=name,webUrl,lastModifiedDateTime,size`,
           { headers: { Authorization: `Bearer ${token}` } },
@@ -312,8 +339,7 @@ export async function searchGmailData(token: string, query: string, topic?: stri
 export async function searchGoogleDriveData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const searchTerms = buildSearchTerms(query, topic);
-  const isGenericRecent = /\b(recent|latest|last|new|my\s+files?|my\s+docs?|my\s+drive)\b/i.test(query) &&
-    !/\b(about|regarding|named|called|titled)\b/i.test(query);
+  const isGenericRecent = isGenericRecentFileQuery(query) || (/\b(my\s+drive)\b/i.test(query) && !/\b(about|regarding|named|called|titled)\b/i.test(query));
 
   // Generic recent → just list recent non-trashed files.
   if (isGenericRecent || searchTerms.length === 0) {
@@ -330,6 +356,7 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
           results.push(`${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`);
         }
       } else {
+        if (r.status === 401 || r.status === 403) throw new Error("google_drive_permission_denied");
         console.error("[drive] list failed:", r.status, (await r.text()).slice(0, 200));
       }
     } catch (e) { console.error("Drive list error:", e); }
@@ -347,6 +374,7 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!r.ok) {
+        if (r.status === 401 || r.status === 403) throw new Error("google_drive_permission_denied");
         console.error("[drive] search failed:", r.status, (await r.text()).slice(0, 200));
         continue;
       }
@@ -357,7 +385,10 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
         const modified = f.modifiedTime?.slice(0, 10) || "";
         results.push(`${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`);
       }
-    } catch (e) { console.error("Drive search error:", e); }
+    } catch (e) {
+      if (e instanceof Error && e.message === "google_drive_permission_denied") throw e;
+      console.error("Drive search error:", e);
+    }
   }
   return results;
 }
@@ -481,6 +512,25 @@ async function getAnyGoogleToken(supabaseAdmin: any, userId: string): Promise<st
   return null;
 }
 
+async function getGoogleTokenForProvider(
+  supabaseAdmin: any,
+  userId: string,
+  provider: "google_gmail" | "google_drive" | "google_calendar",
+): Promise<string | null> {
+  const candidates = {
+    google_gmail: ["google_gmail", "google"],
+    google_drive: ["google_drive", "google"],
+    google_calendar: ["google_calendar", "google"],
+  }[provider];
+
+  for (const candidate of candidates) {
+    const token = await getValidAccessToken(supabaseAdmin, userId, candidate);
+    if (token) return token;
+  }
+
+  return null;
+}
+
 // --- Per-provider intent detection ---
 // If the user explicitly names a provider, only search that one (saves usage).
 const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
@@ -537,7 +587,10 @@ export function narrowProvidersByConnections(
       ["google_gmail", "google_drive", "google_calendar", "google_docs", "google_sheets", "google_slides"].forEach((x) => connectedSet.add(x));
     }
     if (p === "microsoft") {
-      ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"].forEach((x) => connectedSet.add(x));
+      ["microsoft_outlook"].forEach((x) => connectedSet.add(x));
+    }
+    if (p === "microsoft_calendar") {
+      ["microsoft_outlook"].forEach((x) => connectedSet.add(x));
     }
   }
   const narrowed = detectedProviders.filter((p) => connectedSet.has(p));
@@ -559,7 +612,8 @@ export function buildConnectedToolsInventory(connectedProviders: string[]): stri
   for (const p of connectedProviders) {
     connectedSet.add(p);
     if (p === "google") ["google_gmail", "google_drive", "google_calendar"].forEach((x) => connectedSet.add(x));
-    if (p === "microsoft") ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"].forEach((x) => connectedSet.add(x));
+    if (p === "microsoft") ["microsoft_outlook"].forEach((x) => connectedSet.add(x));
+    if (p === "microsoft_calendar") ["microsoft_outlook"].forEach((x) => connectedSet.add(x));
   }
   const connected = ALL_TRACKED_PROVIDERS.filter((p) => connectedSet.has(p));
   const notConnected = ALL_TRACKED_PROVIDERS.filter((p) => !connectedSet.has(p));
@@ -604,6 +658,9 @@ export function extractQueryTopic(query: string): string {
   if (!query || query.length < 3) return "your request";
   const q = query.toLowerCase().trim();
   const topicPatterns: [RegExp, string][] = [
+    [/\b(my|our|the)?\s*(last|latest|recent)\s*\d*\s*(documents?|docs?|files?|attachments?)\b/i, "recent documents"],
+    [/\b(my|our|the)?\s*(last|latest|recent)\s*\d*\s*(emails?|mails?|messages?)\b/i, "recent messages"],
+    [/\b(my|our|the)?\s*(last|latest|recent)\s*\d*\s*(meetings?|events?|appointments?|calendar)\b/i, "recent meetings"],
     [/\bcollabs?\b/i, "collaborations & partnerships"],
     [/\b(?:any|are there|check for|find)\b.{0,10}\b(collaborat\w*|partnership\w*)/i, "collaborations & partnerships"],
     [/\b(?:any|are there|check for|find)\b.{0,10}\b(complaint\w*|issue\w*|problem\w*)/i, "complaints & issues"],
@@ -742,8 +799,11 @@ export async function searchConnectedProviders(
     console.log("[connections] Targeted search — raw:", rawNamedProviders, "narrowed:", namedProviders);
   }
 
+  const hasOutlookConnection = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
+  const hasOnedriveConnection = connectedProviders.includes("microsoft_onedrive");
+  const hasOnenoteConnection = connectedProviders.includes("microsoft_onenote");
   // Check for any Microsoft sub-service connection
-  const hasMicrosoft = connectedProviders.some((p: string) => isMicrosoftProvider(p));
+  const hasMicrosoft = hasOutlookConnection || hasOnedriveConnection || hasOnenoteConnection;
   const hasAnyGoogle = connectedProviders.some((p: string) => p === "google" || p.startsWith("google_"));
 
   const allKnownProviders = [
@@ -753,7 +813,13 @@ export async function searchConnectedProviders(
   ];
   for (const provider of allKnownProviders) {
     if (isMicrosoftProvider(provider)) {
-      if (!hasMicrosoft) {
+      const providerConnected = provider === "microsoft_outlook"
+        ? hasOutlookConnection
+        : provider === "microsoft_onedrive"
+          ? hasOnedriveConnection
+          : hasOnenoteConnection;
+
+      if (!providerConnected) {
         skippedProviders.push(provider);
         skippedProviderDetails.push({ provider, reason: "not connected" });
       }
@@ -771,9 +837,9 @@ export async function searchConnectedProviders(
   }
 
   if (hasMicrosoft) {
-    const hasOutlook = isAllowed("microsoft_outlook") && connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
-    const hasOnedrive = isAllowed("microsoft_onedrive") && connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onedrive");
-    const hasOnenote = isAllowed("microsoft_onenote") && connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_onenote");
+    const hasOutlook = isAllowed("microsoft_outlook") && hasOutlookConnection;
+    const hasOnedrive = isAllowed("microsoft_onedrive") && hasOnedriveConnection;
+    const hasOnenote = isAllowed("microsoft_onenote") && hasOnenoteConnection;
 
     if (hasOutlook || hasOnedrive) {
       searchPromises.push((async () => {
@@ -832,13 +898,13 @@ export async function searchConnectedProviders(
   // --- Google Workspace ---
   if (hasAnyGoogle) {
     const hasGmail = isAllowed("google_gmail") && connectedProviders.some((p: string) => p === "google" || p === "google_gmail");
-    const hasGDrive = isAllowed("google_drive") && connectedProviders.some((p: string) => p === "google" || p === "google_drive" || p === "google_docs" || p === "google_sheets" || p === "google_slides");
+    const hasGDrive = isAllowed("google_drive") && connectedProviders.some((p: string) => p === "google" || p === "google_drive");
     const hasGCal = isAllowed("google_calendar") && connectedProviders.some((p: string) => p === "google" || p === "google_calendar");
 
     if (hasGmail) {
       searchPromises.push((async () => {
         try {
-          const token = await getAnyGoogleToken(supabase, userId);
+          const token = await getGoogleTokenForProvider(supabase, userId, "google_gmail");
           if (!token) { skippedProviderDetails.push({ provider: "google_gmail", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Gmail for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_gmail");
@@ -856,7 +922,7 @@ export async function searchConnectedProviders(
     if (hasGDrive) {
       searchPromises.push((async () => {
         try {
-          const token = await getAnyGoogleToken(supabase, userId);
+          const token = await getGoogleTokenForProvider(supabase, userId, "google_drive");
           if (!token) { skippedProviderDetails.push({ provider: "google_drive", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_drive");
@@ -865,7 +931,10 @@ export async function searchConnectedProviders(
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "done", action: "connections" });
         } catch (e) {
           console.error("[connections] Drive search failed:", e);
-          skippedProviderDetails.push({ provider: "google_drive", reason: "search failed" });
+          const reason = e instanceof Error && e.message === "google_drive_permission_denied"
+            ? "needs reconnecting"
+            : "search failed";
+          skippedProviderDetails.push({ provider: "google_drive", reason });
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "error", action: "connections" });
         }
       })());
@@ -874,7 +943,7 @@ export async function searchConnectedProviders(
     if (hasGCal) {
       searchPromises.push((async () => {
         try {
-          const token = await getAnyGoogleToken(supabase, userId);
+          const token = await getGoogleTokenForProvider(supabase, userId, "google_calendar");
           if (!token) { skippedProviderDetails.push({ provider: "google_calendar", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_calendar");
