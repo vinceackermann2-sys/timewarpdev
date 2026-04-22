@@ -1974,7 +1974,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
           <input
             type="text"
             placeholder="Search website or app..."
-            className="w-full bg-background/50 border border-border/50 rounded-xl pl-9 pr-3 py-2.5 text-[16px] sm:text-sm focus:ring-0 focus:border-border outline-none transition-all placeholder-muted-foreground text-foreground"
+            className="w-full border border-border/50 rounded-xl pl-9 pr-3 py-2.5 text-[16px] sm:text-sm focus:ring-0 focus:border-border outline-none transition-all placeholder-muted-foreground text-foreground bg-white"
             value={referenceUrlInput}
             onChange={(e) => setReferenceUrlInput(e.target.value)}
             onKeyDown={(e) => {
