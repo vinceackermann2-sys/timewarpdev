@@ -298,31 +298,35 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
         (async () => {
           try {
-            // Pick varied, personal phrasings so the sub-log doesn't feel templated.
-            // Always uses "Business DNA" wording when the topic is the user's own DNA
-            // so the UI maps it to the Dna icon.
+            // Short, cool sub-log labels — no echoing the user's question.
+            // Use a tightly truncated topic only when it's a clean noun phrase.
+            const shortTopic = (() => {
+              const t = (topic || "").trim().replace(/^(how|what|why|when|where|who|do|does|can|should|is|are)\b[^a-z0-9]*/i, "");
+              const words = t.split(/\s+/).filter(Boolean).slice(0, 3).join(" ");
+              return words.length > 0 && words.length <= 28 ? words : "";
+            })();
             const isDnaTopic = /\b(dna|brand|audience|product|positioning|business model)\b/i.test(topic);
             const understandPhrases = isDnaTopic ? [
-              `Reading your Business DNA on ${topic}`,
-              `Tuning into your Business DNA — ${topic}`,
-              `Lining up your Business DNA for ${topic}`,
+              "Reading your Business DNA",
+              "Tuning into your Business DNA",
+              "Aligning Business DNA",
             ] : [
-              `Unpacking what you mean by ${topic}`,
-              `Sitting with your question on ${topic}`,
-              `Framing the real ask behind ${topic}`,
-              `Listening closely to your ${topic} question`,
-              `Sharpening the angle on ${topic}`,
+              "Reading the room",
+              "Locking the angle",
+              "Framing the ask",
+              "Sharpening focus",
+              "Decoding intent",
             ];
             const gatherPhrases = isDnaTopic ? [
-              `Pulling the Business DNA threads on ${topic}`,
-              `Walking through your Business DNA for ${topic}`,
-              `Cross-checking your Business DNA on ${topic}`,
+              "Pulling DNA threads",
+              "Cross-checking your DNA",
+              "Walking your DNA",
             ] : [
-              `Pulling the receipts on ${topic}`,
-              `Digging into your numbers around ${topic}`,
-              `Lining up the facts on ${topic}`,
-              `Sweeping your business for ${topic} signals`,
-              `Stitching together what you have on ${topic}`,
+              "Pulling the receipts",
+              "Digging your numbers",
+              "Sweeping for signals",
+              "Stitching the facts",
+              "Mining your data",
             ];
             const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
             const understandLabel = pick(understandPhrases);
@@ -361,15 +365,15 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
             const isAnswerDna = /\b(dna|brand|audience|product|positioning|business model)\b/i.test(answerTopic);
             const craftPhrases = isAnswerDna ? [
-              `Drafting your Business DNA take on ${answerTopic}`,
-              `Writing your Business DNA read on ${answerTopic}`,
-              `Shaping your Business DNA call on ${answerTopic}`,
+              "Drafting your DNA take",
+              "Writing the DNA read",
+              "Shaping the DNA call",
             ] : [
-              `Putting your move together on ${answerTopic}`,
-              `Sketching your play for ${answerTopic}`,
-              `Writing your sharp take on ${answerTopic}`,
-              `Pulling my recommendation on ${answerTopic}`,
-              `Lining up the call on ${answerTopic}`,
+              "Building your move",
+              "Sketching the play",
+              "Writing the take",
+              "Pulling the call",
+              "Loading the answer",
             ];
             const craftLabel = craftPhrases[Math.floor(Math.random() * craftPhrases.length)];
             sendStep(craftLabel, "running", "response");
